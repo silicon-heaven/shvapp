@@ -1,0 +1,2 @@
+include ( $$PWD/../test.pri )
+
