@@ -2,6 +2,7 @@ TEMPLATE = subdirs
 CONFIG += ordered
 
 SUBDIRS += \
-	libshvcore \
-	tests \
+    libshvcore \
+    libshvgui \
+    tests \
 

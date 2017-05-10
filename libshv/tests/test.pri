@@ -7,7 +7,7 @@ PROJECT_TOP_SRCDIR = $$PWD/../..
 PROJECT_TOP_BUILDDIR = $$OUT_PWD/../..
 
 INCLUDEPATH += \
-	$$PWD/../include
+    $$PWD/../libshvcore/include
 
 win32:LIB_DIR = $$PROJECT_TOP_BUILDDIR/bin
 else:LIB_DIR = $$PROJECT_TOP_BUILDDIR/lib
@@ -17,6 +17,6 @@ LIBS += \
     -lshvcore \
 
 unix {
-	LIBS += \
-		-Wl,-rpath,\'$${LIB_DIR}\'
+    LIBS += \
+        -Wl,-rpath,\'$${LIB_DIR}\'
 }
