@@ -1,1 +1,1 @@
-#include "../../../src/shv/chainpackrpc/message.h"
+#include "../../../src/shv/chainpackrpc/chainpackmessage.h"
