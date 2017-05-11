@@ -3,13 +3,15 @@ CONFIG += c++11
 QT -= core
 #QT += testlib # enable test framework
 
-message (PROJECT_TOP_SRCDIR $$QF_PROJECT_TOP_SRCDIR)
-message (PROJECT_TOP_BUILDDIR $$QF_PROJECT_TOP_BUILDDIR)
+isEmpty(QF_PROJECT_TOP_BUILDDIR) {
+	QF_PROJECT_TOP_BUILDDIR=$$shadowed($$PWD)/../..
+}
+message ( QF_PROJECT_TOP_BUILDDIR: '$$QF_PROJECT_TOP_BUILDDIR' )
+
+DESTDIR = $$QF_PROJECT_TOP_BUILDDIR/bin
 
 INCLUDEPATH += \
 	$$PWD/../libshvcore/include
-
-DESTDIR = $$QF_PROJECT_TOP_BUILDDIR/bin
 
 win32:LIB_DIR = $$DESTDIR
 else:LIB_DIR = $$QF_PROJECT_TOP_BUILDDIR/lib

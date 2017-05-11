@@ -9,11 +9,9 @@ TEMPLATE = lib
 TARGET = shvgui
 
 isEmpty(QF_PROJECT_TOP_BUILDDIR) {
-    QF_PROJECT_TOP_BUILDDIR = $$OUT_PWD/..
+	QF_PROJECT_TOP_BUILDDIR=$$shadowed($$PWD)/../..
 }
-
-PROJECT_TOP_SRCDIR = $$PWD/../..
-message ( QF_PROJECT_TOP_BUILDDIR == '$$QF_PROJECT_TOP_BUILDDIR' )
+message ( QF_PROJECT_TOP_BUILDDIR: '$$QF_PROJECT_TOP_BUILDDIR' )
 
 unix:DESTDIR = $$QF_PROJECT_TOP_BUILDDIR/lib
 win32:DESTDIR = $$QF_PROJECT_TOP_BUILDDIR/bin
@@ -30,7 +28,7 @@ LIBS += \
     -L$$DESTDIR \
     #-lqfcore
 
-include($$PWD/src/src.pri)
+include(src/src.pri)
 
 HEADERS += \
     $$PWD/include/shv/graph/graphmodel.h \
