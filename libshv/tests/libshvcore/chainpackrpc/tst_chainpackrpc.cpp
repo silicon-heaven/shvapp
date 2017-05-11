@@ -29,8 +29,8 @@
 /*
  * Beginning of standard source file, which makes use of the customizations above.
  */
-#include <shv/chainpackrpc/message.h>
-//#include "protocol/chainpackprotocol.h"
+#include <shv/chainpackrpc/value.h>
+#include <shv/chainpackrpc/chainpackprotocol.h>
 
 #include <cassert>
 #include <string>
@@ -54,13 +54,13 @@ using std::string;
 
 // Check that ChainPack has the properties we want.
 #define CHECK_TRAIT(x) static_assert(std::x::value, #x)
-CHECK_TRAIT(is_nothrow_constructible<Message>);
-CHECK_TRAIT(is_nothrow_default_constructible<Message>);
-CHECK_TRAIT(is_copy_constructible<Message>);
-CHECK_TRAIT(is_nothrow_move_constructible<Message>);
-CHECK_TRAIT(is_copy_assignable<Message>);
-CHECK_TRAIT(is_nothrow_move_assignable<Message>);
-CHECK_TRAIT(is_nothrow_destructible<Message>);
+CHECK_TRAIT(is_nothrow_constructible<Value>);
+CHECK_TRAIT(is_nothrow_default_constructible<Value>);
+CHECK_TRAIT(is_copy_constructible<Value>);
+CHECK_TRAIT(is_nothrow_move_constructible<Value>);
+CHECK_TRAIT(is_copy_assignable<Value>);
+CHECK_TRAIT(is_nothrow_move_assignable<Value>);
+CHECK_TRAIT(is_nothrow_destructible<Value>);
 
 CHAINPACK_TEST_CASE(text_test) {
 	std::cout << "============= chainpack text test ============\n";
@@ -68,12 +68,12 @@ CHAINPACK_TEST_CASE(text_test) {
 			R"({"k1":"v1", "k2":42, "k3":["a",123,true,false,null]})";
 
 	string err;
-	const auto json = Message::parseJson(simple_test, err);
+	const auto json = Value::parseJson(simple_test, err);
 
 	std::cout << "k1: " << json["k1"].toString() << "\n";
 	std::cout << "k3: " << json["k3"].dumpJson() << "\n";
 
-	Message cp = json;
+	Value cp = json;
 	cp.setMeta(json["k1"]);
 	std::cout << "cp: " << cp.dumpText() << "\n";
 
@@ -99,48 +99,48 @@ CHAINPACK_TEST_CASE(text_test) {
 						  })";
 
 	string err_comment;
-	auto json_comment = Message::parseJson( comment_test, err_comment);
+	auto json_comment = Value::parseJson( comment_test, err_comment);
 	CHAINPACK_TEST_ASSERT(!json_comment.isNull());
 	CHAINPACK_TEST_ASSERT(err_comment.empty());
 
 	comment_test = "{\"a\": 1}//trailing line comment";
-	json_comment = Message::parseJson( comment_test, err_comment);
+	json_comment = Value::parseJson( comment_test, err_comment);
 	CHAINPACK_TEST_ASSERT(!json_comment.isNull());
 	CHAINPACK_TEST_ASSERT(err_comment.empty());
 
 	comment_test = "{\"a\": 1}/*trailing multi-line comment*/";
-	json_comment = Message::parseJson( comment_test, err_comment);
+	json_comment = Value::parseJson( comment_test, err_comment);
 	CHAINPACK_TEST_ASSERT(!json_comment.isNull());
 	CHAINPACK_TEST_ASSERT(err_comment.empty());
 
 	string failing_comment_test = "{\n/* unterminated comment\n\"a\": 1,\n}";
 	string err_failing_comment;
-	Message json_failing_comment = Message::parseJson( failing_comment_test, err_failing_comment);
+	Value json_failing_comment = Value::parseJson( failing_comment_test, err_failing_comment);
 	CHAINPACK_TEST_ASSERT(!json_failing_comment.isValid());
 	CHAINPACK_TEST_ASSERT(!err_failing_comment.empty());
 
 	failing_comment_test = "{\n/* unterminated trailing comment }";
-	json_failing_comment = Message::parseJson( failing_comment_test, err_failing_comment);
+	json_failing_comment = Value::parseJson( failing_comment_test, err_failing_comment);
 	CHAINPACK_TEST_ASSERT(!json_failing_comment.isValid());
 	CHAINPACK_TEST_ASSERT(!err_failing_comment.empty());
 
 	failing_comment_test = "{\n/ / bad comment }";
-	json_failing_comment = Message::parseJson( failing_comment_test, err_failing_comment);
+	json_failing_comment = Value::parseJson( failing_comment_test, err_failing_comment);
 	CHAINPACK_TEST_ASSERT(!json_failing_comment.isValid());
 	CHAINPACK_TEST_ASSERT(!err_failing_comment.empty());
 
 	failing_comment_test = "{// bad comment }";
-	json_failing_comment = Message::parseJson( failing_comment_test, err_failing_comment);
+	json_failing_comment = Value::parseJson( failing_comment_test, err_failing_comment);
 	CHAINPACK_TEST_ASSERT(!json_failing_comment.isValid());
 	CHAINPACK_TEST_ASSERT(!err_failing_comment.empty());
 
 	failing_comment_test = "{\n\"a\": 1\n}/";
-	json_failing_comment = Message::parseJson( failing_comment_test, err_failing_comment);
+	json_failing_comment = Value::parseJson( failing_comment_test, err_failing_comment);
 	CHAINPACK_TEST_ASSERT(!json_failing_comment.isValid());
 	CHAINPACK_TEST_ASSERT(!err_failing_comment.empty());
 
 	failing_comment_test = "{/* bad\ncomment *}";
-	json_failing_comment = Message::parseJson( failing_comment_test, err_failing_comment);
+	json_failing_comment = Value::parseJson( failing_comment_test, err_failing_comment);
 	CHAINPACK_TEST_ASSERT(!json_failing_comment.isValid());
 	CHAINPACK_TEST_ASSERT(!err_failing_comment.empty());
 	/*
@@ -155,18 +155,18 @@ CHAINPACK_TEST_CASE(text_test) {
 	CHAINPACK_TEST_ASSERT(ChainPack(m1) == ChainPack(m2));
 	*/
 	// ChainPack literals
-	const Message obj = Message::Map({
+	const Value obj = Value::Map({
 											 { "k1", "v1" },
 											 { "k2", 42.0 },
-											 { "k3", Message::List({ "a", 123.0, true, false, nullptr }) },
+											 { "k3", Value::List({ "a", 123.0, true, false, nullptr }) },
 										 });
 
 	std::cout << "obj: " << obj.dumpJson() << "\n";
 	CHAINPACK_TEST_ASSERT(obj.dumpJson() == "{\"k1\": \"v1\", \"k2\": 42, \"k3\": [\"a\", 123, true, false, null]}");
 
-	CHAINPACK_TEST_ASSERT(Message("a").toDouble() == 0);
-	CHAINPACK_TEST_ASSERT(Message("a").toString() == "a");
-	CHAINPACK_TEST_ASSERT(Message().toDouble() == 0);
+	CHAINPACK_TEST_ASSERT(Value("a").toDouble() == 0);
+	CHAINPACK_TEST_ASSERT(Value("a").toString() == "a");
+	CHAINPACK_TEST_ASSERT(Value().toDouble() == 0);
 	/*
 	CHAINPACK_TEST_ASSERT(obj == json);
 	CHAINPACK_TEST_ASSERT(ChainPack(42) == ChainPack(42.0));
@@ -178,7 +178,7 @@ CHAINPACK_TEST_CASE(text_test) {
 	const char utf8[] = "blah" "\xf0\x9f\x92\xa9" "blah" "\xed\xa0\xbd" "blah"
 						"\xed\xb2\xa9" "blah" "\0" "blah" "\xe1\x88\xb4";
 
-	Message uni = Message::parseJson(unicode_escape_test, err);
+	Value uni = Value::parseJson(unicode_escape_test, err);
 	CHAINPACK_TEST_ASSERT(uni[0].toString().size() == (sizeof utf8) - 1);
 	CHAINPACK_TEST_ASSERT(std::memcmp(uni[0].toString().data(), utf8, sizeof utf8) == 0);
 
@@ -225,10 +225,10 @@ CHAINPACK_TEST_CASE(text_test) {
 		}
 	}
 	*/
-	Message my_json = Message::Map {
+	Value my_json = Value::Map {
 		{ "key1", "value1" },
 		{ "key2", false },
-		{ "key3", Message::List { 1, 2, 3 } },
+		{ "key3", Value::List { 1, 2, 3 } },
 	};
 	std::string json_obj_str = my_json.dumpJson();
 	std::cout << "json_obj_str: " << json_obj_str << "\n";
@@ -239,16 +239,16 @@ CHAINPACK_TEST_CASE(text_test) {
 		int x;
 		int y;
 		Point (int x, int y) : x(x), y(y) {}
-		Message to_json() const { return Message::List { x, y }; }
+		Value to_json() const { return Value::List { x, y }; }
 	};
 
 	std::vector<Point> points = { { 1, 2 }, { 10, 20 }, { 100, 200 } };
-	std::string points_json = Message(points).dumpJson();
+	std::string points_json = Value(points).dumpJson();
 	std::cout << "points_json: " << points_json << "\n";
 	CHAINPACK_TEST_ASSERT(points_json == "[[1, 2], [10, 20], [100, 200]]");
 }
 
-static std::string binary_dump(const Message::Blob &out)
+static std::string binary_dump(const Value::Blob &out)
 {
 	std::string ret;
 	for (size_t i = 0; i < out.size(); ++i) {
@@ -266,34 +266,34 @@ static std::string binary_dump(const Message::Blob &out)
 CHAINPACK_TEST_CASE(binary_test)
 {
 	std::cout << "============= chainpack binary test ============\n";
-	for (int i = 0; i < shv::chainpackrpc::Message::Type::COUNT; ++i) {
-		Message::Blob out;
+	for (int i = 0; i < shv::chainpackrpc::Value::Type::COUNT; ++i) {
+		Value::Blob out;
 		out += i;
-		Message::Type::Enum e = (Message::Type::Enum)i;
+		Value::Type::Enum e = (Value::Type::Enum)i;
 		//std::string s = std::to_string(i);
 		//if(i < 10)
 		//	s = ' ' + s;
-		std::cout << std::setw(2) << i << " " << binary_dump(out) << " "  << Message::Type::name(e) << "\n";
+		std::cout << std::setw(2) << i << " " << binary_dump(out) << " "  << Value::Type::name(e) << "\n";
 	}
 	{
 		std::cout << "------------- NULL \n";
-		Message cp1{nullptr};
-		protocol::ChainPackProtocol::Blob out;
-		int len = protocol::ChainPackProtocol::write(out, cp1);
+		Value cp1{nullptr};
+		ChainPackProtocol::Blob out;
+		int len = ChainPackProtocol::write(out, cp1);
 		CHAINPACK_TEST_ASSERT(len == 1);
-		Message cp2 = protocol::ChainPackProtocol::read(out);
+		Value cp2 = ChainPackProtocol::read(out);
 		std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 	}
 	std::cout << "------------- tiny uint \n";
 	for (unsigned int n = 0; n < 64; ++n) {
-		Message cp1{n};
-		protocol::ChainPackProtocol::Blob out;
-		int len = protocol::ChainPackProtocol::write(out, cp1);
+		Value cp1{n};
+		ChainPackProtocol::Blob out;
+		int len = ChainPackProtocol::write(out, cp1);
 		if(n < 10)
 			std::cout << n << " " << cp1.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 		CHAINPACK_TEST_ASSERT(len == 1);
-		Message cp2 = protocol::ChainPackProtocol::read(out);
+		Value cp2 = ChainPackProtocol::read(out);
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 		CHAINPACK_TEST_ASSERT(cp1.toUInt() == cp2.toUInt());
 	}
@@ -302,11 +302,11 @@ CHAINPACK_TEST_CASE(binary_test)
 		auto n_max = std::numeric_limits<unsigned int>::max();
 		auto step = n_max / 1000;
 		for (unsigned int n = 64; n < (n_max - step); n += step) {
-			Message cp1{n};
-			protocol::ChainPackProtocol::Blob out;
-			int len = protocol::ChainPackProtocol::write(out, cp1);
+			Value cp1{n};
+			ChainPackProtocol::Blob out;
+			int len = ChainPackProtocol::write(out, cp1);
 			CHAINPACK_TEST_ASSERT(len > 1);
-			Message cp2 = protocol::ChainPackProtocol::read(out);
+			Value cp2 = ChainPackProtocol::read(out);
 			if(n < 66)
 				std::cout << n << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
@@ -317,11 +317,11 @@ CHAINPACK_TEST_CASE(binary_test)
 		std::cout << "------------- int \n";
 		{
 			for (int n = 0; n < 10; n++) {
-				Message cp1{n};
-				protocol::ChainPackProtocol::Blob out;
-				int len = protocol::ChainPackProtocol::write(out, cp1);
+				Value cp1{n};
+				ChainPackProtocol::Blob out;
+				int len = ChainPackProtocol::write(out, cp1);
 				CHAINPACK_TEST_ASSERT(len > 1);
-				Message cp2 = protocol::ChainPackProtocol::read(out);
+				Value cp2 = ChainPackProtocol::read(out);
 				std::cout << n << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 				CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 				CHAINPACK_TEST_ASSERT(cp1.toInt() == cp2.toInt());
@@ -332,11 +332,11 @@ CHAINPACK_TEST_CASE(binary_test)
 			auto n_min = std::numeric_limits<signed int>::min()+1;
 			auto step = n_max / 1000;
 			for (int n = n_min; n < (n_max - step); n += step) {
-				Message cp1{n};
-				protocol::ChainPackProtocol::Blob out;
-				int len = protocol::ChainPackProtocol::write(out, cp1);
+				Value cp1{n};
+				ChainPackProtocol::Blob out;
+				int len = ChainPackProtocol::write(out, cp1);
 				CHAINPACK_TEST_ASSERT(len > 1);
-				Message cp2 = protocol::ChainPackProtocol::read(out);
+				Value cp2 = ChainPackProtocol::read(out);
 				CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 				CHAINPACK_TEST_ASSERT(cp1.toInt() == cp2.toInt());
 			}
@@ -349,11 +349,11 @@ CHAINPACK_TEST_CASE(binary_test)
 			auto n_min = -1000000.;
 			auto step = (n_max - n_min) / 100;
 			for (auto n = n_min; n < n_max; n += step) {
-				Message cp1{n};
-				protocol::ChainPackProtocol::Blob out;
-				int len = protocol::ChainPackProtocol::write(out, cp1);
+				Value cp1{n};
+				ChainPackProtocol::Blob out;
+				int len = ChainPackProtocol::write(out, cp1);
 				CHAINPACK_TEST_ASSERT(len > 1);
-				Message cp2 = protocol::ChainPackProtocol::read(out);
+				Value cp2 = ChainPackProtocol::read(out);
 				//std::cout << n << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 				CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 				CHAINPACK_TEST_ASSERT(cp1.toDouble() == cp2.toDouble());
@@ -364,11 +364,11 @@ CHAINPACK_TEST_CASE(binary_test)
 			auto n_min = std::numeric_limits<double>::min();
 			auto step = (n_max - n_min) / 100;
 			for (auto n = n_min; n < n_max; n += step) {
-				Message cp1{n};
-				protocol::ChainPackProtocol::Blob out;
-				int len = protocol::ChainPackProtocol::write(out, cp1);
+				Value cp1{n};
+				ChainPackProtocol::Blob out;
+				int len = ChainPackProtocol::write(out, cp1);
 				CHAINPACK_TEST_ASSERT(len > 1);
-				Message cp2 = protocol::ChainPackProtocol::read(out);
+				Value cp2 = ChainPackProtocol::read(out);
 				//std::cout << n << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 				CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 				CHAINPACK_TEST_ASSERT(cp1.toDouble() == cp2.toDouble());
@@ -378,11 +378,11 @@ CHAINPACK_TEST_CASE(binary_test)
 	{
 		std::cout << "------------- bool \n";
 		for(bool b : {false, true}) {
-			Message cp1{b};
-			protocol::ChainPackProtocol::Blob out;
-			int len = protocol::ChainPackProtocol::write(out, cp1);
+			Value cp1{b};
+			ChainPackProtocol::Blob out;
+			int len = ChainPackProtocol::write(out, cp1);
 			CHAINPACK_TEST_ASSERT(len == 1);
-			Message cp2 = protocol::ChainPackProtocol::read(out);
+			Value cp2 = ChainPackProtocol::read(out);
 			std::cout << b << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 			CHAINPACK_TEST_ASSERT(cp1.toBool() == cp2.toBool());
@@ -390,24 +390,24 @@ CHAINPACK_TEST_CASE(binary_test)
 	}
 	{
 		std::cout << "------------- blob \n";
-		Message::Blob blob{"fpowfksapofkpsaokfsa"};
+		Value::Blob blob{"fpowfksapofkpsaokfsa"};
 		blob[5] = 0;
-		Message cp1{blob};
-		protocol::ChainPackProtocol::Blob out;
-		protocol::ChainPackProtocol::write(out, cp1);
-		Message cp2 = protocol::ChainPackProtocol::read(out);
+		Value cp1{blob};
+		ChainPackProtocol::Blob out;
+		ChainPackProtocol::write(out, cp1);
+		Value cp2 = ChainPackProtocol::read(out);
 		//std::cout << blob.toString() << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 		CHAINPACK_TEST_ASSERT(cp1.toBlob() == cp2.toBlob());
 	}
 	{
 		std::cout << "------------- string \n";
-		Message::String str{"lhklhklfkjdslfkposkfp79"};
+		Value::String str{"lhklhklfkjdslfkposkfp79"};
 		str[5] = 0;
-		Message cp1{str};
-		protocol::ChainPackProtocol::Blob out;
-		protocol::ChainPackProtocol::write(out, cp1);
-		Message cp2 = protocol::ChainPackProtocol::read(out);
+		Value cp1{str};
+		ChainPackProtocol::Blob out;
+		ChainPackProtocol::write(out, cp1);
+		Value cp2 = ChainPackProtocol::read(out);
 		//std::cout << str << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 		CHAINPACK_TEST_ASSERT(cp1.toString() == cp2.toString());
@@ -415,11 +415,11 @@ CHAINPACK_TEST_CASE(binary_test)
 	{
 		std::cout << "------------- DateTime \n";
 		std::string str = "2017-05-03T15:52:31.123";
-		Message::DateTime dt = Message::DateTime::fromString(str);
-		Message cp1{dt};
-		protocol::ChainPackProtocol::Blob out;
-		int len = protocol::ChainPackProtocol::write(out, cp1);
-		Message cp2 = protocol::ChainPackProtocol::read(out);
+		Value::DateTime dt = Value::DateTime::fromString(str);
+		Value cp1{dt};
+		ChainPackProtocol::Blob out;
+		int len = ChainPackProtocol::write(out, cp1);
+		Value cp2 = ChainPackProtocol::read(out);
 		std::cout << str << " " << dt.toUtcString() << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 		CHAINPACK_TEST_ASSERT(cp1.toInt() == cp2.toInt());
@@ -429,19 +429,19 @@ CHAINPACK_TEST_CASE(binary_test)
 		{
 			const std::string s = R"(["a",123,true,[1,2,3],null])";
 			string err;
-			Message cp1 = Message::parseJson(s, err);
-			protocol::ChainPackProtocol::Blob out;
-			int len = protocol::ChainPackProtocol::write(out, cp1);
-			Message cp2 = protocol::ChainPackProtocol::read(out);
+			Value cp1 = Value::parseJson(s, err);
+			ChainPackProtocol::Blob out;
+			int len = ChainPackProtocol::write(out, cp1);
+			Value cp2 = ChainPackProtocol::read(out);
 			std::cout << s << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 			CHAINPACK_TEST_ASSERT(cp1.toList() == cp2.toList());
 		}
 		{
-			Message cp1{Message::List{1,2,3}};
-			protocol::ChainPackProtocol::Blob out;
-			int len = protocol::ChainPackProtocol::write(out, cp1);
-			Message cp2 = protocol::ChainPackProtocol::read(out);
+			Value cp1{Value::List{1,2,3}};
+			ChainPackProtocol::Blob out;
+			int len = ChainPackProtocol::write(out, cp1);
+			Value cp2 = ChainPackProtocol::read(out);
 			std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 			CHAINPACK_TEST_ASSERT(cp1.toList() == cp2.toList());
@@ -450,24 +450,24 @@ CHAINPACK_TEST_CASE(binary_test)
 	{
 		std::cout << "------------- Table \n";
 		{
-			Message cp1{Message::Table{(unsigned)1, (unsigned)2, (unsigned)3}};
-			protocol::ChainPackProtocol::Blob out;
-			int len = protocol::ChainPackProtocol::write(out, cp1);
-			Message cp2 = protocol::ChainPackProtocol::read(out);
+			Value cp1{Value::Table{(unsigned)1, (unsigned)2, (unsigned)3}};
+			ChainPackProtocol::Blob out;
+			int len = ChainPackProtocol::write(out, cp1);
+			Value cp2 = ChainPackProtocol::read(out);
 			std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 			CHAINPACK_TEST_ASSERT(cp1.toList() == cp2.toList());
 		}
 		{
-			Message::Table t;
-			t.push_back(Message::List{Message{1}, Message{2}});
-			t.push_back(Message::List{Message{3}, Message{4}});
-			t.push_back(Message::List{Message{5}, Message{6}});
-			t.push_back(Message::List{Message{7}, Message{8}});
-			Message cp1{t};
-			protocol::ChainPackProtocol::Blob out;
-			int len = protocol::ChainPackProtocol::write(out, cp1);
-			Message cp2 = protocol::ChainPackProtocol::read(out);
+			Value::Table t;
+			t.push_back(Value::List{Value{1}, Value{2}});
+			t.push_back(Value::List{Value{3}, Value{4}});
+			t.push_back(Value::List{Value{5}, Value{6}});
+			t.push_back(Value::List{Value{7}, Value{8}});
+			Value cp1{t};
+			ChainPackProtocol::Blob out;
+			int len = ChainPackProtocol::write(out, cp1);
+			Value cp2 = ChainPackProtocol::read(out);
 			std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 			CHAINPACK_TEST_ASSERT(cp1.toList() == cp2.toList());
@@ -476,27 +476,27 @@ CHAINPACK_TEST_CASE(binary_test)
 	{
 		std::cout << "------------- Map \n";
 		{
-			Message cp1{{
+			Value cp1{{
 				{"foo", 1},
 				{"bar", 2},
 				{"baz", 3},
 			}};
-			protocol::ChainPackProtocol::Blob out;
-			int len = protocol::ChainPackProtocol::write(out, cp1);
-			Message cp2 = protocol::ChainPackProtocol::read(out);
+			ChainPackProtocol::Blob out;
+			int len = ChainPackProtocol::write(out, cp1);
+			Value cp2 = ChainPackProtocol::read(out);
 			std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 			CHAINPACK_TEST_ASSERT(cp1.toMap() == cp2.toMap());
 		}
 		{
-			Message cp1{{
-				{"foo", Message::List{11,12,13}},
+			Value cp1{{
+				{"foo", Value::List{11,12,13}},
 				{"bar", 2},
 				{"baz", 3},
 			}};
-			protocol::ChainPackProtocol::Blob out;
-			int len = protocol::ChainPackProtocol::write(out, cp1);
-			Message cp2 = protocol::ChainPackProtocol::read(out);
+			ChainPackProtocol::Blob out;
+			int len = ChainPackProtocol::write(out, cp1);
+			Value cp2 = ChainPackProtocol::read(out);
 			std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 			CHAINPACK_TEST_ASSERT(cp1.toMap() == cp2.toMap());
@@ -504,12 +504,12 @@ CHAINPACK_TEST_CASE(binary_test)
 	}
 	{
 		std::cout << "------------- Meta \n";
-		Message cp1{1};
-		Message meta{Message::MetaTypeId(2)};
+		Value cp1{1};
+		Value meta{Value::MetaTypeId(2)};
 		cp1.setMeta(meta);
-		protocol::ChainPackProtocol::Blob out;
-		int len = protocol::ChainPackProtocol::write(out, cp1);
-		Message cp2 = protocol::ChainPackProtocol::read(out);
+		ChainPackProtocol::Blob out;
+		int len = ChainPackProtocol::write(out, cp1);
+		Value cp2 = ChainPackProtocol::read(out);
 		std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 		CHAINPACK_TEST_ASSERT(cp1.toInt() == cp2.toInt());
@@ -528,7 +528,7 @@ static void parse_from_stdin() {
 	}
 
 	string err;
-	auto json = Message::parseJson(buf, err);
+	auto json = Value::parseJson(buf, err);
 	if (!err.empty()) {
 		printf("Failed: %s\n", err.c_str());
 	} else {

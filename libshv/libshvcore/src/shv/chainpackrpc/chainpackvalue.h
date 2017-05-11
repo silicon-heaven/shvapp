@@ -12,7 +12,7 @@ namespace shv {
 namespace chainpackrpc {
 
 
-class SHVCORE_DECL_EXPORT Message final
+class SHVCORE_DECL_EXPORT Value final
 {
 public:
 	class AbstractValueData;
@@ -70,8 +70,8 @@ public:
 			return ret;
 		}
 	};
-	using List = std::vector<Message>;
-	using Map = std::map<Message::String, Message>;
+	using List = std::vector<Value>;
+	using Map = std::map<Value::String, Value>;
 	class Table : public List
 	{
 	public:
@@ -86,60 +86,60 @@ public:
 	struct MetaTypeNameSpaceName : public String { MetaTypeNameSpaceName(const String &id) : String(id) {} };
 
 	// Constructors for the various types of JSON value.
-	Message() noexcept;                // Null
-	Message(std::nullptr_t) noexcept;  // Null
-	Message(double value);             // Double
-	Message(signed int value);                // Int
-	Message(unsigned int value);                // Int
-	Message(bool value);               // Bool
-	Message(const DateTime &value);
-	Message(const Blob &value); // Blob
-	Message(Blob &&value);
-	Message(const uint8_t *value, size_t size);
-	Message(const std::string &value); // String
-	Message(std::string &&value);      // String
-	Message(const char * value);       // String
-	Message(const List &values);      // List
-	Message(List &&values);           // List
-	Message(const Table &values);
-	Message(Table &&values);
-	Message(const Map &values);     // Map
-	Message(Map &&values);          // Map
+	Value() noexcept;                // Null
+	Value(std::nullptr_t) noexcept;  // Null
+	Value(double value);             // Double
+	Value(signed int value);                // Int
+	Value(unsigned int value);                // Int
+	Value(bool value);               // Bool
+	Value(const DateTime &value);
+	Value(const Blob &value); // Blob
+	Value(Blob &&value);
+	Value(const uint8_t *value, size_t size);
+	Value(const std::string &value); // String
+	Value(std::string &&value);      // String
+	Value(const char * value);       // String
+	Value(const List &values);      // List
+	Value(List &&values);           // List
+	Value(const Table &values);
+	Value(Table &&values);
+	Value(const Map &values);     // Map
+	Value(Map &&values);          // Map
 
-	Message(const MetaTypeId &value);
-	Message(const MetaTypeNameSpaceId &value);
-	Message(const MetaTypeName &value);
-	Message(const MetaTypeNameSpaceName &value);
+	Value(const MetaTypeId &value);
+	Value(const MetaTypeNameSpaceId &value);
+	Value(const MetaTypeName &value);
+	Value(const MetaTypeNameSpaceName &value);
 
 	//ChainPack fromType(Type::Enum t);
-	Message(const std::shared_ptr<AbstractValueData> &r);
+	Value(const std::shared_ptr<AbstractValueData> &r);
 
 	// Implicit constructor: anything with a to_json() function.
 	template <class T, class = decltype(&T::to_json)>
-	Message(const T & t) : Message(t.to_json()) {}
+	Value(const T & t) : Value(t.to_json()) {}
 
 	// Implicit constructor: map-like objects (std::map, std::unordered_map, etc)
 	template <class M, typename std::enable_if<
 				  std::is_constructible<std::string, typename M::key_type>::value
-				  && std::is_constructible<Message, typename M::mapped_type>::value,
+				  && std::is_constructible<Value, typename M::mapped_type>::value,
 				  int>::type = 0>
-	Message(const M & m) : Message(Map(m.begin(), m.end())) {}
+	Value(const M & m) : Value(Map(m.begin(), m.end())) {}
 
 	// Implicit constructor: vector-like objects (std::list, std::vector, std::set, etc)
 	template <class V, typename std::enable_if<
-				  std::is_constructible<Message, typename V::value_type>::value,
+				  std::is_constructible<Value, typename V::value_type>::value,
 				  int>::type = 0>
-	Message(const V & v) : Message(List(v.begin(), v.end())) {}
+	Value(const V & v) : Value(List(v.begin(), v.end())) {}
 
 	// This prevents ChainPack(some_pointer) from accidentally producing a bool. Use
 	// ChainPack(bool(some_pointer)) if that behavior is desired.
-	Message(void *) = delete;
+	Value(void *) = delete;
 
 	// Accessors
 	Type::Enum type() const;
 
-	Message meta() const;
-	void setMeta(const Message &m);
+	Value meta() const;
+	void setMeta(const Value &m);
 
 	bool isValid() const;
 	bool isNull() const { return type() == Type::Null; }
@@ -159,7 +159,7 @@ public:
 	bool toBool() const;
 	DateTime toDateTime() const;
 	// Return the enclosed string if this is a string, "" otherwise.
-	const Message::String &toString() const;
+	const Value::String &toString() const;
 	const Blob &toBlob() const;
 	// Return the enclosed std::vector if this is an List, or an empty vector otherwise.
 	const List &toList() const;
@@ -167,8 +167,8 @@ public:
 	const Map &toMap() const;
 
 	int count() const;
-	const Message & operator[](size_t i) const;
-	const Message & operator[](const Message::String &key) const;
+	const Value & operator[](size_t i) const;
+	const Value & operator[](const Value::String &key) const;
 
 	// Serialize.
 	void dumpText(std::string &out) const;
@@ -178,8 +178,8 @@ public:
 	std::string dumpJson() const { std::string out; dumpJson(out); return out; }
 
 	// Parse. If parse fails, return ChainPack() and assign an error message to err.
-	static Message parseJson(const std::string & in, std::string & err);
-	static Message parseJson(const char * in, std::string & err);
+	static Value parseJson(const std::string & in, std::string & err);
+	static Value parseJson(const char * in, std::string & err);
 	// Parse multiple objects, concatenated or separated by whitespace
 	/*
 	static std::vector<ChainPack> parse_multi(
@@ -196,7 +196,7 @@ public:
 		return parse_multi(in, parser_stop_pos, err, strategy);
 	}
 	*/
-	bool operator== (const Message &rhs) const;
+	bool operator== (const Value &rhs) const;
 	/*
 	bool operator<  (const ChainPack &rhs) const;
 	bool operator!= (const ChainPack &rhs) const { return !(*this == rhs); }

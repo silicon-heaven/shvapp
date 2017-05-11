@@ -1357,7 +1357,7 @@ void GraphView::paintCurrentPosition(QPainter *painter, const GraphArea &area, c
 			range = settings.y2Axis.rangeMax - settings.y2Axis.rangeMin;
 		}
 		double scale = range / area.graphRect.height();
-		int y_position;
+		int y_position = 0;
 		if (serie.type == Serie::Type::Double) {
 			y_position = begin->valueY.realValue / scale;
 		}

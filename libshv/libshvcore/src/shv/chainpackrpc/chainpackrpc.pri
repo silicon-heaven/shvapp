@@ -1,7 +1,10 @@
 SOURCES += \
-    $$PWD/chainpackmessage.cpp
+    $$PWD/chainpackvalue.cpp \
+    $$PWD/chainpackprotocol.cpp \
+    $$PWD/jsonprotocol.cpp
 
 HEADERS += \
-    $$PWD/chainpackmessage.h
+    $$PWD/chainpackvalue.h \
+    $$PWD/chainpackprotocol.h \
+    $$PWD/jsonprotocol.h
 
-include ($$PWD/protocol/protocol.pri)

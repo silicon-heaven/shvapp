@@ -6,7 +6,6 @@
 
 namespace shv {
 namespace chainpackrpc {
-namespace protocol {
 
 /* * * * * * * * * * * * * * * * * * * *
  * Parsing
@@ -41,15 +40,15 @@ JsonProtocol::JsonProtocol(const std::string &str, std::string &err)
 {
 }
 
-Message JsonProtocol::parseJson(const std::string &in, std::string &err)
+Value JsonProtocol::parseJson(const std::string &in, std::string &err)
 {
-	protocol::JsonProtocol parser{in, err};
-	Message result = parser.parse_json(0);
+	JsonProtocol parser{in, err};
+	Value result = parser.parse_json(0);
 
 	// Check for any trailing garbage
 	parser.consume_garbage();
 	if (parser.failed)
-		return Message();
+		return Value();
 	if (parser.i != in.size())
 		return parser.fail(std::string("unexpected trailing ") + (in[parser.i]));
 
@@ -60,8 +59,8 @@ Message JsonProtocol::parseJson(const std::string &in, std::string &err)
 		 *
 		 * Mark this parse as failed.
 		 */
-Message JsonProtocol::fail(std::string &&msg) {
-	return fail(std::move(msg), Message());
+Value JsonProtocol::fail(std::string &&msg) {
+	return fail(std::move(msg), Value());
 }
 
 /* consume_whitespace()
@@ -265,7 +264,7 @@ std::string JsonProtocol::parse_string() {
 		 *
 		 * Parse a double.
 		 */
-Message JsonProtocol::parse_number() {
+Value JsonProtocol::parse_number() {
 	size_t start_pos = i;
 
 	if (str[i] == '-')
@@ -321,7 +320,7 @@ Message JsonProtocol::parse_number() {
 		 * Expect that 'str' starts at the character that was just read. If it does, advance
 		 * the input and return res. If not, flag an error.
 		 */
-Message JsonProtocol::expect(const std::string &expected, Message res)
+Value JsonProtocol::expect(const std::string &expected, Value res)
 {
 	assert(i != 0);
 	i--;
@@ -337,7 +336,7 @@ Message JsonProtocol::expect(const std::string &expected, Message res)
 		 *
 		 * Parse a JSON object.
 		 */
-Message JsonProtocol::parse_json(int depth)
+Value JsonProtocol::parse_json(int depth)
 {
 	if (depth > max_depth) {
 		return fail("exceeded maximum nesting depth");
@@ -345,7 +344,7 @@ Message JsonProtocol::parse_json(int depth)
 
 	char ch = get_next_token();
 	if (failed)
-		return Message();
+		return Value();
 
 	if (ch == '-' || (ch >= '0' && ch <= '9')) {
 		i--;
@@ -359,13 +358,13 @@ Message JsonProtocol::parse_json(int depth)
 		return expect("false", false);
 
 	if (ch == 'n')
-		return expect("null", Message(nullptr));
+		return expect("null", Value(nullptr));
 
 	if (ch == '"')
 		return parse_string();
 
 	if (ch == '{') {
-		std::map<std::string, Message> data;
+		std::map<std::string, Value> data;
 		ch = get_next_token();
 		if (ch == '}')
 			return data;
@@ -376,7 +375,7 @@ Message JsonProtocol::parse_json(int depth)
 
 			std::string key = parse_string();
 			if (failed)
-				return Message();
+				return Value();
 
 			ch = get_next_token();
 			if (ch != ':')
@@ -384,7 +383,7 @@ Message JsonProtocol::parse_json(int depth)
 
 			data[std::move(key)] = parse_json(depth + 1);
 			if (failed)
-				return Message();
+				return Value();
 
 			ch = get_next_token();
 			if (ch == '}')
@@ -398,7 +397,7 @@ Message JsonProtocol::parse_json(int depth)
 	}
 
 	if (ch == '[') {
-		std::vector<Message> data;
+		std::vector<Value> data;
 		ch = get_next_token();
 		if (ch == ']')
 			return data;
@@ -407,7 +406,7 @@ Message JsonProtocol::parse_json(int depth)
 			i--;
 			data.push_back(parse_json(depth + 1));
 			if (failed)
-				return Message();
+				return Value();
 
 			ch = get_next_token();
 			if (ch == ']')
@@ -464,7 +463,7 @@ void JsonProtocol::dumpJson(bool value, std::string &out)
 	out += value ? "true" : "false";
 }
 
-void JsonProtocol::dumpJson(Message::DateTime value, std::string &out)
+void JsonProtocol::dumpJson(Value::DateTime value, std::string &out)
 {
 	out += value.toString();
 }
@@ -507,13 +506,13 @@ void JsonProtocol::dumpJson(const std::string &value, std::string &out)
 	out += '"';
 }
 
-void JsonProtocol::dumpJson(const Message::Blob &value, std::string &out)
+void JsonProtocol::dumpJson(const Value::Blob &value, std::string &out)
 {
 	std::string s = value.toString();
 	dumpJson(s, out);
 }
 
-void JsonProtocol::dumpJson(const Message::List &values, std::string &out)
+void JsonProtocol::dumpJson(const Value::List &values, std::string &out)
 {
 	bool first = true;
 	out += "[";
@@ -526,7 +525,7 @@ void JsonProtocol::dumpJson(const Message::List &values, std::string &out)
 	out += "]";
 }
 
-void JsonProtocol::dumpJson(const Message::Map &values, std::string &out)
+void JsonProtocol::dumpJson(const Value::Map &values, std::string &out)
 {
 	bool first = true;
 	out += "{";
@@ -541,4 +540,4 @@ void JsonProtocol::dumpJson(const Message::Map &values, std::string &out)
 	out += "}";
 }
 
-} } }
+} }

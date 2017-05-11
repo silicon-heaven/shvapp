@@ -3,14 +3,19 @@ CONFIG += c++11
 QT -= core
 #QT += testlib # enable test framework
 
-PROJECT_TOP_SRCDIR = $$PWD/../..
-PROJECT_TOP_BUILDDIR = $$OUT_PWD/../..
+message (PROJECT_TOP_SRCDIR $$QF_PROJECT_TOP_SRCDIR)
+message (PROJECT_TOP_BUILDDIR $$QF_PROJECT_TOP_BUILDDIR)
 
 INCLUDEPATH += \
-    $$PWD/../libshvcore/include
+	$$PWD/../libshvcore/include
 
-win32:LIB_DIR = $$PROJECT_TOP_BUILDDIR/bin
-else:LIB_DIR = $$PROJECT_TOP_BUILDDIR/lib
+DESTDIR = $$QF_PROJECT_TOP_BUILDDIR/bin
+
+win32:LIB_DIR = $$DESTDIR
+else:LIB_DIR = $$QF_PROJECT_TOP_BUILDDIR/lib
+
+message (LIB_DIR $$LIB_DIR)
+message (DESTDIR $$DESTDIR)
 
 LIBS += \
     -L$$LIB_DIR \
