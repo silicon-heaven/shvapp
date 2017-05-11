@@ -29,6 +29,10 @@
 #include <sstream>
 #include <iostream>
 
+#ifdef _WIN32
+#define timegm _mkgmtime
+#endif
+
 namespace shv {
 namespace chainpackrpc {
 
