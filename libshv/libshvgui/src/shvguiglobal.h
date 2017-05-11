@@ -1,6 +1,6 @@
 #pragma once
 
-#  ifdef Q_OS_WIN
+#  ifdef _WIN32
 #    define Q_DECL_EXPORT     __declspec(dllexport)
 #    define Q_DECL_IMPORT     __declspec(dllimport)
 #  else
