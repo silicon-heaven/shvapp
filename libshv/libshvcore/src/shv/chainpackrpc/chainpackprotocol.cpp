@@ -335,7 +335,7 @@ int ChainPackProtocol::writeData(ChainPackProtocol::Blob &out, const Value &pack
 	case Value::Type::Bool:
 		break;
 	case Value::Type::UInt: {
-		unsigned int u = pack.toUInt();
+		auto u = pack.toUInt();
 		if(!use_tiny_uint || u >= 64) {
 			write_UInt(out, u);
 		}
@@ -409,8 +409,8 @@ Value ChainPackProtocol::readData(Value::Type::Enum type, const ChainPackProtoco
 	case Value::Type::Null:
 		ret = Value(nullptr);
 		break;
-	case Value::Type::UInt: { unsigned int u = read_UInt<unsigned int>(data, pos); ret = Value(u); break; }
-	case Value::Type::Int: { signed int i = read_Int<signed int>(data, pos); ret = Value(i); break; }
+	case Value::Type::UInt: { Value::UInt u = read_UInt<Value::UInt>(data, pos); ret = Value(u); break; }
+	case Value::Type::Int: { Value::Int i = read_Int<Value::Int>(data, pos); ret = Value(i); break; }
 	case Value::Type::Double: { double d = read_Double(data, pos); ret = Value(d); break; }
 	case Value::Type::TRUE: { bool b = true; ret = Value(b); break; }
 	case Value::Type::FALSE: { bool b = false; ret = Value(b); break; }

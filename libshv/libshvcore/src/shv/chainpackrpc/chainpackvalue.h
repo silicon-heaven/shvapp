@@ -8,6 +8,13 @@
 #include <memory>
 #include <initializer_list>
 
+#ifndef CHAINPACK_UINT
+	#define CHAINPACK_UINT unsigned int
+#endif
+#ifndef CHAINPACK_INT
+	#define CHAINPACK_INT signed int
+#endif
+
 namespace shv {
 namespace chainpackrpc {
 
@@ -42,6 +49,8 @@ public:
 		static const char* name(Enum e);
 	};
 
+	using Int = CHAINPACK_INT;
+	using UInt = CHAINPACK_UINT;
 	struct DateTime
 	{
 		int64_t msecs = 0;
@@ -80,8 +89,8 @@ public:
 		Table(Table &&t) : List(std::move(t)) {}
 		Table(std::initializer_list<value_type> l) : List(l) {}
 	};
-	struct MetaTypeId { unsigned int id = 0; MetaTypeId(unsigned int id) : id(id) {}};
-	struct MetaTypeNameSpaceId { unsigned int id = 0; MetaTypeNameSpaceId(unsigned int id) : id(id) {}};
+	struct MetaTypeId { uint32_t id = 0; MetaTypeId(uint32_t id) : id(id) {}};
+	struct MetaTypeNameSpaceId { uint32_t id = 0; MetaTypeNameSpaceId(uint32_t id) : id(id) {}};
 	struct MetaTypeName : public String { MetaTypeName(const String &id) : String(id) {} };
 	struct MetaTypeNameSpaceName : public String { MetaTypeNameSpaceName(const String &id) : String(id) {} };
 
@@ -89,8 +98,8 @@ public:
 	Value() noexcept;                // Null
 	Value(std::nullptr_t) noexcept;  // Null
 	Value(double value);             // Double
-	Value(signed int value);                // Int
-	Value(unsigned int value);                // Int
+	Value(Int value);                // Int
+	Value(UInt value);                // Int
 	Value(bool value);               // Bool
 	Value(const DateTime &value);
 	Value(const Blob &value); // Blob
@@ -153,8 +162,8 @@ public:
 	// distinguish between integer and non-integer numbers - number_value() and int_value()
 	// can both be applied to a NUMBER-typed object.
 	double toDouble() const;
-	int toInt() const;
-	unsigned int toUInt() const;
+	Int toInt() const;
+	UInt toUInt() const;
 	// Return the enclosed value if this is a boolean, false otherwise.
 	bool toBool() const;
 	DateTime toDateTime() const;

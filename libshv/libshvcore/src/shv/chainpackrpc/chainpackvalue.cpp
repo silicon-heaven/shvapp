@@ -89,8 +89,8 @@ public:
 
 	virtual bool isNull() const {return false;}
 	virtual double toDouble() const {return 0;}
-	virtual int toInt() const {return 0;}
-	virtual unsigned int toUInt() const {return 0;}
+	virtual Value::Int toInt() const {return 0;}
+	virtual Value::UInt toUInt() const {return 0;}
 	virtual bool toBool() const {return false;}
 	virtual Value::DateTime toDateTime() const { return Value::DateTime{}; }
 	virtual const std::string &toString() const;
@@ -155,7 +155,7 @@ protected:
 class ChainPackDouble final : public ValueData<Value::Type::Double, double>
 {
 	double toDouble() const override { return m_value; }
-	int toInt() const override { return static_cast<int>(m_value); }
+	Value::Int toInt() const override { return static_cast<int>(m_value); }
 	bool equals(const Value::AbstractValueData * other) const override { return m_value == other->toDouble(); }
 	//bool less(const Data * other) const override { return m_value < other->toDouble(); }
 public:
@@ -165,8 +165,8 @@ public:
 class ChainPackInt final : public ValueData<Value::Type::Int, signed int>
 {
 	double toDouble() const override { return m_value; }
-	int toInt() const override { return m_value; }
-	unsigned int toUInt() const override { return (unsigned int)m_value; }
+	Value::Int toInt() const override { return m_value; }
+	Value::UInt toUInt() const override { return (unsigned int)m_value; }
 	bool equals(const Value::AbstractValueData * other) const override { return m_value == other->toInt(); }
 	//bool less(const Data * other) const override { return m_value < other->toDouble(); }
 public:
@@ -177,8 +177,8 @@ class ChainPackUInt : public ValueData<Value::Type::UInt, unsigned int>
 {
 protected:
 	double toDouble() const override { return m_value; }
-	int toInt() const override { return (int)m_value; }
-	unsigned int toUInt() const override { return m_value; }
+	Value::Int toInt() const override { return (int)m_value; }
+	Value::UInt toUInt() const override { return m_value; }
 protected:
 	bool equals(const Value::AbstractValueData * other) const override { return m_value == other->toUInt(); }
 	//bool less(const Data * other) const override { return m_value < other->toDouble(); }
@@ -189,8 +189,8 @@ public:
 class ChainPackBoolean final : public ValueData<Value::Type::Bool, bool>
 {
 	bool toBool() const override { return m_value; }
-	int toInt() const override { return m_value? true: false; }
-	unsigned int toUInt() const override { return toInt(); }
+	Value::Int toInt() const override { return m_value? true: false; }
+	Value::UInt toUInt() const override { return toInt(); }
 	bool equals(const Value::AbstractValueData * other) const override { return m_value == other->toBool(); }
 public:
 	explicit ChainPackBoolean(bool value) : ValueData(value) {}
@@ -199,8 +199,8 @@ public:
 class ChainPackDateTime final : public ValueData<Value::Type::DateTime, Value::DateTime>
 {
 	bool toBool() const override { return m_value.msecs != 0; }
-	int toInt() const override { return m_value.msecs; }
-	unsigned int toUInt() const override { return m_value.msecs; }
+	Value::Int toInt() const override { return m_value.msecs; }
+	Value::UInt toUInt() const override { return m_value.msecs; }
 	Value::DateTime toDateTime() const override { return m_value; }
 	bool equals(const Value::AbstractValueData * other) const override { return m_value.msecs == other->toInt(); }
 public:
@@ -381,8 +381,8 @@ static const Value::Map & static_empty_map() { static const Value::Map s{}; retu
 Value::Value() noexcept {}
 Value::Value(std::nullptr_t) noexcept : m_ptr(statics().null) {}
 Value::Value(double value) : m_ptr(std::make_shared<ChainPackDouble>(value)) {}
-Value::Value(signed int value) : m_ptr(std::make_shared<ChainPackInt>(value)) {}
-Value::Value(unsigned int value) : m_ptr(std::make_shared<ChainPackUInt>(value)) {}
+Value::Value(Int value) : m_ptr(std::make_shared<ChainPackInt>(value)) {}
+Value::Value(UInt value) : m_ptr(std::make_shared<ChainPackUInt>(value)) {}
 Value::Value(bool value) : m_ptr(value ? statics().t : statics().f) {}
 Value::Value(const Value::DateTime &value) : m_ptr(std::make_shared<ChainPackDateTime>(value)) {}
 
@@ -457,8 +457,8 @@ bool Value::isValid() const
 }
 
 double Value::toDouble() const { return m_ptr? m_ptr->toDouble(): 0; }
-int Value::toInt() const { return m_ptr? m_ptr->toInt(): 0; }
-unsigned int Value::toUInt() const { return m_ptr? m_ptr->toUInt(): 0; }
+Value::Int Value::toInt() const { return m_ptr? m_ptr->toInt(): 0; }
+Value::UInt Value::toUInt() const { return m_ptr? m_ptr->toUInt(): 0; }
 bool Value::toBool() const { return m_ptr? m_ptr->toBool(): false; }
 Value::DateTime Value::toDateTime() const { return m_ptr? m_ptr->toDateTime(): Value::DateTime{}; }
 
