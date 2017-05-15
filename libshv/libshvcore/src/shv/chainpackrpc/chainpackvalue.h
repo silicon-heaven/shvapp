@@ -23,12 +23,9 @@ class SHVCORE_DECL_EXPORT Value final
 {
 public:
 	class AbstractValueData;
-	// Types
+
 	struct Type {
 		enum Enum { Invalid=-1,
-					TERM = 0,
-					FALSE,
-					TRUE,
 					Null,
 					UInt,
 					Int,
@@ -40,11 +37,24 @@ public:
 					List,
 					Table,
 					Map,
+					IMap,
+					MetaTypeId,
+					MetaTypeNameSpaceId,
+					//MetaMap,
+					MetaIMap,
+					FALSE,
+					TRUE,
+					TERM = 128, // first byte of packed Int or UInt cannot be like 0b1000000
+				  };
+		static const char* name(Enum e);
+	};
+	struct Tag {
+		enum Enum { Invalid = 0,
 					MetaTypeId,
 					MetaTypeNameSpaceId,
 					MetaTypeName,
 					MetaTypeNameSpaceName,
-					COUNT
+					USER = 8
 				  };
 		static const char* name(Enum e);
 	};
@@ -81,6 +91,7 @@ public:
 	};
 	using List = std::vector<Value>;
 	using Map = std::map<Value::String, Value>;
+	using IMap = std::map<Value::UInt, Value>;
 	class Table : public List
 	{
 	public:
@@ -89,10 +100,25 @@ public:
 		Table(Table &&t) : List(std::move(t)) {}
 		Table(std::initializer_list<value_type> l) : List(l) {}
 	};
-	struct MetaTypeId { uint32_t id = 0; MetaTypeId(uint32_t id) : id(id) {}};
-	struct MetaTypeNameSpaceId { uint32_t id = 0; MetaTypeNameSpaceId(uint32_t id) : id(id) {}};
-	struct MetaTypeName : public String { MetaTypeName(const String &id) : String(id) {} };
-	struct MetaTypeNameSpaceName : public String { MetaTypeNameSpaceName(const String &id) : String(id) {} };
+
+	struct SHVCORE_DECL_EXPORT MetaData
+	{
+		const Value::IMap& imap() const {return m_imap;}
+		Value metaValue(Value::UInt key) const;
+		void setMetaValue(Value::UInt key, const Value &val);
+		//void setMetaValues(Value::IMap &&vals);
+		//Value metaValue(const Value::String &key) const;
+		//void setMetaValue(const Value::String &key, const Value &val);
+		bool isEmpty() const {return m_imap.empty();}
+	protected:
+		//Value::Map smap;
+		Value::IMap m_imap;
+	};
+
+	//struct MetaTypeId { uint32_t id = 0; MetaTypeId(uint32_t id) : id(id) {}};
+	//struct MetaTypeNameSpaceId { uint32_t id = 0; MetaTypeNameSpaceId(uint32_t id) : id(id) {}};
+	//struct MetaTypeName : public String { MetaTypeName(const String &id) : String(id) {} };
+	//struct MetaTypeNameSpaceName : public String { MetaTypeNameSpaceName(const String &id) : String(id) {} };
 
 	// Constructors for the various types of JSON value.
 	Value() noexcept;                // Null
@@ -107,21 +133,23 @@ public:
 	Value(const uint8_t *value, size_t size);
 	Value(const std::string &value); // String
 	Value(std::string &&value);      // String
-	Value(const char * value);       // String
+	Value(const char *value);       // String
 	Value(const List &values);      // List
 	Value(List &&values);           // List
 	Value(const Table &values);
 	Value(Table &&values);
 	Value(const Map &values);     // Map
 	Value(Map &&values);          // Map
+	Value(const IMap &values);     // IMap
+	Value(IMap &&values);          // IMap
 
-	Value(const MetaTypeId &value);
-	Value(const MetaTypeNameSpaceId &value);
-	Value(const MetaTypeName &value);
-	Value(const MetaTypeNameSpaceName &value);
+	//Value(const MetaTypeId &value);
+	//Value(const MetaTypeNameSpaceId &value);
+	//Value(const MetaTypeName &value);
+	//Value(const MetaTypeNameSpaceName &value);
 
 	//ChainPack fromType(Type::Enum t);
-	Value(const std::shared_ptr<AbstractValueData> &r);
+	//Value(const std::shared_ptr<AbstractValueData> &r);
 
 	// Implicit constructor: anything with a to_json() function.
 	template <class T, class = decltype(&T::to_json)>
@@ -147,8 +175,10 @@ public:
 	// Accessors
 	Type::Enum type() const;
 
-	Value meta() const;
-	void setMeta(const Value &m);
+	//Value meta() const;
+	//const Map& metaValues() const;
+	const MetaData &metaData() const;
+	void setMetaData(MetaData &&meta_data);
 
 	bool isValid() const;
 	bool isNull() const { return type() == Type::Null; }
@@ -174,6 +204,7 @@ public:
 	const List &toList() const;
 	// Return the enclosed std::map if this is an Map, or an empty map otherwise.
 	const Map &toMap() const;
+	const IMap &toIMap() const;
 
 	int count() const;
 	const Value & operator[](size_t i) const;
@@ -189,22 +220,7 @@ public:
 	// Parse. If parse fails, return ChainPack() and assign an error message to err.
 	static Value parseJson(const std::string & in, std::string & err);
 	static Value parseJson(const char * in, std::string & err);
-	// Parse multiple objects, concatenated or separated by whitespace
-	/*
-	static std::vector<ChainPack> parse_multi(
-			const std::string & in,
-			std::string::size_type & parser_stop_pos,
-			std::string & err,
-			ChainPackParse strategy = ChainPackParse::STANDARD);
 
-	static inline std::vector<ChainPack> parse_multi(
-			const std::string & in,
-			std::string & err,
-			ChainPackParse strategy = ChainPackParse::STANDARD) {
-		std::string::size_type parser_stop_pos;
-		return parse_multi(in, parser_stop_pos, err, strategy);
-	}
-	*/
 	bool operator== (const Value &rhs) const;
 	/*
 	bool operator<  (const ChainPack &rhs) const;
@@ -213,13 +229,6 @@ public:
 	bool operator>  (const ChainPack &rhs) const { return  (rhs < *this); }
 	bool operator>= (const ChainPack &rhs) const { return !(*this < rhs); }
 	*/
-	/* has_shape(types, err)
-	 *
-	 * Return true if this is a JSON object and, for each item in types, has a field of
-	 * the given type. If not, return false and set err to a descriptive message.
-	 */
-	//typedef std::initializer_list<std::pair<std::string, Type::Enum>> shape;
-	//bool has_shape(const shape & types, std::string & err) const;
 private:
 	std::shared_ptr<AbstractValueData> m_ptr;
 };

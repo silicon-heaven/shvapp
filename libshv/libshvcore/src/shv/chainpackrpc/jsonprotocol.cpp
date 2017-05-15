@@ -540,4 +540,19 @@ void JsonProtocol::dumpJson(const Value::Map &values, std::string &out)
 	out += "}";
 }
 
+void JsonProtocol::dumpJson(const Value::IMap &values, std::string &out)
+{
+	bool first = true;
+	out += "{";
+	for (const auto &kv : values) {
+		if (!first)
+			out += ", ";
+		dumpJson(kv.first, out);
+		out += ": ";
+		kv.second.dumpJson(out);
+		first = false;
+	}
+	out += "}";
+}
+
 } }

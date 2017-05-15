@@ -62,6 +62,7 @@ public:
 	static void dumpJson(const Value::Blob &value, std::string &out);
 	static void dumpJson(const Value::List &values, std::string &out);
 	static void dumpJson(const Value::Map &values, std::string &out);
+	static void dumpJson(const Value::IMap &values, std::string &out);
 };
 
 } // namespace chainpack
