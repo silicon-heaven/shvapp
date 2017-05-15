@@ -1227,7 +1227,7 @@ void GraphView::paintSerie(QPainter *painter, const QRect &rect, int x_axis_posi
 void GraphView::paintBoolSerie(QPainter *painter, const QRect &rect, int x_axis_position, const Serie &serie, quint64 min, quint64 max, const QPen &pen, bool fill_rect)
 {
 	const SerieData &data = *serie.dataPtr;
-	if (data.count() == 0) {
+	if (data.size() == 0) {
 		return;
 	}
 
@@ -1295,7 +1295,7 @@ void GraphView::paintBoolSerie(QPainter *painter, const QRect &rect, int x_axis_
 void GraphView::paintValueSerie(QPainter *painter, const QRect &rect, int x_axis_position, const Serie &serie, quint64 min, quint64 max, const QPen &pen, bool fill_rect)
 {
 	const SerieData &data = *serie.dataPtr;
-	if (data.count() == 0) {
+	if (data.size() == 0) {
 		return;
 	}
 
@@ -1655,8 +1655,8 @@ void GraphView::computeRange(double &min, double &max, const Serie &serie)
 		if (serie.dataPtr->at(0).valueX.realValue < min) {
 			min = serie.dataPtr->at(0).valueX.realValue;
 		}
-		if (serie.dataPtr->last().valueX.realValue > max) {
-			max = serie.dataPtr->last().valueX.realValue;
+		if (serie.dataPtr->back().valueX.realValue > max) {
+			max = serie.dataPtr->back().valueX.realValue;
 		}
 	}
 }
@@ -1683,8 +1683,8 @@ void GraphView::computeRange(int &min, int &max, const Serie &serie)
 		if (serie.dataPtr->at(0).valueX.intValue < min) {
 			min = serie.dataPtr->at(0).valueX.intValue;
 		}
-		if (serie.dataPtr->last().valueX.intValue > max) {
-			max = serie.dataPtr->last().valueX.intValue;
+		if (serie.dataPtr->back().valueX.intValue > max) {
+			max = serie.dataPtr->back().valueX.intValue;
 		}
 	}
 }
@@ -1711,8 +1711,8 @@ void GraphView::computeRange(quint64 &min, quint64 &max, const Serie &serie)
 		if (serie.dataPtr->at(0).valueX.timeStamp < min) {
 			min = serie.dataPtr->at(0).valueX.timeStamp;
 		}
-		if (serie.dataPtr->last().valueX.timeStamp > max) {
-			max = serie.dataPtr->last().valueX.timeStamp;
+		if (serie.dataPtr->back().valueX.timeStamp > max) {
+			max = serie.dataPtr->back().valueX.timeStamp;
 		}
 	}
 }

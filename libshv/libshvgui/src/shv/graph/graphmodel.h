@@ -43,7 +43,7 @@ struct SHVGUI_DECL_EXPORT ValueChange
 	} valueY;
 };
 
-using SerieData = QVector<ValueChange>;
+using SerieData = std::vector<ValueChange>;
 using SerieDataSharedPtr = std::shared_ptr<const SerieData>;
 
 struct SHVGUI_DECL_EXPORT GraphModel
