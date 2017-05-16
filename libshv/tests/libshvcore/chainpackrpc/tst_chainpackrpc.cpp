@@ -266,14 +266,14 @@ static std::string binary_dump(const Value::Blob &out)
 CHAINPACK_TEST_CASE(binary_test)
 {
 	std::cout << "============= chainpack binary test ============\n";
-	for (int i = 0; i <= shv::chainpackrpc::Value::Type::TRUE; ++i) {
+	for (int i = Value::Type::TERM; i <= Value::Type::TRUE; ++i) {
 		Value::Blob out;
 		out += i;
 		Value::Type::Enum e = (Value::Type::Enum)i;
 		//std::string s = std::to_string(i);
 		//if(i < 10)
 		//	s = ' ' + s;
-		std::cout << std::setw(2) << i << " " << binary_dump(out) << " "  << Value::Type::name(e) << "\n";
+		std::cout << std::setw(3) << i << " " << binary_dump(out) << " "  << Value::Type::name(e) << "\n";
 	}
 	{
 		std::cout << "------------- NULL \n";
@@ -299,44 +299,46 @@ CHAINPACK_TEST_CASE(binary_test)
 	}
 	{
 		std::cout << "------------- uint \n";
-		auto n_max = std::numeric_limits<unsigned int>::max();
+		Value::UInt n_max = std::numeric_limits<unsigned int>::max();
 		auto step = n_max / 1000;
-		for (unsigned int n = 64; n < (n_max - step); n += step) {
+		for (Value::UInt n = 64; n < (n_max - step); n += step) {
 			Value cp1{n};
 			ChainPackProtocol::Blob out;
 			int len = ChainPackProtocol::write(out, cp1);
 			CHAINPACK_TEST_ASSERT(len > 1);
 			Value cp2 = ChainPackProtocol::read(out);
-			if(n < 66)
+			if(n < 100)
 				std::cout << n << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 			CHAINPACK_TEST_ASSERT(cp1.toUInt() == cp2.toUInt());
 		}
 	}
+	std::cout << "------------- tiny int \n";
+	for (Value::Int n = 0; n < 64; ++n) {
+		Value cp1{n};
+		ChainPackProtocol::Blob out;
+		int len = ChainPackProtocol::write(out, cp1);
+		if(n < 10)
+			std::cout << n << " " << cp1.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
+		CHAINPACK_TEST_ASSERT(len == 1);
+		Value cp2 = ChainPackProtocol::read(out);
+		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
+		CHAINPACK_TEST_ASSERT(cp1.toInt() == cp2.toInt());
+	}
 	{
 		std::cout << "------------- int \n";
 		{
-			for (int n = 0; n < 10; n++) {
-				Value cp1{n};
-				ChainPackProtocol::Blob out;
-				int len = ChainPackProtocol::write(out, cp1);
-				CHAINPACK_TEST_ASSERT(len > 1);
-				Value cp2 = ChainPackProtocol::read(out);
-				std::cout << n << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
-				CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
-				CHAINPACK_TEST_ASSERT(cp1.toInt() == cp2.toInt());
-			}
-		}
-		{
 			auto n_max = std::numeric_limits<signed int>::max();
 			auto n_min = std::numeric_limits<signed int>::min()+1;
-			auto step = n_max / 1000;
+			auto step = n_max / 100;
 			for (int n = n_min; n < (n_max - step); n += step) {
 				Value cp1{n};
 				ChainPackProtocol::Blob out;
-				int len = ChainPackProtocol::write(out, cp1);
+				int len = ChainPackProtocol::write(out, cp1, false);
 				CHAINPACK_TEST_ASSERT(len > 1);
 				Value cp2 = ChainPackProtocol::read(out);
+				if(n < 1000 && n > -1000)
+					std::cout << n << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 				CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 				CHAINPACK_TEST_ASSERT(cp1.toInt() == cp2.toInt());
 			}
@@ -447,6 +449,7 @@ CHAINPACK_TEST_CASE(binary_test)
 			CHAINPACK_TEST_ASSERT(cp1.toList() == cp2.toList());
 		}
 	}
+	/*
 	{
 		std::cout << "------------- Table \n";
 		{
@@ -473,6 +476,7 @@ CHAINPACK_TEST_CASE(binary_test)
 			CHAINPACK_TEST_ASSERT(cp1.toList() == cp2.toList());
 		}
 	}
+	*/
 	{
 		std::cout << "------------- Map \n";
 		{
@@ -500,6 +504,36 @@ CHAINPACK_TEST_CASE(binary_test)
 			std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 			CHAINPACK_TEST_ASSERT(cp1.toMap() == cp2.toMap());
+		}
+	}
+	{
+		std::cout << "------------- IMap \n";
+		{
+			Value::IMap map {
+				{1, "foo"},
+				{2, "bar"},
+				{3, "baz"},
+			};
+			Value cp1{map};
+			ChainPackProtocol::Blob out;
+			int len = ChainPackProtocol::write(out, cp1);
+			Value cp2 = ChainPackProtocol::read(out);
+			std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
+			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
+			CHAINPACK_TEST_ASSERT(cp1.toIMap() == cp2.toIMap());
+		}
+		{
+			Value cp1{{
+				{234, Value::List{11,12,13}},
+				{1, 2},
+				{2, 3},
+			}};
+			ChainPackProtocol::Blob out;
+			int len = ChainPackProtocol::write(out, cp1);
+			Value cp2 = ChainPackProtocol::read(out);
+			std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
+			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
+			CHAINPACK_TEST_ASSERT(cp1.toIMap() == cp2.toIMap());
 		}
 	}
 	/*

@@ -302,7 +302,7 @@ public:
 
 	const Value::List &toList() const override { return m_value; }
 };
-
+/*
 class ChainPackTable final : public ValueData<Value::Type::Table, Value::List>
 {
 	size_t count() const override {return m_value.size();}
@@ -327,7 +327,7 @@ public:
 
 	const Value::List &toList() const override { return m_value; }
 };
-
+*/
 class ChainPackMap final : public ValueData<Value::Type::Map, Value::Map>
 {
 	//const ChainPack::Map &toMap() const override { return m_value; }
@@ -471,8 +471,8 @@ Value::Value(const char * value) : m_ptr(std::make_shared<ChainPackString>(value
 Value::Value(const Value::List &values) : m_ptr(std::make_shared<ChainPackList>(values)) {}
 Value::Value(Value::List &&values) : m_ptr(std::make_shared<ChainPackList>(move(values))) {}
 
-Value::Value(const Value::Table &values) : m_ptr(std::make_shared<ChainPackTable>(values)) {}
-Value::Value(Value::Table &&values) : m_ptr(std::make_shared<ChainPackTable>(move(values))) {}
+//Value::Value(const Value::Table &values) : m_ptr(std::make_shared<ChainPackTable>(values)) {}
+//Value::Value(Value::Table &&values) : m_ptr(std::make_shared<ChainPackTable>(move(values))) {}
 
 Value::Value(const Value::Map &values) : m_ptr(std::make_shared<ChainPackMap>(values)) {}
 Value::Value(Value::Map &&values) : m_ptr(std::make_shared<ChainPackMap>(move(values))) {}
@@ -614,7 +614,7 @@ const Value & ChainPackList::operator[] (Value::UInt i) const
 	else
 		return m_value[i];
 }
-
+/*
 const Value &ChainPackTable::operator[](Value::UInt i) const
 {
 	if (i >= m_value.size())
@@ -622,7 +622,7 @@ const Value &ChainPackTable::operator[](Value::UInt i) const
 	else
 		return m_value[i];
 }
-
+*/
 /* * * * * * * * * * * * * * * * * * * *
  * Comparison
  */
@@ -704,15 +704,15 @@ const char *Value::Type::name(Value::Type::Enum e)
 	case Blob: return "Blob";
 	case String: return "String";
 	case List: return "List";
-	case Table: return "Table";
+	//case Table: return "Table";
 	case Map: return "Map";
+	case IMap: return "IMap";
 	case DateTime: return "DateTime";
 	case MetaTypeId: return "MetaTypeId";
 	case MetaTypeNameSpaceId: return "MetaTypeNameSpaceId";
-	//case MetaTypeName: return "MetaTypeName";
-	//case MetaTypeNameSpaceName: return "MetaTypeNameSpaceName";
-	case TRUE: return "True";
-	case FALSE: return "False";
+	case MetaIMap: return "MetaIMap";
+	case TRUE: return "TRUE";
+	case FALSE: return "FALSE";
 	case TERM: return "TERM";
 	default:
 		return "UNKNOWN";
@@ -823,7 +823,15 @@ std::string Value::DateTime::toUtcString() const
 	return std::string();
 }
 
-Value Value::MetaData::metaValue(Value::UInt key) const
+std::vector<Value::UInt> Value::MetaData::ikeys() const
+{
+	std::vector<Value::UInt> ret;
+	for(const auto &it : m_imap)
+		ret.push_back(it.first);
+	return ret;
+}
+
+Value Value::MetaData::value(Value::UInt key) const
 {
 	auto it = m_imap.find(key);
 	if(it != m_imap.end())
@@ -831,7 +839,7 @@ Value Value::MetaData::metaValue(Value::UInt key) const
 	return Value();
 }
 
-void Value::MetaData::setMetaValue(Value::UInt key, const Value &val)
+void Value::MetaData::setValue(Value::UInt key, const Value &val)
 {
 	m_imap[key] = val;
 }

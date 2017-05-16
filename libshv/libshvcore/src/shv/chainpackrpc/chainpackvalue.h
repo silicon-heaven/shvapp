@@ -26,6 +26,7 @@ public:
 
 	struct Type {
 		enum Enum { Invalid=-1,
+					TERM = 128, // first byte of packed Int or UInt cannot be like 0b1000000
 					Null,
 					UInt,
 					Int,
@@ -35,7 +36,7 @@ public:
 					String,
 					DateTime,
 					List,
-					Table,
+					//Table,
 					Map,
 					IMap,
 					MetaTypeId,
@@ -44,7 +45,6 @@ public:
 					MetaIMap,
 					FALSE,
 					TRUE,
-					TERM = 128, // first byte of packed Int or UInt cannot be like 0b1000000
 				  };
 		static const char* name(Enum e);
 	};
@@ -92,6 +92,7 @@ public:
 	using List = std::vector<Value>;
 	using Map = std::map<Value::String, Value>;
 	using IMap = std::map<Value::UInt, Value>;
+	/*
 	class Table : public List
 	{
 	public:
@@ -100,12 +101,12 @@ public:
 		Table(Table &&t) : List(std::move(t)) {}
 		Table(std::initializer_list<value_type> l) : List(l) {}
 	};
-
+	*/
 	struct SHVCORE_DECL_EXPORT MetaData
 	{
-		const Value::IMap& imap() const {return m_imap;}
-		Value metaValue(Value::UInt key) const;
-		void setMetaValue(Value::UInt key, const Value &val);
+		std::vector<Value::UInt> ikeys() const;
+		Value value(Value::UInt key) const;
+		void setValue(Value::UInt key, const Value &val);
 		//void setMetaValues(Value::IMap &&vals);
 		//Value metaValue(const Value::String &key) const;
 		//void setMetaValue(const Value::String &key, const Value &val);
@@ -136,8 +137,8 @@ public:
 	Value(const char *value);       // String
 	Value(const List &values);      // List
 	Value(List &&values);           // List
-	Value(const Table &values);
-	Value(Table &&values);
+	//Value(const Table &values);
+	//Value(Table &&values);
 	Value(const Map &values);     // Map
 	Value(Map &&values);          // Map
 	Value(const IMap &values);     // IMap
@@ -157,7 +158,7 @@ public:
 
 	// Implicit constructor: map-like objects (std::map, std::unordered_map, etc)
 	template <class M, typename std::enable_if<
-				  std::is_constructible<std::string, typename M::key_type>::value
+				  std::is_constructible<Value::String, typename M::key_type>::value
 				  && std::is_constructible<Value, typename M::mapped_type>::value,
 				  int>::type = 0>
 	Value(const M & m) : Value(Map(m.begin(), m.end())) {}

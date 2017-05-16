@@ -22,14 +22,14 @@ private:
 	static Value readData(Value::Type::Enum type, const ChainPackProtocol::Blob &data, ChainPackProtocol::Blob::size_type &pos);
 private:
 	static void writeData_List(ChainPackProtocol::Blob &out, const Value &pack);
-	static void writeData_Table(ChainPackProtocol::Blob &out, const Value &pack);
+	//static void writeData_Table(ChainPackProtocol::Blob &out, const Value &pack);
 	static void writeData_Map(ChainPackProtocol::Blob &out, const Value::Map &map);
-	static void writeData_IMap(ChainPackProtocol::Blob &out, const Value::IMap &map, bool skip_known_tags = false);
+	static void writeData_IMap(ChainPackProtocol::Blob &out, const Value::IMap &map);
 
 	static Value::MetaData readMetaData(const ChainPackProtocol::Blob &data, ChainPackProtocol::Blob::size_type &pos);
 
 	static Value::List readData_List(const ChainPackProtocol::Blob &data, ChainPackProtocol::Blob::size_type &pos);
-	static Value::Table readData_Table(const ChainPackProtocol::Blob &data, ChainPackProtocol::Blob::size_type &pos);
+	//static Value::Table readData_Table(const ChainPackProtocol::Blob &data, ChainPackProtocol::Blob::size_type &pos);
 	static Value::Map readData_Map(const ChainPackProtocol::Blob &data, ChainPackProtocol::Blob::size_type &pos);
 	static Value::IMap readData_IMap(const ChainPackProtocol::Blob &data, ChainPackProtocol::Blob::size_type &pos);
 };

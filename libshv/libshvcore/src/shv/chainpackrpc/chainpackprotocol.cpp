@@ -69,6 +69,7 @@ void write_UIntData(ChainPackProtocol::Blob &out, T n)
 		if(pos > 0)
 			r |= 128;
 		out += r;
+		pos--;
 	}
 }
 
@@ -142,6 +143,7 @@ void write_IntData(ChainPackProtocol::Blob &out, T n)
 				r = r | 1;
 		}
 		out += r;
+		pos--;
 	}
 }
 
@@ -255,7 +257,7 @@ Value::List ChainPackProtocol::readData_List(const ChainPackProtocol::Blob &data
 	}
 	return lst;
 }
-
+/*
 void ChainPackProtocol::writeData_Table(ChainPackProtocol::Blob &out, const Value &pack)
 {
 	for (int i = 0; i < pack.count(); ++i) {
@@ -291,7 +293,7 @@ Value::Table ChainPackProtocol::readData_Table(const ChainPackProtocol::Blob &da
 	}
 	return ret;
 }
-
+*/
 void ChainPackProtocol::writeData_Map(ChainPackProtocol::Blob &out, const Value::Map &map)
 {
 	for (const auto &kv : map) {
@@ -340,13 +342,11 @@ static bool is_known_meta_tag(Value::UInt tag)
 	return (tag == Value::Type::MetaTypeId || tag == Value::Type::MetaTypeNameSpaceId);
 }
 
-void ChainPackProtocol::writeData_IMap(ChainPackProtocol::Blob &out, const Value::IMap &map, bool skip_known_tags)
+void ChainPackProtocol::writeData_IMap(ChainPackProtocol::Blob &out, const Value::IMap &map)
 {
 	for (const auto &kv : map) {
 		Value::UInt key = kv.first;
-		if(skip_known_tags && is_known_meta_tag(key))
-			continue;
-		write_UIntData(out, kv.first);
+		write_UIntData(out, key);
 		write(out, kv.second);
 	}
 	out += (uint8_t)Value::Type::TERM;
@@ -358,7 +358,7 @@ int ChainPackProtocol::write(Blob &out, const Value &pack, bool use_tiny_uint)
 		throw std::runtime_error("Cannot serialize invalid ChainPack.");
 	int len = out.length();
 	writeMetaData(out, pack);
-	if(writeTypeInfo(out, pack, use_tiny_uint))
+	if(!writeTypeInfo(out, pack, use_tiny_uint))
 		writeData(out, pack);
 	return (out.length() - len);
 }
@@ -366,16 +366,20 @@ int ChainPackProtocol::write(Blob &out, const Value &pack, bool use_tiny_uint)
 void ChainPackProtocol::writeMetaData(ChainPackProtocol::Blob &out, const Value &pack)
 {
 	const Value::MetaData &md = pack.metaData();
-	const Value::IMap &imap = md.imap();
-	for (const auto &kv : imap) {
-		Value::UInt key = kv.first;
+	for (const auto &key : md.ikeys()) {
 		if(is_known_meta_tag(key)) {
 			out += (uint8_t)key;
-			Value::UInt val = kv.second.toUInt();
+			Value::UInt val = md.value(key).toUInt();
 			write_UIntData(out, val);
 		}
 	}
-	writeData_IMap(out, imap, true);
+	Value::IMap imap;
+	for (const auto &key : md.ikeys()) {
+		if(!is_known_meta_tag(key))
+			imap[key] = md.value(key);
+	}
+	if(!imap.empty())
+		writeData_IMap(out, imap);
 }
 
 bool ChainPackProtocol::writeTypeInfo(ChainPackProtocol::Blob &out, const Value &pack, bool save_values_to_typeinfo)
@@ -394,7 +398,7 @@ bool ChainPackProtocol::writeTypeInfo(ChainPackProtocol::Blob &out, const Value 
 			auto n = pack.toUInt();
 			if(n < 64) {
 				/// TinyUInt
-				t = 128 + n;
+				t = n;
 				ret = true;
 			}
 		}
@@ -402,7 +406,7 @@ bool ChainPackProtocol::writeTypeInfo(ChainPackProtocol::Blob &out, const Value 
 			auto n = pack.toInt();
 			if(n >= 0 && n < 64) {
 				/// TinyInt
-				t = 128 + 64 + n;
+				t = 64 + n;
 				ret = true;
 			}
 		}
@@ -434,14 +438,10 @@ void ChainPackProtocol::writeData(ChainPackProtocol::Blob &out, const Value &pac
 	case Value::Type::String: write_Blob(out, pack.toString()); break;
 	case Value::Type::Blob: write_Blob(out, pack.toBlob()); break;
 	case Value::Type::List: writeData_List(out, pack); break;
-	case Value::Type::Table: writeData_Table(out, pack); break;
+	//case Value::Type::Table: writeData_Table(out, pack); break;
 	case Value::Type::Map: writeData_Map(out, pack.toMap()); break;
 	case Value::Type::IMap: writeData_IMap(out, pack.toIMap()); break;
 	case Value::Type::DateTime: write_DateTime(out, pack); break;
-	//case Value::Type::MetaTypeNameSpaceId:
-	//case Value::Type::MetaTypeId: write_UInt(out, pack.toUInt()); break;
-	//case Value::Type::MetaTypeNameSpaceName:
-	//case Value::Type::MetaTypeName: write_Blob(out, pack.toString()); break;
 	default:
 		throw std::runtime_error("Internal error: attempt to write helper type directly. type: " + std::to_string(pack.type()));
 	}
@@ -453,7 +453,7 @@ Value ChainPackProtocol::read(const ChainPackProtocol::Blob &data, size_t pos, s
 	Value ret;
 	Value::MetaData meta_data = readMetaData(data, pos);
 	uint8_t type = data[pos++];
-	if(type & 128) {
+	if(type < 128) {
 		if(type & 64) {
 			// tiny Int
 			Value::Int n = type & 63;
@@ -491,20 +491,20 @@ Value::MetaData ChainPackProtocol::readMetaData(const ChainPackProtocol::Blob &d
 		case Value::Type::MetaTypeId:  {
 			pos++;
 			Value::UInt u = read_UIntData<Value::UInt>(data, pos);
-			ret.setMetaValue(Value::Tag::MetaTypeId, u);
+			ret.setValue(Value::Tag::MetaTypeId, u);
 			break;
 		}
 		case Value::Type::MetaTypeNameSpaceId:  {
 			pos++;
 			Value::UInt u = read_UIntData<Value::UInt>(data, pos);
-			ret.setMetaValue(Value::Tag::MetaTypeNameSpaceId, u);
+			ret.setValue(Value::Tag::MetaTypeNameSpaceId, u);
 			break;
 		}
 		case Value::Type::MetaIMap:  {
 			pos++;
 			Value::IMap imap = readData_IMap(data, pos);
 			for( const auto &it : imap)
-				ret.setMetaValue(it.first, it.second);
+				ret.setValue(it.first, it.second);
 			break;
 		}
 		default:
@@ -555,8 +555,9 @@ Value ChainPackProtocol::readData(Value::Type::Enum type, const ChainPackProtoco
 	case Value::Type::String: { Value::String val = read_Blob<Value::String>(data, pos); ret = Value(val); break; }
 	case Value::Type::Blob: { Value::Blob val = read_Blob<Value::Blob>(data, pos); ret = Value(val); break; }
 	case Value::Type::List: { Value::List val = readData_List(data, pos); ret = Value(val); break; }
-	case Value::Type::Table: { Value::Table val = readData_Table(data, pos); ret = Value(val); break; }
+	//case Value::Type::Table: { Value::Table val = readData_Table(data, pos); ret = Value(val); break; }
 	case Value::Type::Map: { Value::Map val = readData_Map(data, pos); ret = Value(val); break; }
+	case Value::Type::IMap: { Value::IMap val = readData_IMap(data, pos); ret = Value(val); break; }
 	case Value::Type::DateTime: { Value::DateTime val = read_DateTime(data, pos); ret = Value(val); break; }
 		/*
 	case Value::Type::MetaTypeId:
