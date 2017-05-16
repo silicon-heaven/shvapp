@@ -13,10 +13,10 @@ public:
 	using Blob = Value::Blob;
 public:
 	static Value read(const Blob &data, size_t pos = 0, size_t *consumed = nullptr);
-	static int write(Blob &out, const Value &pack, bool use_tiny_uint = true);
+	static int write(Blob &out, const Value &pack);
 private:
 	static void writeMetaData(Blob &out, const Value &pack);
-	static bool writeTypeInfo(Blob &out, const Value &pack, bool save_values_to_typeinfo = true);
+	static bool writeTypeInfo(Blob &out, const Value &pack);
 	static void writeData(Blob &out, const Value &pack);
 	static Value::Type::Enum readTypeInfo(const ChainPackProtocol::Blob &data, ChainPackProtocol::Blob::size_type &pos, Value &meta, int &tiny_uint);
 	static Value readData(Value::Type::Enum type, const ChainPackProtocol::Blob &data, ChainPackProtocol::Blob::size_type &pos);

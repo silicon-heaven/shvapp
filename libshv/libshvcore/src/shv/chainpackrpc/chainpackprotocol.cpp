@@ -352,13 +352,13 @@ void ChainPackProtocol::writeData_IMap(ChainPackProtocol::Blob &out, const Value
 	out += (uint8_t)Value::Type::TERM;
 }
 
-int ChainPackProtocol::write(Blob &out, const Value &pack, bool use_tiny_uint)
+int ChainPackProtocol::write(Blob &out, const Value &pack)
 {
 	if(!pack.isValid())
 		throw std::runtime_error("Cannot serialize invalid ChainPack.");
 	int len = out.length();
 	writeMetaData(out, pack);
-	if(!writeTypeInfo(out, pack, use_tiny_uint))
+	if(!writeTypeInfo(out, pack))
 		writeData(out, pack);
 	return (out.length() - len);
 }
@@ -382,14 +382,14 @@ void ChainPackProtocol::writeMetaData(ChainPackProtocol::Blob &out, const Value 
 		writeData_IMap(out, imap);
 }
 
-bool ChainPackProtocol::writeTypeInfo(ChainPackProtocol::Blob &out, const Value &pack, bool save_values_to_typeinfo)
+bool ChainPackProtocol::writeTypeInfo(ChainPackProtocol::Blob &out, const Value &pack)
 {
 	if(!pack.isValid())
 		throw std::runtime_error("Cannot serialize invalid ChainPack.");
 	bool ret = false;
 	Value::Type::Enum msg_type = pack.type();
 	uint8_t t = (uint8_t)msg_type;
-	if(save_values_to_typeinfo) {
+	{
 		if(msg_type == Value::Type::Bool) {
 			t = pack.toBool()? Value::Type::TRUE: Value::Type::FALSE;
 			ret = true;

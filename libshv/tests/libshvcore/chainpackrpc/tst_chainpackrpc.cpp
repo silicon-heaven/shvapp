@@ -334,8 +334,11 @@ CHAINPACK_TEST_CASE(binary_test)
 			for (int n = n_min; n < (n_max - step); n += step) {
 				Value cp1{n};
 				ChainPackProtocol::Blob out;
-				int len = ChainPackProtocol::write(out, cp1, false);
-				CHAINPACK_TEST_ASSERT(len > 1);
+				int len = ChainPackProtocol::write(out, cp1);
+				if(n >= 0 && n < 64)
+					CHAINPACK_TEST_ASSERT(len == 1);
+				else
+					CHAINPACK_TEST_ASSERT(len > 1);
 				Value cp2 = ChainPackProtocol::read(out);
 				if(n < 1000 && n > -1000)
 					std::cout << n << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
