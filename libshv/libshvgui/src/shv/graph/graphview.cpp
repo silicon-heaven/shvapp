@@ -2,6 +2,7 @@
 #include <QDateTime>
 #include <QDebug>
 #include <QFrame>
+#include <QMenu>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QToolTip>
@@ -17,8 +18,8 @@ GraphView::GraphView(QWidget *parent) : QWidget(parent)
   , m_displayedRangeMax(0LL)
   , m_loadedRangeMin(0LL)
   , m_loadedRangeMax(0LL)
-  , m_selectStart(-1)
-  , m_selectEnd(-1)
+  , m_zoomSelection({ 0, 0 })
+  , m_currentSelectionModifiers(Qt::NoModifier)
   , m_moveStart(-1)
   , m_currentPosition(-1)
   , m_verticalGridDistance(0.0)
@@ -453,8 +454,8 @@ void GraphView::paintEvent(QPaintEvent *paint_event)
 			if (m_series.count()) {
 				paintSeries(&painter, area);
 			}
-			if (m_selectStart != -1 && m_selectEnd != -1 && m_selectStart != m_selectEnd) {
-				paintSelection(&painter, area);
+			if (m_selections.count() || m_zoomSelection.start || m_zoomSelection.end) {
+				paintSelections(&painter, area);
 			}
 			if (m_currentPosition != -1) {
 				if (settings.showCrossLine) {
@@ -501,8 +502,9 @@ void GraphView::mouseDoubleClickEvent(QMouseEvent *mouse_event)
 {
 	QPoint mouse_pos = mouse_event->pos();
 	if (posInGraph(mouse_pos) || posInRangeSelector(mouse_pos)) {
-		if (m_selectStart != -1) {
-			m_selectStart = -1;
+		if (m_zoomSelection.start || m_zoomSelection.end) {
+			m_zoomSelection = { 0, 0 };
+			m_currentSelectionModifiers = Qt::NoModifier;
 		}
 		if (m_loadedRangeMin != m_displayedRangeMin || m_loadedRangeMax != m_displayedRangeMax) {
 			showRange(m_loadedRangeMin, m_loadedRangeMax);
@@ -513,32 +515,74 @@ void GraphView::mouseDoubleClickEvent(QMouseEvent *mouse_event)
 void GraphView::mousePressEvent(QMouseEvent *mouse_event)
 {
 	QPoint pos = mouse_event->pos();
-	if (posInGraph(pos)) {
-		if (mouse_event->modifiers() & Qt::ControlModifier) {
-			m_selectStart = pos.x() - m_graphArea[0].graphRect.x();
+	if (mouse_event->buttons() & Qt::LeftButton) {
+		if (posInGraph(pos)) {
+			if (mouse_event->modifiers() & Qt::ControlModifier || mouse_event->modifiers() & Qt::ShiftModifier) {
+				quint64 value = widgetPositionToXValue(pos.x());
+				m_currentSelectionModifiers = mouse_event->modifiers();
+				if (mouse_event->modifiers() & Qt::ControlModifier) {
+					m_zoomSelection = { value, value };
+				}
+				else if (settings.enableOvelapingSelections || !selectionOnValue(value)){
+					m_selections << Selection { value, value };
+				}
+			}
+			else if (mouse_event->modifiers() == Qt::NoModifier) {
+				m_moveStart = pos.x() - m_graphArea[0].graphRect.x();
+			}
 		}
-		else if (mouse_event->modifiers() == Qt::NoModifier) {
-			m_moveStart = pos.x() - m_graphArea[0].graphRect.x();
+		else if (posInRangeSelector(pos)) {
+			if (mouse_event->modifiers() == Qt::NoModifier) {
+				if (pos.x() >= m_leftRangeSelectorPosition && pos.x() <= m_rightRangeSelectorPosition) {
+					m_moveStart = pos.x() - m_rangeSelectorRect.x();
+				}
+			}
+		}
+		else {
+			for (int i = 0; i < m_seriesListRect.count(); ++i) {
+				const QRect &rect = m_seriesListRect[i];
+				if (rect.contains(pos)) {
+					m_series[i].show = !m_series[i].show;
+					computeGeometry();
+					repaint();
+					break;
+				}
+			}
 		}
 	}
-	else if (posInRangeSelector(pos)) {
-		if (mouse_event->modifiers() == Qt::NoModifier) {
-			if (pos.x() >= m_leftRangeSelectorPosition && pos.x() <= m_rightRangeSelectorPosition) {
-				m_moveStart = pos.x() - m_rangeSelectorRect.x();
-			}
+	else if (mouse_event->buttons() & Qt::RightButton) {
+		if (posInGraph(pos) && mouse_event->modifiers() == Qt::NoModifier) {
+			popupContextMenu(pos);
+		}
+	}
+}
+
+const GraphView::Selection *GraphView::selectionOnValue(quint64 value) const
+{
+	for (const Selection &selection : m_selections) {
+		if (selection.containsValue(value)) {
+			return &selection;
+		}
+	}
+	return 0;
+}
+
+void GraphView::updateLastValueInLastSelection(quint64 value)
+{
+	Selection &last_selection = m_selections.last();
+	const Selection *overlaping_selection = selectionOnValue(value);
+	if (overlaping_selection && overlaping_selection != &last_selection && !settings.enableOvelapingSelections) {
+		if (last_selection.start <= last_selection.end) {
+			last_selection.end = overlaping_selection->start;
+		}
+		else {
+			last_selection.end = overlaping_selection->end;
 		}
 	}
 	else {
-		for (int i = 0; i < m_seriesListRect.count(); ++i) {
-			const QRect &rect = m_seriesListRect[i];
-			if (rect.contains(pos)) {
-				m_series[i].show = !m_series[i].show;
-				computeGeometry();
-				repaint();
-				break;
-			}
-		}
+		last_selection.end = value;
 	}
+	Q_EMIT selectionsChanged();
 }
 
 void GraphView::mouseMoveEvent(QMouseEvent *mouse_event)
@@ -548,11 +592,15 @@ void GraphView::mouseMoveEvent(QMouseEvent *mouse_event)
 		int x_pos = pos.x() - m_graphArea[0].graphRect.x();
 		if (mouse_event->buttons() & Qt::LeftButton) {
 			m_currentPosition = -1;
-			if (mouse_event->modifiers() & Qt::ControlModifier) {
-				if (m_selectStart != -1) {
-					m_selectEnd = x_pos;
-					repaint();
+			if (m_currentSelectionModifiers != Qt::NoModifier) {
+				quint64 value = widgetPositionToXValue(pos.x());
+				if (m_currentSelectionModifiers & Qt::ControlModifier) {
+					m_zoomSelection.end = value;
 				}
+				else {
+					updateLastValueInLastSelection(value);
+				}
+				repaint();
 			}
 			else if (mouse_event->modifiers() == Qt::NoModifier) {
 				if (m_moveStart != -1) {
@@ -636,18 +684,24 @@ void GraphView::mouseReleaseEvent(QMouseEvent *mouse_event)
 	QPoint pos = mouse_event->pos();
 	if (posInGraph(pos)) {
 		if (mouse_event->button() == Qt::LeftButton) {
-			if (m_selectStart != -1) {
-				int start = m_selectStart;
-				int end = pos.x() - m_graphArea[0].graphRect.x();
-				if (end < start) {
-					start = end;
-					end = m_selectStart;
+			if (m_currentSelectionModifiers != Qt::NoModifier) {
+				quint64 value = widgetPositionToXValue(pos.x());
+				if (m_currentSelectionModifiers & Qt::ControlModifier) {
+					quint64 start = m_zoomSelection.start;
+					quint64 end = value;
+					if (end < start) {
+						start = end;
+						end = m_zoomSelection.start;
+					}
+					if (start != end) {
+						showRange(start, end);
+					}
+					m_zoomSelection = { 0, 0 };
 				}
-				m_selectStart = -1;
-				m_selectEnd = -1;
-				if (start != end) {
-					showRange(rectPositionToXValue(start), rectPositionToXValue(end));
+				else if (m_currentSelectionModifiers & Qt::ShiftModifier) {
+					updateLastValueInLastSelection(value);
 				}
+				m_currentSelectionModifiers = Qt::NoModifier;
 			}
 			else if (m_moveStart != -1) {
 				m_moveStart = -1;
@@ -707,6 +761,44 @@ bool GraphView::eventFilter(QObject *watched, QEvent *event)
 		}
 	}
 	return false;
+}
+
+void GraphView::popupContextMenu(const QPoint &pos)
+{
+	QMenu popup_menu(this);
+	QAction *zoom_to_fit = popup_menu.addAction(tr("Zoom to &fit"), [this]() {
+		showRange(m_loadedRangeMin, m_loadedRangeMax);
+	});
+	if (m_displayedRangeMin == m_loadedRangeMin && m_displayedRangeMax == m_loadedRangeMax) {
+		zoom_to_fit->setEnabled(false);
+	}
+	quint64 matching_value = widgetPositionToXValue(pos.x());
+
+	for (int i = 0; i < m_selections.count(); ++i) {
+		const Selection &selection = m_selections[i];
+		if (selection.containsValue(matching_value)) {
+			QAction *zoom_to_selection = popup_menu.addAction(tr("&Zoom to selection"), [this, i]() {
+				showRange(m_selections[i].start, m_selections[i].end);
+			});
+			if (m_selections[i].start == m_displayedRangeMin && m_selections[i].end == m_displayedRangeMax) {
+				zoom_to_selection->setEnabled(false);
+			}
+			popup_menu.addAction(tr("&Remove selection"), [this, i]() {
+				m_selections.removeAt(i);
+				repaint();
+				Q_EMIT selectionsChanged();
+			});
+			break;
+		}
+	}
+	QAction *remove_all_selections = popup_menu.addAction(tr("Remove &all selections"), [this]() {
+		m_selections.clear();
+		repaint();
+	});
+	if (m_selections.count() == 0) {
+		remove_all_selections->setEnabled(false);
+	}
+	popup_menu.exec(mapToGlobal(pos));
 }
 
 void GraphView::zoom(quint64 center, double scale)
@@ -825,6 +917,38 @@ void GraphView::showDependentSeries(bool enable)
 {
 	settings.showDependent = enable;
 	repaint();
+}
+
+QVector<GraphView::ValueSelection> GraphView::selections() const
+{
+	ValueChange start;
+	ValueChange end;
+
+	QVector<ValueSelection> selections;
+	for (const Selection &selection : m_selections) {
+		quint64 s_start = selection.start;
+		quint64 s_end = selection.end;
+		if (s_start > s_end) {
+			std::swap(s_start, s_end);
+		}
+		switch (settings.xAxisType) {
+		case Settings::XAxisType::Timestamp:
+			start.valueX.timeStamp = s_start;
+			end.valueX.timeStamp = s_end;
+			break;
+		case Settings::XAxisType::Int:
+			start.valueX.intValue = s_start;
+			end.valueX.intValue = s_end;
+			break;
+		case Settings::XAxisType::Double:
+			start.valueX.realValue = s_start / m_xValueScale;
+			end.valueX.realValue = s_end / m_xValueScale;
+			break;
+		}
+		selections << ValueSelection { start, end };
+	}
+
+	return selections;
 }
 
 void GraphView::showRange(quint64 from, quint64 to)
@@ -1270,19 +1394,55 @@ void GraphView::paintValueSerie(QPainter *painter, const QRect &rect, int x_axis
 	}
 }
 
-void GraphView::paintSelection(QPainter *painter, const GraphArea &area)
+void GraphView::paintSelection(QPainter *painter, const GraphArea &area, const Selection &selection, const QColor &color)
 {
 	painter->save();
 
-	int start = m_selectStart + area.graphRect.x();
-	int end = m_selectEnd + area.graphRect.x();
+	QColor fill_color = color;
+	fill_color.setAlpha(60);
+	QColor select_color = color;
+	select_color.setAlpha(170);
+	QPen pen;
+	pen.setColor(select_color);
+	pen.setWidth(2);
+	painter->setPen(pen);
+
+	quint64 start = selection.start;
+	quint64 end = selection.end;
+	bool draw_left_line = true;
+	bool draw_right_line = true;
 	if (start > end) {
 		std::swap(start, end);
 	}
-	QColor select_color = palette().color(QPalette::Highlight);
-	select_color.setAlpha(50);
-	painter->fillRect(start, area.graphRect.y(), end - start, area.graphRect.height(), select_color);
+	if (start < m_displayedRangeMax && end > m_displayedRangeMin) {
+		if (start < m_displayedRangeMin) {
+			start = m_displayedRangeMin;
+			draw_left_line = false;
+		}
+		if (end > m_displayedRangeMax) {
+			end = m_displayedRangeMax;
+			draw_right_line = false;
+		}
+		int r_start = xValueToWidgetPosition(start);
+		int r_end = xValueToWidgetPosition(end);
+		if (draw_left_line) {
+			painter->drawLine(r_start, area.graphRect.y(), r_start, area.graphRect.bottom());
+		}
+		if (draw_right_line) {
+			painter->drawLine(r_end, area.graphRect.y(), r_end, area.graphRect.bottom());
+		}
+		painter->fillRect(r_start, area.graphRect.y(), r_end - r_start, area.graphRect.height(), fill_color);
+	}
+
 	painter->restore();
+}
+
+void GraphView::paintSelections(QPainter *painter, const GraphArea &area)
+{
+	for (const Selection &selection : m_selections) {
+		paintSelection(painter, area, selection, palette().color(QPalette::Highlight));
+	}
+	paintSelection(painter, area, m_zoomSelection, Qt::green);
 }
 
 void GraphView::paintSerieList(QPainter *painter)
@@ -1445,6 +1605,16 @@ quint64 GraphView::rectPositionToXValue(int pos)
 	return m_displayedRangeMin + ((m_displayedRangeMax - m_displayedRangeMin) * ((double)pos / m_graphArea[0].graphRect.width()));
 }
 
+int GraphView::xValueToRectPosition(quint64 value)
+{
+	return (value - m_displayedRangeMin) * m_graphArea[0].graphRect.width() / (m_displayedRangeMax - m_displayedRangeMin);
+}
+
+int GraphView::xValueToWidgetPosition(quint64 value)
+{
+	return m_graphArea[0].graphRect.x() + xValueToRectPosition(value);
+}
+
 quint64 GraphView::xValue(const ValueChange &value_change) const
 {
 	quint64 val;
@@ -1587,6 +1757,11 @@ void RangeSelectorHandle::paintEvent(QPaintEvent *event)
 	QPainter painter(this);
 	painter.drawLine(3, 3, 3, height() - 6);
 	painter.drawLine(width() - 4, 3, width() - 4, height() - 6);
+}
+
+bool GraphView::Selection::containsValue(quint64 value) const
+{
+	return ((start <= end && value >= start && value <= end) ||	(start > end && value >= end && value <= start));
 }
 
 } //namespace

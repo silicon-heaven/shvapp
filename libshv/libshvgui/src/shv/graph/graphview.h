@@ -123,6 +123,13 @@ public:
 		QString legendStyle;
 		bool showCrossLine = true;
 		bool showDependent = true;
+		bool enableOvelapingSelections = false;
+	};
+
+	struct ValueSelection
+	{
+		ValueChange start;
+		ValueChange end;
 	};
 
 	GraphView(QWidget *parent);
@@ -138,6 +145,10 @@ public:
 	void splitSeries();
 	void unsplitSeries();
 	void showDependentSeries(bool enable);
+
+	QVector<ValueSelection> selections() const; //only valueX filled in ValueChange!
+
+	Q_SIGNAL void selectionsChanged();
 
 protected:
 	void resizeEvent(QResizeEvent *resize_event);
@@ -165,6 +176,15 @@ private:
 		QVector<Serie*> series;
 	};
 
+	struct Selection
+	{
+		quint64 start;
+		quint64 end;
+
+		bool containsValue(quint64 value) const;
+	};
+
+	void popupContextMenu(const QPoint &pos);
 	void paintXAxisDescription(QPainter *painter);
 	void paintYAxisDescription(QPainter *painter, const GraphArea &area);
 	void paintY2AxisDescription(QPainter *painter, const GraphArea &area);
@@ -182,7 +202,8 @@ private:
 	void paintSerie(QPainter *painter, const QRect &rect, int x_axis_position, const Serie &serie, quint64 min, quint64 max, const QPen &pen, bool fill_rect);
 	void paintBoolSerie(QPainter *painter, const QRect &area, int x_axis_position, const Serie &serie, quint64 min, quint64 max, const QPen &pen, bool fill_rect);
 	void paintValueSerie(QPainter *painter, const QRect &area, int x_axis_position, const Serie &serie, quint64 min, quint64 max, const QPen &pen, bool fill_rect);
-	void paintSelection(QPainter *painter, const GraphArea &area);
+	void paintSelections(QPainter *painter, const GraphArea &area);
+	void paintSelection(QPainter *painter, const GraphArea &area, const Selection &selection, const QColor &color);
 	void paintSerieList(QPainter *painter);
 	void paintCrossLine(QPainter *painter, const GraphArea &area);
 	void paintLegend(QPainter *painter);
@@ -194,6 +215,10 @@ private:
 
 	quint64 widgetPositionToXValue(int pos);
 	quint64 rectPositionToXValue(int pos);
+	int xValueToRectPosition(quint64 value);
+	int xValueToWidgetPosition(quint64 value);
+	const Selection *selectionOnValue(quint64 value) const;
+	void updateLastValueInLastSelection(quint64 value);
 	bool posInGraph(const QPoint &pos);
 	bool posInRangeSelector(const QPoint &pos);
 	void computeGeometry();
@@ -224,8 +249,9 @@ private:
 	quint64 m_displayedRangeMax;
 	quint64 m_loadedRangeMin;
 	quint64 m_loadedRangeMax;
-	int m_selectStart;
-	int m_selectEnd;
+	Selection m_zoomSelection;
+	Qt::KeyboardModifiers m_currentSelectionModifiers;
+	QList<Selection> m_selections;
 	int m_moveStart;
 	int m_currentPosition;
 	double m_verticalGridDistance;
