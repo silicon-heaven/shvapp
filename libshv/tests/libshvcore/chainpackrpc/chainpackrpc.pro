@@ -1,8 +1,7 @@
-include ( ../test_libshvcore.pri )
+TEMPLATE = subdirs
+CONFIG += ordered
 
-TARGET = tst_chainpackrpc
-
-SOURCES += \
-    $${TARGET}.cpp \
-
+SUBDIRS += \
+	value \
+	message \
 

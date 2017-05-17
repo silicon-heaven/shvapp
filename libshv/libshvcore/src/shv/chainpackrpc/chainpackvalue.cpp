@@ -105,8 +105,11 @@ public:
 	virtual const Value::Map &toMap() const;
 	virtual const Value::IMap &toIMap() const;
 	virtual size_t count() const {return 0;}
-	virtual const Value &operator[](Value::UInt i) const;
-	virtual const Value &operator[](const Value::String &key) const;
+
+	virtual const Value &at(Value::UInt i) const;
+	virtual const Value &at(const Value::String &key) const;
+	virtual void set(Value::UInt ix, const Value &val);
+	virtual void set(const Value::String &key, const Value &val);
 };
 
 /* * * * * * * * * * * * * * * * * * * *
@@ -141,35 +144,12 @@ protected:
 			m_metaData = new Value::MetaData(d);
 	}
 
-	/*
-	Value metaValue(const Value::String &key) const override
-	{
-		if(!m_metaData)
-			return Value();
-		auto it = m_metaData->smap.find(key);
-		if(it != m_metaData->smap.end())
-			return it->second;
-		return Value();
-	}
-	void setMetaValue(Value::UInt key, const Value &val) override
-	{
-		if(!m_metaData)
-			m_metaData = new MetaData();
-		m_metaData->imap[key] = val;
-	}
-	*/
-	/*
-	void setMetaValue(const Value::String &key, const Value &val) override
-	{
-		if(!m_metaData)
-			m_metaData = new MetaData();
-		m_metaData->smap[key] = val;
-	}
-	*/
+
 	void dumpJson(std::string &out) const override
 	{
 		JsonProtocol::dumpJson(m_value, out);
 	}
+
 	virtual bool dumpTextValue(std::string &out) const {dumpJson(out); return true;}
 	void dumpText(std::string &out) const override
 	{
@@ -184,18 +164,6 @@ protected:
 			out += '(' + s + ')';
 		}
 	}
-	// Comparisons
-	/*
-	bool equals(const Data * other) const override
-	{
-		return m_value == static_cast<const CPValue<tag, T> *>(other)->m_value;
-	}
-
-	bool less(const Data * other) const override
-	{
-		return m_value < static_cast<const CPValue<tag, T> *>(other)->m_value;
-	}
-	*/
 protected:
 	T m_value;
 	Value::MetaData *m_metaData = nullptr;
@@ -283,7 +251,7 @@ public:
 class ChainPackList final : public ValueData<Value::Type::List, Value::List>
 {
 	size_t count() const override {return m_value.size();}
-	const Value & operator[](Value::UInt i) const override;
+	const Value & at(Value::UInt i) const override;
 	bool dumpTextValue(std::string &out) const override
 	{
 		bool first = true;
@@ -332,7 +300,7 @@ class ChainPackMap final : public ValueData<Value::Type::Map, Value::Map>
 {
 	//const ChainPack::Map &toMap() const override { return m_value; }
 	size_t count() const override {return m_value.size();}
-	const Value & operator[](const Value::String &key) const override;
+	const Value & at(const Value::String &key) const override;
 	bool dumpTextValue(std::string &out) const override
 	{
 		bool first = true;
@@ -358,7 +326,7 @@ class ChainPackIMap final : public ValueData<Value::Type::IMap, Value::IMap>
 {
 	//const ChainPack::Map &toMap() const override { return m_value; }
 	size_t count() const override {return m_value.size();}
-	const Value & operator[](Value::UInt key) const override;
+	const Value & at(Value::UInt key) const override;
 	bool dumpTextValue(std::string &out) const override
 	{
 		bool first = true;
@@ -596,18 +564,46 @@ int Value::count() const { return m_ptr? m_ptr->count(): 0; }
 const Value::List & Value::toList() const { return m_ptr? m_ptr->toList(): static_empty_list(); }
 const Value::Map & Value::toMap() const { return m_ptr? m_ptr->toMap(): static_empty_map(); }
 const Value::IMap &Value::toIMap() const { return m_ptr? m_ptr->toIMap(): static_empty_imap(); }
-const Value & Value::operator[] (size_t i) const { return m_ptr? (*m_ptr)[i]: static_chain_pack_invalid(); }
-const Value & Value::operator[] (const Value::String &key) const { return m_ptr? (*m_ptr)[key]: static_chain_pack_invalid(); }
+const Value & Value::at (Value::UInt i) const { return m_ptr? m_ptr->at(i): static_chain_pack_invalid(); }
+const Value & Value::at (const Value::String &key) const { return m_ptr? m_ptr->at(key): static_chain_pack_invalid(); }
+
+void Value::set(Value::UInt ix, const Value &val)
+{
+	if(m_ptr)
+		m_ptr->set(ix, val);
+	else
+		std::cerr << __FILE__ << ':' << __LINE__ << " Cannot set value to invalid ChainPack value! Index: " << ix << std::endl;
+}
+
+void Value::set(const Value::String &key, const Value &val)
+{
+	if(m_ptr)
+		m_ptr->set(key, val);
+	else
+		std::cerr << __FILE__ << ':' << __LINE__ << " Cannot set value to invalid ChainPack value! Key: " << key << std::endl;
+}
 
 const std::string & Value::AbstractValueData::toString() const { return static_empty_string(); }
 const Value::Blob & Value::AbstractValueData::toBlob() const { return static_empty_blob(); }
 const Value::List & Value::AbstractValueData::toList() const { return static_empty_list(); }
 const Value::Map & Value::AbstractValueData::toMap() const { return static_empty_map(); }
 const Value::IMap & Value::AbstractValueData::toIMap() const { return static_empty_imap(); }
-const Value & Value::AbstractValueData::operator[] (Value::UInt) const { return static_chain_pack_invalid(); }
-const Value & Value::AbstractValueData::operator[] (const Value::String &) const { return static_chain_pack_invalid(); }
 
-const Value & ChainPackList::operator[] (Value::UInt i) const
+const Value & Value::AbstractValueData::at(Value::UInt) const { return static_chain_pack_invalid(); }
+const Value & Value::AbstractValueData::at(const Value::String &) const { return static_chain_pack_invalid(); }
+
+void Value::AbstractValueData::set(Value::UInt ix, const Value &)
+{
+	std::cerr << __FILE__ << ':' << __LINE__ << "Value::AbstractValueData::set: trivial implementation called! Key: " << ix << std::endl;
+}
+
+void Value::AbstractValueData::set(const Value::String &key, const Value &)
+{
+	std::cerr << __FILE__ << ':' << __LINE__ << "Value::AbstractValueData::set: trivial implementation called! Key: " << key << std::endl;
+}
+
+
+const Value & ChainPackList::at(Value::UInt i) const
 {
 	if (i >= m_value.size())
 		return static_chain_pack_invalid();
@@ -719,13 +715,13 @@ const char *Value::Type::name(Value::Type::Enum e)
 	}
 }
 
-const Value & ChainPackMap::operator[] (const Value::String &key) const
+const Value & ChainPackMap::at(const Value::String &key) const
 {
 	auto iter = m_value.find(key);
 	return (iter == m_value.end()) ? static_chain_pack_invalid() : iter->second;
 }
 
-const Value & ChainPackIMap::operator[] (Value::UInt key) const
+const Value & ChainPackIMap::at(Value::UInt key) const
 {
 	auto iter = m_value.find(key);
 	return (iter == m_value.end()) ? static_chain_pack_invalid() : iter->second;

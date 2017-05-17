@@ -581,7 +581,6 @@ int main(int argc, char **argv) {
 		return 0;
 	}
 
-	binary_test();
 	try {
 		text_test();
 		binary_test();

@@ -236,7 +236,7 @@ Value::DateTime read_DateTime(const ChainPackProtocol::Blob &data, ChainPackProt
 void ChainPackProtocol::writeData_List(ChainPackProtocol::Blob &out, const Value &pack)
 {
 	for (int i = 0; i < pack.count(); ++i) {
-		const Value &cp = pack[i];
+		const Value &cp = pack.at(i);
 		write(out, cp);
 	}
 	out += (uint8_t)Value::Type::TERM;

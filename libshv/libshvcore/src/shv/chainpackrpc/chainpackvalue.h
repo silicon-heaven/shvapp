@@ -173,11 +173,8 @@ public:
 	// ChainPack(bool(some_pointer)) if that behavior is desired.
 	Value(void *) = delete;
 
-	// Accessors
 	Type::Enum type() const;
 
-	//Value meta() const;
-	//const Map& metaValues() const;
 	const MetaData &metaData() const;
 	void setMetaData(MetaData &&meta_data);
 
@@ -188,37 +185,33 @@ public:
 	bool isString() const { return type() == Type::String; }
 	bool isList() const { return type() == Type::List; }
 	bool isMap() const { return type() == Type::Map; }
+	bool isIMap() const { return type() == Type::IMap; }
 
-	// Return the enclosed value if this is a number, 0 otherwise. Note that json11 does not
-	// distinguish between integer and non-integer numbers - number_value() and int_value()
-	// can both be applied to a NUMBER-typed object.
 	double toDouble() const;
 	Int toInt() const;
 	UInt toUInt() const;
-	// Return the enclosed value if this is a boolean, false otherwise.
 	bool toBool() const;
 	DateTime toDateTime() const;
-	// Return the enclosed string if this is a string, "" otherwise.
 	const Value::String &toString() const;
 	const Blob &toBlob() const;
-	// Return the enclosed std::vector if this is an List, or an empty vector otherwise.
 	const List &toList() const;
-	// Return the enclosed std::map if this is an Map, or an empty map otherwise.
 	const Map &toMap() const;
 	const IMap &toIMap() const;
 
 	int count() const;
-	const Value & operator[](size_t i) const;
-	const Value & operator[](const Value::String &key) const;
+	const Value & at(UInt i) const;
+	const Value & at(const Value::String &key) const;
+	const Value & operator[](UInt i) const {return at(i);}
+	const Value & operator[](const Value::String &key) const {return at(key);}
+	void set(UInt ix, const Value &val);
+	void set(const Value::String &key, const Value &val);
 
-	// Serialize.
 	void dumpText(std::string &out) const;
 	void dumpJson(std::string &out) const;
 
 	std::string dumpText() const { std::string out; dumpText(out); return out; }
 	std::string dumpJson() const { std::string out; dumpJson(out); return out; }
 
-	// Parse. If parse fails, return ChainPack() and assign an error message to err.
 	static Value parseJson(const std::string & in, std::string & err);
 	static Value parseJson(const char * in, std::string & err);
 
