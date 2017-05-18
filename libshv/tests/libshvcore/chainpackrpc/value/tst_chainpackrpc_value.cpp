@@ -452,11 +452,10 @@ CHAINPACK_TEST_CASE(binary_test)
 			CHAINPACK_TEST_ASSERT(cp1.toList() == cp2.toList());
 		}
 	}
-	/*
 	{
 		std::cout << "------------- Table \n";
 		{
-			Value cp1{Value::Table{(unsigned)1, (unsigned)2, (unsigned)3}};
+			Value cp1{Value::Table{1, 2, 3}};
 			ChainPackProtocol::Blob out;
 			int len = ChainPackProtocol::write(out, cp1);
 			Value cp2 = ChainPackProtocol::read(out);
@@ -479,7 +478,6 @@ CHAINPACK_TEST_CASE(binary_test)
 			CHAINPACK_TEST_ASSERT(cp1.toList() == cp2.toList());
 		}
 	}
-	*/
 	{
 		std::cout << "------------- Map \n";
 		{
@@ -527,9 +525,9 @@ CHAINPACK_TEST_CASE(binary_test)
 		}
 		{
 			Value cp1{{
-				{234, Value::List{11,12,13}},
-				{1, 2},
-				{2, 3},
+				{127, Value::List{11,12,13}},
+				{128, 2},
+				{129, 3},
 			}};
 			ChainPackProtocol::Blob out;
 			int len = ChainPackProtocol::write(out, cp1);
@@ -539,22 +537,20 @@ CHAINPACK_TEST_CASE(binary_test)
 			CHAINPACK_TEST_ASSERT(cp1.toIMap() == cp2.toIMap());
 		}
 	}
-	/*
 	{
 		std::cout << "------------- Meta \n";
-		Value cp1{1};
-		Value meta{Value::MetaTypeId(2)};
-		cp1.setMeta(meta);
+		Value cp1{Value::List{17, 18, 19}};
+		cp1.setMetaValue(Value::Tag::MetaTypeNameSpaceId, (unsigned)1);
+		cp1.setMetaValue(Value::Tag::MetaTypeId, (unsigned)2);
+		cp1.setMetaValue(Value::Tag::USER, "foo");
+		cp1.setMetaValue(Value::Tag::USER+1, Value::List{1,2,3});
 		ChainPackProtocol::Blob out;
 		int len = ChainPackProtocol::write(out, cp1);
 		Value cp2 = ChainPackProtocol::read(out);
 		std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
-		CHAINPACK_TEST_ASSERT(cp1.toInt() == cp2.toInt());
-		CHAINPACK_TEST_ASSERT(cp1.meta().type() == cp2.meta().type());
-		CHAINPACK_TEST_ASSERT(cp1.meta().toUInt() == cp2.meta().toUInt());
+		CHAINPACK_TEST_ASSERT(cp1.metaData() == cp2.metaData());
 	}
-	*/
 }
 
 #if CHAINPACK_TEST_STANDALONE_MAIN
@@ -581,6 +577,7 @@ int main(int argc, char **argv) {
 		return 0;
 	}
 
+	binary_test();
 	try {
 		text_test();
 		binary_test();

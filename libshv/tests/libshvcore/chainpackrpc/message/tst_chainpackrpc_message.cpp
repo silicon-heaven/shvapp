@@ -75,11 +75,11 @@ CHAINPACK_TEST_CASE(rpcmessage_test)
 		RpcRequest rq;
 		rq.setId(123)
 				.setMethod("foo")
-				.setParams(Value::Map{
+				.setParams({{
 							   {"a", 45},
 							   {"b", "bar"},
 							   {"c", Value::List{1,2,3}},
-						   });
+						   }});
 		ChainPackProtocol::Blob out;
 		Value cp1 = rq.value();
 		int len = ChainPackProtocol::write(out, cp1);

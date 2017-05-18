@@ -257,13 +257,13 @@ Value::List ChainPackProtocol::readData_List(const ChainPackProtocol::Blob &data
 	}
 	return lst;
 }
-/*
+
 void ChainPackProtocol::writeData_Table(ChainPackProtocol::Blob &out, const Value &pack)
 {
 	for (int i = 0; i < pack.count(); ++i) {
 		const Value &cp = pack[i];
 		if(i == 0)
-			write(out, cp, false);
+			write(out, cp);
 		else
 			writeData(out, cp);
 	}
@@ -293,7 +293,7 @@ Value::Table ChainPackProtocol::readData_Table(const ChainPackProtocol::Blob &da
 	}
 	return ret;
 }
-*/
+
 void ChainPackProtocol::writeData_Map(ChainPackProtocol::Blob &out, const Value::Map &map)
 {
 	for (const auto &kv : map) {
@@ -337,9 +337,14 @@ Value::IMap ChainPackProtocol::readData_IMap(const ChainPackProtocol::Blob &data
 	return ret;
 }
 
-static bool is_known_meta_tag(Value::UInt tag)
+static Value::Type::Enum optimized_meta_tag_type(Value::UInt tag)
 {
-	return (tag == Value::Type::MetaTypeId || tag == Value::Type::MetaTypeNameSpaceId);
+	switch(tag) {
+	case Value::Tag::MetaTypeId: return Value::Type::META_TYPE_ID;
+	case Value::Tag::MetaTypeNameSpaceId: return Value::Type::META_TYPE_NAMESPACE_ID;
+	default:
+		return Value::Type::Invalid;
+	}
 }
 
 void ChainPackProtocol::writeData_IMap(ChainPackProtocol::Blob &out, const Value::IMap &map)
@@ -367,19 +372,22 @@ void ChainPackProtocol::writeMetaData(ChainPackProtocol::Blob &out, const Value 
 {
 	const Value::MetaData &md = pack.metaData();
 	for (const auto &key : md.ikeys()) {
-		if(is_known_meta_tag(key)) {
-			out += (uint8_t)key;
+		Value::Type::Enum type = optimized_meta_tag_type(key);
+		if(type != Value::Type::Invalid) {
+			out += (uint8_t)type;
 			Value::UInt val = md.value(key).toUInt();
 			write_UIntData(out, val);
 		}
 	}
 	Value::IMap imap;
 	for (const auto &key : md.ikeys()) {
-		if(!is_known_meta_tag(key))
+		if(optimized_meta_tag_type(key) == Value::Type::Invalid)
 			imap[key] = md.value(key);
 	}
-	if(!imap.empty())
+	if(!imap.empty()) {
+		out += (uint8_t)Value::Type::MetaIMap;
 		writeData_IMap(out, imap);
+	}
 }
 
 bool ChainPackProtocol::writeTypeInfo(ChainPackProtocol::Blob &out, const Value &pack)
@@ -438,7 +446,7 @@ void ChainPackProtocol::writeData(ChainPackProtocol::Blob &out, const Value &pac
 	case Value::Type::String: write_Blob(out, pack.toString()); break;
 	case Value::Type::Blob: write_Blob(out, pack.toBlob()); break;
 	case Value::Type::List: writeData_List(out, pack); break;
-	//case Value::Type::Table: writeData_Table(out, pack); break;
+	case Value::Type::Table: writeData_Table(out, pack); break;
 	case Value::Type::Map: writeData_Map(out, pack.toMap()); break;
 	case Value::Type::IMap: writeData_IMap(out, pack.toIMap()); break;
 	case Value::Type::DateTime: write_DateTime(out, pack); break;
@@ -488,13 +496,13 @@ Value::MetaData ChainPackProtocol::readMetaData(const ChainPackProtocol::Blob &d
 		bool has_meta = true;
 		uint8_t type = data[pos];
 		switch(type) {
-		case Value::Type::MetaTypeId:  {
+		case Value::Type::META_TYPE_ID:  {
 			pos++;
 			Value::UInt u = read_UIntData<Value::UInt>(data, pos);
 			ret.setValue(Value::Tag::MetaTypeId, u);
 			break;
 		}
-		case Value::Type::MetaTypeNameSpaceId:  {
+		case Value::Type::META_TYPE_NAMESPACE_ID:  {
 			pos++;
 			Value::UInt u = read_UIntData<Value::UInt>(data, pos);
 			ret.setValue(Value::Tag::MetaTypeNameSpaceId, u);
@@ -555,7 +563,7 @@ Value ChainPackProtocol::readData(Value::Type::Enum type, const ChainPackProtoco
 	case Value::Type::String: { Value::String val = read_Blob<Value::String>(data, pos); ret = Value(val); break; }
 	case Value::Type::Blob: { Value::Blob val = read_Blob<Value::Blob>(data, pos); ret = Value(val); break; }
 	case Value::Type::List: { Value::List val = readData_List(data, pos); ret = Value(val); break; }
-	//case Value::Type::Table: { Value::Table val = readData_Table(data, pos); ret = Value(val); break; }
+	case Value::Type::Table: { Value::Table val = readData_Table(data, pos); ret = Value(val); break; }
 	case Value::Type::Map: { Value::Map val = readData_Map(data, pos); ret = Value(val); break; }
 	case Value::Type::IMap: { Value::IMap val = readData_IMap(data, pos); ret = Value(val); break; }
 	case Value::Type::DateTime: { Value::DateTime val = read_DateTime(data, pos); ret = Value(val); break; }

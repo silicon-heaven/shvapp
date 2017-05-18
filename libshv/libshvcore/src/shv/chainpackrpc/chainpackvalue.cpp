@@ -86,6 +86,7 @@ public:
 	*/
 	virtual const Value::MetaData &metaData() const = 0;
 	virtual void setMetaData(Value::MetaData &&meta_data) = 0;
+	virtual void setMetaValue(Value::UInt key, const Value &val) = 0;
 
 	virtual bool equals(const AbstractValueData * other) const = 0;
 	//virtual bool less(const Data * other) const = 0;
@@ -140,10 +141,18 @@ protected:
 
 	void setMetaData(Value::MetaData &&d)
 	{
-		if(!m_metaData)
-			m_metaData = new Value::MetaData(d);
+		if(m_metaData)
+			(*m_metaData) = std::move(d);
+		else
+			m_metaData = new Value::MetaData(std::move(d));
 	}
 
+	void setMetaValue(Value::UInt key, const Value &val)
+	{
+		if(!m_metaData)
+			m_metaData = new Value::MetaData();
+		m_metaData->setValue(key, val);
+	}
 
 	void dumpJson(std::string &out) const override
 	{
@@ -155,9 +164,16 @@ protected:
 	{
 		out += Value::Type::name(type());
 		if(m_metaData) {
-			out += '[';
-			//m_metaPtr->dumpText(out);
-			out += ']';
+			out += '<';
+			int n = 0;
+			for(auto key : m_metaData->ikeys()) {
+				if(n++ > 0)
+					out += ",";
+				out += std::to_string(key) + ':';
+				Value meta_val = m_metaData->value(key);
+				meta_val.dumpText(out);
+			}
+			out += '>';
 		}
 		std::string s;
 		if(dumpTextValue(s)) {
@@ -270,11 +286,11 @@ public:
 
 	const Value::List &toList() const override { return m_value; }
 };
-/*
+
 class ChainPackTable final : public ValueData<Value::Type::Table, Value::List>
 {
 	size_t count() const override {return m_value.size();}
-	const Value & operator[](Value::UInt i) const override;
+	const Value & at(Value::UInt i) const override;
 	bool dumpTextValue(std::string &out) const override
 	{
 		bool first = true;
@@ -287,15 +303,31 @@ class ChainPackTable final : public ValueData<Value::Type::Table, Value::List>
 		return true;
 	}
 	bool equals(const Value::AbstractValueData * other) const override { return m_value == other->toList(); }
+	/*
+	void checkSameType()
+	{
+		Value::Type::Enum type = Value::Type::Invalid;
+		int n = 0;
+		for (const auto &value : m_value) {
+			Value::Type::Enum t = value.type();
+			if(n++ == 0) {
+				type = t;
+			}
+			else if(t != type) {
+				throw std::runtime_error("Table must contain values of same type!");
+			}
+		}
+	}
+	*/
 public:
 	explicit ChainPackTable(const Value::Table &value) : ValueData(value) {}
-	explicit ChainPackTable(Value::Table &&value) : ValueData(move(value)) {}
+	explicit ChainPackTable(Value::Table &&value) noexcept : ValueData(std::move(value)) {}
 	//explicit ChainPackTable(const ChainPack::List &value) : ValueData(value) {}
 	//explicit ChainPackTable(ChainPack::List &&value) : ValueData(move(value)) {}
 
 	const Value::List &toList() const override { return m_value; }
 };
-*/
+
 class ChainPackMap final : public ValueData<Value::Type::Map, Value::Map>
 {
 	//const ChainPack::Map &toMap() const override { return m_value; }
@@ -343,7 +375,7 @@ class ChainPackIMap final : public ValueData<Value::Type::IMap, Value::IMap>
 	bool equals(const Value::AbstractValueData * other) const override { return m_value == other->toIMap(); }
 public:
 	explicit ChainPackIMap(const Value::IMap &value) : ValueData(value) {}
-	explicit ChainPackIMap(Value::IMap &&value) : ValueData(move(value)) {}
+	explicit ChainPackIMap(Value::IMap &&value) : ValueData(std::move(value)) {}
 
 	const Value::IMap &toIMap() const override { return m_value; }
 };
@@ -437,16 +469,16 @@ Value::Value(const std::string &value) : m_ptr(std::make_shared<ChainPackString>
 Value::Value(std::string &&value) : m_ptr(std::make_shared<ChainPackString>(std::move(value))) {}
 Value::Value(const char * value) : m_ptr(std::make_shared<ChainPackString>(value)) {}
 Value::Value(const Value::List &values) : m_ptr(std::make_shared<ChainPackList>(values)) {}
-Value::Value(Value::List &&values) : m_ptr(std::make_shared<ChainPackList>(move(values))) {}
+Value::Value(Value::List &&values) : m_ptr(std::make_shared<ChainPackList>(std::move(values))) {}
 
-//Value::Value(const Value::Table &values) : m_ptr(std::make_shared<ChainPackTable>(values)) {}
-//Value::Value(Value::Table &&values) : m_ptr(std::make_shared<ChainPackTable>(move(values))) {}
+Value::Value(const Value::Table &values) : m_ptr(std::make_shared<ChainPackTable>(values)) {}
+Value::Value(Value::Table &&values) : m_ptr(std::make_shared<ChainPackTable>(std::move(values))) {}
 
 Value::Value(const Value::Map &values) : m_ptr(std::make_shared<ChainPackMap>(values)) {}
-Value::Value(Value::Map &&values) : m_ptr(std::make_shared<ChainPackMap>(move(values))) {}
+Value::Value(Value::Map &&values) : m_ptr(std::make_shared<ChainPackMap>(std::move(values))) {}
 
 Value::Value(const Value::IMap &values) : m_ptr(std::make_shared<ChainPackIMap>(values)) {}
-Value::Value(Value::IMap &&values) : m_ptr(std::make_shared<ChainPackIMap>(move(values))) {}
+Value::Value(Value::IMap &&values) : m_ptr(std::make_shared<ChainPackIMap>(std::move(values))) {}
 
 //Value::Value(const Value::MetaTypeId &value) : m_ptr(std::make_shared<ChainPackMetaTypeId>(value)) {}
 //Value::Value(const Value::MetaTypeNameSpaceId &value) : m_ptr(std::make_shared<ChainPackMetaTypeNameSpaceId>(value)) {}
@@ -504,48 +536,15 @@ void Value::setMetaData(Value::MetaData &&meta_data)
 	if(m_ptr)
 		m_ptr->setMetaData(std::move(meta_data));
 }
-/*
-Value Value::metaValue(Value::UInt key) const
-{
-	if(m_ptr)
-		return m_ptr->metaValue(key);
-	return Value();
-}
-
-Value Value::metaValue(const Value::String &key) const
-{
-	if(m_ptr)
-		return m_ptr->metaValue(key);
-	return Value();
-}
 
 void Value::setMetaValue(Value::UInt key, const Value &val)
 {
+	if(!m_ptr && val.isValid())
+		throw std::runtime_error("Cannot set valid meta value to invalid ChainPack value!");
 	if(m_ptr)
 		m_ptr->setMetaValue(key, val);
-	else if(val.isValid())
-		throw std::runtime_error("Cannot set valid meta to invalid ChainPack value!");
 }
 
-void Value::setMetaValue(const Value::String &key, const Value &val)
-{
-	if(m_ptr)
-		m_ptr->setMetaValue(key, val);
-	else if(val.isValid())
-		throw std::runtime_error("Cannot set valid meta to invalid ChainPack value!");
-}
-*/
-/*
-Value Value::meta() const { return m_ptr? m_ptr->meta(): Value{}; }
-
-void Value::setMeta(const Value &m)
-{
-	if(m_ptr)
-		m_ptr->setMeta(m.m_ptr);
-	else if(m.isValid())
-		throw std::runtime_error("Cannot set valid meta to invalid ChainPack value!");
-}
-*/
 bool Value::isValid() const
 {
 	return !!m_ptr;
@@ -610,15 +609,15 @@ const Value & ChainPackList::at(Value::UInt i) const
 	else
 		return m_value[i];
 }
-/*
-const Value &ChainPackTable::operator[](Value::UInt i) const
+
+const Value &ChainPackTable::at(Value::UInt i) const
 {
 	if (i >= m_value.size())
 		return static_chain_pack_invalid();
 	else
 		return m_value[i];
 }
-*/
+
 /* * * * * * * * * * * * * * * * * * * *
  * Comparison
  */
@@ -700,12 +699,12 @@ const char *Value::Type::name(Value::Type::Enum e)
 	case Blob: return "Blob";
 	case String: return "String";
 	case List: return "List";
-	//case Table: return "Table";
+	case Table: return "Table";
 	case Map: return "Map";
 	case IMap: return "IMap";
 	case DateTime: return "DateTime";
-	case MetaTypeId: return "MetaTypeId";
-	case MetaTypeNameSpaceId: return "MetaTypeNameSpaceId";
+	case META_TYPE_ID: return "META_TYPE_ID";
+	case META_TYPE_NAMESPACE_ID: return "META_TYPE_NAMESPACE_ID";
 	case MetaIMap: return "MetaIMap";
 	case TRUE: return "TRUE";
 	case FALSE: return "FALSE";
@@ -838,6 +837,19 @@ Value Value::MetaData::value(Value::UInt key) const
 void Value::MetaData::setValue(Value::UInt key, const Value &val)
 {
 	m_imap[key] = val;
+}
+
+bool Value::MetaData::operator==(const Value::MetaData &o) const
+{
+	/*
+	std::cerr << "this" << std::endl;
+	for(const auto &it : m_imap)
+		std::cerr << '\t' << it.first << ": " << it.second.dumpText() << std::endl;
+	std::cerr << "other" << std::endl;
+	for(const auto &it : o.m_imap)
+		std::cerr << '\t' << it.first << ": " << it.second.dumpText() << std::endl;
+	*/
+	return m_imap == o.m_imap;
 }
 
 }}

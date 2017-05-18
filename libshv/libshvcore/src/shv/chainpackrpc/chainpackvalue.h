@@ -36,13 +36,13 @@ public:
 					String,
 					DateTime,
 					List,
-					//Table,
+					Table,
 					Map,
 					IMap,
-					MetaTypeId,
-					MetaTypeNameSpaceId,
 					//MetaMap,
 					MetaIMap,
+					META_TYPE_ID,
+					META_TYPE_NAMESPACE_ID,
 					FALSE,
 					TRUE,
 				  };
@@ -92,25 +92,21 @@ public:
 	using List = std::vector<Value>;
 	using Map = std::map<Value::String, Value>;
 	using IMap = std::map<Value::UInt, Value>;
-	/*
 	class Table : public List
 	{
 	public:
 		Table() : List() {}
 		Table(const Table &t) : List(t) {}
-		Table(Table &&t) : List(std::move(t)) {}
+		Table(Table &&t) noexcept : List(std::move(t)) {}
 		Table(std::initializer_list<value_type> l) : List(l) {}
 	};
-	*/
 	struct SHVCORE_DECL_EXPORT MetaData
 	{
 		std::vector<Value::UInt> ikeys() const;
 		Value value(Value::UInt key) const;
 		void setValue(Value::UInt key, const Value &val);
-		//void setMetaValues(Value::IMap &&vals);
-		//Value metaValue(const Value::String &key) const;
-		//void setMetaValue(const Value::String &key, const Value &val);
 		bool isEmpty() const {return m_imap.empty();}
+		bool operator==(const MetaData &o) const;
 	protected:
 		//Value::Map smap;
 		Value::IMap m_imap;
@@ -137,8 +133,8 @@ public:
 	Value(const char *value);       // String
 	Value(const List &values);      // List
 	Value(List &&values);           // List
-	//Value(const Table &values);
-	//Value(Table &&values);
+	Value(const Table &values);
+	Value(Table &&values);
 	Value(const Map &values);     // Map
 	Value(Map &&values);          // Map
 	Value(const IMap &values);     // IMap
@@ -177,6 +173,7 @@ public:
 
 	const MetaData &metaData() const;
 	void setMetaData(MetaData &&meta_data);
+	void setMetaValue(UInt key, const Value &val);
 
 	bool isValid() const;
 	bool isNull() const { return type() == Type::Null; }
