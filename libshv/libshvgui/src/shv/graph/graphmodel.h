@@ -2,32 +2,11 @@
 
 #include "../../shvguiglobal.h"
 
-#include <QVector>
+#include <QObject>
 #include <memory>
 
 namespace shv {
 namespace gui {
-
-struct SHVGUI_DECL_EXPORT SerieType
-{
-	enum Enum {
-		Osc = 0,
-		Amp,
-		Cos,
-		Sin,
-		P3,
-		P4,
-		VehicleType,
-		VehicleEvent,
-		BlockedOsc,
-		BlockedAmp,
-		BlockedCos,
-		BlockedSin,
-		BlockedP3,
-		BlockedP4,
-		TypeCount
-	};
-};
 
 struct SHVGUI_DECL_EXPORT ValueChange
 {
@@ -43,12 +22,26 @@ struct SHVGUI_DECL_EXPORT ValueChange
 	} valueY;
 };
 
-using SerieData = std::vector<ValueChange>;
-using SerieDataSharedPtr = std::shared_ptr<const SerieData>;
-
-struct SHVGUI_DECL_EXPORT GraphModel
+class SerieData : public std::vector<ValueChange>
 {
-	SerieData series[(int)SerieType::TypeCount];// = {SerieData(), SerieData(), SerieData()};
+public:
+	enum class Type { TimeStamp, Int, Real, Bool };
+
+	Type xType;
+	Type yType;
+};
+
+struct SHVGUI_DECL_EXPORT GraphModel : public QObject
+{
+	Q_OBJECT
+
+public:
+	GraphModel(QObject *parent);
+
+	Q_SIGNAL void dataChanged();
+
+	virtual SerieData *serieData(int serie_index) = 0;
+	virtual const SerieData *serieData(int serie_index) const = 0;
 };
 
 }

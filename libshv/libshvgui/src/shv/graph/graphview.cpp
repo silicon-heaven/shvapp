@@ -93,6 +93,44 @@ GraphView::GraphView(QWidget *parent) : QWidget(parent)
 	m_rightRangeSelectorHandle->hide();
 }
 
+GraphView::~GraphView()
+{
+	cleanSeries();
+}
+
+void GraphView::cleanSerie(Serie &serie)
+{
+	if (serie.formattedDataPtr){
+		delete serie.formattedDataPtr;
+		serie.formattedDataPtr = 0;
+	}
+	serie.dataPtr = 0;
+}
+
+void GraphView::cleanSeries()
+{
+	for (Serie &serie : m_series) {
+		cleanSerie(serie);
+		for (Serie &dep_serie : serie.dependentSeries) {
+			cleanSerie(dep_serie);
+		}
+	}
+}
+
+void GraphView::getSerieData(Serie &serie)
+{
+	if (serie.valueFormatter) {
+		serie.formattedDataPtr = new SerieData;
+		for (const ValueChange &value : *m_data->serieData(serie.serieIndex)) {
+			serie.formattedDataPtr->push_back(serie.valueFormatter(value));
+		}
+		serie.dataPtr = serie.formattedDataPtr;
+	}
+	else {
+		serie.dataPtr = m_data->serieData(serie.serieIndex);
+	}
+}
+
 void GraphView::setModelData(const GraphModel &model_data)
 {
 	m_data = &model_data;
@@ -100,9 +138,9 @@ void GraphView::setModelData(const GraphModel &model_data)
 	m_loadedRangeMin = UINT64_MAX;
 	m_loadedRangeMax = 0;
 	for (Serie &serie : m_series) {
-		serie.dataPtr = serie.dataGetter(m_data);
+		getSerieData(serie);
 		for (Serie &dep_serie : serie.dependentSeries) {
-			dep_serie.dataPtr = dep_serie.dataGetter(m_data);
+			getSerieData(dep_serie);
 		}
 	}
 	switch (settings.xAxisType) {
@@ -179,10 +217,16 @@ int GraphView::computeYLabelWidth(const Settings::Axis &axis, int &shownDecimalP
 
 void GraphView::computeRangeSelectorPosition()
 {
-	m_leftRangeSelectorPosition = m_rangeSelectorRect.x() +
-								  m_rangeSelectorRect.width()  * (m_displayedRangeMin - m_loadedRangeMin) / (m_loadedRangeMax - m_loadedRangeMin);
-	m_rightRangeSelectorPosition = m_rangeSelectorRect.x() +
-								   m_rangeSelectorRect.width() * (m_displayedRangeMax - m_loadedRangeMin) / (m_loadedRangeMax - m_loadedRangeMin);
+	if (m_loadedRangeMax > m_loadedRangeMin) {
+		m_leftRangeSelectorPosition = m_rangeSelectorRect.x() +
+									  m_rangeSelectorRect.width()  * (m_displayedRangeMin - m_loadedRangeMin) / (m_loadedRangeMax - m_loadedRangeMin);
+		m_rightRangeSelectorPosition = m_rangeSelectorRect.x() +
+									   m_rangeSelectorRect.width() * (m_displayedRangeMax - m_loadedRangeMin) / (m_loadedRangeMax - m_loadedRangeMin);
+	}
+	else {
+		m_leftRangeSelectorPosition = m_rangeSelectorRect.x();
+		m_rightRangeSelectorPosition = m_rangeSelectorRect.x() + m_rangeSelectorRect.width();
+	}
 	m_leftRangeSelectorHandle->move(
 				m_leftRangeSelectorPosition - (m_leftRangeSelectorHandle->width() / 2),
 				m_rangeSelectorRect.y() + (m_rangeSelectorRect.height() - m_leftRangeSelectorHandle->height()) / 2
@@ -856,9 +900,6 @@ GraphView::Serie &GraphView::addSerie(const Serie &serie)
 {
 	if (serie.dataPtr) {
 		throw std::runtime_error("Data ptr in serie must not be set as param");
-	}
-	if (!serie.dataGetter) {
-		throw std::runtime_error("Missing data getter in serie");
 	}
 	if (serie.type == Serie::Type::Bool && !serie.boolValue) {
 		throw std::runtime_error("Bool serie must have set boolValue");

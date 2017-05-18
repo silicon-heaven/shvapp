@@ -41,9 +41,11 @@ public:
 		double boolValue;
 		bool show;
 		bool showCurrent;
-		std::function<SerieDataSharedPtr (const GraphModel *)> dataGetter;
+		int serieIndex;
+		std::function<ValueChange (const ValueChange &)> valueFormatter;
 		std::function<QString (const ValueChange &)> legendValueFormatter;
-		SerieDataSharedPtr dataPtr;
+		const SerieData *dataPtr;
+		SerieData *formattedDataPtr;
 		QVector<Serie> dependentSeries;
 	};
 
@@ -133,6 +135,7 @@ public:
 	};
 
 	GraphView(QWidget *parent);
+	~GraphView();
 
 	Settings settings;
 	void setModelData(const GraphModel &model_data);
@@ -236,6 +239,9 @@ private:
 	void computeRange(quint64 &min, quint64 &max);
 	SerieData::const_iterator findMinYValue(const SerieData &data, quint64 x_value) const;
 //	template<typename T> static void mergeSerieMemberWithDefault(Serie &merged_serie, const Serie &param, T Serie::*member);
+	void cleanSeries();
+	void cleanSerie(Serie &serie);
+	void getSerieData(Serie &serie);
 
 	const GraphModel *m_data;
 
