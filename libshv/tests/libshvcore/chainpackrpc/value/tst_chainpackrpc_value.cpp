@@ -359,22 +359,25 @@ CHAINPACK_TEST_CASE(binary_test)
 				int len = ChainPackProtocol::write(out, cp1);
 				CHAINPACK_TEST_ASSERT(len > 1);
 				Value cp2 = ChainPackProtocol::read(out);
-				//std::cout << n << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
+				if(n > -3*step && n < 3*step)
+					std::cout << n << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 				CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 				CHAINPACK_TEST_ASSERT(cp1.toDouble() == cp2.toDouble());
 			}
 		}
 		{
-			auto n_max = std::numeric_limits<double>::max();
-			auto n_min = std::numeric_limits<double>::min();
-			auto step = (n_max - n_min) / 100;
-			for (auto n = n_min; n < n_max; n += step) {
+			double n_max = std::numeric_limits<double>::max();
+			double n_min = std::numeric_limits<double>::min();
+			double step = -1.23456789e10;
+			//std::cout << n_min << " - " << n_max << ": " << step << " === " << (n_max / step / 10) << "\n";
+			for (double n = n_min; n < n_max / -step / 10; n *= step) {
 				Value cp1{n};
 				ChainPackProtocol::Blob out;
 				int len = ChainPackProtocol::write(out, cp1);
 				CHAINPACK_TEST_ASSERT(len > 1);
 				Value cp2 = ChainPackProtocol::read(out);
-				//std::cout << n << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
+				if(n > -100 && n < 100)
+					std::cout << n << " - " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 				CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 				CHAINPACK_TEST_ASSERT(cp1.toDouble() == cp2.toDouble());
 			}
@@ -399,9 +402,9 @@ CHAINPACK_TEST_CASE(binary_test)
 		blob[5] = 0;
 		Value cp1{blob};
 		ChainPackProtocol::Blob out;
-		ChainPackProtocol::write(out, cp1);
+		int len = ChainPackProtocol::write(out, cp1);
 		Value cp2 = ChainPackProtocol::read(out);
-		//std::cout << blob.toString() << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
+		std::cout << blob.toString() << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 		CHAINPACK_TEST_ASSERT(cp1.toBlob() == cp2.toBlob());
 	}

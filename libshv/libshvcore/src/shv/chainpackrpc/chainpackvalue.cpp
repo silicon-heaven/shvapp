@@ -162,7 +162,6 @@ protected:
 	virtual bool dumpTextValue(std::string &out) const {dumpJson(out); return true;}
 	void dumpText(std::string &out) const override
 	{
-		out += Value::Type::name(type());
 		if(m_metaData) {
 			out += '<';
 			int n = 0;
@@ -176,8 +175,36 @@ protected:
 			out += '>';
 		}
 		std::string s;
-		if(dumpTextValue(s)) {
+		dumpTextValue(s);
+		switch (type()) {
+		case Value::Type::Bool:
+			out += s;
+			break;
+		case Value::Type::Int:
+			out += s;
+			break;
+		case Value::Type::UInt:
+			out += s + 'u';
+			break;
+		case Value::Type::String:
+			out += s;
+			break;
+		case Value::Type::Double:
+			out += s;
+			if(s.find('e') == Value::String::npos && s.find('E') == Value::String::npos)
+				out += '.';
+			break;
+		case Value::Type::List:
+			out += '[' + s + ']';
+			break;
+		case Value::Type::Map:
+		case Value::Type::IMap:
+			out += '{' + s + '}';
+			break;
+		default:
+			out += Value::Type::name(type());
 			out += '(' + s + ')';
+			break;
 		}
 	}
 protected:
