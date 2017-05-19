@@ -1,1 +1,1 @@
-include ($$PWD/chainpackrpc/chainpackrpc.pri)
+include ($$PWD/chainpack/chainpack.pri)
