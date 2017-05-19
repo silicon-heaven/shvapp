@@ -5,39 +5,39 @@
 #include <cassert>
 
 namespace shv {
-namespace chainpackrpc {
+namespace chainpack {
 
-RpcMessage::RpcMessage(const Value &val)
+RpcMessage::RpcMessage(const RpcValue &val)
 {
 	assert(val.isIMap());
 	m_value = val;
 }
 
-bool RpcMessage::hasKey(Value::UInt key) const
+bool RpcMessage::hasKey(RpcValue::UInt key) const
 {
 	return m_value.toIMap().count(key);
 }
 
-Value RpcMessage::value(Value::UInt key) const
+RpcValue RpcMessage::value(RpcValue::UInt key) const
 {
 	return m_value.at(key);
 }
 
-void RpcMessage::setValue(Value::UInt key, const Value &val)
+void RpcMessage::setValue(RpcValue::UInt key, const RpcValue &val)
 {
 	assert(key >= Key::Id && key < Key::MAX_KEY);
 	ensureMetaValues();
 	m_value.set(key, val);
 }
 
-Value::UInt RpcMessage::id() const
+RpcValue::UInt RpcMessage::id() const
 {
 	return value(Key::Id).toUInt();
 }
 
-void RpcMessage::setId(Value::UInt id)
+void RpcMessage::setId(RpcValue::UInt id)
 {
-	setValue(Key::Id, Value{id});
+	setValue(Key::Id, RpcValue{id});
 }
 
 bool RpcMessage::isRequest() const
@@ -55,7 +55,7 @@ bool RpcMessage::isResponse() const
 	return hasKey(Key::Id) && (hasKey(Key::Result) || hasKey(Key::Error));
 }
 
-int RpcMessage::write(Value::Blob &out) const
+int RpcMessage::write(RpcValue::Blob &out) const
 {
 	assert(m_value.isValid());
 	return ChainPackProtocol::write(out, m_value);
@@ -64,30 +64,30 @@ int RpcMessage::write(Value::Blob &out) const
 void RpcMessage::ensureMetaValues()
 {
 	if(!m_value.isValid()) {
-		m_value = Value::IMap();
-		m_value.setMetaValue(Value::Tag::MetaTypeId, GlobalMetaTypeId::ChainPackRpcMessage);
+		m_value = RpcValue::IMap();
+		m_value.setMetaValue(RpcValue::Tag::MetaTypeId, GlobalMetaTypeId::ChainPackRpcMessage);
 		/// not needed, Global is default name space
 		//m_value.setMetaValue(Value::Tag::MetaTypeNameSpaceId, MetaTypeNameSpaceId::Global);
 	}
 }
 
-Value::String RpcRequest::method() const
+RpcValue::String RpcRequest::method() const
 {
 	return value(Key::Method).toString();
 }
 
-RpcRequest &RpcRequest::setMethod(Value::String &&met)
+RpcRequest &RpcRequest::setMethod(RpcValue::String &&met)
 {
-	setValue(Key::Method, Value{std::move(met)});
+	setValue(Key::Method, RpcValue{std::move(met)});
 	return *this;
 }
 
-Value RpcRequest::params() const
+RpcValue RpcRequest::params() const
 {
 	return value(Key::Params);
 }
 
-RpcRequest& RpcRequest::setParams(const Value& p)
+RpcRequest& RpcRequest::setParams(const RpcValue& p)
 {
 	setValue(Key::Params, p);
 	return *this;
@@ -104,12 +104,12 @@ RpcResponse &RpcResponse::setError(RpcResponse::Error &&err)
 	return *this;
 }
 
-Value RpcResponse::result() const
+RpcValue RpcResponse::result() const
 {
 	return value(Key::Result);
 }
 
-RpcResponse& RpcResponse::setResult(const Value& res)
+RpcResponse& RpcResponse::setResult(const RpcValue& res)
 {
 	setValue(Key::Result, res);
 	return *this;
@@ -123,23 +123,23 @@ RpcResponse::Error::ErrorType RpcResponse::Error::code() const
 
 RpcResponse::Error& RpcResponse::Error::setCode(ErrorType c)
 {
-	(*this)[KeyCode] = Value{(Value::UInt)c};
+	(*this)[KeyCode] = RpcValue{(RpcValue::UInt)c};
 	return *this;
 }
 
-RpcResponse::Error& RpcResponse::Error::setMessage(Value::String &&mess)
+RpcResponse::Error& RpcResponse::Error::setMessage(RpcValue::String &&mess)
 {
-	(*this)[KeyMessage] = Value{std::move(mess)};
+	(*this)[KeyMessage] = RpcValue{std::move(mess)};
 	return *this;
 }
 
-Value::String RpcResponse::Error::message() const
+RpcValue::String RpcResponse::Error::message() const
 {
 	auto iter = find(KeyMessage);
-	return (iter == end()) ? Value::String{} : iter->second.toString();
+	return (iter == end()) ? RpcValue::String{} : iter->second.toString();
 }
 
-Value::String RpcMessage::toString() const
+RpcValue::String RpcMessage::toString() const
 {
 	return m_value.dumpText();
 }

@@ -19,8 +19,8 @@
 /*
  * Beginning of standard source file, which makes use of the customizations above.
  */
-#include <shv/chainpackrpc/rpcmessage.h>
-#include <shv/chainpackrpc/chainpackprotocol.h>
+#include <shv/chainpack/rpcmessage.h>
+#include <shv/chainpack/chainpackprotocol.h>
 
 #include <cassert>
 #include <string>
@@ -39,20 +39,20 @@
 // to set up a custom test suite
 CHAINPACK_TEST_CPP_PREFIX_CODE
 
-using namespace shv::chainpackrpc;
+using namespace shv::chainpack;
 using std::string;
 
 // Check that ChainPack has the properties we want.
 #define CHECK_TRAIT(x) static_assert(std::x::value, #x)
-CHECK_TRAIT(is_nothrow_constructible<Value>);
-CHECK_TRAIT(is_nothrow_default_constructible<Value>);
-CHECK_TRAIT(is_copy_constructible<Value>);
-CHECK_TRAIT(is_nothrow_move_constructible<Value>);
-CHECK_TRAIT(is_copy_assignable<Value>);
-CHECK_TRAIT(is_nothrow_move_assignable<Value>);
-CHECK_TRAIT(is_nothrow_destructible<Value>);
+CHECK_TRAIT(is_nothrow_constructible<RpcValue>);
+CHECK_TRAIT(is_nothrow_default_constructible<RpcValue>);
+CHECK_TRAIT(is_copy_constructible<RpcValue>);
+CHECK_TRAIT(is_nothrow_move_constructible<RpcValue>);
+CHECK_TRAIT(is_copy_assignable<RpcValue>);
+CHECK_TRAIT(is_nothrow_move_assignable<RpcValue>);
+CHECK_TRAIT(is_nothrow_destructible<RpcValue>);
 
-static std::string binary_dump(const Value::Blob &out)
+static std::string binary_dump(const RpcValue::Blob &out)
 {
 	std::string ret;
 	for (size_t i = 0; i < out.size(); ++i) {
@@ -78,12 +78,12 @@ CHAINPACK_TEST_CASE(rpcmessage_test)
 				.setParams({{
 							   {"a", 45},
 							   {"b", "bar"},
-							   {"c", Value::List{1,2,3}},
+							   {"c", RpcValue::List{1,2,3}},
 						   }});
 		ChainPackProtocol::Blob out;
-		Value cp1 = rq.value();
+		RpcValue cp1 = rq.value();
 		int len = rq.write(out);
-		Value cp2 = ChainPackProtocol::read(out);
+		RpcValue cp2 = ChainPackProtocol::read(out);
 		std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 		RpcRequest rq2(cp2);
@@ -97,9 +97,9 @@ CHAINPACK_TEST_CASE(rpcmessage_test)
 		RpcResponse rs;
 		rs.setId(123).setResult(42u);
 		ChainPackProtocol::Blob out;
-		Value cp1 = rs.value();
+		RpcValue cp1 = rs.value();
 		int len = rs.write(out);
-		Value cp2 = ChainPackProtocol::read(out);
+		RpcValue cp2 = ChainPackProtocol::read(out);
 		std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 		RpcResponse rs2(cp2);
@@ -112,9 +112,9 @@ CHAINPACK_TEST_CASE(rpcmessage_test)
 		rs.setId(123)
 				.setError(RpcResponse::Error::createError(RpcResponse::Error::InvalidParams, "Paramter length should be greater than zero!"));
 		ChainPackProtocol::Blob out;
-		Value cp1 = rs.value();
+		RpcValue cp1 = rs.value();
 		int len = rs.write(out);
-		Value cp2 = ChainPackProtocol::read(out);
+		RpcValue cp2 = ChainPackProtocol::read(out);
 		std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 		RpcResponse rs2(cp2);
@@ -129,12 +129,12 @@ CHAINPACK_TEST_CASE(rpcmessage_test)
 				.setParams({{
 							   {"a", 45},
 							   {"b", "bar"},
-							   {"c", Value::List{1,2,3}},
+							   {"c", RpcValue::List{1,2,3}},
 						   }});
 		ChainPackProtocol::Blob out;
-		Value cp1 = rq.value();
+		RpcValue cp1 = rq.value();
 		int len = rq.write(out);
-		Value cp2 = ChainPackProtocol::read(out);
+		RpcValue cp2 = ChainPackProtocol::read(out);
 		std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 		RpcRequest rq2(cp2);
@@ -154,7 +154,7 @@ static void parse_from_stdin() {
 	}
 
 	string err;
-	auto json = Value::parseJson(buf, err);
+	auto json = RpcValue::parseJson(buf, err);
 	if (!err.empty()) {
 		printf("Failed: %s\n", err.c_str());
 	} else {

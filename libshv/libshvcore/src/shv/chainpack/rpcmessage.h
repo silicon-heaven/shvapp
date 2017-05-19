@@ -1,11 +1,11 @@
 #pragma once
 
-#include "chainpackvalue.h"
+#include "rpcvalue.h"
 
 #include "../../shvcoreglobal.h"
 
 namespace shv {
-namespace chainpackrpc {
+namespace chainpack {
 
 class SHVCORE_DECL_EXPORT RpcMessage
 {
@@ -24,25 +24,25 @@ public:
 	};
 public:
 	RpcMessage() {}
-	RpcMessage(const Value &val);
-	const Value& value() const {return m_value;}
+	RpcMessage(const RpcValue &val);
+	const RpcValue& value() const {return m_value;}
 protected:
-	bool hasKey(Value::UInt key) const;
-	Value value(Value::UInt key) const;
-	void setValue(Value::UInt key, const Value &val);
+	bool hasKey(RpcValue::UInt key) const;
+	RpcValue value(RpcValue::UInt key) const;
+	void setValue(RpcValue::UInt key, const RpcValue &val);
 public:
-	Value::UInt id() const;
-	void setId(Value::UInt id);
+	RpcValue::UInt id() const;
+	void setId(RpcValue::UInt id);
 	bool isRequest() const;
 	bool isResponse() const;
 	bool isNotify() const;
-	Value::String toString() const;
+	RpcValue::String toString() const;
 
-	virtual int write(Value::Blob &out) const;
+	virtual int write(RpcValue::Blob &out) const;
 protected:
 	void ensureMetaValues();
 protected:
-	Value m_value;
+	RpcValue m_value;
 };
 
 class SHVCORE_DECL_EXPORT RpcRequest : public RpcMessage
@@ -54,11 +54,11 @@ public:
 	//RpcRequest(const Value &id) : Super(Json()) {setId(id);}
 	RpcRequest(const RpcMessage &msg) : Super(msg) {}
 public:
-	RpcRequest& setMethod(Value::String &&met);
-	Value::String method() const;
-	RpcRequest& setParams(const Value &p);
-	Value params() const;
-	RpcRequest& setId(const Value::UInt id) {Super::setId(id); return *this;}
+	RpcRequest& setMethod(RpcValue::String &&met);
+	RpcValue::String method() const;
+	RpcRequest& setParams(const RpcValue &p);
+	RpcValue params() const;
+	RpcRequest& setId(const RpcValue::UInt id) {Super::setId(id); return *this;}
 
 	//int write(Value::Blob &out) const override;
 };
@@ -68,10 +68,10 @@ class SHVCORE_DECL_EXPORT RpcResponse : public RpcMessage
 private:
 	using Super = RpcMessage;
 public:
-	class SHVCORE_DECL_EXPORT Error : public Value::IMap
+	class SHVCORE_DECL_EXPORT Error : public RpcValue::IMap
 	{
 	private:
-		using Super = Value::IMap;
+		using Super = RpcValue::IMap;
 		enum {KeyCode = 1, KeyMessage};
 	public:
 		enum ErrorType {
@@ -90,13 +90,13 @@ public:
 		Error(const Super &m = Super()) : Super(m) {}
 		Error& setCode(ErrorType c);
 		ErrorType code() const;
-		Error& setMessage(Value::String &&m);
-		Value::String message() const;
+		Error& setMessage(RpcValue::String &&m);
+		RpcValue::String message() const;
 		//Error& setData(const Value &data);
 		//Value data() const;
-		Value::String toString() const {return "RPC ERROR " + std::to_string(code()) + ": " + message();}
+		RpcValue::String toString() const {return "RPC ERROR " + std::to_string(code()) + ": " + message();}
 	public:
-		static Error createError(ErrorType c, Value::String &&msg) {
+		static Error createError(ErrorType c, RpcValue::String &&msg) {
 			Error ret;
 			ret.setCode(c).setMessage(std::move(msg));
 			return ret;
@@ -141,9 +141,9 @@ public:
 	bool isError() const {return !error().empty();}
 	RpcResponse& setError(Error &&err);
 	Error error() const;
-	RpcResponse& setResult(const Value &res);
-	Value result() const;
-	RpcResponse& setId(const Value::UInt id) {Super::setId(id); return *this;}
+	RpcResponse& setResult(const RpcValue &res);
+	RpcValue result() const;
+	RpcResponse& setId(const RpcValue::UInt id) {Super::setId(id); return *this;}
 };
 
 } // namespace chainpackrpc

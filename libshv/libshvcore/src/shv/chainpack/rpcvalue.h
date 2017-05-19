@@ -16,10 +16,10 @@
 #endif
 
 namespace shv {
-namespace chainpackrpc {
+namespace chainpack {
 
 
-class SHVCORE_DECL_EXPORT Value final
+class SHVCORE_DECL_EXPORT RpcValue final
 {
 public:
 	class AbstractValueData;
@@ -89,9 +89,9 @@ public:
 			return ret;
 		}
 	};
-	using List = std::vector<Value>;
-	using Map = std::map<Value::String, Value>;
-	using IMap = std::map<Value::UInt, Value>;
+	using List = std::vector<RpcValue>;
+	using Map = std::map<RpcValue::String, RpcValue>;
+	using IMap = std::map<RpcValue::UInt, RpcValue>;
 	class Table : public List
 	{
 	public:
@@ -102,14 +102,14 @@ public:
 	};
 	struct SHVCORE_DECL_EXPORT MetaData
 	{
-		std::vector<Value::UInt> ikeys() const;
-		Value value(Value::UInt key) const;
-		void setValue(Value::UInt key, const Value &val);
+		std::vector<RpcValue::UInt> ikeys() const;
+		RpcValue value(RpcValue::UInt key) const;
+		void setValue(RpcValue::UInt key, const RpcValue &val);
 		bool isEmpty() const {return m_imap.empty();}
 		bool operator==(const MetaData &o) const;
 	protected:
 		//Value::Map smap;
-		Value::IMap m_imap;
+		RpcValue::IMap m_imap;
 	};
 
 	//struct MetaTypeId { uint32_t id = 0; MetaTypeId(uint32_t id) : id(id) {}};
@@ -118,27 +118,27 @@ public:
 	//struct MetaTypeNameSpaceName : public String { MetaTypeNameSpaceName(const String &id) : String(id) {} };
 
 	// Constructors for the various types of JSON value.
-	Value() noexcept;                // Null
-	Value(std::nullptr_t) noexcept;  // Null
-	Value(double value);             // Double
-	Value(Int value);                // Int
-	Value(UInt value);                // Int
-	Value(bool value);               // Bool
-	Value(const DateTime &value);
-	Value(const Blob &value); // Blob
-	Value(Blob &&value);
-	Value(const uint8_t *value, size_t size);
-	Value(const std::string &value); // String
-	Value(std::string &&value);      // String
-	Value(const char *value);       // String
-	Value(const List &values);      // List
-	Value(List &&values);           // List
-	Value(const Table &values);
-	Value(Table &&values);
-	Value(const Map &values);     // Map
-	Value(Map &&values);          // Map
-	Value(const IMap &values);     // IMap
-	Value(IMap &&values);          // IMap
+	RpcValue() noexcept;                // Null
+	RpcValue(std::nullptr_t) noexcept;  // Null
+	RpcValue(double value);             // Double
+	RpcValue(Int value);                // Int
+	RpcValue(UInt value);                // Int
+	RpcValue(bool value);               // Bool
+	RpcValue(const DateTime &value);
+	RpcValue(const Blob &value); // Blob
+	RpcValue(Blob &&value);
+	RpcValue(const uint8_t *value, size_t size);
+	RpcValue(const std::string &value); // String
+	RpcValue(std::string &&value);      // String
+	RpcValue(const char *value);       // String
+	RpcValue(const List &values);      // List
+	RpcValue(List &&values);           // List
+	RpcValue(const Table &values);
+	RpcValue(Table &&values);
+	RpcValue(const Map &values);     // Map
+	RpcValue(Map &&values);          // Map
+	RpcValue(const IMap &values);     // IMap
+	RpcValue(IMap &&values);          // IMap
 
 	//Value(const MetaTypeId &value);
 	//Value(const MetaTypeNameSpaceId &value);
@@ -150,30 +150,30 @@ public:
 
 	// Implicit constructor: anything with a to_json() function.
 	template <class T, class = decltype(&T::to_json)>
-	Value(const T & t) : Value(t.to_json()) {}
+	RpcValue(const T & t) : RpcValue(t.to_json()) {}
 
 	// Implicit constructor: map-like objects (std::map, std::unordered_map, etc)
 	template <class M, typename std::enable_if<
-				  std::is_constructible<Value::String, typename M::key_type>::value
-				  && std::is_constructible<Value, typename M::mapped_type>::value,
+				  std::is_constructible<RpcValue::String, typename M::key_type>::value
+				  && std::is_constructible<RpcValue, typename M::mapped_type>::value,
 				  int>::type = 0>
-	Value(const M & m) : Value(Map(m.begin(), m.end())) {}
+	RpcValue(const M & m) : RpcValue(Map(m.begin(), m.end())) {}
 
 	// Implicit constructor: vector-like objects (std::list, std::vector, std::set, etc)
 	template <class V, typename std::enable_if<
-				  std::is_constructible<Value, typename V::value_type>::value,
+				  std::is_constructible<RpcValue, typename V::value_type>::value,
 				  int>::type = 0>
-	Value(const V & v) : Value(List(v.begin(), v.end())) {}
+	RpcValue(const V & v) : RpcValue(List(v.begin(), v.end())) {}
 
 	// This prevents ChainPack(some_pointer) from accidentally producing a bool. Use
 	// ChainPack(bool(some_pointer)) if that behavior is desired.
-	Value(void *) = delete;
+	RpcValue(void *) = delete;
 
 	Type::Enum type() const;
 
 	const MetaData &metaData() const;
 	void setMetaData(MetaData &&meta_data);
-	void setMetaValue(UInt key, const Value &val);
+	void setMetaValue(UInt key, const RpcValue &val);
 
 	bool isValid() const;
 	bool isNull() const { return type() == Type::Null; }
@@ -189,19 +189,19 @@ public:
 	UInt toUInt() const;
 	bool toBool() const;
 	DateTime toDateTime() const;
-	const Value::String &toString() const;
+	const RpcValue::String &toString() const;
 	const Blob &toBlob() const;
 	const List &toList() const;
 	const Map &toMap() const;
 	const IMap &toIMap() const;
 
 	int count() const;
-	const Value & at(UInt i) const;
-	const Value & at(const Value::String &key) const;
-	const Value & operator[](UInt i) const {return at(i);}
-	const Value & operator[](const Value::String &key) const {return at(key);}
-	void set(UInt ix, const Value &val);
-	void set(const Value::String &key, const Value &val);
+	const RpcValue & at(UInt i) const;
+	const RpcValue & at(const RpcValue::String &key) const;
+	const RpcValue & operator[](UInt i) const {return at(i);}
+	const RpcValue & operator[](const RpcValue::String &key) const {return at(key);}
+	void set(UInt ix, const RpcValue &val);
+	void set(const RpcValue::String &key, const RpcValue &val);
 
 	void dumpText(std::string &out) const;
 	void dumpJson(std::string &out) const;
@@ -209,10 +209,10 @@ public:
 	std::string dumpText() const { std::string out; dumpText(out); return out; }
 	std::string dumpJson() const { std::string out; dumpJson(out); return out; }
 
-	static Value parseJson(const std::string & in, std::string & err);
-	static Value parseJson(const char * in, std::string & err);
+	static RpcValue parseJson(const std::string & in, std::string & err);
+	static RpcValue parseJson(const char * in, std::string & err);
 
-	bool operator== (const Value &rhs) const;
+	bool operator== (const RpcValue &rhs) const;
 	/*
 	bool operator<  (const ChainPack &rhs) const;
 	bool operator!= (const ChainPack &rhs) const { return !(*this == rhs); }

@@ -29,8 +29,8 @@
 /*
  * Beginning of standard source file, which makes use of the customizations above.
  */
-#include <shv/chainpackrpc/value.h>
-#include <shv/chainpackrpc/chainpackprotocol.h>
+#include <shv/chainpack/rpcvalue.h>
+#include <shv/chainpack/chainpackprotocol.h>
 
 #include <cassert>
 #include <string>
@@ -49,18 +49,18 @@
 // to set up a custom test suite
 CHAINPACK_TEST_CPP_PREFIX_CODE
 
-using namespace shv::chainpackrpc;
+using namespace shv::chainpack;
 using std::string;
 
 // Check that ChainPack has the properties we want.
 #define CHECK_TRAIT(x) static_assert(std::x::value, #x)
-CHECK_TRAIT(is_nothrow_constructible<Value>);
-CHECK_TRAIT(is_nothrow_default_constructible<Value>);
-CHECK_TRAIT(is_copy_constructible<Value>);
-CHECK_TRAIT(is_nothrow_move_constructible<Value>);
-CHECK_TRAIT(is_copy_assignable<Value>);
-CHECK_TRAIT(is_nothrow_move_assignable<Value>);
-CHECK_TRAIT(is_nothrow_destructible<Value>);
+CHECK_TRAIT(is_nothrow_constructible<RpcValue>);
+CHECK_TRAIT(is_nothrow_default_constructible<RpcValue>);
+CHECK_TRAIT(is_copy_constructible<RpcValue>);
+CHECK_TRAIT(is_nothrow_move_constructible<RpcValue>);
+CHECK_TRAIT(is_copy_assignable<RpcValue>);
+CHECK_TRAIT(is_nothrow_move_assignable<RpcValue>);
+CHECK_TRAIT(is_nothrow_destructible<RpcValue>);
 
 CHAINPACK_TEST_CASE(text_test) {
 	std::cout << "============= chainpack text test ============\n";
@@ -68,12 +68,12 @@ CHAINPACK_TEST_CASE(text_test) {
 			R"({"k1":"v1", "k2":42, "k3":["a",123,true,false,null]})";
 
 	string err;
-	const auto json = Value::parseJson(simple_test, err);
+	const auto json = RpcValue::parseJson(simple_test, err);
 
 	std::cout << "k1: " << json["k1"].toString() << "\n";
 	std::cout << "k3: " << json["k3"].dumpJson() << "\n";
 
-	Value cp = json;
+	RpcValue cp = json;
 	//cp.setMeta(json["k1"]);
 	std::cout << "cp: " << cp.dumpText() << "\n";
 
@@ -99,48 +99,48 @@ CHAINPACK_TEST_CASE(text_test) {
 						  })";
 
 	string err_comment;
-	auto json_comment = Value::parseJson( comment_test, err_comment);
+	auto json_comment = RpcValue::parseJson( comment_test, err_comment);
 	CHAINPACK_TEST_ASSERT(!json_comment.isNull());
 	CHAINPACK_TEST_ASSERT(err_comment.empty());
 
 	comment_test = "{\"a\": 1}//trailing line comment";
-	json_comment = Value::parseJson( comment_test, err_comment);
+	json_comment = RpcValue::parseJson( comment_test, err_comment);
 	CHAINPACK_TEST_ASSERT(!json_comment.isNull());
 	CHAINPACK_TEST_ASSERT(err_comment.empty());
 
 	comment_test = "{\"a\": 1}/*trailing multi-line comment*/";
-	json_comment = Value::parseJson( comment_test, err_comment);
+	json_comment = RpcValue::parseJson( comment_test, err_comment);
 	CHAINPACK_TEST_ASSERT(!json_comment.isNull());
 	CHAINPACK_TEST_ASSERT(err_comment.empty());
 
 	string failing_comment_test = "{\n/* unterminated comment\n\"a\": 1,\n}";
 	string err_failing_comment;
-	Value json_failing_comment = Value::parseJson( failing_comment_test, err_failing_comment);
+	RpcValue json_failing_comment = RpcValue::parseJson( failing_comment_test, err_failing_comment);
 	CHAINPACK_TEST_ASSERT(!json_failing_comment.isValid());
 	CHAINPACK_TEST_ASSERT(!err_failing_comment.empty());
 
 	failing_comment_test = "{\n/* unterminated trailing comment }";
-	json_failing_comment = Value::parseJson( failing_comment_test, err_failing_comment);
+	json_failing_comment = RpcValue::parseJson( failing_comment_test, err_failing_comment);
 	CHAINPACK_TEST_ASSERT(!json_failing_comment.isValid());
 	CHAINPACK_TEST_ASSERT(!err_failing_comment.empty());
 
 	failing_comment_test = "{\n/ / bad comment }";
-	json_failing_comment = Value::parseJson( failing_comment_test, err_failing_comment);
+	json_failing_comment = RpcValue::parseJson( failing_comment_test, err_failing_comment);
 	CHAINPACK_TEST_ASSERT(!json_failing_comment.isValid());
 	CHAINPACK_TEST_ASSERT(!err_failing_comment.empty());
 
 	failing_comment_test = "{// bad comment }";
-	json_failing_comment = Value::parseJson( failing_comment_test, err_failing_comment);
+	json_failing_comment = RpcValue::parseJson( failing_comment_test, err_failing_comment);
 	CHAINPACK_TEST_ASSERT(!json_failing_comment.isValid());
 	CHAINPACK_TEST_ASSERT(!err_failing_comment.empty());
 
 	failing_comment_test = "{\n\"a\": 1\n}/";
-	json_failing_comment = Value::parseJson( failing_comment_test, err_failing_comment);
+	json_failing_comment = RpcValue::parseJson( failing_comment_test, err_failing_comment);
 	CHAINPACK_TEST_ASSERT(!json_failing_comment.isValid());
 	CHAINPACK_TEST_ASSERT(!err_failing_comment.empty());
 
 	failing_comment_test = "{/* bad\ncomment *}";
-	json_failing_comment = Value::parseJson( failing_comment_test, err_failing_comment);
+	json_failing_comment = RpcValue::parseJson( failing_comment_test, err_failing_comment);
 	CHAINPACK_TEST_ASSERT(!json_failing_comment.isValid());
 	CHAINPACK_TEST_ASSERT(!err_failing_comment.empty());
 	/*
@@ -155,18 +155,18 @@ CHAINPACK_TEST_CASE(text_test) {
 	CHAINPACK_TEST_ASSERT(ChainPack(m1) == ChainPack(m2));
 	*/
 	// ChainPack literals
-	const Value obj = Value::Map({
+	const RpcValue obj = RpcValue::Map({
 											 { "k1", "v1" },
 											 { "k2", 42.0 },
-											 { "k3", Value::List({ "a", 123.0, true, false, nullptr }) },
+											 { "k3", RpcValue::List({ "a", 123.0, true, false, nullptr }) },
 										 });
 
 	std::cout << "obj: " << obj.dumpJson() << "\n";
 	CHAINPACK_TEST_ASSERT(obj.dumpJson() == "{\"k1\": \"v1\", \"k2\": 42, \"k3\": [\"a\", 123, true, false, null]}");
 
-	CHAINPACK_TEST_ASSERT(Value("a").toDouble() == 0);
-	CHAINPACK_TEST_ASSERT(Value("a").toString() == "a");
-	CHAINPACK_TEST_ASSERT(Value().toDouble() == 0);
+	CHAINPACK_TEST_ASSERT(RpcValue("a").toDouble() == 0);
+	CHAINPACK_TEST_ASSERT(RpcValue("a").toString() == "a");
+	CHAINPACK_TEST_ASSERT(RpcValue().toDouble() == 0);
 	/*
 	CHAINPACK_TEST_ASSERT(obj == json);
 	CHAINPACK_TEST_ASSERT(ChainPack(42) == ChainPack(42.0));
@@ -178,7 +178,7 @@ CHAINPACK_TEST_CASE(text_test) {
 	const char utf8[] = "blah" "\xf0\x9f\x92\xa9" "blah" "\xed\xa0\xbd" "blah"
 						"\xed\xb2\xa9" "blah" "\0" "blah" "\xe1\x88\xb4";
 
-	Value uni = Value::parseJson(unicode_escape_test, err);
+	RpcValue uni = RpcValue::parseJson(unicode_escape_test, err);
 	CHAINPACK_TEST_ASSERT(uni[0].toString().size() == (sizeof utf8) - 1);
 	CHAINPACK_TEST_ASSERT(std::memcmp(uni[0].toString().data(), utf8, sizeof utf8) == 0);
 
@@ -225,10 +225,10 @@ CHAINPACK_TEST_CASE(text_test) {
 		}
 	}
 	*/
-	Value my_json = Value::Map {
+	RpcValue my_json = RpcValue::Map {
 		{ "key1", "value1" },
 		{ "key2", false },
-		{ "key3", Value::List { 1, 2, 3 } },
+		{ "key3", RpcValue::List { 1, 2, 3 } },
 	};
 	std::string json_obj_str = my_json.dumpJson();
 	std::cout << "json_obj_str: " << json_obj_str << "\n";
@@ -239,16 +239,16 @@ CHAINPACK_TEST_CASE(text_test) {
 		int x;
 		int y;
 		Point (int x, int y) : x(x), y(y) {}
-		Value to_json() const { return Value::List { x, y }; }
+		RpcValue to_json() const { return RpcValue::List { x, y }; }
 	};
 
 	std::vector<Point> points = { { 1, 2 }, { 10, 20 }, { 100, 200 } };
-	std::string points_json = Value(points).dumpJson();
+	std::string points_json = RpcValue(points).dumpJson();
 	std::cout << "points_json: " << points_json << "\n";
 	CHAINPACK_TEST_ASSERT(points_json == "[[1, 2], [10, 20], [100, 200]]");
 }
 
-static std::string binary_dump(const Value::Blob &out)
+static std::string binary_dump(const RpcValue::Blob &out)
 {
 	std::string ret;
 	for (size_t i = 0; i < out.size(); ++i) {
@@ -266,47 +266,47 @@ static std::string binary_dump(const Value::Blob &out)
 CHAINPACK_TEST_CASE(binary_test)
 {
 	std::cout << "============= chainpack binary test ============\n";
-	for (int i = Value::Type::TERM; i <= Value::Type::TRUE; ++i) {
-		Value::Blob out;
+	for (int i = RpcValue::Type::TERM; i <= RpcValue::Type::TRUE; ++i) {
+		RpcValue::Blob out;
 		out += i;
-		Value::Type::Enum e = (Value::Type::Enum)i;
+		RpcValue::Type::Enum e = (RpcValue::Type::Enum)i;
 		//std::string s = std::to_string(i);
 		//if(i < 10)
 		//	s = ' ' + s;
-		std::cout << std::setw(3) << i << " " << binary_dump(out) << " "  << Value::Type::name(e) << "\n";
+		std::cout << std::setw(3) << i << " " << binary_dump(out) << " "  << RpcValue::Type::name(e) << "\n";
 	}
 	{
 		std::cout << "------------- NULL \n";
-		Value cp1{nullptr};
+		RpcValue cp1{nullptr};
 		ChainPackProtocol::Blob out;
 		int len = ChainPackProtocol::write(out, cp1);
 		CHAINPACK_TEST_ASSERT(len == 1);
-		Value cp2 = ChainPackProtocol::read(out);
+		RpcValue cp2 = ChainPackProtocol::read(out);
 		std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 	}
 	std::cout << "------------- tiny uint \n";
 	for (unsigned int n = 0; n < 64; ++n) {
-		Value cp1{n};
+		RpcValue cp1{n};
 		ChainPackProtocol::Blob out;
 		int len = ChainPackProtocol::write(out, cp1);
 		if(n < 10)
 			std::cout << n << " " << cp1.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 		CHAINPACK_TEST_ASSERT(len == 1);
-		Value cp2 = ChainPackProtocol::read(out);
+		RpcValue cp2 = ChainPackProtocol::read(out);
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 		CHAINPACK_TEST_ASSERT(cp1.toUInt() == cp2.toUInt());
 	}
 	{
 		std::cout << "------------- uint \n";
-		Value::UInt n_max = std::numeric_limits<unsigned int>::max();
+		RpcValue::UInt n_max = std::numeric_limits<unsigned int>::max();
 		auto step = n_max / 1000;
-		for (Value::UInt n = 64; n < (n_max - step); n += step) {
-			Value cp1{n};
+		for (RpcValue::UInt n = 64; n < (n_max - step); n += step) {
+			RpcValue cp1{n};
 			ChainPackProtocol::Blob out;
 			int len = ChainPackProtocol::write(out, cp1);
 			CHAINPACK_TEST_ASSERT(len > 1);
-			Value cp2 = ChainPackProtocol::read(out);
+			RpcValue cp2 = ChainPackProtocol::read(out);
 			if(n < 100)
 				std::cout << n << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
@@ -314,14 +314,14 @@ CHAINPACK_TEST_CASE(binary_test)
 		}
 	}
 	std::cout << "------------- tiny int \n";
-	for (Value::Int n = 0; n < 64; ++n) {
-		Value cp1{n};
+	for (RpcValue::Int n = 0; n < 64; ++n) {
+		RpcValue cp1{n};
 		ChainPackProtocol::Blob out;
 		int len = ChainPackProtocol::write(out, cp1);
 		if(n < 10)
 			std::cout << n << " " << cp1.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 		CHAINPACK_TEST_ASSERT(len == 1);
-		Value cp2 = ChainPackProtocol::read(out);
+		RpcValue cp2 = ChainPackProtocol::read(out);
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 		CHAINPACK_TEST_ASSERT(cp1.toInt() == cp2.toInt());
 	}
@@ -332,14 +332,14 @@ CHAINPACK_TEST_CASE(binary_test)
 			auto n_min = std::numeric_limits<signed int>::min()+1;
 			auto step = n_max / 100;
 			for (int n = n_min; n < (n_max - step); n += step) {
-				Value cp1{n};
+				RpcValue cp1{n};
 				ChainPackProtocol::Blob out;
 				int len = ChainPackProtocol::write(out, cp1);
 				if(n >= 0 && n < 64)
 					CHAINPACK_TEST_ASSERT(len == 1);
 				else
 					CHAINPACK_TEST_ASSERT(len > 1);
-				Value cp2 = ChainPackProtocol::read(out);
+				RpcValue cp2 = ChainPackProtocol::read(out);
 				if(n < 1000 && n > -1000)
 					std::cout << n << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 				CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
@@ -354,11 +354,11 @@ CHAINPACK_TEST_CASE(binary_test)
 			auto n_min = -1000000.;
 			auto step = (n_max - n_min) / 100;
 			for (auto n = n_min; n < n_max; n += step) {
-				Value cp1{n};
+				RpcValue cp1{n};
 				ChainPackProtocol::Blob out;
 				int len = ChainPackProtocol::write(out, cp1);
 				CHAINPACK_TEST_ASSERT(len > 1);
-				Value cp2 = ChainPackProtocol::read(out);
+				RpcValue cp2 = ChainPackProtocol::read(out);
 				if(n > -3*step && n < 3*step)
 					std::cout << n << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 				CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
@@ -371,11 +371,11 @@ CHAINPACK_TEST_CASE(binary_test)
 			double step = -1.23456789e10;
 			//std::cout << n_min << " - " << n_max << ": " << step << " === " << (n_max / step / 10) << "\n";
 			for (double n = n_min; n < n_max / -step / 10; n *= step) {
-				Value cp1{n};
+				RpcValue cp1{n};
 				ChainPackProtocol::Blob out;
 				int len = ChainPackProtocol::write(out, cp1);
 				CHAINPACK_TEST_ASSERT(len > 1);
-				Value cp2 = ChainPackProtocol::read(out);
+				RpcValue cp2 = ChainPackProtocol::read(out);
 				if(n > -100 && n < 100)
 					std::cout << n << " - " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 				CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
@@ -386,11 +386,11 @@ CHAINPACK_TEST_CASE(binary_test)
 	{
 		std::cout << "------------- bool \n";
 		for(bool b : {false, true}) {
-			Value cp1{b};
+			RpcValue cp1{b};
 			ChainPackProtocol::Blob out;
 			int len = ChainPackProtocol::write(out, cp1);
 			CHAINPACK_TEST_ASSERT(len == 1);
-			Value cp2 = ChainPackProtocol::read(out);
+			RpcValue cp2 = ChainPackProtocol::read(out);
 			std::cout << b << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 			CHAINPACK_TEST_ASSERT(cp1.toBool() == cp2.toBool());
@@ -398,24 +398,24 @@ CHAINPACK_TEST_CASE(binary_test)
 	}
 	{
 		std::cout << "------------- blob \n";
-		Value::Blob blob{"fpowfksapofkpsaokfsa"};
+		RpcValue::Blob blob{"fpowfksapofkpsaokfsa"};
 		blob[5] = 0;
-		Value cp1{blob};
+		RpcValue cp1{blob};
 		ChainPackProtocol::Blob out;
 		int len = ChainPackProtocol::write(out, cp1);
-		Value cp2 = ChainPackProtocol::read(out);
+		RpcValue cp2 = ChainPackProtocol::read(out);
 		std::cout << blob.toString() << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 		CHAINPACK_TEST_ASSERT(cp1.toBlob() == cp2.toBlob());
 	}
 	{
 		std::cout << "------------- string \n";
-		Value::String str{"lhklhklfkjdslfkposkfp79"};
+		RpcValue::String str{"lhklhklfkjdslfkposkfp79"};
 		str[5] = 0;
-		Value cp1{str};
+		RpcValue cp1{str};
 		ChainPackProtocol::Blob out;
 		ChainPackProtocol::write(out, cp1);
-		Value cp2 = ChainPackProtocol::read(out);
+		RpcValue cp2 = ChainPackProtocol::read(out);
 		//std::cout << str << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 		CHAINPACK_TEST_ASSERT(cp1.toString() == cp2.toString());
@@ -423,11 +423,11 @@ CHAINPACK_TEST_CASE(binary_test)
 	{
 		std::cout << "------------- DateTime \n";
 		std::string str = "2017-05-03T15:52:31.123";
-		Value::DateTime dt = Value::DateTime::fromString(str);
-		Value cp1{dt};
+		RpcValue::DateTime dt = RpcValue::DateTime::fromString(str);
+		RpcValue cp1{dt};
 		ChainPackProtocol::Blob out;
 		int len = ChainPackProtocol::write(out, cp1);
-		Value cp2 = ChainPackProtocol::read(out);
+		RpcValue cp2 = ChainPackProtocol::read(out);
 		std::cout << str << " " << dt.toUtcString() << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 		CHAINPACK_TEST_ASSERT(cp1.toInt() == cp2.toInt());
@@ -437,19 +437,19 @@ CHAINPACK_TEST_CASE(binary_test)
 		{
 			const std::string s = R"(["a",123,true,[1,2,3],null])";
 			string err;
-			Value cp1 = Value::parseJson(s, err);
+			RpcValue cp1 = RpcValue::parseJson(s, err);
 			ChainPackProtocol::Blob out;
 			int len = ChainPackProtocol::write(out, cp1);
-			Value cp2 = ChainPackProtocol::read(out);
+			RpcValue cp2 = ChainPackProtocol::read(out);
 			std::cout << s << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 			CHAINPACK_TEST_ASSERT(cp1.toList() == cp2.toList());
 		}
 		{
-			Value cp1{Value::List{1,2,3}};
+			RpcValue cp1{RpcValue::List{1,2,3}};
 			ChainPackProtocol::Blob out;
 			int len = ChainPackProtocol::write(out, cp1);
-			Value cp2 = ChainPackProtocol::read(out);
+			RpcValue cp2 = ChainPackProtocol::read(out);
 			std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 			CHAINPACK_TEST_ASSERT(cp1.toList() == cp2.toList());
@@ -458,24 +458,24 @@ CHAINPACK_TEST_CASE(binary_test)
 	{
 		std::cout << "------------- Table \n";
 		{
-			Value cp1{Value::Table{1, 2, 3}};
+			RpcValue cp1{RpcValue::Table{1, 2, 3}};
 			ChainPackProtocol::Blob out;
 			int len = ChainPackProtocol::write(out, cp1);
-			Value cp2 = ChainPackProtocol::read(out);
+			RpcValue cp2 = ChainPackProtocol::read(out);
 			std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 			CHAINPACK_TEST_ASSERT(cp1.toList() == cp2.toList());
 		}
 		{
-			Value::Table t;
-			t.push_back(Value::List{Value{1}, Value{2}});
-			t.push_back(Value::List{Value{3}, Value{4}});
-			t.push_back(Value::List{Value{5}, Value{6}});
-			t.push_back(Value::List{Value{7}, Value{8}});
-			Value cp1{t};
+			RpcValue::Table t;
+			t.push_back(RpcValue::List{RpcValue{1}, RpcValue{2}});
+			t.push_back(RpcValue::List{RpcValue{3}, RpcValue{4}});
+			t.push_back(RpcValue::List{RpcValue{5}, RpcValue{6}});
+			t.push_back(RpcValue::List{RpcValue{7}, RpcValue{8}});
+			RpcValue cp1{t};
 			ChainPackProtocol::Blob out;
 			int len = ChainPackProtocol::write(out, cp1);
-			Value cp2 = ChainPackProtocol::read(out);
+			RpcValue cp2 = ChainPackProtocol::read(out);
 			std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 			CHAINPACK_TEST_ASSERT(cp1.toList() == cp2.toList());
@@ -484,27 +484,27 @@ CHAINPACK_TEST_CASE(binary_test)
 	{
 		std::cout << "------------- Map \n";
 		{
-			Value cp1{{
+			RpcValue cp1{{
 				{"foo", 1},
 				{"bar", 2},
 				{"baz", 3},
 			}};
 			ChainPackProtocol::Blob out;
 			int len = ChainPackProtocol::write(out, cp1);
-			Value cp2 = ChainPackProtocol::read(out);
+			RpcValue cp2 = ChainPackProtocol::read(out);
 			std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 			CHAINPACK_TEST_ASSERT(cp1.toMap() == cp2.toMap());
 		}
 		{
-			Value cp1{{
-				{"foo", Value::List{11,12,13}},
+			RpcValue cp1{{
+				{"foo", RpcValue::List{11,12,13}},
 				{"bar", 2},
 				{"baz", 3},
 			}};
 			ChainPackProtocol::Blob out;
 			int len = ChainPackProtocol::write(out, cp1);
-			Value cp2 = ChainPackProtocol::read(out);
+			RpcValue cp2 = ChainPackProtocol::read(out);
 			std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 			CHAINPACK_TEST_ASSERT(cp1.toMap() == cp2.toMap());
@@ -513,28 +513,28 @@ CHAINPACK_TEST_CASE(binary_test)
 	{
 		std::cout << "------------- IMap \n";
 		{
-			Value::IMap map {
+			RpcValue::IMap map {
 				{1, "foo"},
 				{2, "bar"},
 				{3, "baz"},
 			};
-			Value cp1{map};
+			RpcValue cp1{map};
 			ChainPackProtocol::Blob out;
 			int len = ChainPackProtocol::write(out, cp1);
-			Value cp2 = ChainPackProtocol::read(out);
+			RpcValue cp2 = ChainPackProtocol::read(out);
 			std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 			CHAINPACK_TEST_ASSERT(cp1.toIMap() == cp2.toIMap());
 		}
 		{
-			Value cp1{{
-				{127, Value::List{11,12,13}},
+			RpcValue cp1{{
+				{127, RpcValue::List{11,12,13}},
 				{128, 2},
 				{129, 3},
 			}};
 			ChainPackProtocol::Blob out;
 			int len = ChainPackProtocol::write(out, cp1);
-			Value cp2 = ChainPackProtocol::read(out);
+			RpcValue cp2 = ChainPackProtocol::read(out);
 			std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 			CHAINPACK_TEST_ASSERT(cp1.toIMap() == cp2.toIMap());
@@ -542,14 +542,14 @@ CHAINPACK_TEST_CASE(binary_test)
 	}
 	{
 		std::cout << "------------- Meta \n";
-		Value cp1{Value::List{17, 18, 19}};
-		cp1.setMetaValue(Value::Tag::MetaTypeNameSpaceId, (unsigned)1);
-		cp1.setMetaValue(Value::Tag::MetaTypeId, (unsigned)2);
-		cp1.setMetaValue(Value::Tag::USER, "foo");
-		cp1.setMetaValue(Value::Tag::USER+1, Value::List{1,2,3});
+		RpcValue cp1{RpcValue::List{17, 18, 19}};
+		cp1.setMetaValue(RpcValue::Tag::MetaTypeNameSpaceId, (unsigned)1);
+		cp1.setMetaValue(RpcValue::Tag::MetaTypeId, (unsigned)2);
+		cp1.setMetaValue(RpcValue::Tag::USER, "foo");
+		cp1.setMetaValue(RpcValue::Tag::USER+1, RpcValue::List{1,2,3});
 		ChainPackProtocol::Blob out;
 		int len = ChainPackProtocol::write(out, cp1);
-		Value cp2 = ChainPackProtocol::read(out);
+		RpcValue cp2 = ChainPackProtocol::read(out);
 		std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 		CHAINPACK_TEST_ASSERT(cp1.metaData() == cp2.metaData());
@@ -566,7 +566,7 @@ static void parse_from_stdin() {
 	}
 
 	string err;
-	auto json = Value::parseJson(buf, err);
+	auto json = RpcValue::parseJson(buf, err);
 	if (!err.empty()) {
 		printf("Failed: %s\n", err.c_str());
 	} else {
