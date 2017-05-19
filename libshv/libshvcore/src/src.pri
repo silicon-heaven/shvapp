@@ -1,5 +1,6 @@
 HEADERS += \
 	$$PWD/shvcoreglobal.h \
+	$$PWD/metatypes.h \
 
 SOURCES += \
 

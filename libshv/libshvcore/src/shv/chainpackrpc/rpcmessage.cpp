@@ -1,5 +1,6 @@
 #include "rpcmessage.h"
 #include "chainpackprotocol.h"
+#include "../../metatypes.h"
 
 #include <cassert>
 
@@ -8,7 +9,7 @@ namespace chainpackrpc {
 
 RpcMessage::RpcMessage(const Value &val)
 {
-	assert(val.isMap());
+	assert(val.isIMap());
 	m_value = val;
 }
 
@@ -64,8 +65,9 @@ void RpcMessage::ensureMetaValues()
 {
 	if(!m_value.isValid()) {
 		m_value = Value::IMap();
-		m_value.setMetaValue(Value::Tag::MetaTypeId, MetaTypeId::RpcMessage);
-		m_value.setMetaValue(Value::Tag::MetaTypeNameSpaceId, MetaTypeNameSpaceId::ChainPackRpc);
+		m_value.setMetaValue(Value::Tag::MetaTypeId, GlobalMetaTypeId::ChainPackRpcMessage);
+		/// not needed, Global is default name space
+		//m_value.setMetaValue(Value::Tag::MetaTypeNameSpaceId, MetaTypeNameSpaceId::Global);
 	}
 }
 

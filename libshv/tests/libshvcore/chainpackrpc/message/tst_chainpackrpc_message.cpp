@@ -86,7 +86,11 @@ CHAINPACK_TEST_CASE(rpcmessage_test)
 		Value cp2 = ChainPackProtocol::read(out);
 		std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
-		CHAINPACK_TEST_ASSERT(rq.isRequest());
+		RpcRequest rq2(cp2);
+		CHAINPACK_TEST_ASSERT(rq2.isRequest());
+		CHAINPACK_TEST_ASSERT(rq2.id() == rq.id());
+		CHAINPACK_TEST_ASSERT(rq2.method() == rq.method());
+		CHAINPACK_TEST_ASSERT(rq2.params() == rq.params());
 	}
 	std::cout << "------------- RpcResponse \n";
 	{
@@ -98,7 +102,10 @@ CHAINPACK_TEST_CASE(rpcmessage_test)
 		Value cp2 = ChainPackProtocol::read(out);
 		std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
-		CHAINPACK_TEST_ASSERT(rs.isResponse());
+		RpcResponse rs2(cp2);
+		CHAINPACK_TEST_ASSERT(rs2.isResponse());
+		CHAINPACK_TEST_ASSERT(rs2.id() == rs.id());
+		CHAINPACK_TEST_ASSERT(rs2.result() == rs.result());
 	}
 	{
 		RpcResponse rs;
@@ -110,7 +117,10 @@ CHAINPACK_TEST_CASE(rpcmessage_test)
 		Value cp2 = ChainPackProtocol::read(out);
 		std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
-		CHAINPACK_TEST_ASSERT(rs.isResponse());
+		RpcResponse rs2(cp2);
+		CHAINPACK_TEST_ASSERT(rs2.isResponse());
+		CHAINPACK_TEST_ASSERT(rs2.id() == rs.id());
+		CHAINPACK_TEST_ASSERT(rs2.error() == rs.error());
 	}
 	std::cout << "------------- RpcNotify \n";
 	{
@@ -127,7 +137,10 @@ CHAINPACK_TEST_CASE(rpcmessage_test)
 		Value cp2 = ChainPackProtocol::read(out);
 		std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
-		CHAINPACK_TEST_ASSERT(rq.isNotify());
+		RpcRequest rq2(cp2);
+		CHAINPACK_TEST_ASSERT(rq2.isNotify());
+		CHAINPACK_TEST_ASSERT(rq2.method() == rq.method());
+		CHAINPACK_TEST_ASSERT(rq2.params() == rq.params());
 	}
 }
 

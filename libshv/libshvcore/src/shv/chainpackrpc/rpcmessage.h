@@ -22,16 +22,6 @@ public:
 			MAX_KEY
 		};
 	};
-	struct MetaTypeId {
-		enum Enum {
-			RpcMessage = 1,
-		};
-	};
-	struct MetaTypeNameSpaceId {
-		enum Enum {
-			ChainPackRpc = 1,
-		};
-	};
 public:
 	RpcMessage() {}
 	RpcMessage(const Value &val);
