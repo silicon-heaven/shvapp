@@ -1,4 +1,5 @@
 #include "rpcmessage.h"
+#include "chainpackprotocol.h"
 
 #include <cassert>
 
@@ -24,6 +25,7 @@ Value RpcMessage::value(Value::UInt key) const
 void RpcMessage::setValue(Value::UInt key, const Value &val)
 {
 	assert(key >= Key::Id && key < Key::MAX_KEY);
+	ensureMetaValues();
 	m_value.set(key, val);
 }
 
@@ -49,7 +51,22 @@ bool RpcMessage::isNotify() const
 
 bool RpcMessage::isResponse() const
 {
-	return hasKey(Key::Id) && (hasKey(Key::Result) || hasKey(Key::Result));
+	return hasKey(Key::Id) && (hasKey(Key::Result) || hasKey(Key::Error));
+}
+
+int RpcMessage::write(Value::Blob &out) const
+{
+	assert(m_value.isValid());
+	return ChainPackProtocol::write(out, m_value);
+}
+
+void RpcMessage::ensureMetaValues()
+{
+	if(!m_value.isValid()) {
+		m_value = Value::IMap();
+		m_value.setMetaValue(Value::Tag::MetaTypeId, MetaTypeId::RpcMessage);
+		m_value.setMetaValue(Value::Tag::MetaTypeNameSpaceId, MetaTypeNameSpaceId::ChainPackRpc);
+	}
 }
 
 Value::String RpcRequest::method() const

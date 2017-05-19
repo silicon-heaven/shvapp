@@ -22,9 +22,18 @@ public:
 			MAX_KEY
 		};
 	};
-
+	struct MetaTypeId {
+		enum Enum {
+			RpcMessage = 1,
+		};
+	};
+	struct MetaTypeNameSpaceId {
+		enum Enum {
+			ChainPackRpc = 1,
+		};
+	};
 public:
-	RpcMessage() : m_value(Value::IMap()) {}
+	RpcMessage() {}
 	RpcMessage(const Value &val);
 	const Value& value() const {return m_value;}
 protected:
@@ -38,6 +47,10 @@ public:
 	bool isResponse() const;
 	bool isNotify() const;
 	Value::String toString() const;
+
+	virtual int write(Value::Blob &out) const;
+protected:
+	void ensureMetaValues();
 protected:
 	Value m_value;
 };
@@ -56,6 +69,8 @@ public:
 	RpcRequest& setParams(const Value &p);
 	Value params() const;
 	RpcRequest& setId(const Value::UInt id) {Super::setId(id); return *this;}
+
+	//int write(Value::Blob &out) const override;
 };
 
 class SHVCORE_DECL_EXPORT RpcResponse : public RpcMessage
@@ -130,6 +145,7 @@ public:
 public:
 	//RpcResponse(const Json &json = Json()) : Super(json) {}
 	//RpcResponse(const Value &request_id) : Super(Json()) { setId(request_id); }
+	RpcResponse() : Super() {}
 	RpcResponse(const RpcMessage &msg) : Super(msg) {}
 public:
 	bool isError() const {return !error().empty();}

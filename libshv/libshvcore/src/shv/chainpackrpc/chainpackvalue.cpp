@@ -295,6 +295,7 @@ class ChainPackList final : public ValueData<Value::Type::List, Value::List>
 {
 	size_t count() const override {return m_value.size();}
 	const Value & at(Value::UInt i) const override;
+	void set(Value::UInt key, const Value &val) override;
 	bool dumpTextValue(std::string &out) const override
 	{
 		bool first = true;
@@ -386,6 +387,7 @@ class ChainPackIMap final : public ValueData<Value::Type::IMap, Value::IMap>
 	//const ChainPack::Map &toMap() const override { return m_value; }
 	size_t count() const override {return m_value.size();}
 	const Value & at(Value::UInt key) const override;
+	void set(Value::UInt key, const Value &val) override;
 	bool dumpTextValue(std::string &out) const override
 	{
 		bool first = true;
@@ -620,12 +622,12 @@ const Value & Value::AbstractValueData::at(const Value::String &) const { return
 
 void Value::AbstractValueData::set(Value::UInt ix, const Value &)
 {
-	std::cerr << __FILE__ << ':' << __LINE__ << "Value::AbstractValueData::set: trivial implementation called! Key: " << ix << std::endl;
+	std::cerr << __FILE__ << ':' << __LINE__ << " Value::AbstractValueData::set: trivial implementation called! Key: " << ix << std::endl;
 }
 
 void Value::AbstractValueData::set(const Value::String &key, const Value &)
 {
-	std::cerr << __FILE__ << ':' << __LINE__ << "Value::AbstractValueData::set: trivial implementation called! Key: " << key << std::endl;
+	std::cerr << __FILE__ << ':' << __LINE__ << " Value::AbstractValueData::set: trivial implementation called! Key: " << key << std::endl;
 }
 
 
@@ -635,6 +637,13 @@ const Value & ChainPackList::at(Value::UInt i) const
 		return static_chain_pack_invalid();
 	else
 		return m_value[i];
+}
+
+void ChainPackList::set(Value::UInt key, const Value &val)
+{
+	if(key >= m_value.size())
+		m_value.resize(key + 1);
+	m_value[key] = val;
 }
 
 const Value &ChainPackTable::at(Value::UInt i) const
@@ -751,6 +760,14 @@ const Value & ChainPackIMap::at(Value::UInt key) const
 {
 	auto iter = m_value.find(key);
 	return (iter == m_value.end()) ? static_chain_pack_invalid() : iter->second;
+}
+
+void ChainPackIMap::set(Value::UInt key, const Value &val)
+{
+	if(val.isValid())
+		m_value[key] = val;
+	else
+		m_value.erase(key);
 }
 
 Value::DateTime Value::DateTime::fromString(const std::string &local_date_time_str)
