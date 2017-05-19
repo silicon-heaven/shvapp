@@ -31,11 +31,10 @@ class SHVGUI_DECL_EXPORT GraphView : public QWidget
 public:
 	struct Serie
 	{
-		enum class Type { Bool, Int, Double };
 		enum class YAxis { Y1, Y2 };
 
 		QString name;
-		Type type;
+		ValueType type;
 		QColor color;
 		YAxis relatedAxis;
 		double boolValue;
@@ -108,9 +107,7 @@ public:
 			Type type = ToolTip;
 		};
 
-		enum XAxisType { Timestamp, Int, Double };
-
-		XAxisType xAxisType = XAxisType::Timestamp;
+		ValueType xAxisType = ValueType::TimeStamp;
 		Axis xAxis;
 		Axis yAxis;
 		Axis y2Axis;
