@@ -238,7 +238,7 @@ private:
 //	template<typename T> static void mergeSerieMemberWithDefault(Serie &merged_serie, const Serie &param, T Serie::*member);
 	void cleanSeries();
 	void cleanSerie(Serie &serie);
-	void getSerieData(Serie &serie);
+	void acquireSerieData(Serie &serie);
 
 	const GraphModel *m_data;
 

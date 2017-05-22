@@ -53,8 +53,8 @@ public:
 	virtual const SerieData *serieData(int serie_index) const;
 
 	void addValueChange(int serie_index, const shv::gui::ValueChange &value);
-	void addValueChanges(int serie_index, const std::vector<shv::gui::ValueChange> &changes); // adds array of valyes to one serie
-	void addValueChanges(const std::vector<shv::gui::ValueChange> &changes); //adds array of values where every value belongs to one serie
+	void addValueChanges(int serie_index, const std::vector<shv::gui::ValueChange> &values); // adds array of valyes to one serie
+	void addValueChanges(const std::vector<shv::gui::ValueChange> &values); //adds array of values where every value belongs to one serie
 
 	void addSerie(ValueType xType, ValueType yType);
 

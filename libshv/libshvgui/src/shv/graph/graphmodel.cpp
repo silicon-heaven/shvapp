@@ -63,26 +63,26 @@ void GraphModel::addValueChange(int serie_index, const shv::gui::ValueChange &va
 	}
 }
 
-void GraphModel::addValueChanges(int serie_index, const std::vector<shv::gui::ValueChange> &changes)
+void GraphModel::addValueChanges(int serie_index, const std::vector<shv::gui::ValueChange> &values)
 {
 	checkIndex(serie_index);
 	bool added = false;
-	for (const shv::gui::ValueChange &value : changes) {
-		added = added && addValueChangeInternal(serie_index, value);
+	for (const shv::gui::ValueChange &value : values) {
+		added = added || addValueChangeInternal(serie_index, value);
 	}
 	if (added) {
 		Q_EMIT dataChanged();
 	}
 }
 
-void GraphModel::addValueChanges(const std::vector<ValueChange> &changes)
+void GraphModel::addValueChanges(const std::vector<ValueChange> &values)
 {
-	if (changes.size() != series.size()) {
+	if (values.size() != series.size()) {
 		throw std::runtime_error("addValueChanges: number of values in array doesn't match number of series");
 	}
 	bool added = false;
 	for (uint i = 0; i < series.size(); ++i) {
-		added = added && addValueChangeInternal(i, changes[i]);
+		added = added || addValueChangeInternal(i, values[i]);
 	}
 	if (added) {
 		Q_EMIT dataChanged();
@@ -96,9 +96,12 @@ void GraphModel::addSerie(ValueType xType, ValueType yType)
 
 bool GraphModel::addValueChangeInternal(int serie_index, const shv::gui::ValueChange &value)
 {
-	shv::gui::SerieData &serie = series[serie_index];
-	serie.push_back(value);
-	return true;
+	SerieData &serie = series[serie_index];
+	if (serie.size() == 0 || !compareValueX(serie.back(), value, serie.xType()) || !compareValueY(serie.back(), value, serie.yType())) {
+		serie.push_back(value);
+		return true;
+	}
+	return false;
 }
 
 SerieData::SerieData(ValueType x_type, ValueType y_type) : m_xType(x_type), m_yType(y_type)

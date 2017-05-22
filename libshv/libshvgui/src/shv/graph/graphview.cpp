@@ -117,7 +117,7 @@ void GraphView::cleanSeries()
 	}
 }
 
-void GraphView::getSerieData(Serie &serie)
+void GraphView::acquireSerieData(Serie &serie)
 {
 	if (serie.valueFormatter) {
 		serie.formattedDataPtr = new SerieData(settings.xAxisType, serie.type);
@@ -133,14 +133,16 @@ void GraphView::getSerieData(Serie &serie)
 
 void GraphView::setModelData(const GraphModel &model_data)
 {
+	cleanSeries();
+
 	m_data = &model_data;
 
 	m_loadedRangeMin = UINT64_MAX;
 	m_loadedRangeMax = 0;
 	for (Serie &serie : m_series) {
-		getSerieData(serie);
+		acquireSerieData(serie);
 		for (Serie &dep_serie : serie.dependentSeries) {
-			getSerieData(dep_serie);
+			acquireSerieData(dep_serie);
 		}
 	}
 	switch (settings.xAxisType) {
@@ -1585,7 +1587,7 @@ void GraphView::paintCurrentPosition(QPainter *painter, const GraphArea &area)
 	quint64 current = rectPositionToXValue(m_currentPosition);
 	for (int i = 0; i < area.series.count(); ++i) {
 		const Serie &serie = *area.series[i];
-		if (serie.show) {
+		if (serie.show && serie.dataPtr->size()) {
 			paintCurrentPosition(painter, area, serie, current);
 			if (settings.showDependent) {
 				for (const Serie &dependent_serie : serie.dependentSeries) {
@@ -1629,10 +1631,12 @@ QString GraphView::legend(quint64 position)
 		xValueString(position, "dd.MM.yyyy HH.mm.ss.zzz").replace(" ", "&nbsp;") + "</td></tr></table><hr>";
 	s += "<table>";
 	for (const Serie &serie : m_series) {
-		s += legendRow(serie, position);
-		if (serie.show && settings.showDependent) {
-			for (const Serie &dependent_serie : serie.dependentSeries) {
-				s += legendRow(dependent_serie, position);
+		if (serie.dataPtr->size()) {
+			s += legendRow(serie, position);
+			if (serie.show && settings.showDependent) {
+				for (const Serie &dependent_serie : serie.dependentSeries) {
+					s += legendRow(dependent_serie, position);
+				}
 			}
 		}
 	}
