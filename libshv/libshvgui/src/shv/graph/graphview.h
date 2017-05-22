@@ -31,19 +31,20 @@ class SHVGUI_DECL_EXPORT GraphView : public QWidget
 public:
 	struct Serie
 	{
-		enum class Type { Bool, Int, Double };
 		enum class YAxis { Y1, Y2 };
 
 		QString name;
-		Type type;
+		ValueType type;
 		QColor color;
 		YAxis relatedAxis;
 		double boolValue;
 		bool show;
 		bool showCurrent;
-		std::function<SerieDataSharedPtr (const GraphModel *)> dataGetter;
+		int serieIndex;
+		std::function<ValueChange (const ValueChange &)> valueFormatter;
 		std::function<QString (const ValueChange &)> legendValueFormatter;
-		SerieDataSharedPtr dataPtr;
+		const SerieData *dataPtr;
+		SerieData *formattedDataPtr;
 		QVector<Serie> dependentSeries;
 	};
 
@@ -106,9 +107,7 @@ public:
 			Type type = ToolTip;
 		};
 
-		enum XAxisType { Timestamp, Int, Double };
-
-		XAxisType xAxisType = XAxisType::Timestamp;
+		ValueType xAxisType = ValueType::TimeStamp;
 		Axis xAxis;
 		Axis yAxis;
 		Axis y2Axis;
@@ -133,6 +132,7 @@ public:
 	};
 
 	GraphView(QWidget *parent);
+	~GraphView();
 
 	Settings settings;
 	void setModelData(const GraphModel &model_data);
@@ -236,6 +236,9 @@ private:
 	void computeRange(quint64 &min, quint64 &max);
 	SerieData::const_iterator findMinYValue(const SerieData &data, quint64 x_value) const;
 //	template<typename T> static void mergeSerieMemberWithDefault(Serie &merged_serie, const Serie &param, T Serie::*member);
+	void cleanSeries();
+	void cleanSerie(Serie &serie);
+	void acquireSerieData(Serie &serie);
 
 	const GraphModel *m_data;
 

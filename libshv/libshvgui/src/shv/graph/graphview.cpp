@@ -93,20 +93,60 @@ GraphView::GraphView(QWidget *parent) : QWidget(parent)
 	m_rightRangeSelectorHandle->hide();
 }
 
+GraphView::~GraphView()
+{
+	cleanSeries();
+}
+
+void GraphView::cleanSerie(Serie &serie)
+{
+	if (serie.formattedDataPtr){
+		delete serie.formattedDataPtr;
+		serie.formattedDataPtr = 0;
+	}
+	serie.dataPtr = 0;
+}
+
+void GraphView::cleanSeries()
+{
+	for (Serie &serie : m_series) {
+		cleanSerie(serie);
+		for (Serie &dep_serie : serie.dependentSeries) {
+			cleanSerie(dep_serie);
+		}
+	}
+}
+
+void GraphView::acquireSerieData(Serie &serie)
+{
+	if (serie.valueFormatter) {
+		serie.formattedDataPtr = new SerieData(settings.xAxisType, serie.type);
+		for (const ValueChange &value : *m_data->serieData(serie.serieIndex)) {
+			serie.formattedDataPtr->push_back(serie.valueFormatter(value));
+		}
+		serie.dataPtr = serie.formattedDataPtr;
+	}
+	else {
+		serie.dataPtr = m_data->serieData(serie.serieIndex);
+	}
+}
+
 void GraphView::setModelData(const GraphModel &model_data)
 {
+	cleanSeries();
+
 	m_data = &model_data;
 
 	m_loadedRangeMin = UINT64_MAX;
 	m_loadedRangeMax = 0;
 	for (Serie &serie : m_series) {
-		serie.dataPtr = serie.dataGetter(m_data);
+		acquireSerieData(serie);
 		for (Serie &dep_serie : serie.dependentSeries) {
-			dep_serie.dataPtr = dep_serie.dataGetter(m_data);
+			acquireSerieData(dep_serie);
 		}
 	}
 	switch (settings.xAxisType) {
-	case Settings::XAxisType::Double:
+	case ValueType::Double:
 	{
 		double min, max;
 		computeRange(min, max);
@@ -118,7 +158,7 @@ void GraphView::setModelData(const GraphModel &model_data)
 		m_displayedRangeMax = m_loadedRangeMax = max * m_xValueScale;
 		break;
 	}
-	case Settings::XAxisType::Int:
+	case ValueType::Int:
 	{
 		int min, max;
 		computeRange(min, max);
@@ -129,13 +169,15 @@ void GraphView::setModelData(const GraphModel &model_data)
 		m_displayedRangeMax = m_loadedRangeMax = max;
 		break;
 	}
-	case Settings::XAxisType::Timestamp:
+	case ValueType::TimeStamp:
 	{
 		computeRange(m_loadedRangeMin, m_loadedRangeMax);
 		m_displayedRangeMin = m_loadedRangeMin;
 		m_displayedRangeMax = m_loadedRangeMax;
 		break;
 	}
+	default:
+		break;
 	}
 	if (settings.rangeSelector.show) {
 		m_leftRangeSelectorHandle->show();
@@ -179,10 +221,16 @@ int GraphView::computeYLabelWidth(const Settings::Axis &axis, int &shownDecimalP
 
 void GraphView::computeRangeSelectorPosition()
 {
-	m_leftRangeSelectorPosition = m_rangeSelectorRect.x() +
-								  m_rangeSelectorRect.width()  * (m_displayedRangeMin - m_loadedRangeMin) / (m_loadedRangeMax - m_loadedRangeMin);
-	m_rightRangeSelectorPosition = m_rangeSelectorRect.x() +
-								   m_rangeSelectorRect.width() * (m_displayedRangeMax - m_loadedRangeMin) / (m_loadedRangeMax - m_loadedRangeMin);
+	if (m_loadedRangeMax > m_loadedRangeMin) {
+		m_leftRangeSelectorPosition = m_rangeSelectorRect.x() +
+									  m_rangeSelectorRect.width()  * (m_displayedRangeMin - m_loadedRangeMin) / (m_loadedRangeMax - m_loadedRangeMin);
+		m_rightRangeSelectorPosition = m_rangeSelectorRect.x() +
+									   m_rangeSelectorRect.width() * (m_displayedRangeMax - m_loadedRangeMin) / (m_loadedRangeMax - m_loadedRangeMin);
+	}
+	else {
+		m_leftRangeSelectorPosition = m_rangeSelectorRect.x();
+		m_rightRangeSelectorPosition = m_rangeSelectorRect.x() + m_rangeSelectorRect.width();
+	}
 	m_leftRangeSelectorHandle->move(
 				m_leftRangeSelectorPosition - (m_leftRangeSelectorHandle->width() / 2),
 				m_rangeSelectorRect.y() + (m_rangeSelectorRect.height() - m_leftRangeSelectorHandle->height()) / 2
@@ -857,10 +905,7 @@ GraphView::Serie &GraphView::addSerie(const Serie &serie)
 	if (serie.dataPtr) {
 		throw std::runtime_error("Data ptr in serie must not be set as param");
 	}
-	if (!serie.dataGetter) {
-		throw std::runtime_error("Missing data getter in serie");
-	}
-	if (serie.type == Serie::Type::Bool && !serie.boolValue) {
+	if (serie.type == ValueType::Bool && !serie.boolValue) {
 		throw std::runtime_error("Bool serie must have set boolValue");
 	}
 //	Serie merged_serie = m_defaultSerie;
@@ -932,17 +977,19 @@ QVector<GraphView::ValueSelection> GraphView::selections() const
 			std::swap(s_start, s_end);
 		}
 		switch (settings.xAxisType) {
-		case Settings::XAxisType::Timestamp:
+		case ValueType::TimeStamp:
 			start.valueX.timeStamp = s_start;
 			end.valueX.timeStamp = s_end;
 			break;
-		case Settings::XAxisType::Int:
+		case ValueType::Int:
 			start.valueX.intValue = s_start;
 			end.valueX.intValue = s_end;
 			break;
-		case Settings::XAxisType::Double:
-			start.valueX.realValue = s_start / m_xValueScale;
-			end.valueX.realValue = s_end / m_xValueScale;
+		case ValueType::Double:
+			start.valueX.doubleValue = s_start / m_xValueScale;
+			end.valueX.doubleValue = s_end / m_xValueScale;
+			break;
+		default:
 			break;
 		}
 		selections << ValueSelection { start, end };
@@ -1215,7 +1262,7 @@ void GraphView::paintSeries(QPainter *painter, const GraphArea &area)
 void GraphView::paintSerie(QPainter *painter, const QRect &rect, int x_axis_position, const Serie &serie, quint64 min, quint64 max, const QPen &pen, bool fill_rect)
 {
 	if (serie.show) {
-		if (serie.type == Serie::Type::Bool) {
+		if (serie.type == ValueType::Bool) {
 			paintBoolSerie(painter, rect, x_axis_position, serie, min, max, pen, fill_rect);
 		}
 		else {
@@ -1227,7 +1274,7 @@ void GraphView::paintSerie(QPainter *painter, const QRect &rect, int x_axis_posi
 void GraphView::paintBoolSerie(QPainter *painter, const QRect &rect, int x_axis_position, const Serie &serie, quint64 min, quint64 max, const QPen &pen, bool fill_rect)
 {
 	const SerieData &data = *serie.dataPtr;
-	if (data.count() == 0) {
+	if (data.size() == 0) {
 		return;
 	}
 
@@ -1295,7 +1342,7 @@ void GraphView::paintBoolSerie(QPainter *painter, const QRect &rect, int x_axis_
 void GraphView::paintValueSerie(QPainter *painter, const QRect &rect, int x_axis_position, const Serie &serie, quint64 min, quint64 max, const QPen &pen, bool fill_rect)
 {
 	const SerieData &data = *serie.dataPtr;
-	if (data.count() == 0) {
+	if (data.size() == 0) {
 		return;
 	}
 
@@ -1322,10 +1369,10 @@ void GraphView::paintValueSerie(QPainter *painter, const QRect &rect, int x_axis
 	}
 
 	QPoint first_point;
-	if (serie.type == Serie::Type::Double) {
-		first_point = QPoint(0, x_axis_position - (begin->valueY.realValue / y_scale));
+	if (serie.type == ValueType::Double) {
+		first_point = QPoint(0, x_axis_position - (begin->valueY.doubleValue / y_scale));
 	}
-	else if (serie.type == Serie::Type::Int) {
+	else if (serie.type == ValueType::Int) {
 		first_point = QPoint(0, x_axis_position - (begin->valueY.intValue / y_scale));
 	}
 	int max_on_first = first_point.y();
@@ -1340,11 +1387,11 @@ void GraphView::paintValueSerie(QPainter *painter, const QRect &rect, int x_axis
 		const ValueChange &value_change = *it;
 		quint64 x_value = xValue(value_change);
 		QPoint last_point;
-		if (serie.type == Serie::Type::Double) {
-			double y_value = value_change.valueY.realValue;
+		if (serie.type == ValueType::Double) {
+			double y_value = value_change.valueY.doubleValue;
 			last_point = QPoint((x_value - min) / x_scale, x_axis_position - (y_value / y_scale));
 		}
-		else if (serie.type == Serie::Type::Int) {
+		else if (serie.type == ValueType::Int) {
 			int y_value = value_change.valueY.intValue;
 			last_point = QPoint((x_value - min) / x_scale, x_axis_position - (y_value / y_scale));
 		}
@@ -1518,13 +1565,13 @@ void GraphView::paintCurrentPosition(QPainter *painter, const GraphArea &area, c
 		}
 		double scale = range / area.graphRect.height();
 		int y_position = 0;
-		if (serie.type == Serie::Type::Double) {
-			y_position = begin->valueY.realValue / scale;
+		if (serie.type == ValueType::Double) {
+			y_position = begin->valueY.doubleValue / scale;
 		}
-		else if (serie.type == Serie::Type::Int) {
+		else if (serie.type == ValueType::Int) {
 			y_position = begin->valueY.intValue / scale;
 		}
-		else if (serie.type == Serie::Type::Bool) {
+		else if (serie.type == ValueType::Bool) {
 			y_position = begin->valueY.boolValue ? (serie.boolValue / scale) : 0;
 		}
 		QPainterPath path;
@@ -1540,7 +1587,7 @@ void GraphView::paintCurrentPosition(QPainter *painter, const GraphArea &area)
 	quint64 current = rectPositionToXValue(m_currentPosition);
 	for (int i = 0; i < area.series.count(); ++i) {
 		const Serie &serie = *area.series[i];
-		if (serie.show) {
+		if (serie.show && serie.dataPtr->size()) {
 			paintCurrentPosition(painter, area, serie, current);
 			if (settings.showDependent) {
 				for (const Serie &dependent_serie : serie.dependentSeries) {
@@ -1563,13 +1610,13 @@ QString GraphView::legendRow(const Serie &serie, quint64 position)
 		if (serie.legendValueFormatter) {
 			s += serie.legendValueFormatter(*begin);
 		}
-		else if (serie.type == Serie::Type::Double) {
-			s += QString::number(begin->valueY.realValue);
+		else if (serie.type == ValueType::Double) {
+			s += QString::number(begin->valueY.doubleValue);
 		}
-		else if (serie.type == Serie::Type::Int) {
+		else if (serie.type == ValueType::Int) {
 			s += QString::number(begin->valueY.intValue);
 		}
-		else if (serie.type == Serie::Type::Bool) {
+		else if (serie.type == ValueType::Bool) {
 			s += begin->valueY.boolValue ? tr("true") : tr("false");
 		}
 		s += "</td></tr>";
@@ -1584,10 +1631,12 @@ QString GraphView::legend(quint64 position)
 		xValueString(position, "dd.MM.yyyy HH.mm.ss.zzz").replace(" ", "&nbsp;") + "</td></tr></table><hr>";
 	s += "<table>";
 	for (const Serie &serie : m_series) {
-		s += legendRow(serie, position);
-		if (serie.show && settings.showDependent) {
-			for (const Serie &dependent_serie : serie.dependentSeries) {
-				s += legendRow(dependent_serie, position);
+		if (serie.dataPtr->size()) {
+			s += legendRow(serie, position);
+			if (serie.show && settings.showDependent) {
+				for (const Serie &dependent_serie : serie.dependentSeries) {
+					s += legendRow(dependent_serie, position);
+				}
 			}
 		}
 	}
@@ -1619,14 +1668,16 @@ quint64 GraphView::xValue(const ValueChange &value_change) const
 {
 	quint64 val;
 	switch (settings.xAxisType) {
-	case Settings::XAxisType::Timestamp:
+	case ValueType::TimeStamp:
 		val = value_change.valueX.timeStamp;
 		break;
-	case Settings::XAxisType::Int:
+	case ValueType::Int:
 		val = value_change.valueX.intValue;
 		break;
-	case Settings::XAxisType::Double:
-		val = value_change.valueX.realValue * m_xValueScale;
+	case ValueType::Double:
+		val = value_change.valueX.doubleValue * m_xValueScale;
+		break;
+	default:
 		break;
 	}
 	return val;
@@ -1636,14 +1687,16 @@ QString GraphView::xValueString(quint64 value, const QString &datetime_format) c
 {
 	QString s;
 	switch (settings.xAxisType) {
-	case Settings::XAxisType::Timestamp:
+	case ValueType::TimeStamp:
 		s = QDateTime(QDate::currentDate(), QTime()).addMSecs(value).toString(datetime_format);
 		break;
-	case Settings::XAxisType::Int:
+	case ValueType::Int:
 		s = QString::number(value);
 		break;
-	case Settings::XAxisType::Double:
+	case ValueType::Double:
 		s = QString::number(value / m_xValueScale);
+		break;
+	default:
 		break;
 	}
 	return s;
@@ -1652,11 +1705,11 @@ QString GraphView::xValueString(quint64 value, const QString &datetime_format) c
 void GraphView::computeRange(double &min, double &max, const Serie &serie)
 {
 	if (serie.dataPtr->size()) {
-		if (serie.dataPtr->at(0).valueX.realValue < min) {
-			min = serie.dataPtr->at(0).valueX.realValue;
+		if (serie.dataPtr->at(0).valueX.doubleValue < min) {
+			min = serie.dataPtr->at(0).valueX.doubleValue;
 		}
-		if (serie.dataPtr->last().valueX.realValue > max) {
-			max = serie.dataPtr->last().valueX.realValue;
+		if (serie.dataPtr->back().valueX.doubleValue > max) {
+			max = serie.dataPtr->back().valueX.doubleValue;
 		}
 	}
 }
@@ -1683,8 +1736,8 @@ void GraphView::computeRange(int &min, int &max, const Serie &serie)
 		if (serie.dataPtr->at(0).valueX.intValue < min) {
 			min = serie.dataPtr->at(0).valueX.intValue;
 		}
-		if (serie.dataPtr->last().valueX.intValue > max) {
-			max = serie.dataPtr->last().valueX.intValue;
+		if (serie.dataPtr->back().valueX.intValue > max) {
+			max = serie.dataPtr->back().valueX.intValue;
 		}
 	}
 }
@@ -1711,8 +1764,8 @@ void GraphView::computeRange(quint64 &min, quint64 &max, const Serie &serie)
 		if (serie.dataPtr->at(0).valueX.timeStamp < min) {
 			min = serie.dataPtr->at(0).valueX.timeStamp;
 		}
-		if (serie.dataPtr->last().valueX.timeStamp > max) {
-			max = serie.dataPtr->last().valueX.timeStamp;
+		if (serie.dataPtr->back().valueX.timeStamp > max) {
+			max = serie.dataPtr->back().valueX.timeStamp;
 		}
 	}
 }

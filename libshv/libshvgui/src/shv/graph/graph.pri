@@ -1,4 +1,5 @@
-SOURCES += $$PWD/graphview.cpp
+SOURCES += $$PWD/graphview.cpp \
+    $$PWD/graphmodel.cpp
 
 HEADERS += \
     $$PWD/graphview.h \
