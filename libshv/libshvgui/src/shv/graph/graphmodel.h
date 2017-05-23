@@ -57,12 +57,18 @@ public:
 	void addValueChanges(const std::vector<shv::gui::ValueChange> &values); //adds array of values where every value belongs to one serie
 
 	void addSerie(ValueType xType, ValueType yType);
+	void clearSeries();
+
+	void addDataBegin();
+	void addDataEnd();
 
 protected:
 	void checkIndex(int serie_index) const;
 	virtual bool addValueChangeInternal(int serie_index, const shv::gui::ValueChange &value);
 
-	std::vector<SerieData> series;
+	std::vector<SerieData> m_series;
+	bool m_dataAdded;
+	bool m_dataChangeEnabled;
 };
 
 }

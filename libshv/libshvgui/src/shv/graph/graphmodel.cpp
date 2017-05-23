@@ -3,7 +3,7 @@
 namespace shv {
 namespace gui {
 
-GraphModel::GraphModel(QObject *parent) : QObject(parent)
+GraphModel::GraphModel(QObject *parent) : QObject(parent), m_dataAdded(false), m_dataChangeEnabled(true)
 {
 
 }
@@ -11,12 +11,12 @@ GraphModel::GraphModel(QObject *parent) : QObject(parent)
 const SerieData *GraphModel::serieData(int serie_index) const
 {
 	checkIndex(serie_index);
-	return &series[serie_index];
+	return &m_series[serie_index];
 }
 
 void GraphModel::checkIndex(int serie_index) const
 {
-	if (serie_index >= (int)series.size()) {
+	if (serie_index >= (int)m_series.size()) {
 		throw std::runtime_error("bad serie index");
 	}
 }
@@ -24,7 +24,7 @@ void GraphModel::checkIndex(int serie_index) const
 SerieData *GraphModel::serieData(int serie_index)
 {
 	checkIndex(serie_index);
-	return &series[serie_index];
+	return &m_series[serie_index];
 }
 
 bool compareValueX(const ValueChange &value1, const ValueChange &value2, ValueType type)
@@ -58,8 +58,14 @@ bool compareValueY(const ValueChange &value1, const ValueChange &value2, ValueTy
 void GraphModel::addValueChange(int serie_index, const shv::gui::ValueChange &value)
 {
 	checkIndex(serie_index);
-	if (addValueChangeInternal(serie_index, value)) {
-		Q_EMIT dataChanged();
+	bool added = addValueChangeInternal(serie_index, value);
+	if (added) {
+		if (m_dataChangeEnabled) {
+			Q_EMIT dataChanged();
+		}
+		else {
+			m_dataAdded = true;
+		}
 	}
 }
 
@@ -71,32 +77,64 @@ void GraphModel::addValueChanges(int serie_index, const std::vector<shv::gui::Va
 		added = added || addValueChangeInternal(serie_index, value);
 	}
 	if (added) {
-		Q_EMIT dataChanged();
+		if (m_dataChangeEnabled) {
+			Q_EMIT dataChanged();
+		}
+		else {
+			m_dataAdded = true;
+		}
 	}
 }
 
 void GraphModel::addValueChanges(const std::vector<ValueChange> &values)
 {
-	if (values.size() != series.size()) {
+	if (values.size() != m_series.size()) {
 		throw std::runtime_error("addValueChanges: number of values in array doesn't match number of series");
 	}
 	bool added = false;
-	for (uint i = 0; i < series.size(); ++i) {
+	for (uint i = 0; i < m_series.size(); ++i) {
 		added = added || addValueChangeInternal(i, values[i]);
 	}
 	if (added) {
-		Q_EMIT dataChanged();
+		if (m_dataChangeEnabled) {
+			Q_EMIT dataChanged();
+		}
+		else {
+			m_dataAdded = true;
+		}
 	}
 }
 
 void GraphModel::addSerie(ValueType xType, ValueType yType)
 {
-	series.emplace_back(xType, yType);
+	m_series.emplace_back(xType, yType);
+}
+
+void GraphModel::clearSeries()
+{
+	for (SerieData &serie : m_series) {
+		serie.clear();
+		serie.shrink_to_fit();
+	}
+}
+
+void GraphModel::addDataBegin()
+{
+	m_dataChangeEnabled = false;
+}
+
+void GraphModel::addDataEnd()
+{
+	if (!m_dataChangeEnabled && m_dataAdded) {
+		Q_EMIT dataChanged();
+	}
+	m_dataAdded = false;
+	m_dataChangeEnabled = true;
 }
 
 bool GraphModel::addValueChangeInternal(int serie_index, const shv::gui::ValueChange &value)
 {
-	SerieData &serie = series[serie_index];
+	SerieData &serie = m_series[serie_index];
 	if (serie.size() == 0 || !compareValueX(serie.back(), value, serie.xType()) || !compareValueY(serie.back(), value, serie.yType())) {
 		serie.push_back(value);
 		return true;
