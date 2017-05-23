@@ -21,6 +21,7 @@
 
 #include "rpcvalue.h"
 #include "jsonprotocol.h"
+#include "../../shvexception.h"
 
 #include <cassert>
 #include <cstdlib>
@@ -77,7 +78,7 @@ class RpcValue::AbstractValueData
 public:
 	virtual ~AbstractValueData() {}
 
-	virtual RpcValue::Type::Enum type() const {return RpcValue::Type::Invalid;}
+	virtual RpcValue::Type type() const {return RpcValue::Type::Invalid;}
 	/*
 	virtual Value metaValue(Value::UInt key) const = 0;
 	virtual Value metaValue(const Value::String &key) const = 0;
@@ -117,7 +118,7 @@ public:
  * Value wrappers
  */
 
-template <RpcValue::Type::Enum tag, typename T>
+template <RpcValue::Type tag, typename T>
 class ValueData : public RpcValue::AbstractValueData
 {
 protected:
@@ -129,7 +130,7 @@ protected:
 			delete m_metaData;
 	}
 
-	RpcValue::Type::Enum type() const override { return tag; }
+	RpcValue::Type type() const override { return tag; }
 
 	const RpcValue::MetaData &metaData() const
 	{
@@ -177,6 +178,8 @@ protected:
 		std::string s;
 		dumpTextValue(s);
 		switch (type()) {
+		case RpcValue::Type::Null:
+			break;
 		case RpcValue::Type::Bool:
 			out += s;
 			break;
@@ -202,7 +205,7 @@ protected:
 			out += '{' + s + '}';
 			break;
 		default:
-			out += RpcValue::Type::name(type());
+			out += RpcValue::typeToName(type());
 			out += '(' + s + ')';
 			break;
 		}
@@ -342,7 +345,7 @@ class ChainPackTable final : public ValueData<RpcValue::Type::Table, RpcValue::L
 				type = t;
 			}
 			else if(t != type) {
-				throw std::runtime_error("Table must contain values of same type!");
+				SHV_EXCEPTION("Table must contain values of same type!");
 			}
 		}
 	}
@@ -538,7 +541,7 @@ ChainPack ChainPack::fromType(ChainPack::Type::Enum t)
 	case Type::False: return "False";
 	case Type::TERM: return "TERM";
 	default:
-		throw std::runtime_error("Internal error: attempt to create object of helper type. type: " + std::to_string(t));
+		SHV_EXCEPTION("Internal error: attempt to create object of helper type. type: " + std::to_string(t));
 	}
 }
 */
@@ -548,7 +551,7 @@ ChainPack ChainPack::fromType(ChainPack::Type::Enum t)
  * Accessors
  */
 
-RpcValue::Type::Enum RpcValue::type() const { return m_ptr? m_ptr->type(): Type::Invalid; }
+RpcValue::Type RpcValue::type() const { return m_ptr? m_ptr->type(): Type::Invalid; }
 
 const RpcValue::MetaData &RpcValue::metaData() const
 {
@@ -561,7 +564,7 @@ const RpcValue::MetaData &RpcValue::metaData() const
 void RpcValue::setMetaData(RpcValue::MetaData &&meta_data)
 {
 	if(!m_ptr && !meta_data.isEmpty())
-		throw std::runtime_error("Cannot set valid meta data to invalid ChainPack value!");
+		SHV_EXCEPTION("Cannot set valid meta data to invalid ChainPack value!");
 	if(m_ptr)
 		m_ptr->setMetaData(std::move(meta_data));
 }
@@ -569,7 +572,7 @@ void RpcValue::setMetaData(RpcValue::MetaData &&meta_data)
 void RpcValue::setMetaValue(RpcValue::UInt key, const RpcValue &val)
 {
 	if(!m_ptr && val.isValid())
-		throw std::runtime_error("Cannot set valid meta value to invalid ChainPack value!");
+		SHV_EXCEPTION("Cannot set valid meta value to invalid ChainPack value!");
 	if(m_ptr)
 		m_ptr->setMetaValue(key, val);
 }
@@ -702,51 +705,23 @@ void RpcValue::dumpJson(std::string &out) const
 		out += "INVALID";
 }
 
-/* * * * * * * * * * * * * * * * * * * *
- * Shape-checking
- */
-/*
-bool ChainPack::has_shape(const shape & types, std::string & err) const
+const char *RpcValue::typeToName(RpcValue::Type t)
 {
-	if (!isMap()) {
-		err = "expected JSON object, got " + dumpJson();
-		return false;
-	}
-
-	for (auto & item : types) {
-		if ((*this)[item.first].type() != item.second) {
-			err = "bad type for " + item.first + " in " + dumpJson();
-			return false;
-		}
-	}
-
-	return true;
-}
-*/
-const char *RpcValue::Type::name(RpcValue::Type::Enum e)
-{
-	switch (e) {
-	case Invalid: return "INVALID";
-	case Null: return "Null";
-	case UInt: return "UInt";
-	case Int: return "Int";
-	case Double: return "Double";
-	case Bool: return "Bool";
-	case Blob: return "Blob";
-	case String: return "String";
-	case List: return "List";
-	case Table: return "Table";
-	case Map: return "Map";
-	case IMap: return "IMap";
-	case DateTime: return "DateTime";
-	case META_TYPE_ID: return "META_TYPE_ID";
-	case META_TYPE_NAMESPACE_ID: return "META_TYPE_NAMESPACE_ID";
-	case MetaIMap: return "MetaIMap";
-	case TRUE: return "TRUE";
-	case FALSE: return "FALSE";
-	case TERM: return "TERM";
-	default:
-		return "UNKNOWN";
+	switch (t) {
+	case Type::Invalid: return "INVALID";
+	case Type::Null: return "Null";
+	case Type::UInt: return "UInt";
+	case Type::Int: return "Int";
+	case Type::Double: return "Double";
+	case Type::Bool: return "Bool";
+	case Type::Blob: return "Blob";
+	case Type::String: return "String";
+	case Type::List: return "List";
+	case Type::Table: return "Table";
+	case Type::Map: return "Map";
+	case Type::IMap: return "IMap";
+	case Type::DateTime: return "DateTime";
+	case Type::MetaIMap: return "MetaIMap";
 	}
 }
 

@@ -24,41 +24,34 @@ class SHVCORE_DECL_EXPORT RpcValue final
 public:
 	class AbstractValueData;
 
-	struct Type {
-		enum Enum { Invalid=-1,
-					TERM = 128, // first byte of packed Int or UInt cannot be like 0b1000000
-					Null,
-					UInt,
-					Int,
-					Double,
-					Bool,
-					Blob,
-					String,
-					DateTime,
-					List,
-					Table,
-					Map,
-					IMap,
-					//MetaMap,
-					MetaIMap,
-					META_TYPE_ID,
-					META_TYPE_NAMESPACE_ID,
-					FALSE,
-					TRUE,
-				  };
-		static const char* name(Enum e);
+	enum class Type {
+		Invalid,
+		Null,
+		UInt,
+		Int,
+		Double,
+		Bool,
+		Blob,
+		String,
+		DateTime,
+		List,
+		Table,
+		Map,
+		IMap,
+		MetaIMap,
 	};
+	static const char* typeToName(Type t);
 	struct Tag {
-		enum Enum { Invalid = 0,
-					MetaTypeId,
-					MetaTypeNameSpaceId,
-					MetaTypeName,
-					MetaTypeNameSpaceName,
-					USER = 8
-				  };
+		enum Enum {
+			Invalid = 0,
+			MetaTypeId,
+			MetaTypeNameSpaceId,
+			MetaTypeName,
+			MetaTypeNameSpaceName,
+			USER = 8
+		};
 		static const char* name(Enum e);
 	};
-
 	using Int = CHAINPACK_INT;
 	using UInt = CHAINPACK_UINT;
 	struct DateTime
@@ -169,7 +162,7 @@ public:
 	// ChainPack(bool(some_pointer)) if that behavior is desired.
 	RpcValue(void *) = delete;
 
-	Type::Enum type() const;
+	Type type() const;
 
 	const MetaData &metaData() const;
 	void setMetaData(MetaData &&meta_data);

@@ -266,14 +266,17 @@ static std::string binary_dump(const RpcValue::Blob &out)
 CHAINPACK_TEST_CASE(binary_test)
 {
 	std::cout << "============= chainpack binary test ============\n";
-	for (int i = RpcValue::Type::TERM; i <= RpcValue::Type::TRUE; ++i) {
+	for (int i = ChainPackProtocol::TypeInfo::TERM; i <= ChainPackProtocol::TypeInfo::TRUE; ++i) {
 		RpcValue::Blob out;
 		out += i;
-		RpcValue::Type::Enum e = (RpcValue::Type::Enum)i;
-		//std::string s = std::to_string(i);
-		//if(i < 10)
-		//	s = ' ' + s;
-		std::cout << std::setw(3) << i << " " << binary_dump(out) << " "  << RpcValue::Type::name(e) << "\n";
+		ChainPackProtocol::TypeInfo::Enum e = (ChainPackProtocol::TypeInfo::Enum)i;
+		std::cout << std::setw(3) << i << " " << binary_dump(out) << " "  << ChainPackProtocol::TypeInfo::name(e) << "\n";
+	}
+	for (int i = ChainPackProtocol::TypeInfo::Null; i <= ChainPackProtocol::TypeInfo::MetaIMap; ++i) {
+		RpcValue::Blob out;
+		out += i;
+		ChainPackProtocol::TypeInfo::Enum e = (ChainPackProtocol::TypeInfo::Enum)i;
+		std::cout << std::setw(3) << i << " " << binary_dump(out) << " "  << ChainPackProtocol::TypeInfo::name(e) << "\n";
 	}
 	{
 		std::cout << "------------- NULL \n";
@@ -549,8 +552,10 @@ CHAINPACK_TEST_CASE(binary_test)
 		cp1.setMetaValue(RpcValue::Tag::USER+1, RpcValue::List{1,2,3});
 		ChainPackProtocol::Blob out;
 		int len = ChainPackProtocol::write(out, cp1);
-		RpcValue cp2 = ChainPackProtocol::read(out);
-		std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
+		size_t consumed;
+		RpcValue cp2 = ChainPackProtocol::read(out, 0, &consumed);
+		std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " consumed: " << consumed << " dump: " << binary_dump(out) << "\n";
+		CHAINPACK_TEST_ASSERT(len == (int)consumed);
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 		CHAINPACK_TEST_ASSERT(cp1.metaData() == cp2.metaData());
 	}
