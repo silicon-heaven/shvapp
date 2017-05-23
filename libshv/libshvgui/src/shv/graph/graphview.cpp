@@ -93,56 +93,25 @@ GraphView::GraphView(QWidget *parent) : QWidget(parent)
 	m_rightRangeSelectorHandle->hide();
 }
 
-GraphView::~GraphView()
-{
-	cleanSeries();
-}
-
-void GraphView::cleanSerie(Serie &serie)
-{
-	if (serie.formattedDataPtr){
-		delete serie.formattedDataPtr;
-		serie.formattedDataPtr = 0;
-	}
-	serie.dataPtr = 0;
-}
-
-void GraphView::cleanSeries()
-{
-	for (Serie &serie : m_series) {
-		cleanSerie(serie);
-		for (Serie &dep_serie : serie.dependentSeries) {
-			cleanSerie(dep_serie);
-		}
-	}
-}
-
-void GraphView::acquireSerieData(Serie &serie)
-{
-	if (serie.valueFormatter) {
-		serie.formattedDataPtr = new SerieData(settings.xAxisType, serie.type);
-		for (const ValueChange &value : *m_data->serieData(serie.serieIndex)) {
-			serie.formattedDataPtr->push_back(serie.valueFormatter(value));
-		}
-		serie.dataPtr = serie.formattedDataPtr;
-	}
-	else {
-		serie.dataPtr = m_data->serieData(serie.serieIndex);
-	}
-}
-
 void GraphView::setModelData(const GraphModel &model_data)
 {
-	cleanSeries();
-
+	if (m_data) {
+		disconnect(m_data, &GraphModel::dataChanged, this, &GraphView::onModelDataChanged);
+	}
 	m_data = &model_data;
 
+	connect(m_data, &GraphModel::dataChanged, this, &GraphView::onModelDataChanged);
+	onModelDataChanged();
+}
+
+void GraphView::onModelDataChanged() //TODO improve change detection in model
+{
 	m_loadedRangeMin = UINT64_MAX;
 	m_loadedRangeMax = 0;
 	for (Serie &serie : m_series) {
-		acquireSerieData(serie);
+		serie.dataPtr = m_data->serieData(serie.serieIndex);
 		for (Serie &dep_serie : serie.dependentSeries) {
-			acquireSerieData(dep_serie);
+			dep_serie.dataPtr = m_data->serieData(dep_serie.serieIndex);
 		}
 	}
 	switch (settings.xAxisType) {
@@ -1306,7 +1275,8 @@ void GraphView::paintBoolSerie(QPainter *painter, const QRect &rect, int x_axis_
 	polygon << QPoint(0, rect.height());
 
 	for (auto it = begin; it != end; ++it) {
-		if (it->valueY.boolValue) {
+		ValueChange value_change = serie.valueFormatter ? serie.valueFormatter(*it) : *it;
+		if (value_change.valueY.boolValue) {
 			int begin_line = (xValue(*it) - min) / x_scale;
 			if (begin_line < 0) {
 				begin_line = 0;
@@ -1369,11 +1339,12 @@ void GraphView::paintValueSerie(QPainter *painter, const QRect &rect, int x_axis
 	}
 
 	QPoint first_point;
+	ValueChange first_value = serie.valueFormatter ? serie.valueFormatter(*begin) : *begin;
 	if (serie.type == ValueType::Double) {
-		first_point = QPoint(0, x_axis_position - (begin->valueY.doubleValue / y_scale));
+		first_point = QPoint(0, x_axis_position - (first_value.valueY.doubleValue / y_scale));
 	}
 	else if (serie.type == ValueType::Int) {
-		first_point = QPoint(0, x_axis_position - (begin->valueY.intValue / y_scale));
+		first_point = QPoint(0, x_axis_position - (first_value.valueY.intValue / y_scale));
 	}
 	int max_on_first = first_point.y();
 	int min_on_first = first_point.y();
@@ -1384,7 +1355,7 @@ void GraphView::paintValueSerie(QPainter *painter, const QRect &rect, int x_axis
 	polygon << first_point;
 
 	for (auto it = begin + 1; it != end; ++it) {
-		const ValueChange &value_change = *it;
+		ValueChange value_change = serie.valueFormatter ? serie.valueFormatter(*it) : *it;
 		quint64 x_value = xValue(value_change);
 		QPoint last_point;
 		if (serie.type == ValueType::Double) {
@@ -1565,14 +1536,15 @@ void GraphView::paintCurrentPosition(QPainter *painter, const GraphArea &area, c
 		}
 		double scale = range / area.graphRect.height();
 		int y_position = 0;
+		ValueChange value_change = serie.valueFormatter ? serie.valueFormatter(*begin) : *begin;
 		if (serie.type == ValueType::Double) {
-			y_position = begin->valueY.doubleValue / scale;
+			y_position = value_change.valueY.doubleValue / scale;
 		}
 		else if (serie.type == ValueType::Int) {
-			y_position = begin->valueY.intValue / scale;
+			y_position = value_change.valueY.intValue / scale;
 		}
 		else if (serie.type == ValueType::Bool) {
-			y_position = begin->valueY.boolValue ? (serie.boolValue / scale) : 0;
+			y_position = value_change.valueY.boolValue ? (serie.boolValue / scale) : 0;
 		}
 		QPainterPath path;
 		path.addEllipse(m_currentPosition + area.graphRect.x() - 3, area.xAxisPosition - y_position - 3, 6, 6);
@@ -1610,14 +1582,17 @@ QString GraphView::legendRow(const Serie &serie, quint64 position)
 		if (serie.legendValueFormatter) {
 			s += serie.legendValueFormatter(*begin);
 		}
-		else if (serie.type == ValueType::Double) {
-			s += QString::number(begin->valueY.doubleValue);
-		}
-		else if (serie.type == ValueType::Int) {
-			s += QString::number(begin->valueY.intValue);
-		}
-		else if (serie.type == ValueType::Bool) {
-			s += begin->valueY.boolValue ? tr("true") : tr("false");
+		else {
+			ValueChange value_change = serie.valueFormatter ? serie.valueFormatter(*begin) : *begin;
+			if (serie.type == ValueType::Double) {
+				s += QString::number(value_change.valueY.doubleValue);
+			}
+			else if (serie.type == ValueType::Int) {
+				s += QString::number(value_change.valueY.intValue);
+			}
+			else if (serie.type == ValueType::Bool) {
+				s += value_change.valueY.boolValue ? tr("true") : tr("false");
+			}
 		}
 		s += "</td></tr>";
 	}
