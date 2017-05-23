@@ -1653,6 +1653,7 @@ quint64 GraphView::xValue(const ValueChange &value_change) const
 		val = value_change.valueX.doubleValue * m_xValueScale;
 		break;
 	default:
+		val = 0;
 		break;
 	}
 	return val;

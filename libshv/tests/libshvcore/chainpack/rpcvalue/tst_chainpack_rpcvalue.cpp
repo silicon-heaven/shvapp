@@ -459,9 +459,9 @@ CHAINPACK_TEST_CASE(binary_test)
 		}
 	}
 	{
-		std::cout << "------------- Table \n";
+		std::cout << "------------- Array \n";
 		{
-			RpcValue cp1{RpcValue::Table{1, 2, 3}};
+			RpcValue cp1{RpcValue::Array{RpcValue::Type::Int, {1, 2, 3}}};
 			ChainPackProtocol::Blob out;
 			int len = ChainPackProtocol::write(out, cp1);
 			RpcValue cp2 = ChainPackProtocol::read(out);
@@ -470,8 +470,8 @@ CHAINPACK_TEST_CASE(binary_test)
 			CHAINPACK_TEST_ASSERT(cp1.toList() == cp2.toList());
 		}
 		{
-			RpcValue::Table t;
-			t.push_back(RpcValue::List{RpcValue{1}, RpcValue{2}});
+			RpcValue::Array t{RpcValue::Type::List};
+			t.push_back(RpcValue::List{1, 2});
 			t.push_back(RpcValue::List{RpcValue{3}, RpcValue{4}});
 			t.push_back(RpcValue::List{RpcValue{5}, RpcValue{6}});
 			t.push_back(RpcValue::List{RpcValue{7}, RpcValue{8}});
@@ -585,7 +585,9 @@ int main(int argc, char **argv) {
 		return 0;
 	}
 
+	text_test();
 	binary_test();
+	/*
 	try {
 		text_test();
 		binary_test();
@@ -593,6 +595,7 @@ int main(int argc, char **argv) {
 	catch (std::runtime_error &e) {
 		std::cout << "ERROR: " << e.what() << "\n";
 	}
+	*/
 }
 
 #endif // CHAINPACK_TEST_STANDALONE_MAIN

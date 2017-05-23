@@ -35,7 +35,7 @@ public:
 		String,
 		DateTime,
 		List,
-		Table,
+		Array,
 		Map,
 		IMap,
 		MetaIMap,
@@ -85,13 +85,19 @@ public:
 	using List = std::vector<RpcValue>;
 	using Map = std::map<RpcValue::String, RpcValue>;
 	using IMap = std::map<RpcValue::UInt, RpcValue>;
-	class Table : public List
+	class Array : public List
 	{
 	public:
-		Table() : List() {}
-		Table(const Table &t) : List(t) {}
-		Table(Table &&t) noexcept : List(std::move(t)) {}
-		Table(std::initializer_list<value_type> l) : List(l) {}
+		Array(Type type) : List(), m_type(type) {}
+		Array(const Array &t) : List(t), m_type(t.type()) {}
+		Array(Array &&t) noexcept : List(std::move(t)), m_type(t.type()) {}
+		Array(Type type, const List &l) : List(l), m_type(type) {}
+		Array(Type type, List &&l) noexcept : List(std::move(l)), m_type(type) {}
+		Array(Type type, std::initializer_list<value_type> l) : List(l), m_type(type) {}
+
+		Type type() const {return m_type;}
+	private:
+		Type m_type = Type::Invalid;
 	};
 	struct SHVCORE_DECL_EXPORT MetaData
 	{
@@ -126,8 +132,8 @@ public:
 	RpcValue(const char *value);       // String
 	RpcValue(const List &values);      // List
 	RpcValue(List &&values);           // List
-	RpcValue(const Table &values);
-	RpcValue(Table &&values);
+	RpcValue(const Array &values);
+	RpcValue(Array &&values);
 	RpcValue(const Map &values);     // Map
 	RpcValue(Map &&values);          // Map
 	RpcValue(const IMap &values);     // IMap
@@ -163,6 +169,7 @@ public:
 	RpcValue(void *) = delete;
 
 	Type type() const;
+	Type arrayType() const;
 
 	const MetaData &metaData() const;
 	void setMetaData(MetaData &&meta_data);

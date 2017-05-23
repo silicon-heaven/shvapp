@@ -79,6 +79,7 @@ public:
 	virtual ~AbstractValueData() {}
 
 	virtual RpcValue::Type type() const {return RpcValue::Type::Invalid;}
+	virtual RpcValue::Type arrayType() const {return RpcValue::Type::Invalid;}
 	/*
 	virtual Value metaValue(Value::UInt key) const = 0;
 	virtual Value metaValue(const Value::String &key) const = 0;
@@ -318,7 +319,7 @@ public:
 	const RpcValue::List &toList() const override { return m_value; }
 };
 
-class ChainPackTable final : public ValueData<RpcValue::Type::Table, RpcValue::List>
+class ChainPackArray final : public ValueData<RpcValue::Type::Array, RpcValue::Array>
 {
 	size_t count() const override {return m_value.size();}
 	const RpcValue & at(RpcValue::UInt i) const override;
@@ -351,11 +352,12 @@ class ChainPackTable final : public ValueData<RpcValue::Type::Table, RpcValue::L
 	}
 	*/
 public:
-	explicit ChainPackTable(const RpcValue::Table &value) : ValueData(value) {}
-	explicit ChainPackTable(RpcValue::Table &&value) noexcept : ValueData(std::move(value)) {}
+	explicit ChainPackArray(const RpcValue::Array &value) : ValueData(value) {}
+	explicit ChainPackArray(RpcValue::Array &&value) noexcept : ValueData(std::move(value)) {}
 	//explicit ChainPackTable(const ChainPack::List &value) : ValueData(value) {}
 	//explicit ChainPackTable(ChainPack::List &&value) : ValueData(move(value)) {}
 
+	RpcValue::Type arrayType() const override {return m_value.type();}
 	const RpcValue::List &toList() const override { return m_value; }
 };
 
@@ -503,8 +505,8 @@ RpcValue::RpcValue(const char * value) : m_ptr(std::make_shared<ChainPackString>
 RpcValue::RpcValue(const RpcValue::List &values) : m_ptr(std::make_shared<ChainPackList>(values)) {}
 RpcValue::RpcValue(RpcValue::List &&values) : m_ptr(std::make_shared<ChainPackList>(std::move(values))) {}
 
-RpcValue::RpcValue(const RpcValue::Table &values) : m_ptr(std::make_shared<ChainPackTable>(values)) {}
-RpcValue::RpcValue(RpcValue::Table &&values) : m_ptr(std::make_shared<ChainPackTable>(std::move(values))) {}
+RpcValue::RpcValue(const Array &values) : m_ptr(std::make_shared<ChainPackArray>(values)) {}
+RpcValue::RpcValue(RpcValue::Array &&values) : m_ptr(std::make_shared<ChainPackArray>(std::move(values))) {}
 
 RpcValue::RpcValue(const RpcValue::Map &values) : m_ptr(std::make_shared<ChainPackMap>(values)) {}
 RpcValue::RpcValue(RpcValue::Map &&values) : m_ptr(std::make_shared<ChainPackMap>(std::move(values))) {}
@@ -551,7 +553,15 @@ ChainPack ChainPack::fromType(ChainPack::Type::Enum t)
  * Accessors
  */
 
-RpcValue::Type RpcValue::type() const { return m_ptr? m_ptr->type(): Type::Invalid; }
+RpcValue::Type RpcValue::type() const
+{
+	return m_ptr? m_ptr->type(): Type::Invalid;
+}
+
+RpcValue::Type RpcValue::arrayType() const
+{
+	return m_ptr? m_ptr->arrayType(): Type::Invalid;
+}
 
 const RpcValue::MetaData &RpcValue::metaData() const
 {
@@ -649,7 +659,7 @@ void ChainPackList::set(RpcValue::UInt key, const RpcValue &val)
 	m_value[key] = val;
 }
 
-const RpcValue &ChainPackTable::at(RpcValue::UInt i) const
+const RpcValue &ChainPackArray::at(RpcValue::UInt i) const
 {
 	if (i >= m_value.size())
 		return static_chain_pack_invalid();
@@ -717,7 +727,7 @@ const char *RpcValue::typeToName(RpcValue::Type t)
 	case Type::Blob: return "Blob";
 	case Type::String: return "String";
 	case Type::List: return "List";
-	case Type::Table: return "Table";
+	case Type::Array: return "Array";
 	case Type::Map: return "Map";
 	case Type::IMap: return "IMap";
 	case Type::DateTime: return "DateTime";
