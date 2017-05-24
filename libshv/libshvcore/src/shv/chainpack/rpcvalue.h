@@ -195,7 +195,7 @@ public:
 	const Map &toMap() const;
 	const IMap &toIMap() const;
 
-	int count() const;
+	size_t count() const;
 	const RpcValue & at(UInt i) const;
 	const RpcValue & at(const RpcValue::String &key) const;
 	const RpcValue & operator[](UInt i) const {return at(i);}

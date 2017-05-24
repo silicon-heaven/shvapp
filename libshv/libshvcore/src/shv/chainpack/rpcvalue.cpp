@@ -601,7 +601,7 @@ RpcValue::DateTime RpcValue::toDateTime() const { return m_ptr? m_ptr->toDateTim
 const std::string & RpcValue::toString() const { return m_ptr? m_ptr->toString(): static_empty_string(); }
 const RpcValue::Blob &RpcValue::toBlob() const { return m_ptr? m_ptr->toBlob(): static_empty_blob(); }
 
-int RpcValue::count() const { return m_ptr? m_ptr->count(): 0; }
+size_t RpcValue::count() const { return m_ptr? m_ptr->count(): 0; }
 const RpcValue::List & RpcValue::toList() const { return m_ptr? m_ptr->toList(): static_empty_list(); }
 const RpcValue::Map & RpcValue::toMap() const { return m_ptr? m_ptr->toMap(): static_empty_map(); }
 const RpcValue::IMap &RpcValue::toIMap() const { return m_ptr? m_ptr->toIMap(): static_empty_imap(); }
