@@ -281,20 +281,20 @@ CHAINPACK_TEST_CASE(binary_test)
 	{
 		std::cout << "------------- NULL \n";
 		RpcValue cp1{nullptr};
-		ChainPackProtocol::Blob out;
+		std::stringstream out;
 		int len = ChainPackProtocol::write(out, cp1);
 		CHAINPACK_TEST_ASSERT(len == 1);
 		RpcValue cp2 = ChainPackProtocol::read(out);
-		std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
+		std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out.str()) << "\n";
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 	}
 	std::cout << "------------- tiny uint \n";
 	for (unsigned int n = 0; n < 64; ++n) {
 		RpcValue cp1{n};
-		ChainPackProtocol::Blob out;
+		std::stringstream out;
 		int len = ChainPackProtocol::write(out, cp1);
 		if(n < 10)
-			std::cout << n << " " << cp1.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
+			std::cout << n << " " << cp1.dumpText() << " len: " << len << " dump: " << binary_dump(out.str()) << "\n";
 		CHAINPACK_TEST_ASSERT(len == 1);
 		RpcValue cp2 = ChainPackProtocol::read(out);
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
@@ -306,12 +306,12 @@ CHAINPACK_TEST_CASE(binary_test)
 		auto step = n_max / 1000;
 		for (RpcValue::UInt n = 64; n < (n_max - step); n += step) {
 			RpcValue cp1{n};
-			ChainPackProtocol::Blob out;
+			std::stringstream out;
 			int len = ChainPackProtocol::write(out, cp1);
 			CHAINPACK_TEST_ASSERT(len > 1);
 			RpcValue cp2 = ChainPackProtocol::read(out);
 			if(n < 100)
-				std::cout << n << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
+				std::cout << n << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out.str()) << "\n";
 			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 			CHAINPACK_TEST_ASSERT(cp1.toUInt() == cp2.toUInt());
 		}
@@ -319,10 +319,10 @@ CHAINPACK_TEST_CASE(binary_test)
 	std::cout << "------------- tiny int \n";
 	for (RpcValue::Int n = 0; n < 64; ++n) {
 		RpcValue cp1{n};
-		ChainPackProtocol::Blob out;
+		std::stringstream out;
 		int len = ChainPackProtocol::write(out, cp1);
 		if(n < 10)
-			std::cout << n << " " << cp1.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
+			std::cout << n << " " << cp1.dumpText() << " len: " << len << " dump: " << binary_dump(out.str()) << "\n";
 		CHAINPACK_TEST_ASSERT(len == 1);
 		RpcValue cp2 = ChainPackProtocol::read(out);
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
@@ -336,7 +336,7 @@ CHAINPACK_TEST_CASE(binary_test)
 			auto step = n_max / 100;
 			for (int n = n_min; n < (n_max - step); n += step) {
 				RpcValue cp1{n};
-				ChainPackProtocol::Blob out;
+				std::stringstream out;
 				int len = ChainPackProtocol::write(out, cp1);
 				if(n >= 0 && n < 64)
 					CHAINPACK_TEST_ASSERT(len == 1);
@@ -344,7 +344,7 @@ CHAINPACK_TEST_CASE(binary_test)
 					CHAINPACK_TEST_ASSERT(len > 1);
 				RpcValue cp2 = ChainPackProtocol::read(out);
 				if(n < 1000 && n > -1000)
-					std::cout << n << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
+					std::cout << n << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out.str()) << "\n";
 				CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 				CHAINPACK_TEST_ASSERT(cp1.toInt() == cp2.toInt());
 			}
@@ -358,12 +358,12 @@ CHAINPACK_TEST_CASE(binary_test)
 			auto step = (n_max - n_min) / 100;
 			for (auto n = n_min; n < n_max; n += step) {
 				RpcValue cp1{n};
-				ChainPackProtocol::Blob out;
+				std::stringstream out;
 				int len = ChainPackProtocol::write(out, cp1);
 				CHAINPACK_TEST_ASSERT(len > 1);
 				RpcValue cp2 = ChainPackProtocol::read(out);
 				if(n > -3*step && n < 3*step)
-					std::cout << n << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
+					std::cout << n << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out.str()) << "\n";
 				CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 				CHAINPACK_TEST_ASSERT(cp1.toDouble() == cp2.toDouble());
 			}
@@ -375,12 +375,12 @@ CHAINPACK_TEST_CASE(binary_test)
 			//std::cout << n_min << " - " << n_max << ": " << step << " === " << (n_max / step / 10) << "\n";
 			for (double n = n_min; n < n_max / -step / 10; n *= step) {
 				RpcValue cp1{n};
-				ChainPackProtocol::Blob out;
+				std::stringstream out;
 				int len = ChainPackProtocol::write(out, cp1);
 				CHAINPACK_TEST_ASSERT(len > 1);
 				RpcValue cp2 = ChainPackProtocol::read(out);
 				if(n > -100 && n < 100)
-					std::cout << n << " - " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
+					std::cout << n << " - " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out.str()) << "\n";
 				CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 				CHAINPACK_TEST_ASSERT(cp1.toDouble() == cp2.toDouble());
 			}
@@ -390,11 +390,11 @@ CHAINPACK_TEST_CASE(binary_test)
 		std::cout << "------------- bool \n";
 		for(bool b : {false, true}) {
 			RpcValue cp1{b};
-			ChainPackProtocol::Blob out;
+			std::stringstream out;
 			int len = ChainPackProtocol::write(out, cp1);
 			CHAINPACK_TEST_ASSERT(len == 1);
 			RpcValue cp2 = ChainPackProtocol::read(out);
-			std::cout << b << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
+			std::cout << b << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out.str()) << "\n";
 			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 			CHAINPACK_TEST_ASSERT(cp1.toBool() == cp2.toBool());
 		}
@@ -404,10 +404,10 @@ CHAINPACK_TEST_CASE(binary_test)
 		RpcValue::Blob blob{"fpowfksapofkpsaokfsa"};
 		blob[5] = 0;
 		RpcValue cp1{blob};
-		ChainPackProtocol::Blob out;
+		std::stringstream out;
 		int len = ChainPackProtocol::write(out, cp1);
 		RpcValue cp2 = ChainPackProtocol::read(out);
-		std::cout << blob.toString() << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
+		std::cout << blob.toString() << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out.str()) << "\n";
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 		CHAINPACK_TEST_ASSERT(cp1.toBlob() == cp2.toBlob());
 	}
@@ -416,10 +416,10 @@ CHAINPACK_TEST_CASE(binary_test)
 		RpcValue::String str{"lhklhklfkjdslfkposkfp79"};
 		str[5] = 0;
 		RpcValue cp1{str};
-		ChainPackProtocol::Blob out;
+		std::stringstream out;
 		ChainPackProtocol::write(out, cp1);
 		RpcValue cp2 = ChainPackProtocol::read(out);
-		//std::cout << str << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
+		//std::cout << str << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out.str()) << "\n";
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 		CHAINPACK_TEST_ASSERT(cp1.toString() == cp2.toString());
 	}
@@ -428,10 +428,10 @@ CHAINPACK_TEST_CASE(binary_test)
 		std::string str = "2017-05-03T15:52:31.123";
 		RpcValue::DateTime dt = RpcValue::DateTime::fromString(str);
 		RpcValue cp1{dt};
-		ChainPackProtocol::Blob out;
+		std::stringstream out;
 		int len = ChainPackProtocol::write(out, cp1);
 		RpcValue cp2 = ChainPackProtocol::read(out);
-		std::cout << str << " " << dt.toUtcString() << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
+		std::cout << str << " " << dt.toUtcString() << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out.str()) << "\n";
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 		CHAINPACK_TEST_ASSERT(cp1.toInt() == cp2.toInt());
 	}
@@ -441,19 +441,19 @@ CHAINPACK_TEST_CASE(binary_test)
 			const std::string s = R"(["a",123,true,[1,2,3],null])";
 			string err;
 			RpcValue cp1 = RpcValue::parseJson(s, err);
-			ChainPackProtocol::Blob out;
+			std::stringstream out;
 			int len = ChainPackProtocol::write(out, cp1);
 			RpcValue cp2 = ChainPackProtocol::read(out);
-			std::cout << s << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
+			std::cout << s << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out.str()) << "\n";
 			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 			CHAINPACK_TEST_ASSERT(cp1.toList() == cp2.toList());
 		}
 		{
 			RpcValue cp1{RpcValue::List{1,2,3}};
-			ChainPackProtocol::Blob out;
+			std::stringstream out;
 			int len = ChainPackProtocol::write(out, cp1);
 			RpcValue cp2 = ChainPackProtocol::read(out);
-			std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
+			std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out.str()) << "\n";
 			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 			CHAINPACK_TEST_ASSERT(cp1.toList() == cp2.toList());
 		}
@@ -462,10 +462,10 @@ CHAINPACK_TEST_CASE(binary_test)
 		std::cout << "------------- Array \n";
 		{
 			RpcValue cp1{RpcValue::Array{RpcValue::Type::Int, {1, 2, 3}}};
-			ChainPackProtocol::Blob out;
+			std::stringstream out;
 			int len = ChainPackProtocol::write(out, cp1);
 			RpcValue cp2 = ChainPackProtocol::read(out);
-			std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
+			std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out.str()) << "\n";
 			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 			CHAINPACK_TEST_ASSERT(cp1.toList() == cp2.toList());
 		}
@@ -476,10 +476,10 @@ CHAINPACK_TEST_CASE(binary_test)
 			t.push_back(RpcValue::List{RpcValue{5}, RpcValue{6}});
 			t.push_back(RpcValue::List{RpcValue{7}, RpcValue{8}});
 			RpcValue cp1{t};
-			ChainPackProtocol::Blob out;
+			std::stringstream out;
 			int len = ChainPackProtocol::write(out, cp1);
 			RpcValue cp2 = ChainPackProtocol::read(out);
-			std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
+			std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out.str()) << "\n";
 			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 			CHAINPACK_TEST_ASSERT(cp1.toList() == cp2.toList());
 		}
@@ -492,10 +492,10 @@ CHAINPACK_TEST_CASE(binary_test)
 				{"bar", 2},
 				{"baz", 3},
 			}};
-			ChainPackProtocol::Blob out;
+			std::stringstream out;
 			int len = ChainPackProtocol::write(out, cp1);
 			RpcValue cp2 = ChainPackProtocol::read(out);
-			std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
+			std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out.str()) << "\n";
 			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 			CHAINPACK_TEST_ASSERT(cp1.toMap() == cp2.toMap());
 		}
@@ -505,10 +505,10 @@ CHAINPACK_TEST_CASE(binary_test)
 				{"bar", 2},
 				{"baz", 3},
 			}};
-			ChainPackProtocol::Blob out;
+			std::stringstream out;
 			int len = ChainPackProtocol::write(out, cp1);
 			RpcValue cp2 = ChainPackProtocol::read(out);
-			std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
+			std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out.str()) << "\n";
 			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 			CHAINPACK_TEST_ASSERT(cp1.toMap() == cp2.toMap());
 		}
@@ -522,10 +522,10 @@ CHAINPACK_TEST_CASE(binary_test)
 				{3, "baz"},
 			};
 			RpcValue cp1{map};
-			ChainPackProtocol::Blob out;
+			std::stringstream out;
 			int len = ChainPackProtocol::write(out, cp1);
 			RpcValue cp2 = ChainPackProtocol::read(out);
-			std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
+			std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out.str()) << "\n";
 			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 			CHAINPACK_TEST_ASSERT(cp1.toIMap() == cp2.toIMap());
 		}
@@ -535,10 +535,10 @@ CHAINPACK_TEST_CASE(binary_test)
 				{128, 2},
 				{129, 3},
 			}};
-			ChainPackProtocol::Blob out;
+			std::stringstream out;
 			int len = ChainPackProtocol::write(out, cp1);
 			RpcValue cp2 = ChainPackProtocol::read(out);
-			std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
+			std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out.str()) << "\n";
 			CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 			CHAINPACK_TEST_ASSERT(cp1.toIMap() == cp2.toIMap());
 		}
@@ -550,11 +550,11 @@ CHAINPACK_TEST_CASE(binary_test)
 		cp1.setMetaValue(RpcValue::Tag::MetaTypeId, (unsigned)2);
 		cp1.setMetaValue(RpcValue::Tag::USER, "foo");
 		cp1.setMetaValue(RpcValue::Tag::USER+1, RpcValue::List{1,2,3});
-		ChainPackProtocol::Blob out;
+		std::stringstream out;
 		int len = ChainPackProtocol::write(out, cp1);
-		size_t consumed;
-		RpcValue cp2 = ChainPackProtocol::read(out, 0, &consumed);
-		std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " consumed: " << consumed << " dump: " << binary_dump(out) << "\n";
+		RpcValue cp2 = ChainPackProtocol::read(out);
+		std::ostream::pos_type consumed = out.tellg();
+		std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " consumed: " << consumed << " dump: " << binary_dump(out.str()) << "\n";
 		CHAINPACK_TEST_ASSERT(len == (int)consumed);
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 		CHAINPACK_TEST_ASSERT(cp1.metaData() == cp2.metaData());

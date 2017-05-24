@@ -38,7 +38,7 @@ public:
 	bool isNotify() const;
 	RpcValue::String toString() const;
 
-	virtual int write(RpcValue::Blob &out) const;
+	virtual int write(std::ostream &out) const;
 protected:
 	void ensureMetaValues();
 protected:

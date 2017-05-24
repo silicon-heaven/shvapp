@@ -55,7 +55,7 @@ bool RpcMessage::isResponse() const
 	return hasKey(Key::Id) && (hasKey(Key::Result) || hasKey(Key::Error));
 }
 
-int RpcMessage::write(RpcValue::Blob &out) const
+int RpcMessage::write(std::ostream &out) const
 {
 	assert(m_value.isValid());
 	return ChainPackProtocol::write(out, m_value);

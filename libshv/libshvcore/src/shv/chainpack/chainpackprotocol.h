@@ -49,32 +49,32 @@ public:
 		};
 		static const char* name(Enum e);
 	};
-	using Blob = RpcValue::Blob;
 public:
-	static RpcValue read(const Blob &data, size_t pos = 0, size_t *consumed = nullptr);
-	static int write(Blob &out, const RpcValue &pack);
+	static RpcValue read(std::istream &data);
+	static int write(std::ostream &out, const RpcValue &pack);
 private:
 	static TypeInfo::Enum typeToTypeInfo(RpcValue::Type type);
 	static RpcValue::Type typeInfoToType(TypeInfo::Enum type_info);
 	static TypeInfo::Enum optimizedMetaTagType(RpcValue::Tag::Enum tag);
 
-	static void writeMetaData(Blob &out, const RpcValue &pack);
-	static bool writeTypeInfo(Blob &out, const RpcValue &pack);
-	static void writeData(Blob &out, const RpcValue &pack);
-	static TypeInfo::Enum readTypeInfo(const ChainPackProtocol::Blob &data, ChainPackProtocol::Blob::size_type &pos, RpcValue &meta, int &tiny_uint);
-	static RpcValue readData(TypeInfo::Enum type, bool is_array, const ChainPackProtocol::Blob &data, ChainPackProtocol::Blob::size_type &pos);
+	static void writeMetaData(std::ostream &out, const RpcValue &pack);
+	static bool writeTypeInfo(std::ostream &out, const RpcValue &pack);
+	//static void writeData(Blob &out, const RpcValue &pack);
+	static void writeData(std::ostream &out, const RpcValue &pack);
+	static TypeInfo::Enum readTypeInfo(std::istream &data, RpcValue &meta, int &tiny_uint);
+	static RpcValue readData(TypeInfo::Enum type, bool is_array, std::istream &data);
 private:
-	static void writeData_List(ChainPackProtocol::Blob &out, const RpcValue::List &list);
-	static void writeData_Array(ChainPackProtocol::Blob &out, const RpcValue &pack);
-	static void writeData_Map(ChainPackProtocol::Blob &out, const RpcValue::Map &map);
-	static void writeData_IMap(ChainPackProtocol::Blob &out, const RpcValue::IMap &map);
+	static void writeData_List(std::ostream &out, const RpcValue::List &list);
+	static void writeData_Array(std::ostream &out, const RpcValue &pack);
+	static void writeData_Map(std::ostream &out, const RpcValue::Map &map);
+	static void writeData_IMap(std::ostream &out, const RpcValue::IMap &map);
 
-	static RpcValue::MetaData readMetaData(const ChainPackProtocol::Blob &data, ChainPackProtocol::Blob::size_type &pos);
+	static RpcValue::MetaData readMetaData(std::istream &data);
 
-	static RpcValue::List readData_List(const ChainPackProtocol::Blob &data, ChainPackProtocol::Blob::size_type &pos);
-	static RpcValue::Array readData_Array(TypeInfo::Enum type_info, const ChainPackProtocol::Blob &data, ChainPackProtocol::Blob::size_type &pos);
-	static RpcValue::Map readData_Map(const ChainPackProtocol::Blob &data, ChainPackProtocol::Blob::size_type &pos);
-	static RpcValue::IMap readData_IMap(const ChainPackProtocol::Blob &data, ChainPackProtocol::Blob::size_type &pos);
+	static RpcValue::List readData_List(std::istream &data);
+	static RpcValue::Array readData_Array(TypeInfo::Enum type_info, std::istream &data);
+	static RpcValue::Map readData_Map(std::istream &data);
+	static RpcValue::IMap readData_IMap(std::istream &data);
 };
 
 }}

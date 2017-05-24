@@ -80,11 +80,11 @@ CHAINPACK_TEST_CASE(rpcmessage_test)
 							   {"b", "bar"},
 							   {"c", RpcValue::List{1,2,3}},
 						   }});
-		ChainPackProtocol::Blob out;
+		std::stringstream out;
 		RpcValue cp1 = rq.value();
 		int len = rq.write(out);
 		RpcValue cp2 = ChainPackProtocol::read(out);
-		std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
+		std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out.str()) << "\n";
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 		RpcRequest rq2(cp2);
 		CHAINPACK_TEST_ASSERT(rq2.isRequest());
@@ -96,11 +96,11 @@ CHAINPACK_TEST_CASE(rpcmessage_test)
 	{
 		RpcResponse rs;
 		rs.setId(123).setResult(42u);
-		ChainPackProtocol::Blob out;
+		std::stringstream out;
 		RpcValue cp1 = rs.value();
 		int len = rs.write(out);
 		RpcValue cp2 = ChainPackProtocol::read(out);
-		std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
+		std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out.str()) << "\n";
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 		RpcResponse rs2(cp2);
 		CHAINPACK_TEST_ASSERT(rs2.isResponse());
@@ -111,11 +111,11 @@ CHAINPACK_TEST_CASE(rpcmessage_test)
 		RpcResponse rs;
 		rs.setId(123)
 				.setError(RpcResponse::Error::createError(RpcResponse::Error::InvalidParams, "Paramter length should be greater than zero!"));
-		ChainPackProtocol::Blob out;
+		std::stringstream out;
 		RpcValue cp1 = rs.value();
 		int len = rs.write(out);
 		RpcValue cp2 = ChainPackProtocol::read(out);
-		std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
+		std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out.str()) << "\n";
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 		RpcResponse rs2(cp2);
 		CHAINPACK_TEST_ASSERT(rs2.isResponse());
@@ -131,11 +131,11 @@ CHAINPACK_TEST_CASE(rpcmessage_test)
 							   {"b", "bar"},
 							   {"c", RpcValue::List{1,2,3}},
 						   }});
-		ChainPackProtocol::Blob out;
+		std::stringstream out;
 		RpcValue cp1 = rq.value();
 		int len = rq.write(out);
 		RpcValue cp2 = ChainPackProtocol::read(out);
-		std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out) << "\n";
+		std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out.str()) << "\n";
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 		RpcRequest rq2(cp2);
 		CHAINPACK_TEST_ASSERT(rq2.isNotify());
