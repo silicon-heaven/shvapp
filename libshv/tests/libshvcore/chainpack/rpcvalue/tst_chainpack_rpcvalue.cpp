@@ -29,8 +29,8 @@
 /*
  * Beginning of standard source file, which makes use of the customizations above.
  */
-#include <shv/chainpack/rpcvalue.h>
-#include <shv/chainpack/chainpackprotocol.h>
+#include <shv/core/chainpack/rpcvalue.h>
+#include <shv/core/chainpack/chainpackprotocol.h>
 
 #include <cassert>
 #include <string>
