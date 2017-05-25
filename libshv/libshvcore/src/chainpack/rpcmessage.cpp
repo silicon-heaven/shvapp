@@ -1,10 +1,11 @@
 #include "rpcmessage.h"
 #include "chainpackprotocol.h"
-#include "../../metatypes.h"
+#include "../metatypes.h"
 
 #include <cassert>
 
 namespace shv {
+namespace core {
 namespace chainpack {
 
 RpcMessage::RpcMessage(const RpcValue &val)
@@ -145,4 +146,5 @@ RpcValue::String RpcMessage::toString() const
 }
 
 } // namespace chainpackrpc
+}
 } // namespace shv

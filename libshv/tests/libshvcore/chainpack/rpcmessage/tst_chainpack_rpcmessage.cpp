@@ -39,7 +39,7 @@
 // to set up a custom test suite
 CHAINPACK_TEST_CPP_PREFIX_CODE
 
-using namespace shv::chainpack;
+using namespace shv::core::chainpack;
 using std::string;
 
 // Check that ChainPack has the properties we want.

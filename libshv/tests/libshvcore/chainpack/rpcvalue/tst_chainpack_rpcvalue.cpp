@@ -49,7 +49,7 @@
 // to set up a custom test suite
 CHAINPACK_TEST_CPP_PREFIX_CODE
 
-using namespace shv::chainpack;
+using namespace shv::core::chainpack;
 using std::string;
 
 // Check that ChainPack has the properties we want.
@@ -228,7 +228,7 @@ CHAINPACK_TEST_CASE(text_test) {
 	RpcValue my_json = RpcValue::Map {
 		{ "key1", "value1" },
 		{ "key2", false },
-		{ "key3", RpcValue::List { 1, 2, 3 } },
+		{ "key3", RpcValue::List { 1l, 2l, 3l } },
 	};
 	std::string json_obj_str = my_json.dumpJson();
 	std::cout << "json_obj_str: " << json_obj_str << "\n";
@@ -236,8 +236,8 @@ CHAINPACK_TEST_CASE(text_test) {
 
 	class Point {
 	public:
-		int x;
-		int y;
+		long x;
+		long y;
 		Point (int x, int y) : x(x), y(y) {}
 		RpcValue to_json() const { return RpcValue::List { x, y }; }
 	};
@@ -289,7 +289,7 @@ CHAINPACK_TEST_CASE(binary_test)
 		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
 	}
 	std::cout << "------------- tiny uint \n";
-	for (unsigned int n = 0; n < 64; ++n) {
+	for (RpcValue::UInt n = 0; n < 64; ++n) {
 		RpcValue cp1{n};
 		std::stringstream out;
 		int len = ChainPackProtocol::write(out, cp1);
@@ -334,7 +334,7 @@ CHAINPACK_TEST_CASE(binary_test)
 			auto n_max = std::numeric_limits<signed int>::max();
 			auto n_min = std::numeric_limits<signed int>::min()+1;
 			auto step = n_max / 100;
-			for (int n = n_min; n < (n_max - step); n += step) {
+			for (RpcValue::Int n = n_min; n < (n_max - step); n += step) {
 				RpcValue cp1{n};
 				std::stringstream out;
 				int len = ChainPackProtocol::write(out, cp1);
@@ -449,7 +449,7 @@ CHAINPACK_TEST_CASE(binary_test)
 			CHAINPACK_TEST_ASSERT(cp1.toList() == cp2.toList());
 		}
 		{
-			RpcValue cp1{RpcValue::List{1,2,3}};
+			RpcValue cp1{RpcValue::List{1l,2l,3l}};
 			std::stringstream out;
 			int len = ChainPackProtocol::write(out, cp1);
 			RpcValue cp2 = ChainPackProtocol::read(out);
@@ -461,7 +461,7 @@ CHAINPACK_TEST_CASE(binary_test)
 	{
 		std::cout << "------------- Array \n";
 		{
-			RpcValue cp1{RpcValue::Array{RpcValue::Type::Int, {1, 2, 3}}};
+			RpcValue cp1{RpcValue::Array{RpcValue::Type::Int, {1l, 2l, 3l}}};
 			std::stringstream out;
 			int len = ChainPackProtocol::write(out, cp1);
 			RpcValue cp2 = ChainPackProtocol::read(out);
@@ -471,7 +471,7 @@ CHAINPACK_TEST_CASE(binary_test)
 		}
 		{
 			RpcValue::Array t{RpcValue::Type::List};
-			t.push_back(RpcValue::List{1, 2});
+			t.push_back(RpcValue::List{1l, 2l});
 			t.push_back(RpcValue::List{RpcValue{3}, RpcValue{4}});
 			t.push_back(RpcValue::List{RpcValue{5}, RpcValue{6}});
 			t.push_back(RpcValue::List{RpcValue{7}, RpcValue{8}});

@@ -5,6 +5,7 @@
 #include <cmath>
 
 namespace shv {
+namespace core {
 namespace chainpack {
 
 /* * * * * * * * * * * * * * * * * * * *
@@ -285,7 +286,7 @@ RpcValue JsonProtocol::parse_number() {
 
 	if (str[i] != '.' && str[i] != 'e' && str[i] != 'E'
 		&& (i - start_pos) <= static_cast<size_t>(std::numeric_limits<int>::digits10)) {
-		return std::atoi(str.c_str() + start_pos);
+		return std::atol(str.c_str() + start_pos);
 	}
 
 	// Decimal part
@@ -444,17 +445,17 @@ void JsonProtocol::dumpJson(double value, std::string &out)
 	}
 }
 
-void JsonProtocol::dumpJson(int value, std::string &out)
+void JsonProtocol::dumpJson(RpcValue::Int value, std::string &out)
 {
 	char buf[32];
-	snprintf(buf, sizeof buf, "%d", value);
+	snprintf(buf, sizeof buf, "%ld", value);
 	out += buf;
 }
 
-void JsonProtocol::dumpJson(unsigned int value, std::string &out)
+void JsonProtocol::dumpJson(RpcValue::UInt value, std::string &out)
 {
 	char buf[32];
-	snprintf(buf, sizeof buf, "%u", value);
+	snprintf(buf, sizeof buf, "%lu", value);
 	out += buf;
 }
 
@@ -555,4 +556,4 @@ void JsonProtocol::dumpJson(const RpcValue::IMap &values, std::string &out)
 	out += "}";
 }
 
-} }
+}}}

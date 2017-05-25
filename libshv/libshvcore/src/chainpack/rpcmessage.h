@@ -2,9 +2,10 @@
 
 #include "rpcvalue.h"
 
-#include "../../shvcoreglobal.h"
+#include "../shvcoreglobal.h"
 
 namespace shv {
+namespace core {
 namespace chainpack {
 
 class SHVCORE_DECL_EXPORT RpcMessage
@@ -147,4 +148,5 @@ public:
 };
 
 } // namespace chainpackrpc
+}
 } // namespace shv

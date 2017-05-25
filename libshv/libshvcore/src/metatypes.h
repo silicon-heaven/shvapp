@@ -11,7 +11,7 @@ struct MetaTypeNameSpaceId {
 };
 
 struct GlobalMetaTypeId {
-	enum Enum : unsigned {
+	enum Enum : uint64_t {
 		ChainPackRpcMessage = 1,
 		ElesysDataChange,
 	};

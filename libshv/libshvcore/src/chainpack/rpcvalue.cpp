@@ -21,7 +21,7 @@
 
 #include "rpcvalue.h"
 #include "jsonprotocol.h"
-#include "../../shvexception.h"
+#include "../shvexception.h"
 
 #include <cassert>
 #include <cstdlib>
@@ -68,6 +68,7 @@ time_t timegm(struct tm *tm)
 #endif
 
 namespace shv {
+namespace core {
 namespace chainpack {
 
 /*
@@ -226,7 +227,7 @@ public:
 	explicit ChainPackDouble(double value) : ValueData(value) {}
 };
 
-class ChainPackInt final : public ValueData<RpcValue::Type::Int, signed int>
+class ChainPackInt final : public ValueData<RpcValue::Type::Int, RpcValue::Int>
 {
 	double toDouble() const override { return m_value; }
 	RpcValue::Int toInt() const override { return m_value; }
@@ -237,7 +238,7 @@ public:
 	explicit ChainPackInt(int value) : ValueData(value) {}
 };
 
-class ChainPackUInt : public ValueData<RpcValue::Type::UInt, unsigned int>
+class ChainPackUInt : public ValueData<RpcValue::Type::UInt, RpcValue::UInt>
 {
 protected:
 	double toDouble() const override { return m_value; }
@@ -491,6 +492,7 @@ static const RpcValue::IMap & static_empty_imap() { static const RpcValue::IMap 
 RpcValue::RpcValue() noexcept {}
 RpcValue::RpcValue(std::nullptr_t) noexcept : m_ptr(statics().null) {}
 RpcValue::RpcValue(double value) : m_ptr(std::make_shared<ChainPackDouble>(value)) {}
+
 RpcValue::RpcValue(Int value) : m_ptr(std::make_shared<ChainPackInt>(value)) {}
 RpcValue::RpcValue(UInt value) : m_ptr(std::make_shared<ChainPackUInt>(value)) {}
 RpcValue::RpcValue(bool value) : m_ptr(value ? statics().t : statics().f) {}
@@ -881,4 +883,4 @@ bool RpcValue::MetaData::operator==(const RpcValue::MetaData &o) const
 	return m_imap == o.m_imap;
 }
 
-}}
+}}}

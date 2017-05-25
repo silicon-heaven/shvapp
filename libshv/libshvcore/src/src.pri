@@ -5,5 +5,5 @@ HEADERS += \
 
 SOURCES += \
 
-include ( $$PWD/shv/shv.pri )
+include ( $$PWD/chainpack/chainpack.pri )
 

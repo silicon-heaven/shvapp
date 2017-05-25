@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../shvcoreglobal.h"
+#include "../shvcoreglobal.h"
 
 #include <string>
 #include <vector>
@@ -9,13 +9,14 @@
 #include <initializer_list>
 
 #ifndef CHAINPACK_UINT
-	#define CHAINPACK_UINT unsigned int
+	#define CHAINPACK_UINT uint64_t
 #endif
 #ifndef CHAINPACK_INT
-	#define CHAINPACK_INT signed int
+	#define CHAINPACK_INT int64_t
 #endif
 
 namespace shv {
+namespace core {
 namespace chainpack {
 
 
@@ -42,7 +43,7 @@ public:
 	};
 	static const char* typeToName(Type t);
 	struct Tag {
-		enum Enum {
+		enum Enum : CHAINPACK_UINT {
 			Invalid = 0,
 			MetaTypeId,
 			MetaTypeNameSpaceId,
@@ -122,6 +123,8 @@ public:
 	RpcValue(double value);             // Double
 	RpcValue(Int value);                // Int
 	RpcValue(UInt value);                // Int
+	RpcValue(int value) : RpcValue((Int)value) {}
+	RpcValue(unsigned int value) : RpcValue((UInt)value) {}
 	RpcValue(bool value);               // Bool
 	RpcValue(const DateTime &value);
 	RpcValue(const Blob &value); // Blob
@@ -224,4 +227,4 @@ private:
 	std::shared_ptr<AbstractValueData> m_ptr;
 };
 
-}}
+}}}

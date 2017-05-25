@@ -1,12 +1,13 @@
 #include "chainpackprotocol.h"
 
-#include "../../shvexception.h"
+#include "../shvexception.h"
 
 #include <iostream>
 #include <cassert>
 #include <limits>
 
 namespace shv {
+namespace core {
 namespace chainpack {
 
 namespace {
@@ -595,4 +596,4 @@ RpcValue ChainPackProtocol::readData(ChainPackProtocol::TypeInfo::Enum type, boo
 	return ret;
 }
 
-}}
+}}}

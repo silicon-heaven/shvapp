@@ -3,6 +3,7 @@
 #include "rpcvalue.h"
 
 namespace shv {
+namespace core {
 namespace chainpack {
 
 class JsonProtocol final
@@ -54,8 +55,8 @@ private:
 public:
 	static void dumpJson(std::nullptr_t, std::string &out);
 	static void dumpJson(double value, std::string &out);
-	static void dumpJson(int value, std::string &out);
-	static void dumpJson(unsigned int value, std::string &out);
+	static void dumpJson(RpcValue::Int value, std::string &out);
+	static void dumpJson(RpcValue::UInt value, std::string &out);
 	static void dumpJson(bool value, std::string &out);
 	static void dumpJson(RpcValue::DateTime value, std::string &out);
 	static void dumpJson(const std::string &value, std::string &out);
@@ -66,4 +67,5 @@ public:
 };
 
 } // namespace chainpack
+}
 } // namespace shv

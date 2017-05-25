@@ -5,6 +5,7 @@
 #include <string>
 
 namespace shv {
+namespace core {
 namespace chainpack {
 
 class SHVCORE_DECL_EXPORT ChainPackProtocol
@@ -77,5 +78,5 @@ private:
 	static RpcValue::IMap readData_IMap(std::istream &data);
 };
 
-}}
+}}}
 
