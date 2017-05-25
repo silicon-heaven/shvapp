@@ -735,6 +735,7 @@ const char *RpcValue::typeToName(RpcValue::Type t)
 	case Type::DateTime: return "DateTime";
 	case Type::MetaIMap: return "MetaIMap";
 	}
+	return "UNKNOWN"; // just to remove mingw warning
 }
 
 const RpcValue & ChainPackMap::at(const RpcValue::String &key) const

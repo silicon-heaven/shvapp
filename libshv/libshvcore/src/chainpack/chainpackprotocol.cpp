@@ -233,6 +233,8 @@ ChainPackProtocol::TypeInfo::Enum ChainPackProtocol::typeToTypeInfo(RpcValue::Ty
 	case RpcValue::Type::DateTime: return TypeInfo::DateTime;
 	case RpcValue::Type::MetaIMap: return TypeInfo::MetaIMap;
 	}
+	SHV_EXCEPTION("Unknown RpcValue::Type!");
+	return TypeInfo::INVALID; // just to remove mingw warning
 }
 
 RpcValue::Type ChainPackProtocol::typeInfoToType(ChainPackProtocol::TypeInfo::Enum type_info)
