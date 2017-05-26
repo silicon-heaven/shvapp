@@ -236,8 +236,8 @@ CHAINPACK_TEST_CASE(text_test) {
 
 	class Point {
 	public:
-		long x;
-		long y;
+		int x;
+		int y;
 		Point (int x, int y) : x(x), y(y) {}
 		RpcValue to_json() const { return RpcValue::List { x, y }; }
 	};
