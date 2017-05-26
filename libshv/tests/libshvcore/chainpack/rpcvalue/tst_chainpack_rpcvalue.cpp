@@ -228,7 +228,7 @@ CHAINPACK_TEST_CASE(text_test) {
 	RpcValue my_json = RpcValue::Map {
 		{ "key1", "value1" },
 		{ "key2", false },
-		{ "key3", RpcValue::List { 1l, 2l, 3l } },
+		{ "key3", RpcValue::List { 1, 2, 3 } },
 	};
 	std::string json_obj_str = my_json.dumpJson();
 	std::cout << "json_obj_str: " << json_obj_str << "\n";
@@ -449,7 +449,7 @@ CHAINPACK_TEST_CASE(binary_test)
 			CHAINPACK_TEST_ASSERT(cp1.toList() == cp2.toList());
 		}
 		{
-			RpcValue cp1{RpcValue::List{1l,2l,3l}};
+			RpcValue cp1{RpcValue::List{1,2,3}};
 			std::stringstream out;
 			int len = ChainPackProtocol::write(out, cp1);
 			RpcValue cp2 = ChainPackProtocol::read(out);
@@ -461,7 +461,7 @@ CHAINPACK_TEST_CASE(binary_test)
 	{
 		std::cout << "------------- Array \n";
 		{
-			RpcValue cp1{RpcValue::Array{RpcValue::Type::Int, {1l, 2l, 3l}}};
+			RpcValue cp1{RpcValue::Array{RpcValue::Type::Int, {1, 2, 3}}};
 			std::stringstream out;
 			int len = ChainPackProtocol::write(out, cp1);
 			RpcValue cp2 = ChainPackProtocol::read(out);
@@ -471,7 +471,7 @@ CHAINPACK_TEST_CASE(binary_test)
 		}
 		{
 			RpcValue::Array t{RpcValue::Type::List};
-			t.push_back(RpcValue::List{1l, 2l});
+			t.push_back(RpcValue::List{1, 2});
 			t.push_back(RpcValue::List{RpcValue{3}, RpcValue{4}});
 			t.push_back(RpcValue::List{RpcValue{5}, RpcValue{6}});
 			t.push_back(RpcValue::List{RpcValue{7}, RpcValue{8}});
