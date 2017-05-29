@@ -1,24 +1,3 @@
-/*
- * Define CHAINPACK_TEST_CUSTOM_CONFIG to 1 if you want to build this tester into
- * your own unit-test framework rather than a stand-alone program.  By setting
- * The values of the variables included below, you can insert your own custom
- * code into this file as it builds, in order to make it into a test case for
- * your favorite framework.
- */
-#if !CHAINPACK_TEST_CUSTOM_CONFIG
-#define CHAINPACK_TEST_CPP_PREFIX_CODE
-#define CHAINPACK_TEST_CPP_SUFFIX_CODE
-#define CHAINPACK_TEST_STANDALONE_MAIN 1
-#define CHAINPACK_TEST_CASE(name) static void name()
-#define CHAINPACK_TEST_ASSERT(b) assert(b)
-#ifdef NDEBUG
-#undef NDEBUG//at now assert will work even in Release build
-#endif
-#endif // CHAINPACK_TEST_CUSTOM_CONFIG
-
-/*
- * Beginning of standard source file, which makes use of the customizations above.
- */
 #include <shv/core/chainpack/rpcmessage.h>
 #include <shv/core/chainpack/chainpackprotocol.h>
 
@@ -35,9 +14,8 @@
 #include <algorithm>
 #include <type_traits>
 
-// Insert user-defined prefix code (includes, function declarations, etc)
-// to set up a custom test suite
-CHAINPACK_TEST_CPP_PREFIX_CODE
+#include <QtTest/QtTest>
+#include <QDebug>
 
 using namespace shv::core::chainpack;
 using std::string;
@@ -52,7 +30,16 @@ CHECK_TRAIT(is_copy_assignable<RpcValue>);
 CHECK_TRAIT(is_nothrow_move_assignable<RpcValue>);
 CHECK_TRAIT(is_nothrow_destructible<RpcValue>);
 
-static std::string binary_dump(const RpcValue::Blob &out)
+namespace {
+QDebug operator<<(QDebug debug, const std::string &s)
+{
+	//QDebugStateSaver saver(debug);
+	debug << s.c_str();
+
+	return debug;
+}
+
+std::string binary_dump(const RpcValue::Blob &out)
 {
 	std::string ret;
 	for (size_t i = 0; i < out.size(); ++i) {
@@ -67,10 +54,16 @@ static std::string binary_dump(const RpcValue::Blob &out)
 	return ret;
 }
 
-CHAINPACK_TEST_CASE(rpcmessage_test)
+}
+
+class TestRpcMessage: public QObject
 {
-	std::cout << "============= chainpack rpcmessage test ============\n";
-	std::cout << "------------- RpcRequest \n";
+	Q_OBJECT
+private:
+	void rpcmessageTest()
+{
+	qDebug() << "============= chainpack rpcmessage test ============\n";
+	qDebug() << "------------- RpcRequest";
 	{
 		RpcRequest rq;
 		rq.setId(123)
@@ -84,15 +77,15 @@ CHAINPACK_TEST_CASE(rpcmessage_test)
 		RpcValue cp1 = rq.value();
 		int len = rq.write(out);
 		RpcValue cp2 = ChainPackProtocol::read(out);
-		std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out.str()) << "\n";
-		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
+		qDebug() << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out.str());
+		QCOMPARE(cp1.type(), cp2.type());
 		RpcRequest rq2(cp2);
-		CHAINPACK_TEST_ASSERT(rq2.isRequest());
-		CHAINPACK_TEST_ASSERT(rq2.id() == rq.id());
-		CHAINPACK_TEST_ASSERT(rq2.method() == rq.method());
-		CHAINPACK_TEST_ASSERT(rq2.params() == rq.params());
+		QVERIFY(rq2.isRequest());
+		QCOMPARE(rq2.id(), rq.id());
+		QCOMPARE(rq2.method(), rq.method());
+		QCOMPARE(rq2.params(), rq.params());
 	}
-	std::cout << "------------- RpcResponse \n";
+	qDebug() << "------------- RpcResponse";
 	{
 		RpcResponse rs;
 		rs.setId(123).setResult(42u);
@@ -100,12 +93,12 @@ CHAINPACK_TEST_CASE(rpcmessage_test)
 		RpcValue cp1 = rs.value();
 		int len = rs.write(out);
 		RpcValue cp2 = ChainPackProtocol::read(out);
-		std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out.str()) << "\n";
-		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
+		qDebug() << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out.str());
+		QVERIFY(cp1.type() == cp2.type());
 		RpcResponse rs2(cp2);
-		CHAINPACK_TEST_ASSERT(rs2.isResponse());
-		CHAINPACK_TEST_ASSERT(rs2.id() == rs.id());
-		CHAINPACK_TEST_ASSERT(rs2.result() == rs.result());
+		QVERIFY(rs2.isResponse());
+		QCOMPARE(rs2.id(), rs.id());
+		QCOMPARE(rs2.result(), rs.result());
 	}
 	{
 		RpcResponse rs;
@@ -115,14 +108,14 @@ CHAINPACK_TEST_CASE(rpcmessage_test)
 		RpcValue cp1 = rs.value();
 		int len = rs.write(out);
 		RpcValue cp2 = ChainPackProtocol::read(out);
-		std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out.str()) << "\n";
-		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
+		qDebug() << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out.str());
+		QVERIFY(cp1.type() == cp2.type());
 		RpcResponse rs2(cp2);
-		CHAINPACK_TEST_ASSERT(rs2.isResponse());
-		CHAINPACK_TEST_ASSERT(rs2.id() == rs.id());
-		CHAINPACK_TEST_ASSERT(rs2.error() == rs.error());
+		QVERIFY(rs2.isResponse());
+		QCOMPARE(rs2.id(), rs.id());
+		QCOMPARE(rs2.error(), rs.error());
 	}
-	std::cout << "------------- RpcNotify \n";
+	qDebug() << "------------- RpcNotify";
 	{
 		RpcRequest rq;
 		rq.setMethod("foo")
@@ -135,49 +128,29 @@ CHAINPACK_TEST_CASE(rpcmessage_test)
 		RpcValue cp1 = rq.value();
 		int len = rq.write(out);
 		RpcValue cp2 = ChainPackProtocol::read(out);
-		std::cout << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out.str()) << "\n";
-		CHAINPACK_TEST_ASSERT(cp1.type() == cp2.type());
+		qDebug() << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out.str());
+		QVERIFY(cp1.type() == cp2.type());
 		RpcRequest rq2(cp2);
-		CHAINPACK_TEST_ASSERT(rq2.isNotify());
-		CHAINPACK_TEST_ASSERT(rq2.method() == rq.method());
-		CHAINPACK_TEST_ASSERT(rq2.params() == rq.params());
+		QVERIFY(rq2.isNotify());
+		QCOMPARE(rq2.method(), rq.method());
+		QCOMPARE(rq2.params(), rq.params());
 	}
 }
-
-#if CHAINPACK_TEST_STANDALONE_MAIN
-
-static void parse_from_stdin() {
-	string buf;
-	string line;
-	while (std::getline(std::cin, line)) {
-		buf += line + "\n";
+private slots:
+	void initTestCase()
+	{
+		//qDebug("called before everything else");
+	}
+	void tests()
+	{
+		rpcmessageTest();
 	}
 
-	string err;
-	auto json = RpcValue::parseJson(buf, err);
-	if (!err.empty()) {
-		printf("Failed: %s\n", err.c_str());
-	} else {
-		printf("Result: %s\n", json.dumpJson().c_str());
+	void cleanupTestCase()
+	{
+		//qDebug("called after firstTest and secondTest");
 	}
-}
+};
 
-int main(int argc, char **argv) {
-	if (argc == 2 && argv[1] == string("--stdin")) {
-		parse_from_stdin();
-		return 0;
-	}
-
-	try {
-		rpcmessage_test();
-	}
-	catch (std::runtime_error &e) {
-		std::cout << "ERROR: " << e.what() << "\n";
-	}
-}
-
-#endif // CHAINPACK_TEST_STANDALONE_MAIN
-
-// Insert user-defined suffix code (function definitions, etc)
-// to set up a custom test suite
-CHAINPACK_TEST_CPP_SUFFIX_CODE
+QTEST_MAIN(TestRpcMessage)
+#include "tst_chainpack_rpcmessage.moc"

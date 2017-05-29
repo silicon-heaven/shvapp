@@ -1,7 +1,7 @@
-#CONFIG += testcase # enable make check
+CONFIG += testcase # enable make check
 CONFIG += c++11
-QT -= core
-#QT += testlib # enable test framework
+#QT -= core
+QT += testlib # enable test framework
 
 isEmpty(QF_PROJECT_TOP_BUILDDIR) {
 	QF_PROJECT_TOP_BUILDDIR=$$shadowed($$PWD)/../..
@@ -27,3 +27,4 @@ unix {
     LIBS += \
         -Wl,-rpath,\'$${LIB_DIR}\'
 }
+
