@@ -93,14 +93,37 @@ GraphView::GraphView(QWidget *parent) : QWidget(parent)
 	m_rightRangeSelectorHandle->hide();
 }
 
+void GraphView::releaseModelData()
+{
+	m_displayedRangeMin = 0LL;
+	m_displayedRangeMax = 0LL;
+	m_loadedRangeMin = 0LL;
+	m_loadedRangeMax = 0LL;
+	m_zoomSelection = { 0, 0 };
+	m_currentSelectionModifiers = Qt::NoModifier;
+	m_moveStart = -1;
+	m_currentPosition = -1;
+	m_xValueScale = 0.0;
+	m_leftRangeSelectorPosition = 0;
+	m_rightRangeSelectorPosition = 0;
+	m_selections.clear();
+
+	disconnect(m_data, &GraphModel::dataChanged, this, &GraphView::onModelDataChanged);
+	m_data = 0;
+	computeGeometry();
+	repaint();
+}
+
 void GraphView::setModelData(const GraphModel &model_data)
 {
 	if (m_data) {
-		disconnect(m_data, &GraphModel::dataChanged, this, &GraphView::onModelDataChanged);
+		releaseModelData();
 	}
 	m_data = &model_data;
 
 	connect(m_data, &GraphModel::dataChanged, this, &GraphView::onModelDataChanged);
+	connect(m_data, &GraphModel::destroyed, this, &GraphView::releaseModelData);
+
 	onModelDataChanged();
 }
 
@@ -935,8 +958,8 @@ void GraphView::showDependentSeries(bool enable)
 
 QVector<GraphView::ValueSelection> GraphView::selections() const
 {
-	ValueChange start;
-	ValueChange end;
+	ValueChange::ValueX start(0);
+	ValueChange::ValueX end(0);
 
 	QVector<ValueSelection> selections;
 	for (const Selection &selection : m_selections) {
@@ -947,16 +970,16 @@ QVector<GraphView::ValueSelection> GraphView::selections() const
 		}
 		switch (settings.xAxisType) {
 		case ValueType::TimeStamp:
-			start.valueX.timeStamp = s_start;
-			end.valueX.timeStamp = s_end;
+			start.timeStamp = s_start;
+			end.timeStamp = s_end;
 			break;
 		case ValueType::Int:
-			start.valueX.intValue = s_start;
-			end.valueX.intValue = s_end;
+			start.intValue = s_start;
+			end.intValue = s_end;
 			break;
 		case ValueType::Double:
-			start.valueX.doubleValue = s_start / m_xValueScale;
-			end.valueX.doubleValue = s_end / m_xValueScale;
+			start.doubleValue = s_start / m_xValueScale;
+			end.doubleValue = s_end / m_xValueScale;
 			break;
 		default:
 			break;
@@ -1275,8 +1298,8 @@ void GraphView::paintBoolSerie(QPainter *painter, const QRect &rect, int x_axis_
 	polygon << QPoint(0, rect.height());
 
 	for (auto it = begin; it != end; ++it) {
-		ValueChange value_change = serie.valueFormatter ? serie.valueFormatter(*it) : *it;
-		if (value_change.valueY.boolValue) {
+		ValueChange::ValueY value_y = serie.valueFormatter ? serie.valueFormatter(*it) : it->valueY;
+		if (value_y.boolValue) {
 			int begin_line = (xValue(*it) - min) / x_scale;
 			if (begin_line < 0) {
 				begin_line = 0;
@@ -1339,12 +1362,12 @@ void GraphView::paintValueSerie(QPainter *painter, const QRect &rect, int x_axis
 	}
 
 	QPoint first_point;
-	ValueChange first_value = serie.valueFormatter ? serie.valueFormatter(*begin) : *begin;
+	ValueChange::ValueY first_value_y = serie.valueFormatter ? serie.valueFormatter(*begin) : begin->valueY;
 	if (serie.type == ValueType::Double) {
-		first_point = QPoint(0, x_axis_position - (first_value.valueY.doubleValue / y_scale));
+		first_point = QPoint(0, x_axis_position - (first_value_y.doubleValue / y_scale));
 	}
 	else if (serie.type == ValueType::Int) {
-		first_point = QPoint(0, x_axis_position - (first_value.valueY.intValue / y_scale));
+		first_point = QPoint(0, x_axis_position - (first_value_y.intValue / y_scale));
 	}
 	int max_on_first = first_point.y();
 	int min_on_first = first_point.y();
@@ -1355,15 +1378,15 @@ void GraphView::paintValueSerie(QPainter *painter, const QRect &rect, int x_axis
 	polygon << first_point;
 
 	for (auto it = begin + 1; it != end; ++it) {
-		ValueChange value_change = serie.valueFormatter ? serie.valueFormatter(*it) : *it;
-		quint64 x_value = xValue(value_change);
+		ValueChange::ValueY value_change = serie.valueFormatter ? serie.valueFormatter(*it) : it->valueY;
+		quint64 x_value = xValue(*it);
 		QPoint last_point;
 		if (serie.type == ValueType::Double) {
-			double y_value = value_change.valueY.doubleValue;
+			double y_value = value_change.doubleValue;
 			last_point = QPoint((x_value - min) / x_scale, x_axis_position - (y_value / y_scale));
 		}
 		else if (serie.type == ValueType::Int) {
-			int y_value = value_change.valueY.intValue;
+			int y_value = value_change.intValue;
 			last_point = QPoint((x_value - min) / x_scale, x_axis_position - (y_value / y_scale));
 		}
 
@@ -1536,15 +1559,15 @@ void GraphView::paintCurrentPosition(QPainter *painter, const GraphArea &area, c
 		}
 		double scale = range / area.graphRect.height();
 		int y_position = 0;
-		ValueChange value_change = serie.valueFormatter ? serie.valueFormatter(*begin) : *begin;
+		ValueChange::ValueY value_change = serie.valueFormatter ? serie.valueFormatter(*begin) : begin->valueY;
 		if (serie.type == ValueType::Double) {
-			y_position = value_change.valueY.doubleValue / scale;
+			y_position = value_change.doubleValue / scale;
 		}
 		else if (serie.type == ValueType::Int) {
-			y_position = value_change.valueY.intValue / scale;
+			y_position = value_change.intValue / scale;
 		}
 		else if (serie.type == ValueType::Bool) {
-			y_position = value_change.valueY.boolValue ? (serie.boolValue / scale) : 0;
+			y_position = value_change.boolValue ? (serie.boolValue / scale) : 0;
 		}
 		QPainterPath path;
 		path.addEllipse(m_currentPosition + area.graphRect.x() - 3, area.xAxisPosition - y_position - 3, 6, 6);
@@ -1583,15 +1606,15 @@ QString GraphView::legendRow(const Serie &serie, quint64 position)
 			s += serie.legendValueFormatter(*begin);
 		}
 		else {
-			ValueChange value_change = serie.valueFormatter ? serie.valueFormatter(*begin) : *begin;
+			ValueChange::ValueY value_change = serie.valueFormatter ? serie.valueFormatter(*begin) : begin->valueY;
 			if (serie.type == ValueType::Double) {
-				s += QString::number(value_change.valueY.doubleValue);
+				s += QString::number(value_change.doubleValue);
 			}
 			else if (serie.type == ValueType::Int) {
-				s += QString::number(value_change.valueY.intValue);
+				s += QString::number(value_change.intValue);
 			}
 			else if (serie.type == ValueType::Bool) {
-				s += value_change.valueY.boolValue ? tr("true") : tr("false");
+				s += value_change.boolValue ? tr("true") : tr("false");
 			}
 		}
 		s += "</td></tr>";

@@ -41,7 +41,7 @@ public:
 		bool show;
 		bool showCurrent;
 		int serieIndex;
-		std::function<ValueChange (const ValueChange &)> valueFormatter;
+		std::function<ValueChange::ValueY (const ValueChange &)> valueFormatter;
 		std::function<QString (const ValueChange &)> legendValueFormatter;
 		const SerieData *dataPtr;
 		QVector<Serie> dependentSeries;
@@ -126,14 +126,15 @@ public:
 
 	struct ValueSelection
 	{
-		ValueChange start;
-		ValueChange end;
+		ValueChange::ValueX start;
+		ValueChange::ValueX end;
 	};
 
 	GraphView(QWidget *parent);
 
 	Settings settings;
 	void setModelData(const GraphModel &model_data);
+	void releaseModelData();
 
 	void showRange(quint64 from, quint64 to);
 	void zoom(quint64 center, double scale);
