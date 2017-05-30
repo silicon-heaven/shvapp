@@ -31,6 +31,7 @@ class SHVGUI_DECL_EXPORT SerieData : public std::vector<ValueChange>
 {
 public:
 	SerieData(ValueType x_type, ValueType y_type);
+	std::vector<ValueChange>::const_iterator lessOrEqualIterator(quint64 msec_since_epoch) const;
 
 	ValueType xType() const;
 	ValueType yType() const;

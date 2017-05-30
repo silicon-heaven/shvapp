@@ -146,6 +146,26 @@ SerieData::SerieData(ValueType x_type, ValueType y_type) : m_xType(x_type), m_yT
 {
 }
 
+std::vector<ValueChange>::const_iterator SerieData::lessOrEqualIterator(quint64 msec_since_epoch) const
+{
+	auto it = std::lower_bound(cbegin(), cend(), msec_since_epoch,
+							[](const ValueChange &val, double x) -> bool { return val.valueX.timeStamp < x; });
+
+	if(it == cend()) {
+		if(!empty())
+			it--;
+	}
+	else {
+		if (it-> valueX.timeStamp!= msec_since_epoch) {
+			if(it == cbegin())
+				it = cend();
+			else
+				it--;
+		}
+	}
+	return it;
+}
+
 ValueType SerieData::xType() const
 {
 	return m_xType;
@@ -155,6 +175,5 @@ ValueType SerieData::yType() const
 {
 	return m_yType;
 }
-
 }
 }
