@@ -108,7 +108,6 @@ void GraphView::releaseModelData()
 	m_rightRangeSelectorPosition = 0;
 	m_selections.clear();
 
-	disconnect(m_data, &GraphModel::dataChanged, this, &GraphView::onModelDataChanged);
 	m_data = 0;
 	computeGeometry();
 	repaint();
@@ -117,6 +116,7 @@ void GraphView::releaseModelData()
 void GraphView::setModelData(const GraphModel &model_data)
 {
 	if (m_data) {
+		disconnect(m_data, &GraphModel::dataChanged, this, &GraphView::onModelDataChanged);
 		releaseModelData();
 	}
 	m_data = &model_data;
