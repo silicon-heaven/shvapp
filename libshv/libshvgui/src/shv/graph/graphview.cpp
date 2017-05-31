@@ -133,8 +133,12 @@ void GraphView::onModelDataChanged() //TODO improve change detection in model
 	m_loadedRangeMax = 0;
 	for (Serie &serie : m_series) {
 		serie.dataPtr = m_data->serieData(serie.serieIndex);
+		serie.displayedDataBegin = serie.dataPtr->begin();
+		serie.displayedDataEnd = serie.dataPtr->end();
 		for (Serie &dep_serie : serie.dependentSeries) {
 			dep_serie.dataPtr = m_data->serieData(dep_serie.serieIndex);
+			dep_serie.displayedDataBegin = dep_serie.dataPtr->begin();
+			dep_serie.displayedDataEnd = dep_serie.dataPtr->end();
 		}
 	}
 	switch (settings.xAxisType) {
@@ -188,6 +192,19 @@ void GraphView::resizeEvent(QResizeEvent *resize_event)
 
 	computeGeometry();
 	repaint();
+}
+
+void GraphView::computeDataRange()
+{
+	for (Serie &serie : m_series) {
+		serie.displayedDataBegin = findMinYValue(serie.dataPtr->begin(), serie.dataPtr->end(), m_displayedRangeMin);
+		serie.displayedDataEnd = findMaxYValue(serie.dataPtr->begin(), serie.dataPtr->end(), m_displayedRangeMax);
+		for (Serie &dep_serie : serie.dependentSeries) {
+			dep_serie.displayedDataBegin = findMinYValue(dep_serie.dataPtr->begin(), dep_serie.dataPtr->end(), m_displayedRangeMin);
+			dep_serie.displayedDataEnd = findMaxYValue(dep_serie.dataPtr->begin(), dep_serie.dataPtr->end(), m_displayedRangeMax);
+		}
+	}
+
 }
 
 int GraphView::computeYLabelWidth(const Settings::Axis &axis, int &shownDecimalPoints)
@@ -779,6 +796,7 @@ bool GraphView::eventFilter(QObject *watched, QEvent *event)
 					else {
 						m_displayedRangeMin = rangeRectPositionToXValue(new_position);
 					}
+					computeDataRange();
 					computeGeometry();
 					repaint();
 				}
@@ -792,6 +810,7 @@ bool GraphView::eventFilter(QObject *watched, QEvent *event)
 					else {
 						m_displayedRangeMax = rangeRectPositionToXValue(new_position);
 					}
+					computeDataRange();
 					computeGeometry();
 					repaint();
 				}
@@ -1003,6 +1022,7 @@ void GraphView::showRange(quint64 from, quint64 to)
 	}
 	m_displayedRangeMin = from;
 	m_displayedRangeMax = to;
+	computeDataRange();
 	if (settings.rangeSelector.show) {
 		computeRangeSelectorPosition();
 	}
@@ -1281,15 +1301,13 @@ void GraphView::paintBoolSerie(QPainter *painter, const QRect &rect, int x_axis_
 	}
 	painter->setPen(pen);
 
-	auto begin = data.begin();
+	auto begin = data.cbegin();
 	if (min > m_loadedRangeMin) {
-		begin = findMinYValue(data, min);
+		begin = findMinYValue(data.cbegin(), data.cend(), min);
 	}
-	auto end = data.end();
+	auto end = data.cend();
 	if (max < m_loadedRangeMax) {
-		end = std::upper_bound(begin, data.end(), max, [this](quint64 value, const ValueChange &value_change) {
-			return value < xValue(value_change);
-		});
+		end = findMaxYValue(begin, data.cend(), max);
 	}
 
 	int y_true_line_position = x_axis_position - serie.boolValue / y_scale;
@@ -1350,15 +1368,25 @@ void GraphView::paintValueSerie(QPainter *painter, const QRect &rect, int x_axis
 	}
 	painter->setPen(pen);
 
-	auto begin = data.begin();
-	if (min > m_loadedRangeMin) {
-		begin = findMinYValue(data, min);
+	SerieData::const_iterator begin;
+	SerieData::const_iterator end;
+	if (min == m_loadedRangeMin) {
+		begin = data.cbegin();
 	}
-	auto end = data.end();
-	if (max < m_loadedRangeMax) {
-		end = std::upper_bound(begin, data.end(), max, [this](quint64 value, const ValueChange &value_change) {
-			return value < xValue(value_change);
-		});
+	else if (min == m_displayedRangeMin) {
+		begin = serie.displayedDataBegin;
+	}
+	else {
+		begin = findMinYValue(data.cbegin(), data.cend(), min);
+	}
+	if (max == m_loadedRangeMax) {
+		end = data.cend();
+	}
+	else if (max == m_displayedRangeMax) {
+		end = serie.displayedDataEnd;
+	}
+	else {
+		end = findMaxYValue(begin, data.cend(), max);
 	}
 
 	QPoint first_point;
@@ -1549,7 +1577,7 @@ void GraphView::paintLegend(QPainter *painter)
 void GraphView::paintCurrentPosition(QPainter *painter, const GraphArea &area, const Serie &serie, quint64 current)
 {
 	if (serie.showCurrent) {
-		auto begin = findMinYValue(*serie.dataPtr, current);
+		auto begin = findMinYValue(serie.displayedDataBegin, serie.displayedDataEnd, current);
 		double range;
 		if (serie.relatedAxis == Serie::YAxis::Y1) {
 			range = settings.yAxis.rangeMax - settings.yAxis.rangeMin;
@@ -1600,7 +1628,7 @@ QString GraphView::legendRow(const Serie &serie, quint64 position)
 {
 	QString s;
 	if (serie.show) {
-		auto begin = findMinYValue(*serie.dataPtr, position);
+		auto begin = findMinYValue(serie.displayedDataBegin, serie.displayedDataEnd, position);
 		s = s + "<tr><td class=\"label\">" + serie.name + ":</td><td class=\"value\">";
 		if (serie.legendValueFormatter) {
 			s += serie.legendValueFormatter(*begin);
@@ -1785,15 +1813,22 @@ void GraphView::computeRange(quint64 &min, quint64 &max)
 	}
 }
 
-SerieData::const_iterator GraphView::findMinYValue(const SerieData &data, quint64 x_value) const
+SerieData::const_iterator GraphView::findMinYValue(const SerieData::const_iterator &data_begin, const SerieData::const_iterator &data_end, quint64 x_value) const
 {
-	auto it = std::lower_bound(data.begin(), data.end(), x_value, [this](const ValueChange &data, quint64 value) {
+	auto it = std::lower_bound(data_begin, data_end, x_value, [this](const ValueChange &data, quint64 value) {
 	   return xValue(data) < value;
 	});
-	if (it != data.begin()) {
+	if (it != data_begin) {
 		--it;
 	}
 	return it;
+}
+
+SerieData::const_iterator GraphView::findMaxYValue(const SerieData::const_iterator &data_begin, const SerieData::const_iterator &data_end, quint64 x_value) const
+{
+	return std::upper_bound(data_begin, data_end, x_value, [this](quint64 value, const ValueChange &value_change) {
+		return value < xValue(value_change);
+	});
 }
 
 RangeSelectorHandle::RangeSelectorHandle(QWidget *parent) : QPushButton(parent)
