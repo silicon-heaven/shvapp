@@ -145,7 +145,7 @@ public:
 	void unsplitSeries();
 	void showDependentSeries(bool enable);
 
-	QVector<ValueSelection> selections() const; //only valueX filled in ValueChange!
+	QVector<ValueSelection> selections() const;
 
 	Q_SIGNAL void selectionsChanged();
 
