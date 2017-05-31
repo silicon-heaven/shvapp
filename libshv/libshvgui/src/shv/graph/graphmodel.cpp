@@ -166,6 +166,20 @@ std::vector<ValueChange>::const_iterator SerieData::lessOrEqualIterator(quint64 
 	return it;
 }
 
+QPair<std::vector<ValueChange>::const_iterator, std::vector<ValueChange>::const_iterator> SerieData::intersection(const QPair<qint64, qint64> &interval, bool &valid) const
+{
+	QPair<std::vector<ValueChange>::const_iterator, std::vector<ValueChange>::const_iterator> result;
+	result.first = lessOrEqualIterator(interval.first);
+	result.second = lessOrEqualIterator(interval.second);
+
+	if ((result.first == cend()) && (!empty())){
+		result.first = cbegin();
+	}
+
+	valid = (result.second != cend());
+	return result;
+}
+
 ValueType SerieData::xType() const
 {
 	return m_xType;
