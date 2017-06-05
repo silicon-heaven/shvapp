@@ -33,7 +33,7 @@ class SHVGUI_DECL_EXPORT SerieData : public std::vector<ValueChange>
 public:
 	SerieData(ValueType x_type, ValueType y_type);
 	std::vector<ValueChange>::const_iterator lessOrEqualIterator(quint64 msec_since_epoch) const;
-	QPair<std::vector<ValueChange>::const_iterator, std::vector<ValueChange>::const_iterator> intersection(const QPair<qint64, qint64> &interval, bool &valid) const;
+	QPair<std::vector<ValueChange>::const_iterator, std::vector<ValueChange>::const_iterator> intersection(const QPair<quint64, quint64> &interval, bool &valid) const;
 
 	ValueType xType() const;
 	ValueType yType() const;
