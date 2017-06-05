@@ -10,30 +10,51 @@ namespace gui {
 
 struct SHVGUI_DECL_EXPORT ValueChange
 {
-	union {
+	union ValueX {
+		ValueX(quint64 value) : timeStamp(value) {}
+		ValueX(int value) : intValue(value) {}
+		ValueX(double value) : doubleValue(value) {}
+		ValueX() : intValue(0) {}
+
 		quint64 timeStamp;
 		int intValue;
 		double doubleValue;
 	} valueX;
-	union {
+	union ValueY {
+		ValueY(bool value) : boolValue(value) {}
+		ValueY(int value) : intValue(value) {}
+		ValueY(double value) : doubleValue(value) {}
+		ValueY() : intValue(0) {}
+
 		bool boolValue;
 		int intValue;
 		double doubleValue;
 	} valueY;
+
+	ValueChange(ValueX value_x, ValueY value_y) : valueX(value_x), valueY(value_y) {}
+	ValueChange(quint64 value_x, ValueY value_y) : ValueChange(ValueX(value_x), value_y) {}
+	ValueChange(quint64 value_x, bool value_y) : ValueChange(value_x, ValueY(value_y)) {}
+	ValueChange(quint64 value_x, int value_y) : ValueChange(value_x, ValueY(value_y)) {}
+	ValueChange(quint64 value_x, double value_y) : ValueChange(value_x, ValueY(value_y)) {}
+	ValueChange() {}
 };
 
 enum class ValueType { TimeStamp, Int, Double, Bool };
 
 SHVGUI_DECL_EXPORT bool compareValueX(const ValueChange &value1, const ValueChange &value2, ValueType type);
+SHVGUI_DECL_EXPORT bool compareValueX(const ValueChange::ValueX &value1, const ValueChange::ValueX &value2, ValueType type);
+
 SHVGUI_DECL_EXPORT bool compareValueY(const ValueChange &value1, const ValueChange &value2, ValueType type);
+SHVGUI_DECL_EXPORT bool compareValueY(const ValueChange::ValueY &value1, const ValueChange::ValueY &value2, ValueType type);
 
 class SHVGUI_DECL_EXPORT SerieData : public std::vector<ValueChange>
 {
 public:
-	SerieData(ValueType x_type, ValueType y_type);
+	SerieData() : m_xType(ValueType::Int), m_yType(ValueType::Int)	{}
+	SerieData(ValueType x_type, ValueType y_type) : m_xType(x_type), m_yType(y_type) {}
 
-	ValueType xType() const;
-	ValueType yType() const;
+	ValueType xType() const	{ return m_xType; }
+	ValueType yType() const	{ return m_yType; }
 
 private:
 	ValueType m_xType;
@@ -62,7 +83,7 @@ public:
 	void addDataBegin();
 	void addDataEnd();
 
-protected:
+//protected:
 	void checkIndex(int serie_index) const;
 	virtual bool addValueChangeInternal(int serie_index, const shv::gui::ValueChange &value);
 

@@ -3,7 +3,9 @@
 namespace shv {
 namespace gui {
 
-GraphModel::GraphModel(QObject *parent) : QObject(parent), m_dataAdded(false), m_dataChangeEnabled(true)
+GraphModel::GraphModel(QObject *parent) : QObject(parent)
+  , m_dataAdded(false)
+  , m_dataChangeEnabled(true)
 {
 
 }
@@ -29,13 +31,18 @@ SerieData *GraphModel::serieData(int serie_index)
 
 bool compareValueX(const ValueChange &value1, const ValueChange &value2, ValueType type)
 {
+	return compareValueX(value1.valueX, value2.valueX, type);
+}
+
+bool compareValueX(const ValueChange::ValueX &value1, const ValueChange::ValueX &value2, ValueType type)
+{
 	switch (type) {
 	case ValueType::TimeStamp:
-		return value1.valueX.timeStamp == value2.valueX.timeStamp;
+		return value1.timeStamp == value2.timeStamp;
 	case ValueType::Double:
-		return value1.valueX.doubleValue == value2.valueX.doubleValue;
+		return value1.doubleValue == value2.doubleValue;
 	case ValueType::Int:
-		return value1.valueX.intValue == value2.valueX.intValue;
+		return value1.intValue == value2.intValue;
 	default:
 		throw std::runtime_error("Invalid type on valueX");
 	}
@@ -43,13 +50,18 @@ bool compareValueX(const ValueChange &value1, const ValueChange &value2, ValueTy
 
 bool compareValueY(const ValueChange &value1, const ValueChange &value2, ValueType type)
 {
+	return compareValueY(value1.valueY, value2.valueY, type);
+}
+
+bool compareValueY(const ValueChange::ValueY &value1, const ValueChange::ValueY &value2, ValueType type)
+{
 	switch (type) {
 	case ValueType::Double:
-		return value1.valueY.doubleValue == value2.valueY.doubleValue;
+		return value1.doubleValue == value2.doubleValue;
 	case ValueType::Int:
-		return value1.valueY.intValue == value2.valueY.intValue;
+		return value1.intValue == value2.intValue;
 	case ValueType::Bool:
-		return value1.valueY.boolValue == value2.valueY.boolValue;
+		return value1.boolValue == value2.boolValue;
 	default:
 		throw std::runtime_error("Invalid type on valueY");
 	}
@@ -74,7 +86,7 @@ void GraphModel::addValueChanges(int serie_index, const std::vector<shv::gui::Va
 	checkIndex(serie_index);
 	bool added = false;
 	for (const shv::gui::ValueChange &value : values) {
-		added = added || addValueChangeInternal(serie_index, value);
+		added = addValueChangeInternal(serie_index, value) || added;
 	}
 	if (added) {
 		if (m_dataChangeEnabled) {
@@ -93,7 +105,7 @@ void GraphModel::addValueChanges(const std::vector<ValueChange> &values)
 	}
 	bool added = false;
 	for (uint i = 0; i < m_series.size(); ++i) {
-		added = added || addValueChangeInternal(i, values[i]);
+		added = addValueChangeInternal(i, values[i]) || added;
 	}
 	if (added) {
 		if (m_dataChangeEnabled) {
@@ -135,25 +147,11 @@ void GraphModel::addDataEnd()
 bool GraphModel::addValueChangeInternal(int serie_index, const shv::gui::ValueChange &value)
 {
 	SerieData &serie = m_series[serie_index];
-	if (serie.size() == 0 || !compareValueX(serie.back(), value, serie.xType()) || !compareValueY(serie.back(), value, serie.yType())) {
+	if (serie.size() == 0 || (!compareValueX(serie.back(), value, serie.xType()) && !compareValueY(serie.back(), value, serie.yType()))) {
 		serie.push_back(value);
 		return true;
 	}
 	return false;
-}
-
-SerieData::SerieData(ValueType x_type, ValueType y_type) : m_xType(x_type), m_yType(y_type)
-{
-}
-
-ValueType SerieData::xType() const
-{
-	return m_xType;
-}
-
-ValueType SerieData::yType() const
-{
-	return m_yType;
 }
 
 }
