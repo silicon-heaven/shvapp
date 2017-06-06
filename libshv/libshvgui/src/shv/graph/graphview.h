@@ -41,9 +41,11 @@ public:
 		bool show;
 		bool showCurrent;
 		int serieIndex;
-		std::function<ValueChange (const ValueChange &)> valueFormatter;
+		std::function<ValueChange::ValueY (const ValueChange &)> valueFormatter;
 		std::function<QString (const ValueChange &)> legendValueFormatter;
 		const SerieData *dataPtr;
+		SerieData::const_iterator displayedDataBegin;
+		SerieData::const_iterator displayedDataEnd;
 		QVector<Serie> dependentSeries;
 	};
 
@@ -126,14 +128,15 @@ public:
 
 	struct ValueSelection
 	{
-		ValueChange start;
-		ValueChange end;
+		ValueChange::ValueX start;
+		ValueChange::ValueX end;
 	};
 
 	GraphView(QWidget *parent);
 
 	Settings settings;
 	void setModelData(const GraphModel &model_data);
+	void releaseModelData();
 
 	void showRange(quint64 from, quint64 to);
 	void zoom(quint64 center, double scale);
@@ -144,7 +147,7 @@ public:
 	void unsplitSeries();
 	void showDependentSeries(bool enable);
 
-	QVector<ValueSelection> selections() const; //only valueX filled in ValueChange!
+	QVector<ValueSelection> selections() const;
 
 	Q_SIGNAL void selectionsChanged();
 
@@ -232,7 +235,9 @@ private:
 	void computeRange(double &min, double &max);
 	void computeRange(int &min, int &max);
 	void computeRange(quint64 &min, quint64 &max);
-	SerieData::const_iterator findMinYValue(const SerieData &data, quint64 x_value) const;
+	void computeDataRange();
+	SerieData::const_iterator findMinYValue(const SerieData::const_iterator &data_begin, const SerieData::const_iterator &data_end, quint64 x_value) const;
+	SerieData::const_iterator findMaxYValue(const SerieData::const_iterator &data_begin, const SerieData::const_iterator &data_end, quint64 x_value) const;
 //	template<typename T> static void mergeSerieMemberWithDefault(Serie &merged_serie, const Serie &param, T Serie::*member);
 
 	void onModelDataChanged();
