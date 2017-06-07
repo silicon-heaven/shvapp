@@ -10,6 +10,36 @@ namespace shv {
 namespace core {
 namespace chainpack {
 
+CharDataStreamBuffer::CharDataStreamBuffer(const char *data, int len)
+{
+	//std::cerr << "data: " << data << std::endl;
+	char *pd = (char*)data;
+	setg(pd, pd, pd + len - 1);
+}
+
+std::streambuf::pos_type CharDataStreamBuffer::seekoff(std::streambuf::off_type off, std::ios_base::seekdir dir, std::ios_base::openmode )
+{
+	char_type *curr = gptr();
+	if (dir == std::ios_base::cur)
+		curr += off;
+	else if (dir == std::ios_base::end)
+		curr = egptr() - off;
+	else
+		curr = eback() + off;
+	if(curr != gptr())
+		setg(eback(), curr, egptr());
+	pos_type ret = gptr() - eback();
+	//std::cerr << "seekoff: " << off << " pos: " << (gptr() - eback()) << " ret: " << ret << std::endl;
+	return ret;
+}
+/*
+std::streambuf::int_type CharDataStreamBuffer::underflow()
+{
+	std::streambuf::int_type ret = Super::underflow();
+	std::cerr << "underflow: " << ret << std::endl;
+	return ret;
+}
+*/
 namespace {
 /* UInt
    0 ... 127              |0|x|x|x|x|x|x|x|<-- LSB
@@ -17,19 +47,27 @@ namespace {
 2^14 ... 2097151 (2^21-1) |1|x|x|x|x|x|x|x| |1|x|x|x|x|x|x|x| |0|x|x|x|x|x|x|x|<-- LSB
 */
 template<typename T>
-T read_UIntData(std::istream &data)
+T read_UIntData(std::istream &data, bool *ok = nullptr)
 {
 	T n = 0;
 	do {
-		//if(pos >= out.tellp())
-		//	SHV_EXCEPTION("read_UInt: Index out of range!");
+		std::cerr << "pos: " << data.tellg();
 		uint8_t r = data.get();
+		if(ok) {
+			if(data.eof()) {
+				*ok = false;
+				return 0;
+			}
+			//	SHV_EXCEPTION("read_UInt: Index out of range!");
+		}
 		bool has_next = (r & 128);
 		r = r & 127;
 		n = (n << 7) | r;
 		if(!has_next)
 			break;
 	} while(true);
+	if(ok)
+		*ok = true;
 	return n;
 }
 
@@ -476,6 +514,31 @@ void ChainPackProtocol::writeData(std::ostream &out, const RpcValue &pack)
 	}
 }
 
+uint64_t ChainPackProtocol::readUInt(std::istream &data, bool *ok)
+{
+	bool ok2;
+	unsigned ret = read_UIntData<uint64_t>(data, &ok2);
+	if(ok)
+		*ok = ok2;
+	return ret;
+}
+
+uint64_t ChainPackProtocol::readUInt(const char *data, size_t len, size_t *read_len)
+{
+	CharDataStreamBuffer buff(data, len);
+	std::istream s(&buff);
+	bool ok;
+	uint64_t ret = readUInt(s, &ok);
+	if(read_len)
+		*read_len = ok? (size_t)s.tellg(): 0;
+	return ret;
+}
+
+void ChainPackProtocol::writeUInt(std::ostream &out, unsigned n)
+{
+	write_UIntData(out, n);
+}
+
 RpcValue ChainPackProtocol::read(std::istream &data)
 {
 	RpcValue ret;
@@ -597,5 +660,6 @@ RpcValue ChainPackProtocol::readData(ChainPackProtocol::TypeInfo::Enum type, boo
 	}
 	return ret;
 }
+
 
 }}}

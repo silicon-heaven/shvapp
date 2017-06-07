@@ -1,6 +1,9 @@
 #include <shv/core/chainpack/rpcvalue.h>
 #include <shv/core/chainpack/chainpackprotocol.h>
 
+#include <QtTest/QtTest>
+#include <QDebug>
+
 #include <cassert>
 #include <string>
 #include <cstdio>
@@ -13,9 +16,6 @@
 #include <unordered_map>
 #include <algorithm>
 #include <type_traits>
-
-#include <QtTest/QtTest>
-#include <QDebug>
 
 using namespace shv::core::chainpack;
 using std::string;
@@ -500,6 +500,44 @@ private:
 			QVERIFY(cp1.metaData() == cp2.metaData());
 		}
 	}
+
+	void charArrayTest()
+	{
+		{
+			const char ca[] = "Ahoj Babi";
+			CharDataStreamBuffer sb(ca, sizeof(ca));
+			std::istream in(&sb);
+			while(true) {
+				char c = in.get();
+				if(in.eof())
+					break;
+				qDebug() << c << "pos:" << in.tellg();
+ 			}
+		}
+		/*
+		{
+			std::istringstream in("ahoj babi");
+			while(true) {
+				char c = in.get();
+				if(in.eof())
+					break;
+				qDebug() << c << "pos:" << in.tellg();
+ 			}
+		}
+		*/
+		RpcValue::UInt u(129);//(585734057307);
+		RpcValue cp1{RpcValue::List{17, 18, 19}};
+		std::stringstream out;
+		ChainPackProtocol::write(out, u);
+		ChainPackProtocol::write(out, cp1);
+
+		std::string s = out.str();
+		size_t len;
+		uint64_t u2 = ChainPackProtocol::readUInt(s.c_str(), s.length(), &len);
+		qDebug() << u << u2 << "len:" << len << binary_dump(s);
+		QCOMPARE(u, u2);
+	}
+
 private slots:
 	void initTestCase()
 	{
@@ -509,6 +547,7 @@ private slots:
 	{
 		textTest();
 		binaryTest();
+		charArrayTest();
 	}
 
 	void cleanupTestCase()

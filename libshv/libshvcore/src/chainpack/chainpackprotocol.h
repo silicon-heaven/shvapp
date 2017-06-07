@@ -3,10 +3,20 @@
 #include "rpcvalue.h"
 
 #include <string>
+#include <streambuf>
 
 namespace shv {
 namespace core {
 namespace chainpack {
+
+class SHVCORE_DECL_EXPORT CharDataStreamBuffer : public std::streambuf
+{
+	using Super = std::streambuf;
+public:
+	CharDataStreamBuffer(const char *data, int len);
+protected:
+	pos_type seekoff(off_type off, std::ios_base::seekdir dir, std::ios_base::openmode mode) override;
+};
 
 class SHVCORE_DECL_EXPORT ChainPackProtocol
 {
@@ -51,6 +61,9 @@ public:
 		static const char* name(Enum e);
 	};
 public:
+	static uint64_t readUInt(std::istream &data, bool *ok = nullptr);
+	static uint64_t readUInt(const char *data, size_t len, size_t *read_len = nullptr);
+	static void writeUInt(std::ostream &out, unsigned n);
 	static RpcValue read(std::istream &data);
 	static int write(std::ostream &out, const RpcValue &pack);
 private:
