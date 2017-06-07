@@ -8,6 +8,8 @@
 namespace shv {
 namespace gui {
 
+enum class ValueType { TimeStamp, Int, Double, Bool };
+
 struct SHVGUI_DECL_EXPORT ValueChange
 {
 	union ValueX {
@@ -16,15 +18,61 @@ struct SHVGUI_DECL_EXPORT ValueChange
 		ValueX(double value) : doubleValue(value) {}
 		ValueX() : intValue(0) {}
 
+		double toDouble(ValueType stored_type) const{
+			switch (stored_type) {
+				case ValueType::Int: return intValue;
+				case ValueType::Double: return doubleValue;
+				case ValueType::TimeStamp: return timeStamp;
+				default: Q_ASSERT_X(false,"valueX", "Unsupported conversion"); return 0;
+			}
+		}
+
+		int toInt(ValueType stored_type) const{
+			switch (stored_type) {
+				case ValueType::Int: return intValue;
+				case ValueType::Double: return nearbyint(doubleValue);
+				case ValueType::TimeStamp: return timeStamp;
+				default: Q_ASSERT_X(false,"valueX", "Unsupported conversion"); return 0;
+			}
+		}
+
 		quint64 timeStamp;
 		int intValue;
 		double doubleValue;
 	} valueX;
+
 	union ValueY {
 		ValueY(bool value) : boolValue(value) {}
 		ValueY(int value) : intValue(value) {}
 		ValueY(double value) : doubleValue(value) {}
 		ValueY() : intValue(0) {}
+
+		double toDouble(ValueType stored_type) const{
+			switch (stored_type) {
+				case ValueType::Int: return intValue;
+				case ValueType::Double: return doubleValue;
+				case ValueType::Bool: return boolValue;
+				default: Q_ASSERT_X(false,"valueY", "Unsupported conversion"); return 0;
+			}
+		}
+
+		int toInt(ValueType stored_type) const{
+			switch (stored_type) {
+				case ValueType::Int: return intValue;
+				case ValueType::Double: return nearbyint(doubleValue);
+				case ValueType::Bool: return boolValue;
+				default: Q_ASSERT_X(false,"valueY", "Unsupported conversion"); return 0;
+			}
+		}
+
+		bool toBool(ValueType stored_type) const{
+			switch (stored_type) {
+				case ValueType::Int: return (intValue > 0);
+				case ValueType::Double: return (doubleValue > 0.0);
+				case ValueType::Bool: return boolValue;
+				default: Q_ASSERT_X(false,"valueY", "Unsupported conversion"); return false;
+			}
+		}
 
 		bool boolValue;
 		int intValue;
@@ -38,8 +86,6 @@ struct SHVGUI_DECL_EXPORT ValueChange
 	ValueChange(quint64 value_x, double value_y) : ValueChange(value_x, ValueY(value_y)) {}
 	ValueChange() {}
 };
-
-enum class ValueType { TimeStamp, Int, Double, Bool };
 
 SHVGUI_DECL_EXPORT bool compareValueX(const ValueChange &value1, const ValueChange &value2, ValueType type);
 SHVGUI_DECL_EXPORT bool compareValueX(const ValueChange::ValueX &value1, const ValueChange::ValueX &value2, ValueType type);
