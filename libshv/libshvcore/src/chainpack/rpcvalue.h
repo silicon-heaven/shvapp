@@ -181,6 +181,7 @@ public:
 	bool isValid() const;
 	bool isNull() const { return type() == Type::Null; }
 	bool isInt() const { return type() == Type::Int; }
+	bool isDateTime() const { return type() == Type::DateTime; }
 	bool isUInt() const { return type() == Type::UInt; }
 	bool isDouble() const { return type() == Type::Double; }
 	bool isBool() const { return type() == Type::Bool; }
