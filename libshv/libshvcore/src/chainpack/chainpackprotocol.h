@@ -61,9 +61,9 @@ public:
 		static const char* name(Enum e);
 	};
 public:
-	static uint64_t readUInt(std::istream &data, bool *ok = nullptr);
-	static uint64_t readUInt(const char *data, size_t len, size_t *read_len = nullptr);
-	static void writeUInt(std::ostream &out, unsigned n);
+	static uint64_t readUIntData(std::istream &data, bool *ok = nullptr);
+	static uint64_t readUIntData(const char *data, size_t len, size_t *read_len = nullptr);
+	static void writeUIntData(std::ostream &out, uint64_t n);
 	static RpcValue read(std::istream &data);
 	static int write(std::ostream &out, const RpcValue &pack);
 private:

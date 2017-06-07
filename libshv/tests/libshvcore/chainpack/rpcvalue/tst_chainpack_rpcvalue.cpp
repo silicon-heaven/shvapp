@@ -525,16 +525,19 @@ private:
  			}
 		}
 		*/
-		RpcValue::UInt u(129);//(585734057307);
+		uint64_t u(585734057307);
 		RpcValue cp1{RpcValue::List{17, 18, 19}};
 		std::stringstream out;
-		ChainPackProtocol::write(out, u);
+		ChainPackProtocol::writeUIntData(out, u);
+		//qDebug() << u << binary_dump(out.str());
 		ChainPackProtocol::write(out, cp1);
 
 		std::string s = out.str();
+		qDebug() << u << binary_dump(s);
 		size_t len;
-		uint64_t u2 = ChainPackProtocol::readUInt(s.c_str(), s.length(), &len);
-		qDebug() << u << u2 << "len:" << len << binary_dump(s);
+		uint64_t u2 = ChainPackProtocol::readUIntData(s.c_str(), s.length(), &len);
+		qDebug() << u << binary_dump(s) << "len:" << len;
+		QVERIFY(len > 0);
 		QCOMPARE(u, u2);
 	}
 

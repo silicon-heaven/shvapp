@@ -14,7 +14,7 @@ CharDataStreamBuffer::CharDataStreamBuffer(const char *data, int len)
 {
 	//std::cerr << "data: " << data << std::endl;
 	char *pd = (char*)data;
-	setg(pd, pd, pd + len - 1);
+	setg(pd, pd, pd + len);
 }
 
 std::streambuf::pos_type CharDataStreamBuffer::seekoff(std::streambuf::off_type off, std::ios_base::seekdir dir, std::ios_base::openmode )
@@ -51,16 +51,17 @@ T read_UIntData(std::istream &data, bool *ok = nullptr)
 {
 	T n = 0;
 	do {
-		std::cerr << "pos: " << data.tellg();
+		std::cerr << "pos1: " << data.tellg() << std::endl;
 		uint8_t r = data.get();
+		bool has_next = (r & 128);
+		std::cerr << (int)r << " pos2: " << data.tellg() << " eof: " << data.eof() << std::endl;
 		if(ok) {
-			if(data.eof()) {
+			if(has_next && data.eof()) {
 				*ok = false;
 				return 0;
 			}
 			//	SHV_EXCEPTION("read_UInt: Index out of range!");
 		}
-		bool has_next = (r & 128);
 		r = r & 127;
 		n = (n << 7) | r;
 		if(!has_next)
@@ -514,27 +515,27 @@ void ChainPackProtocol::writeData(std::ostream &out, const RpcValue &pack)
 	}
 }
 
-uint64_t ChainPackProtocol::readUInt(std::istream &data, bool *ok)
+uint64_t ChainPackProtocol::readUIntData(std::istream &data, bool *ok)
 {
 	bool ok2;
-	unsigned ret = read_UIntData<uint64_t>(data, &ok2);
+	uint64_t ret = read_UIntData<uint64_t>(data, &ok2);
 	if(ok)
 		*ok = ok2;
 	return ret;
 }
 
-uint64_t ChainPackProtocol::readUInt(const char *data, size_t len, size_t *read_len)
+uint64_t ChainPackProtocol::readUIntData(const char *data, size_t len, size_t *read_len)
 {
 	CharDataStreamBuffer buff(data, len);
 	std::istream s(&buff);
 	bool ok;
-	uint64_t ret = readUInt(s, &ok);
+	uint64_t ret = readUIntData(s, &ok);
 	if(read_len)
 		*read_len = ok? (size_t)s.tellg(): 0;
 	return ret;
 }
 
-void ChainPackProtocol::writeUInt(std::ostream &out, unsigned n)
+void ChainPackProtocol::writeUIntData(std::ostream &out, uint64_t n)
 {
 	write_UIntData(out, n);
 }
