@@ -154,5 +154,39 @@ bool GraphModel::addValueChangeInternal(int serie_index, const shv::gui::ValueCh
 	return false;
 }
 
+std::vector<ValueChange>::const_iterator SerieData::lessOrEqualIterator(quint64 msec_since_epoch) const
+{
+	auto it = std::lower_bound(cbegin(), cend(), msec_since_epoch,
+							[](const ValueChange &val, double x) -> bool { return val.valueX.timeStamp < x; });
+
+	if(it == cend()) {
+		if(!empty())
+			it--;
+	}
+	else {
+		if (it-> valueX.timeStamp!= msec_since_epoch) {
+			if(it == cbegin())
+				it = cend();
+			else
+				it--;
+		}
+	}
+	return it;
+}
+
+QPair<std::vector<ValueChange>::const_iterator, std::vector<ValueChange>::const_iterator> SerieData::intersection(const QPair<quint64, quint64> &interval, bool &valid) const
+{
+	QPair<std::vector<ValueChange>::const_iterator, std::vector<ValueChange>::const_iterator> result;
+	result.first = lessOrEqualIterator(interval.first);
+	result.second = lessOrEqualIterator(interval.second);
+
+	if ((result.first == cend()) && (!empty())){
+		result.first = cbegin();
+	}
+
+	valid = (result.second != cend());
+	return result;
+}
+
 }
 }
