@@ -51,16 +51,16 @@ T read_UIntData(std::istream &data, bool *ok = nullptr)
 {
 	T n = 0;
 	do {
-		std::cerr << "pos1: " << data.tellg() << std::endl;
+		//std::cerr << "pos1: " << data.tellg() << std::endl;
 		uint8_t r = data.get();
 		bool has_next = (r & 128);
-		std::cerr << (int)r << " pos2: " << data.tellg() << " eof: " << data.eof() << std::endl;
-		if(ok) {
-			if(has_next && data.eof()) {
+		//std::cerr << (int)r << " pos2: " << data.tellg() << " eof: " << data.eof() << std::endl;
+		if(has_next && data.eof()) {
+			if(ok) {
 				*ok = false;
 				return 0;
 			}
-			//	SHV_EXCEPTION("read_UInt: Index out of range!");
+			SHV_EXCEPTION("read_UInt: unexpected end of stream!");
 		}
 		r = r & 127;
 		n = (n << 7) | r;
