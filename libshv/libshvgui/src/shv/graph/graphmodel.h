@@ -5,6 +5,7 @@
 #include <QObject>
 #include <QPair>
 #include <memory>
+#include <cmath>
 
 namespace shv {
 namespace gui {
@@ -31,7 +32,7 @@ struct SHVGUI_DECL_EXPORT ValueChange
 		int toInt(ValueType stored_type) const{
 			switch (stored_type) {
 				case ValueType::Int: return intValue;
-				case ValueType::Double: return nearbyint(doubleValue);
+				case ValueType::Double: return std::nearbyint(doubleValue);
 				case ValueType::TimeStamp: return timeStamp;
 				default: Q_ASSERT_X(false,"valueX", "Unsupported conversion"); return 0;
 			}
@@ -60,7 +61,7 @@ struct SHVGUI_DECL_EXPORT ValueChange
 		int toInt(ValueType stored_type) const{
 			switch (stored_type) {
 				case ValueType::Int: return intValue;
-				case ValueType::Double: return nearbyint(doubleValue);
+				case ValueType::Double: return std::nearbyint(doubleValue);
 				case ValueType::Bool: return boolValue;
 				default: Q_ASSERT_X(false,"valueY", "Unsupported conversion"); return 0;
 			}
