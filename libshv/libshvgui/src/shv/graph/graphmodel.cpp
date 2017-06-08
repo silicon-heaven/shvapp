@@ -174,7 +174,7 @@ std::vector<ValueChange>::const_iterator SerieData::lessOrEqualIterator(quint64 
 	return it;
 }
 
-QPair<std::vector<ValueChange>::const_iterator, std::vector<ValueChange>::const_iterator> SerieData::intersection(const ValueChange::ValueX start, const ValueChange::ValueX end, bool &valid) const
+QPair<std::vector<ValueChange>::const_iterator, std::vector<ValueChange>::const_iterator> SerieData::intersection(const ValueChange::ValueX &start, const ValueChange::ValueX &end, bool &valid) const
 {
 	QPair<std::vector<ValueChange>::const_iterator, std::vector<ValueChange>::const_iterator> result;
 	result.first = lessOrEqualIterator(start.timeStamp);

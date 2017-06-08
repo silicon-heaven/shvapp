@@ -100,7 +100,7 @@ public:
 	SerieData() : m_xType(ValueType::Int), m_yType(ValueType::Int)	{}
 	SerieData(ValueType x_type, ValueType y_type) : m_xType(x_type), m_yType(y_type) {}
 	std::vector<ValueChange>::const_iterator lessOrEqualIterator(quint64 msec_since_epoch) const;
-	QPair<std::vector<ValueChange>::const_iterator, std::vector<ValueChange>::const_iterator> intersection(const ValueChange::ValueX start, const ValueChange::ValueX end, bool &valid) const;
+	QPair<std::vector<ValueChange>::const_iterator, std::vector<ValueChange>::const_iterator> intersection(const ValueChange::ValueX &start, const ValueChange::ValueX &end, bool &valid) const;
 
 	ValueType xType() const	{ return m_xType; }
 	ValueType yType() const	{ return m_yType; }
