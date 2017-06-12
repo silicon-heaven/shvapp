@@ -1009,6 +1009,41 @@ QVector<GraphView::ValueSelection> GraphView::selections() const
 	return selections;
 }
 
+void GraphView::addSelection(ValueSelection selection)
+{
+	bool overlap = false;
+
+	Selection new_selection;
+	new_selection.start = xValue(ValueChange { selection.start, {} });
+	new_selection.end = xValue(ValueChange { selection.end, {} });
+
+	for (const Selection &s: m_selections){
+		quint64 s_start = s.start;
+		quint64 s_end = s.end;
+
+		if (s_start > s_end) {
+			std::swap(s_start, s_end);
+		}
+
+		if ((new_selection.start <= s_end) && (new_selection.end >= s_start)) {
+				overlap = true;
+		}
+	}
+
+	if (!overlap){
+		m_selections << new_selection;
+		Q_EMIT selectionsChanged();
+		repaint();
+	}
+}
+
+void GraphView::clearSelections()
+{
+	m_selections.clear();
+	Q_EMIT selectionsChanged();
+	repaint();
+}
+
 void GraphView::showRange(quint64 from, quint64 to)
 {
 	if (from < m_loadedRangeMin || from > to) {

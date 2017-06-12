@@ -148,6 +148,8 @@ public:
 	void showDependentSeries(bool enable);
 
 	QVector<ValueSelection> selections() const;
+	void addSelection(ValueSelection selection);
+	void clearSelections();
 
 	Q_SIGNAL void selectionsChanged();
 
