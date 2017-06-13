@@ -63,6 +63,7 @@ public:
 
 		static DateTime fromString(const std::string &local_date_time_str);
 		static DateTime fromUtcString(const std::string &utc_date_time_str);
+		static DateTime fromMSecsSinceEpoch(int64_t msecs);
 		std::string toString() const;
 		std::string toUtcString() const;
 	};

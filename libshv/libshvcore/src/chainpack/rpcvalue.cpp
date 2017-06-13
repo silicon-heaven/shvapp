@@ -816,6 +816,13 @@ RpcValue::DateTime RpcValue::DateTime::fromUtcString(const std::string &utc_date
 	return ret;
 }
 
+RpcValue::DateTime RpcValue::DateTime::fromMSecsSinceEpoch(int64_t msecs)
+{
+	DateTime ret;
+	ret.msecs = msecs;
+	return ret;
+}
+
 std::string RpcValue::DateTime::toString() const
 {
 	std::time_t tim = msecs / 1000;
