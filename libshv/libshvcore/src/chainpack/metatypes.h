@@ -1,6 +1,8 @@
 #pragma once
 
 namespace shv {
+namespace core {
+namespace chainpack {
 
 struct MetaTypeNameSpaceId {
 	enum Enum : unsigned {
@@ -17,4 +19,12 @@ struct GlobalMetaTypeId {
 	};
 };
 
-}
+struct ChunkHeaderKeys {
+	enum Enum : unsigned {
+		ChunkId = 0,
+		ChunkIndex,
+		ChunkCount,
+	};
+};
+
+}}}

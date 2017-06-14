@@ -1,6 +1,6 @@
 #include "rpcmessage.h"
 #include "chainpackprotocol.h"
-#include "../metatypes.h"
+#include "metatypes.h"
 
 #include <cassert>
 

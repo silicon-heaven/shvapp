@@ -415,6 +415,13 @@ public:
 	const RpcValue::IMap &toIMap() const override { return m_value; }
 };
 
+class ChainPackChunkHeader final : public ChainPackIMap
+{
+public:
+	explicit ChainPackChunkHeader(RpcValue::ChunkHeader &&value) : ValueData(std::move(value)) {}
+	RpcValue::Type type() const override {return RpcValue::Type::ChunkHeader;}
+};
+
 class ChainPackNull final : public ValueData<RpcValue::Type::Null, std::nullptr_t>
 {
 	bool isNull() const override {return true;}
@@ -515,6 +522,8 @@ RpcValue::RpcValue(RpcValue::Map &&values) : m_ptr(std::make_shared<ChainPackMap
 
 RpcValue::RpcValue(const RpcValue::IMap &values) : m_ptr(std::make_shared<ChainPackIMap>(values)) {}
 RpcValue::RpcValue(RpcValue::IMap &&values) : m_ptr(std::make_shared<ChainPackIMap>(std::move(values))) {}
+
+RpcValue::RpcValue(RpcValue::ChunkHeader &&values) : m_ptr(std::make_shared<ChainPackChunkHeader>(std::move(values))) {}
 
 //Value::Value(const Value::MetaTypeId &value) : m_ptr(std::make_shared<ChainPackMetaTypeId>(value)) {}
 //Value::Value(const Value::MetaTypeNameSpaceId &value) : m_ptr(std::make_shared<ChainPackMetaTypeNameSpaceId>(value)) {}

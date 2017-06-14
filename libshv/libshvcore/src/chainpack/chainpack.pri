@@ -9,4 +9,5 @@ HEADERS += \
     $$PWD/jsonprotocol.h \
     $$PWD/rpcmessage.h \
     $$PWD/rpcvalue.h
+    $$PWD/metatypes.h
 

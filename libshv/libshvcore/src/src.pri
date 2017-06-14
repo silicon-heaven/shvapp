@@ -1,6 +1,5 @@
 HEADERS += \
 	$$PWD/shvcoreglobal.h \
-	$$PWD/metatypes.h \
     $$PWD/shvexception.h
 
 SOURCES += \

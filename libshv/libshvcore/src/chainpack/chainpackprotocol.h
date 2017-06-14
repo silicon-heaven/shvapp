@@ -31,6 +31,7 @@ public:
 			META_TYPE_NAMESPACE_ID,
 			FALSE,
 			TRUE,
+			CHUNK_HEADER,
 			/// types
 			Null,
 			UInt,
