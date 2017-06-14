@@ -975,12 +975,12 @@ void GraphView::showDependentSeries(bool enable)
 	repaint();
 }
 
-QVector<GraphView::ValueSelection> GraphView::selections() const
+QVector<GraphView::XAxisInterval> GraphView::selections() const
 {
 	ValueChange::ValueX start(0);
 	ValueChange::ValueX end(0);
 
-	QVector<ValueSelection> selections;
+	QVector<XAxisInterval> selections;
 	for (const Selection &selection : m_selections) {
 		quint64 s_start = selection.start;
 		quint64 s_end = selection.end;
@@ -1003,13 +1003,13 @@ QVector<GraphView::ValueSelection> GraphView::selections() const
 		default:
 			break;
 		}
-		selections << ValueSelection { start, end };
+		selections << XAxisInterval { start, end };
 	}
 
 	return selections;
 }
 
-void GraphView::addSelection(ValueSelection selection)
+void GraphView::addSelection(XAxisInterval selection)
 {
 	bool overlap = false;
 

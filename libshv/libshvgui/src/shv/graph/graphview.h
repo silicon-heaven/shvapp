@@ -126,7 +126,7 @@ public:
 		bool enableOvelapingSelections = false;
 	};
 
-	struct ValueSelection
+	struct XAxisInterval
 	{
 		ValueChange::ValueX start;
 		ValueChange::ValueX end;
@@ -147,8 +147,8 @@ public:
 	void unsplitSeries();
 	void showDependentSeries(bool enable);
 
-	QVector<ValueSelection> selections() const;
-	void addSelection(ValueSelection selection);
+	QVector<XAxisInterval> selections() const;
+	void addSelection(XAxisInterval selection);
 	void clearSelections();
 
 	Q_SIGNAL void selectionsChanged();
