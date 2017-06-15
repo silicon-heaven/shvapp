@@ -65,6 +65,8 @@ public:
 	static uint64_t readUIntData(std::istream &data, bool *ok = nullptr);
 	static uint64_t readUIntData(const char *data, size_t len, size_t *read_len = nullptr);
 	static void writeUIntData(std::ostream &out, uint64_t n);
+	static RpcValue::IMap readChunkHeader(std::istream &data, bool *ok);
+	static void writeChunkHeader(std::ostream &out, const RpcValue::IMap &header);
 	static RpcValue read(std::istream &data);
 	static int write(std::ostream &out, const RpcValue &pack);
 private:

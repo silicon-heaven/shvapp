@@ -40,7 +40,6 @@ public:
 		Map,
 		IMap,
 		MetaIMap,
-		ChunkHeader,
 	};
 	static const char* typeToName(Type t);
 	struct Tag {
@@ -113,10 +112,6 @@ public:
 		//Value::Map smap;
 		RpcValue::IMap m_imap;
 	};
-	class ChunkHeader : public IMap
-	{
-	};
-
 	//struct MetaTypeId { uint32_t id = 0; MetaTypeId(uint32_t id) : id(id) {}};
 	//struct MetaTypeNameSpaceId { uint32_t id = 0; MetaTypeNameSpaceId(uint32_t id) : id(id) {}};
 	//struct MetaTypeName : public String { MetaTypeName(const String &id) : String(id) {} };
@@ -146,7 +141,6 @@ public:
 	RpcValue(Map &&values);          // Map
 	RpcValue(const IMap &values);     // IMap
 	RpcValue(IMap &&values);          // IMap
-	RpcValue(ChunkHeader &&values);
 
 	//Value(const MetaTypeId &value);
 	//Value(const MetaTypeNameSpaceId &value);

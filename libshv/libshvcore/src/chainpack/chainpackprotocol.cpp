@@ -271,7 +271,6 @@ ChainPackProtocol::TypeInfo::Enum ChainPackProtocol::typeToTypeInfo(RpcValue::Ty
 	case RpcValue::Type::IMap: return TypeInfo::IMap;
 	case RpcValue::Type::DateTime: return TypeInfo::DateTime;
 	case RpcValue::Type::MetaIMap: return TypeInfo::MetaIMap;
-	case RpcValue::Type::ChunkHeader: return TypeInfo::CHUNK_HEADER;
 	}
 	SHV_EXCEPTION("Unknown RpcValue::Type!");
 	return TypeInfo::INVALID; // just to remove mingw warning
@@ -292,7 +291,6 @@ RpcValue::Type ChainPackProtocol::typeInfoToType(ChainPackProtocol::TypeInfo::En
 	case ChainPackProtocol::TypeInfo::Map: return RpcValue::Type::Map;
 	case ChainPackProtocol::TypeInfo::IMap: return RpcValue::Type::IMap;
 	case ChainPackProtocol::TypeInfo::MetaIMap: return RpcValue::Type::MetaIMap;
-	case ChainPackProtocol::TypeInfo::CHUNK_HEADER: return RpcValue::Type::ChunkHeader;
 	default:
 		SHV_EXCEPTION(std::string("There is type for type info ") + ChainPackProtocol::TypeInfo::name(type_info));
 	}
@@ -510,8 +508,7 @@ void ChainPackProtocol::writeData(std::ostream &out, const RpcValue &pack)
 	case RpcValue::Type::List: writeData_List(out, pack.toList()); break;
 	case RpcValue::Type::Array: writeData_Array(out, pack); break;
 	case RpcValue::Type::Map: writeData_Map(out, pack.toMap()); break;
-	case RpcValue::Type::IMap:
-	case RpcValue::Type::ChunkHeader: writeData_IMap(out, pack.toIMap()); break;
+	case RpcValue::Type::IMap: writeData_IMap(out, pack.toIMap()); break;
 	case RpcValue::Type::Invalid:
 	case RpcValue::Type::MetaIMap:
 		SHV_EXCEPTION("Internal error: attempt to write helper type directly. type: " + std::string(RpcValue::typeToName(type)));
@@ -541,6 +538,24 @@ uint64_t ChainPackProtocol::readUIntData(const char *data, size_t len, size_t *r
 void ChainPackProtocol::writeUIntData(std::ostream &out, uint64_t n)
 {
 	write_UIntData(out, n);
+}
+
+RpcValue::IMap ChainPackProtocol::readChunkHeader(std::istream &data, bool *ok)
+{
+	uint8_t b = data.peek();
+	if(b == TypeInfo::CHUNK_HEADER) {
+		data.get();
+		*ok = true;
+		return readData_IMap(data);
+	}
+	*ok = false;
+	return RpcValue::IMap();
+}
+
+void ChainPackProtocol::writeChunkHeader(std::ostream &out, const RpcValue::IMap &header)
+{
+	out << (uint8_t)TypeInfo::CHUNK_HEADER;
+	writeData_IMap(out, header);
 }
 
 RpcValue ChainPackProtocol::read(std::istream &data)
@@ -658,7 +673,6 @@ RpcValue ChainPackProtocol::readData(ChainPackProtocol::TypeInfo::Enum type, boo
 		case ChainPackProtocol::TypeInfo::List: { RpcValue::List val = readData_List(data); ret = RpcValue(val); break; }
 		case ChainPackProtocol::TypeInfo::Map: { RpcValue::Map val = readData_Map(data); ret = RpcValue(val); break; }
 		case ChainPackProtocol::TypeInfo::IMap: { RpcValue::IMap val = readData_IMap(data); ret = RpcValue(val); break; }
-		case ChainPackProtocol::TypeInfo::CHUNK_HEADER: { RpcValue::ChunkHeader val = readData_IMap(data); ret = RpcValue(val); break; }
 		default:
 			SHV_EXCEPTION("Internal error: attempt to read helper type directly. type: " + std::to_string(type) + " " + TypeInfo::name(type));
 		}
