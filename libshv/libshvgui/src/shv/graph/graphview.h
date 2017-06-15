@@ -148,6 +148,7 @@ public:
 	void showDependentSeries(bool enable);
 
 	QVector<XAxisInterval> selections() const;
+	XAxisInterval loadedRange() const;
 	void addSelection(XAxisInterval selection);
 	void clearSelections();
 
@@ -230,6 +231,8 @@ private:
 	void computeRangeSelectorPosition();
 
 	quint64 xValue(const ValueChange &value_change) const;
+	quint64 xValue(const ValueChange::ValueX &value_x) const;
+	ValueChange::ValueX internalToValueX(quint64 value) const;
 	QString xValueString(quint64 value, const QString &datetime_format) const;
 	void computeRange(double &min, double &max, const Serie &serie);
 	void computeRange(int &min, int &max, const Serie &serie);
