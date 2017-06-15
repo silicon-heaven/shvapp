@@ -1009,6 +1009,11 @@ QVector<GraphView::XAxisInterval> GraphView::selections() const
 	return selections;
 }
 
+GraphView::XAxisInterval GraphView::loadedRange() const
+{
+	return XAxisInterval { internalToValueX(m_loadedRangeMin), internalToValueX(m_loadedRangeMax) };
+}
+
 void GraphView::addSelection(XAxisInterval selection)
 {
 	bool overlap = false;
@@ -1727,19 +1732,44 @@ int GraphView::xValueToWidgetPosition(quint64 value)
 
 quint64 GraphView::xValue(const ValueChange &value_change) const
 {
+	return xValue(value_change.valueX);
+}
+
+quint64 GraphView::xValue(const ValueChange::ValueX &value_x) const
+{
 	quint64 val;
 	switch (settings.xAxisType) {
 	case ValueType::TimeStamp:
-		val = value_change.valueX.timeStamp;
+		val = value_x.timeStamp;
 		break;
 	case ValueType::Int:
-		val = value_change.valueX.intValue;
+		val = value_x.intValue;
 		break;
 	case ValueType::Double:
-		val = value_change.valueX.doubleValue * m_xValueScale;
+		val = value_x.doubleValue * m_xValueScale;
 		break;
 	default:
 		val = 0;
+		break;
+	}
+	return val;
+}
+
+ValueChange::ValueX GraphView::internalToValueX(quint64 value) const
+{
+	ValueChange::ValueX val;
+	switch (settings.xAxisType) {
+	case ValueType::TimeStamp:
+		val.timeStamp = value;
+		break;
+	case ValueType::Int:
+		val.intValue = value;
+		break;
+	case ValueType::Double:
+		val.doubleValue = value / m_xValueScale;
+		break;
+	default:
+		val.intValue = 0;
 		break;
 	}
 	return val;
