@@ -498,7 +498,7 @@ void ChainPackProtocol::writeData(std::ostream &out, const RpcValue &pack)
 	RpcValue::Type type = pack.type();
 	switch (type) {
 	case RpcValue::Type::Null: break;
-	case RpcValue::Type::Bool: out << (pack.toBool()? 1: 0); break;
+	case RpcValue::Type::Bool: out << (uint8_t)(pack.toBool() ? 1 : 0); break;
 	case RpcValue::Type::UInt: { auto u = pack.toUInt(); write_UIntData(out, u); break; }
 	case RpcValue::Type::Int: { RpcValue::Int n = pack.toInt(); write_IntData(out, n); break; }
 	case RpcValue::Type::Double: write_Double(out, pack.toDouble()); break;
@@ -673,6 +673,7 @@ RpcValue ChainPackProtocol::readData(ChainPackProtocol::TypeInfo::Enum type, boo
 		case ChainPackProtocol::TypeInfo::List: { RpcValue::List val = readData_List(data); ret = RpcValue(val); break; }
 		case ChainPackProtocol::TypeInfo::Map: { RpcValue::Map val = readData_Map(data); ret = RpcValue(val); break; }
 		case ChainPackProtocol::TypeInfo::IMap: { RpcValue::IMap val = readData_IMap(data); ret = RpcValue(val); break; }
+		case ChainPackProtocol::TypeInfo::Bool: { uint8_t t = data.get(); ret = RpcValue(t != 0); break; }
 		default:
 			SHV_EXCEPTION("Internal error: attempt to read helper type directly. type: " + std::to_string(type) + " " + TypeInfo::name(type));
 		}
