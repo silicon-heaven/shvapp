@@ -128,6 +128,7 @@ void GraphModel::clearSeries()
 		serie.clear();
 		serie.shrink_to_fit();
 	}
+	Q_EMIT dataChanged();
 }
 
 void GraphModel::addDataBegin()
