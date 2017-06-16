@@ -4,6 +4,7 @@
 
 #include <QColor>
 #include <QPushButton>
+#include <QTimer>
 #include <QWidget>
 
 #include "graphmodel.h"
@@ -246,6 +247,7 @@ private:
 //	template<typename T> static void mergeSerieMemberWithDefault(Serie &merged_serie, const Serie &param, T Serie::*member);
 
 	void onModelDataChanged();
+	void showToolTip();
 
 	const GraphModel *m_data;
 
@@ -277,6 +279,8 @@ private:
 	RangeSelectorHandle *m_rightRangeSelectorHandle;
 	int m_leftRangeSelectorPosition;
 	int m_rightRangeSelectorPosition;
+	QTimer m_toolTipTimer;
+	QPoint m_toolTipPosition;
 };
 
 }
