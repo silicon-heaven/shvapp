@@ -1780,7 +1780,7 @@ QString GraphView::xValueString(quint64 value, const QString &datetime_format) c
 	QString s;
 	switch (settings.xAxisType) {
 	case ValueType::TimeStamp:
-		s = QDateTime(QDate::currentDate(), QTime()).addMSecs(value).toString(datetime_format);
+		s = QDateTime::fromMSecsSinceEpoch(value).toString(datetime_format);
 		break;
 	case ValueType::Int:
 		s = QString::number(value);
