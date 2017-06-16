@@ -15,7 +15,7 @@ enum class ValueType { TimeStamp, Int, Double, Bool };
 struct SHVGUI_DECL_EXPORT ValueChange
 {
 	union ValueX {
-		ValueX(quint64 value) : timeStamp(value) {}
+		ValueX(qint64 value) : timeStamp(value) {}
 		ValueX(int value) : intValue(value) {}
 		ValueX(double value) : doubleValue(value) {}
 		ValueX() : intValue(0) {}
@@ -38,7 +38,7 @@ struct SHVGUI_DECL_EXPORT ValueChange
 			}
 		}
 
-		quint64 timeStamp;
+		qint64 timeStamp;
 		int intValue;
 		double doubleValue;
 	} valueX;
@@ -82,10 +82,10 @@ struct SHVGUI_DECL_EXPORT ValueChange
 	} valueY;
 
 	ValueChange(ValueX value_x, ValueY value_y) : valueX(value_x), valueY(value_y) {}
-	ValueChange(quint64 value_x, ValueY value_y) : ValueChange(ValueX(value_x), value_y) {}
-	ValueChange(quint64 value_x, bool value_y) : ValueChange(value_x, ValueY(value_y)) {}
-	ValueChange(quint64 value_x, int value_y) : ValueChange(value_x, ValueY(value_y)) {}
-	ValueChange(quint64 value_x, double value_y) : ValueChange(value_x, ValueY(value_y)) {}
+	ValueChange(qint64 value_x, ValueY value_y) : ValueChange(ValueX(value_x), value_y) {}
+	ValueChange(qint64 value_x, bool value_y) : ValueChange(value_x, ValueY(value_y)) {}
+	ValueChange(qint64 value_x, int value_y) : ValueChange(value_x, ValueY(value_y)) {}
+	ValueChange(qint64 value_x, double value_y) : ValueChange(value_x, ValueY(value_y)) {}
 	ValueChange() {}
 };
 
@@ -133,7 +133,7 @@ public:
 	void addDataBegin();
 	void addDataEnd();
 
-//protected:
+protected:
 	void checkIndex(int serie_index) const;
 	virtual bool addValueChangeInternal(int serie_index, const shv::gui::ValueChange &value);
 
