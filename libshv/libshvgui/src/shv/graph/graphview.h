@@ -139,8 +139,8 @@ public:
 	void setModelData(const GraphModel &model_data);
 	void releaseModelData();
 
-	void showRange(quint64 from, quint64 to);
-	void zoom(quint64 center, double scale);
+	void showRange(qint64 from, qint64 to);
+	void zoom(qint64 center, double scale);
 
 	Serie &addSerie(const Serie &serie);
 
@@ -183,10 +183,10 @@ private:
 
 	struct Selection
 	{
-		quint64 start;
-		quint64 end;
+		qint64 start;
+		qint64 end;
 
-		bool containsValue(quint64 value) const;
+		bool containsValue(qint64 value) const;
 	};
 
 	void popupContextMenu(const QPoint &pos);
@@ -204,46 +204,46 @@ private:
 	void paintHorizontalGrid(QPainter *painter, const GraphArea &area);
 	void paintRangeSelector(QPainter *painter);
 	void paintSeries(QPainter *painter, const GraphArea &area);
-	void paintSerie(QPainter *painter, const QRect &rect, int x_axis_position, const Serie &serie, quint64 min, quint64 max, const QPen &pen, bool fill_rect);
-	void paintBoolSerie(QPainter *painter, const QRect &area, int x_axis_position, const Serie &serie, quint64 min, quint64 max, const QPen &pen, bool fill_rect);
-	void paintValueSerie(QPainter *painter, const QRect &area, int x_axis_position, const Serie &serie, quint64 min, quint64 max, const QPen &pen, bool fill_rect);
+	void paintSerie(QPainter *painter, const QRect &rect, int x_axis_position, const Serie &serie, qint64 min, qint64 max, const QPen &pen, bool fill_rect);
+	void paintBoolSerie(QPainter *painter, const QRect &area, int x_axis_position, const Serie &serie, qint64 min, qint64 max, const QPen &pen, bool fill_rect);
+	void paintValueSerie(QPainter *painter, const QRect &area, int x_axis_position, const Serie &serie, qint64 min, qint64 max, const QPen &pen, bool fill_rect);
 	void paintSelections(QPainter *painter, const GraphArea &area);
 	void paintSelection(QPainter *painter, const GraphArea &area, const Selection &selection, const QColor &color);
 	void paintSerieList(QPainter *painter);
 	void paintCrossLine(QPainter *painter, const GraphArea &area);
 	void paintLegend(QPainter *painter);
 	void paintCurrentPosition(QPainter *painter, const GraphArea &area);
-	void paintCurrentPosition(QPainter *painter, const GraphArea &area, const Serie &serie, quint64 current);
+	void paintCurrentPosition(QPainter *painter, const GraphArea &area, const Serie &serie, qint64 current);
 
-	QString legend(quint64 position);
-	QString legendRow(const Serie &serie, quint64 position);
+	QString legend(qint64 position) const;
+	QString legendRow(const Serie &serie, qint64 position) const;
 
-	quint64 widgetPositionToXValue(int pos);
-	quint64 rectPositionToXValue(int pos);
-	int xValueToRectPosition(quint64 value);
-	int xValueToWidgetPosition(quint64 value);
-	const Selection *selectionOnValue(quint64 value) const;
-	void updateLastValueInLastSelection(quint64 value);
-	bool posInGraph(const QPoint &pos);
-	bool posInRangeSelector(const QPoint &pos);
+	qint64 widgetPositionToXValue(int pos) const;
+	qint64 rectPositionToXValue(int pos) const;
+	int xValueToRectPosition(qint64 value) const;
+	int xValueToWidgetPosition(qint64 value) const;
+	const Selection *selectionOnValue(qint64 value) const;
+	void updateLastValueInLastSelection(qint64 value);
+	bool posInGraph(const QPoint &pos) const;
+	bool posInRangeSelector(const QPoint &pos) const;
 	void computeGeometry();
 	bool hasVisibleSeries() const;
-	int computeYLabelWidth(const Settings::Axis &axis, int &shownDecimalPoints);
+	int computeYLabelWidth(const Settings::Axis &axis, int &shownDecimalPoints) const;
 	void computeRangeSelectorPosition();
 
-	quint64 xValue(const ValueChange &value_change) const;
-	quint64 xValue(const ValueChange::ValueX &value_x) const;
-	ValueChange::ValueX internalToValueX(quint64 value) const;
-	QString xValueString(quint64 value, const QString &datetime_format) const;
-	void computeRange(double &min, double &max, const Serie &serie);
-	void computeRange(int &min, int &max, const Serie &serie);
-	void computeRange(quint64 &min, quint64 &max, const Serie &serie);
-	void computeRange(double &min, double &max);
-	void computeRange(int &min, int &max);
-	void computeRange(quint64 &min, quint64 &max);
+	qint64 xValue(const ValueChange &value_change) const;
+	qint64 xValue(const ValueChange::ValueX &value_x) const;
+	ValueChange::ValueX internalToValueX(qint64 value) const;
+	QString xValueString(qint64 value, const QString &datetime_format) const;
+	void computeRange(double &min, double &max, const Serie &serie) const;
+	void computeRange(int &min, int &max, const Serie &serie) const;
+	void computeRange(qint64 &min, qint64 &max, const Serie &serie) const;
+	void computeRange(double &min, double &max) const;
+	void computeRange(int &min, int &max) const;
+	void computeRange(qint64 &min, qint64 &max) const;
 	void computeDataRange();
-	SerieData::const_iterator findMinYValue(const SerieData::const_iterator &data_begin, const SerieData::const_iterator &data_end, quint64 x_value) const;
-	SerieData::const_iterator findMaxYValue(const SerieData::const_iterator &data_begin, const SerieData::const_iterator &data_end, quint64 x_value) const;
+	SerieData::const_iterator findMinYValue(const SerieData::const_iterator &data_begin, const SerieData::const_iterator &data_end, qint64 x_value) const;
+	SerieData::const_iterator findMaxYValue(const SerieData::const_iterator &data_begin, const SerieData::const_iterator &data_end, qint64 x_value) const;
 //	template<typename T> static void mergeSerieMemberWithDefault(Serie &merged_serie, const Serie &param, T Serie::*member);
 
 	void onModelDataChanged();
@@ -257,10 +257,10 @@ private:
 	QRect m_serieListRect;
 	QRect m_rangeSelectorRect;
 
-	quint64 m_displayedRangeMin;
-	quint64 m_displayedRangeMax;
-	quint64 m_loadedRangeMin;
-	quint64 m_loadedRangeMax;
+	qint64 m_displayedRangeMin;
+	qint64 m_displayedRangeMax;
+	qint64 m_loadedRangeMin;
+	qint64 m_loadedRangeMax;
 	Selection m_zoomSelection;
 	Qt::KeyboardModifiers m_currentSelectionModifiers;
 	QList<Selection> m_selections;

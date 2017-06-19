@@ -210,7 +210,7 @@ void GraphView::computeDataRange()
 
 }
 
-int GraphView::computeYLabelWidth(const Settings::Axis &axis, int &shownDecimalPoints)
+int GraphView::computeYLabelWidth(const Settings::Axis &axis, int &shownDecimalPoints) const
 {
 	double range = axis.rangeMax - axis.rangeMin;
 	int place_value = 0;
@@ -536,7 +536,7 @@ void GraphView::paintEvent(QPaintEvent *paint_event)
 	}
 }
 
-bool GraphView::posInGraph(const QPoint &pos)
+bool GraphView::posInGraph(const QPoint &pos) const
 {
 	QRect graph_rect;
 	if (m_graphArea.count()) {
@@ -548,7 +548,7 @@ bool GraphView::posInGraph(const QPoint &pos)
 	return graph_rect.contains(pos, true);
 }
 
-bool GraphView::posInRangeSelector(const QPoint &pos)
+bool GraphView::posInRangeSelector(const QPoint &pos) const
 {
 	return m_rangeSelectorRect.contains(pos);
 }
@@ -557,7 +557,7 @@ void GraphView::wheelEvent(QWheelEvent *wheel_event)
 {
 	if (posInGraph(wheel_event->pos())) {
 
-		quint64 center = widgetPositionToXValue(wheel_event->pos().x());
+		qint64 center = widgetPositionToXValue(wheel_event->pos().x());
 		if (wheel_event->angleDelta().y() > 0) {
 			zoom(center, 6.5 / 10.0);
 		}
@@ -587,7 +587,7 @@ void GraphView::mousePressEvent(QMouseEvent *mouse_event)
 	if (mouse_event->buttons() & Qt::LeftButton) {
 		if (posInGraph(pos)) {
 			if (mouse_event->modifiers() & Qt::ControlModifier || mouse_event->modifiers() & Qt::ShiftModifier) {
-				quint64 value = widgetPositionToXValue(pos.x());
+				qint64 value = widgetPositionToXValue(pos.x());
 				m_currentSelectionModifiers = mouse_event->modifiers();
 				if (mouse_event->modifiers() & Qt::ControlModifier) {
 					m_zoomSelection = { value, value };
@@ -626,7 +626,7 @@ void GraphView::mousePressEvent(QMouseEvent *mouse_event)
 	}
 }
 
-const GraphView::Selection *GraphView::selectionOnValue(quint64 value) const
+const GraphView::Selection *GraphView::selectionOnValue(qint64 value) const
 {
 	for (const Selection &selection : m_selections) {
 		if (selection.containsValue(value)) {
@@ -636,7 +636,7 @@ const GraphView::Selection *GraphView::selectionOnValue(quint64 value) const
 	return 0;
 }
 
-void GraphView::updateLastValueInLastSelection(quint64 value)
+void GraphView::updateLastValueInLastSelection(qint64 value)
 {
 	Selection &last_selection = m_selections.last();
 	const Selection *overlaping_selection = selectionOnValue(value);
@@ -662,7 +662,7 @@ void GraphView::mouseMoveEvent(QMouseEvent *mouse_event)
 		if (mouse_event->buttons() & Qt::LeftButton) {
 			m_currentPosition = -1;
 			if (m_currentSelectionModifiers != Qt::NoModifier) {
-				quint64 value = widgetPositionToXValue(pos.x());
+				qint64 value = widgetPositionToXValue(pos.x());
 				if (m_currentSelectionModifiers & Qt::ControlModifier) {
 					m_zoomSelection.end = value;
 				}
@@ -763,10 +763,10 @@ void GraphView::mouseReleaseEvent(QMouseEvent *mouse_event)
 	if (posInGraph(pos)) {
 		if (mouse_event->button() == Qt::LeftButton) {
 			if (m_currentSelectionModifiers != Qt::NoModifier) {
-				quint64 value = widgetPositionToXValue(pos.x());
+				qint64 value = widgetPositionToXValue(pos.x());
 				if (m_currentSelectionModifiers & Qt::ControlModifier) {
-					quint64 start = m_zoomSelection.start;
-					quint64 end = value;
+					qint64 start = m_zoomSelection.start;
+					qint64 end = value;
 					if (end < start) {
 						start = end;
 						end = m_zoomSelection.start;
@@ -795,7 +795,7 @@ void GraphView::mouseReleaseEvent(QMouseEvent *mouse_event)
 
 bool GraphView::eventFilter(QObject *watched, QEvent *event)
 {
-	auto rangeRectPositionToXValue = [this](int pos)->quint64
+	auto rangeRectPositionToXValue = [this](int pos)->qint64
 	{
 		return (pos - m_rangeSelectorRect.x()) * (m_loadedRangeMax - m_loadedRangeMin) / m_rangeSelectorRect.width();
 	};
@@ -852,7 +852,7 @@ void GraphView::popupContextMenu(const QPoint &pos)
 	if (m_displayedRangeMin == m_loadedRangeMin && m_displayedRangeMax == m_loadedRangeMax) {
 		zoom_to_fit->setEnabled(false);
 	}
-	quint64 matching_value = widgetPositionToXValue(pos.x());
+	qint64 matching_value = widgetPositionToXValue(pos.x());
 
 	for (int i = 0; i < m_selections.count(); ++i) {
 		const Selection &selection = m_selections[i];
@@ -881,19 +881,19 @@ void GraphView::popupContextMenu(const QPoint &pos)
 	popup_menu.exec(mapToGlobal(pos));
 }
 
-void GraphView::zoom(quint64 center, double scale)
+void GraphView::zoom(qint64 center, double scale)
 {
 	if (scale == 1.0) {
 		return;
 	}
-	quint64 old_length = m_displayedRangeMax - m_displayedRangeMin;
-	quint64 new_length = old_length * scale;
-	quint64 from = 0LL;
-	quint64 to = 0LL;
+	qint64 old_length = m_displayedRangeMax - m_displayedRangeMin;
+	qint64 new_length = old_length * scale;
+	qint64 from = 0LL;
+	qint64 to = 0LL;
 	if (new_length > old_length) {
-		quint64 difference = new_length - old_length;
-		quint64 difference_from = difference * (double)(center - m_displayedRangeMin) / old_length;
-		quint64 difference_to = difference - difference_from;
+		qint64 difference = new_length - old_length;
+		qint64 difference_from = difference * (double)(center - m_displayedRangeMin) / old_length;
+		qint64 difference_to = difference - difference_from;
 		if (m_displayedRangeMin - m_loadedRangeMin > difference_from) {
 			from = m_displayedRangeMin - difference_from;
 		}
@@ -908,9 +908,9 @@ void GraphView::zoom(quint64 center, double scale)
 		}
 	}
 	else if (new_length < old_length) {
-		quint64 difference = old_length - new_length;
-		quint64 difference_from = difference * (double)(center - m_displayedRangeMin) / old_length;
-		quint64 difference_to = difference - difference_from;
+		qint64 difference = old_length - new_length;
+		qint64 difference_from = difference * (double)(center - m_displayedRangeMin) / old_length;
+		qint64 difference_to = difference - difference_from;
 		from = m_displayedRangeMin;
 		if (from + difference_from < center) {
 			from += difference_from;
@@ -1003,8 +1003,8 @@ QVector<GraphView::XAxisInterval> GraphView::selections() const
 
 	QVector<XAxisInterval> selections;
 	for (const Selection &selection : m_selections) {
-		quint64 s_start = selection.start;
-		quint64 s_end = selection.end;
+		qint64 s_start = selection.start;
+		qint64 s_end = selection.end;
 		if (s_start > s_end) {
 			std::swap(s_start, s_end);
 		}
@@ -1044,8 +1044,8 @@ void GraphView::addSelection(XAxisInterval selection)
 	new_selection.end = xValue(ValueChange { selection.end, {} });
 
 	for (const Selection &s: m_selections){
-		quint64 s_start = s.start;
-		quint64 s_end = s.end;
+		qint64 s_start = s.start;
+		qint64 s_end = s.end;
 
 		if (s_start > s_end) {
 			std::swap(s_start, s_end);
@@ -1070,7 +1070,7 @@ void GraphView::clearSelections()
 	update();
 }
 
-void GraphView::showRange(quint64 from, quint64 to)
+void GraphView::showRange(qint64 from, qint64 to)
 {
 	if (from < m_loadedRangeMin || from > to) {
 		from = m_loadedRangeMin;
@@ -1147,7 +1147,7 @@ void GraphView::paintXAxisLabels(QPainter *painter)
 	}
 	int label_width = painter->fontMetrics().width(time_format);
 
-	quint64 ts;
+	qint64 ts;
 	QString x_value_label;
 
 	const GraphArea &area = m_graphArea[0];
@@ -1332,7 +1332,7 @@ void GraphView::paintSeries(QPainter *painter, const GraphArea &area)
 	painter->restore();
 }
 
-void GraphView::paintSerie(QPainter *painter, const QRect &rect, int x_axis_position, const Serie &serie, quint64 min, quint64 max, const QPen &pen, bool fill_rect)
+void GraphView::paintSerie(QPainter *painter, const QRect &rect, int x_axis_position, const Serie &serie, qint64 min, qint64 max, const QPen &pen, bool fill_rect)
 {
 	if (serie.show) {
 		if (serie.type == ValueType::Bool) {
@@ -1344,7 +1344,7 @@ void GraphView::paintSerie(QPainter *painter, const QRect &rect, int x_axis_posi
 	}
 }
 
-void GraphView::paintBoolSerie(QPainter *painter, const QRect &rect, int x_axis_position, const Serie &serie, quint64 min, quint64 max, const QPen &pen, bool fill_rect)
+void GraphView::paintBoolSerie(QPainter *painter, const QRect &rect, int x_axis_position, const Serie &serie, qint64 min, qint64 max, const QPen &pen, bool fill_rect)
 {
 	const SerieData &data = *serie.dataPtr;
 	if (data.size() == 0) {
@@ -1411,7 +1411,7 @@ void GraphView::paintBoolSerie(QPainter *painter, const QRect &rect, int x_axis_
 	}
 }
 
-void GraphView::paintValueSerie(QPainter *painter, const QRect &rect, int x_axis_position, const Serie &serie, quint64 min, quint64 max, const QPen &pen, bool fill_rect)
+void GraphView::paintValueSerie(QPainter *painter, const QRect &rect, int x_axis_position, const Serie &serie, qint64 min, qint64 max, const QPen &pen, bool fill_rect)
 {
 	const SerieData &data = *serie.dataPtr;
 	if (data.size() == 0) {
@@ -1468,7 +1468,7 @@ void GraphView::paintValueSerie(QPainter *painter, const QRect &rect, int x_axis
 
 	for (auto it = begin + 1; it != end; ++it) {
 		ValueChange::ValueY value_change = serie.valueFormatter ? serie.valueFormatter(*it) : it->valueY;
-		quint64 x_value = xValue(*it);
+		qint64 x_value = xValue(*it);
 		QPoint last_point;
 		if (serie.type == ValueType::Double) {
 			double y_value = value_change.doubleValue;
@@ -1537,8 +1537,8 @@ void GraphView::paintSelection(QPainter *painter, const GraphArea &area, const S
 	pen.setWidth(2);
 	painter->setPen(pen);
 
-	quint64 start = selection.start;
-	quint64 end = selection.end;
+	qint64 start = selection.start;
+	qint64 end = selection.end;
 	bool draw_left_line = true;
 	bool draw_right_line = true;
 	if (start > end) {
@@ -1635,7 +1635,7 @@ void GraphView::paintLegend(QPainter *painter)
 	Q_UNUSED(painter)
 }
 
-void GraphView::paintCurrentPosition(QPainter *painter, const GraphArea &area, const Serie &serie, quint64 current)
+void GraphView::paintCurrentPosition(QPainter *painter, const GraphArea &area, const Serie &serie, qint64 current)
 {
 	if (serie.showCurrent) {
 		auto begin = findMinYValue(serie.displayedDataBegin, serie.displayedDataEnd, current);
@@ -1668,7 +1668,7 @@ void GraphView::paintCurrentPosition(QPainter *painter, const GraphArea &area, c
 void GraphView::paintCurrentPosition(QPainter *painter, const GraphArea &area)
 {
 	painter->save();
-	quint64 current = rectPositionToXValue(m_currentPosition);
+	qint64 current = rectPositionToXValue(m_currentPosition);
 	for (int i = 0; i < area.series.count(); ++i) {
 		const Serie &serie = *area.series[i];
 		if (serie.show && serie.dataPtr->size()) {
@@ -1685,7 +1685,7 @@ void GraphView::paintCurrentPosition(QPainter *painter, const GraphArea &area)
 	painter->restore();
 }
 
-QString GraphView::legendRow(const Serie &serie, quint64 position)
+QString GraphView::legendRow(const Serie &serie, qint64 position) const
 {
 	QString s;
 	if (serie.show) {
@@ -1711,7 +1711,7 @@ QString GraphView::legendRow(const Serie &serie, quint64 position)
 	return s;
 }
 
-QString GraphView::legend(quint64 position)
+QString GraphView::legend(qint64 position) const
 {
 	QString s = "<html><head>" + settings.legendStyle + "</head><body>";
 	s = s + "<table class=\"head\"><tr><td class=\"headLabel\">" + settings.xAxis.description + ":</td><td class=\"headValue\">" +
@@ -1731,34 +1731,34 @@ QString GraphView::legend(quint64 position)
 	return s;
 }
 
-quint64 GraphView::widgetPositionToXValue(int pos)
+qint64 GraphView::widgetPositionToXValue(int pos) const
 {
 	return rectPositionToXValue(pos - m_graphArea[0].graphRect.x());
 }
 
-quint64 GraphView::rectPositionToXValue(int pos)
+qint64 GraphView::rectPositionToXValue(int pos) const
 {
 	return m_displayedRangeMin + ((m_displayedRangeMax - m_displayedRangeMin) * ((double)pos / m_graphArea[0].graphRect.width()));
 }
 
-int GraphView::xValueToRectPosition(quint64 value)
+int GraphView::xValueToRectPosition(qint64 value) const
 {
 	return (value - m_displayedRangeMin) * m_graphArea[0].graphRect.width() / (m_displayedRangeMax - m_displayedRangeMin);
 }
 
-int GraphView::xValueToWidgetPosition(quint64 value)
+int GraphView::xValueToWidgetPosition(qint64 value) const
 {
 	return m_graphArea[0].graphRect.x() + xValueToRectPosition(value);
 }
 
-quint64 GraphView::xValue(const ValueChange &value_change) const
+qint64 GraphView::xValue(const ValueChange &value_change) const
 {
 	return xValue(value_change.valueX);
 }
 
-quint64 GraphView::xValue(const ValueChange::ValueX &value_x) const
+qint64 GraphView::xValue(const ValueChange::ValueX &value_x) const
 {
-	quint64 val;
+	qint64 val;
 	switch (settings.xAxisType) {
 	case ValueType::TimeStamp:
 		val = value_x.timeStamp;
@@ -1776,7 +1776,7 @@ quint64 GraphView::xValue(const ValueChange::ValueX &value_x) const
 	return val;
 }
 
-ValueChange::ValueX GraphView::internalToValueX(quint64 value) const
+ValueChange::ValueX GraphView::internalToValueX(qint64 value) const
 {
 	ValueChange::ValueX val;
 	switch (settings.xAxisType) {
@@ -1796,7 +1796,7 @@ ValueChange::ValueX GraphView::internalToValueX(quint64 value) const
 	return val;
 }
 
-QString GraphView::xValueString(quint64 value, const QString &datetime_format) const
+QString GraphView::xValueString(qint64 value, const QString &datetime_format) const
 {
 	QString s;
 	switch (settings.xAxisType) {
@@ -1815,7 +1815,7 @@ QString GraphView::xValueString(quint64 value, const QString &datetime_format) c
 	return s;
 }
 
-void GraphView::computeRange(double &min, double &max, const Serie &serie)
+void GraphView::computeRange(double &min, double &max, const Serie &serie) const
 {
 	if (serie.dataPtr->size()) {
 		if (serie.dataPtr->at(0).valueX.doubleValue < min) {
@@ -1827,7 +1827,7 @@ void GraphView::computeRange(double &min, double &max, const Serie &serie)
 	}
 }
 
-void GraphView::computeRange(double &min, double &max)
+void GraphView::computeRange(double &min, double &max) const
 {
 	min = DBL_MAX;
 	max = DBL_MIN;
@@ -1843,7 +1843,7 @@ void GraphView::computeRange(double &min, double &max)
 	}
 }
 
-void GraphView::computeRange(int &min, int &max, const Serie &serie)
+void GraphView::computeRange(int &min, int &max, const Serie &serie) const
 {
 	if (serie.dataPtr->size()) {
 		if (serie.dataPtr->at(0).valueX.intValue < min) {
@@ -1855,7 +1855,7 @@ void GraphView::computeRange(int &min, int &max, const Serie &serie)
 	}
 }
 
-void GraphView::computeRange(int &min, int &max)
+void GraphView::computeRange(int &min, int &max) const
 {
 	min = INT_MAX;
 	max = INT_MIN;
@@ -1871,7 +1871,7 @@ void GraphView::computeRange(int &min, int &max)
 	}
 }
 
-void GraphView::computeRange(quint64 &min, quint64 &max, const Serie &serie)
+void GraphView::computeRange(qint64 &min, qint64 &max, const Serie &serie) const
 {
 	if (serie.dataPtr->size()) {
 		if (serie.dataPtr->at(0).valueX.timeStamp < min) {
@@ -1883,10 +1883,10 @@ void GraphView::computeRange(quint64 &min, quint64 &max, const Serie &serie)
 	}
 }
 
-void GraphView::computeRange(quint64 &min, quint64 &max)
+void GraphView::computeRange(qint64 &min, qint64 &max) const
 {
-	min = UINT64_MAX;
-	max = 0;
+	min = INT64_MAX;
+	max = INT64_MIN;
 
 	for (const Serie &serie : m_series) {
 		computeRange(min, max, serie);
@@ -1894,14 +1894,14 @@ void GraphView::computeRange(quint64 &min, quint64 &max)
 			computeRange(min, max, dependent_serie);
 		}
 	}
-	if (min == UINT64_MAX) {
+	if (min == INT64_MAX) {
 		min = 0;
 	}
 }
 
-SerieData::const_iterator GraphView::findMinYValue(const SerieData::const_iterator &data_begin, const SerieData::const_iterator &data_end, quint64 x_value) const
+SerieData::const_iterator GraphView::findMinYValue(const SerieData::const_iterator &data_begin, const SerieData::const_iterator &data_end, qint64 x_value) const
 {
-	auto it = std::lower_bound(data_begin, data_end, x_value, [this](const ValueChange &data, quint64 value) {
+	auto it = std::lower_bound(data_begin, data_end, x_value, [this](const ValueChange &data, qint64 value) {
 	   return xValue(data) < value;
 	});
 	if (it != data_begin) {
@@ -1910,9 +1910,9 @@ SerieData::const_iterator GraphView::findMinYValue(const SerieData::const_iterat
 	return it;
 }
 
-SerieData::const_iterator GraphView::findMaxYValue(const SerieData::const_iterator &data_begin, const SerieData::const_iterator &data_end, quint64 x_value) const
+SerieData::const_iterator GraphView::findMaxYValue(const SerieData::const_iterator &data_begin, const SerieData::const_iterator &data_end, qint64 x_value) const
 {
-	return std::upper_bound(data_begin, data_end, x_value, [this](quint64 value, const ValueChange &value_change) {
+	return std::upper_bound(data_begin, data_end, x_value, [this](qint64 value, const ValueChange &value_change) {
 		return value < xValue(value_change);
 	});
 }
@@ -1932,7 +1932,7 @@ void RangeSelectorHandle::paintEvent(QPaintEvent *event)
 	painter.drawLine(width() - 4, 3, width() - 4, height() - 6);
 }
 
-bool GraphView::Selection::containsValue(quint64 value) const
+bool GraphView::Selection::containsValue(qint64 value) const
 {
 	return ((start <= end && value >= start && value <= end) ||	(start > end && value >= end && value <= start));
 }

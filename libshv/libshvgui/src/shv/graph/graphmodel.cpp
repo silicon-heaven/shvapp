@@ -155,21 +155,38 @@ bool GraphModel::addValueChangeInternal(int serie_index, const shv::gui::ValueCh
 	return false;
 }
 
-std::vector<ValueChange>::const_iterator SerieData::lessOrEqualIterator(quint64 msec_since_epoch) const
+std::vector<ValueChange>::const_iterator SerieData::lessOrEqualIterator(ValueChange::ValueX value_x) const
 {
-	auto it = std::lower_bound(cbegin(), cend(), msec_since_epoch,
-							[](const ValueChange &val, double x) -> bool { return val.valueX.timeStamp < x; });
+	std::vector<ValueChange>::const_iterator it;
+	if (m_xType == ValueType::TimeStamp) {
+		it = std::lower_bound(cbegin(), cend(), value_x.timeStamp, [this](const ValueChange &val, const ValueChange::TimeStamp &x) -> bool {
+			return val.valueX.timeStamp < x;
+		});
+	}
+	else if (m_xType == ValueType::Int) {
+		it = std::lower_bound(cbegin(), cend(), value_x.intValue, [this](const ValueChange &val, int x) -> bool {
+			return val.valueX.intValue < x;
+		});
+	}
+	else if (m_xType == ValueType::Double) {
+		it = std::lower_bound(cbegin(), cend(), value_x.doubleValue, [this](const ValueChange &val, double x) -> bool {
+			return val.valueX.doubleValue < x;
+		});
+	}
 
-	if(it == cend()) {
-		if(!empty())
+	if (it == cend()) {
+		if (!empty()) {
 			it--;
+		}
 	}
 	else {
-		if (it-> valueX.timeStamp!= msec_since_epoch) {
-			if(it == cbegin())
+		if (!compareValueX(it->valueX, value_x, m_xType)) {
+			if (it == cbegin()) {
 				it = cend();
-			else
+			}
+			else {
 				it--;
+			}
 		}
 	}
 	return it;
@@ -178,8 +195,8 @@ std::vector<ValueChange>::const_iterator SerieData::lessOrEqualIterator(quint64 
 QPair<std::vector<ValueChange>::const_iterator, std::vector<ValueChange>::const_iterator> SerieData::intersection(const ValueChange::ValueX &start, const ValueChange::ValueX &end, bool &valid) const
 {
 	QPair<std::vector<ValueChange>::const_iterator, std::vector<ValueChange>::const_iterator> result;
-	result.first = lessOrEqualIterator(start.timeStamp);
-	result.second = lessOrEqualIterator(end.timeStamp);
+	result.first = lessOrEqualIterator(start);
+	result.second = lessOrEqualIterator(end);
 
 	if ((result.first == cend()) && (!empty())){
 		result.first = cbegin();
