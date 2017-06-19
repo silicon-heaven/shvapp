@@ -32,6 +32,9 @@ GraphView::GraphView(QWidget *parent) : QWidget(parent)
   , m_leftRangeSelectorPosition(0)
   , m_rightRangeSelectorPosition(0)
 {
+	m_toolTipTimer.setSingleShot(true);
+	connect(&m_toolTipTimer, &QTimer::timeout, this, &GraphView::showToolTip);
+
 	QColor text_color = palette().text().color();
 	settings.xAxis.color = text_color;
 	settings.yAxis.color = text_color;
@@ -110,7 +113,7 @@ void GraphView::releaseModelData()
 
 	m_data = 0;
 	computeGeometry();
-	repaint();
+	update();
 }
 
 void GraphView::setModelData(const GraphModel &model_data)
@@ -180,7 +183,7 @@ void GraphView::onModelDataChanged() //TODO improve change detection in model
 		m_rightRangeSelectorHandle->show();
 	}
 	computeGeometry();
-	repaint();
+	update();
 }
 
 void GraphView::resizeEvent(QResizeEvent *resize_event)
@@ -191,7 +194,7 @@ void GraphView::resizeEvent(QResizeEvent *resize_event)
 	}
 
 	computeGeometry();
-	repaint();
+	update();
 }
 
 void GraphView::computeDataRange()
@@ -453,6 +456,12 @@ void GraphView::paintEvent(QPaintEvent *paint_event)
 		return;
 	}
 
+	int tooltip_timeout = 0;
+	if (m_toolTipTimer.isActive()) {
+		tooltip_timeout = m_toolTipTimer.remainingTime();
+		m_toolTipTimer.stop();
+	}
+
 	QRect paint_rect = paint_event->rect();
 
 	if (settings.serieList.show && paint_rect.intersects(m_serieListRect)) {
@@ -521,6 +530,9 @@ void GraphView::paintEvent(QPaintEvent *paint_event)
 				paintCurrentPosition(&painter, area);
 			}
 		}
+	}
+	if (tooltip_timeout) {
+		m_toolTipTimer.start(tooltip_timeout);
 	}
 }
 
@@ -601,7 +613,7 @@ void GraphView::mousePressEvent(QMouseEvent *mouse_event)
 				if (rect.contains(pos)) {
 					m_series[i].show = !m_series[i].show;
 					computeGeometry();
-					repaint();
+					update();
 					break;
 				}
 			}
@@ -657,7 +669,7 @@ void GraphView::mouseMoveEvent(QMouseEvent *mouse_event)
 				else {
 					updateLastValueInLastSelection(value);
 				}
-				repaint();
+				update();
 			}
 			else if (mouse_event->modifiers() == Qt::NoModifier) {
 				if (m_moveStart != -1) {
@@ -680,15 +692,14 @@ void GraphView::mouseMoveEvent(QMouseEvent *mouse_event)
 		else if (mouse_event->buttons() == Qt::NoButton) {
 			if (m_currentPosition != x_pos) {
 				m_currentPosition = x_pos;
-				repaint();
+				update();
 			}
 			if (settings.legend.show && settings.legend.type == Settings::Legend::Type::ToolTip && hasVisibleSeries()) {
-				QPoint mouse_pos = mouse_event->pos();
-				QPoint top_left = mouse_pos;
-				top_left.setY(top_left.y() - 5);
-				QPoint bottom_right = mouse_pos;
-				bottom_right.setY(bottom_right.y() + 5);
-				QToolTip::showText(mouse_event->globalPos(), legend(rectPositionToXValue(x_pos)), this, QRect(top_left, bottom_right));
+				if (m_toolTipTimer.isActive()) {
+					m_toolTipTimer.stop();
+				}
+				m_toolTipPosition = mouse_event->globalPos();
+				m_toolTipTimer.start(100);
 			}
 		}
 	}
@@ -734,6 +745,16 @@ void GraphView::mouseMoveEvent(QMouseEvent *mouse_event)
 			setCursor(requested_cursor);
 		}
 	}
+}
+
+void GraphView::showToolTip()
+{
+	QPoint mouse_pos = mapTo(this,  m_toolTipPosition);
+	QPoint top_left = mouse_pos;
+	top_left.setY(top_left.y() - 5);
+	QPoint bottom_right = mouse_pos;
+	bottom_right.setY(bottom_right.y() + 5);
+	QToolTip::showText(m_toolTipPosition, legend(rectPositionToXValue(m_currentPosition)), this, QRect(top_left, bottom_right));
 }
 
 void GraphView::mouseReleaseEvent(QMouseEvent *mouse_event)
@@ -798,7 +819,7 @@ bool GraphView::eventFilter(QObject *watched, QEvent *event)
 					}
 					computeDataRange();
 					computeGeometry();
-					repaint();
+					update();
 				}
 			}
 			else { //(watched == m_rightRangeSelectorHandle)
@@ -812,7 +833,7 @@ bool GraphView::eventFilter(QObject *watched, QEvent *event)
 					}
 					computeDataRange();
 					computeGeometry();
-					repaint();
+					update();
 				}
 
 			}
@@ -844,7 +865,7 @@ void GraphView::popupContextMenu(const QPoint &pos)
 			}
 			popup_menu.addAction(tr("&Remove selection"), [this, i]() {
 				m_selections.removeAt(i);
-				repaint();
+				update();
 				Q_EMIT selectionsChanged();
 			});
 			break;
@@ -852,7 +873,7 @@ void GraphView::popupContextMenu(const QPoint &pos)
 	}
 	QAction *remove_all_selections = popup_menu.addAction(tr("Remove &all selections"), [this]() {
 		m_selections.clear();
-		repaint();
+		update();
 	});
 	if (m_selections.count() == 0) {
 		remove_all_selections->setEnabled(false);
@@ -955,7 +976,7 @@ void GraphView::splitSeries()
 		m_serieBlocks.last() << &serie;
 	}
 	computeGeometry();
-	repaint();
+	update();
 }
 
 void GraphView::unsplitSeries()
@@ -966,13 +987,13 @@ void GraphView::unsplitSeries()
 		m_serieBlocks.last() << &serie;
 	}
 	computeGeometry();
-	repaint();
+	update();
 }
 
 void GraphView::showDependentSeries(bool enable)
 {
 	settings.showDependent = enable;
-	repaint();
+	update();
 }
 
 QVector<GraphView::XAxisInterval> GraphView::selections() const
@@ -1038,7 +1059,7 @@ void GraphView::addSelection(XAxisInterval selection)
 	if (!overlap){
 		m_selections << new_selection;
 		Q_EMIT selectionsChanged();
-		repaint();
+		update();
 	}
 }
 
@@ -1046,7 +1067,7 @@ void GraphView::clearSelections()
 {
 	m_selections.clear();
 	Q_EMIT selectionsChanged();
-	repaint();
+	update();
 }
 
 void GraphView::showRange(quint64 from, quint64 to)
@@ -1066,7 +1087,7 @@ void GraphView::showRange(quint64 from, quint64 to)
 	if (settings.rangeSelector.show) {
 		computeRangeSelectorPosition();
 	}
-	repaint();
+	update();
 }
 
 void GraphView::paintYAxisDescription(QPainter *painter, const GraphArea &area)
