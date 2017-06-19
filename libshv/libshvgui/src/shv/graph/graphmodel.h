@@ -14,8 +14,9 @@ enum class ValueType { TimeStamp, Int, Double, Bool };
 
 struct SHVGUI_DECL_EXPORT ValueChange
 {
+	using TimeStamp = qint64;
 	union ValueX {
-		ValueX(qint64 value) : timeStamp(value) {}
+		ValueX(TimeStamp value) : timeStamp(value) {}
 		ValueX(int value) : intValue(value) {}
 		ValueX(double value) : doubleValue(value) {}
 		ValueX() : intValue(0) {}
@@ -38,7 +39,7 @@ struct SHVGUI_DECL_EXPORT ValueChange
 			}
 		}
 
-		qint64 timeStamp;
+		TimeStamp timeStamp;
 		int intValue;
 		double doubleValue;
 	} valueX;
@@ -82,10 +83,10 @@ struct SHVGUI_DECL_EXPORT ValueChange
 	} valueY;
 
 	ValueChange(ValueX value_x, ValueY value_y) : valueX(value_x), valueY(value_y) {}
-	ValueChange(qint64 value_x, ValueY value_y) : ValueChange(ValueX(value_x), value_y) {}
-	ValueChange(qint64 value_x, bool value_y) : ValueChange(value_x, ValueY(value_y)) {}
-	ValueChange(qint64 value_x, int value_y) : ValueChange(value_x, ValueY(value_y)) {}
-	ValueChange(qint64 value_x, double value_y) : ValueChange(value_x, ValueY(value_y)) {}
+	ValueChange(TimeStamp value_x, ValueY value_y) : ValueChange(ValueX(value_x), value_y) {}
+	ValueChange(TimeStamp value_x, bool value_y) : ValueChange(value_x, ValueY(value_y)) {}
+	ValueChange(TimeStamp value_x, int value_y) : ValueChange(value_x, ValueY(value_y)) {}
+	ValueChange(TimeStamp value_x, double value_y) : ValueChange(value_x, ValueY(value_y)) {}
 	ValueChange() {}
 };
 
@@ -100,7 +101,7 @@ class SHVGUI_DECL_EXPORT SerieData : public std::vector<ValueChange>
 public:
 	SerieData() : m_xType(ValueType::Int), m_yType(ValueType::Int)	{}
 	SerieData(ValueType x_type, ValueType y_type) : m_xType(x_type), m_yType(y_type) {}
-	std::vector<ValueChange>::const_iterator lessOrEqualIterator(quint64 msec_since_epoch) const;
+	std::vector<ValueChange>::const_iterator lessOrEqualIterator(ValueChange::ValueX value_x) const;
 	QPair<std::vector<ValueChange>::const_iterator, std::vector<ValueChange>::const_iterator> intersection(const ValueChange::ValueX &start, const ValueChange::ValueX &end, bool &valid) const;
 
 	ValueType xType() const	{ return m_xType; }
