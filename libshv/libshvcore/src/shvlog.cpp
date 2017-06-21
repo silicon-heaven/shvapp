@@ -15,6 +15,32 @@ namespace shv {
 namespace core {
 
 namespace {
+
+struct LogFilter
+{
+	ShvLog::Level defaultModulesLogTreshold = ShvLog::Level::Info;
+	std::map<std::string, ShvLog::Level> modulesTresholds;
+	std::map<std::string, ShvLog::Level> categoriesTresholds;
+	ShvLog::Level defaultCategoriesLogTreshold = ShvLog::Level::Invalid;
+} s_globalLogFilter;
+
+bool s_logLongFileNames = false;
+
+std::string moduleFromFileName(const char *file_name)
+{
+	if(s_logLongFileNames)
+		return std::string(file_name);
+	std::string ret(file_name);
+	auto ix = ret.find_last_of('/');
+#ifndef __unix
+	if(ix == std::string::npos)
+		ix = ret.find_last_not_of('\\');
+#endif
+	if(ix != std::string::npos)
+		return ret.substr(ix + 1);
+	return ret;
+}
+
 /*
 Here, \033 is the ESC character, ASCII 27.
 It is followed by [,
@@ -43,7 +69,7 @@ enum TTYColor {Black=0, Red, Green, Yellow, Blue, Magenta, Cyan, White};
 
 std::ostream & setTtyColor(std::ostream &out, TTYColor color, bool bright, bool bg_color)
 {
-	out << "\033[" << (bright? '1': '0') << ';' << (bg_color? '4': '3') << ('0' + color) << 'm';
+	out << "\033[" << (bright? '1': '0') << ';' << (bg_color? '4': '3') << char('0' + color) << 'm';
 	return out;
 }
 
@@ -59,43 +85,36 @@ void default_message_output(ShvLog::Level level, const ShvLog::LogContext &conte
 			return setTtyColor(std::cerr, color, bright, bg_color);
 		return std::cerr;
 	};
-	set_tty_color(TTYColor::Green) << ++n;
+	set_tty_color(TTYColor::Green, true) << ++n;
 	TTYColor log_color;
+	bool stay_bright = false;
 	switch(level) {
 	case ShvLog::Level::Fatal:
-		log_color = TTYColor::Red; set_tty_color(log_color, true) << "[F]";
+		stay_bright = true; log_color = TTYColor::Red; set_tty_color(log_color, true) << "|F";
 		break;
 	case ShvLog::Level::Error:
-		log_color = TTYColor::Red; set_tty_color(log_color, true) << "[E]";
+		stay_bright = true; log_color = TTYColor::Red; set_tty_color(log_color, true) << "|E";
 		break;
 	case ShvLog::Level::Warning:
-		log_color = TTYColor::Red; set_tty_color(log_color, true) << "[W]";
+		stay_bright = true; log_color = TTYColor::Magenta; set_tty_color(log_color, true) << "|W";
 		break;
 	case ShvLog::Level::Info:
-		log_color = TTYColor::Red; set_tty_color(log_color, true) << "[I]";
+		log_color = TTYColor::Cyan; set_tty_color(log_color, true) << "|I";
 		break;
 	case ShvLog::Level::Debug:
-		log_color = TTYColor::Red; set_tty_color(log_color, true) << "[D]";
+		log_color = TTYColor::White; set_tty_color(log_color, true) << "|D";
 		break;
 	default:
-		log_color = TTYColor::Red; set_tty_color(log_color, true) << "[?]";
+		log_color = TTYColor::Yellow; set_tty_color(log_color, true) << "|?";
 		break;
 	};
-	std::cerr << context.file << ':' << context.line;
-	set_tty_color(log_color, false) << ' ' << message;
+	set_tty_color(log_color, true) << '[' << moduleFromFileName(context.file) << ':' << context.line << "] ";
+	set_tty_color(log_color, false) << message;
 	std::cerr << "\33[0m";
 	std::cerr << std::endl;
 }
 
 ShvLog::MessageOutput message_output = default_message_output;
-
-struct LogFilter
-{
-	ShvLog::Level defaultModulesLogTreshold = ShvLog::Level::Info;
-	std::map<std::string, ShvLog::Level> modulesTresholds;
-	std::map<std::string, ShvLog::Level> categoriesTresholds;
-	ShvLog::Level defaultCategoriesLogTreshold = ShvLog::Level::Invalid;
-} s_globalLogFilter;
 
 std::pair<std::string, ShvLog::Level> parseCategoryLevel(const std::string &category)
 {
@@ -186,19 +205,6 @@ std::vector<std::string> setCategoriesTresholdsFromArgs(const std::vector<std::s
 	return ret;
 }
 
-std::string moduleFromFileName(const char *file_name)
-{
-	std::string ret(file_name);
-	auto ix = ret.find_last_of('/');
-#ifndef __unix
-	if(ix == std::string::npos)
-		ix = ret.find_last_not_of('\\');
-#endif
-	if(ix != std::string::npos)
-		return ret.substr(ix + 1);
-	return ret;
-}
-
 }
 
 ShvLog::~ShvLog()
@@ -220,7 +226,38 @@ std::vector<std::string> ShvLog::setGlobalTresholds(int argc, char *argv[])
 {
 	std::vector<std::string> ret;
 	for(int i=1; i<argc; i++) {
-		ret.push_back(argv[i]);
+		const std::string &s = argv[i];
+		if(s == "-lh" || s == "--log-help") {
+			i++;
+			std::cout << "log options:" << std::endl;
+			std::cout << "-lh, --log-help" << std::endl;
+			std::cout << "\t" << "Show logging help" << std::endl;
+			std::cout << "-lfn, --log-long-file-names" << std::endl;
+			std::cout << "\t" << "Log long file names" << std::endl;
+			std::cout << "-d, --log-file [<pattern>]:[D|I|W|E]" << std::endl;
+			std::cout << "\t" << "Set file log treshold" << std::endl;
+			std::cout << "\t" << "set treshold for all files containing pattern to treshold" << std::endl;
+			std::cout << "\t" << "when pattern is not set, set treshold for all files" << std::endl;
+			std::cout << "\t" << "when treshold is not set, set treshold D (Debug) for all files containing pattern" << std::endl;
+			std::cout << "\t" << "when nothing is not set, set treshold D (Debug) for all files" << std::endl;
+			std::cout << "\t" << "Examples:" << std::endl;
+			std::cout << "\t\t" << "-d" << "\t\t" << "set treshold D (Debug) for all files" << std::endl;
+			std::cout << "\t\t" << "-d :W" << "\t\t" << "set treshold W (Warning) for all files" << std::endl;
+			std::cout << "\t\t" << "-d foo" << "\t\t" << "set treshold D for all files containing 'foo'" << std::endl;
+			std::cout << "\t\t" << "-d bar:W" << "\t" << "set treshold W (Warning) for all files containing 'bar'" << std::endl;
+			std::cout << "-v, --log-category [<pattern>]:[D|I|W|E]" << std::endl;
+			std::cout << "\t" << "Set category log treshold" << std::endl;
+			std::cout << "\t" << "set treshold for all categories containing pattern to treshold" << std::endl;
+			std::cout << "\t" << "the same rules as for module logging are applied to categiries" << std::endl;
+			exit(0);
+		}
+		else if(s == "-lfn" || s == "--log-long-file-names") {
+			i++;
+			s_logLongFileNames = true;
+		}
+		else {
+			ret.push_back(argv[i]);
+		}
 	}
 	ret = setModulesTresholdsFromArgs(ret);
 	ret = setCategoriesTresholdsFromArgs(ret);
