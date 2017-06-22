@@ -120,14 +120,18 @@ void GraphView::setModelData(const GraphModel &model_data)
 {
 	if (m_data) {
 		disconnect(m_data, &GraphModel::dataChanged, this, &GraphView::onModelDataChanged);
+		disconnect(m_data, &GraphModel::destroyed, this, &GraphView::releaseModelData);
 		releaseModelData();
 	}
+
 	m_data = &model_data;
 
-	connect(m_data, &GraphModel::dataChanged, this, &GraphView::onModelDataChanged);
-	connect(m_data, &GraphModel::destroyed, this, &GraphView::releaseModelData);
+	if (m_data) {
+		connect(m_data, &GraphModel::dataChanged, this, &GraphView::onModelDataChanged);
+		connect(m_data, &GraphModel::destroyed, this, &GraphView::releaseModelData);
 
-	onModelDataChanged();
+		onModelDataChanged();
+	}
 }
 
 void GraphView::onModelDataChanged() //TODO improve change detection in model
