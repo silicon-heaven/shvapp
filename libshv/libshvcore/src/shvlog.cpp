@@ -14,6 +14,13 @@
 namespace shv {
 namespace core {
 
+//#define SHVLOG_DEBUG
+#ifdef SHVLOG_DEBUG
+#define mylog std::cerr
+#else
+#define mylog if(false) std::cerr
+#endif
+
 namespace {
 
 struct LogFilter
@@ -90,26 +97,28 @@ void default_message_output(ShvLog::Level level, const ShvLog::LogContext &conte
 	bool stay_bright = false;
 	switch(level) {
 	case ShvLog::Level::Fatal:
-		stay_bright = true; log_color = TTYColor::Red; set_tty_color(log_color, true) << "|F";
+		stay_bright = true; log_color = TTYColor::Red; set_tty_color(log_color, true) << "|F|";
 		break;
 	case ShvLog::Level::Error:
-		stay_bright = true; log_color = TTYColor::Red; set_tty_color(log_color, true) << "|E";
+		stay_bright = true; log_color = TTYColor::Red; set_tty_color(log_color, true) << "|E|";
 		break;
 	case ShvLog::Level::Warning:
-		stay_bright = true; log_color = TTYColor::Magenta; set_tty_color(log_color, true) << "|W";
+		stay_bright = true; log_color = TTYColor::Magenta; set_tty_color(log_color, true) << "|W|";
 		break;
 	case ShvLog::Level::Info:
-		log_color = TTYColor::Cyan; set_tty_color(log_color, true) << "|I";
+		log_color = TTYColor::Cyan; set_tty_color(log_color, true) << "|I|";
 		break;
 	case ShvLog::Level::Debug:
-		log_color = TTYColor::White; set_tty_color(log_color, true) << "|D";
+		log_color = TTYColor::White; set_tty_color(log_color, true) << "|D|";
 		break;
 	default:
-		log_color = TTYColor::Yellow; set_tty_color(log_color, true) << "|?";
+		log_color = TTYColor::Yellow; set_tty_color(log_color, true) << "|?|";
 		break;
 	};
-	set_tty_color(log_color, true) << '[' << moduleFromFileName(context.file) << ':' << context.line << "] ";
-	set_tty_color(log_color, false) << message;
+	if(context.category && context.category[0])
+		set_tty_color(TTYColor::Yellow, true) << '(' << context.category << ')';
+	set_tty_color(TTYColor::White, true) << '[' << moduleFromFileName(context.file) << ':' << context.line << "] ";
+	set_tty_color(log_color, stay_bright) << message;
 	std::cerr << "\33[0m";
 	std::cerr << std::endl;
 }
@@ -143,14 +152,19 @@ std::pair<std::string, ShvLog::Level> parseCategoryLevel(const std::string &cate
 void setModulesTresholds(const std::vector<std::string> &tresholds)
 {
 	if(tresholds.empty()) {
+		mylog << "setting defaultModulesLogTreshold to: " << ShvLog::levelToString(ShvLog::Level::Debug) << std::endl;
 		s_globalLogFilter.defaultModulesLogTreshold = ShvLog::Level::Debug;
 	}
 	else for(std::string module : tresholds) {
 		std::pair<std::string, ShvLog::Level> lev = parseCategoryLevel(module);
-		if(lev.first.empty())
+		if(lev.first.empty()) {
+			mylog << "setting defaultModulesLogTreshold to: " << ShvLog::levelToString(lev.second) << std::endl;
 			s_globalLogFilter.defaultModulesLogTreshold = lev.second;
-		else
+		}
+		else {
+			mylog << "setting moduleTreshold: " << lev.first << " to: " << ShvLog::levelToString(lev.second) << std::endl;
 			s_globalLogFilter.modulesTresholds[lev.first] = lev.second;
+		}
 	}
 }
 
@@ -174,12 +188,20 @@ std::vector<std::string> setModulesTresholdsFromArgs(const std::vector<std::stri
 
 void setCategoriesTresholds(const std::vector<std::string> &tresholds)
 {
-	for(std::string module : tresholds) {
+	if(tresholds.empty()) {
+		mylog << "setting defaultCategoriesLogTreshold to: " << ShvLog::levelToString(ShvLog::Level::Debug) << std::endl;
+		s_globalLogFilter.defaultCategoriesLogTreshold = ShvLog::Level::Debug;
+	}
+	else for(std::string module : tresholds) {
 		std::pair<std::string, ShvLog::Level> lev = parseCategoryLevel(module);
-		if(lev.first.empty())
+		if(lev.first.empty()) {
+			mylog << "setting defaultCategoriesLogTreshold to: " << ShvLog::levelToString(lev.second) << std::endl;
 			s_globalLogFilter.defaultCategoriesLogTreshold = lev.second;
-		else
+		}
+		else {
+			mylog << "setting categorieTreshold: " << lev.first << " to: " << ShvLog::levelToString(lev.second) << std::endl;
 			s_globalLogFilter.categoriesTresholds[lev.first] = lev.second;
+		}
 	}
 }
 
@@ -193,15 +215,13 @@ std::vector<std::string> setCategoriesTresholdsFromArgs(const std::vector<std::s
 		const string &s = args[i];
 		if(s == "-v" || s == "--verbose") {
 			i++;
-			if(i < args.size()) {
-					setCategoriesTresholds(String::split(args[i], ','));
-			}
+			std::string tresholds =  (i < args.size())? args[i]: std::string();
+			setCategoriesTresholds(String::split(tresholds, ','));
 		}
 		else {
 			ret.push_back(s);
 		}
 	}
-	setCategoriesTresholds(tresholds);
 	return ret;
 }
 
@@ -210,13 +230,15 @@ std::vector<std::string> setCategoriesTresholdsFromArgs(const std::vector<std::s
 ShvLog::~ShvLog()
 {
 	if (!--stream->ref) {
-		std::streambuf *buff = stream->ts.rdbuf();
-		std::stringbuf *sbuff = dynamic_cast<std::stringbuf*>(buff);
-		if(sbuff) {
-			std::string msg = sbuff->str();
-			if (stream->space && !msg.empty() && msg.back() == ' ')
-				msg.pop_back();
-			message_output(stream->level, stream->context, msg);
+		if(stream->level > Level::Invalid) {
+			std::streambuf *buff = stream->ts.rdbuf();
+			std::stringbuf *sbuff = dynamic_cast<std::stringbuf*>(buff);
+			if(sbuff) {
+				std::string msg = sbuff->str();
+				if (stream->space && !msg.empty() && msg.back() == ' ')
+					msg.pop_back();
+				message_output(stream->level, stream->context, msg);
+			}
 		}
 		delete stream;
 	}
@@ -256,7 +278,7 @@ std::vector<std::string> ShvLog::setGlobalTresholds(int argc, char *argv[])
 			s_logLongFileNames = true;
 		}
 		else {
-			ret.push_back(argv[i]);
+			ret.push_back(s);
 		}
 	}
 	ret = setModulesTresholdsFromArgs(ret);
@@ -279,10 +301,17 @@ bool ShvLog::isMatchingLogFilter(ShvLog::Level level, const ShvLog::LogContext &
 	if(log_context.category && log_context.category[0]) {
 		// if category is specified, than module logging rules are ignored
 		std::string cat(log_context.category);
+#ifdef EXACT_CATEGORY_MATCH
 		auto it = log_filter.categoriesTresholds.find(cat);
 		ShvLog::Level category_level = (it == log_filter.categoriesTresholds.end())? log_filter.defaultCategoriesLogTreshold: it->second;
-
 		return (level <= category_level);
+#else
+		for (auto& kv : log_filter.categoriesTresholds) {
+			//mylog << cat << " vs " << kv.first << " == " << (String::indexOf(cat, kv.first, String::CaseInsensitive) != std::string::npos) << std::endl;
+			if(String::indexOf(cat, kv.first, String::CaseInsensitive) != std::string::npos)
+				return level <= kv.second;
+		}
+#endif
 	}
 	{
 		std::string module = moduleFromFileName(log_context.file);
@@ -292,6 +321,25 @@ bool ShvLog::isMatchingLogFilter(ShvLog::Level level, const ShvLog::LogContext &
 		}
 	}
 	return level <= log_filter.defaultModulesLogTreshold;
+}
+
+const char* ShvLog::levelToString(ShvLog::Level level)
+{
+	switch(level) {
+	case ShvLog::Level::Fatal:
+		return "Fatal";
+	case ShvLog::Level::Error:
+		return "Error";
+	case ShvLog::Level::Warning:
+		return "Warning";
+	case ShvLog::Level::Info:
+		return "Info";
+	case ShvLog::Level::Debug:
+		return "Debug";
+	case ShvLog::Level::Invalid:
+		return "Invalid";
+	}
+	return "???";
 }
 
 }}

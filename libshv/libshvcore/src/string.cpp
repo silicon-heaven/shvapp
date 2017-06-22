@@ -12,7 +12,7 @@ std::string::size_type String::indexOf(const std::string & str_haystack, const s
 	auto it = std::search(
 				  str_haystack.begin(), str_haystack.end(),
 				  str_needle.begin(), str_needle.end(),
-				  (case_sensitivity == CaseSensitive) ?
+				  (case_sensitivity == CaseInsensitive) ?
 					  [](char a, char b) { return std::tolower(a) == std::tolower(b); }:
 					  [](char a, char b) { return a == b;}
 	);
@@ -25,7 +25,7 @@ bool String::equal(std::string const& a, std::string const& b, String::CaseSensi
 		return std::equal(
 					b.begin(), b.end(),
 					a.begin(),
-					(case_sensitivity == CaseSensitive) ?
+					(case_sensitivity == CaseInsensitive) ?
 						[](char a, char b) { return std::tolower(a) == std::tolower(b); }:
 						[](char a, char b) { return a == b;}
 		);

@@ -18,7 +18,7 @@ public:
 	{
 	public:
 		LogContext() : line(0), file(nullptr), function(nullptr), category(nullptr) {}
-		LogContext(const char *file_name, int line_number, const char *function_name, const char *category_name)
+		LogContext(const char *file_name, int line_number, const char *function_name, const char *category_name = nullptr)
 			: line(line_number), file(file_name), function(function_name), category(category_name) {}
 
 		int line;
@@ -95,6 +95,8 @@ public:
 	inline ShvLog &operator<<(T t) { stream->ts << t; return maybeSpace(); }
 	inline ShvLog &operator<<(const void * t) { stream->ts << t; return maybeSpace(); }
 	inline ShvLog &operator<<(std::nullptr_t) { stream->ts << "(nullptr)"; return maybeSpace(); }
+
+	static const char *levelToString(ShvLog::Level level);
 };
 
 }}
