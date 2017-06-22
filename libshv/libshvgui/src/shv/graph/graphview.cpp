@@ -1452,12 +1452,8 @@ void GraphView::paintValueSerie(QPainter *painter, const QRect &rect, int x_axis
 
 	QPoint first_point;
 	ValueChange::ValueY first_value_y = serie.valueFormatter ? serie.valueFormatter(*begin) : begin->valueY;
-	if (serie.type == ValueType::Double) {
-		first_point = QPoint(0, x_axis_position - (first_value_y.doubleValue / y_scale));
-	}
-	else if (serie.type == ValueType::Int) {
-		first_point = QPoint(0, x_axis_position - (first_value_y.intValue / y_scale));
-	}
+	first_point = QPoint(0, x_axis_position - (first_value_y.toDouble(serie.type) / y_scale));
+
 	int max_on_first = first_point.y();
 	int min_on_first = first_point.y();
 	int last_on_first = first_point.y();
@@ -1466,18 +1462,11 @@ void GraphView::paintValueSerie(QPainter *painter, const QRect &rect, int x_axis
 	polygon << QPoint(0, rect.height());
 	polygon << first_point;
 
+	QPoint last_point(0,0);
 	for (auto it = begin + 1; it != end; ++it) {
 		ValueChange::ValueY value_change = serie.valueFormatter ? serie.valueFormatter(*it) : it->valueY;
 		qint64 x_value = xValue(*it);
-		QPoint last_point;
-		if (serie.type == ValueType::Double) {
-			double y_value = value_change.doubleValue;
-			last_point = QPoint((x_value - min) / x_scale, x_axis_position - (y_value / y_scale));
-		}
-		else if (serie.type == ValueType::Int) {
-			int y_value = value_change.intValue;
-			last_point = QPoint((x_value - min) / x_scale, x_axis_position - (y_value / y_scale));
-		}
+		last_point = QPoint((x_value - min) / x_scale, x_axis_position - (value_change.toDouble(serie.type) / y_scale));
 
 		if (last_point.x() == first_point.x()) {
 			if (max_on_first < last_point.y()) {
@@ -1507,10 +1496,17 @@ void GraphView::paintValueSerie(QPainter *painter, const QRect &rect, int x_axis
 			last_on_first = first_point.y();
 		}
 	}
-	if (first_point.x() != rect.width() && max < m_loadedRangeMax) {
+
+	if (last_point.x() == 0) { //last point was not found
 		painter->drawLine(first_point.x(), first_point.y(), rect.width(), first_point.y());
 		polygon << QPoint(rect.width(), first_point.y());
 	}
+	else if (last_point.x() != rect.width()) {
+		painter->drawLine(last_point.x(), last_point.y(), rect.width(), last_point.y());
+		polygon << QPoint(last_point.x(), last_point.y());
+		polygon << QPoint(rect.width(), last_point.y());
+	}
+
 	if (fill_rect) {
 		polygon << QPoint(rect.width(), rect.height());
 		QPainterPath path;
