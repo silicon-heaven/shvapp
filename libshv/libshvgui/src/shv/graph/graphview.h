@@ -3,6 +3,7 @@
 #include "../../shvguiglobal.h"
 
 #include <QColor>
+#include <QPainter>
 #include <QPushButton>
 #include <QTimer>
 #include <QWidget>
@@ -153,6 +154,8 @@ public:
 	void addSelection(XAxisInterval selection);
 	void clearSelections();
 
+	void addPointOfInterest(ValueChange::ValueX position, const QString &comment, const QColor &color);
+
 	Q_SIGNAL void selectionsChanged();
 
 protected:
@@ -189,6 +192,15 @@ private:
 		bool containsValue(qint64 value) const;
 	};
 
+	class PointOfInterest
+	{
+	public:
+		qint64 position;
+		QString comment;
+		QColor color;
+		QPainterPath painterPath;
+	};
+
 	void popupContextMenu(const QPoint &pos);
 	void paintXAxisDescription(QPainter *painter);
 	void paintYAxisDescription(QPainter *painter, const GraphArea &area);
@@ -214,6 +226,7 @@ private:
 	void paintLegend(QPainter *painter);
 	void paintCurrentPosition(QPainter *painter, const GraphArea &area);
 	void paintCurrentPosition(QPainter *painter, const GraphArea &area, const Serie &serie, qint64 current);
+	void paintPointsOfInterest(QPainter *painter, const GraphArea &area);
 
 	QString legend(qint64 position) const;
 	QString legendRow(const Serie &serie, qint64 position) const;
@@ -281,6 +294,8 @@ private:
 	int m_rightRangeSelectorPosition;
 	QTimer m_toolTipTimer;
 	QPoint m_toolTipPosition;
+	QVector<PointOfInterest> m_pointsOfInterest;
+	QPainterPath m_poiPath;
 };
 
 }

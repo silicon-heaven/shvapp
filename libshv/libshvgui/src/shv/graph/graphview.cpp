@@ -12,6 +12,9 @@
 namespace shv {
 namespace gui {
 
+static constexpr const int POI_SYMBOL_WIDTH = 12;
+static constexpr const int POI_SYMBOL_HEIGHT = 18;
+
 GraphView::GraphView(QWidget *parent) : QWidget(parent)
   , m_data(0)
   , m_displayedRangeMin(0LL)
@@ -94,6 +97,10 @@ GraphView::GraphView(QWidget *parent) : QWidget(parent)
 	m_rightRangeSelectorHandle = new RangeSelectorHandle(this);
 	m_rightRangeSelectorHandle->installEventFilter(this);
 	m_rightRangeSelectorHandle->hide();
+
+	m_poiPath.moveTo(POI_SYMBOL_WIDTH / 2, POI_SYMBOL_HEIGHT);
+	m_poiPath.arcTo(QRect(0, 0, POI_SYMBOL_WIDTH, POI_SYMBOL_WIDTH), -30, 240);
+	m_poiPath.closeSubpath();
 }
 
 void GraphView::releaseModelData()
@@ -112,6 +119,7 @@ void GraphView::releaseModelData()
 	m_selections.clear();
 
 	m_data = 0;
+	m_pointsOfInterest.clear();
 	computeGeometry();
 	update();
 }
@@ -259,9 +267,10 @@ void GraphView::computeRangeSelectorPosition()
 
 void GraphView::computeGeometry()
 {
-	QRect all_graphs_rect(settings.margin.left, settings.margin.top,
+	int poi_strip_height = m_pointsOfInterest.count() ? (POI_SYMBOL_HEIGHT + 2) : 0;
+	QRect all_graphs_rect(settings.margin.left, settings.margin.top + poi_strip_height,
 					 width() - settings.margin.left - settings.margin.right,
-					 height() - settings.margin.top - settings.margin.bottom);
+					 height() - settings.margin.top - poi_strip_height - settings.margin.bottom);
 	if (settings.serieList.show) {
 		m_serieListRect = QRect(all_graphs_rect.x(), all_graphs_rect.bottom() - settings.serieList.height, all_graphs_rect.width(), settings.serieList.height);
 		all_graphs_rect.setBottom(all_graphs_rect.bottom() - settings.serieList.height);
@@ -521,6 +530,7 @@ void GraphView::paintEvent(QPaintEvent *paint_event)
 			if (settings.horizontalGrid.show) {
 				paintHorizontalGrid(&painter, area);
 			}
+			paintPointsOfInterest(&painter, area);
 			if (m_series.count()) {
 				paintSeries(&painter, area);
 			}
@@ -730,23 +740,33 @@ void GraphView::mouseMoveEvent(QMouseEvent *mouse_event)
 		}
 	}
 	else {
-		bool on_serie_list = false;
-		for (const QRect &rect : m_seriesListRect) {
-			if (rect.contains(pos)) {
-				on_serie_list = true;
+		bool in_poi = false;
+		for (const PointOfInterest &poi : m_pointsOfInterest) {
+			if (poi.painterPath.contains(pos)) {
+				QToolTip::showText(mouse_event->globalPos(), poi.comment, this, poi.painterPath.boundingRect().toRect());
+				in_poi = true;
 				break;
 			}
 		}
-		Qt::CursorShape current_cursor = cursor().shape();
-		Qt::CursorShape requested_cursor;
-		if (on_serie_list) {
-			requested_cursor = Qt::PointingHandCursor;
-		}
-		else {
-			requested_cursor = Qt::ArrowCursor;
-		}
-		if (current_cursor != requested_cursor) {
-			setCursor(requested_cursor);
+		if (!in_poi) {
+			bool on_serie_list = false;
+			for (const QRect &rect : m_seriesListRect) {
+				if (rect.contains(pos)) {
+					on_serie_list = true;
+					break;
+				}
+			}
+			Qt::CursorShape current_cursor = cursor().shape();
+			Qt::CursorShape requested_cursor;
+			if (on_serie_list) {
+				requested_cursor = Qt::PointingHandCursor;
+			}
+			else {
+				requested_cursor = Qt::ArrowCursor;
+			}
+			if (current_cursor != requested_cursor) {
+				setCursor(requested_cursor);
+			}
 		}
 	}
 }
@@ -1074,6 +1094,15 @@ void GraphView::clearSelections()
 	update();
 }
 
+void GraphView::addPointOfInterest(ValueChange::ValueX position, const QString &comment, const QColor &color)
+{
+	m_pointsOfInterest << PointOfInterest { xValue(position), comment, color, QPainterPath() };
+	if (m_pointsOfInterest.count() == 1) {
+		computeGeometry();
+	}
+	update();
+}
+
 void GraphView::showRange(qint64 from, qint64 to)
 {
 	if (from < m_loadedRangeMin || from > to) {
@@ -1184,6 +1213,9 @@ void GraphView::paintY2AxisLabels(QPainter *painter, const GraphArea &area)
 
 void GraphView::paintYAxisLabels(QPainter *painter, const Settings::Axis &axis, int shownDecimalPoints, const QRect &rect, int align)
 {
+	if (m_horizontalGridDistance < 1.0) {
+		return;
+	}
 	painter->save();
 	QPen pen(axis.color);
 	painter->setPen(pen);
@@ -1245,8 +1277,10 @@ void GraphView::paintHorizontalGrid(QPainter *painter, const GraphArea &area)
 {
 	painter->save();
 	painter->setPen(settings.horizontalGrid.color);
-	for (double y = area.graphRect.bottom(); y > area.graphRect.y(); y -= m_horizontalGridDistance) {
-		painter->drawLine(area.graphRect.x(), y, area.graphRect.right(), y);
+	if (m_horizontalGridDistance > 1.0) {
+		for (double y = area.graphRect.bottom(); y > area.graphRect.y(); y -= m_horizontalGridDistance) {
+			painter->drawLine(area.graphRect.x(), y, area.graphRect.right(), y);
+		}
 	}
 	painter->drawLine(area.graphRect.topLeft(), area.graphRect.topRight());
 	painter->restore();
@@ -1667,6 +1701,31 @@ void GraphView::paintCurrentPosition(QPainter *painter, const GraphArea &area, c
 		painter->fillPath(path, serie.color);
 	}
 
+}
+
+void GraphView::paintPointsOfInterest(QPainter *painter, const GraphArea &area)
+{
+	painter->save();
+	painter->setRenderHint(QPainter::Antialiasing);
+
+	for (PointOfInterest &poi : m_pointsOfInterest) {
+		QPen pen(poi.color);
+		painter->setPen(pen);
+		int pos = xValueToWidgetPosition(poi.position);
+		painter->drawLine(pos, area.graphRect.top(), pos, area.graphRect.bottom());
+
+		if (&area == &m_graphArea[0]) {
+			poi.painterPath = m_poiPath.translated(pos - (POI_SYMBOL_WIDTH / 2), area.graphRect.top() - POI_SYMBOL_HEIGHT - 2);
+			painter->drawLine(pos, area.graphRect.top() - 2, pos, area.graphRect.top());
+			painter->fillPath(poi.painterPath, poi.color);
+			painter->drawPath(poi.painterPath);
+			QPainterPath circle_path;
+			circle_path.addEllipse(pos - (POI_SYMBOL_WIDTH / 2) + 2, area.graphRect.top() - POI_SYMBOL_HEIGHT, POI_SYMBOL_WIDTH - 4, POI_SYMBOL_WIDTH - 4);
+			painter->fillPath(circle_path, Qt::white);
+		}
+	}
+
+	painter->restore();
 }
 
 void GraphView::paintCurrentPosition(QPainter *painter, const GraphArea &area)
