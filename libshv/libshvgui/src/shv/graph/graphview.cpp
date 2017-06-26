@@ -97,10 +97,15 @@ GraphView::GraphView(QWidget *parent) : QWidget(parent)
 	m_rightRangeSelectorHandle = new RangeSelectorHandle(this);
 	m_rightRangeSelectorHandle->installEventFilter(this);
 	m_rightRangeSelectorHandle->hide();
+}
 
-	m_poiPath.moveTo(POI_SYMBOL_WIDTH / 2, POI_SYMBOL_HEIGHT);
-	m_poiPath.arcTo(QRect(0, 0, POI_SYMBOL_WIDTH, POI_SYMBOL_WIDTH), -30, 240);
-	m_poiPath.closeSubpath();
+QPainterPath GraphView::createPoiPath(int x, int y) const
+{
+	QPainterPath painter_path(QPointF(x, y));
+	painter_path.moveTo(x + POI_SYMBOL_WIDTH / 2, y + POI_SYMBOL_HEIGHT);
+	painter_path.arcTo(QRect(x, y, POI_SYMBOL_WIDTH, POI_SYMBOL_WIDTH), -30, 240);
+	painter_path.closeSubpath();
+	return painter_path;
 }
 
 void GraphView::releaseModelData()
@@ -1715,7 +1720,7 @@ void GraphView::paintPointsOfInterest(QPainter *painter, const GraphArea &area)
 		painter->drawLine(pos, area.graphRect.top(), pos, area.graphRect.bottom());
 
 		if (&area == &m_graphArea[0]) {
-			poi.painterPath = m_poiPath.translated(pos - (POI_SYMBOL_WIDTH / 2), area.graphRect.top() - POI_SYMBOL_HEIGHT - 2);
+			poi.painterPath = createPoiPath(pos - (POI_SYMBOL_WIDTH / 2), area.graphRect.top() - POI_SYMBOL_HEIGHT - 2);
 			painter->drawLine(pos, area.graphRect.top() - 2, pos, area.graphRect.top());
 			painter->fillPath(poi.painterPath, poi.color);
 			painter->drawPath(poi.painterPath);

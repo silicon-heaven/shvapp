@@ -1,5 +1,9 @@
 #include "graphmodel.h"
 
+#include "float.h"
+
+#include <QDebug>
+
 namespace shv {
 namespace gui {
 
@@ -21,6 +25,79 @@ void GraphModel::checkIndex(int serie_index) const
 	if (serie_index >= (int)m_series.size()) {
 		throw std::runtime_error("bad serie index");
 	}
+}
+
+ValueXInterval GraphModel::intRange() const
+{
+	ValueXInterval range(INT_MAX, INT_MIN);
+
+	for (const SerieData &serie : m_series) {
+		if (serie.xType() != ValueType::Int) {
+			throw std::runtime_error("Cannot determine data range when X types are different");
+		}
+
+		ValueXInterval serie_range = serie.range();
+		if (serie_range.min.intValue < range.min.intValue) {
+			range.min.intValue = serie_range.min.intValue;
+		}
+		if (serie_range.max.intValue > range.max.intValue) {
+			range.max.intValue = serie_range.max.intValue;
+		}
+	}
+	if (range.min.intValue == INT_MAX) {
+		range = ValueXInterval(0, 0);
+	}
+
+	return range;
+}
+
+ValueXInterval GraphModel::doubleRange() const
+{
+	ValueXInterval range(DBL_MAX, DBL_MIN);
+
+	for (const SerieData &serie : m_series) {
+		if (serie.xType() != ValueType::Double) {
+			throw std::runtime_error("Cannot determine data range when X types are different");
+		}
+
+		ValueXInterval serie_range = serie.range();
+		if (serie_range.min.doubleValue < range.min.doubleValue) {
+			range.min.doubleValue = serie_range.min.doubleValue;
+		}
+		if (serie_range.max.doubleValue > range.max.doubleValue) {
+			range.max.doubleValue = serie_range.max.doubleValue;
+		}
+	}
+	if (range.min.doubleValue == DBL_MAX) {
+		range = ValueXInterval(0.0, 0.0);
+	}
+
+	return range;
+}
+
+ValueXInterval GraphModel::timeStampRange() const
+{
+	ValueXInterval range((ValueChange::TimeStamp)INT64_MAX, (ValueChange::TimeStamp)INT64_MIN);
+
+	for (const SerieData &serie : m_series) {
+		if (serie.xType() != ValueType::TimeStamp) {
+			throw std::runtime_error("Cannot determine data range when X types are different");
+		}
+
+		ValueXInterval serie_range = serie.range();
+
+		if (serie_range.min.timeStamp < range.min.timeStamp) {
+			range.min.timeStamp = serie_range.min.timeStamp;
+		}
+		if (serie_range.max.timeStamp > range.max.timeStamp) {
+			range.max.timeStamp = serie_range.max.timeStamp;
+		}
+	}
+	if (range.min.timeStamp == INT64_MAX) {
+		range = ValueXInterval((ValueChange::TimeStamp)0, (ValueChange::TimeStamp)0);
+	}
+
+	return range;
 }
 
 SerieData *GraphModel::serieData(int serie_index)
@@ -145,6 +222,24 @@ void GraphModel::addDataEnd()
 	m_dataChangeEnabled = true;
 }
 
+ValueXInterval GraphModel::range() const
+{
+	if (!m_series.size()) {
+		throw std::runtime_error("Cannot state range where no series are present");
+	}
+	ValueType type = m_series[0].xType();
+	switch (type) {
+	case ValueType::Double:
+		return doubleRange();
+	case ValueType::Int:
+		return intRange();
+	case ValueType::TimeStamp:
+		return timeStampRange();
+	default:
+		throw std::runtime_error("Invalid X axis type");
+	}
+}
+
 bool GraphModel::addValueChangeInternal(int serie_index, const shv::gui::ValueChange &value)
 {
 	SerieData &serie = m_series[serie_index];
@@ -204,6 +299,25 @@ QPair<std::vector<ValueChange>::const_iterator, std::vector<ValueChange>::const_
 
 	valid = (result.second != cend());
 	return result;
+}
+
+ValueXInterval SerieData::range() const
+{
+	if (size()) {
+		return ValueXInterval { at(0).valueX, back().valueX };
+	}
+	else {
+		switch (xType()) {
+		case ValueType::Double:
+			return ValueXInterval { ValueChange::ValueX(0.0), ValueChange::ValueX(0.0) };
+		case ValueType::Int:
+			return ValueXInterval { ValueChange::ValueX(0), ValueChange::ValueX(0) };
+		case ValueType::TimeStamp:
+			return ValueXInterval { ValueChange::ValueX(0LL), ValueChange::ValueX(0LL) };
+		default:
+			throw std::runtime_error("Invalid type on X axis");
+		}
+	}
 }
 
 }

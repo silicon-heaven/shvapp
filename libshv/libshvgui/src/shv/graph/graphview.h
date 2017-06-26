@@ -255,6 +255,7 @@ private:
 	void computeRange(int &min, int &max) const;
 	void computeRange(qint64 &min, qint64 &max) const;
 	void computeDataRange();
+	QPainterPath createPoiPath(int x, int y) const;
 	SerieData::const_iterator findMinYValue(const SerieData::const_iterator &data_begin, const SerieData::const_iterator &data_end, qint64 x_value) const;
 	SerieData::const_iterator findMaxYValue(const SerieData::const_iterator &data_begin, const SerieData::const_iterator &data_end, qint64 x_value) const;
 //	template<typename T> static void mergeSerieMemberWithDefault(Serie &merged_serie, const Serie &param, T Serie::*member);
@@ -295,7 +296,6 @@ private:
 	QTimer m_toolTipTimer;
 	QPoint m_toolTipPosition;
 	QVector<PointOfInterest> m_pointsOfInterest;
-	QPainterPath m_poiPath;
 };
 
 }

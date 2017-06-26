@@ -90,6 +90,16 @@ struct SHVGUI_DECL_EXPORT ValueChange
 	ValueChange() {}
 };
 
+struct ValueXInterval {
+	inline ValueXInterval(ValueChange::ValueX min, ValueChange::ValueX max) : min(min), max(max) {}
+	inline ValueXInterval(int min, int max) : min(min), max(max) {}
+	inline ValueXInterval(ValueChange::TimeStamp min, ValueChange::TimeStamp max) : min(min), max(max) {}
+	inline ValueXInterval(double min, double max) : min(min), max(max) {}
+
+	ValueChange::ValueX min;
+	ValueChange::ValueX max;
+};
+
 SHVGUI_DECL_EXPORT bool compareValueX(const ValueChange &value1, const ValueChange &value2, ValueType type);
 SHVGUI_DECL_EXPORT bool compareValueX(const ValueChange::ValueX &value1, const ValueChange::ValueX &value2, ValueType type);
 
@@ -106,6 +116,8 @@ public:
 
 	ValueType xType() const	{ return m_xType; }
 	ValueType yType() const	{ return m_yType; }
+
+	ValueXInterval range() const;
 
 private:
 	ValueType m_xType;
@@ -134,9 +146,15 @@ public:
 	void addDataBegin();
 	void addDataEnd();
 
+	ValueXInterval range() const;
+
 protected:
 	void checkIndex(int serie_index) const;
 	virtual bool addValueChangeInternal(int serie_index, const shv::gui::ValueChange &value);
+
+	ValueXInterval intRange() const;
+	ValueXInterval doubleRange() const;
+	ValueXInterval timeStampRange() const;
 
 	std::vector<SerieData> m_series;
 	bool m_dataAdded;
