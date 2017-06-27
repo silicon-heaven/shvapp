@@ -1715,6 +1715,7 @@ void GraphView::paintPointsOfInterest(QPainter *painter, const GraphArea &area)
 
 	for (PointOfInterest &poi : m_pointsOfInterest) {
 		QPen pen(poi.color);
+		pen.setStyle(Qt::PenStyle::DashLine);
 		painter->setPen(pen);
 		int pos = xValueToWidgetPosition(poi.position);
 		painter->drawLine(pos, area.graphRect.top(), pos, area.graphRect.bottom());
