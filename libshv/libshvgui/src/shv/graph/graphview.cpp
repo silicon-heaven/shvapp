@@ -826,7 +826,7 @@ bool GraphView::eventFilter(QObject *watched, QEvent *event)
 {
 	auto rangeRectPositionToXValue = [this](int pos)->qint64
 	{
-		return (pos - m_rangeSelectorRect.x()) * (m_loadedRangeMax - m_loadedRangeMin) / m_rangeSelectorRect.width();
+		return m_loadedRangeMin + ((pos - m_rangeSelectorRect.x()) * (m_loadedRangeMax - m_loadedRangeMin) / m_rangeSelectorRect.width());
 	};
 
 	static int last_mouse_position = 0;
