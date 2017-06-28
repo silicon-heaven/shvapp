@@ -1710,20 +1710,22 @@ void GraphView::paintPointsOfInterest(QPainter *painter, const GraphArea &area)
 	painter->setRenderHint(QPainter::Antialiasing);
 
 	for (PointOfInterest &poi : m_pointsOfInterest) {
-		QPen pen(poi.color);
-		pen.setStyle(Qt::PenStyle::DashLine);
-		painter->setPen(pen);
 		int pos = xValueToWidgetPosition(poi.position);
-		painter->drawLine(pos, area.graphRect.top(), pos, area.graphRect.bottom());
+		if (pos >= area.graphRect.left() && pos <= area.graphRect.right()) {
+			QPen pen(poi.color);
+			pen.setStyle(Qt::PenStyle::DashLine);
+			painter->setPen(pen);
+			painter->drawLine(pos, area.graphRect.top(), pos, area.graphRect.bottom());
 
-		if (&area == &m_graphArea[0]) {
-			poi.painterPath = createPoiPath(pos - (POI_SYMBOL_WIDTH / 2), area.graphRect.top() - POI_SYMBOL_HEIGHT - 2);
-			painter->drawLine(pos, area.graphRect.top() - 2, pos, area.graphRect.top());
-			painter->fillPath(poi.painterPath, poi.color);
-			painter->drawPath(poi.painterPath);
-			QPainterPath circle_path;
-			circle_path.addEllipse(pos - (POI_SYMBOL_WIDTH / 2) + 2, area.graphRect.top() - POI_SYMBOL_HEIGHT, POI_SYMBOL_WIDTH - 4, POI_SYMBOL_WIDTH - 4);
-			painter->fillPath(circle_path, Qt::white);
+			if (&area == &m_graphArea[0]) {
+				poi.painterPath = createPoiPath(pos - (POI_SYMBOL_WIDTH / 2), area.graphRect.top() - POI_SYMBOL_HEIGHT - 2);
+				painter->drawLine(pos, area.graphRect.top() - 2, pos, area.graphRect.top());
+				painter->fillPath(poi.painterPath, poi.color);
+				painter->drawPath(poi.painterPath);
+				QPainterPath circle_path;
+				circle_path.addEllipse(pos - (POI_SYMBOL_WIDTH / 2) + 2, area.graphRect.top() - POI_SYMBOL_HEIGHT, POI_SYMBOL_WIDTH - 4, POI_SYMBOL_WIDTH - 4);
+				painter->fillPath(circle_path, Qt::white);
+			}
 		}
 	}
 
