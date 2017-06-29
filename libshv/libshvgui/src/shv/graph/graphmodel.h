@@ -118,6 +118,7 @@ public:
 	ValueType yType() const	{ return m_yType; }
 
 	ValueXInterval range() const;
+	bool addValueChange(const ValueChange &value);
 
 private:
 	ValueType m_xType;
@@ -140,7 +141,7 @@ public:
 	void addValueChanges(int serie_index, const std::vector<shv::gui::ValueChange> &values); // adds array of valyes to one serie
 	void addValueChanges(const std::vector<shv::gui::ValueChange> &values); //adds array of values where every value belongs to one serie
 
-	void addSerie(ValueType xType, ValueType yType);
+	void addSerie(SerieData *serie);
 	void clearSeries();
 
 	void addDataBegin();
@@ -156,7 +157,7 @@ protected:
 	ValueXInterval doubleRange() const;
 	ValueXInterval timeStampRange() const;
 
-	std::vector<SerieData> m_series;
+	std::vector<SerieData*> m_series;
 	bool m_dataAdded;
 	bool m_dataChangeEnabled;
 };

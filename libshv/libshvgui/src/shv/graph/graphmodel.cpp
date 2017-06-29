@@ -17,7 +17,7 @@ GraphModel::GraphModel(QObject *parent) : QObject(parent)
 const SerieData *GraphModel::serieData(int serie_index) const
 {
 	checkIndex(serie_index);
-	return &m_series[serie_index];
+	return m_series[serie_index];
 }
 
 void GraphModel::checkIndex(int serie_index) const
@@ -31,12 +31,12 @@ ValueXInterval GraphModel::intRange() const
 {
 	ValueXInterval range(INT_MAX, INT_MIN);
 
-	for (const SerieData &serie : m_series) {
-		if (serie.xType() != ValueType::Int) {
+	for (const SerieData *serie : m_series) {
+		if (serie->xType() != ValueType::Int) {
 			throw std::runtime_error("Cannot determine data range when X types are different");
 		}
 
-		ValueXInterval serie_range = serie.range();
+		ValueXInterval serie_range = serie->range();
 		if (serie_range.min.intValue < range.min.intValue) {
 			range.min.intValue = serie_range.min.intValue;
 		}
@@ -55,12 +55,12 @@ ValueXInterval GraphModel::doubleRange() const
 {
 	ValueXInterval range(DBL_MAX, DBL_MIN);
 
-	for (const SerieData &serie : m_series) {
-		if (serie.xType() != ValueType::Double) {
+	for (const SerieData *serie : m_series) {
+		if (serie->xType() != ValueType::Double) {
 			throw std::runtime_error("Cannot determine data range when X types are different");
 		}
 
-		ValueXInterval serie_range = serie.range();
+		ValueXInterval serie_range = serie->range();
 		if (serie_range.min.doubleValue < range.min.doubleValue) {
 			range.min.doubleValue = serie_range.min.doubleValue;
 		}
@@ -79,12 +79,12 @@ ValueXInterval GraphModel::timeStampRange() const
 {
 	ValueXInterval range((ValueChange::TimeStamp)INT64_MAX, (ValueChange::TimeStamp)INT64_MIN);
 
-	for (const SerieData &serie : m_series) {
-		if (serie.xType() != ValueType::TimeStamp) {
+	for (const SerieData *serie : m_series) {
+		if (serie->xType() != ValueType::TimeStamp) {
 			throw std::runtime_error("Cannot determine data range when X types are different");
 		}
 
-		ValueXInterval serie_range = serie.range();
+		ValueXInterval serie_range = serie->range();
 
 		if (serie_range.min.timeStamp < range.min.timeStamp) {
 			range.min.timeStamp = serie_range.min.timeStamp;
@@ -103,7 +103,7 @@ ValueXInterval GraphModel::timeStampRange() const
 SerieData *GraphModel::serieData(int serie_index)
 {
 	checkIndex(serie_index);
-	return &m_series[serie_index];
+	return m_series[serie_index];
 }
 
 bool compareValueX(const ValueChange &value1, const ValueChange &value2, ValueType type)
@@ -194,16 +194,16 @@ void GraphModel::addValueChanges(const std::vector<ValueChange> &values)
 	}
 }
 
-void GraphModel::addSerie(ValueType xType, ValueType yType)
+void GraphModel::addSerie(SerieData *serie)
 {
-	m_series.emplace_back(xType, yType);
+	m_series.push_back(serie);
 }
 
 void GraphModel::clearSeries()
 {
-	for (SerieData &serie : m_series) {
-		serie.clear();
-		serie.shrink_to_fit();
+	for (SerieData *serie : m_series) {
+		serie->clear();
+		serie->shrink_to_fit();
 	}
 	Q_EMIT dataChanged();
 }
@@ -227,7 +227,7 @@ ValueXInterval GraphModel::range() const
 	if (!m_series.size()) {
 		throw std::runtime_error("Cannot state range where no series are present");
 	}
-	ValueType type = m_series[0].xType();
+	ValueType type = m_series[0]->xType();
 	switch (type) {
 	case ValueType::Double:
 		return doubleRange();
@@ -242,12 +242,8 @@ ValueXInterval GraphModel::range() const
 
 bool GraphModel::addValueChangeInternal(int serie_index, const shv::gui::ValueChange &value)
 {
-	SerieData &serie = m_series[serie_index];
-	if (serie.size() == 0 || (!compareValueX(serie.back(), value, serie.xType()) && !compareValueY(serie.back(), value, serie.yType()))) {
-		serie.push_back(value);
-		return true;
-	}
-	return false;
+	SerieData *serie = m_series[serie_index];
+	return serie->addValueChange(value);
 }
 
 std::vector<ValueChange>::const_iterator SerieData::lessOrEqualIterator(ValueChange::ValueX value_x) const
@@ -318,6 +314,23 @@ ValueXInterval SerieData::range() const
 			throw std::runtime_error("Invalid type on X axis");
 		}
 	}
+}
+
+bool SerieData::addValueChange(const ValueChange &value)
+{
+	int sz = size();
+	if (sz == 0) {
+		push_back(value);
+		return true;
+	}
+	else {
+		const ValueChange &last = at(sz - 1);
+		if (!compareValueX(last, value, xType()) && !compareValueY(last, value, yType())) {
+			push_back(value);
+			return true;
+		}
+	}
+	return false;
 }
 
 }
