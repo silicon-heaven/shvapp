@@ -21,7 +21,7 @@ core::chainpack::RpcValue::UInt RpcDriver::ChunkHeader::chunkId() const
 
 void RpcDriver::ChunkHeader::setChunkId(core::chainpack::RpcValue::UInt id)
 {
-	at(shv::core::chainpack::ChunkHeaderKeys::ChunkId) = id;
+	(*this)[shv::core::chainpack::ChunkHeaderKeys::ChunkId] = id;
 }
 
 core::chainpack::RpcValue::UInt RpcDriver::ChunkHeader::chunkIndex() const
@@ -31,7 +31,7 @@ core::chainpack::RpcValue::UInt RpcDriver::ChunkHeader::chunkIndex() const
 
 void RpcDriver::ChunkHeader::setChunkIndex(core::chainpack::RpcValue::UInt id)
 {
-	at(shv::core::chainpack::ChunkHeaderKeys::ChunkIndex) = id;
+	(*this)[shv::core::chainpack::ChunkHeaderKeys::ChunkIndex] = id;
 }
 
 core::chainpack::RpcValue::UInt RpcDriver::ChunkHeader::chunkCount() const
@@ -41,7 +41,7 @@ core::chainpack::RpcValue::UInt RpcDriver::ChunkHeader::chunkCount() const
 
 void RpcDriver::ChunkHeader::setChunkCount(core::chainpack::RpcValue::UInt id)
 {
-	at(shv::core::chainpack::ChunkHeaderKeys::ChunkCount) = id;
+	(*this)[shv::core::chainpack::ChunkHeaderKeys::ChunkCount] = id;
 }
 
 std::string RpcDriver::ChunkHeader::toStringData() const
