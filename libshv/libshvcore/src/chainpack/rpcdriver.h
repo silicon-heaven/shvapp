@@ -27,6 +27,7 @@ protected:
 	virtual bool isOpen() = 0;
 	virtual size_t bytesToWrite() = 0;
 	virtual int64_t writeBytes(const char *bytes, size_t length) = 0;
+	virtual bool flushNoBlock() = 0;
 
 	// call it when new data arrived
 	void bytesRead(std::string &&bytes);

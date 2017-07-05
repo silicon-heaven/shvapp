@@ -75,7 +75,7 @@ void RpcDriver::sendMessage(const shv::core::chainpack::RpcValue &msg, SendPrior
 	std::ostringstream os_packed_data;
 	shv::core::chainpack::ChainPackProtocol::write(os_packed_data, msg);
 	std::string packed_data = os_packed_data.str();
-	logRpc() << "packed data: " << packed_data;
+	logRpc() << "send message: packed data: " << (packed_data.size() > 50? "<... long data ...>" : packed_data);
 
 	if(priority == SendPriority::High) {
 		logLongFiles() << "High priority message enqueued:" << packed_data.length() << "bytes";
@@ -90,7 +90,7 @@ void RpcDriver::sendMessage(const shv::core::chainpack::RpcValue &msg, SendPrior
 			m_chunkId++;
 			for (unsigned chunk_index = 0; chunk_index < chunk_count; ++chunk_index) {
 				std::string chunk_data = packed_data.substr(chunk_index * m_lowPriorityChunkLength, m_lowPriorityChunkLength);
-				logRpc() << "\t len:" << chunk_data.length() << " chunk_data:" << chunk_data;
+				//logRpc() << "\t len:" << chunk_data.length() << " chunk_data:" << chunk_data;
 				ChunkHeader header;
 				header.setChunkId(m_chunkId);
 				header.setChunkIndex(chunk_index);
@@ -109,20 +109,24 @@ void RpcDriver::sendMessage(const shv::core::chainpack::RpcValue &msg, SendPrior
 
 void RpcDriver::writePendingData()
 {
-	logRpc() << "writePendingData()";
 	if(!isOpen()) {
 		shvError() << "write data error, socket is not open!";
 		return;
 	}
 	if(bytesToWrite() > 0) {
+		logRpc() << "skipping write because of bytesToWrite:" << bytesToWrite() << "try to flush";
+		bool ok = flushNoBlock();
+		logRpc() << "any data flushed:" << ok << "rest bytesToWrite:" << bytesToWrite();
 		// wait for bytesWritten signal and send data from right queue then
 		//shvWarning() << "writePendingData() called for not empty socket buffer";
 		return;
 	}
 	if(!m_highPriorityQueue.empty()) {
+		logRpc() << "writePendingData(), HI prio queue len:" << m_highPriorityQueue.size();
 		writeQueue(m_highPriorityQueue);
 	}
 	else if(!m_lowPriorityQueue.empty()) {
+		logRpc() << "writePendingData(), LO prio queue len:" << m_lowPriorityQueue.size();
 		writeQueue(m_lowPriorityQueue);
 	}
 }
@@ -185,7 +189,7 @@ void RpcDriver::writeQueue(std::deque<Chunk> &queue)
 
 void RpcDriver::bytesRead(std::string &&bytes)
 {
-	//shvInfo() << ba.size() << "bytes of data read";
+	logRpc() << bytes.length() << "bytes of data read";
 	m_readData += std::string(std::move(bytes));
 	while(true) {
 		int len = processReadData(m_readData);
