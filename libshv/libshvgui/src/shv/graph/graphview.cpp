@@ -373,7 +373,10 @@ void GraphView::computeGeometry()
 
 			double x_scale = (double)(settings.yAxis.rangeMax - settings.yAxis.rangeMin) / area.graphRect.height();
 			area.xAxisPosition = area.graphRect.y() + settings.yAxis.rangeMax / x_scale;
-
+			if (settings.y2Axis.show && area.showY2Axis && !area.switchAxes) {
+				double x2_scale = (double)(settings.y2Axis.rangeMax - settings.y2Axis.rangeMin) / area.graphRect.height();
+				area.x2AxisPosition = area.graphRect.y() + settings.y2Axis.rangeMax / x2_scale;
+			}
 			m_graphArea << area;
 
 			max_y_description_width = qMax(max_y_description_width, y_description_width);
@@ -427,6 +430,7 @@ void GraphView::computeGeometry()
 
 		area.graphRect = all_graphs_rect;
 		area.xAxisPosition = area.graphRect.bottom();
+		area.x2AxisPosition = area.graphRect.bottom();
 
 		m_graphArea << area;
 	}
@@ -1363,7 +1367,13 @@ void GraphView::paintSeries(QPainter *painter, const GraphArea &area)
 
 	for (int i = 0; i < area.series.count(); ++i) {
 		const Serie &serie = *area.series[i];
-		int x_axis_position = area.xAxisPosition - area.graphRect.top();
+		int x_axis_position;
+		if (serie.relatedAxis == Serie::YAxis::Y1 && !area.switchAxes) {
+			x_axis_position = area.xAxisPosition - area.graphRect.top();
+		}
+		else {
+			x_axis_position = area.x2AxisPosition - area.graphRect.top();
+		}
 		QPen pen(serie.color);
 		if (serie.show && settings.showDependent) {
 			for (const Serie &dependent_serie : serie.dependentSeries) {
@@ -1698,7 +1708,12 @@ void GraphView::paintCurrentPosition(QPainter *painter, const GraphArea &area, c
 			y_position = value_change.boolValue ? (serie.boolValue / scale) : 0;
 		}
 		QPainterPath path;
-		path.addEllipse(m_currentPosition + area.graphRect.x() - 3, area.xAxisPosition - y_position - 3, 6, 6);
+		if (serie.relatedAxis == Serie::YAxis::Y1 && !area.switchAxes) {
+			path.addEllipse(m_currentPosition + area.graphRect.x() - 3, area.xAxisPosition - y_position - 3, 6, 6);
+		}
+		else {
+			path.addEllipse(m_currentPosition + area.graphRect.x() - 3, area.x2AxisPosition - y_position - 3, 6, 6);
+		}
 		painter->fillPath(path, serie.color);
 	}
 
