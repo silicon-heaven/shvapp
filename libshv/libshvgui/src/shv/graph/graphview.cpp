@@ -1368,7 +1368,7 @@ void GraphView::paintSeries(QPainter *painter, const GraphArea &area)
 	for (int i = 0; i < area.series.count(); ++i) {
 		const Serie &serie = *area.series[i];
 		int x_axis_position;
-		if (serie.relatedAxis == Serie::YAxis::Y1 && !area.switchAxes) {
+		if (serie.relatedAxis == Serie::YAxis::Y1 || area.switchAxes) {
 			x_axis_position = area.xAxisPosition - area.graphRect.top();
 		}
 		else {
@@ -1708,7 +1708,7 @@ void GraphView::paintCurrentPosition(QPainter *painter, const GraphArea &area, c
 			y_position = value_change.boolValue ? (serie.boolValue / scale) : 0;
 		}
 		QPainterPath path;
-		if (serie.relatedAxis == Serie::YAxis::Y1 && !area.switchAxes) {
+		if (serie.relatedAxis == Serie::YAxis::Y1 || area.switchAxes) {
 			path.addEllipse(m_currentPosition + area.graphRect.x() - 3, area.xAxisPosition - y_position - 3, 6, 6);
 		}
 		else {
