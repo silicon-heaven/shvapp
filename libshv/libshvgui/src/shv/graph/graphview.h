@@ -178,6 +178,7 @@ private:
 		QRect yAxisLabelRect;
 		QRect y2AxisLabelRect;
 		int xAxisPosition;
+		int x2AxisPosition;
 		bool showYAxis;
 		bool showY2Axis;
 		bool switchAxes;
