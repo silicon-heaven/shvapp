@@ -155,6 +155,7 @@ public:
 	void clearSelections();
 
 	void addPointOfInterest(ValueChange::ValueX position, const QString &comment, const QColor &color);
+	void removePointsOfInterest();
 
 	Q_SIGNAL void selectionsChanged();
 

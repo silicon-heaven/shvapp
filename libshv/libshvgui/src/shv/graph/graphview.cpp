@@ -1112,6 +1112,13 @@ void GraphView::addPointOfInterest(ValueChange::ValueX position, const QString &
 	update();
 }
 
+void GraphView::removePointsOfInterest()
+{
+	m_pointsOfInterest.clear();
+	computeGeometry();
+	update();
+}
+
 void GraphView::showRange(qint64 from, qint64 to)
 {
 	if (from < m_loadedRangeMin || from > to) {
