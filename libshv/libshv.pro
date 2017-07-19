@@ -3,6 +3,7 @@ CONFIG += ordered
 
 SUBDIRS += \
     libshvcore \
+    libshvcoreqt \
     libshvgui \
     tests \
 
