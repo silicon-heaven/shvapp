@@ -125,23 +125,23 @@ private:
 	ValueType m_yType;
 };
 
-struct SHVGUI_DECL_EXPORT GraphModel : public QObject
+struct SHVGUI_DECL_EXPORT GraphModelData : public QObject
 {
 	Q_OBJECT
 
 public:
-	GraphModel(QObject *parent);
+	GraphModelData(QObject *parent);
 
 	Q_SIGNAL void dataChanged();
 
-	virtual SerieData *serieData(int serie_index);
-	virtual const SerieData *serieData(int serie_index) const;
+	virtual SerieData &serieData(int serie_index);
+	virtual const SerieData &serieData(int serie_index) const;
 
 	void addValueChange(int serie_index, const shv::gui::ValueChange &value);
 	void addValueChanges(int serie_index, const std::vector<shv::gui::ValueChange> &values); // adds array of valyes to one serie
 	void addValueChanges(const std::vector<shv::gui::ValueChange> &values); //adds array of values where every value belongs to one serie
 
-	void addSerie(SerieData *serie);
+	void addSerie(SerieData values);
 	void clearSeries();
 
 	void addDataBegin();
@@ -157,9 +157,28 @@ protected:
 	ValueXInterval doubleRange() const;
 	ValueXInterval timeStampRange() const;
 
-	std::vector<SerieData*> m_series;
+	std::vector<SerieData> m_valueChanges;
 	bool m_dataAdded;
 	bool m_dataChangeEnabled;
+};
+
+struct SHVGUI_DECL_EXPORT GraphModel : public QObject
+{
+	Q_OBJECT
+
+public:
+	GraphModel(QObject *parent);
+
+	Q_SIGNAL void dataChanged();
+
+	virtual SerieData &serieData(int serie_index);
+	virtual const SerieData &serieData(int serie_index) const;
+
+	void setData(GraphModelData *model_data);
+	GraphModelData *data() const;
+
+protected:
+	GraphModelData *m_data = nullptr;
 };
 
 }

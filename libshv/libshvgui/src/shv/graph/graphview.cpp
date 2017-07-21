@@ -15,8 +15,18 @@ namespace gui {
 static constexpr const int POI_SYMBOL_WIDTH = 12;
 static constexpr const int POI_SYMBOL_HEIGHT = 18;
 
+const GraphView::SerieData &GraphView::Serie::serieModelData(const GraphView *view) const
+{
+	return serieModelData(view->model());
+}
+
+const SerieData &GraphView::Serie::serieModelData(const GraphModel *model) const
+{
+	return model->serieData(serieIndex);
+}
+
 GraphView::GraphView(QWidget *parent) : QWidget(parent)
-  , m_data(0)
+  , m_model(0)
   , m_displayedRangeMin(0LL)
   , m_displayedRangeMax(0LL)
   , m_loadedRangeMin(0LL)
@@ -108,7 +118,7 @@ QPainterPath GraphView::createPoiPath(int x, int y) const
 	return painter_path;
 }
 
-void GraphView::releaseModelData()
+void GraphView::releaseModel()
 {
 	m_displayedRangeMin = 0LL;
 	m_displayedRangeMax = 0LL;
@@ -123,25 +133,25 @@ void GraphView::releaseModelData()
 	m_rightRangeSelectorPosition = 0;
 	m_selections.clear();
 
-	m_data = 0;
+	m_model = nullptr;
 	m_pointsOfInterest.clear();
 	computeGeometry();
 	update();
 }
 
-void GraphView::setModelData(const GraphModel &model_data)
+void GraphView::setModel(GraphModel *model)
 {
-	if (m_data) {
-		disconnect(m_data, &GraphModel::dataChanged, this, &GraphView::onModelDataChanged);
-		disconnect(m_data, &GraphModel::destroyed, this, &GraphView::releaseModelData);
-		releaseModelData();
+	if (m_model) {
+		disconnect(m_model, &GraphModel::dataChanged, this, &GraphView::onModelDataChanged);
+		disconnect(m_model, &GraphModel::destroyed, this, &GraphView::releaseModel);
+		releaseModel();
 	}
 
-	m_data = &model_data;
+	m_model = model;
 
-	if (m_data) {
-		connect(m_data, &GraphModel::dataChanged, this, &GraphView::onModelDataChanged);
-		connect(m_data, &GraphModel::destroyed, this, &GraphView::releaseModelData);
+	if (m_model) {
+		connect(m_model, &GraphModel::dataChanged, this, &GraphView::onModelDataChanged);
+		connect(m_model, &GraphModel::destroyed, this, &GraphView::releaseModel);
 
 		onModelDataChanged();
 	}
@@ -152,13 +162,13 @@ void GraphView::onModelDataChanged() //TODO improve change detection in model
 	m_loadedRangeMin = UINT64_MAX;
 	m_loadedRangeMax = 0;
 	for (Serie &serie : m_series) {
-		serie.dataPtr = m_data->serieData(serie.serieIndex);
-		serie.displayedDataBegin = serie.dataPtr->begin();
-		serie.displayedDataEnd = serie.dataPtr->end();
+		const SerieData &serie_model_data = serie.serieModelData(this);
+		serie.displayedDataBegin = serie_model_data.begin();
+		serie.displayedDataEnd = serie_model_data.end();
 		for (Serie &dep_serie : serie.dependentSeries) {
-			dep_serie.dataPtr = m_data->serieData(dep_serie.serieIndex);
-			dep_serie.displayedDataBegin = dep_serie.dataPtr->begin();
-			dep_serie.displayedDataEnd = dep_serie.dataPtr->end();
+			const SerieData &dep_serie_model_data = dep_serie.serieModelData(this);
+			dep_serie.displayedDataBegin = dep_serie_model_data.begin();
+			dep_serie.displayedDataEnd = dep_serie_model_data.end();
 		}
 	}
 	switch (settings.xAxisType) {
@@ -206,7 +216,7 @@ void GraphView::onModelDataChanged() //TODO improve change detection in model
 void GraphView::resizeEvent(QResizeEvent *resize_event)
 {
 	QWidget::resizeEvent(resize_event);
-	if (!m_data || !m_series.count()) {
+	if (!m_model || !m_series.count()) {
 		return;
 	}
 
@@ -217,14 +227,15 @@ void GraphView::resizeEvent(QResizeEvent *resize_event)
 void GraphView::computeDataRange()
 {
 	for (Serie &serie : m_series) {
-		serie.displayedDataBegin = findMinYValue(serie.dataPtr->begin(), serie.dataPtr->end(), m_displayedRangeMin);
-		serie.displayedDataEnd = findMaxYValue(serie.dataPtr->begin(), serie.dataPtr->end(), m_displayedRangeMax);
+		const SerieData &serie_model_data = serie.serieModelData(this);
+		serie.displayedDataBegin = findMinYValue(serie_model_data.begin(), serie_model_data.end(), m_displayedRangeMin);
+		serie.displayedDataEnd = findMaxYValue(serie_model_data.begin(), serie_model_data.end(), m_displayedRangeMax);
 		for (Serie &dep_serie : serie.dependentSeries) {
-			dep_serie.displayedDataBegin = findMinYValue(dep_serie.dataPtr->begin(), dep_serie.dataPtr->end(), m_displayedRangeMin);
-			dep_serie.displayedDataEnd = findMaxYValue(dep_serie.dataPtr->begin(), dep_serie.dataPtr->end(), m_displayedRangeMax);
+			const SerieData &dep_serie_model_data = dep_serie.serieModelData(this);
+			dep_serie.displayedDataBegin = findMinYValue(dep_serie_model_data.begin(), dep_serie_model_data.end(), m_displayedRangeMin);
+			dep_serie.displayedDataEnd = findMaxYValue(dep_serie_model_data.begin(), dep_serie_model_data.end(), m_displayedRangeMax);
 		}
 	}
-
 }
 
 int GraphView::computeYLabelWidth(const Settings::Axis &axis, int &shownDecimalPoints) const
@@ -474,7 +485,7 @@ void GraphView::paintEvent(QPaintEvent *paint_event)
 	painter.drawRect(0, 0, width() - 1, height() - 1);  //??
 	painter.restore();
 
-	if (!m_data) {
+	if (!m_model) {
 		return;
 	}
 
@@ -957,41 +968,18 @@ void GraphView::zoom(qint64 center, double scale)
 	showRange(from, to);
 }
 
-//template<typename T>
-//void GraphView::mergeSerieMemberWithDefault(Serie &merged_serie, const Serie &param, T Serie::*member)
-//{
-//	if (m_defaultSerie.*member != param.*member) {
-//		merged_serie.*member = param.*member;
-//	}
-//}
+GraphModel *GraphView::model() const
+{
+	if (!m_model)
+		throw std::runtime_error("Model is NULL!");
+	return m_model;
+}
 
 GraphView::Serie &GraphView::addSerie(const Serie &serie)
 {
-	if (serie.dataPtr) {
-		throw std::runtime_error("Data ptr in serie must not be set as param");
-	}
 	if (serie.type == ValueType::Bool && !serie.boolValue) {
 		throw std::runtime_error("Bool serie must have set boolValue");
 	}
-//	Serie merged_serie = m_defaultSerie;
-//	if (!serie.name.isEmpty()) {
-//		merged_serie.name = serie.name;
-//	}
-//	else {
-//		merged_serie.name = "Serie " + QString::number(m_series.count() + 1);
-//	}
-
-//	mergeSerieMemberWithDefault(merged_serie, serie, &Serie::type);
-//	mergeSerieMemberWithDefault(merged_serie, serie, &Serie::color);
-//	mergeSerieMemberWithDefault(merged_serie, serie, &Serie::relatedAxis);
-//	mergeSerieMemberWithDefault(merged_serie, serie, &Serie::boolValue);
-//	mergeSerieMemberWithDefault(merged_serie, serie, &Serie::show);
-//	mergeSerieMemberWithDefault(merged_serie, serie, &Serie::showCurrent);
-
-//	merged_serie.dataGetter = serie.dataGetter;
-//	merged_serie.legendValueFormatter = serie.legendValueFormatter;
-
-//	m_series.append(merged_serie);
 	m_series.append(serie);
 	if (m_serieBlocks.count() == 0) {
 		m_serieBlocks.append(QVector<Serie*>());
@@ -1406,7 +1394,7 @@ void GraphView::paintSerie(QPainter *painter, const QRect &rect, int x_axis_posi
 
 void GraphView::paintBoolSerie(QPainter *painter, const QRect &rect, int x_axis_position, const Serie &serie, qint64 min, qint64 max, const QPen &pen, bool fill_rect)
 {
-	const SerieData &data = *serie.dataPtr;
+	const SerieData &data = serie.serieModelData(this);
 	if (data.size() == 0) {
 		return;
 	}
@@ -1473,7 +1461,7 @@ void GraphView::paintBoolSerie(QPainter *painter, const QRect &rect, int x_axis_
 
 void GraphView::paintValueSerie(QPainter *painter, const QRect &rect, int x_axis_position, const Serie &serie, qint64 min, qint64 max, const QPen &pen, bool fill_rect)
 {
-	const SerieData &data = *serie.dataPtr;
+	const SerieData &data = serie.serieModelData(this);
 	if (data.size() == 0) {
 		return;
 	}
@@ -1760,12 +1748,15 @@ void GraphView::paintCurrentPosition(QPainter *painter, const GraphArea &area)
 	qint64 current = rectPositionToXValue(m_currentPosition);
 	for (int i = 0; i < area.series.count(); ++i) {
 		const Serie &serie = *area.series[i];
-		if (serie.show && serie.dataPtr->size()) {
-			paintCurrentPosition(painter, area, serie, current);
-			if (settings.showDependent) {
-				for (const Serie &dependent_serie : serie.dependentSeries) {
-					if (dependent_serie.show) {
-						paintCurrentPosition(painter, area, dependent_serie, current);
+		if (serie.show) {
+			const SerieData &data = serie.serieModelData(this);
+			if (data.size()) {
+				paintCurrentPosition(painter, area, serie, current);
+				if (settings.showDependent) {
+					for (const Serie &dependent_serie : serie.dependentSeries) {
+						if (dependent_serie.show) {
+							paintCurrentPosition(painter, area, dependent_serie, current);
+						}
 					}
 				}
 			}
@@ -1807,7 +1798,8 @@ QString GraphView::legend(qint64 position) const
 		xValueString(position, "dd.MM.yyyy HH.mm.ss.zzz").replace(" ", "&nbsp;") + "</td></tr></table><hr>";
 	s += "<table>";
 	for (const Serie &serie : m_series) {
-		if (serie.dataPtr->size()) {
+		const SerieData &data = serie.serieModelData(this);
+		if (data.size()) {
 			s += legendRow(serie, position);
 			if (serie.show && settings.showDependent) {
 				for (const Serie &dependent_serie : serie.dependentSeries) {
@@ -1906,12 +1898,13 @@ QString GraphView::xValueString(qint64 value, const QString &datetime_format) co
 
 void GraphView::computeRange(double &min, double &max, const Serie &serie) const
 {
-	if (serie.dataPtr->size()) {
-		if (serie.dataPtr->at(0).valueX.doubleValue < min) {
-			min = serie.dataPtr->at(0).valueX.doubleValue;
+	const SerieData &data = serie.serieModelData(this);
+	if (data.size()) {
+		if (data.at(0).valueX.doubleValue < min) {
+			min = data.at(0).valueX.doubleValue;
 		}
-		if (serie.dataPtr->back().valueX.doubleValue > max) {
-			max = serie.dataPtr->back().valueX.doubleValue;
+		if (data.back().valueX.doubleValue > max) {
+			max = data.back().valueX.doubleValue;
 		}
 	}
 }
@@ -1934,12 +1927,13 @@ void GraphView::computeRange(double &min, double &max) const
 
 void GraphView::computeRange(int &min, int &max, const Serie &serie) const
 {
-	if (serie.dataPtr->size()) {
-		if (serie.dataPtr->at(0).valueX.intValue < min) {
-			min = serie.dataPtr->at(0).valueX.intValue;
+	const SerieData &data = serie.serieModelData(this);
+	if (data.size()) {
+		if (data.at(0).valueX.intValue < min) {
+			min = data.at(0).valueX.intValue;
 		}
-		if (serie.dataPtr->back().valueX.intValue > max) {
-			max = serie.dataPtr->back().valueX.intValue;
+		if (data.back().valueX.intValue > max) {
+			max = data.back().valueX.intValue;
 		}
 	}
 }
@@ -1962,12 +1956,13 @@ void GraphView::computeRange(int &min, int &max) const
 
 void GraphView::computeRange(qint64 &min, qint64 &max, const Serie &serie) const
 {
-	if (serie.dataPtr->size()) {
-		if (serie.dataPtr->at(0).valueX.timeStamp < min) {
-			min = serie.dataPtr->at(0).valueX.timeStamp;
+	const SerieData &data = serie.serieModelData(this);
+	if (data.size()) {
+		if (data.at(0).valueX.timeStamp < min) {
+			min = data.at(0).valueX.timeStamp;
 		}
-		if (serie.dataPtr->back().valueX.timeStamp > max) {
-			max = serie.dataPtr->back().valueX.timeStamp;
+		if (data.back().valueX.timeStamp > max) {
+			max = data.back().valueX.timeStamp;
 		}
 	}
 }
@@ -1988,7 +1983,7 @@ void GraphView::computeRange(qint64 &min, qint64 &max) const
 	}
 }
 
-SerieData::const_iterator GraphView::findMinYValue(const SerieData::const_iterator &data_begin, const SerieData::const_iterator &data_end, qint64 x_value) const
+shv::gui::SerieData::const_iterator GraphView::findMinYValue(const SerieData::const_iterator &data_begin, const SerieData::const_iterator &data_end, qint64 x_value) const
 {
 	auto it = std::lower_bound(data_begin, data_end, x_value, [this](const ValueChange &data, qint64 value) {
 	   return xValue(data) < value;
@@ -1999,7 +1994,7 @@ SerieData::const_iterator GraphView::findMinYValue(const SerieData::const_iterat
 	return it;
 }
 
-SerieData::const_iterator GraphView::findMaxYValue(const SerieData::const_iterator &data_begin, const SerieData::const_iterator &data_end, qint64 x_value) const
+shv::gui::SerieData::const_iterator GraphView::findMaxYValue(const SerieData::const_iterator &data_begin, const SerieData::const_iterator &data_end, qint64 x_value) const
 {
 	return std::upper_bound(data_begin, data_end, x_value, [this](qint64 value, const ValueChange &value_change) {
 		return value < xValue(value_change);
@@ -2026,5 +2021,4 @@ bool GraphView::Selection::containsValue(qint64 value) const
 	return ((start <= end && value >= start && value <= end) ||	(start > end && value >= end && value <= start));
 }
 
-} //namespace
-}
+}}

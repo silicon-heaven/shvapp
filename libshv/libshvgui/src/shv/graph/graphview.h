@@ -30,25 +30,32 @@ class SHVGUI_DECL_EXPORT GraphView : public QWidget
 {
 	Q_OBJECT
 
+	using SerieData = shv::gui::SerieData;
 public:
 	struct Serie
-	{
+	{		
 		enum class YAxis { Y1, Y2 };
 
 		QString name;
 		ValueType type;
 		QColor color;
 		YAxis relatedAxis;
-		double boolValue;
-		bool show;
-		bool showCurrent;
-		int serieIndex;
-		std::function<ValueChange::ValueY (const ValueChange &)> valueFormatter;
-		std::function<QString (const ValueChange &)> legendValueFormatter;
-		const SerieData *dataPtr;
-		SerieData::const_iterator displayedDataBegin;
-		SerieData::const_iterator displayedDataEnd;
-		QVector<Serie> dependentSeries;
+		double boolValue = 0;
+		bool show = true;
+		bool showCurrent = true;
+		int serieIndex = -1;
+		std::function<ValueChange::ValueY (const ValueChange &)> valueFormatter = nullptr;
+		std::function<QString (const ValueChange &)> legendValueFormatter = nullptr;
+		SerieData::const_iterator displayedDataBegin = shv::gui::SerieData::const_iterator();
+		SerieData::const_iterator displayedDataEnd = shv::gui::SerieData::const_iterator();
+		QVector<Serie> dependentSeries = QVector<shv::gui::GraphView::Serie>{};
+
+		//GraphView *m_view;
+
+		//Serie() : modelIndex(-1), m_view(nullptr) {}
+		//Serie(GraphView *view) : m_view(view) {}
+		const SerieData &serieModelData(const GraphView *view) const;
+		const SerieData &serieModelData(const GraphModel *model) const;
 	};
 
 	struct Settings
@@ -137,12 +144,13 @@ public:
 	GraphView(QWidget *parent);
 
 	Settings settings;
-	void setModelData(const GraphModel &model_data);
-	void releaseModelData();
+	void setModel(GraphModel *model);
+	void releaseModel();
 
 	void showRange(qint64 from, qint64 to);
 	void zoom(qint64 center, double scale);
 
+	GraphModel *model() const;
 	Serie &addSerie(const Serie &serie);
 
 	void splitSeries();
@@ -258,14 +266,13 @@ private:
 	void computeRange(qint64 &min, qint64 &max) const;
 	void computeDataRange();
 	QPainterPath createPoiPath(int x, int y) const;
-	SerieData::const_iterator findMinYValue(const SerieData::const_iterator &data_begin, const SerieData::const_iterator &data_end, qint64 x_value) const;
-	SerieData::const_iterator findMaxYValue(const SerieData::const_iterator &data_begin, const SerieData::const_iterator &data_end, qint64 x_value) const;
-//	template<typename T> static void mergeSerieMemberWithDefault(Serie &merged_serie, const Serie &param, T Serie::*member);
+	shv::gui::SerieData::const_iterator findMinYValue(const SerieData::const_iterator &data_begin, const SerieData::const_iterator &data_end, qint64 x_value) const;
+	shv::gui::SerieData::const_iterator findMaxYValue(const SerieData::const_iterator &data_begin, const SerieData::const_iterator &data_end, qint64 x_value) const;
 
 	void onModelDataChanged();
 	void showToolTip();
 
-	const GraphModel *m_data;
+	GraphModel *m_model = nullptr;
 
 	QList<GraphArea> m_graphArea;
 	QRect m_xAxisDescriptionRect;
