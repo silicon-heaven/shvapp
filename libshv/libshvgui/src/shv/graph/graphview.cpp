@@ -8,6 +8,7 @@
 #include <QToolTip>
 
 #include "float.h"
+#include "../../../shv/libshv/libshvcore/include/shv/core/log.h"
 
 namespace shv {
 namespace gui {
@@ -1683,6 +1684,8 @@ void GraphView::paintCurrentPosition(QPainter *painter, const GraphArea &area, c
 {
 	if (serie.showCurrent) {
 		auto begin = findMinYValue(serie.displayedDataBegin, serie.displayedDataEnd, current);
+		if (begin == shv::gui::SerieData::const_iterator())
+			return;
 		double range;
 		if (serie.relatedAxis == Serie::YAxis::Y1) {
 			range = settings.yAxis.rangeMax - settings.yAxis.rangeMin;
