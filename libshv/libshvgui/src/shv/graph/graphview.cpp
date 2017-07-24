@@ -1,4 +1,5 @@
 #include "graphview.h"
+
 #include <QDateTime>
 #include <QDebug>
 #include <QFrame>
@@ -6,9 +7,6 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QToolTip>
-
-#include "float.h"
-#include "../../../shv/libshv/libshvcore/include/shv/core/log.h"
 
 namespace shv {
 namespace gui {
