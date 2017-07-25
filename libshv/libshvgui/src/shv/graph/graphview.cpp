@@ -8,6 +8,8 @@
 #include <QPainter>
 #include <QToolTip>
 
+#include <limits>
+
 namespace shv {
 namespace gui {
 
@@ -1910,10 +1912,11 @@ void GraphView::computeRange(double &min, double &max, const Serie &serie) const
 	}
 }
 
-void GraphView::computeRange(double &min, double &max) const
+template<typename T>
+void GraphView::computeRange(T &min, T &max) const
 {
-	min = DBL_MAX;
-	max = DBL_MIN;
+	min = std::numeric_limits<T>::max();
+	max = std::numeric_limits<T>::min();
 
 	for (const Serie &serie : m_series) {
 		computeRange(min, max, serie);
@@ -1921,8 +1924,8 @@ void GraphView::computeRange(double &min, double &max) const
 			computeRange(min, max, dependent_serie);
 		}
 	}
-	if (min == DBL_MAX && max == DBL_MIN) {
-		min = max = 0.0;
+	if (min == std::numeric_limits<T>::max() && max == std::numeric_limits<T>::min()) {
+		min = max = 0;
 	}
 }
 
@@ -1939,22 +1942,6 @@ void GraphView::computeRange(int &min, int &max, const Serie &serie) const
 	}
 }
 
-void GraphView::computeRange(int &min, int &max) const
-{
-	min = INT_MAX;
-	max = INT_MIN;
-
-	for (const Serie &serie : m_series) {
-		computeRange(min, max, serie);
-		for (const Serie &dependent_serie : serie.dependentSeries) {
-			computeRange(min, max, dependent_serie);
-		}
-	}
-	if (min == INT_MAX && max == INT_MIN) {
-		min = max = 0;
-	}
-}
-
 void GraphView::computeRange(qint64 &min, qint64 &max, const Serie &serie) const
 {
 	const SerieData &data = serie.serieModelData(this);
@@ -1965,22 +1952,6 @@ void GraphView::computeRange(qint64 &min, qint64 &max, const Serie &serie) const
 		if (data.back().valueX.timeStamp > max) {
 			max = data.back().valueX.timeStamp;
 		}
-	}
-}
-
-void GraphView::computeRange(qint64 &min, qint64 &max) const
-{
-	min = INT64_MAX;
-	max = INT64_MIN;
-
-	for (const Serie &serie : m_series) {
-		computeRange(min, max, serie);
-		for (const Serie &dependent_serie : serie.dependentSeries) {
-			computeRange(min, max, dependent_serie);
-		}
-	}
-	if (min == INT64_MAX) {
-		min = 0;
 	}
 }
 
