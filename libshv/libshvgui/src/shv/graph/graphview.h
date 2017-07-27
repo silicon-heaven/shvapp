@@ -32,6 +32,14 @@ class SHVGUI_DECL_EXPORT GraphView : public QWidget
 
 	using SerieData = shv::gui::SerieData;
 public:
+	class BackgroundStripe
+	{
+	public:
+		inline BackgroundStripe(ValueChange::ValueY min = 0, ValueChange::ValueY max = 0) : min(min), max(max) {}
+		ValueChange::ValueY min = 0;
+		ValueChange::ValueY max = 0;
+	};
+
 	struct Serie
 	{		
 		enum class YAxis { Y1, Y2 };
@@ -48,7 +56,8 @@ public:
 		std::function<QString (const ValueChange &)> legendValueFormatter = nullptr;
 		SerieData::const_iterator displayedDataBegin = shv::gui::SerieData::const_iterator();
 		SerieData::const_iterator displayedDataEnd = shv::gui::SerieData::const_iterator();
-		QVector<Serie> dependentSeries = QVector<shv::gui::GraphView::Serie>{};
+		QVector<Serie> dependentSeries = QVector<Serie>();
+		QVector<BackgroundStripe> backgroundStripes = QVector<BackgroundStripe>();
 
 		//GraphView *m_view;
 
@@ -133,6 +142,7 @@ public:
 		bool showCrossLine = true;
 		bool showDependent = true;
 		bool enableOvelapingSelections = false;
+		bool showBackgroundStripes = false;
 	};
 
 	struct XAxisInterval
@@ -152,6 +162,8 @@ public:
 
 	GraphModel *model() const;
 	Serie &addSerie(const Serie &serie);
+	Serie &serie(int index);
+	inline const QList<Serie> &series() const  { return m_series; }
 
 	void splitSeries();
 	void unsplitSeries();
@@ -164,6 +176,7 @@ public:
 
 	void addPointOfInterest(ValueChange::ValueX position, const QString &comment, const QColor &color);
 	void removePointsOfInterest();
+	void showBackgroundStripes(bool enable);
 
 	Q_SIGNAL void selectionsChanged();
 
@@ -237,6 +250,7 @@ private:
 	void paintCurrentPosition(QPainter *painter, const GraphArea &area);
 	void paintCurrentPosition(QPainter *painter, const GraphArea &area, const Serie &serie, qint64 current);
 	void paintPointsOfInterest(QPainter *painter, const GraphArea &area);
+	void paintBackgroundStripes(QPainter *painter, const GraphArea &area);
 
 	QString legend(qint64 position) const;
 	QString legendRow(const Serie &serie, qint64 position) const;
