@@ -551,6 +551,9 @@ void GraphView::paintEvent(QPaintEvent *paint_event)
 			if (settings.horizontalGrid.show) {
 				paintHorizontalGrid(&painter, area);
 			}
+			if (settings.showBackgroundStripes) {
+				paintBackgroundStripes(&painter, area);
+			}
 			paintPointsOfInterest(&painter, area);
 			if (m_series.count()) {
 				paintSeries(&painter, area);
@@ -990,6 +993,14 @@ GraphView::Serie &GraphView::addSerie(const Serie &serie)
 	return m_series.last();
 }
 
+GraphView::Serie &GraphView::serie(int index)
+{
+	if (index >= m_series.count()) {
+		throw std::runtime_error("GraphView: invalid serie index");
+	}
+	return m_series[index];
+}
+
 void GraphView::splitSeries()
 {
 	m_serieBlocks.clear();
@@ -1106,6 +1117,14 @@ void GraphView::removePointsOfInterest()
 	m_pointsOfInterest.clear();
 	computeGeometry();
 	update();
+}
+
+void GraphView::showBackgroundStripes(bool enable)
+{
+	if (enable != settings.showBackgroundStripes) {
+		settings.showBackgroundStripes = enable;
+		update();
+	}
 }
 
 void GraphView::showRange(qint64 from, qint64 to)
@@ -1742,6 +1761,45 @@ void GraphView::paintPointsOfInterest(QPainter *painter, const GraphArea &area)
 		}
 	}
 
+	painter->restore();
+}
+
+void GraphView::paintBackgroundStripes(QPainter *painter, const GraphView::GraphArea &area)
+{
+	painter->save();
+	for (int i = 0; i < area.series.count(); ++i) {
+		const Serie &serie = *area.series[i];
+		if (serie.show) {
+			double range;
+			if (serie.relatedAxis == Serie::YAxis::Y1) {
+				range = settings.yAxis.rangeMax - settings.yAxis.rangeMin;
+			}
+			else {
+				range = settings.y2Axis.rangeMax - settings.y2Axis.rangeMin;
+			}
+			double scale = range / area.graphRect.height();
+			const QVector<BackgroundStripe> &stripes = serie.backgroundStripes;
+			for (const BackgroundStripe &stripe : stripes) {
+				QColor stripe_color = serie.color;
+				stripe_color.setAlpha(30);
+
+				int min = 0;
+				int max = 0;
+				if (serie.type == ValueType::Double) {
+					min = stripe.min.doubleValue / scale;
+					max = stripe.max.doubleValue / scale;
+				}
+				else if (serie.type == ValueType::Int) {
+					min = stripe.min.intValue / scale;
+					max = stripe.max.intValue / scale;
+				}
+				else if (serie.type == ValueType::Bool) {
+					throw std::runtime_error("GraphView: Cannot paint background serie for bool serie");
+				}
+				painter->fillRect(area.graphRect.x(), area.xAxisPosition - max, area.graphRect.width(), max - min, stripe_color);
+			}
+		}
+	}
 	painter->restore();
 }
 
