@@ -33,7 +33,7 @@ class SHVGUI_DECL_EXPORT GraphView : public QWidget
 	using SerieData = shv::gui::SerieData;
 public:
 	struct Serie
-	{		
+	{
 		enum class YAxis { Y1, Y2 };
 
 		QString name;
@@ -261,9 +261,7 @@ private:
 	void computeRange(double &min, double &max, const Serie &serie) const;
 	void computeRange(int &min, int &max, const Serie &serie) const;
 	void computeRange(qint64 &min, qint64 &max, const Serie &serie) const;
-	void computeRange(double &min, double &max) const;
-	void computeRange(int &min, int &max) const;
-	void computeRange(qint64 &min, qint64 &max) const;
+	template<typename T> void computeRange(T &min, T &max) const;
 	void computeDataRange();
 	QPainterPath createPoiPath(int x, int y) const;
 	shv::gui::SerieData::const_iterator findMinYValue(const SerieData::const_iterator &data_begin, const SerieData::const_iterator &data_end, qint64 x_value) const;
