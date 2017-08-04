@@ -1952,6 +1952,9 @@ void GraphView::paintOutsideSeriesGroups(QPainter *painter, const GraphView::Gra
 		QVector<SerieInGroup> shown_series_in_group = shownSeriesInGroup(*group, area.series);
 		if (shown_series_in_group.count()) {
 			int position = area.outsideSerieGroupsRects[i].y() + group->spacing;
+			if (i == area.outsideSerieGroupsRects.count()) {
+				throw std::runtime_error("Something wrong in outside serie groups computation");
+			}
 			for (const SerieInGroup &serie_in_group : shown_series_in_group) {
 				if (serie_in_group.serie->type != ValueType::Bool || serie_in_group.serie->lineType != Serie::LineType::OneDimensional) {
 					throw std::runtime_error("In outside groups can be only one dimensional bool series");
@@ -1964,9 +1967,6 @@ void GraphView::paintOutsideSeriesGroups(QPainter *painter, const GraphView::Gra
 				position = position + serie_in_group.serie->lineWidth + group->spacing;
 			}
 			++i;
-			if (i == area.outsideSerieGroupsRects.count()) {
-				throw std::runtime_error("Something wrong in outside serie groups computation");
-			}
 		}
 	}
 	painter->restore();
