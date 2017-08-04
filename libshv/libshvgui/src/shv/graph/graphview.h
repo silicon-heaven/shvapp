@@ -61,7 +61,7 @@ public:
 		ValueType type;
 		QColor color;
 		YAxis relatedAxis;
-		double boolValue = 0;
+		double boolValue = 0.0;
 		bool show = true;
 		bool showCurrent = true;
 		int serieIndex = -1;

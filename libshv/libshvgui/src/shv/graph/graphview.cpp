@@ -1950,7 +1950,6 @@ void GraphView::paintOutsideSeriesGroups(QPainter *painter, const GraphView::Gra
 	int i = 0;
 	for (const OutsideSerieGroup *group : groups) {
 		QVector<SerieInGroup> shown_series_in_group = shownSeriesInGroup(*group, area.series);
-		qDebug() << shown_series_in_group.count() << area.outsideSerieGroupsRects;
 		if (shown_series_in_group.count()) {
 			int position = area.outsideSerieGroupsRects[i].y() + group->spacing;
 			for (const SerieInGroup &serie_in_group : shown_series_in_group) {
@@ -1966,7 +1965,7 @@ void GraphView::paintOutsideSeriesGroups(QPainter *painter, const GraphView::Gra
 			}
 			++i;
 			if (i == area.outsideSerieGroupsRects.count()) {
-				std::runtime_error("Something wrong in outside serie groups computation");
+				throw std::runtime_error("Something wrong in outside serie groups computation");
 			}
 		}
 	}
