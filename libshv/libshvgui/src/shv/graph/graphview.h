@@ -60,7 +60,7 @@ public:
 		QString name;
 		ValueType type;
 		QColor color;
-		YAxis relatedAxis;
+		YAxis relatedAxis = YAxis::Y1;
 		double boolValue = 0.0;
 		bool show = true;
 		bool showCurrent = true;
@@ -184,6 +184,7 @@ public:
 	void splitSeries();
 	void unsplitSeries();
 	void showDependentSeries(bool enable);
+	void computeGeometry();  //temporarily, before api rework
 
 	QVector<XAxisInterval> selections() const;
 	XAxisInterval loadedRange() const;
@@ -291,12 +292,11 @@ private:
 	void updateLastValueInLastSelection(qint64 value);
 	bool posInGraph(const QPoint &pos) const;
 	bool posInRangeSelector(const QPoint &pos) const;
-	void computeGeometry();
 	bool hasVisibleSeries() const;
 	int computeYLabelWidth(const Settings::Axis &axis, int &shownDecimalPoints) const;
 	void computeRangeSelectorPosition();
 	QVector<SerieInGroup> shownSeriesInGroup(const OutsideSerieGroup &group, const QVector<Serie *> &only_series) const;
-	QVector<OutsideSerieGroup *> groupsForSeries(const QVector<Serie*> &series) const;
+	QVector<const OutsideSerieGroup *> groupsForSeries(const QVector<Serie*> &series) const;
 
 	qint64 xValue(const ValueChange &value_change) const;
 	qint64 xValue(const ValueChange::ValueX &value_x) const;

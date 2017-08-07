@@ -142,6 +142,7 @@ public:
 	void addValueChanges(const std::vector<shv::gui::ValueChange> &values); //adds array of values where every value belongs to one serie
 
 	void addSerie(SerieData values);
+	void clearSerie(int serie_index);
 	void clearSeries();
 
 	void addDataBegin();
