@@ -214,6 +214,8 @@ bool compareValueY(const ValueChange::ValueY &value1, const ValueChange::ValueY 
 
 GraphModelData::GraphModelData(QObject *parent)
 	: QObject(parent)
+	, m_dataAdded(false)
+	, m_dataChangeEnabled(true)
 {
 }
 
