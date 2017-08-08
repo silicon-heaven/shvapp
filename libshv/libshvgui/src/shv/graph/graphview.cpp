@@ -383,7 +383,7 @@ void GraphView::computeGeometry()
 		QVector<QVector<int>> block_group_heights;
 		int all_group_height = 0;
 		for (int i = 0; i < visible_blocks.count(); ++i) {
-			QVector<OutsideSerieGroup*> block_groups = groupsForSeries(visible_blocks[i]);
+			QVector<const OutsideSerieGroup*> block_groups = groupsForSeries(visible_blocks[i]);
 			group_heights << 0;
 			block_group_heights << QVector<int>();
 			for (const OutsideSerieGroup *group : block_groups) {
@@ -492,6 +492,9 @@ void GraphView::computeGeometry()
 				area.yAxisDescriptionRect = QRect(area.graphRect.x(), area.graphRect.y(), max_y_description_width, area.graphRect.height());
 				area.yAxisLabelRect = QRect(area.graphRect.x() + max_y_description_width, area.graphRect.y(), max_y_label_width, area.graphRect.height());
 				area.graphRect.setX(area.graphRect.x() + left_offset);
+				for (QRect &outsideRect : area.outsideSerieGroupsRects) {
+					outsideRect.setX(outsideRect.x() + left_offset);
+				}
 			}
 		}
 		if (right_offset) {
@@ -509,6 +512,9 @@ void GraphView::computeGeometry()
 				area.y2AxisDescriptionRect = QRect(area.graphRect.right() - max_y2_description_width, area.graphRect.y(), max_y2_description_width, area.graphRect.height());
 				area.y2AxisLabelRect = QRect(area.graphRect.right() - max_y2_description_width - max_y2_label_width, area.graphRect.y(), max_y2_label_width, area.graphRect.height());
 				area.graphRect.setRight(area.graphRect.right() - right_offset);
+				for (QRect &outsideRect : area.outsideSerieGroupsRects) {
+					outsideRect.setRight(outsideRect.right() - right_offset);
+				}
 			}
 		}
 	}
@@ -1924,9 +1930,9 @@ void GraphView::paintBackgroundStripes(QPainter *painter, const GraphView::Graph
 	painter->restore();
 }
 
-QVector<GraphView::OutsideSerieGroup*> GraphView::groupsForSeries(const QVector<Serie*> &series) const
+QVector<const GraphView::OutsideSerieGroup*> GraphView::groupsForSeries(const QVector<Serie*> &series) const
 {
-	QVector<OutsideSerieGroup*> groups;
+	QVector<const OutsideSerieGroup*> groups;
 	for (const Serie *s : series) {
 		if (s->serieGroup && !groups.contains(s->serieGroup)) {
 			groups << s->serieGroup;
@@ -1937,24 +1943,30 @@ QVector<GraphView::OutsideSerieGroup*> GraphView::groupsForSeries(const QVector<
 			}
 		}
 	}
-	return groups;
+	QVector<const OutsideSerieGroup*> sorted_groups;
+	for (const OutsideSerieGroup &group : m_outsideSeriesGroups) {
+		if (groups.contains(&group)) {
+			sorted_groups << &group;
+		}
+	}
+	return sorted_groups;
 
 }
 
 void GraphView::paintOutsideSeriesGroups(QPainter *painter, const GraphView::GraphArea &area)
 {
-	painter->save();
-
-	QVector<OutsideSerieGroup*> groups = groupsForSeries(area.series);
+	QVector<const OutsideSerieGroup*> groups = groupsForSeries(area.series);
 
 	int i = 0;
 	for (const OutsideSerieGroup *group : groups) {
 		QVector<SerieInGroup> shown_series_in_group = shownSeriesInGroup(*group, area.series);
 		if (shown_series_in_group.count()) {
-			int position = area.outsideSerieGroupsRects[i].y() + group->spacing;
 			if (i == area.outsideSerieGroupsRects.count()) {
 				throw std::runtime_error("Something wrong in outside serie groups computation");
 			}
+			int position = group->spacing;
+			painter->save();
+			painter->translate(area.outsideSerieGroupsRects[i].topLeft());
 			for (const SerieInGroup &serie_in_group : shown_series_in_group) {
 				if (serie_in_group.serie->type != ValueType::Bool || serie_in_group.serie->lineType != Serie::LineType::OneDimensional) {
 					throw std::runtime_error("In outside groups can be only one dimensional bool series");
@@ -1967,9 +1979,9 @@ void GraphView::paintOutsideSeriesGroups(QPainter *painter, const GraphView::Gra
 				position = position + serie_in_group.serie->lineWidth + group->spacing;
 			}
 			++i;
+			painter->restore();
 		}
 	}
-	painter->restore();
 }
 
 void GraphView::paintCurrentPosition(QPainter *painter, const GraphArea &area)

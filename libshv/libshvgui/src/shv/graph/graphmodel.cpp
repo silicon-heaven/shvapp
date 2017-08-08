@@ -284,6 +284,17 @@ void GraphModelData::addSerie(SerieData values)
 	m_valueChanges.push_back(values);
 }
 
+void GraphModelData::clearSerie(int serie_index)
+{
+	checkIndex(serie_index);
+	SerieData &serie = m_valueChanges[serie_index];
+	if (serie.size()) {
+		serie.clear();
+		serie.shrink_to_fit();
+		Q_EMIT dataChanged();
+	}
+}
+
 void GraphModelData::clearSeries()
 {
 	for (SerieData &serie : m_valueChanges) {
