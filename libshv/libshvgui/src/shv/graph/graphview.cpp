@@ -1919,20 +1919,20 @@ void GraphView::paintBackgroundStripes(QPainter *painter, const GraphView::Graph
 				range = settings.y2Axis.rangeMax - settings.y2Axis.rangeMin;
 			}
 			double scale = range / area.graphRect.height();
-			const QVector<BackgroundStripe> &stripes = serie.backgroundStripes;
-			for (const BackgroundStripe &stripe : stripes) {
+			const QVector<BackgroundStripe*> &stripes = serie.backgroundStripes;
+			for (const BackgroundStripe *stripe : stripes) {
 				QColor stripe_color = serie.color;
 				stripe_color.setAlpha(30);
 
 				int min = 0;
 				int max = 0;
 				if (serie.type == ValueType::Double) {
-					min = stripe.min.doubleValue / scale;
-					max = stripe.max.doubleValue / scale;
+					min = stripe->min().doubleValue / scale;
+					max = stripe->max().doubleValue / scale;
 				}
 				else if (serie.type == ValueType::Int) {
-					min = stripe.min.intValue / scale;
-					max = stripe.max.intValue / scale;
+					min = stripe->min().intValue / scale;
+					max = stripe->max().intValue / scale;
 				}
 				else if (serie.type == ValueType::Bool) {
 					throw std::runtime_error("GraphView: Cannot paint background serie for bool serie");
@@ -2248,4 +2248,26 @@ bool GraphView::Selection::containsValue(qint64 value) const
 	return ((start <= end && value >= start && value <= end) ||	(start > end && value >= end && value <= start));
 }
 
-}}
+void BackgroundStripe::setMin(const ValueChange::ValueY &min)
+{
+	setRange(min, m_max);
+}
+
+void BackgroundStripe::setMax(const ValueChange::ValueY &max)
+{
+	setRange(m_min, max);
+}
+
+void BackgroundStripe::setRange(const ValueChange::ValueY &min, const ValueChange::ValueY &max)
+{
+	m_min = min;
+	m_max = max;
+
+	GraphView *graph = qobject_cast<GraphView*>(parent());
+	if (graph && graph->settings.showBackgroundStripes) {
+		graph->update();
+	}
+}
+
+}
+}

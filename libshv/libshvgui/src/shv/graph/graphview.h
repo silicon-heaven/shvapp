@@ -26,21 +26,34 @@ protected:
 	void paintEvent(QPaintEvent *event);
 };
 
+class SHVGUI_DECL_EXPORT BackgroundStripe : public QObject
+{
+	Q_OBJECT
+
+public:
+	inline BackgroundStripe(QObject *parent = 0) : QObject(parent) {}
+	inline BackgroundStripe(ValueChange::ValueY min, ValueChange::ValueY max, QObject *parent) : QObject(parent), m_min(min), m_max(max) {}
+
+	inline const ValueChange::ValueY &min() const { return m_min; }
+	inline const ValueChange::ValueY &max() const { return m_max; }
+
+	void setMin(const ValueChange::ValueY &min);
+	void setMax(const ValueChange::ValueY &max);
+	void setRange(const ValueChange::ValueY &min, const ValueChange::ValueY &max);
+
+private:
+	ValueChange::ValueY m_min = 0;
+	ValueChange::ValueY m_max = 0;
+};
+
 class SHVGUI_DECL_EXPORT GraphView : public QWidget
 {
 	Q_OBJECT
 
 	using SerieData = shv::gui::SerieData;
+
 public:
 	class Serie;
-
-	class BackgroundStripe
-	{
-	public:
-		inline BackgroundStripe(ValueChange::ValueY min = 0, ValueChange::ValueY max = 0) : min(min), max(max) {}
-		ValueChange::ValueY min = 0;
-		ValueChange::ValueY max = 0;
-	};
 
 	struct OutsideSerieGroup
 	{
@@ -70,7 +83,7 @@ public:
 		SerieData::const_iterator displayedDataBegin = shv::gui::SerieData::const_iterator();
 		SerieData::const_iterator displayedDataEnd = shv::gui::SerieData::const_iterator();
 		QVector<Serie> dependentSeries = QVector<Serie>();
-		QVector<BackgroundStripe> backgroundStripes = QVector<BackgroundStripe>();
+		QVector<BackgroundStripe*> backgroundStripes = QVector<BackgroundStripe*>();
 		LineType lineType = LineType::TwoDimensional;
 		OutsideSerieGroup *serieGroup = nullptr;
 		int lineWidth = 1;
