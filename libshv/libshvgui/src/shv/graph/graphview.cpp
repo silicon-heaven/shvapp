@@ -132,10 +132,17 @@ void GraphView::releaseModel()
 	m_xValueScale = 0.0;
 	m_leftRangeSelectorPosition = 0;
 	m_rightRangeSelectorPosition = 0;
+	m_leftRangeSelectorHandle->hide();
+	m_rightRangeSelectorHandle->hide();
 	m_selections.clear();
 
 	m_model = nullptr;
 	m_pointsOfInterest.clear();
+
+	if (m_toolTipTimer.isActive()) {
+		m_toolTipTimer.stop();
+	}
+
 	computeGeometry();
 	update();
 }
@@ -160,6 +167,9 @@ void GraphView::setModel(GraphModel *model)
 
 void GraphView::onModelDataChanged() //TODO improve change detection in model
 {
+	if (m_toolTipTimer.isActive()) {
+		m_toolTipTimer.stop();
+	}
 	m_loadedRangeMin = UINT64_MAX;
 	m_loadedRangeMax = 0;
 	for (Serie &serie : m_series) {
@@ -782,6 +792,10 @@ void GraphView::updateLastValueInLastSelection(qint64 value)
 
 void GraphView::mouseMoveEvent(QMouseEvent *mouse_event)
 {
+	if (!m_model) {
+		return;
+	}
+
 	QPoint pos = mouse_event->pos();
 	if (posInGraph(pos)) {
 		int x_pos = pos.x() - m_graphArea[0].graphRect.x();
@@ -2012,23 +2026,25 @@ QString GraphView::legendRow(const Serie &serie, qint64 position) const
 	QString s;
 	if (serie.show) {
 		auto begin = findMinYValue(serie.displayedDataBegin, serie.displayedDataEnd, position);
-		s = s + "<tr><td class=\"label\">" + serie.name + ":</td><td class=\"value\">";
-		if (serie.legendValueFormatter) {
-			s += serie.legendValueFormatter(*begin);
+		if (begin != shv::gui::SerieData::const_iterator()) {
+			s = s + "<tr><td class=\"label\">" + serie.name + ":</td><td class=\"value\">";
+			if (serie.legendValueFormatter) {
+				s += serie.legendValueFormatter(*begin);
+			}
+			else {
+				ValueChange::ValueY value_change = serie.valueFormatter ? serie.valueFormatter(*begin) : begin->valueY;
+				if (serie.type == ValueType::Double) {
+					s += QString::number(value_change.doubleValue);
+				}
+				else if (serie.type == ValueType::Int) {
+					s += QString::number(value_change.intValue);
+				}
+				else if (serie.type == ValueType::Bool) {
+					s += value_change.boolValue ? tr("true") : tr("false");
+				}
+			}
+			s += "</td></tr>";
 		}
-		else {
-			ValueChange::ValueY value_change = serie.valueFormatter ? serie.valueFormatter(*begin) : begin->valueY;
-			if (serie.type == ValueType::Double) {
-				s += QString::number(value_change.doubleValue);
-			}
-			else if (serie.type == ValueType::Int) {
-				s += QString::number(value_change.intValue);
-			}
-			else if (serie.type == ValueType::Bool) {
-				s += value_change.boolValue ? tr("true") : tr("false");
-			}
-		}
-		s += "</td></tr>";
 	}
 	return s;
 }
