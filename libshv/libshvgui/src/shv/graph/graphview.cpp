@@ -16,12 +16,12 @@ namespace gui {
 static constexpr const int POI_SYMBOL_WIDTH = 12;
 static constexpr const int POI_SYMBOL_HEIGHT = 18;
 
-const GraphView::SerieData &GraphView::Serie::serieModelData(const GraphView *view) const
+const SerieData &Serie::serieModelData(const GraphView *view) const
 {
 	return serieModelData(view->model());
 }
 
-const SerieData &GraphView::Serie::serieModelData(const GraphModel *model) const
+const SerieData &Serie::serieModelData(const GraphModel *model) const
 {
 	return model->serieData(serieIndex);
 }
@@ -295,8 +295,8 @@ void GraphView::computeRangeSelectorPosition()
 QVector<GraphView::SerieInGroup> GraphView::shownSeriesInGroup(const OutsideSerieGroup &group, const QVector<Serie*> &only_series) const
 {
 	QVector<SerieInGroup> shown_series_in_group;
-	if (group.show) {
-		for (const Serie *serie : group.series) {
+	if (!group.isHidden()) {
+		for (const Serie *serie : group.series()) {
 			const Serie *master_serie = 0;
 			for (const Serie &s : m_series) {
 				if (&s == serie) {
@@ -399,12 +399,12 @@ void GraphView::computeGeometry()
 			for (const OutsideSerieGroup *group : block_groups) {
 				const QVector<SerieInGroup> shown_series_in_group = shownSeriesInGroup(*group, visible_blocks[i]);
 				if (shown_series_in_group.count()) {
-					int group_height = group->spacing;
+					int group_height = group->serieSpacing();
 					for (const SerieInGroup &serie_in_group : shown_series_in_group) {
-						group_height = group_height + serie_in_group.serie->lineWidth + group->spacing;
+						group_height = group_height + serie_in_group.serie->lineWidth + group->serieSpacing();
 					}
-					if (group_height < group->minimumHeight) {
-						group_height = group->minimumHeight;
+					if (group_height < group->minimumHeight()) {
+						group_height = group->minimumHeight();
 					}
 					all_group_height = all_group_height + group_height + group_spacing;
 					block_group_heights.last() << group_height;
@@ -1081,7 +1081,7 @@ GraphModel *GraphView::model() const
 	return m_model;
 }
 
-GraphView::Serie &GraphView::addSerie(const Serie &serie)
+Serie &GraphView::addSerie(const Serie &serie)
 {
 	if (serie.type == ValueType::Bool && !serie.boolValue && !serie.serieGroup) {
 		throw std::runtime_error(("Bool serie (" + serie.name + ") must have set boolValue or serie group").toStdString());
@@ -1103,7 +1103,8 @@ GraphView::Serie &GraphView::addSerie(const Serie &serie)
 			if (serie.type != ValueType::Bool || serie.lineType != Serie::LineType::OneDimensional) {
 				throw std::runtime_error("In serie group can be added only bool one dimensional series");
 			}
-			serie.serieGroup->series.append(&serie);
+//			serie.serieGroup->series.append(&serie);
+			serie.serieGroup->addSerie(&serie);
 		}
 	};
 	addSerieToGroup(last_serie);
@@ -1114,7 +1115,7 @@ GraphView::Serie &GraphView::addSerie(const Serie &serie)
 	return last_serie;
 }
 
-GraphView::Serie &GraphView::serie(int index)
+Serie &GraphView::serie(int index)
 {
 	if (index >= m_series.count()) {
 		throw std::runtime_error("GraphView: invalid serie index");
@@ -1249,12 +1250,11 @@ void GraphView::showBackgroundStripes(bool enable)
 	}
 }
 
-GraphView::OutsideSerieGroup &GraphView::addOutsideSerieGroup(const QString &name)
+OutsideSerieGroup &GraphView::addOutsideSerieGroup(const QString &name)
 {
-	m_outsideSeriesGroups << OutsideSerieGroup();
-	OutsideSerieGroup &last = m_outsideSeriesGroups.last();
-	last.name = name;
-	return last;
+	m_outsideSeriesGroups << new OutsideSerieGroup(name, this);
+	OutsideSerieGroup *last = m_outsideSeriesGroups.last();
+	return *last;
 }
 
 void GraphView::showRange(qint64 from, qint64 to)
@@ -1944,7 +1944,7 @@ void GraphView::paintBackgroundStripes(QPainter *painter, const GraphView::Graph
 	painter->restore();
 }
 
-QVector<const GraphView::OutsideSerieGroup*> GraphView::groupsForSeries(const QVector<Serie*> &series) const
+QVector<const OutsideSerieGroup*> GraphView::groupsForSeries(const QVector<Serie*> &series) const
 {
 	QVector<const OutsideSerieGroup*> groups;
 	for (const Serie *s : series) {
@@ -1958,9 +1958,9 @@ QVector<const GraphView::OutsideSerieGroup*> GraphView::groupsForSeries(const QV
 		}
 	}
 	QVector<const OutsideSerieGroup*> sorted_groups;
-	for (const OutsideSerieGroup &group : m_outsideSeriesGroups) {
-		if (groups.contains(&group)) {
-			sorted_groups << &group;
+	for (const OutsideSerieGroup *group : m_outsideSeriesGroups) {
+		if (groups.contains(group)) {
+			sorted_groups << group;
 		}
 	}
 	return sorted_groups;
@@ -1978,7 +1978,7 @@ void GraphView::paintOutsideSeriesGroups(QPainter *painter, const GraphView::Gra
 			if (i == area.outsideSerieGroupsRects.count()) {
 				throw std::runtime_error("Something wrong in outside serie groups computation");
 			}
-			int position = group->spacing;
+			int position = group->serieSpacing();
 			painter->save();
 			painter->translate(area.outsideSerieGroupsRects[i].topLeft());
 			for (const SerieInGroup &serie_in_group : shown_series_in_group) {
@@ -1990,7 +1990,7 @@ void GraphView::paintOutsideSeriesGroups(QPainter *painter, const GraphView::Gra
 				painter->setPen(pen);
 
 				paintBoolSerieAtPosition(painter, area.outsideSerieGroupsRects[i], position, *serie_in_group.serie, m_displayedRangeMin, m_displayedRangeMax, false);
-				position = position + serie_in_group.serie->lineWidth + group->spacing;
+				position = position + serie_in_group.serie->lineWidth + group->serieSpacing();
 			}
 			++i;
 			painter->restore();
@@ -2266,6 +2266,20 @@ void BackgroundStripe::setRange(const ValueChange::ValueY &min, const ValueChang
 	GraphView *graph = qobject_cast<GraphView*>(parent());
 	if (graph && graph->settings.showBackgroundStripes) {
 		graph->update();
+	}
+}
+
+void OutsideSerieGroup::show()
+{
+	if (!m_show) {
+		m_show = true;
+	}
+}
+
+void OutsideSerieGroup::hide()
+{
+	if (m_show) {
+		m_show = false;
 	}
 }
 

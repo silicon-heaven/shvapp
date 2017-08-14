@@ -46,6 +46,68 @@ private:
 	ValueChange::ValueY m_max = 0;
 };
 
+class Serie;
+
+class SHVGUI_DECL_EXPORT OutsideSerieGroup : public QObject
+{
+	Q_OBJECT
+
+public:
+	inline OutsideSerieGroup(const QString &name, QObject *parent = 0) : QObject(parent), m_name(name) {}
+
+	inline const QString &name() const { return m_name; }
+	inline bool isHidden() const { return !m_show; }
+	inline int serieSpacing() const { return m_spacing; }
+	inline int minimumHeight() const { return m_minimumHeight; }
+	inline const QVector<Serie*> &series() const { return m_series; }
+	inline void addSerie(Serie *serie) { m_series.append(serie); }
+	void show();
+	void hide();
+
+private:
+	QString m_name;
+	QVector<Serie*> m_series;
+	int m_minimumHeight = 20;
+	bool m_show = false;
+	QColor m_backgroundColor;
+	int m_spacing = 4;
+
+};
+
+class GraphView;
+
+class Serie
+{
+public:
+	enum class LineType { OneDimensional, TwoDimensional };
+	enum class YAxis { Y1, Y2 };
+
+	QString name;
+	ValueType type;
+	QColor color;
+	YAxis relatedAxis = YAxis::Y1;
+	double boolValue = 0.0;
+	bool show = true;
+	bool showCurrent = true;
+	int serieIndex = -1;
+	std::function<ValueChange::ValueY (const ValueChange &)> valueFormatter = nullptr;
+	std::function<QString (const ValueChange &)> legendValueFormatter = nullptr;
+	SerieData::const_iterator displayedDataBegin = shv::gui::SerieData::const_iterator();
+	SerieData::const_iterator displayedDataEnd = shv::gui::SerieData::const_iterator();
+	QVector<Serie> dependentSeries = QVector<Serie>();
+	QVector<BackgroundStripe*> backgroundStripes = QVector<BackgroundStripe*>();
+	LineType lineType = LineType::TwoDimensional;
+	OutsideSerieGroup *serieGroup = nullptr;
+	int lineWidth = 1;
+
+	//GraphView *m_view;
+
+	//Serie() : modelIndex(-1), m_view(nullptr) {}
+	//Serie(GraphView *view) : m_view(view) {}
+	const SerieData &serieModelData(const GraphView *view) const;
+	const SerieData &serieModelData(const GraphModel *model) const;
+};
+
 class SHVGUI_DECL_EXPORT GraphView : public QWidget
 {
 	Q_OBJECT
@@ -53,48 +115,6 @@ class SHVGUI_DECL_EXPORT GraphView : public QWidget
 	using SerieData = shv::gui::SerieData;
 
 public:
-	class Serie;
-
-	struct OutsideSerieGroup
-	{
-		QString name;
-		QVector<Serie*> series;
-		int minimumHeight = 20;
-		bool show = false;
-		QColor backgroundColor;
-		int spacing = 4;
-
-	};
-	struct Serie
-	{
-		enum class LineType { OneDimensional, TwoDimensional };
-		enum class YAxis { Y1, Y2 };
-
-		QString name;
-		ValueType type;
-		QColor color;
-		YAxis relatedAxis = YAxis::Y1;
-		double boolValue = 0.0;
-		bool show = true;
-		bool showCurrent = true;
-		int serieIndex = -1;
-		std::function<ValueChange::ValueY (const ValueChange &)> valueFormatter = nullptr;
-		std::function<QString (const ValueChange &)> legendValueFormatter = nullptr;
-		SerieData::const_iterator displayedDataBegin = shv::gui::SerieData::const_iterator();
-		SerieData::const_iterator displayedDataEnd = shv::gui::SerieData::const_iterator();
-		QVector<Serie> dependentSeries = QVector<Serie>();
-		QVector<BackgroundStripe*> backgroundStripes = QVector<BackgroundStripe*>();
-		LineType lineType = LineType::TwoDimensional;
-		OutsideSerieGroup *serieGroup = nullptr;
-		int lineWidth = 1;
-
-		//GraphView *m_view;
-
-		//Serie() : modelIndex(-1), m_view(nullptr) {}
-		//Serie(GraphView *view) : m_view(view) {}
-		const SerieData &serieModelData(const GraphView *view) const;
-		const SerieData &serieModelData(const GraphModel *model) const;
-	};
 
 	struct Settings
 	{
@@ -360,7 +380,7 @@ private:
 	QTimer m_toolTipTimer;
 	QPoint m_toolTipPosition;
 	QVector<PointOfInterest> m_pointsOfInterest;
-	QVector<OutsideSerieGroup> m_outsideSeriesGroups;
+	QVector<OutsideSerieGroup*> m_outsideSeriesGroups;
 };
 
 }
