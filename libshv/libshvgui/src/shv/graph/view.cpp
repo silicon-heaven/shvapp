@@ -1137,8 +1137,8 @@ void View::addSerie(Serie *serie)
 //		for (Serie *dependent_serie : serie->dependentSeries()) {
 //			addSerieToGroup(dependent_serie);
 //		}
-
 	}
+
 }
 
 Serie *View::serie(int index)
