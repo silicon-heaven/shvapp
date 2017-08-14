@@ -16,6 +16,10 @@ namespace gui {
 static constexpr const int POI_SYMBOL_WIDTH = 12;
 static constexpr const int POI_SYMBOL_HEIGHT = 18;
 
+Serie::Serie(const QString &name, ValueType type, const QColor &color, QObject *parent) : QObject(parent), name(name), type(type), color(color)
+{
+}
+
 const SerieData &Serie::serieModelData(const GraphView *view) const
 {
 	return serieModelData(view->model());
@@ -172,14 +176,14 @@ void GraphView::onModelDataChanged() //TODO improve change detection in model
 	}
 	m_loadedRangeMin = UINT64_MAX;
 	m_loadedRangeMax = 0;
-	for (Serie &serie : m_series) {
-		const SerieData &serie_model_data = serie.serieModelData(this);
-		serie.displayedDataBegin = serie_model_data.begin();
-		serie.displayedDataEnd = serie_model_data.end();
-		for (Serie &dep_serie : serie.dependentSeries) {
-			const SerieData &dep_serie_model_data = dep_serie.serieModelData(this);
-			dep_serie.displayedDataBegin = dep_serie_model_data.begin();
-			dep_serie.displayedDataEnd = dep_serie_model_data.end();
+	for (Serie *serie : m_series) {
+		const SerieData &serie_model_data = serie->serieModelData(this);
+		serie->displayedDataBegin = serie_model_data.begin();
+		serie->displayedDataEnd = serie_model_data.end();
+		for (Serie *dep_serie : serie->dependentSeries) {
+			const SerieData &dep_serie_model_data = dep_serie->serieModelData(this);
+			dep_serie->displayedDataBegin = dep_serie_model_data.begin();
+			dep_serie->displayedDataEnd = dep_serie_model_data.end();
 		}
 	}
 	switch (settings.xAxisType) {
@@ -237,14 +241,14 @@ void GraphView::resizeEvent(QResizeEvent *resize_event)
 
 void GraphView::computeDataRange()
 {
-	for (Serie &serie : m_series) {
-		const SerieData &serie_model_data = serie.serieModelData(this);
-		serie.displayedDataBegin = findMinYValue(serie_model_data.begin(), serie_model_data.end(), m_displayedRangeMin);
-		serie.displayedDataEnd = findMaxYValue(serie_model_data.begin(), serie_model_data.end(), m_displayedRangeMax);
-		for (Serie &dep_serie : serie.dependentSeries) {
-			const SerieData &dep_serie_model_data = dep_serie.serieModelData(this);
-			dep_serie.displayedDataBegin = findMinYValue(dep_serie_model_data.begin(), dep_serie_model_data.end(), m_displayedRangeMin);
-			dep_serie.displayedDataEnd = findMaxYValue(dep_serie_model_data.begin(), dep_serie_model_data.end(), m_displayedRangeMax);
+	for (Serie *serie : m_series) {
+		const SerieData &serie_model_data = serie->serieModelData(this);
+		serie->displayedDataBegin = findMinYValue(serie_model_data.begin(), serie_model_data.end(), m_displayedRangeMin);
+		serie->displayedDataEnd = findMaxYValue(serie_model_data.begin(), serie_model_data.end(), m_displayedRangeMax);
+		for (Serie *dep_serie : serie->dependentSeries) {
+			const SerieData &dep_serie_model_data = dep_serie->serieModelData(this);
+			dep_serie->displayedDataBegin = findMinYValue(dep_serie_model_data.begin(), dep_serie_model_data.end(), m_displayedRangeMin);
+			dep_serie->displayedDataEnd = findMaxYValue(dep_serie_model_data.begin(), dep_serie_model_data.end(), m_displayedRangeMax);
 		}
 	}
 }
@@ -298,15 +302,15 @@ QVector<GraphView::SerieInGroup> GraphView::shownSeriesInGroup(const OutsideSeri
 	if (!group.isHidden()) {
 		for (const Serie *serie : group.series()) {
 			const Serie *master_serie = 0;
-			for (const Serie &s : m_series) {
-				if (&s == serie) {
+			for (const Serie *s : m_series) {
+				if (s == serie) {
 					master_serie = serie;
 					break;
 				}
 				else {
-					for (const Serie &ds : s.dependentSeries) {
-						if (&ds == serie) {
-							master_serie = &s;
+					for (const Serie *ds : s->dependentSeries) {
+						if (ds == serie) {
+							master_serie = s;
 							break;
 						}
 					}
@@ -324,8 +328,8 @@ QVector<GraphView::SerieInGroup> GraphView::shownSeriesInGroup(const OutsideSeri
 				is_serie_in_area = true;
 				break;
 			}
-			for (const Serie &ds : s->dependentSeries) {
-				if (&ds == shown_series_in_group[j].serie) {
+			for (const Serie *ds : s->dependentSeries) {
+				if (ds == shown_series_in_group[j].serie) {
 					is_serie_in_area = true;
 					break;
 				}
@@ -562,8 +566,8 @@ void GraphView::computeGeometry()
 
 bool GraphView::hasVisibleSeries() const
 {
-	for (const Serie &serie : m_series) {
-		if (serie.show) {
+	for (const Serie *serie : m_series) {
+		if (serie->show) {
 			return true;
 		}
 	}
@@ -747,7 +751,7 @@ void GraphView::mousePressEvent(QMouseEvent *mouse_event)
 			for (int i = 0; i < m_seriesListRect.count(); ++i) {
 				const QRect &rect = m_seriesListRect[i];
 				if (rect.contains(pos)) {
-					m_series[i].show = !m_series[i].show;
+					m_series[i]->show = !m_series[i]->show;
 					computeGeometry();
 					update();
 					break;
@@ -1081,41 +1085,39 @@ GraphModel *GraphView::model() const
 	return m_model;
 }
 
-Serie &GraphView::addSerie(const Serie &serie)
+void GraphView::addSerie(Serie *serie)
 {
-	if (serie.type == ValueType::Bool && !serie.boolValue && !serie.serieGroup) {
-		throw std::runtime_error(("Bool serie (" + serie.name + ") must have set boolValue or serie group").toStdString());
+	if (serie->type == ValueType::Bool && !serie->boolValue && !serie->serieGroup) {
+		throw std::runtime_error(("Bool serie (" + serie->name + ") must have set boolValue or serie group").toStdString());
 	}
-	for (const Serie &dependent_serie : serie.dependentSeries) {
-		if (dependent_serie.type == ValueType::Bool && !dependent_serie.boolValue && !dependent_serie.serieGroup) {
-			throw std::runtime_error(("Bool serie (" + dependent_serie.name + ") must have set boolValue or serie group").toStdString());
+	for (const Serie *dependent_serie : serie->dependentSeries) {
+		if (dependent_serie->type == ValueType::Bool && !dependent_serie->boolValue && !dependent_serie->serieGroup) {
+			throw std::runtime_error(("Bool serie (" + dependent_serie->name + ") must have set boolValue or serie group").toStdString());
 		}
 	}
 	m_series.append(serie);
-	Serie &last_serie = m_series.last();
+	Serie *last_serie = m_series.last();
 	if (m_serieBlocks.count() == 0) {
 		m_serieBlocks.append(QVector<Serie*>());
 	}
-	m_serieBlocks.last() << &last_serie;
+	m_serieBlocks.last() << last_serie;
 
-	auto addSerieToGroup = [](Serie &serie) {
-		if (serie.serieGroup) {
-			if (serie.type != ValueType::Bool || serie.lineType != Serie::LineType::OneDimensional) {
+	auto addSerieToGroup = [](Serie *serie) {
+		if (serie->serieGroup) {
+			if (serie->type != ValueType::Bool || serie->lineType != Serie::LineType::OneDimensional) {
 				throw std::runtime_error("In serie group can be added only bool one dimensional series");
 			}
 //			serie.serieGroup->series.append(&serie);
-			serie.serieGroup->addSerie(&serie);
+			serie->serieGroup->addSerie(serie);
 		}
 	};
 	addSerieToGroup(last_serie);
-	for (Serie &dependent_serie : last_serie.dependentSeries) {
+	for (Serie *dependent_serie : last_serie->dependentSeries) {
 		addSerieToGroup(dependent_serie);
 	}
-
-	return last_serie;
 }
 
-Serie &GraphView::serie(int index)
+Serie *GraphView::serie(int index)
 {
 	if (index >= m_series.count()) {
 		throw std::runtime_error("GraphView: invalid serie index");
@@ -1126,9 +1128,9 @@ Serie &GraphView::serie(int index)
 void GraphView::splitSeries()
 {
 	m_serieBlocks.clear();
-	for (Serie &serie : m_series) {
+	for (Serie *serie : m_series) {
 		m_serieBlocks.append(QVector<Serie*>());
-		m_serieBlocks.last() << &serie;
+		m_serieBlocks.last() << serie;
 	}
 	computeGeometry();
 	update();
@@ -1138,8 +1140,8 @@ void GraphView::unsplitSeries()
 {
 	m_serieBlocks.clear();
 	m_serieBlocks.append(QVector<Serie*>());
-	for (Serie &serie : m_series) {
-		m_serieBlocks.last() << &serie;
+	for (Serie *serie : m_series) {
+		m_serieBlocks.last() << serie;
 	}
 	computeGeometry();
 	update();
@@ -1447,10 +1449,10 @@ void GraphView::paintRangeSelector(QPainter *painter)
 	painter->translate(m_rangeSelectorRect.topLeft());
 
 	for (int i = 0; i < m_series.count(); ++i) {
-		const Serie &serie = m_series[i];
-		if (serie.show) {
+		const Serie *serie = m_series[i];
+		if (serie->show) {
 			int x_axis_position;
-			if (serie.relatedAxis == Serie::YAxis::Y1) {
+			if (serie->relatedAxis == Serie::YAxis::Y1) {
 				double x_scale = (double)(settings.yAxis.rangeMax - settings.yAxis.rangeMin) / m_rangeSelectorRect.height();
 				x_axis_position = settings.yAxis.rangeMax / x_scale;
 			}
@@ -1511,32 +1513,32 @@ void GraphView::paintSeries(QPainter *painter, const GraphArea &area)
 	painter->translate(area.graphRect.topLeft());
 
 	for (int i = 0; i < area.series.count(); ++i) {
-		const Serie &serie = *area.series[i];
+		const Serie *serie = area.series[i];
 		int x_axis_position;
-		if (serie.relatedAxis == Serie::YAxis::Y1 || area.switchAxes) {
+		if (serie->relatedAxis == Serie::YAxis::Y1 || area.switchAxes) {
 			x_axis_position = area.xAxisPosition - area.graphRect.top();
 		}
 		else {
 			x_axis_position = area.x2AxisPosition - area.graphRect.top();
 		}
-		QPen pen(serie.color);
-		if (serie.show && settings.showDependent) {
-			for (const Serie &dependent_serie : serie.dependentSeries) {
-				pen.setWidth(dependent_serie.lineWidth);
+		QPen pen(serie->color);
+		if (serie->show && settings.showDependent) {
+			for (const Serie *dependent_serie : serie->dependentSeries) {
+				pen.setWidth(dependent_serie->lineWidth);
 				paintSerie(painter, area.graphRect, x_axis_position, dependent_serie, m_displayedRangeMin, m_displayedRangeMax, pen, false);
 			}
 		}
-		pen.setWidth(serie.lineWidth);
+		pen.setWidth(serie->lineWidth);
 		paintSerie(painter, area.graphRect, x_axis_position, serie, m_displayedRangeMin, m_displayedRangeMax, pen, false);
 	}
 	painter->restore();
 }
 
-void GraphView::paintSerie(QPainter *painter, const QRect &rect, int x_axis_position, const Serie &serie, qint64 min, qint64 max, const QPen &pen, bool fill_rect)
+void GraphView::paintSerie(QPainter *painter, const QRect &rect, int x_axis_position, const Serie *serie, qint64 min, qint64 max, const QPen &pen, bool fill_rect)
 {
-	if (serie.show) {
-		if (serie.type == ValueType::Bool) {
-			if (!serie.serieGroup) {
+	if (serie->show) {
+		if (serie->type == ValueType::Bool) {
+			if (!serie->serieGroup) {
 				paintBoolSerie(painter, rect, x_axis_position, serie, min, max, pen, fill_rect);
 			}
 		}
@@ -1546,28 +1548,28 @@ void GraphView::paintSerie(QPainter *painter, const QRect &rect, int x_axis_posi
 	}
 }
 
-void GraphView::paintBoolSerie(QPainter *painter, const QRect &rect, int x_axis_position, const Serie &serie, qint64 min, qint64 max, const QPen &pen, bool fill_rect)
+void GraphView::paintBoolSerie(QPainter *painter, const QRect &rect, int x_axis_position, const Serie *serie, qint64 min, qint64 max, const QPen &pen, bool fill_rect)
 {
-	if (serie.lineType == Serie::LineType::TwoDimensional) {
+	if (serie->lineType == Serie::LineType::TwoDimensional) {
 		throw std::runtime_error("Cannot paint two dimensional bool serie");
 	}
 
 	double y_scale = 0.0;
-	if (serie.relatedAxis == Serie::YAxis::Y1) {
+	if (serie->relatedAxis == Serie::YAxis::Y1) {
 		y_scale = (double)(settings.yAxis.rangeMax - settings.yAxis.rangeMin) / rect.height();
 	}
-	else if (serie.relatedAxis == Serie::YAxis::Y2) {
+	else if (serie->relatedAxis == Serie::YAxis::Y2) {
 		y_scale = (double)(settings.y2Axis.rangeMax - settings.y2Axis.rangeMin) / rect.height();
 	}
 	painter->setPen(pen);
 
-	int y_true_line_position = x_axis_position - serie.boolValue / y_scale;
+	int y_true_line_position = x_axis_position - serie->boolValue / y_scale;
 	paintBoolSerieAtPosition(painter, rect, y_true_line_position, serie, min, max, fill_rect);
 }
 
-void GraphView::paintBoolSerieAtPosition(QPainter *painter, const QRect &rect, int y_position, const Serie &serie, qint64 min, qint64 max, bool fill_rect)
+void GraphView::paintBoolSerieAtPosition(QPainter *painter, const QRect &rect, int y_position, const Serie *serie, qint64 min, qint64 max, bool fill_rect)
 {
-	const SerieData &data = serie.serieModelData(this);
+	const SerieData &data = serie->serieModelData(this);
 	if (data.size() == 0) {
 		return;
 	}
@@ -1586,7 +1588,7 @@ void GraphView::paintBoolSerieAtPosition(QPainter *painter, const QRect &rect, i
 	polygon << QPoint(0, rect.height());
 
 	for (auto it = begin; it != end; ++it) {
-		ValueChange::ValueY value_y = serie.valueFormatter ? serie.valueFormatter(*it) : it->valueY;
+		ValueChange::ValueY value_y = serie->valueFormatter ? serie->valueFormatter(*it) : it->valueY;
 		if (value_y.boolValue) {
 			int begin_line = (xValue(*it) - min) / x_scale;
 			if (begin_line < 0) {
@@ -1620,9 +1622,9 @@ void GraphView::paintBoolSerieAtPosition(QPainter *painter, const QRect &rect, i
 	}
 }
 
-void GraphView::paintValueSerie(QPainter *painter, const QRect &rect, int x_axis_position, const Serie &serie, qint64 min, qint64 max, const QPen &pen, bool fill_rect)
+void GraphView::paintValueSerie(QPainter *painter, const QRect &rect, int x_axis_position, const Serie *serie, qint64 min, qint64 max, const QPen &pen, bool fill_rect)
 {
-	const SerieData &data = serie.serieModelData(this);
+	const SerieData &data = serie->serieModelData(this);
 	if (data.size() == 0) {
 		return;
 	}
@@ -1630,10 +1632,10 @@ void GraphView::paintValueSerie(QPainter *painter, const QRect &rect, int x_axis
 	double x_scale = (double)(max - min) / rect.width();
 
 	double y_scale = 0.0;
-	if (serie.relatedAxis == Serie::YAxis::Y1) {
+	if (serie->relatedAxis == Serie::YAxis::Y1) {
 		y_scale = (double)(settings.yAxis.rangeMax - settings.yAxis.rangeMin) / rect.height();
 	}
-	else if (serie.relatedAxis == Serie::YAxis::Y2) {
+	else if (serie->relatedAxis == Serie::YAxis::Y2) {
 		y_scale = (double)(settings.y2Axis.rangeMax - settings.y2Axis.rangeMin) / rect.height();
 	}
 	painter->setPen(pen);
@@ -1644,7 +1646,7 @@ void GraphView::paintValueSerie(QPainter *painter, const QRect &rect, int x_axis
 		begin = data.cbegin();
 	}
 	else if (min == m_displayedRangeMin) {
-		begin = serie.displayedDataBegin;
+		begin = serie->displayedDataBegin;
 	}
 	else {
 		begin = findMinYValue(data.cbegin(), data.cend(), min);
@@ -1653,15 +1655,15 @@ void GraphView::paintValueSerie(QPainter *painter, const QRect &rect, int x_axis
 		end = data.cend();
 	}
 	else if (max == m_displayedRangeMax) {
-		end = serie.displayedDataEnd;
+		end = serie->displayedDataEnd;
 	}
 	else {
 		end = findMaxYValue(begin, data.cend(), max);
 	}
 
 	QPoint first_point;
-	ValueChange::ValueY first_value_y = serie.valueFormatter ? serie.valueFormatter(*begin) : begin->valueY;
-	first_point = QPoint(0, x_axis_position - (first_value_y.toDouble(serie.type) / y_scale));
+	ValueChange::ValueY first_value_y = serie->valueFormatter ? serie->valueFormatter(*begin) : begin->valueY;
+	first_point = QPoint(0, x_axis_position - (first_value_y.toDouble(serie->type) / y_scale));
 
 	int max_on_first = first_point.y();
 	int min_on_first = first_point.y();
@@ -1673,9 +1675,9 @@ void GraphView::paintValueSerie(QPainter *painter, const QRect &rect, int x_axis
 
 	QPoint last_point(0,0);
 	for (auto it = begin + 1; it != end; ++it) {
-		ValueChange::ValueY value_change = serie.valueFormatter ? serie.valueFormatter(*it) : it->valueY;
+		ValueChange::ValueY value_change = serie->valueFormatter ? serie->valueFormatter(*it) : it->valueY;
 		qint64 x_value = xValue(*it);
-		last_point = QPoint((x_value - min) / x_scale, x_axis_position - (value_change.toDouble(serie.type) / y_scale));
+		last_point = QPoint((x_value - min) / x_scale, x_axis_position - (value_change.toDouble(serie->type) / y_scale));
 
 		if (last_point.x() == first_point.x()) {
 			if (max_on_first < last_point.y()) {
@@ -1789,8 +1791,8 @@ void GraphView::paintSerieList(QPainter *painter)
 	int space = 20;
 	QList<int> widths;
 	int total_width = 0;
-	for (const Serie &serie : m_series) {
-		int width = painter->fontMetrics().width(serie.name);
+	for (const Serie *serie : m_series) {
+		int width = painter->fontMetrics().width(serie->name);
 		total_width += width;
 		widths << width;
 	}
@@ -1804,8 +1806,8 @@ void GraphView::paintSerieList(QPainter *painter)
 	m_seriesListRect.clear();
 	int label_height = painter->fontMetrics().lineSpacing();
 	for (int i = 0; i < m_series.count(); ++i) {
-		const Serie &serie = m_series[i];
-		if (serie.show) {
+		const Serie *serie = m_series[i];
+		if (serie->show) {
 			painter->setPen(palette().color(QPalette::Active, QPalette::Text));
 		}
 		else {
@@ -1813,10 +1815,10 @@ void GraphView::paintSerieList(QPainter *painter)
 		}
 		m_seriesListRect << QRect(m_serieListRect.x() + x, m_serieListRect.top() + ((m_serieListRect.height() - label_height) / 2), 3 * square_width + widths[i], label_height);
 		QRect square_rect(m_serieListRect.x() + x, m_serieListRect.top() + ((m_serieListRect.height() - square_width) / 2), square_width, square_width);
-		painter->fillRect(square_rect, serie.show ? serie.color : serie.color.lighter(180));
+		painter->fillRect(square_rect, serie->show ? serie->color : serie->color.lighter(180));
 		painter->drawRect(square_rect);
 		x += 2 * square_width;
-		painter->drawText(m_serieListRect.x() + x, m_serieListRect.top(), widths[i], m_serieListRect.height(), Qt::AlignVCenter | Qt::AlignLeft, serie.name);
+		painter->drawText(m_serieListRect.x() + x, m_serieListRect.top(), widths[i], m_serieListRect.height(), Qt::AlignVCenter | Qt::AlignLeft, serie->name);
 		x += widths[i] + space;
 	}
 	painter->restore();
@@ -1840,14 +1842,15 @@ void GraphView::paintLegend(QPainter *painter)
 	Q_UNUSED(painter)
 }
 
-void GraphView::paintCurrentPosition(QPainter *painter, const GraphArea &area, const Serie &serie, qint64 current)
+void GraphView::paintCurrentPosition(QPainter *painter, const GraphArea &area, const Serie *serie, qint64 current)
 {
-	if (serie.showCurrent) {
-		auto begin = findMinYValue(serie.displayedDataBegin, serie.displayedDataEnd, current);
-		if (begin == shv::gui::SerieData::const_iterator())
+	if (serie->showCurrent) {
+		auto begin = findMinYValue(serie->displayedDataBegin, serie->displayedDataEnd, current);
+		if (begin == shv::gui::SerieData::const_iterator()) {
 			return;
+		}
 		double range;
-		if (serie.relatedAxis == Serie::YAxis::Y1) {
+		if (serie->relatedAxis == Serie::YAxis::Y1) {
 			range = settings.yAxis.rangeMax - settings.yAxis.rangeMin;
 		}
 		else {
@@ -1855,24 +1858,24 @@ void GraphView::paintCurrentPosition(QPainter *painter, const GraphArea &area, c
 		}
 		double scale = range / area.graphRect.height();
 		int y_position = 0;
-		ValueChange::ValueY value_change = serie.valueFormatter ? serie.valueFormatter(*begin) : begin->valueY;
-		if (serie.type == ValueType::Double) {
+		ValueChange::ValueY value_change = serie->valueFormatter ? serie->valueFormatter(*begin) : begin->valueY;
+		if (serie->type == ValueType::Double) {
 			y_position = value_change.doubleValue / scale;
 		}
-		else if (serie.type == ValueType::Int) {
+		else if (serie->type == ValueType::Int) {
 			y_position = value_change.intValue / scale;
 		}
-		else if (serie.type == ValueType::Bool) {
-			y_position = value_change.boolValue ? (serie.boolValue / scale) : 0;
+		else if (serie->type == ValueType::Bool) {
+			y_position = value_change.boolValue ? (serie->boolValue / scale) : 0;
 		}
 		QPainterPath path;
-		if (serie.relatedAxis == Serie::YAxis::Y1 || area.switchAxes) {
+		if (serie->relatedAxis == Serie::YAxis::Y1 || area.switchAxes) {
 			path.addEllipse(m_currentPosition + area.graphRect.x() - 3, area.xAxisPosition - y_position - 3, 6, 6);
 		}
 		else {
 			path.addEllipse(m_currentPosition + area.graphRect.x() - 3, area.x2AxisPosition - y_position - 3, 6, 6);
 		}
-		painter->fillPath(path, serie.color);
+		painter->fillPath(path, serie->color);
 	}
 
 }
@@ -1951,9 +1954,9 @@ QVector<const OutsideSerieGroup*> GraphView::groupsForSeries(const QVector<Serie
 		if (s->serieGroup && !groups.contains(s->serieGroup)) {
 			groups << s->serieGroup;
 		}
-		for (const Serie &ds : s->dependentSeries) {
-			if (ds.serieGroup && !groups.contains(ds.serieGroup)) {
-				groups << ds.serieGroup;
+		for (const Serie *ds : s->dependentSeries) {
+			if (ds->serieGroup && !groups.contains(ds->serieGroup)) {
+				groups << ds->serieGroup;
 			}
 		}
 	}
@@ -1989,7 +1992,7 @@ void GraphView::paintOutsideSeriesGroups(QPainter *painter, const GraphView::Gra
 				pen.setWidth(serie_in_group.serie->lineWidth);
 				painter->setPen(pen);
 
-				paintBoolSerieAtPosition(painter, area.outsideSerieGroupsRects[i], position, *serie_in_group.serie, m_displayedRangeMin, m_displayedRangeMax, false);
+				paintBoolSerieAtPosition(painter, area.outsideSerieGroupsRects[i], position, serie_in_group.serie, m_displayedRangeMin, m_displayedRangeMax, false);
 				position = position + serie_in_group.serie->lineWidth + group->serieSpacing();
 			}
 			++i;
@@ -2003,14 +2006,14 @@ void GraphView::paintCurrentPosition(QPainter *painter, const GraphArea &area)
 	painter->save();
 	qint64 current = rectPositionToXValue(m_currentPosition);
 	for (int i = 0; i < area.series.count(); ++i) {
-		const Serie &serie = *area.series[i];
-		if (serie.show) {
-			const SerieData &data = serie.serieModelData(this);
+		const Serie *serie = area.series[i];
+		if (serie->show) {
+			const SerieData &data = serie->serieModelData(this);
 			if (data.size()) {
 				paintCurrentPosition(painter, area, serie, current);
 				if (settings.showDependent) {
-					for (const Serie &dependent_serie : serie.dependentSeries) {
-						if (dependent_serie.show) {
+					for (const Serie *dependent_serie : serie->dependentSeries) {
+						if (dependent_serie->show) {
 							paintCurrentPosition(painter, area, dependent_serie, current);
 						}
 					}
@@ -2021,25 +2024,25 @@ void GraphView::paintCurrentPosition(QPainter *painter, const GraphArea &area)
 	painter->restore();
 }
 
-QString GraphView::legendRow(const Serie &serie, qint64 position) const
+QString GraphView::legendRow(const Serie *serie, qint64 position) const
 {
 	QString s;
-	if (serie.show) {
-		auto begin = findMinYValue(serie.displayedDataBegin, serie.displayedDataEnd, position);
+	if (serie->show) {
+		auto begin = findMinYValue(serie->displayedDataBegin, serie->displayedDataEnd, position);
 		if (begin != shv::gui::SerieData::const_iterator()) {
-			s = s + "<tr><td class=\"label\">" + serie.name + ":</td><td class=\"value\">";
-			if (serie.legendValueFormatter) {
-				s += serie.legendValueFormatter(*begin);
+			s = s + "<tr><td class=\"label\">" + serie->name + ":</td><td class=\"value\">";
+			if (serie->legendValueFormatter) {
+				s += serie->legendValueFormatter(*begin);
 			}
 			else {
-				ValueChange::ValueY value_change = serie.valueFormatter ? serie.valueFormatter(*begin) : begin->valueY;
-				if (serie.type == ValueType::Double) {
+				ValueChange::ValueY value_change = serie->valueFormatter ? serie->valueFormatter(*begin) : begin->valueY;
+				if (serie->type == ValueType::Double) {
 					s += QString::number(value_change.doubleValue);
 				}
-				else if (serie.type == ValueType::Int) {
+				else if (serie->type == ValueType::Int) {
 					s += QString::number(value_change.intValue);
 				}
-				else if (serie.type == ValueType::Bool) {
+				else if (serie->type == ValueType::Bool) {
 					s += value_change.boolValue ? tr("true") : tr("false");
 				}
 			}
@@ -2055,12 +2058,12 @@ QString GraphView::legend(qint64 position) const
 	s = s + "<table class=\"head\"><tr><td class=\"headLabel\">" + settings.xAxis.description + ":</td><td class=\"headValue\">" +
 		xValueString(position, "dd.MM.yyyy HH.mm.ss.zzz").replace(" ", "&nbsp;") + "</td></tr></table><hr>";
 	s += "<table>";
-	for (const Serie &serie : m_series) {
-		const SerieData &data = serie.serieModelData(this);
+	for (const Serie *serie : m_series) {
+		const SerieData &data = serie->serieModelData(this);
 		if (data.size()) {
 			s += legendRow(serie, position);
-			if (serie.show && settings.showDependent) {
-				for (const Serie &dependent_serie : serie.dependentSeries) {
+			if (serie->show && settings.showDependent) {
+				for (const Serie *dependent_serie : serie->dependentSeries) {
 					s += legendRow(dependent_serie, position);
 				}
 			}
@@ -2154,9 +2157,9 @@ QString GraphView::xValueString(qint64 value, const QString &datetime_format) co
 	return s;
 }
 
-void GraphView::computeRange(double &min, double &max, const Serie &serie) const
+void GraphView::computeRange(double &min, double &max, const Serie *serie) const
 {
-	const SerieData &data = serie.serieModelData(this);
+	const SerieData &data = serie->serieModelData(this);
 	if (data.size()) {
 		if (data.at(0).valueX.doubleValue < min) {
 			min = data.at(0).valueX.doubleValue;
@@ -2173,9 +2176,9 @@ void GraphView::computeRange(T &min, T &max) const
 	min = std::numeric_limits<T>::max();
 	max = std::numeric_limits<T>::min();
 
-	for (const Serie &serie : m_series) {
+	for (const Serie *serie : m_series) {
 		computeRange(min, max, serie);
-		for (const Serie &dependent_serie : serie.dependentSeries) {
+		for (const Serie *dependent_serie : serie->dependentSeries) {
 			computeRange(min, max, dependent_serie);
 		}
 	}
@@ -2184,9 +2187,9 @@ void GraphView::computeRange(T &min, T &max) const
 	}
 }
 
-void GraphView::computeRange(int &min, int &max, const Serie &serie) const
+void GraphView::computeRange(int &min, int &max, const Serie *serie) const
 {
-	const SerieData &data = serie.serieModelData(this);
+	const SerieData &data = serie->serieModelData(this);
 	if (data.size()) {
 		if (data.at(0).valueX.intValue < min) {
 			min = data.at(0).valueX.intValue;
@@ -2197,9 +2200,9 @@ void GraphView::computeRange(int &min, int &max, const Serie &serie) const
 	}
 }
 
-void GraphView::computeRange(qint64 &min, qint64 &max, const Serie &serie) const
+void GraphView::computeRange(qint64 &min, qint64 &max, const Serie *serie) const
 {
-	const SerieData &data = serie.serieModelData(this);
+	const SerieData &data = serie->serieModelData(this);
 	if (data.size()) {
 		if (data.at(0).valueX.timeStamp < min) {
 			min = data.at(0).valueX.timeStamp;

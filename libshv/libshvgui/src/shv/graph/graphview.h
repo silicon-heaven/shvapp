@@ -15,6 +15,9 @@
 namespace shv {
 namespace gui {
 
+class GraphView;
+class Serie;
+
 class RangeSelectorHandle : public QPushButton
 {
 	Q_OBJECT
@@ -46,8 +49,6 @@ private:
 	ValueChange::ValueY m_max = 0;
 };
 
-class Serie;
-
 class SHVGUI_DECL_EXPORT OutsideSerieGroup : public QObject
 {
 	Q_OBJECT
@@ -74,13 +75,15 @@ private:
 
 };
 
-class GraphView;
-
-class Serie
+class SHVGUI_DECL_EXPORT Serie : public QObject
 {
+	Q_OBJECT
+
 public:
 	enum class LineType { OneDimensional, TwoDimensional };
 	enum class YAxis { Y1, Y2 };
+
+	Serie(const QString &name, ValueType type, const QColor &color, QObject *parent);
 
 	QString name;
 	ValueType type;
@@ -94,7 +97,7 @@ public:
 	std::function<QString (const ValueChange &)> legendValueFormatter = nullptr;
 	SerieData::const_iterator displayedDataBegin = shv::gui::SerieData::const_iterator();
 	SerieData::const_iterator displayedDataEnd = shv::gui::SerieData::const_iterator();
-	QVector<Serie> dependentSeries = QVector<Serie>();
+	QVector<Serie*> dependentSeries = QVector<Serie*>();
 	QVector<BackgroundStripe*> backgroundStripes = QVector<BackgroundStripe*>();
 	LineType lineType = LineType::TwoDimensional;
 	OutsideSerieGroup *serieGroup = nullptr;
@@ -210,9 +213,9 @@ public:
 	void zoom(qint64 center, double scale);
 
 	GraphModel *model() const;
-	Serie &addSerie(const Serie &serie);
-	Serie &serie(int index);
-	inline const QList<Serie> &series() const  { return m_series; }
+	void addSerie(Serie *serie);
+	Serie *serie(int index);
+	inline const QList<Serie*> &series() const  { return m_series; }
 
 	void splitSeries();
 	void unsplitSeries();
@@ -299,23 +302,23 @@ private:
 	void paintHorizontalGrid(QPainter *painter, const GraphArea &area);
 	void paintRangeSelector(QPainter *painter);
 	void paintSeries(QPainter *painter, const GraphArea &area);
-	void paintSerie(QPainter *painter, const QRect &rect, int x_axis_position, const Serie &serie, qint64 min, qint64 max, const QPen &pen, bool fill_rect);
-	void paintBoolSerie(QPainter *painter, const QRect &area, int x_axis_position, const Serie &serie, qint64 min, qint64 max, const QPen &pen, bool fill_rect);
-	void paintBoolSerieAtPosition(QPainter *painter, const QRect &area, int y_position, const Serie &serie, qint64 min, qint64 max, bool fill_rect);
-	void paintValueSerie(QPainter *painter, const QRect &area, int x_axis_position, const Serie &serie, qint64 min, qint64 max, const QPen &pen, bool fill_rect);
+	void paintSerie(QPainter *painter, const QRect &rect, int x_axis_position, const Serie *serie, qint64 min, qint64 max, const QPen &pen, bool fill_rect);
+	void paintBoolSerie(QPainter *painter, const QRect &area, int x_axis_position, const Serie *serie, qint64 min, qint64 max, const QPen &pen, bool fill_rect);
+	void paintBoolSerieAtPosition(QPainter *painter, const QRect &area, int y_position, const Serie *serie, qint64 min, qint64 max, bool fill_rect);
+	void paintValueSerie(QPainter *painter, const QRect &area, int x_axis_position, const Serie *serie, qint64 min, qint64 max, const QPen &pen, bool fill_rect);
 	void paintSelections(QPainter *painter, const GraphArea &area);
 	void paintSelection(QPainter *painter, const GraphArea &area, const Selection &selection, const QColor &color);
 	void paintSerieList(QPainter *painter);
 	void paintCrossLine(QPainter *painter, const GraphArea &area);
 	void paintLegend(QPainter *painter);
 	void paintCurrentPosition(QPainter *painter, const GraphArea &area);
-	void paintCurrentPosition(QPainter *painter, const GraphArea &area, const Serie &serie, qint64 current);
+	void paintCurrentPosition(QPainter *painter, const GraphArea &area, const Serie *serie, qint64 current);
 	void paintPointsOfInterest(QPainter *painter, const GraphArea &area);
 	void paintBackgroundStripes(QPainter *painter, const GraphArea &area);
 	void paintOutsideSeriesGroups(QPainter *painter, const GraphArea &area);
 
 	QString legend(qint64 position) const;
-	QString legendRow(const Serie &serie, qint64 position) const;
+	QString legendRow(const Serie *serie, qint64 position) const;
 
 	qint64 widgetPositionToXValue(int pos) const;
 	qint64 rectPositionToXValue(int pos) const;
@@ -335,9 +338,9 @@ private:
 	qint64 xValue(const ValueChange::ValueX &value_x) const;
 	ValueChange::ValueX internalToValueX(qint64 value) const;
 	QString xValueString(qint64 value, const QString &datetime_format) const;
-	void computeRange(double &min, double &max, const Serie &serie) const;
-	void computeRange(int &min, int &max, const Serie &serie) const;
-	void computeRange(qint64 &min, qint64 &max, const Serie &serie) const;
+	void computeRange(double &min, double &max, const Serie *serie) const;
+	void computeRange(int &min, int &max, const Serie *serie) const;
+	void computeRange(qint64 &min, qint64 &max, const Serie *serie) const;
 	template<typename T> void computeRange(T &min, T &max) const;
 	void computeDataRange();
 	QPainterPath createPoiPath(int x, int y) const;
@@ -368,7 +371,7 @@ private:
 	double m_horizontalGridDistance;
 	int m_yAxisShownDecimalPoints;
 	int m_y2AxisShownDecimalPoints;
-	QList<Serie> m_series;
+	QList<Serie*> m_series;
 	QList<bool> m_showSeries;
 	QList<QRect> m_seriesListRect;
 	double m_xValueScale;
