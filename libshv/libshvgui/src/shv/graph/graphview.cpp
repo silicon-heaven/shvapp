@@ -16,7 +16,12 @@ namespace gui {
 static constexpr const int POI_SYMBOL_WIDTH = 12;
 static constexpr const int POI_SYMBOL_HEIGHT = 18;
 
-Serie::Serie(const QString &name, ValueType type, const QColor &color, QObject *parent) : QObject(parent), name(name), type(type), color(color)
+Serie::Serie(const QString &name, ValueType type, const QColor &color, int serieIndex, QObject *parent)
+	: QObject(parent)
+	, name(name)
+	, type(type)
+	, color(color)
+	, serieIndex(serieIndex)
 {
 }
 
@@ -141,6 +146,7 @@ void GraphView::releaseModel()
 	m_selections.clear();
 
 	m_model = nullptr;
+	qDeleteAll(m_pointsOfInterest);
 	m_pointsOfInterest.clear();
 
 	if (m_toolTipTimer.isActive()) {
@@ -871,9 +877,9 @@ void GraphView::mouseMoveEvent(QMouseEvent *mouse_event)
 	}
 	else {
 		bool in_poi = false;
-		for (const PointOfInterest &poi : m_pointsOfInterest) {
-			if (poi.painterPath.contains(pos)) {
-				QToolTip::showText(mouse_event->globalPos(), poi.comment, this, poi.painterPath.boundingRect().toRect());
+		for (const PointOfInterest *poi : m_pointsOfInterest) {
+			if (poi->m_painterPath.contains(pos)) {
+				QToolTip::showText(mouse_event->globalPos(), poi->comment(), this, poi->m_painterPath.boundingRect().toRect());
 				in_poi = true;
 				break;
 			}
@@ -1230,15 +1236,28 @@ void GraphView::clearSelections()
 
 void GraphView::addPointOfInterest(ValueChange::ValueX position, const QString &comment, const QColor &color)
 {
-	m_pointsOfInterest << PointOfInterest { xValue(position), comment, color, QPainterPath() };
-	if (m_pointsOfInterest.count() == 1) {
-		computeGeometry();
+	PointOfInterest *poi = new PointOfInterest(position, comment, color, this);
+	addPointOfInterest(poi);
+}
+
+void GraphView::addPointOfInterest(PointOfInterest *poi)
+{
+	if (!m_pointsOfInterest.contains(poi)) {
+		poi->setParent(this);
+		m_pointsOfInterest << poi;
+		connect(poi, &PointOfInterest::destroyed, [this, poi](){
+			m_pointsOfInterest.removeOne(poi);
+		});
+		if (m_pointsOfInterest.count() == 1) {
+			computeGeometry();
+		}
+		update();
 	}
-	update();
 }
 
 void GraphView::removePointsOfInterest()
 {
+	qDeleteAll(m_pointsOfInterest);
 	m_pointsOfInterest.clear();
 	computeGeometry();
 	update();
@@ -1885,19 +1904,19 @@ void GraphView::paintPointsOfInterest(QPainter *painter, const GraphArea &area)
 	painter->save();
 	painter->setRenderHint(QPainter::Antialiasing);
 
-	for (PointOfInterest &poi : m_pointsOfInterest) {
-		int pos = xValueToWidgetPosition(poi.position);
+	for (PointOfInterest *poi : m_pointsOfInterest) {
+		int pos = xValueToWidgetPosition(xValue(poi->position()));
 		if (pos >= area.graphRect.left() && pos <= area.graphRect.right()) {
-			QPen pen(poi.color);
+			QPen pen(poi->color());
 			pen.setStyle(Qt::PenStyle::DashLine);
 			painter->setPen(pen);
 			painter->drawLine(pos, area.graphRect.top(), pos, area.graphRect.bottom());
 
 			if (&area == &m_graphArea[0]) {
-				poi.painterPath = createPoiPath(pos - (POI_SYMBOL_WIDTH / 2), area.graphRect.top() - POI_SYMBOL_HEIGHT - 2);
+				poi->m_painterPath = createPoiPath(pos - (POI_SYMBOL_WIDTH / 2), area.graphRect.top() - POI_SYMBOL_HEIGHT - 2);
 				painter->drawLine(pos, area.graphRect.top() - 2, pos, area.graphRect.top());
-				painter->fillPath(poi.painterPath, poi.color);
-				painter->drawPath(poi.painterPath);
+				painter->fillPath(poi->m_painterPath, poi->color());
+				painter->drawPath(poi->m_painterPath);
 				QPainterPath circle_path;
 				circle_path.addEllipse(pos - (POI_SYMBOL_WIDTH / 2) + 2, area.graphRect.top() - POI_SYMBOL_HEIGHT, POI_SYMBOL_WIDTH - 4, POI_SYMBOL_WIDTH - 4);
 				painter->fillPath(circle_path, Qt::white);
@@ -2283,6 +2302,18 @@ void OutsideSerieGroup::hide()
 {
 	if (m_show) {
 		m_show = false;
+	}
+}
+
+PointOfInterest::PointOfInterest(ValueChange::ValueX position, const QString &comment, const QColor &color, QObject *parent)
+	: QObject(parent)
+	, m_position(position)
+	, m_comment(comment)
+	, m_color(color)
+{
+	GraphView *graph = qobject_cast<GraphView*>(parent);
+	if (graph) {
+		graph->addPointOfInterest(this);
 	}
 }
 

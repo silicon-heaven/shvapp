@@ -75,6 +75,26 @@ private:
 
 };
 
+class SHVGUI_DECL_EXPORT PointOfInterest : public QObject
+{
+	Q_OBJECT
+
+public:
+	PointOfInterest(ValueChange::ValueX position, const QString &comment, const QColor &color, QObject *parent);
+
+	ValueChange::ValueX position() const { return m_position; }
+	const QString &comment() const  { return m_comment; }
+	const QColor &color() const { return m_color; }
+
+private:
+	ValueChange::ValueX m_position;
+	QString m_comment;
+	QColor m_color;
+	QPainterPath m_painterPath;
+
+friend class GraphView;
+};
+
 class SHVGUI_DECL_EXPORT Serie : public QObject
 {
 	Q_OBJECT
@@ -83,7 +103,7 @@ public:
 	enum class LineType { OneDimensional, TwoDimensional };
 	enum class YAxis { Y1, Y2 };
 
-	Serie(const QString &name, ValueType type, const QColor &color, QObject *parent);
+	Serie(const QString &name, ValueType type, const QColor &color, int serieIndex, QObject *parent);
 
 	QString name;
 	ValueType type;
@@ -228,6 +248,7 @@ public:
 	void clearSelections();
 
 	void addPointOfInterest(ValueChange::ValueX position, const QString &comment, const QColor &color);
+	void addPointOfInterest(PointOfInterest *poi);
 	void removePointsOfInterest();
 	void showBackgroundStripes(bool enable);
 
@@ -269,15 +290,6 @@ private:
 		qint64 end;
 
 		bool containsValue(qint64 value) const;
-	};
-
-	class PointOfInterest
-	{
-	public:
-		qint64 position;
-		QString comment;
-		QColor color;
-		QPainterPath painterPath;
 	};
 
 	class SerieInGroup
@@ -382,7 +394,7 @@ private:
 	int m_rightRangeSelectorPosition;
 	QTimer m_toolTipTimer;
 	QPoint m_toolTipPosition;
-	QVector<PointOfInterest> m_pointsOfInterest;
+	QVector<PointOfInterest*> m_pointsOfInterest;
 	QVector<OutsideSerieGroup*> m_outsideSeriesGroups;
 };
 
