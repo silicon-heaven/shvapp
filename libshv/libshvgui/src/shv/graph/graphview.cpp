@@ -16,13 +16,170 @@ namespace gui {
 static constexpr const int POI_SYMBOL_WIDTH = 12;
 static constexpr const int POI_SYMBOL_HEIGHT = 18;
 
-Serie::Serie(const QString &name, ValueType type, const QColor &color, int serieIndex, QObject *parent)
+Serie::Serie(ValueType type, int serieIndex, const QString &name, const QColor &color, QObject *parent)
 	: QObject(parent)
-	, name(name)
-	, type(type)
-	, color(color)
-	, serieIndex(serieIndex)
+	, m_name(name)
+	, m_type(type)
+	, m_color(color)
+	, m_serieIndex(serieIndex)
 {
+	GraphView *graph = qobject_cast<GraphView*>(parent);
+	if (graph) {
+		graph->addSerie(this);
+	}
+	else {
+		Serie *serie = qobject_cast<Serie*>(parent);
+		if (serie) {
+			serie->addDependentSerie(this);
+		}
+	}
+}
+
+void Serie::setName(const QString &name)
+{
+	if (m_name != name) {
+		m_name = name;
+		update();
+	}
+}
+
+Serie::YAxis Serie::relatedAxis() const
+{
+	const Serie *master_serie = masterSerie();
+	if (master_serie) {
+		return master_serie->m_relatedAxis;
+	}
+	return YAxis::Y1;
+}
+
+void Serie::setRelatedAxis(Serie::YAxis axis)
+{
+	if (masterSerie() != this) {
+		throw std::runtime_error("Cannot set color on dependent serie");
+	}
+	if (m_relatedAxis != axis) {
+		m_relatedAxis = axis;
+		update();
+	}
+}
+
+QColor Serie::color() const
+{
+	const Serie *master_serie = masterSerie();
+	if (master_serie) {
+		return master_serie->m_color;
+	}
+	return QColor();
+}
+
+void Serie::setColor(const QColor &color)
+{
+	if (masterSerie() != this) {
+		throw std::runtime_error("Cannot set color on dependent serie");
+	}
+	if (m_color != color) {
+		m_color = color;
+		update();
+	}
+}
+
+void Serie::addBackgroundStripe(BackgroundStripe *stripe)
+{
+	if (!m_backgroundStripes.contains(stripe)) {
+		m_backgroundStripes.append(stripe);
+		stripe->setParent(this);
+		connect(stripe, &BackgroundStripe::destroyed, [this, stripe]() {
+			m_backgroundStripes.removeOne(stripe);
+		});
+		update();
+	}
+}
+
+void Serie::setLineWidth(int width)
+{
+	if (m_lineWidth != width) {
+		m_lineWidth = width;
+		update();
+	}
+}
+
+const QVector<Serie *> &Serie::dependentSeries() const
+{
+	return m_dependentSeries;
+}
+
+void Serie::addDependentSerie(Serie *serie)
+{
+	if (!m_dependentSeries.contains(serie)) {
+		m_dependentSeries.append(serie);
+		connect(serie, &Serie::destroyed, [this, serie] {
+			m_dependentSeries.removeOne(serie);
+		});
+		update();
+	}
+}
+
+void Serie::addToSerieGroup(OutsideSerieGroup *group)
+{
+	if (!m_serieGroup) {
+		m_serieGroup = group;
+		connect(group, &OutsideSerieGroup::destroyed, [this, group] {
+			m_serieGroup = nullptr;
+		});
+		group->addSerie(this);
+	}
+}
+
+void Serie::setLineType(Serie::LineType line_type)
+{
+	if (m_lineType != line_type) {
+		m_lineType = line_type;
+		update();
+	}
+}
+
+void Serie::setLegendValueFormatter(std::function<QString (const ValueChange &)> formatter)
+{
+	m_legendValueFormatter = formatter;
+	update();
+}
+
+void Serie::setValueFormatter(std::function<ValueChange::ValueY (const ValueChange &)> formatter)
+{
+	m_valueFormatter = formatter;
+	update();
+}
+
+void Serie::setBoolValue(double value)
+{
+	if (m_boolValue != value) {
+		m_boolValue = value;
+		update();
+	}
+}
+
+void Serie::show()
+{
+	if (!m_show) {
+		m_show = true;
+		update();
+	}
+}
+
+void Serie::hide()
+{
+	if (m_show) {
+		m_show = false;
+		update();
+	}
+}
+
+void Serie::setShowCurrent(bool show)
+{
+	if (m_showCurrent != show) {
+		m_showCurrent = show;
+		update();
+	}
 }
 
 const SerieData &Serie::serieModelData(const GraphView *view) const
@@ -32,7 +189,33 @@ const SerieData &Serie::serieModelData(const GraphView *view) const
 
 const SerieData &Serie::serieModelData(const GraphModel *model) const
 {
-	return model->serieData(serieIndex);
+	return model->serieData(m_serieIndex);
+}
+
+void Serie::update()
+{
+	if (m_show) {
+		GraphView *graph = view();
+		if (graph) {
+			graph->computeGeometry();
+			graph->update();
+		}
+	}
+}
+
+const Serie *Serie::masterSerie() const
+{
+	const Serie *master = this;
+	Serie *parent_serie = 0;
+	while ((parent_serie = qobject_cast<Serie*>(master->parent()))) {
+		master = parent_serie;
+	}
+	return master;
+}
+
+GraphView *Serie::view() const
+{
+	return qobject_cast<GraphView*>(masterSerie()->parent());
 }
 
 GraphView::GraphView(QWidget *parent) : QWidget(parent)
@@ -186,7 +369,7 @@ void GraphView::onModelDataChanged() //TODO improve change detection in model
 		const SerieData &serie_model_data = serie->serieModelData(this);
 		serie->displayedDataBegin = serie_model_data.begin();
 		serie->displayedDataEnd = serie_model_data.end();
-		for (Serie *dep_serie : serie->dependentSeries) {
+		for (Serie *dep_serie : serie->dependentSeries()) {
 			const SerieData &dep_serie_model_data = dep_serie->serieModelData(this);
 			dep_serie->displayedDataBegin = dep_serie_model_data.begin();
 			dep_serie->displayedDataEnd = dep_serie_model_data.end();
@@ -251,7 +434,7 @@ void GraphView::computeDataRange()
 		const SerieData &serie_model_data = serie->serieModelData(this);
 		serie->displayedDataBegin = findMinYValue(serie_model_data.begin(), serie_model_data.end(), m_displayedRangeMin);
 		serie->displayedDataEnd = findMaxYValue(serie_model_data.begin(), serie_model_data.end(), m_displayedRangeMax);
-		for (Serie *dep_serie : serie->dependentSeries) {
+		for (Serie *dep_serie : serie->dependentSeries()) {
 			const SerieData &dep_serie_model_data = dep_serie->serieModelData(this);
 			dep_serie->displayedDataBegin = findMinYValue(dep_serie_model_data.begin(), dep_serie_model_data.end(), m_displayedRangeMin);
 			dep_serie->displayedDataEnd = findMaxYValue(dep_serie_model_data.begin(), dep_serie_model_data.end(), m_displayedRangeMax);
@@ -314,7 +497,7 @@ QVector<GraphView::SerieInGroup> GraphView::shownSeriesInGroup(const OutsideSeri
 					break;
 				}
 				else {
-					for (const Serie *ds : s->dependentSeries) {
+					for (const Serie *ds : s->dependentSeries()) {
 						if (ds == serie) {
 							master_serie = s;
 							break;
@@ -322,7 +505,7 @@ QVector<GraphView::SerieInGroup> GraphView::shownSeriesInGroup(const OutsideSeri
 					}
 				}
 			}
-			if (master_serie && master_serie->show) {
+			if (master_serie && !master_serie->isHidden()) {
 				shown_series_in_group << SerieInGroup{ serie, master_serie };
 			}
 		}
@@ -334,7 +517,7 @@ QVector<GraphView::SerieInGroup> GraphView::shownSeriesInGroup(const OutsideSeri
 				is_serie_in_area = true;
 				break;
 			}
-			for (const Serie *ds : s->dependentSeries) {
+			for (const Serie *ds : s->dependentSeries()) {
 				if (ds == shown_series_in_group[j].serie) {
 					is_serie_in_area = true;
 					break;
@@ -383,7 +566,7 @@ void GraphView::computeGeometry()
 
 	for (int i = 0; i < m_serieBlocks.count(); ++i) {
 		for (const Serie *serie : m_serieBlocks[i]) {
-			if (serie->show) {
+			if (!serie->isHidden()) {
 				visible_blocks << m_serieBlocks[i];
 				break;
 			}
@@ -411,7 +594,7 @@ void GraphView::computeGeometry()
 				if (shown_series_in_group.count()) {
 					int group_height = group->serieSpacing();
 					for (const SerieInGroup &serie_in_group : shown_series_in_group) {
-						group_height = group_height + serie_in_group.serie->lineWidth + group->serieSpacing();
+						group_height = group_height + serie_in_group.serie->lineWidth() + group->serieSpacing();
 					}
 					if (group_height < group->minimumHeight()) {
 						group_height = group->minimumHeight();
@@ -443,10 +626,10 @@ void GraphView::computeGeometry()
 			area.showYAxis = false;
 			area.showY2Axis = false;
 			for (const Serie *serie : area.series) {
-				if (serie->relatedAxis == Serie::YAxis::Y1) {
+				if (serie->relatedAxis() == Serie::YAxis::Y1) {
 					area.showYAxis = true;
 				}
-				else if (serie->relatedAxis == Serie::YAxis::Y2) {
+				else if (serie->relatedAxis() == Serie::YAxis::Y2) {
 					area.showY2Axis = true;
 				}
 			}
@@ -573,7 +756,7 @@ void GraphView::computeGeometry()
 bool GraphView::hasVisibleSeries() const
 {
 	for (const Serie *serie : m_series) {
-		if (serie->show) {
+		if (!serie->isHidden()) {
 			return true;
 		}
 	}
@@ -757,9 +940,14 @@ void GraphView::mousePressEvent(QMouseEvent *mouse_event)
 			for (int i = 0; i < m_seriesListRect.count(); ++i) {
 				const QRect &rect = m_seriesListRect[i];
 				if (rect.contains(pos)) {
-					m_series[i]->show = !m_series[i]->show;
-					computeGeometry();
-					update();
+					if (m_series[i]->isHidden()) {
+						m_series[i]->show();
+					}
+					else {
+						m_series[i]->hide();
+					}
+//					computeGeometry();
+//					update();
 					break;
 				}
 			}
@@ -878,8 +1066,9 @@ void GraphView::mouseMoveEvent(QMouseEvent *mouse_event)
 	else {
 		bool in_poi = false;
 		for (const PointOfInterest *poi : m_pointsOfInterest) {
-			if (poi->m_painterPath.contains(pos)) {
-				QToolTip::showText(mouse_event->globalPos(), poi->comment(), this, poi->m_painterPath.boundingRect().toRect());
+			const QPainterPath &painter_path = m_poiPainterPaths[poi];
+			if (painter_path.contains(pos)) {
+				QToolTip::showText(mouse_event->globalPos(), poi->comment(), this, painter_path.boundingRect().toRect());
 				in_poi = true;
 				break;
 			}
@@ -1093,33 +1282,38 @@ GraphModel *GraphView::model() const
 
 void GraphView::addSerie(Serie *serie)
 {
-	if (serie->type == ValueType::Bool && !serie->boolValue && !serie->serieGroup) {
-		throw std::runtime_error(("Bool serie (" + serie->name + ") must have set boolValue or serie group").toStdString());
-	}
-	for (const Serie *dependent_serie : serie->dependentSeries) {
-		if (dependent_serie->type == ValueType::Bool && !dependent_serie->boolValue && !dependent_serie->serieGroup) {
-			throw std::runtime_error(("Bool serie (" + dependent_serie->name + ") must have set boolValue or serie group").toStdString());
+	if (!m_series.contains(serie)) {
+//		if (serie->type() == ValueType::Bool && !serie->boolValue && !serie->serieGroup) {
+//			throw std::runtime_error(("Bool serie (" + serie->name() + ") must have set boolValue or serie group").toStdString());
+//		}
+//		for (const Serie *dependent_serie : serie->dependentSeries) {
+//			if (dependent_serie->type() == ValueType::Bool && !dependent_serie->boolValue && !dependent_serie->serieGroup) {
+//				throw std::runtime_error(("Bool serie (" + dependent_serie->name() + ") must have set boolValue or serie group").toStdString());
+//			}
+//		}
+		m_series.append(serie);
+		connect(serie, &Serie::destroyed, [this, serie]() {
+			m_series.removeOne(serie);
+		});
+		if (m_serieBlocks.count() == 0) {
+			m_serieBlocks.append(QVector<Serie*>());
 		}
-	}
-	m_series.append(serie);
-	Serie *last_serie = m_series.last();
-	if (m_serieBlocks.count() == 0) {
-		m_serieBlocks.append(QVector<Serie*>());
-	}
-	m_serieBlocks.last() << last_serie;
+		m_serieBlocks.last() << serie;
 
-	auto addSerieToGroup = [](Serie *serie) {
-		if (serie->serieGroup) {
-			if (serie->type != ValueType::Bool || serie->lineType != Serie::LineType::OneDimensional) {
-				throw std::runtime_error("In serie group can be added only bool one dimensional series");
-			}
-//			serie.serieGroup->series.append(&serie);
-			serie->serieGroup->addSerie(serie);
-		}
-	};
-	addSerieToGroup(last_serie);
-	for (Serie *dependent_serie : last_serie->dependentSeries) {
-		addSerieToGroup(dependent_serie);
+//		auto addSerieToGroup = [](Serie *serie) {
+//			if (serie->serieGroup()) {
+//				if (serie->type() != ValueType::Bool || serie->lineType != Serie::LineType::OneDimensional) {
+//					throw std::runtime_error("In serie group can be added only bool one dimensional series");
+//				}
+//	//			serie.serieGroup->series.append(&serie);
+//				serie->serieGroup->addSerie(serie);
+//			}
+//		};
+//		addSerieToGroup(serie);
+//		for (Serie *dependent_serie : serie->dependentSeries()) {
+//			addSerieToGroup(dependent_serie);
+//		}
+
 	}
 }
 
@@ -1247,6 +1441,7 @@ void GraphView::addPointOfInterest(PointOfInterest *poi)
 		m_pointsOfInterest << poi;
 		connect(poi, &PointOfInterest::destroyed, [this, poi](){
 			m_pointsOfInterest.removeOne(poi);
+			m_poiPainterPaths.remove(poi);
 		});
 		if (m_pointsOfInterest.count() == 1) {
 			computeGeometry();
@@ -1271,11 +1466,27 @@ void GraphView::showBackgroundStripes(bool enable)
 	}
 }
 
-OutsideSerieGroup &GraphView::addOutsideSerieGroup(const QString &name)
+OutsideSerieGroup *GraphView::addOutsideSerieGroup(const QString &name)
 {
-	m_outsideSeriesGroups << new OutsideSerieGroup(name, this);
-	OutsideSerieGroup *last = m_outsideSeriesGroups.last();
-	return *last;
+	OutsideSerieGroup *group = new OutsideSerieGroup(name, this);
+	addOutsideSerieGroup(group);
+	return group;
+}
+
+void GraphView::addOutsideSerieGroup(OutsideSerieGroup *group)
+{
+	if (!m_outsideSeriesGroups.contains(group)) {
+		group->setParent(this);
+		m_outsideSeriesGroups << group;
+		connect(group, &OutsideSerieGroup::destroyed, [this, group](){
+			m_outsideSeriesGroups.removeOne(group);
+		});
+		if (!group->isHidden()) {
+			computeGeometry();
+			update();
+		}
+	}
+
 }
 
 void GraphView::showRange(qint64 from, qint64 to)
@@ -1469,9 +1680,9 @@ void GraphView::paintRangeSelector(QPainter *painter)
 
 	for (int i = 0; i < m_series.count(); ++i) {
 		const Serie *serie = m_series[i];
-		if (serie->show) {
+		if (!serie->isHidden()) {
 			int x_axis_position;
-			if (serie->relatedAxis == Serie::YAxis::Y1) {
+			if (serie->relatedAxis() == Serie::YAxis::Y1) {
 				double x_scale = (double)(settings.yAxis.rangeMax - settings.yAxis.rangeMin) / m_rangeSelectorRect.height();
 				x_axis_position = settings.yAxis.rangeMax / x_scale;
 			}
@@ -1534,20 +1745,20 @@ void GraphView::paintSeries(QPainter *painter, const GraphArea &area)
 	for (int i = 0; i < area.series.count(); ++i) {
 		const Serie *serie = area.series[i];
 		int x_axis_position;
-		if (serie->relatedAxis == Serie::YAxis::Y1 || area.switchAxes) {
+		if (serie->relatedAxis() == Serie::YAxis::Y1 || area.switchAxes) {
 			x_axis_position = area.xAxisPosition - area.graphRect.top();
 		}
 		else {
 			x_axis_position = area.x2AxisPosition - area.graphRect.top();
 		}
-		QPen pen(serie->color);
-		if (serie->show && settings.showDependent) {
-			for (const Serie *dependent_serie : serie->dependentSeries) {
-				pen.setWidth(dependent_serie->lineWidth);
+		QPen pen(serie->color());
+		if (!serie->isHidden() && settings.showDependent) {
+			for (const Serie *dependent_serie : serie->dependentSeries()) {
+				pen.setWidth(dependent_serie->lineWidth());
 				paintSerie(painter, area.graphRect, x_axis_position, dependent_serie, m_displayedRangeMin, m_displayedRangeMax, pen, false);
 			}
 		}
-		pen.setWidth(serie->lineWidth);
+		pen.setWidth(serie->lineWidth());
 		paintSerie(painter, area.graphRect, x_axis_position, serie, m_displayedRangeMin, m_displayedRangeMax, pen, false);
 	}
 	painter->restore();
@@ -1555,9 +1766,9 @@ void GraphView::paintSeries(QPainter *painter, const GraphArea &area)
 
 void GraphView::paintSerie(QPainter *painter, const QRect &rect, int x_axis_position, const Serie *serie, qint64 min, qint64 max, const QPen &pen, bool fill_rect)
 {
-	if (serie->show) {
-		if (serie->type == ValueType::Bool) {
-			if (!serie->serieGroup) {
+	if (!serie->isHidden()) {
+		if (serie->type() == ValueType::Bool) {
+			if (!serie->serieGroup()) {
 				paintBoolSerie(painter, rect, x_axis_position, serie, min, max, pen, fill_rect);
 			}
 		}
@@ -1569,20 +1780,20 @@ void GraphView::paintSerie(QPainter *painter, const QRect &rect, int x_axis_posi
 
 void GraphView::paintBoolSerie(QPainter *painter, const QRect &rect, int x_axis_position, const Serie *serie, qint64 min, qint64 max, const QPen &pen, bool fill_rect)
 {
-	if (serie->lineType == Serie::LineType::TwoDimensional) {
+	if (serie->lineType() == Serie::LineType::TwoDimensional) {
 		throw std::runtime_error("Cannot paint two dimensional bool serie");
 	}
 
 	double y_scale = 0.0;
-	if (serie->relatedAxis == Serie::YAxis::Y1) {
+	if (serie->relatedAxis() == Serie::YAxis::Y1) {
 		y_scale = (double)(settings.yAxis.rangeMax - settings.yAxis.rangeMin) / rect.height();
 	}
-	else if (serie->relatedAxis == Serie::YAxis::Y2) {
+	else if (serie->relatedAxis() == Serie::YAxis::Y2) {
 		y_scale = (double)(settings.y2Axis.rangeMax - settings.y2Axis.rangeMin) / rect.height();
 	}
 	painter->setPen(pen);
 
-	int y_true_line_position = x_axis_position - serie->boolValue / y_scale;
+	int y_true_line_position = x_axis_position - serie->boolValue() / y_scale;
 	paintBoolSerieAtPosition(painter, rect, y_true_line_position, serie, min, max, fill_rect);
 }
 
@@ -1607,7 +1818,7 @@ void GraphView::paintBoolSerieAtPosition(QPainter *painter, const QRect &rect, i
 	polygon << QPoint(0, rect.height());
 
 	for (auto it = begin; it != end; ++it) {
-		ValueChange::ValueY value_y = serie->valueFormatter ? serie->valueFormatter(*it) : it->valueY;
+		ValueChange::ValueY value_y = formattedSerieValue(serie, it);
 		if (value_y.boolValue) {
 			int begin_line = (xValue(*it) - min) / x_scale;
 			if (begin_line < 0) {
@@ -1651,10 +1862,10 @@ void GraphView::paintValueSerie(QPainter *painter, const QRect &rect, int x_axis
 	double x_scale = (double)(max - min) / rect.width();
 
 	double y_scale = 0.0;
-	if (serie->relatedAxis == Serie::YAxis::Y1) {
+	if (serie->relatedAxis() == Serie::YAxis::Y1) {
 		y_scale = (double)(settings.yAxis.rangeMax - settings.yAxis.rangeMin) / rect.height();
 	}
-	else if (serie->relatedAxis == Serie::YAxis::Y2) {
+	else if (serie->relatedAxis() == Serie::YAxis::Y2) {
 		y_scale = (double)(settings.y2Axis.rangeMax - settings.y2Axis.rangeMin) / rect.height();
 	}
 	painter->setPen(pen);
@@ -1681,8 +1892,8 @@ void GraphView::paintValueSerie(QPainter *painter, const QRect &rect, int x_axis
 	}
 
 	QPoint first_point;
-	ValueChange::ValueY first_value_y = serie->valueFormatter ? serie->valueFormatter(*begin) : begin->valueY;
-	first_point = QPoint(0, x_axis_position - (first_value_y.toDouble(serie->type) / y_scale));
+	ValueChange::ValueY first_value_y = formattedSerieValue(serie, begin);
+	first_point = QPoint(0, x_axis_position - (first_value_y.toDouble(serie->type()) / y_scale));
 
 	int max_on_first = first_point.y();
 	int min_on_first = first_point.y();
@@ -1694,9 +1905,9 @@ void GraphView::paintValueSerie(QPainter *painter, const QRect &rect, int x_axis
 
 	QPoint last_point(0,0);
 	for (auto it = begin + 1; it != end; ++it) {
-		ValueChange::ValueY value_change = serie->valueFormatter ? serie->valueFormatter(*it) : it->valueY;
+		ValueChange::ValueY value_change = formattedSerieValue(serie, it);
 		qint64 x_value = xValue(*it);
-		last_point = QPoint((x_value - min) / x_scale, x_axis_position - (value_change.toDouble(serie->type) / y_scale));
+		last_point = QPoint((x_value - min) / x_scale, x_axis_position - (value_change.toDouble(serie->type()) / y_scale));
 
 		if (last_point.x() == first_point.x()) {
 			if (max_on_first < last_point.y()) {
@@ -1811,7 +2022,7 @@ void GraphView::paintSerieList(QPainter *painter)
 	QList<int> widths;
 	int total_width = 0;
 	for (const Serie *serie : m_series) {
-		int width = painter->fontMetrics().width(serie->name);
+		int width = painter->fontMetrics().width(serie->name());
 		total_width += width;
 		widths << width;
 	}
@@ -1826,7 +2037,7 @@ void GraphView::paintSerieList(QPainter *painter)
 	int label_height = painter->fontMetrics().lineSpacing();
 	for (int i = 0; i < m_series.count(); ++i) {
 		const Serie *serie = m_series[i];
-		if (serie->show) {
+		if (!serie->isHidden()) {
 			painter->setPen(palette().color(QPalette::Active, QPalette::Text));
 		}
 		else {
@@ -1834,10 +2045,10 @@ void GraphView::paintSerieList(QPainter *painter)
 		}
 		m_seriesListRect << QRect(m_serieListRect.x() + x, m_serieListRect.top() + ((m_serieListRect.height() - label_height) / 2), 3 * square_width + widths[i], label_height);
 		QRect square_rect(m_serieListRect.x() + x, m_serieListRect.top() + ((m_serieListRect.height() - square_width) / 2), square_width, square_width);
-		painter->fillRect(square_rect, serie->show ? serie->color : serie->color.lighter(180));
+		painter->fillRect(square_rect, serie->isHidden() ? serie->color().lighter(180) : serie->color());
 		painter->drawRect(square_rect);
 		x += 2 * square_width;
-		painter->drawText(m_serieListRect.x() + x, m_serieListRect.top(), widths[i], m_serieListRect.height(), Qt::AlignVCenter | Qt::AlignLeft, serie->name);
+		painter->drawText(m_serieListRect.x() + x, m_serieListRect.top(), widths[i], m_serieListRect.height(), Qt::AlignVCenter | Qt::AlignLeft, serie->name());
 		x += widths[i] + space;
 	}
 	painter->restore();
@@ -1863,13 +2074,13 @@ void GraphView::paintLegend(QPainter *painter)
 
 void GraphView::paintCurrentPosition(QPainter *painter, const GraphArea &area, const Serie *serie, qint64 current)
 {
-	if (serie->showCurrent) {
+	if (serie->isShowCurrent() && !serie->serieGroup()) {
 		auto begin = findMinYValue(serie->displayedDataBegin, serie->displayedDataEnd, current);
 		if (begin == shv::gui::SerieData::const_iterator()) {
 			return;
 		}
 		double range;
-		if (serie->relatedAxis == Serie::YAxis::Y1) {
+		if (serie->relatedAxis() == Serie::YAxis::Y1) {
 			range = settings.yAxis.rangeMax - settings.yAxis.rangeMin;
 		}
 		else {
@@ -1877,24 +2088,24 @@ void GraphView::paintCurrentPosition(QPainter *painter, const GraphArea &area, c
 		}
 		double scale = range / area.graphRect.height();
 		int y_position = 0;
-		ValueChange::ValueY value_change = serie->valueFormatter ? serie->valueFormatter(*begin) : begin->valueY;
-		if (serie->type == ValueType::Double) {
+		ValueChange::ValueY value_change = formattedSerieValue(serie, begin);
+		if (serie->type() == ValueType::Double) {
 			y_position = value_change.doubleValue / scale;
 		}
-		else if (serie->type == ValueType::Int) {
+		else if (serie->type() == ValueType::Int) {
 			y_position = value_change.intValue / scale;
 		}
-		else if (serie->type == ValueType::Bool) {
-			y_position = value_change.boolValue ? (serie->boolValue / scale) : 0;
+		else if (serie->type() == ValueType::Bool) {
+			y_position = value_change.boolValue ? (serie->boolValue() / scale) : 0;
 		}
 		QPainterPath path;
-		if (serie->relatedAxis == Serie::YAxis::Y1 || area.switchAxes) {
+		if (serie->relatedAxis() == Serie::YAxis::Y1 || area.switchAxes) {
 			path.addEllipse(m_currentPosition + area.graphRect.x() - 3, area.xAxisPosition - y_position - 3, 6, 6);
 		}
 		else {
 			path.addEllipse(m_currentPosition + area.graphRect.x() - 3, area.x2AxisPosition - y_position - 3, 6, 6);
 		}
-		painter->fillPath(path, serie->color);
+		painter->fillPath(path, serie->color());
 	}
 
 }
@@ -1913,10 +2124,11 @@ void GraphView::paintPointsOfInterest(QPainter *painter, const GraphArea &area)
 			painter->drawLine(pos, area.graphRect.top(), pos, area.graphRect.bottom());
 
 			if (&area == &m_graphArea[0]) {
-				poi->m_painterPath = createPoiPath(pos - (POI_SYMBOL_WIDTH / 2), area.graphRect.top() - POI_SYMBOL_HEIGHT - 2);
+				QPainterPath painter_path = createPoiPath(pos - (POI_SYMBOL_WIDTH / 2), area.graphRect.top() - POI_SYMBOL_HEIGHT - 2);
 				painter->drawLine(pos, area.graphRect.top() - 2, pos, area.graphRect.top());
-				painter->fillPath(poi->m_painterPath, poi->color());
-				painter->drawPath(poi->m_painterPath);
+				painter->fillPath(painter_path, poi->color());
+				painter->drawPath(painter_path);
+				m_poiPainterPaths[poi] = painter_path;
 				QPainterPath circle_path;
 				circle_path.addEllipse(pos - (POI_SYMBOL_WIDTH / 2) + 2, area.graphRect.top() - POI_SYMBOL_HEIGHT, POI_SYMBOL_WIDTH - 4, POI_SYMBOL_WIDTH - 4);
 				painter->fillPath(circle_path, Qt::white);
@@ -1931,32 +2143,32 @@ void GraphView::paintBackgroundStripes(QPainter *painter, const GraphView::Graph
 {
 	painter->save();
 	for (int i = 0; i < area.series.count(); ++i) {
-		const Serie &serie = *area.series[i];
-		if (serie.show) {
+		const Serie *serie = area.series[i];
+		if (!serie->isHidden()) {
 			double range;
-			if (serie.relatedAxis == Serie::YAxis::Y1) {
+			if (serie->relatedAxis() == Serie::YAxis::Y1) {
 				range = settings.yAxis.rangeMax - settings.yAxis.rangeMin;
 			}
 			else {
 				range = settings.y2Axis.rangeMax - settings.y2Axis.rangeMin;
 			}
 			double scale = range / area.graphRect.height();
-			const QVector<BackgroundStripe*> &stripes = serie.backgroundStripes;
+			const QVector<BackgroundStripe*> &stripes = serie->backgroundStripes();
 			for (const BackgroundStripe *stripe : stripes) {
-				QColor stripe_color = serie.color;
+				QColor stripe_color = serie->color();
 				stripe_color.setAlpha(30);
 
 				int min = 0;
 				int max = 0;
-				if (serie.type == ValueType::Double) {
+				if (serie->type() == ValueType::Double) {
 					min = stripe->min().doubleValue / scale;
 					max = stripe->max().doubleValue / scale;
 				}
-				else if (serie.type == ValueType::Int) {
+				else if (serie->type() == ValueType::Int) {
 					min = stripe->min().intValue / scale;
 					max = stripe->max().intValue / scale;
 				}
-				else if (serie.type == ValueType::Bool) {
+				else if (serie->type() == ValueType::Bool) {
 					throw std::runtime_error("GraphView: Cannot paint background serie for bool serie");
 				}
 				painter->fillRect(area.graphRect.x(), area.xAxisPosition - max, area.graphRect.width(), max - min, stripe_color);
@@ -1970,12 +2182,12 @@ QVector<const OutsideSerieGroup*> GraphView::groupsForSeries(const QVector<Serie
 {
 	QVector<const OutsideSerieGroup*> groups;
 	for (const Serie *s : series) {
-		if (s->serieGroup && !groups.contains(s->serieGroup)) {
-			groups << s->serieGroup;
+		if (s->serieGroup() && !groups.contains(s->serieGroup())) {
+			groups << s->serieGroup();
 		}
-		for (const Serie *ds : s->dependentSeries) {
-			if (ds->serieGroup && !groups.contains(ds->serieGroup)) {
-				groups << ds->serieGroup;
+		for (const Serie *ds : s->dependentSeries()) {
+			if (ds->serieGroup() && !groups.contains(ds->serieGroup())) {
+				groups << ds->serieGroup();
 			}
 		}
 	}
@@ -2004,15 +2216,15 @@ void GraphView::paintOutsideSeriesGroups(QPainter *painter, const GraphView::Gra
 			painter->save();
 			painter->translate(area.outsideSerieGroupsRects[i].topLeft());
 			for (const SerieInGroup &serie_in_group : shown_series_in_group) {
-				if (serie_in_group.serie->type != ValueType::Bool || serie_in_group.serie->lineType != Serie::LineType::OneDimensional) {
+				if (serie_in_group.serie->type() != ValueType::Bool || serie_in_group.serie->lineType() != Serie::LineType::OneDimensional) {
 					throw std::runtime_error("In outside groups can be only one dimensional bool series");
 				}
-				QPen pen(serie_in_group.masterSerie->color);
-				pen.setWidth(serie_in_group.serie->lineWidth);
+				QPen pen(serie_in_group.masterSerie->color());
+				pen.setWidth(serie_in_group.serie->lineWidth());
 				painter->setPen(pen);
 
 				paintBoolSerieAtPosition(painter, area.outsideSerieGroupsRects[i], position, serie_in_group.serie, m_displayedRangeMin, m_displayedRangeMax, false);
-				position = position + serie_in_group.serie->lineWidth + group->serieSpacing();
+				position = position + serie_in_group.serie->lineWidth() + group->serieSpacing();
 			}
 			++i;
 			painter->restore();
@@ -2026,13 +2238,13 @@ void GraphView::paintCurrentPosition(QPainter *painter, const GraphArea &area)
 	qint64 current = rectPositionToXValue(m_currentPosition);
 	for (int i = 0; i < area.series.count(); ++i) {
 		const Serie *serie = area.series[i];
-		if (serie->show) {
+		if (!serie->isHidden()) {
 			const SerieData &data = serie->serieModelData(this);
 			if (data.size()) {
 				paintCurrentPosition(painter, area, serie, current);
 				if (settings.showDependent) {
-					for (const Serie *dependent_serie : serie->dependentSeries) {
-						if (dependent_serie->show) {
+					for (const Serie *dependent_serie : serie->dependentSeries()) {
+						if (!dependent_serie->isHidden()) {
 							paintCurrentPosition(painter, area, dependent_serie, current);
 						}
 					}
@@ -2046,22 +2258,22 @@ void GraphView::paintCurrentPosition(QPainter *painter, const GraphArea &area)
 QString GraphView::legendRow(const Serie *serie, qint64 position) const
 {
 	QString s;
-	if (serie->show) {
+	if (!serie->isHidden()) {
 		auto begin = findMinYValue(serie->displayedDataBegin, serie->displayedDataEnd, position);
 		if (begin != shv::gui::SerieData::const_iterator()) {
-			s = s + "<tr><td class=\"label\">" + serie->name + ":</td><td class=\"value\">";
-			if (serie->legendValueFormatter) {
-				s += serie->legendValueFormatter(*begin);
+			s = s + "<tr><td class=\"label\">" + serie->name() + ":</td><td class=\"value\">";
+			if (serie->legendValueFormatter()) {
+				s += serie->legendValueFormatter()(*begin);
 			}
 			else {
-				ValueChange::ValueY value_change = serie->valueFormatter ? serie->valueFormatter(*begin) : begin->valueY;
-				if (serie->type == ValueType::Double) {
+				ValueChange::ValueY value_change = formattedSerieValue(serie, begin);
+				if (serie->type() == ValueType::Double) {
 					s += QString::number(value_change.doubleValue);
 				}
-				else if (serie->type == ValueType::Int) {
+				else if (serie->type() == ValueType::Int) {
 					s += QString::number(value_change.intValue);
 				}
-				else if (serie->type == ValueType::Bool) {
+				else if (serie->type() == ValueType::Bool) {
 					s += value_change.boolValue ? tr("true") : tr("false");
 				}
 			}
@@ -2081,8 +2293,8 @@ QString GraphView::legend(qint64 position) const
 		const SerieData &data = serie->serieModelData(this);
 		if (data.size()) {
 			s += legendRow(serie, position);
-			if (serie->show && settings.showDependent) {
-				for (const Serie *dependent_serie : serie->dependentSeries) {
+			if (!serie->isHidden() && settings.showDependent) {
+				for (const Serie *dependent_serie : serie->dependentSeries()) {
 					s += legendRow(dependent_serie, position);
 				}
 			}
@@ -2197,7 +2409,7 @@ void GraphView::computeRange(T &min, T &max) const
 
 	for (const Serie *serie : m_series) {
 		computeRange(min, max, serie);
-		for (const Serie *dependent_serie : serie->dependentSeries) {
+		for (const Serie *dependent_serie : serie->dependentSeries()) {
 			computeRange(min, max, dependent_serie);
 		}
 	}
@@ -2250,6 +2462,11 @@ shv::gui::SerieData::const_iterator GraphView::findMaxYValue(const SerieData::co
 	});
 }
 
+ValueChange::ValueY GraphView::formattedSerieValue(const Serie *serie, SerieData::const_iterator it)
+{
+	return serie->valueFormatter() ? serie->valueFormatter()(*it) : it->valueY;
+}
+
 RangeSelectorHandle::RangeSelectorHandle(QWidget *parent) : QPushButton(parent)
 {
 	setCursor(Qt::SizeHorCursor);
@@ -2268,6 +2485,21 @@ void RangeSelectorHandle::paintEvent(QPaintEvent *event)
 bool GraphView::Selection::containsValue(qint64 value) const
 {
 	return ((start <= end && value >= start && value <= end) ||	(start > end && value >= end && value <= start));
+}
+
+BackgroundStripe::BackgroundStripe(QObject *parent) : BackgroundStripe(0, 0, parent)
+{
+}
+
+BackgroundStripe::BackgroundStripe(ValueChange::ValueY min, ValueChange::ValueY max, QObject *parent)
+	: QObject(parent)
+	, m_min(min)
+	, m_max(max)
+{
+	Serie *serie = qobject_cast<Serie*>(parent);
+	if (serie) {
+		serie->addBackgroundStripe(this);
+	}
 }
 
 void BackgroundStripe::setMin(const ValueChange::ValueY &min)
@@ -2291,18 +2523,88 @@ void BackgroundStripe::setRange(const ValueChange::ValueY &min, const ValueChang
 	}
 }
 
-void OutsideSerieGroup::show()
+OutsideSerieGroup::OutsideSerieGroup(QObject *parent) : OutsideSerieGroup(QString::null, parent)
 {
-	if (!m_show) {
-		m_show = true;
+}
+
+OutsideSerieGroup::OutsideSerieGroup(const QString &name, QObject *parent)
+	: QObject(parent)
+	, m_name(name)
+{
+	GraphView *graph = qobject_cast<GraphView*>(parent);
+	if (graph) {
+		graph->addOutsideSerieGroup(this);
+	}
+}
+
+void OutsideSerieGroup::setName(const QString &name)
+{
+	if (m_name != name) {
+		m_name = name;
+		update();
+	}
+}
+
+void OutsideSerieGroup::addSerie(Serie *serie)
+{
+	if (!m_series.contains(serie)) {
+		m_series.append(serie);
+		connect(serie, &Serie::destroyed, [this, serie]() {
+			m_series.removeOne(serie);
+		});
+		serie->addToSerieGroup(this);
+		update();
+	}
+}
+
+void OutsideSerieGroup::show(bool show)
+{
+	if (m_show != show) {
+		m_show = show;
+		update();
 	}
 }
 
 void OutsideSerieGroup::hide()
 {
-	if (m_show) {
-		m_show = false;
+	show(false);
+}
+
+void OutsideSerieGroup::setSerieSpacing(int spacing)
+{
+	if (m_spacing != spacing) {
+		m_spacing = spacing;
+		update();
 	}
+}
+
+void OutsideSerieGroup::setMinimumHeight(int height)
+{
+	if (m_minimumHeight != height) {
+		m_minimumHeight = height;
+		update();
+	}
+}
+
+void OutsideSerieGroup::setBackgroundColor(const QColor &color)
+{
+	if (m_backgroundColor != color) {
+		m_backgroundColor = color;
+		update();
+	}
+}
+
+void OutsideSerieGroup::update()
+{
+	GraphView *graph = qobject_cast<GraphView*>(parent());
+	if (graph) {
+		graph->computeGeometry();
+		graph->update();
+	}
+}
+
+PointOfInterest::PointOfInterest(QObject *parent) : PointOfInterest(ValueChange::ValueX(), QString::null, QColor(), parent)
+{
 }
 
 PointOfInterest::PointOfInterest(ValueChange::ValueX position, const QString &comment, const QColor &color, QObject *parent)
