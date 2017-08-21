@@ -1123,21 +1123,6 @@ void View::addSerie(Serie *serie)
 			m_serieBlocks.append(QVector<Serie*>());
 		}
 		m_serieBlocks.last() << serie;
-
-//		auto addSerieToGroup = [](Serie *serie) {
-//			if (serie->serieGroup()) {
-//				if (serie->type() != ValueType::Bool || serie->lineType != Serie::LineType::OneDimensional) {
-//					throw std::runtime_error("In serie group can be added only bool one dimensional series");
-//				}
-//	//			serie.serieGroup->series.append(&serie);
-//				serie->serieGroup->addSerie(serie);
-//			}
-//		};
-//		addSerieToGroup(serie);
-//		for (Serie *dependent_serie : serie->dependentSeries()) {
-//			addSerieToGroup(dependent_serie);
-//		}
-
 	}
 }
 
@@ -1995,9 +1980,25 @@ void View::paintBackgroundStripes(QPainter *painter, const View::GraphArea &area
 					max = stripe->max().intValue / scale;
 				}
 				else if (serie->type() == ValueType::Bool) {
-					throw std::runtime_error("GraphView: Cannot paint background serie for bool serie");
+					throw std::runtime_error("GraphView: Cannot paint background stripe for bool serie");
 				}
 				painter->fillRect(area.graphRect.x(), area.xAxisPosition - max, area.graphRect.width(), max - min, stripe_color);
+				if (stripe->outLineType() != BackgroundStripe::OutlineType::No) {
+					QColor outline_color = serie->color();
+					outline_color.setAlpha(70);
+					painter->setPen(QPen(outline_color, 2.0));
+					if (stripe->outLineType() == BackgroundStripe::OutlineType::Min ||
+						stripe->outLineType() == BackgroundStripe::OutlineType::Both) {
+						int line_position = area.xAxisPosition - min;
+						painter->drawLine(area.graphRect.x(), line_position, area.graphRect.right(), line_position);
+					}
+					if (stripe->outLineType() == BackgroundStripe::OutlineType::Max ||
+						stripe->outLineType() == BackgroundStripe::OutlineType::Both) {
+						int line_position = area.xAxisPosition - max;
+						painter->drawLine(area.graphRect.x(), line_position, area.graphRect.right(), line_position);
+					}
+
+				}
 			}
 		}
 	}
@@ -2313,112 +2314,5 @@ bool View::Selection::containsValue(qint64 value) const
 	return ((start <= end && value >= start && value <= end) ||	(start > end && value >= end && value <= start));
 }
 
-==== BASE ====
-BackgroundStripe::BackgroundStripe(QObject *parent) : BackgroundStripe(0, 0, parent)
-{
-}
-
-BackgroundStripe::BackgroundStripe(ValueChange::ValueY min, ValueChange::ValueY max, QObject *parent)
-	: QObject(parent)
-	, m_min(min)
-	, m_max(max)
-{
-	Serie *serie = qobject_cast<Serie*>(parent);
-	if (serie) {
-		serie->addBackgroundStripe(this);
-	}
-}
-
-void BackgroundStripe::setMin(const ValueChange::ValueY &min)
-{
-	setRange(min, m_max);
-}
-
-void BackgroundStripe::setMax(const ValueChange::ValueY &max)
-{
-	setRange(m_min, max);
-}
-
-void BackgroundStripe::setRange(const ValueChange::ValueY &min, const ValueChange::ValueY &max)
-{
-	m_min = min;
-	m_max = max;
-
-	GraphView *graph = qobject_cast<GraphView*>(parent());
-	if (graph && graph->settings.showBackgroundStripes) {
-		graph->update();
-	}
-}
-
-OutsideSerieGroup::OutsideSerieGroup(QObject *parent) : OutsideSerieGroup(QString::null, parent)
-{
-}
-
-OutsideSerieGroup::OutsideSerieGroup(const QString &name, QObject *parent)
-	: QObject(parent)
-	, m_name(name)
-{
-	GraphView *graph = qobject_cast<GraphView*>(parent);
-	if (graph) {
-		graph->addOutsideSerieGroup(this);
-	}
-}
-
-void OutsideSerieGroup::setName(const QString &name)
-{
-	if (m_name != name) {
-		m_name = name;
-		update();
-	}
-}
-
-void OutsideSerieGroup::addSerie(Serie *serie)
-{
-	if (!m_series.contains(serie)) {
-		m_series.append(serie);
-		connect(serie, &Serie::destroyed, [this, serie]() {
-			m_series.removeOne(serie);
-		});
-		serie->addToSerieGroup(this);
-		update();
-	}
-}
-
-void OutsideSerieGroup::show(bool show)
-{
-	if (m_show != show) {
-		m_show = show;
-		update();
-	}
-}
-
-void OutsideSerieGroup::hide()
-{
-==== BASE ====
-==== BASE ====
-	if (m_show) {
-		m_show = false;
-==== BASE ====
-==== BASE ====
-	}
-}
-
-==== BASE ====
-==== BASE ====
-==== BASE ====
-==== BASE ====
-PointOfInterest::PointOfInterest(ValueChange::ValueX position, const QString &comment, const QColor &color, QObject *parent)
-	: QObject(parent)
-	, m_position(position)
-	, m_comment(comment)
-	, m_color(color)
-{
-	GraphView *graph = qobject_cast<GraphView*>(parent);
-	if (graph) {
-		graph->addPointOfInterest(this);
-	}
-}
-
-==== BASE ====
 }
 }
