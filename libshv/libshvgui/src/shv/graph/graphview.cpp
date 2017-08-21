@@ -35,6 +35,13 @@ Serie::Serie(ValueType type, int serieIndex, const QString &name, const QColor &
 	}
 }
 
+Serie::~Serie()
+{
+	for (const QMetaObject::Connection &connection : m_connections) {
+		disconnect(connection);
+	}
+}
+
 void Serie::setName(const QString &name)
 {
 	if (m_name != name) {
@@ -88,7 +95,7 @@ void Serie::addBackgroundStripe(BackgroundStripe *stripe)
 	if (!m_backgroundStripes.contains(stripe)) {
 		m_backgroundStripes.append(stripe);
 		stripe->setParent(this);
-		connect(stripe, &BackgroundStripe::destroyed, [this, stripe]() {
+		m_connections << connect(stripe, &BackgroundStripe::destroyed, [this, stripe]() {
 			m_backgroundStripes.removeOne(stripe);
 		});
 		update();
@@ -112,7 +119,7 @@ void Serie::addDependentSerie(Serie *serie)
 {
 	if (!m_dependentSeries.contains(serie)) {
 		m_dependentSeries.append(serie);
-		connect(serie, &Serie::destroyed, [this, serie] {
+		m_connections << connect(serie, &Serie::destroyed, [this, serie] {
 			m_dependentSeries.removeOne(serie);
 		});
 		update();
@@ -300,6 +307,13 @@ GraphView::GraphView(QWidget *parent) : QWidget(parent)
 	m_rightRangeSelectorHandle = new RangeSelectorHandle(this);
 	m_rightRangeSelectorHandle->installEventFilter(this);
 	m_rightRangeSelectorHandle->hide();
+}
+
+GraphView::~GraphView()
+{
+	for (const QMetaObject::Connection &connection : m_connections) {
+		disconnect(connection);
+	}
 }
 
 QPainterPath GraphView::createPoiPath(int x, int y) const
@@ -1292,7 +1306,7 @@ void GraphView::addSerie(Serie *serie)
 //			}
 //		}
 		m_series.append(serie);
-		connect(serie, &Serie::destroyed, [this, serie]() {
+		m_connections << connect(serie, &Serie::destroyed, [this, serie]() {
 			m_series.removeOne(serie);
 		});
 		if (m_serieBlocks.count() == 0) {
@@ -1439,7 +1453,7 @@ void GraphView::addPointOfInterest(PointOfInterest *poi)
 	if (!m_pointsOfInterest.contains(poi)) {
 		poi->setParent(this);
 		m_pointsOfInterest << poi;
-		connect(poi, &PointOfInterest::destroyed, [this, poi](){
+		m_connections << connect(poi, &PointOfInterest::destroyed, [this, poi](){
 			m_pointsOfInterest.removeOne(poi);
 			m_poiPainterPaths.remove(poi);
 		});
@@ -1478,7 +1492,7 @@ void GraphView::addOutsideSerieGroup(OutsideSerieGroup *group)
 	if (!m_outsideSeriesGroups.contains(group)) {
 		group->setParent(this);
 		m_outsideSeriesGroups << group;
-		connect(group, &OutsideSerieGroup::destroyed, [this, group](){
+		m_connections << connect(group, &OutsideSerieGroup::destroyed, [this, group](){
 			m_outsideSeriesGroups.removeOne(group);
 		});
 		if (!group->isHidden()) {
@@ -2537,6 +2551,13 @@ OutsideSerieGroup::OutsideSerieGroup(const QString &name, QObject *parent)
 	}
 }
 
+OutsideSerieGroup::~OutsideSerieGroup()
+{
+	for (const QMetaObject::Connection &connection : m_connections) {
+		disconnect(connection);
+	}
+}
+
 void OutsideSerieGroup::setName(const QString &name)
 {
 	if (m_name != name) {
@@ -2549,7 +2570,7 @@ void OutsideSerieGroup::addSerie(Serie *serie)
 {
 	if (!m_series.contains(serie)) {
 		m_series.append(serie);
-		connect(serie, &Serie::destroyed, [this, serie]() {
+		m_connections << connect(serie, &Serie::destroyed, [this, serie]() {
 			m_series.removeOne(serie);
 		});
 		serie->addToSerieGroup(this);

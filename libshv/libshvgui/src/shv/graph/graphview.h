@@ -57,6 +57,7 @@ class SHVGUI_DECL_EXPORT OutsideSerieGroup : public QObject
 public:
 	OutsideSerieGroup(QObject *parent = 0);
 	OutsideSerieGroup(const QString &name, QObject *parent = 0);
+	~OutsideSerieGroup();
 
 	inline const QString &name() const { return m_name; }
 	void setName(const QString &name);
@@ -86,7 +87,7 @@ private:
 	bool m_show = false;
 	QColor m_backgroundColor;
 	int m_spacing = 4;
-
+	QVector<QMetaObject::Connection> m_connections;
 };
 
 class SHVGUI_DECL_EXPORT PointOfInterest : public QObject
@@ -116,6 +117,7 @@ public:
 	enum class YAxis { Y1, Y2 };
 
 	Serie(ValueType type, int m_serieIndex, const QString &name, const QColor &color, QObject *parent = 0);
+	~Serie();
 
 	inline const QString &name() const { return m_name; }
 	void setName(const QString &name);
@@ -182,6 +184,7 @@ private:
 	bool m_show = true;
 	bool m_showCurrent = true;
 	int m_serieIndex = -1;
+	QVector<QMetaObject::Connection> m_connections;
 
 	SerieData::const_iterator displayedDataBegin = shv::gui::SerieData::const_iterator();
 	SerieData::const_iterator displayedDataEnd = shv::gui::SerieData::const_iterator();
@@ -281,6 +284,7 @@ public:
 	};
 
 	GraphView(QWidget *parent);
+	~GraphView();
 
 	Settings settings;
 	void setModel(GraphModel *model);
@@ -457,6 +461,7 @@ private:
 	QVector<PointOfInterest*> m_pointsOfInterest;
 	QMap<const PointOfInterest*, QPainterPath> m_poiPainterPaths;
 	QVector<OutsideSerieGroup*> m_outsideSeriesGroups;
+	QVector<QMetaObject::Connection> m_connections;
 };
 
 }
