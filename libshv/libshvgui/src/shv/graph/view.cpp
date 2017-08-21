@@ -1122,15 +1122,7 @@ void View::addSerie(Serie *serie)
 		if (m_serieBlocks.count() == 0) {
 			m_serieBlocks.append(QVector<Serie*>());
 		}
-==== BASE ====
-	}
-	m_series.append(serie);
-	Serie *last_serie = m_series.last();
-	if (m_serieBlocks.count() == 0) {
-		m_serieBlocks.append(QVector<Serie*>());
-	}
-	m_serieBlocks.last() << last_serie;
-==== BASE ====
+		m_serieBlocks.last() << serie;
 
 //		auto addSerieToGroup = [](Serie *serie) {
 //			if (serie->serieGroup()) {
@@ -1145,8 +1137,8 @@ void View::addSerie(Serie *serie)
 //		for (Serie *dependent_serie : serie->dependentSeries()) {
 //			addSerieToGroup(dependent_serie);
 //		}
-	}
 
+	}
 }
 
 Serie *View::serie(int index)
@@ -1321,7 +1313,6 @@ void View::addOutsideSerieGroup(OutsideSerieGroup *group)
 			update();
 		}
 	}
-
 }
 
 void View::showRange(qint64 from, qint64 to)
@@ -2403,46 +2394,19 @@ void OutsideSerieGroup::show(bool show)
 
 void OutsideSerieGroup::hide()
 {
-	show(false);
-}
-
-void OutsideSerieGroup::setSerieSpacing(int spacing)
-{
-	if (m_spacing != spacing) {
-		m_spacing = spacing;
-		update();
+==== BASE ====
+==== BASE ====
+	if (m_show) {
+		m_show = false;
+==== BASE ====
+==== BASE ====
 	}
 }
 
-void OutsideSerieGroup::setMinimumHeight(int height)
-{
-	if (m_minimumHeight != height) {
-		m_minimumHeight = height;
-		update();
-	}
-}
-
-void OutsideSerieGroup::setBackgroundColor(const QColor &color)
-{
-	if (m_backgroundColor != color) {
-		m_backgroundColor = color;
-		update();
-	}
-}
-
-void OutsideSerieGroup::update()
-{
-	GraphView *graph = qobject_cast<GraphView*>(parent());
-	if (graph) {
-		graph->computeGeometry();
-		graph->update();
-	}
-}
-
-PointOfInterest::PointOfInterest(QObject *parent) : PointOfInterest(ValueChange::ValueX(), QString::null, QColor(), parent)
-{
-}
-
+==== BASE ====
+==== BASE ====
+==== BASE ====
+==== BASE ====
 PointOfInterest::PointOfInterest(ValueChange::ValueX position, const QString &comment, const QColor &color, QObject *parent)
 	: QObject(parent)
 	, m_position(position)
