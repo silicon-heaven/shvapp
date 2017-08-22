@@ -2,9 +2,7 @@
 
 #include "../../shvguiglobal.h"
 
-#include <QColor>
 #include <QMap>
-#include <QPainter>
 #include <QPushButton>
 #include <QTimer>
 #include <QWidget>
@@ -19,6 +17,9 @@ namespace graphview {
 
 class GraphView;
 class Serie;
+class OutsideSerieGroup;
+class PointOfInterest;
+class BackgroundStripe;
 
 class RangeSelectorHandle : public QPushButton
 {
@@ -29,167 +30,6 @@ public:
 
 protected:
 	void paintEvent(QPaintEvent *event);
-};
-
-class SHVGUI_DECL_EXPORT BackgroundStripe : public QObject
-{
-	Q_OBJECT
-
-public:
-	BackgroundStripe(QObject *parent = 0);
-	BackgroundStripe(ValueChange::ValueY min, ValueChange::ValueY max, QObject *parent = 0);
-
-	inline const ValueChange::ValueY &min() const { return m_min; }
-	inline const ValueChange::ValueY &max() const { return m_max; }
-
-	void setMin(const ValueChange::ValueY &min);
-	void setMax(const ValueChange::ValueY &max);
-	void setRange(const ValueChange::ValueY &min, const ValueChange::ValueY &max);
-
-private:
-	ValueChange::ValueY m_min = 0;
-	ValueChange::ValueY m_max = 0;
-};
-
-class SHVGUI_DECL_EXPORT OutsideSerieGroup : public QObject
-{
-	Q_OBJECT
-
-public:
-	OutsideSerieGroup(QObject *parent = 0);
-	OutsideSerieGroup(const QString &name, QObject *parent = 0);
-	~OutsideSerieGroup();
-
-	inline const QString &name() const { return m_name; }
-	void setName(const QString &name);
-
-	inline bool isHidden() const { return !m_show; }
-	void show(bool show = true);
-	void hide();
-
-	inline int serieSpacing() const { return m_spacing; }
-	void setSerieSpacing(int spacing);
-
-	inline int minimumHeight() const { return m_minimumHeight; }
-	void setMinimumHeight(int height);
-
-	inline const QColor &backgroundColor() const { return m_backgroundColor; }
-	void setBackgroundColor(const QColor &color);
-
-	inline const QVector<Serie*> &series() const { return m_series; }
-	void addSerie(Serie *serie);
-
-private:
-	void update();
-
-	QString m_name;
-	QVector<Serie*> m_series;
-	int m_minimumHeight = 20;
-	bool m_show = false;
-	QColor m_backgroundColor;
-	int m_spacing = 4;
-	QVector<QMetaObject::Connection> m_connections;
-};
-
-class SHVGUI_DECL_EXPORT PointOfInterest : public QObject
-{
-	Q_OBJECT
-
-public:
-	PointOfInterest(QObject *parent = 0);
-	PointOfInterest(ValueChange::ValueX position, const QString &comment, const QColor &color, QObject *parent = 0);
-
-	ValueChange::ValueX position() const { return m_position; }
-	const QString &comment() const  { return m_comment; }
-	const QColor &color() const { return m_color; }
-
-private:
-	ValueChange::ValueX m_position;
-	QString m_comment;
-	QColor m_color;
-};
-
-class SHVGUI_DECL_EXPORT Serie : public QObject
-{
-	Q_OBJECT
-
-public:
-	enum class LineType { OneDimensional, TwoDimensional };
-	enum class YAxis { Y1, Y2 };
-
-	Serie(ValueType type, int m_serieIndex, const QString &name, const QColor &color, QObject *parent = 0);
-	~Serie();
-
-	inline const QString &name() const { return m_name; }
-	void setName(const QString &name);
-
-	inline const ValueType &type() const  { return m_type; }
-
-	YAxis relatedAxis() const;
-	void setRelatedAxis(YAxis axis);
-
-	QColor color() const;
-	void setColor(const QColor &color);
-
-	const QVector<BackgroundStripe*> &backgroundStripes() const  { return m_backgroundStripes; }
-	void addBackgroundStripe(BackgroundStripe *stripe);
-
-	inline int lineWidth() const  { return m_lineWidth; }
-	void setLineWidth(int width);
-
-	const QVector<Serie*> &dependentSeries() const;
-	void addDependentSerie(Serie *serie);
-
-	inline const OutsideSerieGroup *serieGroup() const { return m_serieGroup; }
-	void addToSerieGroup(OutsideSerieGroup *group);
-
-	inline LineType lineType() const  { return m_lineType; }
-	void setLineType(LineType line_type);
-
-	inline std::function<QString (const ValueChange &)> legendValueFormatter() const { return m_legendValueFormatter; }
-	void setLegendValueFormatter(std::function<QString (const ValueChange &)> formatter);
-
-	inline std::function<ValueChange::ValueY (const ValueChange &)> valueFormatter() const { return m_valueFormatter; }
-	void setValueFormatter(std::function<ValueChange::ValueY (const ValueChange &)> formatter);
-
-	inline double boolValue() const  { return m_boolValue; }
-	void setBoolValue(double value);
-
-	inline bool isHidden() const  { return !m_show; }
-	void show();
-	void hide();
-
-	inline bool isShowCurrent() const { return m_showCurrent; }
-	void setShowCurrent(bool show);
-
-	const SerieData &serieModelData(const GraphView *view) const;
-	const SerieData &serieModelData(const GraphModel *model) const;
-
-private:
-	void update();
-	const Serie *masterSerie() const;
-	GraphView *view() const;
-
-	QString m_name;
-	ValueType m_type;
-	QColor m_color;
-	QVector<BackgroundStripe*> m_backgroundStripes;
-	int m_lineWidth = 1;
-	YAxis m_relatedAxis = YAxis::Y1;
-	QVector<Serie*> m_dependentSeries;
-	OutsideSerieGroup *m_serieGroup = nullptr;
-	LineType m_lineType = LineType::TwoDimensional;
-	std::function<ValueChange::ValueY (const ValueChange &)> m_valueFormatter;
-	std::function<QString (const ValueChange &)> m_legendValueFormatter;
-	double m_boolValue = 0.0;
-	bool m_show = true;
-	bool m_showCurrent = true;
-	int m_serieIndex = -1;
-	QVector<QMetaObject::Connection> m_connections;
-
-	SerieData::const_iterator displayedDataBegin = shv::gui::SerieData::const_iterator();
-	SerieData::const_iterator displayedDataEnd = shv::gui::SerieData::const_iterator();
-friend class GraphView;
 };
 
 class SHVGUI_DECL_EXPORT GraphView : public QWidget

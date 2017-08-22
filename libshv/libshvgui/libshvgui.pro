@@ -33,3 +33,7 @@ include(src/src.pri)
 HEADERS += \
     $$PWD/include/shv/graph/graphmodel.h \
     $$PWD/include/shv/graph/graphview.h \
+    include/shv/graph/backgroundstripe.h \
+    include/shv/graph/pointofinterest.h \
+    include/shv/graph/serie.h \
+    include/shv/graph/outsideseriegroup.h
