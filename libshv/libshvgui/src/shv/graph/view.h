@@ -15,7 +15,7 @@ namespace shv {
 namespace gui {
 namespace graphview {
 
-class GraphView;
+class View;
 class Serie;
 class OutsideSerieGroup;
 class PointOfInterest;
@@ -32,7 +32,7 @@ protected:
 	void paintEvent(QPaintEvent *event);
 };
 
-class SHVGUI_DECL_EXPORT GraphView : public QWidget
+class SHVGUI_DECL_EXPORT View : public QWidget
 {
 	Q_OBJECT
 
@@ -124,8 +124,8 @@ public:
 		ValueChange::ValueX end;
 	};
 
-	GraphView(QWidget *parent);
-	~GraphView();
+	View(QWidget *parent);
+	~View();
 
 	Settings settings;
 	void setModel(GraphModel *model);

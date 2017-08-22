@@ -10,7 +10,7 @@ namespace shv {
 namespace gui {
 namespace graphview {
 
-class GraphView;
+class View;
 class BackgroundStripe;
 class OutsideSerieGroup;
 
@@ -67,13 +67,13 @@ public:
 	inline bool isShowCurrent() const { return m_showCurrent; }
 	void setShowCurrent(bool show);
 
-	const SerieData &serieModelData(const GraphView *view) const;
+	const SerieData &serieModelData(const View *view) const;
 	const SerieData &serieModelData(const GraphModel *model) const;
 
 private:
 	void update();
 	const Serie *masterSerie() const;
-	GraphView *view() const;
+	View *view() const;
 
 	QString m_name;
 	ValueType m_type;
@@ -94,7 +94,7 @@ private:
 
 	SerieData::const_iterator displayedDataBegin = shv::gui::SerieData::const_iterator();
 	SerieData::const_iterator displayedDataEnd = shv::gui::SerieData::const_iterator();
-friend class GraphView;
+friend class View;
 };
 
 }

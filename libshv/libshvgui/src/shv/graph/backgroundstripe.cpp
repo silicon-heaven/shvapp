@@ -1,6 +1,6 @@
 #include "backgroundstripe.h"
 
-#include "graphview.h"
+#include "view.h"
 #include "serie.h"
 
 namespace shv {
@@ -37,7 +37,7 @@ void BackgroundStripe::setRange(const ValueChange::ValueY &min, const ValueChang
 	m_min = min;
 	m_max = max;
 
-	GraphView *graph = qobject_cast<GraphView*>(parent());
+	View *graph = qobject_cast<View*>(parent());
 	if (graph && graph->settings.showBackgroundStripes) {
 		graph->update();
 	}

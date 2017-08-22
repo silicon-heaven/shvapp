@@ -1,5 +1,5 @@
 #include "pointofinterest.h"
-#include "graphview.h"
+#include "view.h"
 
 namespace shv {
 namespace gui {
@@ -15,7 +15,7 @@ PointOfInterest::PointOfInterest(ValueChange::ValueX position, const QString &co
 	, m_comment(comment)
 	, m_color(color)
 {
-	GraphView *graph = qobject_cast<GraphView*>(parent);
+	View *graph = qobject_cast<View*>(parent);
 	if (graph) {
 		graph->addPointOfInterest(this);
 	}

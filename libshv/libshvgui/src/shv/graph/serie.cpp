@@ -1,7 +1,7 @@
 #include "serie.h"
 
 #include "backgroundstripe.h"
-#include "graphview.h"
+#include "view.h"
 #include "outsideseriegroup.h"
 
 namespace shv {
@@ -15,7 +15,7 @@ Serie::Serie(ValueType type, int serieIndex, const QString &name, const QColor &
 	, m_color(color)
 	, m_serieIndex(serieIndex)
 {
-	GraphView *graph = qobject_cast<GraphView*>(parent);
+	View *graph = qobject_cast<View*>(parent);
 	if (graph) {
 		graph->addSerie(this);
 	}
@@ -181,7 +181,7 @@ void Serie::setShowCurrent(bool show)
 	}
 }
 
-const SerieData &Serie::serieModelData(const GraphView *view) const
+const SerieData &Serie::serieModelData(const View *view) const
 {
 	return serieModelData(view->model());
 }
@@ -194,7 +194,7 @@ const SerieData &Serie::serieModelData(const GraphModel *model) const
 void Serie::update()
 {
 	if (m_show) {
-		GraphView *graph = view();
+		View *graph = view();
 		if (graph) {
 			graph->computeGeometry();
 			graph->update();
@@ -212,9 +212,9 @@ const Serie *Serie::masterSerie() const
 	return master;
 }
 
-GraphView *Serie::view() const
+View *Serie::view() const
 {
-	return qobject_cast<GraphView*>(masterSerie()->parent());
+	return qobject_cast<View*>(masterSerie()->parent());
 }
 
 }

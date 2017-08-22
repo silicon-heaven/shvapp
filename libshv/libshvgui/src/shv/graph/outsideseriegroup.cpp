@@ -1,5 +1,5 @@
 #include "outsideseriegroup.h"
-#include "graphview.h"
+#include "view.h"
 #include "serie.h"
 
 namespace shv {
@@ -14,7 +14,7 @@ OutsideSerieGroup::OutsideSerieGroup(const QString &name, QObject *parent)
 	: QObject(parent)
 	, m_name(name)
 {
-	GraphView *graph = qobject_cast<GraphView*>(parent);
+	View *graph = qobject_cast<View*>(parent);
 	if (graph) {
 		graph->addOutsideSerieGroup(this);
 	}
@@ -86,7 +86,7 @@ void OutsideSerieGroup::setBackgroundColor(const QColor &color)
 
 void OutsideSerieGroup::update()
 {
-	GraphView *graph = qobject_cast<GraphView*>(parent());
+	View *graph = qobject_cast<View*>(parent());
 	if (graph) {
 		graph->computeGeometry();
 		graph->update();
