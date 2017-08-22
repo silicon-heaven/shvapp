@@ -1102,9 +1102,22 @@ void View::addSerie(Serie *serie)
 //				throw std::runtime_error(("Bool serie (" + dependent_serie->name() + ") must have set boolValue or serie group").toStdString());
 //			}
 //		}
-		m_series.append(serie);
+		serie->setParent(this);
+		m_series << serie;
 		m_connections << connect(serie, &Serie::destroyed, [this, serie]() {
 			m_series.removeOne(serie);
+			for (int i = 0; i < m_serieBlocks.count(); ++i) {
+				QVector<Serie*> serie_block = m_serieBlocks[i];
+				if (serie_block.contains(serie)) {
+					serie_block.removeOne(serie);
+					if (serie_block.count() == 0) {
+						m_serieBlocks.removeAt(i);
+					}
+					break;
+				}
+			}
+			computeGeometry();
+			update();
 		});
 		if (m_serieBlocks.count() == 0) {
 			m_serieBlocks.append(QVector<Serie*>());
@@ -1253,20 +1266,19 @@ void View::addPointOfInterest(PointOfInterest *poi)
 		m_connections << connect(poi, &PointOfInterest::destroyed, [this, poi](){
 			m_pointsOfInterest.removeOne(poi);
 			m_poiPainterPaths.remove(poi);
-		});
-		if (m_pointsOfInterest.count() == 1) {
 			computeGeometry();
-		}
+			update();
+		});
+		computeGeometry();
 		update();
 	}
 }
 
 void View::removePointsOfInterest()
 {
-	qDeleteAll(m_pointsOfInterest);
-	m_pointsOfInterest.clear();
-	computeGeometry();
-	update();
+	while (m_pointsOfInterest.count()) {
+		delete m_pointsOfInterest[0];
+	}
 }
 
 void View::showBackgroundStripes(bool enable)
@@ -1291,6 +1303,10 @@ void View::addOutsideSerieGroup(OutsideSerieGroup *group)
 		m_outsideSeriesGroups << group;
 		m_connections << connect(group, &OutsideSerieGroup::destroyed, [this, group](){
 			m_outsideSeriesGroups.removeOne(group);
+			if (!group->isHidden()) {
+				computeGeometry();
+				update();
+			}
 		});
 		if (!group->isHidden()) {
 			computeGeometry();

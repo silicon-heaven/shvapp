@@ -289,7 +289,6 @@ private:
 	int m_yAxisShownDecimalPoints;
 	int m_y2AxisShownDecimalPoints;
 	QList<Serie*> m_series;
-	QList<bool> m_showSeries;
 	QList<QRect> m_seriesListRect;
 	double m_xValueScale;
 	QVector<QVector<Serie*>> m_serieBlocks;

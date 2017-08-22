@@ -89,6 +89,7 @@ void Serie::addBackgroundStripe(BackgroundStripe *stripe)
 		stripe->setParent(this);
 		m_connections << connect(stripe, &BackgroundStripe::destroyed, [this, stripe]() {
 			m_backgroundStripes.removeOne(stripe);
+			update();
 		});
 		update();
 	}
@@ -113,6 +114,7 @@ void Serie::addDependentSerie(Serie *serie)
 		m_dependentSeries.append(serie);
 		m_connections << connect(serie, &Serie::destroyed, [this, serie] {
 			m_dependentSeries.removeOne(serie);
+			update();
 		});
 		update();
 	}

@@ -41,6 +41,7 @@ void OutsideSerieGroup::addSerie(Serie *serie)
 		m_series.append(serie);
 		m_connections << connect(serie, &Serie::destroyed, [this, serie]() {
 			m_series.removeOne(serie);
+			update();
 		});
 		serie->addToSerieGroup(this);
 		update();
