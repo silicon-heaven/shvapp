@@ -296,7 +296,7 @@ void View::computeRangeSelectorPosition()
 				);
 }
 
-QVector<View::SerieInGroup> View::shownSeriesInGroup(const OutsideSerieGroup &group, const QVector<Serie*> &only_series) const
+QVector<View::SerieInGroup> View::shownSeriesInGroup(const OutsideSerieGroup &group, const QVector<const Serie*> &only_series) const
 {
 	QVector<SerieInGroup> shown_series_in_group;
 	if (!group.isHidden()) {
@@ -373,7 +373,7 @@ void View::computeGeometry()
 
 
 	int vertical_space = 20;
-	QVector<QVector<Serie*>> visible_blocks;
+	QVector<QVector<const Serie*>> visible_blocks;
 
 	for (int i = 0; i < m_serieBlocks.count(); ++i) {
 		for (const Serie *serie : m_serieBlocks[i]) {
@@ -1120,7 +1120,7 @@ void View::addSerie(Serie *serie)
 			update();
 		});
 		if (m_serieBlocks.count() == 0) {
-			m_serieBlocks.append(QVector<Serie*>());
+			m_serieBlocks.append(QVector<const Serie*>());
 		}
 		m_serieBlocks.last() << serie;
 
@@ -1152,8 +1152,8 @@ Serie *View::serie(int index)
 void View::splitSeries()
 {
 	m_serieBlocks.clear();
-	for (Serie *serie : m_series) {
-		m_serieBlocks.append(QVector<Serie*>());
+	for (const Serie *serie : m_series) {
+		m_serieBlocks.append(QVector<const Serie*>());
 		m_serieBlocks.last() << serie;
 	}
 	computeGeometry();
@@ -1163,7 +1163,7 @@ void View::splitSeries()
 void View::unsplitSeries()
 {
 	m_serieBlocks.clear();
-	m_serieBlocks.append(QVector<Serie*>());
+	m_serieBlocks.append(QVector<const Serie*>());
 	for (Serie *serie : m_series) {
 		m_serieBlocks.last() << serie;
 	}
@@ -1906,25 +1906,7 @@ void View::paintCurrentPosition(QPainter *painter, const GraphArea &area, const 
 		if (begin == shv::gui::SerieData::const_iterator()) {
 			return;
 		}
-		double range;
-		if (serie->relatedAxis() == Serie::YAxis::Y1) {
-			range = settings.yAxis.rangeMax - settings.yAxis.rangeMin;
-		}
-		else {
-			range = settings.y2Axis.rangeMax - settings.y2Axis.rangeMin;
-		}
-		double scale = range / area.graphRect.height();
-		int y_position = 0;
-		ValueChange::ValueY value_change = formattedSerieValue(serie, begin);
-		if (serie->type() == ValueType::Double) {
-			y_position = value_change.doubleValue / scale;
-		}
-		else if (serie->type() == ValueType::Int) {
-			y_position = value_change.intValue / scale;
-		}
-		else if (serie->type() == ValueType::Bool) {
-			y_position = value_change.boolValue ? (serie->boolValue() / scale) : 0;
-		}
+		int y_position = yPosition(formattedSerieValue(serie, begin), serie, area);
 		QPainterPath path;
 		if (serie->relatedAxis() == Serie::YAxis::Y1 || area.switchAxes) {
 			path.addEllipse(m_currentPosition + area.graphRect.x() - 3, area.xAxisPosition - y_position - 3, 6, 6);
@@ -1937,33 +1919,100 @@ void View::paintCurrentPosition(QPainter *painter, const GraphArea &area, const 
 
 }
 
+int View::yPosition(ValueChange::ValueY value, const Serie *serie, const GraphView::GraphArea &area)
+{
+	double range;
+	if (serie->relatedAxis() == Serie::YAxis::Y1) {
+		range = settings.yAxis.rangeMax - settings.yAxis.rangeMin;
+	}
+	else {
+		range = settings.y2Axis.rangeMax - settings.y2Axis.rangeMin;
+	}
+	double scale = range / area.graphRect.height();
+	int y_position = 0;
+	if (serie->type() == ValueType::Double) {
+		y_position = value.doubleValue / scale;
+	}
+	else if (serie->type() == ValueType::Int) {
+		y_position = value.intValue / scale;
+	}
+	else if (serie->type() == ValueType::Bool) {
+		y_position = value.boolValue ? (serie->boolValue() / scale) : 0;
+	}
+	return y_position;
+}
+
 void View::paintPointsOfInterest(QPainter *painter, const GraphArea &area)
 {
 	painter->save();
 	painter->setRenderHint(QPainter::Antialiasing);
 
 	for (PointOfInterest *poi : m_pointsOfInterest) {
-		int pos = xValueToWidgetPosition(xValue(poi->position()));
-		if (pos >= area.graphRect.left() && pos <= area.graphRect.right()) {
-			QPen pen(poi->color());
-			pen.setStyle(Qt::PenStyle::DashLine);
-			painter->setPen(pen);
-			painter->drawLine(pos, area.graphRect.top(), pos, area.graphRect.bottom());
-
-			if (&area == &m_graphArea[0]) {
-				QPainterPath painter_path = createPoiPath(pos - (POI_SYMBOL_WIDTH / 2), area.graphRect.top() - POI_SYMBOL_HEIGHT - 2);
-				painter->drawLine(pos, area.graphRect.top() - 2, pos, area.graphRect.top());
-				painter->fillPath(painter_path, poi->color());
-				painter->drawPath(painter_path);
-				m_poiPainterPaths[poi] = painter_path;
-				QPainterPath circle_path;
-				circle_path.addEllipse(pos - (POI_SYMBOL_WIDTH / 2) + 2, area.graphRect.top() - POI_SYMBOL_HEIGHT, POI_SYMBOL_WIDTH - 4, POI_SYMBOL_WIDTH - 4);
-				painter->fillPath(circle_path, Qt::white);
-			}
-		}
+		paintPointOfInterest(painter, area, poi);
 	}
 
 	painter->restore();
+}
+
+void GraphView::paintPointOfInterest(QPainter *painter, const GraphArea &area, PointOfInterest *poi)
+{
+	if (poi->type() == PointOfInterest::Type::Vertical) {
+		paintPointOfInterestVertical(painter, area, poi);
+	}
+	else {
+		paintPointOfInterestPoint(painter, area, poi);
+	}
+}
+
+void GraphView::paintPointOfInterestVertical(QPainter *painter, const GraphArea &area, PointOfInterest *poi)
+{
+	int pos = xValueToWidgetPosition(xValue(poi->position().valueX));
+	if (pos >= area.graphRect.left() && pos <= area.graphRect.right()) {
+
+		QPen pen(poi->color());
+		pen.setStyle(Qt::PenStyle::DashLine);
+		painter->setPen(pen);
+		painter->drawLine(pos, area.graphRect.top(), pos, area.graphRect.bottom());
+
+		if (&area == &m_graphArea[0]) {
+			QPainterPath painter_path = createPoiPath(pos - (POI_SYMBOL_WIDTH / 2), area.graphRect.top() - POI_SYMBOL_HEIGHT - 2);
+			painter->drawLine(pos, area.graphRect.top() - 2, pos, area.graphRect.top());
+			painter->fillPath(painter_path, poi->color());
+			painter->drawPath(painter_path);
+			m_poiPainterPaths[poi] = painter_path;
+			QPainterPath circle_path;
+			circle_path.addEllipse(pos - (POI_SYMBOL_WIDTH / 2) + 2, area.graphRect.top() - POI_SYMBOL_HEIGHT, POI_SYMBOL_WIDTH - 4, POI_SYMBOL_WIDTH - 4);
+			painter->fillPath(circle_path, Qt::white);
+		}
+	}
+}
+
+void GraphView::paintPointOfInterestPoint(QPainter *painter, const GraphView::GraphArea &area, PointOfInterest *poi)
+{
+	const Serie *serie = poi->serie();
+	if (serie && !area.series.contains(serie)) {
+		return;
+	}
+	int x_pos = xValueToWidgetPosition(xValue(poi->position().valueX));
+	if (x_pos >= area.graphRect.left() && x_pos <= area.graphRect.right()) {
+		ValueChange::ValueY value = serie->valueFormatter() ? serie->valueFormatter()(poi->position()) : poi->position().valueY;
+
+		int y_pos = yPosition(value, serie, area);
+		if (serie->relatedAxis() == Serie::YAxis::Y1 || area.switchAxes) {
+			y_pos = area.xAxisPosition - y_pos;
+		}
+		else {
+			y_pos = area.x2AxisPosition - y_pos;
+		}
+		QPainterPath circle_path;
+		circle_path.addEllipse(x_pos - (POI_SYMBOL_WIDTH / 2), y_pos - (POI_SYMBOL_WIDTH / 2), POI_SYMBOL_WIDTH, POI_SYMBOL_WIDTH);
+		if (serie) {
+			painter->fillPath(circle_path, serie->color());
+		}
+		else {
+			painter->fillPath(circle_path, poi->color());
+		}
+	}
 }
 
 void View::paintBackgroundStripes(QPainter *painter, const View::GraphArea &area)
@@ -2005,7 +2054,7 @@ void View::paintBackgroundStripes(QPainter *painter, const View::GraphArea &area
 	painter->restore();
 }
 
-QVector<const OutsideSerieGroup*> View::groupsForSeries(const QVector<Serie*> &series) const
+QVector<const OutsideSerieGroup*> View::groupsForSeries(const QVector<const Serie*> &series) const
 {
 	QVector<const OutsideSerieGroup*> groups;
 	for (const Serie *s : series) {

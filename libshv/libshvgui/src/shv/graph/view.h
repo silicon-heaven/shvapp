@@ -15,7 +15,6 @@ namespace shv {
 namespace gui {
 namespace graphview {
 
-class View;
 class Serie;
 class OutsideSerieGroup;
 class PointOfInterest;
@@ -184,7 +183,7 @@ private:
 		bool showYAxis;
 		bool showY2Axis;
 		bool switchAxes;
-		QVector<Serie*> series;
+		QVector<const Serie*> series;
 	};
 
 	struct Selection
@@ -229,6 +228,9 @@ private:
 	void paintCurrentPosition(QPainter *painter, const GraphArea &area);
 	void paintCurrentPosition(QPainter *painter, const GraphArea &area, const Serie *serie, qint64 current);
 	void paintPointsOfInterest(QPainter *painter, const GraphArea &area);
+	void paintPointOfInterest(QPainter *painter, const GraphArea &area, PointOfInterest *poi);
+	void paintPointOfInterestVertical(QPainter *painter, const GraphArea &area, PointOfInterest *poi);
+	void paintPointOfInterestPoint(QPainter *painter, const GraphArea &area, PointOfInterest *poi);
 	void paintBackgroundStripes(QPainter *painter, const GraphArea &area);
 	void paintOutsideSeriesGroups(QPainter *painter, const GraphArea &area);
 
@@ -246,8 +248,8 @@ private:
 	bool hasVisibleSeries() const;
 	int computeYLabelWidth(const Settings::Axis &axis, int &shownDecimalPoints) const;
 	void computeRangeSelectorPosition();
-	QVector<SerieInGroup> shownSeriesInGroup(const OutsideSerieGroup &group, const QVector<Serie *> &only_series) const;
-	QVector<const OutsideSerieGroup *> groupsForSeries(const QVector<Serie*> &series) const;
+	QVector<SerieInGroup> shownSeriesInGroup(const OutsideSerieGroup &group, const QVector<const Serie *> &only_series) const;
+	QVector<const OutsideSerieGroup *> groupsForSeries(const QVector<const Serie*> &series) const;
 
 	qint64 xValue(const ValueChange &value_change) const;
 	qint64 xValue(const ValueChange::ValueX &value_x) const;
@@ -263,6 +265,7 @@ private:
 	shv::gui::SerieData::const_iterator findMaxYValue(const SerieData::const_iterator &data_begin, const SerieData::const_iterator &data_end, qint64 x_value) const;
 
 	static ValueChange::ValueY formattedSerieValue(const Serie *serie, SerieData::const_iterator it);
+	int yPosition(ValueChange::ValueY value, const Serie *serie, const GraphArea &area);
 
 	void onModelDataChanged();
 	void showToolTip();
@@ -291,7 +294,7 @@ private:
 	QList<Serie*> m_series;
 	QList<QRect> m_seriesListRect;
 	double m_xValueScale;
-	QVector<QVector<Serie*>> m_serieBlocks;
+	QVector<QVector<const Serie*>> m_serieBlocks;
 	RangeSelectorHandle *m_leftRangeSelectorHandle;
 	RangeSelectorHandle *m_rightRangeSelectorHandle;
 	int m_leftRangeSelectorPosition;
