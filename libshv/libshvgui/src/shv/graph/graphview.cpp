@@ -12,6 +12,7 @@
 
 namespace shv {
 namespace gui {
+namespace graphview {
 
 static constexpr const int POI_SYMBOL_WIDTH = 12;
 static constexpr const int POI_SYMBOL_HEIGHT = 18;
@@ -2640,5 +2641,6 @@ PointOfInterest::PointOfInterest(ValueChange::ValueX position, const QString &co
 	}
 }
 
+} //namespace graphview
 }
 }

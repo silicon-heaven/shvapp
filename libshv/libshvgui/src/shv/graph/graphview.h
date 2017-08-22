@@ -15,6 +15,7 @@
 
 namespace shv {
 namespace gui {
+namespace graphview {
 
 class GraphView;
 class Serie;
@@ -464,5 +465,6 @@ private:
 	QVector<QMetaObject::Connection> m_connections;
 };
 
+} //namespace graphview
 }
 }
