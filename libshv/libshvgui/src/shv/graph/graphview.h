@@ -3,6 +3,7 @@
 #include "../../shvguiglobal.h"
 
 #include <QColor>
+#include <QMap>
 #include <QPainter>
 #include <QPushButton>
 #include <QTimer>
@@ -14,6 +15,10 @@
 
 namespace shv {
 namespace gui {
+namespace graphview {
+
+class GraphView;
+class Serie;
 
 class RangeSelectorHandle : public QPushButton
 {
@@ -26,62 +31,174 @@ protected:
 	void paintEvent(QPaintEvent *event);
 };
 
+class SHVGUI_DECL_EXPORT BackgroundStripe : public QObject
+{
+	Q_OBJECT
+
+public:
+	BackgroundStripe(QObject *parent = 0);
+	BackgroundStripe(ValueChange::ValueY min, ValueChange::ValueY max, QObject *parent = 0);
+
+	inline const ValueChange::ValueY &min() const { return m_min; }
+	inline const ValueChange::ValueY &max() const { return m_max; }
+
+	void setMin(const ValueChange::ValueY &min);
+	void setMax(const ValueChange::ValueY &max);
+	void setRange(const ValueChange::ValueY &min, const ValueChange::ValueY &max);
+
+private:
+	ValueChange::ValueY m_min = 0;
+	ValueChange::ValueY m_max = 0;
+};
+
+class SHVGUI_DECL_EXPORT OutsideSerieGroup : public QObject
+{
+	Q_OBJECT
+
+public:
+	OutsideSerieGroup(QObject *parent = 0);
+	OutsideSerieGroup(const QString &name, QObject *parent = 0);
+	~OutsideSerieGroup();
+
+	inline const QString &name() const { return m_name; }
+	void setName(const QString &name);
+
+	inline bool isHidden() const { return !m_show; }
+	void show(bool show = true);
+	void hide();
+
+	inline int serieSpacing() const { return m_spacing; }
+	void setSerieSpacing(int spacing);
+
+	inline int minimumHeight() const { return m_minimumHeight; }
+	void setMinimumHeight(int height);
+
+	inline const QColor &backgroundColor() const { return m_backgroundColor; }
+	void setBackgroundColor(const QColor &color);
+
+	inline const QVector<Serie*> &series() const { return m_series; }
+	void addSerie(Serie *serie);
+
+private:
+	void update();
+
+	QString m_name;
+	QVector<Serie*> m_series;
+	int m_minimumHeight = 20;
+	bool m_show = false;
+	QColor m_backgroundColor;
+	int m_spacing = 4;
+	QVector<QMetaObject::Connection> m_connections;
+};
+
+class SHVGUI_DECL_EXPORT PointOfInterest : public QObject
+{
+	Q_OBJECT
+
+public:
+	PointOfInterest(QObject *parent = 0);
+	PointOfInterest(ValueChange::ValueX position, const QString &comment, const QColor &color, QObject *parent = 0);
+
+	ValueChange::ValueX position() const { return m_position; }
+	const QString &comment() const  { return m_comment; }
+	const QColor &color() const { return m_color; }
+
+private:
+	ValueChange::ValueX m_position;
+	QString m_comment;
+	QColor m_color;
+};
+
+class SHVGUI_DECL_EXPORT Serie : public QObject
+{
+	Q_OBJECT
+
+public:
+	enum class LineType { OneDimensional, TwoDimensional };
+	enum class YAxis { Y1, Y2 };
+
+	Serie(ValueType type, int m_serieIndex, const QString &name, const QColor &color, QObject *parent = 0);
+	~Serie();
+
+	inline const QString &name() const { return m_name; }
+	void setName(const QString &name);
+
+	inline const ValueType &type() const  { return m_type; }
+
+	YAxis relatedAxis() const;
+	void setRelatedAxis(YAxis axis);
+
+	QColor color() const;
+	void setColor(const QColor &color);
+
+	const QVector<BackgroundStripe*> &backgroundStripes() const  { return m_backgroundStripes; }
+	void addBackgroundStripe(BackgroundStripe *stripe);
+
+	inline int lineWidth() const  { return m_lineWidth; }
+	void setLineWidth(int width);
+
+	const QVector<Serie*> &dependentSeries() const;
+	void addDependentSerie(Serie *serie);
+
+	inline const OutsideSerieGroup *serieGroup() const { return m_serieGroup; }
+	void addToSerieGroup(OutsideSerieGroup *group);
+
+	inline LineType lineType() const  { return m_lineType; }
+	void setLineType(LineType line_type);
+
+	inline std::function<QString (const ValueChange &)> legendValueFormatter() const { return m_legendValueFormatter; }
+	void setLegendValueFormatter(std::function<QString (const ValueChange &)> formatter);
+
+	inline std::function<ValueChange::ValueY (const ValueChange &)> valueFormatter() const { return m_valueFormatter; }
+	void setValueFormatter(std::function<ValueChange::ValueY (const ValueChange &)> formatter);
+
+	inline double boolValue() const  { return m_boolValue; }
+	void setBoolValue(double value);
+
+	inline bool isHidden() const  { return !m_show; }
+	void show();
+	void hide();
+
+	inline bool isShowCurrent() const { return m_showCurrent; }
+	void setShowCurrent(bool show);
+
+	const SerieData &serieModelData(const GraphView *view) const;
+	const SerieData &serieModelData(const GraphModel *model) const;
+
+private:
+	void update();
+	const Serie *masterSerie() const;
+	GraphView *view() const;
+
+	QString m_name;
+	ValueType m_type;
+	QColor m_color;
+	QVector<BackgroundStripe*> m_backgroundStripes;
+	int m_lineWidth = 1;
+	YAxis m_relatedAxis = YAxis::Y1;
+	QVector<Serie*> m_dependentSeries;
+	OutsideSerieGroup *m_serieGroup = nullptr;
+	LineType m_lineType = LineType::TwoDimensional;
+	std::function<ValueChange::ValueY (const ValueChange &)> m_valueFormatter;
+	std::function<QString (const ValueChange &)> m_legendValueFormatter;
+	double m_boolValue = 0.0;
+	bool m_show = true;
+	bool m_showCurrent = true;
+	int m_serieIndex = -1;
+	QVector<QMetaObject::Connection> m_connections;
+
+	SerieData::const_iterator displayedDataBegin = shv::gui::SerieData::const_iterator();
+	SerieData::const_iterator displayedDataEnd = shv::gui::SerieData::const_iterator();
+friend class GraphView;
+};
+
 class SHVGUI_DECL_EXPORT GraphView : public QWidget
 {
 	Q_OBJECT
 
 	using SerieData = shv::gui::SerieData;
+
 public:
-	class Serie;
-
-	class BackgroundStripe
-	{
-	public:
-		inline BackgroundStripe(ValueChange::ValueY min = 0, ValueChange::ValueY max = 0) : min(min), max(max) {}
-		ValueChange::ValueY min = 0;
-		ValueChange::ValueY max = 0;
-	};
-
-	struct OutsideSerieGroup
-	{
-		QString name;
-		QVector<Serie*> series;
-		int minimumHeight = 20;
-		bool show = false;
-		QColor backgroundColor;
-		int spacing = 4;
-
-	};
-	struct Serie
-	{
-		enum class LineType { OneDimensional, TwoDimensional };
-		enum class YAxis { Y1, Y2 };
-
-		QString name;
-		ValueType type;
-		QColor color;
-		YAxis relatedAxis = YAxis::Y1;
-		double boolValue = 0.0;
-		bool show = true;
-		bool showCurrent = true;
-		int serieIndex = -1;
-		std::function<ValueChange::ValueY (const ValueChange &)> valueFormatter = nullptr;
-		std::function<QString (const ValueChange &)> legendValueFormatter = nullptr;
-		SerieData::const_iterator displayedDataBegin = shv::gui::SerieData::const_iterator();
-		SerieData::const_iterator displayedDataEnd = shv::gui::SerieData::const_iterator();
-		QVector<Serie> dependentSeries = QVector<Serie>();
-		QVector<BackgroundStripe> backgroundStripes = QVector<BackgroundStripe>();
-		LineType lineType = LineType::TwoDimensional;
-		OutsideSerieGroup *serieGroup = nullptr;
-		int lineWidth = 1;
-
-		//GraphView *m_view;
-
-		//Serie() : modelIndex(-1), m_view(nullptr) {}
-		//Serie(GraphView *view) : m_view(view) {}
-		const SerieData &serieModelData(const GraphView *view) const;
-		const SerieData &serieModelData(const GraphModel *model) const;
-	};
 
 	struct Settings
 	{
@@ -168,6 +285,7 @@ public:
 	};
 
 	GraphView(QWidget *parent);
+	~GraphView();
 
 	Settings settings;
 	void setModel(GraphModel *model);
@@ -177,9 +295,9 @@ public:
 	void zoom(qint64 center, double scale);
 
 	GraphModel *model() const;
-	Serie &addSerie(const Serie &serie);
-	Serie &serie(int index);
-	inline const QList<Serie> &series() const  { return m_series; }
+	void addSerie(Serie *serie);
+	Serie *serie(int index);
+	inline const QList<Serie*> &series() const  { return m_series; }
 
 	void splitSeries();
 	void unsplitSeries();
@@ -192,10 +310,12 @@ public:
 	void clearSelections();
 
 	void addPointOfInterest(ValueChange::ValueX position, const QString &comment, const QColor &color);
+	void addPointOfInterest(PointOfInterest *poi);
 	void removePointsOfInterest();
 	void showBackgroundStripes(bool enable);
 
-	OutsideSerieGroup &addOutsideSerieGroup(const QString &name);
+	OutsideSerieGroup *addOutsideSerieGroup(const QString &name);
+	void addOutsideSerieGroup(OutsideSerieGroup *group);
 
 	Q_SIGNAL void selectionsChanged();
 
@@ -235,15 +355,6 @@ private:
 		bool containsValue(qint64 value) const;
 	};
 
-	class PointOfInterest
-	{
-	public:
-		qint64 position;
-		QString comment;
-		QColor color;
-		QPainterPath painterPath;
-	};
-
 	class SerieInGroup
 	{
 	public:
@@ -266,23 +377,23 @@ private:
 	void paintHorizontalGrid(QPainter *painter, const GraphArea &area);
 	void paintRangeSelector(QPainter *painter);
 	void paintSeries(QPainter *painter, const GraphArea &area);
-	void paintSerie(QPainter *painter, const QRect &rect, int x_axis_position, const Serie &serie, qint64 min, qint64 max, const QPen &pen, bool fill_rect);
-	void paintBoolSerie(QPainter *painter, const QRect &area, int x_axis_position, const Serie &serie, qint64 min, qint64 max, const QPen &pen, bool fill_rect);
-	void paintBoolSerieAtPosition(QPainter *painter, const QRect &area, int y_position, const Serie &serie, qint64 min, qint64 max, bool fill_rect);
-	void paintValueSerie(QPainter *painter, const QRect &area, int x_axis_position, const Serie &serie, qint64 min, qint64 max, const QPen &pen, bool fill_rect);
+	void paintSerie(QPainter *painter, const QRect &rect, int x_axis_position, const Serie *serie, qint64 min, qint64 max, const QPen &pen, bool fill_rect);
+	void paintBoolSerie(QPainter *painter, const QRect &area, int x_axis_position, const Serie *serie, qint64 min, qint64 max, const QPen &pen, bool fill_rect);
+	void paintBoolSerieAtPosition(QPainter *painter, const QRect &area, int y_position, const Serie *serie, qint64 min, qint64 max, bool fill_rect);
+	void paintValueSerie(QPainter *painter, const QRect &area, int x_axis_position, const Serie *serie, qint64 min, qint64 max, const QPen &pen, bool fill_rect);
 	void paintSelections(QPainter *painter, const GraphArea &area);
 	void paintSelection(QPainter *painter, const GraphArea &area, const Selection &selection, const QColor &color);
 	void paintSerieList(QPainter *painter);
 	void paintCrossLine(QPainter *painter, const GraphArea &area);
 	void paintLegend(QPainter *painter);
 	void paintCurrentPosition(QPainter *painter, const GraphArea &area);
-	void paintCurrentPosition(QPainter *painter, const GraphArea &area, const Serie &serie, qint64 current);
+	void paintCurrentPosition(QPainter *painter, const GraphArea &area, const Serie *serie, qint64 current);
 	void paintPointsOfInterest(QPainter *painter, const GraphArea &area);
 	void paintBackgroundStripes(QPainter *painter, const GraphArea &area);
 	void paintOutsideSeriesGroups(QPainter *painter, const GraphArea &area);
 
 	QString legend(qint64 position) const;
-	QString legendRow(const Serie &serie, qint64 position) const;
+	QString legendRow(const Serie *serie, qint64 position) const;
 
 	qint64 widgetPositionToXValue(int pos) const;
 	qint64 rectPositionToXValue(int pos) const;
@@ -302,14 +413,16 @@ private:
 	qint64 xValue(const ValueChange::ValueX &value_x) const;
 	ValueChange::ValueX internalToValueX(qint64 value) const;
 	QString xValueString(qint64 value, const QString &datetime_format) const;
-	void computeRange(double &min, double &max, const Serie &serie) const;
-	void computeRange(int &min, int &max, const Serie &serie) const;
-	void computeRange(qint64 &min, qint64 &max, const Serie &serie) const;
+	void computeRange(double &min, double &max, const Serie *serie) const;
+	void computeRange(int &min, int &max, const Serie *serie) const;
+	void computeRange(qint64 &min, qint64 &max, const Serie *serie) const;
 	template<typename T> void computeRange(T &min, T &max) const;
 	void computeDataRange();
 	QPainterPath createPoiPath(int x, int y) const;
 	shv::gui::SerieData::const_iterator findMinYValue(const SerieData::const_iterator &data_begin, const SerieData::const_iterator &data_end, qint64 x_value) const;
 	shv::gui::SerieData::const_iterator findMaxYValue(const SerieData::const_iterator &data_begin, const SerieData::const_iterator &data_end, qint64 x_value) const;
+
+	static ValueChange::ValueY formattedSerieValue(const Serie *serie, SerieData::const_iterator it);
 
 	void onModelDataChanged();
 	void showToolTip();
@@ -335,7 +448,7 @@ private:
 	double m_horizontalGridDistance;
 	int m_yAxisShownDecimalPoints;
 	int m_y2AxisShownDecimalPoints;
-	QList<Serie> m_series;
+	QList<Serie*> m_series;
 	QList<bool> m_showSeries;
 	QList<QRect> m_seriesListRect;
 	double m_xValueScale;
@@ -346,9 +459,12 @@ private:
 	int m_rightRangeSelectorPosition;
 	QTimer m_toolTipTimer;
 	QPoint m_toolTipPosition;
-	QVector<PointOfInterest> m_pointsOfInterest;
-	QVector<OutsideSerieGroup> m_outsideSeriesGroups;
+	QVector<PointOfInterest*> m_pointsOfInterest;
+	QMap<const PointOfInterest*, QPainterPath> m_poiPainterPaths;
+	QVector<OutsideSerieGroup*> m_outsideSeriesGroups;
+	QVector<QMetaObject::Connection> m_connections;
 };
 
+} //namespace graphview
 }
 }
