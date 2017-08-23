@@ -9,6 +9,8 @@ namespace shv {
 namespace gui {
 namespace graphview {
 
+class Serie;
+
 class SHVGUI_DECL_EXPORT PointOfInterest : public QObject
 {
 	Q_OBJECT

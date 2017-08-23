@@ -1107,7 +1107,7 @@ void View::addSerie(Serie *serie)
 		m_connections << connect(serie, &Serie::destroyed, [this, serie]() {
 			m_series.removeOne(serie);
 			for (int i = 0; i < m_serieBlocks.count(); ++i) {
-				QVector<Serie*> serie_block = m_serieBlocks[i];
+				QVector<const Serie*> serie_block = m_serieBlocks[i];
 				if (serie_block.contains(serie)) {
 					serie_block.removeOne(serie);
 					if (serie_block.count() == 0) {
@@ -1919,7 +1919,7 @@ void View::paintCurrentPosition(QPainter *painter, const GraphArea &area, const 
 
 }
 
-int View::yPosition(ValueChange::ValueY value, const Serie *serie, const GraphView::GraphArea &area)
+int View::yPosition(ValueChange::ValueY value, const Serie *serie, const GraphArea &area)
 {
 	double range;
 	if (serie->relatedAxis() == Serie::YAxis::Y1) {
@@ -1954,7 +1954,7 @@ void View::paintPointsOfInterest(QPainter *painter, const GraphArea &area)
 	painter->restore();
 }
 
-void GraphView::paintPointOfInterest(QPainter *painter, const GraphArea &area, PointOfInterest *poi)
+void View::paintPointOfInterest(QPainter *painter, const GraphArea &area, PointOfInterest *poi)
 {
 	if (poi->type() == PointOfInterest::Type::Vertical) {
 		paintPointOfInterestVertical(painter, area, poi);
@@ -1964,7 +1964,7 @@ void GraphView::paintPointOfInterest(QPainter *painter, const GraphArea &area, P
 	}
 }
 
-void GraphView::paintPointOfInterestVertical(QPainter *painter, const GraphArea &area, PointOfInterest *poi)
+void View::paintPointOfInterestVertical(QPainter *painter, const GraphArea &area, PointOfInterest *poi)
 {
 	int pos = xValueToWidgetPosition(xValue(poi->position().valueX));
 	if (pos >= area.graphRect.left() && pos <= area.graphRect.right()) {
@@ -1987,7 +1987,7 @@ void GraphView::paintPointOfInterestVertical(QPainter *painter, const GraphArea 
 	}
 }
 
-void GraphView::paintPointOfInterestPoint(QPainter *painter, const GraphView::GraphArea &area, PointOfInterest *poi)
+void View::paintPointOfInterestPoint(QPainter *painter, const GraphArea &area, PointOfInterest *poi)
 {
 	const Serie *serie = poi->serie();
 	if (serie && !area.series.contains(serie)) {

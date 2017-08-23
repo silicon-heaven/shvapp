@@ -27,7 +27,7 @@ PointOfInterest::PointOfInterest(ValueChange position, const QString &comment, c
 	, m_type(type)
 	, m_serie(serie)
 {
-	GraphView *graph = qobject_cast<GraphView*>(parent);
+	View *graph = qobject_cast<View*>(parent);
 	if (graph) {
 		graph->addPointOfInterest(this);
 	}
@@ -48,7 +48,7 @@ void PointOfInterest::setPosition(ValueChange::ValueX position)
 
 void PointOfInterest::update()
 {
-	GraphView *graph = qobject_cast<GraphView*>(parent());
+	View *graph = qobject_cast<View*>(parent());
 	if (graph) {
 		graph->computeGeometry();
 		graph->update();
