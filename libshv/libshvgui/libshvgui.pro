@@ -9,7 +9,7 @@ TEMPLATE = lib
 TARGET = shvgui
 
 isEmpty(QF_PROJECT_TOP_BUILDDIR) {
-	QF_PROJECT_TOP_BUILDDIR=$$shadowed($$PWD)/../..
+    QF_PROJECT_TOP_BUILDDIR=$$shadowed($$PWD)/../..
 }
 message ( QF_PROJECT_TOP_BUILDDIR: '$$QF_PROJECT_TOP_BUILDDIR' )
 
@@ -31,5 +31,9 @@ LIBS += \
 include(src/src.pri)
 
 HEADERS += \
-    $$PWD/include/shv/graph/graphmodel.h \
-    $$PWD/include/shv/graph/graphview.h \
+    include/shv/graph/graphmodel.h \
+    include/shv/graph/view.h \
+    include/shv/graph/backgroundstripe.h \
+    include/shv/graph/pointofinterest.h \
+    include/shv/graph/serie.h \
+    include/shv/graph/outsideseriegroup.h
