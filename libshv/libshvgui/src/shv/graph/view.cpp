@@ -1608,7 +1608,7 @@ void View::paintSerie(QPainter *painter, const QRect &rect, int x_axis_position,
 void View::paintBoolSerie(QPainter *painter, const QRect &rect, int x_axis_position, const Serie *serie, qint64 min, qint64 max, const QPen &pen, bool fill_rect)
 {
 	if (serie->lineType() == Serie::LineType::TwoDimensional) {
-		throw std::runtime_error("Cannot paint two dimensional bool serie");
+		return;/*fixme*/throw std::runtime_error("Cannot paint two dimensional bool serie");
 	}
 
 	double y_scale = 0.0;
