@@ -751,14 +751,7 @@ void View::mousePressEvent(QMouseEvent *mouse_event)
 			for (int i = 0; i < m_seriesListRect.count(); ++i) {
 				const QRect &rect = m_seriesListRect[i];
 				if (rect.contains(pos)) {
-					if (m_series[i]->isHidden()) {
-						m_series[i]->show();
-					}
-					else {
-						m_series[i]->hide();
-						computeGeometry();
-						update();
-					}
+					m_series[i]->show(m_series[i]->isHidden());
 					break;
 				}
 			}

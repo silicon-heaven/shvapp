@@ -61,7 +61,7 @@ public:
 	void setBoolValue(double value);
 
 	inline bool isHidden() const  { return !m_show; }
-	void show();
+	void show(bool enable = true);
 	void hide();
 
 	inline bool isShowCurrent() const { return m_showCurrent; }
@@ -71,7 +71,7 @@ public:
 	const SerieData &serieModelData(const GraphModel *model) const;
 
 private:
-	void update();
+	void update(bool force = false);
 	const Serie *masterSerie() const;
 	View *view() const;
 
