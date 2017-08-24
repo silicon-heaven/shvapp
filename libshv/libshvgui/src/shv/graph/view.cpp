@@ -756,9 +756,9 @@ void View::mousePressEvent(QMouseEvent *mouse_event)
 					}
 					else {
 						m_series[i]->hide();
+						computeGeometry();
+						update();
 					}
-//					computeGeometry();
-//					update();
 					break;
 				}
 			}
