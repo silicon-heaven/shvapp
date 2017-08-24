@@ -2,6 +2,8 @@
 
 #include "../shvexception.h"
 
+#include <QDebug>
+
 #include <iostream>
 #include <cassert>
 #include <limits>
@@ -41,6 +43,9 @@ std::streambuf::int_type CharDataStreamBuffer::underflow()
 }
 */
 namespace {
+
+//constexpr size_t INT_BYTES_MAX = 18;
+
 /* UInt
    0 ... 127              |0|x|x|x|x|x|x|x|<-- LSB
   28 ... 16383 (2^14-1)   |1|x|x|x|x|x|x|x| |0|x|x|x|x|x|x|x|<-- LSB
@@ -50,23 +55,39 @@ template<typename T>
 T read_UIntData(std::istream &data, bool *ok = nullptr)
 {
 	T n = 0;
-	do {
-		//std::cerr << "pos1: " << data.tellg() << std::endl;
-		uint8_t r = data.get();
-		bool has_next = (r & 128);
-		//std::cerr << (int)r << " pos2: " << data.tellg() << " eof: " << data.eof() << std::endl;
-		if(has_next && data.eof()) {
+	constexpr uint8_t masks[] = {127, 63, 31, 15};
+	if(data.eof()) {
+		if(ok) {
+			*ok = false;
+			return 0;
+		}
+		SHV_EXCEPTION("read_UInt: unexpected end of stream!");
+	}
+	uint8_t head = data.get();
+	int len;
+	if((head & 128) == 0) { len = 1; }
+	else if((head & 64) == 0) { len = 2; }
+	else if((head & 32) == 0) { len = 3; }
+	else if((head & 16) == 0) { len = 4; }
+	else { len = (head & 15) + 5; }
+	if(len < 5) {
+		len--;
+		n = head & masks[len];
+	}
+	else {
+		len--;
+	}
+	for (int i = 0; i < len; ++i) {
+		if(data.eof()) {
 			if(ok) {
 				*ok = false;
 				return 0;
 			}
 			SHV_EXCEPTION("read_UInt: unexpected end of stream!");
 		}
-		r = r & 127;
-		n = (n << 7) | r;
-		if(!has_next)
-			break;
-	} while(true);
+		uint8_t r = data.get();
+		n = (n << 8) + r;
+	};
 	if(ok)
 		*ok = true;
 	return n;
@@ -75,20 +96,37 @@ T read_UIntData(std::istream &data, bool *ok = nullptr)
 template<typename T>
 void write_UIntData(std::ostream &out, T n)
 {
-	uint8_t bytes[2 * sizeof(T)];
-	int pos = 0;
+	constexpr int UINT_BYTES_MAX = 19;
+	uint8_t bytes[1 + sizeof(T)];
+	constexpr uint8_t prefixes[] = {0 << 4, 8 << 4, 12 << 4, 14 << 4};
+	int byte_cnt = 0;
 	do {
-		uint8_t r = n & 127;
-		n = n >> 7;
-		bytes[pos++] = r;
+		uint8_t r = n & 255;
+		//qDebug() << byte_cnt << "->" << (int)r;
+		n = n >> 8;
+		bytes[byte_cnt++] = r;
 	} while(n);
-	pos--;
-	while (pos >= 0) {
-		uint8_t r = bytes[pos];
-		if(pos > 0)
-			r |= 128;
+	if(byte_cnt >= UINT_BYTES_MAX)
+		SHV_EXCEPTION("write_UIntData: value too big to pack!");
+	bytes[byte_cnt] = 0;
+	uint8_t msb = bytes[byte_cnt-1];
+	if(byte_cnt == 1)      { if(msb >= 128) byte_cnt++; }
+	else if(byte_cnt == 2) { if(msb >= 64) byte_cnt++; }
+	else if(byte_cnt == 3) { if(msb >= 32) byte_cnt++; }
+	else if(byte_cnt == 4) { if(msb >= 16) byte_cnt++; }
+	else byte_cnt++;
+	if(byte_cnt > 4) {
+		bytes[byte_cnt-1] = 0xF0 | (byte_cnt - 5);
+	}
+	else {
+		uint8_t prefix = prefixes[byte_cnt-1];
+		//qDebug() << "byte cnt:" << byte_cnt << "prefix:" << (int)prefix;
+		bytes[byte_cnt-1] |= prefix;
+	}
+	for (int i = byte_cnt-1; i >= 0; --i) {
+		uint8_t r = bytes[i];
+		//qDebug() << i << "<-" << (int)r;
 		out << r;
-		pos--;
 	}
 }
 

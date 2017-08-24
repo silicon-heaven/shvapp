@@ -228,32 +228,36 @@ private:
 			qDebug() << cp1.toStdString() << " " << cp2.toStdString() << " len: " << len << " dump: " << binary_dump(out.str()).c_str();
 			QVERIFY(cp1.type() == cp2.type());
 		}
-		qDebug() << "------------- tiny uint";
-	for (RpcValue::UInt n = 0; n < 64; ++n) {
-			RpcValue cp1{n};
-			std::stringstream out;
-			int len = ChainPackProtocol::write(out, cp1);
-			if(n < 10)
-				qDebug() << n << " " << cp1.toStdString() << " len: " << len << " dump: " << binary_dump(out.str()).c_str();
-			QVERIFY(len == 1);
-			RpcValue cp2 = ChainPackProtocol::read(out);
-			QVERIFY(cp1.type() == cp2.type());
-			QVERIFY(cp1.toUInt() == cp2.toUInt());
-		}
 		{
-			qDebug() << "------------- uint";
-			RpcValue::UInt n_max = std::numeric_limits<unsigned int>::max();
-			auto step = n_max / 1000;
-			for (RpcValue::UInt n = 64; n < (n_max - step); n += step) {
+			qDebug() << "------------- tiny uint";
+			for (RpcValue::UInt n = 0; n < 64; ++n) {
 				RpcValue cp1{n};
 				std::stringstream out;
 				int len = ChainPackProtocol::write(out, cp1);
-				QVERIFY(len > 1);
+				if(n < 10)
+					qDebug() << n << " " << cp1.toStdString() << " len: " << len << " dump: " << binary_dump(out.str()).c_str();
+				QVERIFY(len == 1);
 				RpcValue cp2 = ChainPackProtocol::read(out);
-				if(n < 100)
-					qDebug() << n << " " << cp1.toStdString() << " " << cp2.toStdString() << " len: " << len << " dump: " << binary_dump(out.str()).c_str();
 				QVERIFY(cp1.type() == cp2.type());
 				QVERIFY(cp1.toUInt() == cp2.toUInt());
+			}
+		}
+		{
+			qDebug() << "------------- uint";
+			RpcValue::UInt n_max = std::numeric_limits<RpcValue::UInt>::max();
+			//auto step = n_max / 100000;
+			//step = 100;
+			//n_max = 66000;
+			for (RpcValue::UInt n = 1; n < (n_max/2 -1); n *= 2) {
+				RpcValue cp1{n};
+				std::stringstream out;
+				int len = ChainPackProtocol::write(out, cp1);
+				//QVERIFY(len > 1);
+				RpcValue cp2 = ChainPackProtocol::read(out);
+				//if(n < 100*step)
+				qDebug() << n << " " << cp1.toStdString() << " " << cp2.toStdString() << " len: " << len << " dump: " << binary_dump(out.str()).c_str();
+				QVERIFY(cp1.type() == cp2.type());
+				QCOMPARE(cp1.toUInt(), cp2.toUInt());
 			}
 		}
 		qDebug() << "------------- tiny int";
@@ -503,6 +507,7 @@ private:
 
 	void charArrayTest()
 	{
+		qDebug() << "============= charArrayTest ============";
 		{
 			const char ca[] = "Ahoj Babi";
 			CharDataStreamBuffer sb(ca, sizeof(ca));
@@ -550,7 +555,7 @@ private slots:
 	{
 		textTest();
 		binaryTest();
-		charArrayTest();
+		//charArrayTest();
 	}
 
 	void cleanupTestCase()

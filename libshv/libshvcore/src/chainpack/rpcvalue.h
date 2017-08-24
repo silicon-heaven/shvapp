@@ -122,7 +122,7 @@ public:
 	RpcValue(std::nullptr_t) noexcept;  // Null
 	RpcValue(double value);             // Double
 	RpcValue(Int value);                // Int
-	RpcValue(UInt value);                // Int
+	RpcValue(UInt value);                // UInt
 	RpcValue(int value) : RpcValue((Int)value) {}
 	RpcValue(unsigned int value) : RpcValue((UInt)value) {}
 	RpcValue(bool value);               // Bool

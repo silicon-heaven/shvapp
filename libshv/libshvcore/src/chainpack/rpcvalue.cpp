@@ -242,7 +242,7 @@ class ChainPackUInt : public ValueData<RpcValue::Type::UInt, RpcValue::UInt>
 {
 protected:
 	double toDouble() const override { return m_value; }
-	RpcValue::Int toInt() const override { return (int)m_value; }
+	RpcValue::Int toInt() const override { return m_value; }
 	RpcValue::UInt toUInt() const override { return m_value; }
 protected:
 	bool equals(const RpcValue::AbstractValueData * other) const override { return m_value == other->toUInt(); }
