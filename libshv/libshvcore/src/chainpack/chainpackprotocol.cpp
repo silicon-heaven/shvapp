@@ -34,14 +34,7 @@ std::streambuf::pos_type CharDataStreamBuffer::seekoff(std::streambuf::off_type 
 	//std::cerr << "seekoff: " << off << " pos: " << (gptr() - eback()) << " ret: " << ret << std::endl;
 	return ret;
 }
-/*
-std::streambuf::int_type CharDataStreamBuffer::underflow()
-{
-	std::streambuf::int_type ret = Super::underflow();
-	std::cerr << "underflow: " << ret << std::endl;
-	return ret;
-}
-*/
+
 namespace {
 
 /* UInt
@@ -55,11 +48,12 @@ namespace {
                           n == 14 -> 19 bytes
                           n == 15 -> for future (number of bytes will be specified in next byte)
 */
+constexpr int UINT_MASK_CNT = 4;
 template<typename T>
 T read_UIntData(std::istream &data, bool *ok = nullptr)
 {
 	T n = 0;
-	constexpr uint8_t masks[] = {127, 63, 31, 15};
+	constexpr uint8_t masks[UINT_MASK_CNT] = {127, 63, 31, 15};
 	if(data.eof()) {
 		if(ok) {
 			*ok = false;
@@ -73,7 +67,7 @@ T read_UIntData(std::istream &data, bool *ok = nullptr)
 	else if((head & 64) == 0) { len = 2; }
 	else if((head & 32) == 0) { len = 3; }
 	else if((head & 16) == 0) { len = 4; }
-	else { len = (head & 15) + 5; }
+	else { len = (head & 15) + UINT_MASK_CNT + 1; }
 	if(len < 5) {
 		len--;
 		n = head & masks[len];
@@ -102,11 +96,10 @@ void write_UIntData(std::ostream &out, T n)
 {
 	constexpr int UINT_BYTES_MAX = 19;
 	uint8_t bytes[1 + sizeof(T)];
-	constexpr uint8_t prefixes[] = {0 << 4, 8 << 4, 12 << 4, 14 << 4};
+	constexpr uint8_t prefixes[UINT_MASK_CNT] = {0 << 4, 8 << 4, 12 << 4, 14 << 4};
 	int byte_cnt = 0;
 	do {
 		uint8_t r = n & 255;
-		//qDebug() << byte_cnt << "->" << (int)r;
 		n = n >> 8;
 		bytes[byte_cnt++] = r;
 	} while(n);
@@ -119,17 +112,15 @@ void write_UIntData(std::ostream &out, T n)
 	else if(byte_cnt == 3) { if(msb >= 32) byte_cnt++; }
 	else if(byte_cnt == 4) { if(msb >= 16) byte_cnt++; }
 	else byte_cnt++;
-	if(byte_cnt > 4) {
-		bytes[byte_cnt-1] = 0xF0 | (byte_cnt - 5);
+	if(byte_cnt > UINT_MASK_CNT) {
+		bytes[byte_cnt-1] = 0xF0 | (byte_cnt - UINT_MASK_CNT - 1);
 	}
 	else {
 		uint8_t prefix = prefixes[byte_cnt-1];
-		//qDebug() << "byte cnt:" << byte_cnt << "prefix:" << (int)prefix;
 		bytes[byte_cnt-1] |= prefix;
 	}
 	for (int i = byte_cnt-1; i >= 0; --i) {
 		uint8_t r = bytes[i];
-		//qDebug() << i << "<-" << (int)r;
 		out << r;
 	}
 }
@@ -144,13 +135,13 @@ void write_UIntData(std::ostream &out, T n)
                           n == 14 -> 18 bytes
                           n == 15 -> for future (number of bytes will be specified in next byte)
 */
-//constexpr size_t INT_BYTES_MAX = 18;
 
+constexpr int INT_MASK_CNT = 3;
 template<typename T>
 T read_IntData(std::istream &data)
 {
 	T n = 0;
-	constexpr uint8_t masks[] = {63, 31, 15};
+	constexpr uint8_t masks[INT_MASK_CNT] = {63, 31, 15};
 	if(data.eof())
 		SHV_EXCEPTION("read_UInt: unexpected end of stream!");
 	uint8_t head = data.get();
@@ -159,7 +150,7 @@ T read_IntData(std::istream &data)
 	if((head & 64) == 0) { len = 1; }
 	else if((head & 32) == 0) { len = 2; }
 	else if((head & 16) == 0) { len = 3; }
-	else { len = (head & 15) + 4; }
+	else { len = (head & 15) + INT_MASK_CNT + 1; }
 	if(len < 4) {
 		len--;
 		n = head & masks[len];
@@ -183,7 +174,7 @@ void write_IntData(std::ostream &out, T n)
 {
 	constexpr int INT_BYTES_MAX = 18;
 	uint8_t bytes[1 + sizeof(T)];
-	constexpr uint8_t prefixes[] = {0 << 3, 8 << 3, 12 << 3};
+	constexpr uint8_t prefixes[INT_MASK_CNT] = {0 << 3, 8 << 3, 12 << 3};
 	if(n == std::numeric_limits<T>::min()) {
 		std::cerr << "cannot pack MIN_INT, will be packed as MIN_INT+1\n";
 		n++;
@@ -194,7 +185,6 @@ void write_IntData(std::ostream &out, T n)
 	int byte_cnt = 0;
 	do {
 		uint8_t r = n & 255;
-		//qDebug() << byte_cnt << "->" << (int)r;
 		n = n >> 8;
 		bytes[byte_cnt++] = r;
 	} while(n);
@@ -207,39 +197,20 @@ void write_IntData(std::ostream &out, T n)
 	else if(byte_cnt == 3) { if(msb >= 16) byte_cnt++; }
 	else byte_cnt++;
 	if(byte_cnt > 3) {
-		bytes[byte_cnt-1] = 0x70 | (byte_cnt - 4);
+		bytes[byte_cnt-1] = 0x70 | (byte_cnt - INT_MASK_CNT - 1);
 	}
 	else {
 		uint8_t prefix = prefixes[byte_cnt-1];
-		//qDebug() << "byte cnt:" << byte_cnt << "prefix:" << (int)prefix;
 		bytes[byte_cnt-1] |= prefix;
 	}
 	if(s)
 		bytes[byte_cnt-1] |= 128;
 	for (int i = byte_cnt-1; i >= 0; --i) {
 		uint8_t r = bytes[i];
-		//qDebug() << i << "<-" << (int)r;
 		out << r;
 	}
 }
-/*
-void write_Int(std::ostream &out, Value::Int n)
-{
-	if(n == std::numeric_limits<Value::Int>::min()) {
-		std::cerr << "cannot pack MIN_INT, will be packed as MIN_INT+1\n";
-		n++;
-	}
-	bool s = (n < 0);
-	if(s) {
-		n = -n;
-		out += Value::Type::NEG_INT;
-	}
-	else {
-		out += Value::Type::POS_INT;
-	}
-	write_UIntData(out, (Value::UInt)n);
-}
-*/
+
 double read_Double(std::istream &data)
 {
 	union U {uint64_t n; double d;} u;
