@@ -1123,21 +1123,6 @@ void View::addSerie(Serie *serie)
 			m_serieBlocks.append(QVector<Serie*>());
 		}
 		m_serieBlocks.last() << serie;
-
-//		auto addSerieToGroup = [](Serie *serie) {
-//			if (serie->serieGroup()) {
-//				if (serie->type() != ValueType::Bool || serie->lineType != Serie::LineType::OneDimensional) {
-//					throw std::runtime_error("In serie group can be added only bool one dimensional series");
-//				}
-//	//			serie.serieGroup->series.append(&serie);
-//				serie->serieGroup->addSerie(serie);
-//			}
-//		};
-//		addSerieToGroup(serie);
-//		for (Serie *dependent_serie : serie->dependentSeries()) {
-//			addSerieToGroup(dependent_serie);
-//		}
-
 	}
 }
 
@@ -1313,7 +1298,6 @@ void View::addOutsideSerieGroup(OutsideSerieGroup *group)
 			update();
 		}
 	}
-
 }
 
 void View::showRange(qint64 from, qint64 to)
@@ -1996,9 +1980,25 @@ void View::paintBackgroundStripes(QPainter *painter, const View::GraphArea &area
 					max = stripe->max().intValue / scale;
 				}
 				else if (serie->type() == ValueType::Bool) {
-					throw std::runtime_error("GraphView: Cannot paint background serie for bool serie");
+					throw std::runtime_error("GraphView: Cannot paint background stripe for bool serie");
 				}
 				painter->fillRect(area.graphRect.x(), area.xAxisPosition - max, area.graphRect.width(), max - min, stripe_color);
+				if (stripe->outLineType() != BackgroundStripe::OutlineType::No) {
+					QColor outline_color = serie->color();
+					outline_color.setAlpha(70);
+					painter->setPen(QPen(outline_color, 2.0));
+					if (stripe->outLineType() == BackgroundStripe::OutlineType::Min ||
+						stripe->outLineType() == BackgroundStripe::OutlineType::Both) {
+						int line_position = area.xAxisPosition - min;
+						painter->drawLine(area.graphRect.x(), line_position, area.graphRect.right(), line_position);
+					}
+					if (stripe->outLineType() == BackgroundStripe::OutlineType::Max ||
+						stripe->outLineType() == BackgroundStripe::OutlineType::Both) {
+						int line_position = area.xAxisPosition - max;
+						painter->drawLine(area.graphRect.x(), line_position, area.graphRect.right(), line_position);
+					}
+
+				}
 			}
 		}
 	}
