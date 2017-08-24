@@ -2314,5 +2314,6 @@ bool View::Selection::containsValue(qint64 value) const
 	return ((start <= end && value >= start && value <= end) ||	(start > end && value >= end && value <= start));
 }
 
+} //namespace graphview
 }
 }
