@@ -6,11 +6,10 @@
 
 #include <QObject>
 
-#include <deque>
-
 class QTcpSocket;
 class QThread;
 
+namespace shv { namespace core { namespace chainpack { class RpcRequest; class RpcResponse; }}}
 
 namespace shv {
 namespace coreqt {
@@ -26,9 +25,18 @@ public:
 	~RpcDriver() Q_DECL_OVERRIDE;
 
 	void setSocket(QTcpSocket *socket);
+	void connectToHost(const QString &host_name, quint16 port);
+
+	void sendMessage(const shv::core::chainpack::RpcValue &msg) {Super::sendMessage(msg);}
+
 	Q_SIGNAL void messageReceived(shv::core::chainpack::RpcValue msg);
-	// RpcDriver interface
+	void sendRequestSync(const shv::core::chainpack::RpcRequest& request, shv::core::chainpack::RpcResponse *presponse, int time_out_ms);
+
+	bool isConnected() const;
+	Q_SIGNAL void connectedChanged(bool is_connected);
+
 protected:
+	// RpcDriver interface
 	bool isOpen() Q_DECL_OVERRIDE;
 	size_t bytesToWrite() Q_DECL_OVERRIDE;
 	int64_t writeBytes(const char *bytes, size_t length) Q_DECL_OVERRIDE;
@@ -39,6 +47,7 @@ private:
 	void onBytesWritten();
 private:
 	QTcpSocket *m_socket = nullptr;
+	bool m_isConnected = false;
 };
 
 }}}

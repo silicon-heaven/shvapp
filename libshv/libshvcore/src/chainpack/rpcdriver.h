@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../shvcoreglobal.h"
-#include "rpcvalue.h"
+#include "rpcmessage.h"
 
 #include <functional>
 #include <string>
@@ -15,14 +15,15 @@ namespace chainpack {
 class SHVCORE_DECL_EXPORT RpcDriver
 {
 public:
-	enum class SendPriority {High, Low};
-public:
 	explicit RpcDriver();
 	virtual ~RpcDriver();
 
-	void sendMessage(const shv::core::chainpack::RpcValue& msg, SendPriority priority = SendPriority::High);
+	void sendMessage(const RpcValue &msg);
 	using MessageReceivedCallback = std::function< void (const shv::core::chainpack::RpcValue &msg)>;
 	void setMessageReceivedCallback(const MessageReceivedCallback &callback) {m_messageReceivedCallback = callback;}
+
+	static int defaultRpcTimeout() {return s_defaultRpcTimeout;}
+	static void setDefaultRpcTimeout(int tm) {s_defaultRpcTimeout = tm;}
 protected:
 	virtual bool isOpen() = 0;
 	virtual size_t bytesToWrite() = 0;
@@ -34,6 +35,7 @@ protected:
 	// call it, when data are sent, when bytesToWrite() == 0
 	void writePendingData();
 private:
+	/*
 	class ChunkHeader : public shv::core::chainpack::RpcValue::IMap
 	{
 	public:
@@ -45,32 +47,30 @@ private:
 		void setChunkCount(shv::core::chainpack::RpcValue::UInt id);
 		std::string toStringData() const;
 	};
-
+	*/
 	struct Chunk
 	{
-		std::string packedLength;
-		std::string packedHeader;
+		//std::string packedLength;
+		//std::string packedHeader;
 		std::string data;
 
-		Chunk(const ChunkHeader &h, std::string &&d) : packedHeader(h.toStringData()), data(std::move(d)) {fillPackedLength();}
-		Chunk(std::string &&d) : data(std::move(d)) {fillPackedLength();}
-		Chunk(std::string &&h, std::string &&d) : packedHeader(std::move(h)), data(std::move(d)) {fillPackedLength();}
+		//Chunk(const ChunkHeader &h, std::string &&d) : packedHeader(h.toStringData()), data(std::move(d)) {fillPackedLength();}
+		Chunk(std::string &&d) : data(std::move(d)) {}
+		//Chunk(std::string &&h, std::string &&d) : packedHeader(std::move(h)), data(std::move(d)) {fillPackedLength();}
 
-		void fillPackedLength();
-		size_t dataLength() const {return packedLength.length() + packedHeader.length() + data.length();}
+		//std::string packedLength() const;
+		size_t dataLength() const {return data.length();}
 	};
 private:
 	int processReadData(const std::string &read_data);
-	void writeQueue(std::deque<Chunk> &queue);
+	void writeQueue(std::deque<Chunk> &queue, size_t &bytes_written_so_far);
 private:
 	MessageReceivedCallback m_messageReceivedCallback = nullptr;
 
-	int m_lowPriorityChunkLength = 1000;
-	static unsigned m_chunkId;
 	std::deque<Chunk> m_highPriorityQueue;
-	std::deque<Chunk> m_lowPriorityQueue;
-	std::map<unsigned, std::vector<std::string>> m_incompletePacketChunks;
+	size_t m_headChunkBytesWrittenSoFar = 0;
 	std::string m_readData;
+	static int s_defaultRpcTimeout;
 };
 
 } // namespace chainpack

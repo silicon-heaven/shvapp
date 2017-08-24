@@ -41,6 +41,11 @@ void RpcMessage::setId(RpcValue::UInt id)
 	setValue(Key::Id, RpcValue{id});
 }
 
+bool RpcMessage::isValid() const
+{
+	return m_value.isValid();
+}
+
 bool RpcMessage::isRequest() const
 {
 	return hasKey(Key::Method);
@@ -99,7 +104,7 @@ RpcResponse::Error RpcResponse::error() const
 	return Error{value(Key::Error).toIMap()};
 }
 
-RpcResponse &RpcResponse::setError(RpcResponse::Error &&err)
+RpcResponse &RpcResponse::setError(RpcResponse::Error err)
 {
 	setValue(Key::Error, std::move(err));
 	return *this;
@@ -140,9 +145,9 @@ RpcValue::String RpcResponse::Error::message() const
 	return (iter == end()) ? RpcValue::String{} : iter->second.toString();
 }
 
-RpcValue::String RpcMessage::toString() const
+std::string RpcMessage::toStdString() const
 {
-	return m_value.dumpText();
+	return m_value.toStdString();
 }
 
 } // namespace chainpackrpc

@@ -34,10 +34,11 @@ protected:
 public:
 	RpcValue::UInt id() const;
 	void setId(RpcValue::UInt id);
+	bool isValid() const;
 	bool isRequest() const;
 	bool isResponse() const;
 	bool isNotify() const;
-	RpcValue::String toString() const;
+	std::string toStdString() const;
 
 	virtual int write(std::ostream &out) const;
 protected:
@@ -97,7 +98,7 @@ public:
 		//Value data() const;
 		RpcValue::String toString() const {return "RPC ERROR " + std::to_string(code()) + ": " + message();}
 	public:
-		static Error createError(ErrorType c, RpcValue::String &&msg) {
+		static Error createError(ErrorType c, RpcValue::String msg) {
 			Error ret;
 			ret.setCode(c).setMessage(std::move(msg));
 			return ret;
@@ -123,15 +124,13 @@ public:
 							   (msg.isEmpty())? "Invalid params": msg,
 							   (data.isValid())? data: "Invalid method parameter(s).");
 		}
-		static Error createInternalError(const Value::String &msg = Value::String(), const Value &data = Value()) {
-			return createError(InternalError,
-							   (msg.isEmpty())? "Internal error": msg,
-							   (data.isValid())? data: "Internal JSON-RPC error.");
-		}
 		static Error createMethodInvocationExceptionError(const Value::String &msg = Value::String(), const Value &data = Value()) {
 			return createError(MethodInvocationException, msg, data);
 		}
 		*/
+		static Error createInternalError(const RpcValue::String &msg = RpcValue::String()) {
+			return createError(InternalError, (msg.empty())? "Internal error": msg);
+		}
 	};
 public:
 	//RpcResponse(const Json &json = Json()) : Super(json) {}
@@ -140,7 +139,7 @@ public:
 	RpcResponse(const RpcMessage &msg) : Super(msg) {}
 public:
 	bool isError() const {return !error().empty();}
-	RpcResponse& setError(Error &&err);
+	RpcResponse& setError(Error err);
 	Error error() const;
 	RpcResponse& setResult(const RpcValue &res);
 	RpcValue result() const;

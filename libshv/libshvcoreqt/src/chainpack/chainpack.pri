@@ -1,6 +1,8 @@
 SOURCES += \
-    $$PWD/rpcdriver.cpp
+    $$PWD/rpcdriver.cpp \
+    $$PWD/rpcconnection.cpp
 
 HEADERS += \
-    $$PWD/rpcdriver.h
+    $$PWD/rpcdriver.h \
+    $$PWD/rpcconnection.h
 

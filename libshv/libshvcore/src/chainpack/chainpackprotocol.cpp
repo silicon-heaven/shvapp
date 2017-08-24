@@ -539,7 +539,7 @@ void ChainPackProtocol::writeUIntData(std::ostream &out, uint64_t n)
 {
 	write_UIntData(out, n);
 }
-
+/*
 RpcValue::IMap ChainPackProtocol::readChunkHeader(std::istream &data, bool *ok)
 {
 	uint8_t b = data.peek();
@@ -557,7 +557,7 @@ void ChainPackProtocol::writeChunkHeader(std::ostream &out, const RpcValue::IMap
 	out << (uint8_t)TypeInfo::CHUNK_HEADER;
 	writeData_IMap(out, header);
 }
-
+*/
 RpcValue ChainPackProtocol::read(std::istream &data)
 {
 	RpcValue ret;

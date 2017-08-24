@@ -212,8 +212,8 @@ public:
 	void dumpText(std::string &out) const;
 	void dumpJson(std::string &out) const;
 
-	std::string dumpText() const { std::string out; dumpText(out); return out; }
-	std::string dumpJson() const { std::string out; dumpJson(out); return out; }
+	std::string toStdString() const { std::string out; dumpText(out); return out; }
+	std::string toJson() const { std::string out; dumpJson(out); return out; }
 
 	static RpcValue parseJson(const std::string & in, std::string & err);
 	static RpcValue parseJson(const char * in, std::string & err);
