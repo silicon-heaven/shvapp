@@ -235,7 +235,7 @@ class ChainPackInt final : public ValueData<RpcValue::Type::Int, RpcValue::Int>
 	bool equals(const RpcValue::AbstractValueData * other) const override { return m_value == other->toInt(); }
 	//bool less(const Data * other) const override { return m_value < other->toDouble(); }
 public:
-	explicit ChainPackInt(int value) : ValueData(value) {}
+	explicit ChainPackInt(RpcValue::Int value) : ValueData(value) {}
 };
 
 class ChainPackUInt : public ValueData<RpcValue::Type::UInt, RpcValue::UInt>
@@ -248,7 +248,7 @@ protected:
 	bool equals(const RpcValue::AbstractValueData * other) const override { return m_value == other->toUInt(); }
 	//bool less(const Data * other) const override { return m_value < other->toDouble(); }
 public:
-	explicit ChainPackUInt(unsigned int value) : ValueData(value) {}
+	explicit ChainPackUInt(RpcValue::UInt value) : ValueData(value) {}
 };
 
 class ChainPackBoolean final : public ValueData<RpcValue::Type::Bool, bool>

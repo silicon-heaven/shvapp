@@ -9,7 +9,7 @@ TEMPLATE = lib
 TARGET = shvcoreqt
 
 isEmpty(QF_PROJECT_TOP_BUILDDIR) {
-	QF_PROJECT_TOP_BUILDDIR=$$shadowed($$PWD)/..
+	QF_PROJECT_TOP_BUILDDIR=$$shadowed($$PWD)/../..
 }
 message ( QF_PROJECT_TOP_BUILDDIR: '$$QF_PROJECT_TOP_BUILDDIR' )
 
@@ -21,8 +21,7 @@ message ( DESTDIR: $$DESTDIR )
 DEFINES += SHVCOREQT_BUILD_DLL
 
 INCLUDEPATH += \
-	#$$QUICKBOX_HOME/libqf/libqfcore/include \
-	$$QF_PROJECT_TOP_SRCDIR/3rdparty/shv/libshv/libshvcore/include \
+	$$PWD/../libshvcore/include \
 
 LIBS += \
     -L$$DESTDIR \

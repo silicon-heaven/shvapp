@@ -245,10 +245,7 @@ private:
 		{
 			qDebug() << "------------- uint";
 			RpcValue::UInt n_max = std::numeric_limits<RpcValue::UInt>::max();
-			//auto step = n_max / 100000;
-			//step = 100;
-			//n_max = 66000;
-			for (RpcValue::UInt n = 1; n < (n_max/2 -1); n *= 2) {
+			for (RpcValue::UInt n = 3; n < (n_max/3 -1); n *= 3) {
 				RpcValue cp1{n};
 				std::stringstream out;
 				int len = ChainPackProtocol::write(out, cp1);
@@ -275,22 +272,18 @@ private:
 		{
 			qDebug() << "------------- int";
 			{
-				auto n_max = std::numeric_limits<signed int>::max();
-				auto n_min = std::numeric_limits<signed int>::min()+1;
-				auto step = n_max / 100;
-			for (RpcValue::Int n = n_min; n < (n_max - step); n += step) {
-					RpcValue cp1{n};
-					std::stringstream out;
-					int len = ChainPackProtocol::write(out, cp1);
-					if(n >= 0 && n < 64)
-						QVERIFY(len == 1);
-					else
-						QVERIFY(len > 1);
-					RpcValue cp2 = ChainPackProtocol::read(out);
-					if(n < 1000 && n > -1000)
+				auto n_max = std::numeric_limits<RpcValue::Int>::max();
+				for (int j = 0; j < 2; ++j) {
+					for (RpcValue::Int nn = 3; nn < (n_max/3 -1); nn *= 3) {
+						RpcValue::Int n = (j == 0)? -nn: nn;
+						RpcValue cp1{n};
+						std::stringstream out;
+						int len = ChainPackProtocol::write(out, cp1);
+						RpcValue cp2 = ChainPackProtocol::read(out);
 						qDebug() << n << " " << cp1.toStdString() << " " << cp2.toStdString() << " len: " << len << " dump: " << binary_dump(out.str()).c_str();
-					QVERIFY(cp1.type() == cp2.type());
-					QVERIFY(cp1.toInt() == cp2.toInt());
+						QVERIFY(cp1.type() == cp2.type());
+						QCOMPARE(cp1.toInt(), cp2.toInt());
+					}
 				}
 			}
 		}

@@ -44,12 +44,16 @@ std::streambuf::int_type CharDataStreamBuffer::underflow()
 */
 namespace {
 
-//constexpr size_t INT_BYTES_MAX = 18;
-
 /* UInt
    0 ... 127              |0|x|x|x|x|x|x|x|<-- LSB
-  28 ... 16383 (2^14-1)   |1|x|x|x|x|x|x|x| |0|x|x|x|x|x|x|x|<-- LSB
-2^14 ... 2097151 (2^21-1) |1|x|x|x|x|x|x|x| |1|x|x|x|x|x|x|x| |0|x|x|x|x|x|x|x|<-- LSB
+  128 ... 16383 (2^14-1)  |1|0|x|x|x|x|x|x| |x|x|x|x|x|x|x|x|<-- LSB
+2^14 ... 2097151 (2^21-1) |1|1|0|x|x|x|x|x| |x|x|x|x|x|x|x|x| |x|x|x|x|x|x|x|x|<-- LSB
+                          |1|1|1|0|x|x|x|x| |x|x|x|x|x|x|x|x| |x|x|x|x|x|x|x|x| |x|x|x|x|x|x|x|x|<-- LSB
+                          |1|1|1|1|n|n|n|n| |x|x|x|x|x|x|x|x| |x|x|x|x|x|x|x|x| |x|x|x|x|x|x|x|x| ... <-- LSB
+                          n ==  0 -> 4 bytes (32 bit number)
+                          n ==  1 -> 5 bytes
+                          n == 14 -> 19 bytes
+                          n == 15 -> for future (number of bytes will be specified in next byte)
 */
 template<typename T>
 T read_UIntData(std::istream &data, bool *ok = nullptr)
@@ -131,36 +135,44 @@ void write_UIntData(std::ostream &out, T n)
 }
 
 /*
-+/-    0 ... 63               |0|x|x|x|x|x|x|s|<-- LSB
-+/-   64 ... 8191 (2^13-1)    |1|x|x|x|x|x|x|x| |0|x|x|x|x|x|x|s|<-- LSB
-+/- 8192 ... 1048575 (2^20-1) |1|x|x|x|x|x|x|x| |1|x|x|x|x|x|x|x| |0|x|x|x|x|x|x|s|<-- LSB
+   0 ... 63              |s|0|x|x|x|x|x|x|<-- LSB
+  64 ... 2^13-1          |s|1|0|x|x|x|x|x| |x|x|x|x|x|x|x|x|<-- LSB
+2^13 ... 2^20-1          |s|1|1|0|x|x|x|x| |x|x|x|x|x|x|x|x| |x|x|x|x|x|x|x|x|<-- LSB
+                         |s|1|1|1|n|n|n|n| |x|x|x|x|x|x|x|x| |x|x|x|x|x|x|x|x| |x|x|x|x|x|x|x|x|<-- LSB
+                          n ==  0 -> 3 bytes
+                          n ==  1 -> 4 bytes
+                          n == 14 -> 18 bytes
+                          n == 15 -> for future (number of bytes will be specified in next byte)
 */
+//constexpr size_t INT_BYTES_MAX = 18;
 
 template<typename T>
 T read_IntData(std::istream &data)
 {
 	T n = 0;
-	bool s = false;
-	//uint8_t mask_len = 6;
-	uint8_t mask = 127;
-	int shift = 7;
-	do {
-		//if(pos >= out.tellp())
-		//	SHV_EXCEPTION("read_Int: Index out of range!");
+	constexpr uint8_t masks[] = {63, 31, 15};
+	if(data.eof())
+		SHV_EXCEPTION("read_UInt: unexpected end of stream!");
+	uint8_t head = data.get();
+	bool s = head & 128;
+	int len;
+	if((head & 64) == 0) { len = 1; }
+	else if((head & 32) == 0) { len = 2; }
+	else if((head & 16) == 0) { len = 3; }
+	else { len = (head & 15) + 4; }
+	if(len < 4) {
+		len--;
+		n = head & masks[len];
+	}
+	else {
+		len--;
+	}
+	for (int i = 0; i < len; ++i) {
+		if(data.eof())
+			SHV_EXCEPTION("read_UInt: unexpected end of stream!");
 		uint8_t r = data.get();
-		bool has_next = (r & 128);
-		if(!has_next) {
-			mask = 63 << 1;
-			shift = 6;
-			s = r & 1;
-		}
-		r = r & mask;
-		if(!has_next)
-			r >>= 1;
-		n = (n << shift) | r;
-		if(!has_next)
-			break;
-	} while(true);
+		n = (n << 8) + r;
+	};
 	if(s)
 		n = -n;
 	return n;
@@ -169,41 +181,47 @@ T read_IntData(std::istream &data)
 template<typename T>
 void write_IntData(std::ostream &out, T n)
 {
+	constexpr int INT_BYTES_MAX = 18;
+	uint8_t bytes[1 + sizeof(T)];
+	constexpr uint8_t prefixes[] = {0 << 3, 8 << 3, 12 << 3};
 	if(n == std::numeric_limits<T>::min()) {
 		std::cerr << "cannot pack MIN_INT, will be packed as MIN_INT+1\n";
 		n++;
 	}
-	uint8_t bytes[2 * sizeof(T)];
-	int pos = 0;
 	bool s = (n < 0);
 	if(s)
 		n = -n;
-	uint8_t shift = 6;
-	uint8_t mask = 63;
+	int byte_cnt = 0;
 	do {
-		uint8_t r = n & mask;
-		n = n >> shift;
-		assert(n >= 0);
-		bytes[pos++] = r;
-		shift = 7;
-		mask = 127;
+		uint8_t r = n & 255;
+		//qDebug() << byte_cnt << "->" << (int)r;
+		n = n >> 8;
+		bytes[byte_cnt++] = r;
 	} while(n);
-	pos--;
-	while (pos >= 0) {
-		uint8_t r = bytes[pos];
-		if(pos > 0) {
-			r |= 128;
-		}
-		else {
-			r <<= 1;
-			if(s)
-				r = r | 1;
-		}
+	if(byte_cnt >= INT_BYTES_MAX)
+		SHV_EXCEPTION("write_UIntData: value too big to pack!");
+	bytes[byte_cnt] = 0;
+	uint8_t msb = bytes[byte_cnt-1];
+	if(byte_cnt == 1)      { if(msb >= 64) byte_cnt++; }
+	else if(byte_cnt == 2) { if(msb >= 32) byte_cnt++; }
+	else if(byte_cnt == 3) { if(msb >= 16) byte_cnt++; }
+	else byte_cnt++;
+	if(byte_cnt > 3) {
+		bytes[byte_cnt-1] = 0x70 | (byte_cnt - 4);
+	}
+	else {
+		uint8_t prefix = prefixes[byte_cnt-1];
+		//qDebug() << "byte cnt:" << byte_cnt << "prefix:" << (int)prefix;
+		bytes[byte_cnt-1] |= prefix;
+	}
+	if(s)
+		bytes[byte_cnt-1] |= 128;
+	for (int i = byte_cnt-1; i >= 0; --i) {
+		uint8_t r = bytes[i];
+		//qDebug() << i << "<-" << (int)r;
 		out << r;
-		pos--;
 	}
 }
-
 /*
 void write_Int(std::ostream &out, Value::Int n)
 {
