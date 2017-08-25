@@ -159,20 +159,17 @@ void Serie::setBoolValue(double value)
 	}
 }
 
-void Serie::show()
+void Serie::show(bool enable)
 {
-	if (!m_show) {
-		m_show = true;
-		update();
+	if (enable != m_show) {
+		m_show = enable;
+		update(true);
 	}
 }
 
 void Serie::hide()
 {
-	if (m_show) {
-		m_show = false;
-		update();
-	}
+	show(false);
 }
 
 void Serie::setShowCurrent(bool show)
@@ -193,9 +190,9 @@ const SerieData &Serie::serieModelData(const GraphModel *model) const
 	return model->serieData(m_serieIndex);
 }
 
-void Serie::update()
+void Serie::update(bool force)
 {
-	if (m_show) {
+	if (force || m_show) {
 		View *graph = view();
 		if (graph) {
 			graph->computeGeometry();
