@@ -2024,22 +2024,23 @@ void View::paintBackgroundStripes(QPainter *painter, const View::GraphArea &area
 				else if (serie->type() == ValueType::Bool) {
 					throw std::runtime_error("GraphView: Cannot paint background stripe for bool serie");
 				}
-				painter->fillRect(area.graphRect.x(), area.xAxisPosition - max, area.graphRect.width(), max - min, stripe_color);
-				if (stripe->outLineType() != BackgroundStripe::OutlineType::No) {
-					QColor outline_color = serie->color();
-					outline_color.setAlpha(70);
-					painter->setPen(QPen(outline_color, 2.0));
-					if (stripe->outLineType() == BackgroundStripe::OutlineType::Min ||
-						stripe->outLineType() == BackgroundStripe::OutlineType::Both) {
-						int line_position = area.xAxisPosition - min;
-						painter->drawLine(area.graphRect.x(), line_position, area.graphRect.right(), line_position);
+				if (max - min == 0) {
+					painter->fillRect(area.graphRect.x(), area.xAxisPosition - max, area.graphRect.width(), max - min, stripe_color);
+					if (stripe->outLineType() != BackgroundStripe::OutlineType::No) {
+						QColor outline_color = serie->color();
+						outline_color.setAlpha(70);
+						painter->setPen(QPen(outline_color, 2.0));
+						if (stripe->outLineType() == BackgroundStripe::OutlineType::Min ||
+							stripe->outLineType() == BackgroundStripe::OutlineType::Both) {
+							int line_position = area.xAxisPosition - min;
+							painter->drawLine(area.graphRect.x(), line_position, area.graphRect.right(), line_position);
+						}
+						if (stripe->outLineType() == BackgroundStripe::OutlineType::Max ||
+							stripe->outLineType() == BackgroundStripe::OutlineType::Both) {
+							int line_position = area.xAxisPosition - max;
+							painter->drawLine(area.graphRect.x(), line_position, area.graphRect.right(), line_position);
+						}
 					}
-					if (stripe->outLineType() == BackgroundStripe::OutlineType::Max ||
-						stripe->outLineType() == BackgroundStripe::OutlineType::Both) {
-						int line_position = area.xAxisPosition - max;
-						painter->drawLine(area.graphRect.x(), line_position, area.graphRect.right(), line_position);
-					}
-
 				}
 			}
 		}
