@@ -96,7 +96,7 @@ void write_UIntData(std::ostream &out, T n)
 {
 	constexpr int UINT_BYTES_MAX = 19;
 	uint8_t bytes[1 + sizeof(T)];
-	constexpr uint8_t prefixes[UINT_MASK_CNT] = {0 << 4, 8 << 4, 12 << 4, 14 << 4};
+	constexpr int prefixes[UINT_MASK_CNT] = {0 << 4, 8 << 4, 12 << 4, 14 << 4};
 	int byte_cnt = 0;
 	do {
 		uint8_t r = n & 255;
@@ -116,7 +116,7 @@ void write_UIntData(std::ostream &out, T n)
 		bytes[byte_cnt-1] = 0xF0 | (byte_cnt - UINT_MASK_CNT - 1);
 	}
 	else {
-		uint8_t prefix = prefixes[byte_cnt-1];
+		uint8_t prefix = (uint8_t)prefixes[byte_cnt-1];
 		bytes[byte_cnt-1] |= prefix;
 	}
 	for (int i = byte_cnt-1; i >= 0; --i) {
@@ -174,7 +174,7 @@ void write_IntData(std::ostream &out, T n)
 {
 	constexpr int INT_BYTES_MAX = 18;
 	uint8_t bytes[1 + sizeof(T)];
-	constexpr uint8_t prefixes[INT_MASK_CNT] = {0 << 3, 8 << 3, 12 << 3};
+	constexpr int prefixes[INT_MASK_CNT] = {0 << 3, 8 << 3, 12 << 3};
 	if(n == std::numeric_limits<T>::min()) {
 		std::cerr << "cannot pack MIN_INT, will be packed as MIN_INT+1\n";
 		n++;
@@ -200,7 +200,7 @@ void write_IntData(std::ostream &out, T n)
 		bytes[byte_cnt-1] = 0x70 | (byte_cnt - INT_MASK_CNT - 1);
 	}
 	else {
-		uint8_t prefix = prefixes[byte_cnt-1];
+		uint8_t prefix = (uint8_t)prefixes[byte_cnt-1];
 		bytes[byte_cnt-1] |= prefix;
 	}
 	if(s)
