@@ -1978,6 +1978,9 @@ void View::paintPointOfInterestPoint(QPainter *painter, const GraphArea &area, P
 	if (serie && !area.series.contains(serie)) {
 		return;
 	}
+	if (serie && serie->isHidden()) {
+		return;
+	}
 	int x_pos = xValueToWidgetPosition(xValue(poi->position().valueX));
 	if (x_pos >= area.graphRect.left() && x_pos <= area.graphRect.right()) {
 		ValueChange::ValueY value = serie->valueFormatter() ? serie->valueFormatter()(poi->position()) : poi->position().valueY;
