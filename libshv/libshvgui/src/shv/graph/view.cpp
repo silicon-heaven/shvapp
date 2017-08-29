@@ -1293,6 +1293,14 @@ void View::addOutsideSerieGroup(OutsideSerieGroup *group)
 	}
 }
 
+void View::setViewTimezone(const QTimeZone &tz)
+{
+	if (settings.viewTimeZone != tz) {
+		settings.viewTimeZone = tz;
+		update();
+	}
+}
+
 void View::showRange(qint64 from, qint64 to)
 {
 	if (from < m_loadedRangeMin || from > to) {
@@ -2244,8 +2252,12 @@ QString View::xValueString(qint64 value, const QString &datetime_format) const
 	QString s;
 	switch (settings.xAxisType) {
 	case ValueType::TimeStamp:
-		s = QDateTime::fromMSecsSinceEpoch(value).toString(datetime_format);
+	{
+		QDateTime date = QDateTime::fromMSecsSinceEpoch(value).toUTC();
+		date.setTimeZone(settings.sourceDataTimeZone);
+		s = date.toTimeZone(settings.viewTimeZone).toString(datetime_format);
 		break;
+	}
 	case ValueType::Int:
 		s = QString::number(value);
 		break;

@@ -4,6 +4,7 @@
 
 #include <QMap>
 #include <QPushButton>
+#include <QTimeZone>
 #include <QTimer>
 #include <QWidget>
 
@@ -115,6 +116,8 @@ public:
 		bool showDependent = true;
 		bool enableOvelapingSelections = false;
 		bool showBackgroundStripes = false;
+		QTimeZone sourceDataTimeZone = QTimeZone::utc();
+		QTimeZone viewTimeZone = QTimeZone::utc();
 	};
 
 	struct XAxisInterval
@@ -156,6 +159,7 @@ public:
 	OutsideSerieGroup *addOutsideSerieGroup(const QString &name);
 	void addOutsideSerieGroup(OutsideSerieGroup *group);
 
+	void setViewTimezone(const QTimeZone &tz);
 	Q_SIGNAL void selectionsChanged();
 
 protected:
