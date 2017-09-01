@@ -2035,7 +2035,7 @@ void View::paintBackgroundStripes(QPainter *painter, const View::GraphArea &area
 				else if (serie->type() == ValueType::Bool) {
 					throw std::runtime_error("GraphView: Cannot paint background stripe for bool serie");
 				}
-				if (max - min == 0) {
+				if (max - min > 0) {
 					painter->fillRect(area.graphRect.x(), area.xAxisPosition - max, area.graphRect.width(), max - min, stripe_color);
 					if (stripe->outLineType() != BackgroundStripe::OutlineType::No) {
 						QColor outline_color = serie->color();
