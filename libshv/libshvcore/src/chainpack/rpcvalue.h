@@ -42,7 +42,7 @@ public:
 		MetaIMap,
 	};
 	static const char* typeToName(Type t);
-	struct Tag {
+	struct SHVCORE_DECL_EXPORT Tag {
 		enum Enum : CHAINPACK_UINT {
 			Invalid = 0,
 			MetaTypeId,
@@ -55,7 +55,7 @@ public:
 	};
 	using Int = CHAINPACK_INT;
 	using UInt = CHAINPACK_UINT;
-	struct DateTime
+	struct SHVCORE_DECL_EXPORT DateTime
 	{
 		int64_t msecs = 0;
 
@@ -68,7 +68,7 @@ public:
 		std::string toUtcString() const;
 	};
 	using String = std::string;
-	struct Blob : public std::basic_string<uint8_t>
+	struct SHVCORE_DECL_EXPORT Blob : public std::basic_string<uint8_t>
 	{
 		Blob() : std::basic_string<uint8_t>() {}
 		Blob(const std::string &str) {
@@ -87,7 +87,7 @@ public:
 	using List = std::vector<RpcValue>;
 	using Map = std::map<RpcValue::String, RpcValue>;
 	using IMap = std::map<RpcValue::UInt, RpcValue>;
-	class Array : public List
+	class SHVCORE_DECL_EXPORT Array : public List
 	{
 	public:
 		Array(Type type) : List(), m_type(type) {}
