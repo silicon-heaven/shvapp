@@ -4,6 +4,8 @@
 #include "view.h"
 #include "outsideseriegroup.h"
 
+#include <shv/core/shvexception.h>
+
 namespace shv {
 namespace gui {
 namespace graphview {
@@ -54,7 +56,7 @@ Serie::YAxis Serie::relatedAxis() const
 void Serie::setRelatedAxis(Serie::YAxis axis)
 {
 	if (masterSerie() != this) {
-		throw std::runtime_error("Cannot set color on dependent serie");
+		SHV_EXCEPTION("Cannot set color on dependent serie");
 	}
 	if (m_relatedAxis != axis) {
 		m_relatedAxis = axis;
@@ -74,7 +76,7 @@ QColor Serie::color() const
 void Serie::setColor(const QColor &color)
 {
 	if (masterSerie() != this) {
-		throw std::runtime_error("Cannot set color on dependent serie");
+		SHV_EXCEPTION("Cannot set color on dependent serie");
 	}
 	if (m_color != color) {
 		m_color = color;

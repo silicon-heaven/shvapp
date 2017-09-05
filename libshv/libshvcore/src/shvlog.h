@@ -99,4 +99,13 @@ public:
 	static const char *levelToString(ShvLog::Level level);
 };
 
+inline ShvLog &ShvLog::operator=(const ShvLog &other)
+{
+	if (this != &other) {
+		ShvLog copy(other);
+		std::swap(stream, copy.stream);
+	}
+	return *this;
+}
+
 }}

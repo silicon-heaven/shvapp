@@ -2,6 +2,8 @@
 
 #include "float.h"
 
+#include <shv/core/shvexception.h>
+
 #include <QDebug>
 
 namespace shv {
@@ -72,7 +74,7 @@ ValueXInterval SerieData::range() const
 		case ValueType::TimeStamp:
 			return ValueXInterval { ValueChange::ValueX(0LL), ValueChange::ValueX(0LL) };
 		default:
-			throw std::runtime_error("Invalid type on X axis");
+			SHV_EXCEPTION("Invalid type on X axis");
 		}
 	}
 }
@@ -97,7 +99,7 @@ bool SerieData::addValueChange(const ValueChange &value)
 void GraphModelData::checkIndex(int serie_index) const
 {
 	if (serie_index >= (int)m_valueChanges.size()) {
-		throw std::runtime_error("bad serie index");
+		SHV_EXCEPTION("bad serie index");
 	}
 }
 
@@ -107,7 +109,7 @@ ValueXInterval GraphModelData::intRange() const
 
 	for (const SerieData &serie : m_valueChanges) {
 		if (serie.xType() != ValueType::Int) {
-			throw std::runtime_error("Cannot determine data range when X types are different");
+			SHV_EXCEPTION("Cannot determine data range when X types are different");
 		}
 
 		ValueXInterval serie_range = serie.range();
@@ -131,7 +133,7 @@ ValueXInterval GraphModelData::doubleRange() const
 
 	for (const SerieData &serie : m_valueChanges) {
 		if (serie.xType() != ValueType::Double) {
-			throw std::runtime_error("Cannot determine data range when X types are different");
+			SHV_EXCEPTION("Cannot determine data range when X types are different");
 		}
 
 		ValueXInterval serie_range = serie.range();
@@ -155,7 +157,7 @@ ValueXInterval GraphModelData::timeStampRange() const
 
 	for (const SerieData &serie : m_valueChanges) {
 		if (serie.xType() != ValueType::TimeStamp) {
-			throw std::runtime_error("Cannot determine data range when X types are different");
+			SHV_EXCEPTION("Cannot determine data range when X types are different");
 		}
 
 		ValueXInterval serie_range = serie.range();
@@ -189,7 +191,7 @@ bool compareValueX(const ValueChange::ValueX &value1, const ValueChange::ValueX 
 	case ValueType::Int:
 		return value1.intValue == value2.intValue;
 	default:
-		throw std::runtime_error("Invalid type on valueX");
+		SHV_EXCEPTION("Invalid type on valueX");
 	}
 }
 
@@ -208,7 +210,7 @@ bool compareValueY(const ValueChange::ValueY &value1, const ValueChange::ValueY 
 	case ValueType::Bool:
 		return value1.boolValue == value2.boolValue;
 	default:
-		throw std::runtime_error("Invalid type on valueY");
+		SHV_EXCEPTION("Invalid type on valueY");
 	}
 }
 
@@ -263,7 +265,7 @@ void GraphModelData::addValueChanges(int serie_index, const std::vector<shv::gui
 void GraphModelData::addValueChanges(const std::vector<ValueChange> &values)
 {
 	if (values.size() >= m_valueChanges.size()) {
-		throw std::runtime_error("addValueChanges: number of values in array exceeds the number of series");
+		SHV_EXCEPTION("addValueChanges: number of values in array exceeds the number of series");
 	}
 	bool added = false;
 	for (uint i = 0; i < m_valueChanges.size(); ++i) {
@@ -321,7 +323,7 @@ void GraphModelData::addDataEnd()
 ValueXInterval GraphModelData::range() const
 {
 	if (!m_valueChanges.size()) {
-		throw std::runtime_error("Cannot state range where no series are present");
+		SHV_EXCEPTION("Cannot state range where no series are present");
 	}
 	ValueType type = m_valueChanges[0].xType();
 	switch (type) {
@@ -332,7 +334,7 @@ ValueXInterval GraphModelData::range() const
 	case ValueType::TimeStamp:
 		return timeStampRange();
 	default:
-		throw std::runtime_error("Invalid X axis type");
+		SHV_EXCEPTION("Invalid X axis type");
 	}
 }
 
@@ -359,7 +361,7 @@ void GraphModel::setData(GraphModelData *model_data)
 GraphModelData *GraphModel::data() const
 {
 	if(!m_data)
-		throw std::runtime_error("No data set!");
+		SHV_EXCEPTION("No data set!");
 	return m_data;
 }
 

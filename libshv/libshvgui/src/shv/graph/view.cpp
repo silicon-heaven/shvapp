@@ -5,6 +5,8 @@
 #include "serie.h"
 #include "pointofinterest.h"
 
+#include <shv/core/shvexception.h>
+
 #include <QDateTime>
 #include <QDebug>
 #include <QFrame>
@@ -192,7 +194,7 @@ void View::onModelDataChanged() //TODO improve change detection in model
 		double min, max;
 		computeRange(min, max);
 		if (min < 0.0) {
-			throw std::runtime_error("GraphView cannot operate negative values on x axis");
+			SHV_EXCEPTION("GraphView cannot operate negative values on x axis");
 		}
 		m_xValueScale = INT64_MAX / max;
 		m_displayedRangeMin = m_loadedRangeMin = min * m_xValueScale;
@@ -204,7 +206,7 @@ void View::onModelDataChanged() //TODO improve change detection in model
 		int min, max;
 		computeRange(min, max);
 		if (min < 0.0) {
-			throw std::runtime_error("GraphView cannot operate negative values on x axis");
+			SHV_EXCEPTION("GraphView cannot operate negative values on x axis");
 		}
 		m_displayedRangeMin = m_loadedRangeMin = min;
 		m_displayedRangeMax = m_loadedRangeMax = max;
@@ -1080,7 +1082,7 @@ void View::zoom(qint64 center, double scale)
 GraphModel *View::model() const
 {
 	if (!m_model)
-		throw std::runtime_error("Model is NULL!");
+		SHV_EXCEPTION("Model is NULL!");
 	return m_model;
 }
 
@@ -1088,11 +1090,11 @@ void View::addSerie(Serie *serie)
 {
 	if (!m_series.contains(serie)) {
 //		if (serie->type() == ValueType::Bool && !serie->boolValue && !serie->serieGroup) {
-//			throw std::runtime_error(("Bool serie (" + serie->name() + ") must have set boolValue or serie group").toStdString());
+//			SHV_EXCEPTION(("Bool serie (" + serie->name() + ") must have set boolValue or serie group").toStdString());
 //		}
 //		for (const Serie *dependent_serie : serie->dependentSeries) {
 //			if (dependent_serie->type() == ValueType::Bool && !dependent_serie->boolValue && !dependent_serie->serieGroup) {
-//				throw std::runtime_error(("Bool serie (" + dependent_serie->name() + ") must have set boolValue or serie group").toStdString());
+//				SHV_EXCEPTION(("Bool serie (" + dependent_serie->name() + ") must have set boolValue or serie group").toStdString());
 //			}
 //		}
 		serie->setParent(this);
@@ -1122,7 +1124,7 @@ void View::addSerie(Serie *serie)
 Serie *View::serie(int index)
 {
 	if (index >= m_series.count()) {
-		throw std::runtime_error("GraphView: invalid serie index");
+		SHV_EXCEPTION("GraphView: invalid serie index");
 	}
 	return m_series[index];
 }
@@ -1593,7 +1595,7 @@ void View::paintSerie(QPainter *painter, const QRect &rect, int x_axis_position,
 void View::paintBoolSerie(QPainter *painter, const QRect &rect, int x_axis_position, const Serie *serie, qint64 min, qint64 max, const QPen &pen, bool fill_rect)
 {
 	if (serie->lineType() == Serie::LineType::TwoDimensional) {
-		throw std::runtime_error("Cannot paint two dimensional bool serie");
+		SHV_EXCEPTION("Cannot paint two dimensional bool serie");
 	}
 
 	double y_scale = 0.0;
@@ -2033,7 +2035,7 @@ void View::paintBackgroundStripes(QPainter *painter, const View::GraphArea &area
 					max = stripe->max().intValue / scale;
 				}
 				else if (serie->type() == ValueType::Bool) {
-					throw std::runtime_error("GraphView: Cannot paint background stripe for bool serie");
+					SHV_EXCEPTION("GraphView: Cannot paint background stripe for bool serie");
 				}
 				if (max - min > 0) {
 					painter->fillRect(area.graphRect.x(), area.xAxisPosition - max, area.graphRect.width(), max - min, stripe_color);
@@ -2091,14 +2093,14 @@ void View::paintOutsideSeriesGroups(QPainter *painter, const View::GraphArea &ar
 		QVector<SerieInGroup> shown_series_in_group = shownSeriesInGroup(*group, area.series);
 		if (shown_series_in_group.count()) {
 			if (i == area.outsideSerieGroupsRects.count()) {
-				throw std::runtime_error("Something wrong in outside serie groups computation");
+				SHV_EXCEPTION("Something wrong in outside serie groups computation");
 			}
 			int position = group->serieSpacing();
 			painter->save();
 			painter->translate(area.outsideSerieGroupsRects[i].topLeft());
 			for (const SerieInGroup &serie_in_group : shown_series_in_group) {
 				if (serie_in_group.serie->type() != ValueType::Bool || serie_in_group.serie->lineType() != Serie::LineType::OneDimensional) {
-					throw std::runtime_error("In outside groups can be only one dimensional bool series");
+					SHV_EXCEPTION("In outside groups can be only one dimensional bool series");
 				}
 				QPen pen(serie_in_group.masterSerie->color());
 				pen.setWidth(serie_in_group.serie->lineWidth());

@@ -14,7 +14,7 @@
 //#include <sstream>
 //#include <iostream>
 
-//#define smcDebug qfWarning // syn metod call debug
+//#define smcDebug shvWarning // syn metod call debug
 #define smcDebug QNoDebug
 
 #define logRpc() shvCDebug("rpc")
