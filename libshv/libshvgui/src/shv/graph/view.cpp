@@ -151,6 +151,16 @@ void View::releaseModel()
 	update();
 }
 
+void View::showRange(ValueChange::ValueX from, ValueChange::ValueX to)
+{
+	showRangeInternal(xValue(from), xValue(to));
+}
+
+void View::showRange(View::XAxisInterval range)
+{
+	showRange(range.start, range.end);
+}
+
 void View::setModel(GraphModel *model)
 {
 	if (m_model) {
@@ -716,7 +726,7 @@ void View::mouseDoubleClickEvent(QMouseEvent *mouse_event)
 			m_currentSelectionModifiers = Qt::NoModifier;
 		}
 		if (m_loadedRangeMin != m_displayedRangeMin || m_loadedRangeMax != m_displayedRangeMax) {
-			showRange(m_loadedRangeMin, m_loadedRangeMax);
+			showRangeInternal(m_loadedRangeMin, m_loadedRangeMax);
 		}
 	}
 }
@@ -826,7 +836,7 @@ void View::mouseMoveEvent(QMouseEvent *mouse_event)
 							difference = m_displayedRangeMin - m_loadedRangeMin;
 						}
 					}
-					showRange(m_displayedRangeMin - difference, m_displayedRangeMax - difference);
+					showRangeInternal(m_displayedRangeMin - difference, m_displayedRangeMax - difference);
 					m_moveStart = x_pos;
 				}
 			}
@@ -861,7 +871,7 @@ void View::mouseMoveEvent(QMouseEvent *mouse_event)
 							difference = m_displayedRangeMin - m_loadedRangeMin;
 						}
 					}
-					showRange(m_displayedRangeMin - difference, m_displayedRangeMax - difference);
+					showRangeInternal(m_displayedRangeMin - difference, m_displayedRangeMax - difference);
 					m_moveStart = x_pos;
 				}
 			}
@@ -925,7 +935,7 @@ void View::mouseReleaseEvent(QMouseEvent *mouse_event)
 						end = m_zoomSelection.start;
 					}
 					if (start != end) {
-						showRange(start, end);
+						showRangeInternal(start, end);
 					}
 					m_zoomSelection = { 0, 0 };
 				}
@@ -1000,7 +1010,7 @@ void View::popupContextMenu(const QPoint &pos)
 {
 	QMenu popup_menu(this);
 	QAction *zoom_to_fit = popup_menu.addAction(tr("Zoom to &fit"), [this]() {
-		showRange(m_loadedRangeMin, m_loadedRangeMax);
+		showRangeInternal(m_loadedRangeMin, m_loadedRangeMax);
 	});
 	if (m_displayedRangeMin == m_loadedRangeMin && m_displayedRangeMax == m_loadedRangeMax) {
 		zoom_to_fit->setEnabled(false);
@@ -1011,7 +1021,7 @@ void View::popupContextMenu(const QPoint &pos)
 		const Selection &selection = m_selections[i];
 		if (selection.containsValue(matching_value)) {
 			QAction *zoom_to_selection = popup_menu.addAction(tr("&Zoom to selection"), [this, i]() {
-				showRange(m_selections[i].start, m_selections[i].end);
+				showRangeInternal(m_selections[i].start, m_selections[i].end);
 			});
 			if (m_selections[i].start == m_displayedRangeMin && m_selections[i].end == m_displayedRangeMax) {
 				zoom_to_selection->setEnabled(false);
@@ -1074,7 +1084,7 @@ void View::zoom(qint64 center, double scale)
 		}
 	}
 
-	showRange(from, to);
+	showRangeInternal(from, to);
 }
 
 GraphModel *View::model() const
@@ -1195,6 +1205,11 @@ View::XAxisInterval View::loadedRange() const
 	return XAxisInterval { internalToValueX(m_loadedRangeMin), internalToValueX(m_loadedRangeMax) };
 }
 
+View::XAxisInterval View::displayedRange() const
+{
+	return XAxisInterval { internalToValueX(m_displayedRangeMin), internalToValueX(m_displayedRangeMax) };
+}
+
 void View::addSelection(XAxisInterval selection)
 {
 	bool overlap = false;
@@ -1301,7 +1316,16 @@ void View::setViewTimezone(const QTimeZone &tz)
 	}
 }
 
-void View::showRange(qint64 from, qint64 to)
+void View::setLoadedRange(const ValueChange::ValueX &min, const ValueChange::ValueX &max)
+{
+	m_displayedRangeMin = m_loadedRangeMin = xValue(min);
+	m_displayedRangeMax = m_loadedRangeMax = xValue(max);
+
+	computeGeometry();
+	update();
+}
+
+void View::showRangeInternal(qint64 from, qint64 to)
 {
 	if (from < m_loadedRangeMin || from > to) {
 		from = m_loadedRangeMin;
@@ -1703,19 +1727,25 @@ void View::paintValueSerie(QPainter *painter, const QRect &rect, int x_axis_posi
 		end = findMaxYValue(begin, data.cend(), max);
 	}
 
+	if (begin == end) {
+		return;
+	}
 	QPoint first_point;
 	ValueChange::ValueY first_value_y = formattedSerieValue(serie, begin);
-	first_point = QPoint(0, x_axis_position - (first_value_y.toDouble(serie->type()) / y_scale));
+	first_point = QPoint((xValue(*begin) - min) / x_scale, x_axis_position - (first_value_y.toDouble(serie->type()) / y_scale));
+	if (first_point.x() < 0) {
+		first_point.setX(0);
+	}
 
 	int max_on_first = first_point.y();
 	int min_on_first = first_point.y();
 	int last_on_first = first_point.y();
 
 	QPolygon polygon;
-	polygon << QPoint(0, rect.height());
+	polygon << QPoint(first_point.x(), rect.height());
 	polygon << first_point;
 
-	QPoint last_point(0,0);
+	QPoint last_point(0, 0);
 	for (auto it = begin + 1; it != end; ++it) {
 		ValueChange::ValueY value_change = formattedSerieValue(serie, it);
 		qint64 x_value = xValue(*it);

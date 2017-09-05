@@ -133,7 +133,8 @@ public:
 	void setModel(GraphModel *model);
 	void releaseModel();
 
-	void showRange(qint64 from, qint64 to);
+	void showRange(ValueChange::ValueX from, ValueChange::ValueX to);
+	void showRange(XAxisInterval range);
 	void zoom(qint64 center, double scale);
 
 	GraphModel *model() const;
@@ -144,10 +145,11 @@ public:
 	void splitSeries();
 	void unsplitSeries();
 	void showDependentSeries(bool enable);
-	void computeGeometry();  //temporarily, before api rework
+	void computeGeometry();
 
 	QVector<XAxisInterval> selections() const;
 	XAxisInterval loadedRange() const;
+	XAxisInterval displayedRange() const;
 	void addSelection(XAxisInterval selection);
 	void clearSelections();
 
@@ -161,6 +163,8 @@ public:
 
 	void setViewTimezone(const QTimeZone &tz);
 	Q_SIGNAL void selectionsChanged();
+
+	void setLoadedRange(const ValueChange::ValueX &min, const ValueChange::ValueX &max);
 
 protected:
 	void resizeEvent(QResizeEvent *resize_event);
@@ -264,6 +268,7 @@ private:
 	void computeRange(qint64 &min, qint64 &max, const Serie *serie) const;
 	template<typename T> void computeRange(T &min, T &max) const;
 	void computeDataRange();
+	void showRangeInternal(qint64 from, qint64 to);
 	QPainterPath createPoiPath(int x, int y) const;
 	shv::gui::SerieData::const_iterator findMinYValue(const SerieData::const_iterator &data_begin, const SerieData::const_iterator &data_end, qint64 x_value) const;
 	shv::gui::SerieData::const_iterator findMaxYValue(const SerieData::const_iterator &data_begin, const SerieData::const_iterator &data_end, qint64 x_value) const;
