@@ -41,6 +41,8 @@ View::View(QWidget *parent) : QWidget(parent)
   , m_rightRangeSelectorHandle(0)
   , m_leftRangeSelectorPosition(0)
   , m_rightRangeSelectorPosition(0)
+  , m_mode(Mode::Static)
+  , m_dynamic_mode_prepend(60000LL)
 {
 	m_toolTipTimer.setSingleShot(true);
 	connect(&m_toolTipTimer, &QTimer::timeout, this, &View::showToolTip);
@@ -184,6 +186,15 @@ void View::onModelDataChanged() //TODO improve change detection in model
 	if (m_toolTipTimer.isActive()) {
 		m_toolTipTimer.stop();
 	}
+
+	qint64 orig_loaded_range_min = m_loadedRangeMin;
+	qint64 orig_loaded_range_max = m_loadedRangeMax;
+	qint64 orig_loaded_range_length = orig_loaded_range_max - orig_loaded_range_min;
+
+	qint64 orig_displayed_range_min = m_displayedRangeMin;
+	qint64 orig_displayed_range_max = m_displayedRangeMax;
+	qint64 orig_displayed_range_length = orig_displayed_range_max - orig_displayed_range_min;
+
 	m_loadedRangeMin = UINT64_MAX;
 	m_loadedRangeMax = 0;
 	for (Serie *serie : m_series) {
@@ -229,6 +240,31 @@ void View::onModelDataChanged() //TODO improve change detection in model
 	}
 	default:
 		break;
+	}
+	if (m_mode == Mode::Dynamic) {
+		qint64 loaded_range_length = m_loadedRangeMax - m_loadedRangeMin;
+
+		if (m_loadedRangeMin) {
+			if (loaded_range_length < 60000LL) {
+				m_displayedRangeMin = m_loadedRangeMin = m_loadedRangeMin - (m_dynamic_mode_prepend - loaded_range_length);
+			}
+			if (orig_loaded_range_length > 10LL) {
+				if (orig_displayed_range_max == orig_loaded_range_max) {
+					m_displayedRangeMin = m_displayedRangeMax - orig_displayed_range_length;
+				}
+				else {
+					m_displayedRangeMin = orig_displayed_range_min;
+					m_displayedRangeMax = orig_displayed_range_max;
+				}
+				if (m_displayedRangeMin < m_loadedRangeMin) {
+					m_displayedRangeMin = m_loadedRangeMin;
+				}
+				if (m_displayedRangeMax > m_loadedRangeMax) {
+					m_displayedRangeMax = m_loadedRangeMax;
+				}
+				computeDataRange();
+			}
+		}
 	}
 	if (settings.rangeSelector.show) {
 		m_leftRangeSelectorHandle->show();
@@ -1243,6 +1279,22 @@ void View::clearSelections()
 	m_selections.clear();
 	Q_EMIT selectionsChanged();
 	update();
+}
+
+void View::setMode(View::Mode mode)
+{
+	m_mode = mode;
+	if (m_model) {
+		onModelDataChanged();
+	}
+}
+
+void View::setDynamicModePrepend(ValueChange::ValueX prepend)
+{
+	m_dynamic_mode_prepend = xValue(prepend);
+	if (m_mode == Mode::Dynamic && m_model) {
+		onModelDataChanged();
+	}
 }
 
 void View::addPointOfInterest(ValueChange::ValueX position, const QString &comment, const QColor &color)

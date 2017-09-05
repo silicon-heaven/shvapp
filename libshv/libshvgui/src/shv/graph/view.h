@@ -39,6 +39,7 @@ class SHVGUI_DECL_EXPORT View : public QWidget
 	using SerieData = shv::gui::SerieData;
 
 public:
+	enum class Mode { Static, Dynamic };
 
 	struct Settings
 	{
@@ -153,6 +154,12 @@ public:
 	void addSelection(XAxisInterval selection);
 	void clearSelections();
 
+	inline Mode mode() const { return m_mode; }
+	void setMode(Mode mode);
+
+	inline ValueChange::ValueX dymanicModePrepend() const { return internalToValueX(m_dynamic_mode_prepend); }
+	void setDynamicModePrepend(ValueChange::ValueX prepend);
+
 	void addPointOfInterest(ValueChange::ValueX position, const QString &comment, const QColor &color);
 	void addPointOfInterest(PointOfInterest *poi);
 	void removePointsOfInterest();
@@ -167,14 +174,16 @@ public:
 	void setLoadedRange(const ValueChange::ValueX &min, const ValueChange::ValueX &max);
 
 protected:
-	void resizeEvent(QResizeEvent *resize_event);
-	void paintEvent(QPaintEvent *paint_event);
-	void wheelEvent(QWheelEvent *wheel_event);
-	void mouseDoubleClickEvent(QMouseEvent *mouse_event);
-	void mousePressEvent(QMouseEvent *mouse_event);
-	void mouseMoveEvent(QMouseEvent *mouse_event);
-	void mouseReleaseEvent(QMouseEvent *mouse_event);
-	bool eventFilter(QObject *watched, QEvent *event);
+	void resizeEvent(QResizeEvent *resize_event) Q_DECL_OVERRIDE;
+	void paintEvent(QPaintEvent *paint_event) Q_DECL_OVERRIDE;
+	void wheelEvent(QWheelEvent *wheel_event) Q_DECL_OVERRIDE;
+	void mouseDoubleClickEvent(QMouseEvent *mouse_event) Q_DECL_OVERRIDE;
+	void mousePressEvent(QMouseEvent *mouse_event) Q_DECL_OVERRIDE;
+	void mouseMoveEvent(QMouseEvent *mouse_event) Q_DECL_OVERRIDE;
+	void mouseReleaseEvent(QMouseEvent *mouse_event) Q_DECL_OVERRIDE;
+	bool eventFilter(QObject *watched, QEvent *event) Q_DECL_OVERRIDE;
+
+	virtual void onModelDataChanged();
 
 private:
 	class GraphArea
@@ -276,7 +285,6 @@ private:
 	static ValueChange::ValueY formattedSerieValue(const Serie *serie, SerieData::const_iterator it);
 	int yPosition(ValueChange::ValueY value, const Serie *serie, const GraphArea &area);
 
-	void onModelDataChanged();
 	void showToolTip();
 
 	GraphModel *m_model = nullptr;
@@ -314,6 +322,8 @@ private:
 	QMap<const PointOfInterest*, QPainterPath> m_poiPainterPaths;
 	QVector<OutsideSerieGroup*> m_outsideSeriesGroups;
 	QVector<QMetaObject::Connection> m_connections;
+	Mode m_mode;
+	qint64 m_dynamic_mode_prepend;
 };
 
 } //namespace graphview
