@@ -39,6 +39,7 @@ class SHVGUI_DECL_EXPORT View : public QWidget
 	using SerieData = shv::gui::SerieData;
 
 public:
+	enum class Mode { Static, Dynamic };
 
 	struct Settings
 	{
@@ -133,7 +134,8 @@ public:
 	void setModel(GraphModel *model);
 	void releaseModel();
 
-	void showRange(qint64 from, qint64 to);
+	void showRange(ValueChange::ValueX from, ValueChange::ValueX to);
+	void showRange(XAxisInterval range);
 	void zoom(qint64 center, double scale);
 
 	GraphModel *model() const;
@@ -144,12 +146,19 @@ public:
 	void splitSeries();
 	void unsplitSeries();
 	void showDependentSeries(bool enable);
-	void computeGeometry();  //temporarily, before api rework
+	void computeGeometry();
 
 	QVector<XAxisInterval> selections() const;
 	XAxisInterval loadedRange() const;
+	XAxisInterval shownRange() const;
 	void addSelection(XAxisInterval selection);
 	void clearSelections();
+
+	inline Mode mode() const { return m_mode; }
+	void setMode(Mode mode);
+
+	inline ValueChange::ValueX dymanicModePrepend() const { return internalToValueX(m_dynamicModePrepend); }
+	void setDynamicModePrepend(ValueChange::ValueX prepend);
 
 	void addPointOfInterest(ValueChange::ValueX position, const QString &comment, const QColor &color);
 	void addPointOfInterest(PointOfInterest *poi);
@@ -162,15 +171,19 @@ public:
 	void setViewTimezone(const QTimeZone &tz);
 	Q_SIGNAL void selectionsChanged();
 
+	void setLoadedRange(const ValueChange::ValueX &min, const ValueChange::ValueX &max);
+
 protected:
-	void resizeEvent(QResizeEvent *resize_event);
-	void paintEvent(QPaintEvent *paint_event);
-	void wheelEvent(QWheelEvent *wheel_event);
-	void mouseDoubleClickEvent(QMouseEvent *mouse_event);
-	void mousePressEvent(QMouseEvent *mouse_event);
-	void mouseMoveEvent(QMouseEvent *mouse_event);
-	void mouseReleaseEvent(QMouseEvent *mouse_event);
-	bool eventFilter(QObject *watched, QEvent *event);
+	void resizeEvent(QResizeEvent *resize_event) Q_DECL_OVERRIDE;
+	void paintEvent(QPaintEvent *paint_event) Q_DECL_OVERRIDE;
+	void wheelEvent(QWheelEvent *wheel_event) Q_DECL_OVERRIDE;
+	void mouseDoubleClickEvent(QMouseEvent *mouse_event) Q_DECL_OVERRIDE;
+	void mousePressEvent(QMouseEvent *mouse_event) Q_DECL_OVERRIDE;
+	void mouseMoveEvent(QMouseEvent *mouse_event) Q_DECL_OVERRIDE;
+	void mouseReleaseEvent(QMouseEvent *mouse_event) Q_DECL_OVERRIDE;
+	bool eventFilter(QObject *watched, QEvent *event) Q_DECL_OVERRIDE;
+
+	virtual void onModelDataChanged();
 
 private:
 	class GraphArea
@@ -264,6 +277,7 @@ private:
 	void computeRange(qint64 &min, qint64 &max, const Serie *serie) const;
 	template<typename T> void computeRange(T &min, T &max) const;
 	void computeDataRange();
+	void showRangeInternal(qint64 from, qint64 to);
 	QPainterPath createPoiPath(int x, int y) const;
 	shv::gui::SerieData::const_iterator findMinYValue(const SerieData::const_iterator &data_begin, const SerieData::const_iterator &data_end, qint64 x_value) const;
 	shv::gui::SerieData::const_iterator findMaxYValue(const SerieData::const_iterator &data_begin, const SerieData::const_iterator &data_end, qint64 x_value) const;
@@ -271,7 +285,6 @@ private:
 	static ValueChange::ValueY formattedSerieValue(const Serie *serie, SerieData::const_iterator it);
 	int yPosition(ValueChange::ValueY value, const Serie *serie, const GraphArea &area);
 
-	void onModelDataChanged();
 	void showToolTip();
 
 	GraphModel *m_model = nullptr;
@@ -309,6 +322,8 @@ private:
 	QMap<const PointOfInterest*, QPainterPath> m_poiPainterPaths;
 	QVector<OutsideSerieGroup*> m_outsideSeriesGroups;
 	QVector<QMetaObject::Connection> m_connections;
+	Mode m_mode;
+	qint64 m_dynamicModePrepend;
 };
 
 } //namespace graphview
