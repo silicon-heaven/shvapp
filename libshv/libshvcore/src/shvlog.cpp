@@ -41,10 +41,10 @@ std::string moduleFromFileName(const char *file_name)
 	auto ix = ret.find_last_of('/');
 #ifndef __unix
 	if(ix == std::string::npos)
-		ix = ret.find_last_not_of('\\');
+		ix = ret.find_last_of('\\');
 #endif
 	if(ix != std::string::npos)
-		return ret.substr(ix + 1);
+		ret = ret.substr(ix + 1);
 	return ret;
 }
 
@@ -119,7 +119,8 @@ void default_message_output(ShvLog::Level level, const ShvLog::LogContext &conte
 		set_tty_color(TTYColor::Yellow, true) << '(' << context.category << ')';
 	set_tty_color(TTYColor::White, true) << '[' << moduleFromFileName(context.file) << ':' << context.line << "] ";
 	set_tty_color(log_color, stay_bright) << message;
-	std::cerr << "\33[0m";
+	if(is_tty)
+		std::cerr << "\33[0m";
 	std::cerr << std::endl;
 }
 
