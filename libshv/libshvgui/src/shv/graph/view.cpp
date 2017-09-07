@@ -42,7 +42,7 @@ View::View(QWidget *parent) : QWidget(parent)
   , m_leftRangeSelectorPosition(0)
   , m_rightRangeSelectorPosition(0)
   , m_mode(Mode::Static)
-  , m_dynamic_mode_prepend(60000LL)
+  , m_dynamicModePrepend(60000LL)
 {
 	m_toolTipTimer.setSingleShot(true);
 	connect(&m_toolTipTimer, &QTimer::timeout, this, &View::showToolTip);
@@ -246,7 +246,7 @@ void View::onModelDataChanged() //TODO improve change detection in model
 
 		if (m_loadedRangeMin) {
 			if (loaded_range_length < 60000LL) {
-				m_displayedRangeMin = m_loadedRangeMin = m_loadedRangeMin - (m_dynamic_mode_prepend - loaded_range_length);
+				m_displayedRangeMin = m_loadedRangeMin = m_loadedRangeMin - (m_dynamicModePrepend - loaded_range_length);
 			}
 			if (orig_loaded_range_length > 10LL) {
 				if (orig_displayed_range_max == orig_loaded_range_max) {
@@ -1241,7 +1241,7 @@ View::XAxisInterval View::loadedRange() const
 	return XAxisInterval { internalToValueX(m_loadedRangeMin), internalToValueX(m_loadedRangeMax) };
 }
 
-View::XAxisInterval View::displayedRange() const
+View::XAxisInterval View::shownRange() const
 {
 	return XAxisInterval { internalToValueX(m_displayedRangeMin), internalToValueX(m_displayedRangeMax) };
 }
@@ -1291,7 +1291,7 @@ void View::setMode(View::Mode mode)
 
 void View::setDynamicModePrepend(ValueChange::ValueX prepend)
 {
-	m_dynamic_mode_prepend = xValue(prepend);
+	m_dynamicModePrepend = xValue(prepend);
 	if (m_mode == Mode::Dynamic && m_model) {
 		onModelDataChanged();
 	}

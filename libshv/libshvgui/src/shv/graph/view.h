@@ -150,14 +150,14 @@ public:
 
 	QVector<XAxisInterval> selections() const;
 	XAxisInterval loadedRange() const;
-	XAxisInterval displayedRange() const;
+	XAxisInterval shownRange() const;
 	void addSelection(XAxisInterval selection);
 	void clearSelections();
 
 	inline Mode mode() const { return m_mode; }
 	void setMode(Mode mode);
 
-	inline ValueChange::ValueX dymanicModePrepend() const { return internalToValueX(m_dynamic_mode_prepend); }
+	inline ValueChange::ValueX dymanicModePrepend() const { return internalToValueX(m_dynamicModePrepend); }
 	void setDynamicModePrepend(ValueChange::ValueX prepend);
 
 	void addPointOfInterest(ValueChange::ValueX position, const QString &comment, const QColor &color);
@@ -323,7 +323,7 @@ private:
 	QVector<OutsideSerieGroup*> m_outsideSeriesGroups;
 	QVector<QMetaObject::Connection> m_connections;
 	Mode m_mode;
-	qint64 m_dynamic_mode_prepend;
+	qint64 m_dynamicModePrepend;
 };
 
 } //namespace graphview
