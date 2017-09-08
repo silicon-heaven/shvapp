@@ -131,6 +131,9 @@ public:
 		static Error createInternalError(const RpcValue::String &msg = RpcValue::String()) {
 			return createError(InternalError, (msg.empty())? "Internal error": msg);
 		}
+		static Error createSyncMethodCallTimeout(const RpcValue::String &msg = RpcValue::String()) {
+			return createError(SyncMethodCallTimeout, (msg.empty())? "Sync method call timeout": msg);
+		}
 	};
 public:
 	//RpcResponse(const Json &json = Json()) : Super(json) {}
