@@ -60,6 +60,7 @@ public:
 	static std::vector<std::string> setGlobalTresholds(int argc, char *argv[]);
 	static bool isMatchingLogFilter(ShvLog::Level level, const ShvLog::LogContext &log_context);
 	static void setMessageOutput(MessageOutput out);
+	static ShvLog::MessageOutput messageOutput();
 
 	inline void swap(ShvLog &other) noexcept { std::swap(stream, other.stream); }
 	//ShvLog &resetFormat();

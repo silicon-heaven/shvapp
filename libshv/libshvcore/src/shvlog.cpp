@@ -293,6 +293,11 @@ void ShvLog::setMessageOutput(ShvLog::MessageOutput out)
 	message_output = out;
 }
 
+ShvLog::MessageOutput ShvLog::messageOutput()
+{
+	return message_output;
+}
+
 bool ShvLog::isMatchingLogFilter(ShvLog::Level level, const ShvLog::LogContext &log_context)
 {
 	const LogFilter &log_filter = s_globalLogFilter;
