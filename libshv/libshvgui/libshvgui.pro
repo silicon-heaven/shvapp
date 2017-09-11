@@ -12,10 +12,11 @@ isEmpty(QF_PROJECT_TOP_BUILDDIR) {
     QF_PROJECT_TOP_BUILDDIR=$$shadowed($$PWD)/../..
 }
 message ( QF_PROJECT_TOP_BUILDDIR: '$$QF_PROJECT_TOP_BUILDDIR' )
-isEmpty(QF_PROJECT_TOP_SRCDIR) {
-    QF_PROJECT_TOP_SRCDIR=../..
+SHV_TOP_SRCDIR=$$PWD/..
+!isEmpty(QF_PROJECT_TOP_SRCDIR) {
+    SHV_TOP_SRCDIR=$$QF_PROJECT_TOP_SRCDIR/3rdparty/shv/libshv/
 }
-message ( QF_PROJECT_TOP_SRCDIR: '$$QF_PROJECT_TOP_SRCDIR' )
+message ( SHV_TOP_SRCDIR: '$$SHV_TOP_SRCDIR' )
 
 unix:DESTDIR = $$QF_PROJECT_TOP_BUILDDIR/lib
 win32:DESTDIR = $$QF_PROJECT_TOP_BUILDDIR/bin
@@ -26,7 +27,7 @@ DEFINES += SHVGUI_BUILD_DLL
 
 INCLUDEPATH += \
     #$$QUICKBOX_HOME/libqf/libqfcore/include \
-    $$QF_PROJECT_TOP_SRCDIR/3rdparty/shv/libshv/libshvcore/include \
+    $$SHV_TOP_SRCDIR/libshvcore/include \
 
 message ( INCLUDEPATH: '$$INCLUDEPATH' )
 
