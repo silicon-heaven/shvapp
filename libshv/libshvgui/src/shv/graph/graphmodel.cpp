@@ -9,24 +9,9 @@
 namespace shv {
 namespace gui {
 
-std::vector<ValueChange>::const_iterator SerieData::lessOrEqualIterator(ValueChange::ValueX value_x) const
+SerieData::const_iterator SerieData::lessOrEqualIterator(ValueChange::ValueX value_x) const
 {
-	std::vector<ValueChange>::const_iterator it;
-	if (m_xType == ValueType::TimeStamp) {
-		it = std::lower_bound(cbegin(), cend(), value_x.timeStamp, [this](const ValueChange &val, const ValueChange::TimeStamp &x) -> bool {
-			return val.valueX.timeStamp < x;
-		});
-	}
-	else if (m_xType == ValueType::Int) {
-		it = std::lower_bound(cbegin(), cend(), value_x.intValue, [this](const ValueChange &val, int x) -> bool {
-			return val.valueX.intValue < x;
-		});
-	}
-	else if (m_xType == ValueType::Double) {
-		it = std::lower_bound(cbegin(), cend(), value_x.doubleValue, [this](const ValueChange &val, double x) -> bool {
-			return val.valueX.doubleValue < x;
-		});
-	}
+	const_iterator it = lower_bound(value_x);
 
 	if (it == cend()) {
 		if (!empty()) {
@@ -46,13 +31,13 @@ std::vector<ValueChange>::const_iterator SerieData::lessOrEqualIterator(ValueCha
 	return it;
 }
 
-QPair<std::vector<ValueChange>::const_iterator, std::vector<ValueChange>::const_iterator> SerieData::intersection(const ValueChange::ValueX &start, const ValueChange::ValueX &end, bool &valid) const
+QPair<SerieData::const_iterator, SerieData::const_iterator> SerieData::intersection(const ValueChange::ValueX &start, const ValueChange::ValueX &end, bool &valid) const
 {
-	QPair<std::vector<ValueChange>::const_iterator, std::vector<ValueChange>::const_iterator> result;
+	QPair<const_iterator, const_iterator> result;
 	result.first = lessOrEqualIterator(start);
 	result.second = lessOrEqualIterator(end);
 
-	if ((result.first == cend()) && (!empty())){
+	if (result.first == cend() && !empty()){
 		result.first = cbegin();
 	}
 
@@ -373,6 +358,48 @@ SerieData &GraphModel::serieData(int serie_index)
 const SerieData &GraphModel::serieData(int serie_index) const
 {
 	return data()->serieData(serie_index);
+}
+
+SerieData::const_iterator SerieData::upper_bound(ValueChange::ValueX value_x) const
+{
+	const_iterator it = end();
+	if (m_xType == ValueType::TimeStamp) {
+		it = std::upper_bound(cbegin(), cend(), value_x.timeStamp, [](const ValueChange::TimeStamp &x, const ValueChange &val) {
+			return val.valueX.timeStamp > x;
+		});
+	}
+	else if (m_xType == ValueType::Int) {
+		it = std::upper_bound(cbegin(), cend(), value_x.intValue, [](int x, const ValueChange &val) {
+			return val.valueX.intValue > x;
+		});
+	}
+	else if (m_xType == ValueType::Double) {
+		it = std::upper_bound(cbegin(), cend(), value_x.doubleValue, [](double x, const ValueChange &val) {
+			return val.valueX.doubleValue > x;
+		});
+	}
+	return it;
+}
+
+SerieData::const_iterator SerieData::lower_bound(ValueChange::ValueX value_x) const
+{
+	const_iterator it = end();
+	if (m_xType == ValueType::TimeStamp) {
+		it = std::lower_bound(cbegin(), cend(), value_x.timeStamp, [](const ValueChange &val, const ValueChange::TimeStamp &x) {
+			return val.valueX.timeStamp < x;
+		});
+	}
+	else if (m_xType == ValueType::Int) {
+		it = std::lower_bound(cbegin(), cend(), value_x.intValue, [](const ValueChange &val, int x) {
+			return val.valueX.intValue < x;
+		});
+	}
+	else if (m_xType == ValueType::Double) {
+		it = std::lower_bound(cbegin(), cend(), value_x.doubleValue, [](const ValueChange &val, double x) {
+			return val.valueX.doubleValue < x;
+		});
+	}
+	return it;
 }
 
 }
