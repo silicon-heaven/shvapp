@@ -2341,7 +2341,7 @@ QString View::xValueString(qint64 value, const QString &datetime_format) const
 	case ValueType::TimeStamp:
 	{
 		QDateTime date = QDateTime::fromMSecsSinceEpoch(value, settings.sourceDataTimeZone);
-		s = date.toString(datetime_format);
+		s = date.toTimeZone(settings.viewTimeZone).toString(datetime_format);
 		break;
 	}
 	case ValueType::Int:
