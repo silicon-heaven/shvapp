@@ -863,7 +863,7 @@ void View::mouseMoveEvent(QMouseEvent *mouse_event)
 			}
 			else if (mouse_event->modifiers() == Qt::NoModifier) {
 				if (m_moveStart != -1) {
-					qint64 difference = (m_displayedRangeMax - m_displayedRangeMin) * ((double)(x_pos - m_moveStart) / m_graphArea[0].graphRect.width());
+					qint64 difference = (m_displayedRangeMax - m_displayedRangeMin) * ((double)(x_pos - m_moveStart) / graphWidth());
 					if (difference < 0LL) {
 						if ((qint64)(m_loadedRangeMax - m_displayedRangeMax) < -difference) {
 							difference = -(m_loadedRangeMax - m_displayedRangeMax);
@@ -1064,7 +1064,7 @@ void View::popupContextMenu(const QPoint &pos)
 			if (m_selections[i].start == m_displayedRangeMin && m_selections[i].end == m_displayedRangeMax) {
 				zoom_to_selection->setEnabled(false);
 			}
-			popup_menu.addAction(tr("&Remove selection"), [this, i]() {
+			popup_menu.addAction(tr("&Clear selection"), [this, i]() {
 				m_selections.removeAt(i);
 				update();
 				Q_EMIT selectionsChanged();
@@ -1072,12 +1072,16 @@ void View::popupContextMenu(const QPoint &pos)
 			break;
 		}
 	}
-	QAction *remove_all_selections = popup_menu.addAction(tr("Remove &all selections"), [this]() {
+	QAction *remove_all_selections = popup_menu.addAction(tr("Clear &all selections"), [this]() {
 		m_selections.clear();
 		update();
 	});
 	if (m_selections.count() == 0) {
 		remove_all_selections->setEnabled(false);
+	}
+	popup_menu.addSeparator();
+	if (settings.contextMenuExtend) {
+		settings.contextMenuExtend(&popup_menu);
 	}
 	popup_menu.exec(mapToGlobal(pos));
 }
@@ -1749,7 +1753,7 @@ void View::paintValueSerie(QPainter *painter, const QRect &rect, int x_axis_posi
 		return;
 	}
 
-	double x_scale = (double)(max - min) / rect.width();
+	double x_scale = (double)(max - min) / graphWidth();
 
 	double y_scale = 0.0;
 	if (serie->relatedAxis() == Serie::YAxis::Y1) {
@@ -1834,14 +1838,15 @@ void View::paintValueSerie(QPainter *painter, const QRect &rect, int x_axis_posi
 		}
 	}
 
+	int rect_last_point = graphWidth();
 	if (last_point.x() == 0) { //last point was not found
-		painter->drawLine(first_point.x(), first_point.y(), rect.width(), first_point.y());
-		polygon << QPoint(rect.width(), first_point.y());
+		painter->drawLine(first_point.x(), first_point.y(), rect_last_point, first_point.y());
+		polygon << QPoint(rect_last_point, first_point.y());
 	}
-	else if (last_point.x() != rect.width()) {
-		painter->drawLine(last_point.x(), last_point.y(), rect.width(), last_point.y());
+	else if (last_point.x() < rect_last_point) {
+		painter->drawLine(last_point.x(), last_point.y(), rect_last_point, last_point.y());
 		polygon << QPoint(last_point.x(), last_point.y());
-		polygon << QPoint(rect.width(), last_point.y());
+		polygon << QPoint(rect_last_point, last_point.y());
 	}
 
 	if (fill_rect) {
@@ -2252,7 +2257,7 @@ QString View::legend(qint64 position) const
 {
 	QString s = "<html><head>" + settings.legendStyle + "</head><body>";
 	s = s + "<table class=\"head\"><tr><td class=\"headLabel\">" + settings.xAxis.description + ":</td><td class=\"headValue\">" +
-		xValueString(position, "dd.MM.yyyy HH.mm.ss.zzz").replace(" ", "&nbsp;") + "</td></tr></table><hr>";
+		xValueString(position, "dd.MM.yyyy HH:mm:ss.zzz").replace(" ", "&nbsp;") + "</td></tr></table><hr>";
 	s += "<table>";
 	for (const Serie *serie : m_series) {
 		const SerieData &data = serie->serieModelData(this);
@@ -2269,6 +2274,15 @@ QString View::legend(qint64 position) const
 	return s;
 }
 
+int View::graphWidth() const
+{
+	int graph_width = m_graphArea[0].graphRect.width();
+	if (settings.y2Axis.show) {
+		graph_width -= settings.y2Axis.lineWidth;
+	}
+	return graph_width;
+}
+
 qint64 View::widgetPositionToXValue(int pos) const
 {
 	return rectPositionToXValue(pos - m_graphArea[0].graphRect.x());
@@ -2276,12 +2290,12 @@ qint64 View::widgetPositionToXValue(int pos) const
 
 qint64 View::rectPositionToXValue(int pos) const
 {
-	return m_displayedRangeMin + ((m_displayedRangeMax - m_displayedRangeMin) * ((double)pos / m_graphArea[0].graphRect.width()));
+	return m_displayedRangeMin + ((m_displayedRangeMax - m_displayedRangeMin) * ((double)pos / graphWidth()));
 }
 
 int View::xValueToRectPosition(qint64 value) const
 {
-	return (value - m_displayedRangeMin) * m_graphArea[0].graphRect.width() / (m_displayedRangeMax - m_displayedRangeMin);
+	return (value - m_displayedRangeMin) * graphWidth() / (m_displayedRangeMax - m_displayedRangeMin);
 }
 
 int View::xValueToWidgetPosition(qint64 value) const
