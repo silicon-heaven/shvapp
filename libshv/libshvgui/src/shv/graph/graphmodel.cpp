@@ -201,7 +201,7 @@ bool compareValueY(const ValueChange::ValueY &value1, const ValueChange::ValueY 
 
 GraphModelData::GraphModelData(QObject *parent)
 	: QObject(parent)
-	, m_dataAdded(false)
+	, m_dataChanged(false)
 	, m_dataChangeEnabled(true)
 {
 }
@@ -226,7 +226,7 @@ void GraphModelData::addValueChange(int serie_index, const shv::gui::ValueChange
 			Q_EMIT dataChanged();
 		}
 		else {
-			m_dataAdded = true;
+			m_dataChanged = true;
 		}
 	}
 }
@@ -242,7 +242,7 @@ void GraphModelData::addValueChanges(int serie_index, const std::vector<shv::gui
 			Q_EMIT dataChanged();
 		}
 		else {
-			m_dataAdded = true;
+			m_dataChanged = true;
 		}
 	}
 }
@@ -261,7 +261,7 @@ void GraphModelData::addValueChanges(const std::vector<ValueChange> &values)
 			Q_EMIT dataChanged();
 		}
 		else {
-			m_dataAdded = true;
+			m_dataChanged = true;
 		}
 	}
 }
@@ -278,31 +278,63 @@ void GraphModelData::clearSerie(int serie_index)
 	if (serie.size()) {
 		serie.clear();
 		serie.shrink_to_fit();
-		Q_EMIT dataChanged();
+		if (m_dataChangeEnabled) {
+			Q_EMIT dataChanged();
+		}
+		else {
+			m_dataChanged = true;
+		}
 	}
 }
 
 void GraphModelData::clearSeries()
 {
+	bool changed = true;
 	for (SerieData &serie : m_valueChanges) {
+		if (serie.size()) {
+			changed = true;
+		}
 		serie.clear();
 		serie.shrink_to_fit();
 	}
-	Q_EMIT dataChanged();
+	if (changed) {
+		if (m_dataChangeEnabled) {
+			Q_EMIT dataChanged();
+		}
+		else {
+			m_dataChanged = true;
+		}
+	}
 }
 
-void GraphModelData::addDataBegin()
+void GraphModelData::dataChangeBegin()
 {
 	m_dataChangeEnabled = false;
 }
 
-void GraphModelData::addDataEnd()
+void GraphModelData::dataChangeEnd()
 {
-	if (!m_dataChangeEnabled && m_dataAdded) {
+	if (!m_dataChangeEnabled && m_dataChanged) {
 		Q_EMIT dataChanged();
 	}
-	m_dataAdded = false;
+	m_dataChanged = false;
 	m_dataChangeEnabled = true;
+}
+
+SerieData::iterator GraphModelData::removeValueChanges(int serie_index, SerieData::const_iterator from, SerieData::const_iterator to)
+{
+	SerieData &serie = serieData(serie_index);
+	auto old_size = serie.size();
+	auto it = serie.erase(from, to);
+	if (serie.size() != old_size) {
+		if (m_dataChangeEnabled) {
+			Q_EMIT dataChanged();
+		}
+		else {
+			m_dataChanged = true;
+		}
+	}
+	return it;
 }
 
 ValueXInterval GraphModelData::range() const

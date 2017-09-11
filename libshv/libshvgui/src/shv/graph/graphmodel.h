@@ -151,8 +151,10 @@ public:
 	void clearSerie(int serie_index);
 	void clearSeries();
 
-	void addDataBegin();
-	void addDataEnd();
+	void dataChangeBegin();
+	void dataChangeEnd();
+
+	SerieData::iterator removeValueChanges(int serie_index, SerieData::const_iterator from, SerieData::const_iterator to);
 
 	ValueXInterval range() const;
 
@@ -165,7 +167,7 @@ protected:
 	ValueXInterval timeStampRange() const;
 
 	std::vector<SerieData> m_valueChanges;
-	bool m_dataAdded;
+	bool m_dataChanged;
 	bool m_dataChangeEnabled;
 };
 
