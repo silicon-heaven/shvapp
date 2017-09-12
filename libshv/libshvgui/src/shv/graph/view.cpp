@@ -30,6 +30,8 @@ View::View(QWidget *parent) : QWidget(parent)
   , m_displayedRangeMax(0LL)
   , m_loadedRangeMin(0LL)
   , m_loadedRangeMax(0LL)
+  , m_dataRangeMin(0LL)
+  , m_dataRangeMax(0LL)
   , m_zoomSelection({ 0, 0 })
   , m_currentSelectionModifiers(Qt::NoModifier)
   , m_moveStart(-1)
@@ -132,6 +134,8 @@ void View::releaseModel()
 	m_displayedRangeMax = 0LL;
 	m_loadedRangeMin = 0LL;
 	m_loadedRangeMax = 0LL;
+	m_dataRangeMin = 0LL;
+	m_dataRangeMax = 0LL;
 	m_zoomSelection = { 0, 0 };
 	m_currentSelectionModifiers = Qt::NoModifier;
 	m_moveStart = -1;
@@ -218,8 +222,8 @@ void View::onModelDataChanged() //TODO improve change detection in model
 			SHV_EXCEPTION("GraphView cannot operate negative values on x axis");
 		}
 		m_xValueScale = INT64_MAX / max;
-		m_displayedRangeMin = m_loadedRangeMin = min * m_xValueScale;
-		m_displayedRangeMax = m_loadedRangeMax = max * m_xValueScale;
+		m_dataRangeMin = m_displayedRangeMin = m_loadedRangeMin = min * m_xValueScale;
+		m_dataRangeMax = m_displayedRangeMax = m_loadedRangeMax = max * m_xValueScale;
 		break;
 	}
 	case ValueType::Int:
@@ -229,15 +233,15 @@ void View::onModelDataChanged() //TODO improve change detection in model
 		if (min < 0.0) {
 			SHV_EXCEPTION("GraphView cannot operate negative values on x axis");
 		}
-		m_displayedRangeMin = m_loadedRangeMin = min;
-		m_displayedRangeMax = m_loadedRangeMax = max;
+		m_dataRangeMin = m_displayedRangeMin = m_loadedRangeMin = min;
+		m_dataRangeMax = m_displayedRangeMax = m_loadedRangeMax = max;
 		break;
 	}
 	case ValueType::TimeStamp:
 	{
 		computeRange(m_loadedRangeMin, m_loadedRangeMax);
-		m_displayedRangeMin = m_loadedRangeMin;
-		m_displayedRangeMax = m_loadedRangeMax;
+		m_dataRangeMin = m_displayedRangeMin = m_loadedRangeMin;
+		m_dataRangeMax = m_displayedRangeMax = m_loadedRangeMax;
 		break;
 	}
 	default:
@@ -733,6 +737,7 @@ bool View::posInGraph(const QPoint &pos) const
 	for (int i = 1; i < m_graphArea.count(); ++i) {
 		graph_rect = graph_rect.united(m_graphArea[i].graphRect);
 	}
+	graph_rect.setLeft(graph_rect.left() - 1);
 	return graph_rect.contains(pos, true);
 }
 
@@ -1790,10 +1795,11 @@ void View::paintValueSerie(QPainter *painter, const QRect &rect, int x_axis_posi
 	}
 	QPoint first_point;
 	ValueChange::ValueY first_value_y = formattedSerieValue(serie, begin);
-	first_point = QPoint((xValue(*begin) - min) / x_scale, x_axis_position - (first_value_y.toDouble(serie->type()) / y_scale));
-	if (first_point.x() < 0) {
-		first_point.setX(0);
+	int first_point_x = (m_dataRangeMin - min) / x_scale;
+	if (first_point_x < 0) {
+		first_point_x = 0;
 	}
+	first_point = QPoint(first_point_x, x_axis_position - (first_value_y.toDouble(serie->type()) / y_scale));
 
 	int max_on_first = first_point.y();
 	int min_on_first = first_point.y();
@@ -2206,16 +2212,18 @@ void View::paintCurrentPosition(QPainter *painter, const GraphArea &area)
 {
 	painter->save();
 	qint64 current = rectPositionToXValue(m_currentPosition);
-	for (int i = 0; i < area.series.count(); ++i) {
-		const Serie *serie = area.series[i];
-		if (!serie->isHidden()) {
-			const SerieData &data = serie->serieModelData(this);
-			if (data.size()) {
-				paintCurrentPosition(painter, area, serie, current);
-				if (settings.showDependent) {
-					for (const Serie *dependent_serie : serie->dependentSeries()) {
-						if (!dependent_serie->isHidden()) {
-							paintCurrentPosition(painter, area, dependent_serie, current);
+	if (current >= m_dataRangeMin && current <= m_dataRangeMax) {
+		for (int i = 0; i < area.series.count(); ++i) {
+			const Serie *serie = area.series[i];
+			if (!serie->isHidden()) {
+				const SerieData &data = serie->serieModelData(this);
+				if (data.size()) {
+					paintCurrentPosition(painter, area, serie, current);
+					if (settings.showDependent) {
+						for (const Serie *dependent_serie : serie->dependentSeries()) {
+							if (!dependent_serie->isHidden()) {
+								paintCurrentPosition(painter, area, dependent_serie, current);
+							}
 						}
 					}
 				}
@@ -2259,13 +2267,15 @@ QString View::legend(qint64 position) const
 	s = s + "<table class=\"head\"><tr><td class=\"headLabel\">" + settings.xAxis.description + ":</td><td class=\"headValue\">" +
 		xValueString(position, "dd.MM.yyyy HH:mm:ss.zzz").replace(" ", "&nbsp;") + "</td></tr></table><hr>";
 	s += "<table>";
-	for (const Serie *serie : m_series) {
-		const SerieData &data = serie->serieModelData(this);
-		if (data.size()) {
-			s += legendRow(serie, position);
-			if (!serie->isHidden() && settings.showDependent) {
-				for (const Serie *dependent_serie : serie->dependentSeries()) {
-					s += legendRow(dependent_serie, position);
+	if (position >= m_dataRangeMin && position <= m_dataRangeMax) {
+		for (const Serie *serie : m_series) {
+			const SerieData &data = serie->serieModelData(this);
+			if (data.size()) {
+				s += legendRow(serie, position);
+				if (!serie->isHidden() && settings.showDependent) {
+					for (const Serie *dependent_serie : serie->dependentSeries()) {
+						s += legendRow(dependent_serie, position);
+					}
 				}
 			}
 		}

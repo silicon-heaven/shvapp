@@ -301,6 +301,8 @@ private:
 	qint64 m_displayedRangeMax;
 	qint64 m_loadedRangeMin;
 	qint64 m_loadedRangeMax;
+	qint64 m_dataRangeMin;
+	qint64 m_dataRangeMax;
 	Selection m_zoomSelection;
 	Qt::KeyboardModifiers m_currentSelectionModifiers;
 	QList<Selection> m_selections;
