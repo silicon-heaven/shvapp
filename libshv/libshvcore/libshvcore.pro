@@ -1,6 +1,6 @@
 message("including $$PWD")
 
-QT -= core
+QT -= core gui
 
 CONFIG += C++11
 CONFIG += hide_symbols

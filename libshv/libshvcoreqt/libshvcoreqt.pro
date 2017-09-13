@@ -1,6 +1,7 @@
 message("including $$PWD")
 
 QT += network
+QT -= gui
 
 CONFIG += C++11
 CONFIG += hide_symbols

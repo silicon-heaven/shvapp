@@ -2,8 +2,6 @@
 
 #include "../shvexception.h"
 
-#include <QDebug>
-
 #include <iostream>
 #include <cassert>
 #include <limits>
