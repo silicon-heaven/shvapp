@@ -119,6 +119,7 @@ public:
 		bool showBackgroundStripes = false;
 		QTimeZone sourceDataTimeZone = QTimeZone::utc();
 		QTimeZone viewTimeZone = QTimeZone::utc();
+		std::function <void (QMenu*)> contextMenuExtend;
 	};
 
 	struct XAxisInterval
@@ -254,6 +255,7 @@ private:
 	QString legend(qint64 position) const;
 	QString legendRow(const Serie *serie, qint64 position) const;
 
+	int graphWidth() const;
 	qint64 widgetPositionToXValue(int pos) const;
 	qint64 rectPositionToXValue(int pos) const;
 	int xValueToRectPosition(qint64 value) const;
@@ -299,6 +301,8 @@ private:
 	qint64 m_displayedRangeMax;
 	qint64 m_loadedRangeMin;
 	qint64 m_loadedRangeMax;
+	qint64 m_dataRangeMin;
+	qint64 m_dataRangeMax;
 	Selection m_zoomSelection;
 	Qt::KeyboardModifiers m_currentSelectionModifiers;
 	QList<Selection> m_selections;

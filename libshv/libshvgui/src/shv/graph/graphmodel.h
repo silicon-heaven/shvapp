@@ -108,11 +108,17 @@ SHVGUI_DECL_EXPORT bool compareValueY(const ValueChange::ValueY &value1, const V
 
 class SHVGUI_DECL_EXPORT SerieData : public std::vector<ValueChange>
 {
+	using Super = std::vector<ValueChange>;
+
 public:
 	SerieData() : m_xType(ValueType::Int), m_yType(ValueType::Int)	{}
 	SerieData(ValueType x_type, ValueType y_type) : m_xType(x_type), m_yType(y_type) {}
-	std::vector<ValueChange>::const_iterator lessOrEqualIterator(ValueChange::ValueX value_x) const;
-	QPair<std::vector<ValueChange>::const_iterator, std::vector<ValueChange>::const_iterator> intersection(const ValueChange::ValueX &start, const ValueChange::ValueX &end, bool &valid) const;
+
+	const_iterator upper_bound(shv::gui::ValueChange::ValueX value_x) const;
+	const_iterator lower_bound(shv::gui::ValueChange::ValueX value_x) const;
+
+	const_iterator lessOrEqualIterator(ValueChange::ValueX value_x) const;
+	QPair<const_iterator, const_iterator> intersection(const ValueChange::ValueX &start, const ValueChange::ValueX &end, bool &valid) const;
 
 	ValueType xType() const	{ return m_xType; }
 	ValueType yType() const	{ return m_yType; }
@@ -145,8 +151,10 @@ public:
 	void clearSerie(int serie_index);
 	void clearSeries();
 
-	void addDataBegin();
-	void addDataEnd();
+	void dataChangeBegin();
+	void dataChangeEnd();
+
+	SerieData::iterator removeValueChanges(int serie_index, SerieData::const_iterator from, SerieData::const_iterator to);
 
 	ValueXInterval range() const;
 
@@ -159,7 +167,7 @@ protected:
 	ValueXInterval timeStampRange() const;
 
 	std::vector<SerieData> m_valueChanges;
-	bool m_dataAdded;
+	bool m_dataChanged;
 	bool m_dataChangeEnabled;
 };
 
