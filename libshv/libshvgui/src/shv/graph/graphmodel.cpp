@@ -144,14 +144,15 @@ ValueXInterval GraphModelData::timeStampRange() const
 		if (serie.xType() != ValueType::TimeStamp) {
 			SHV_EXCEPTION("Cannot determine data range when X types are different");
 		}
+		if (serie.size()) {
+			ValueXInterval serie_range = serie.range();
 
-		ValueXInterval serie_range = serie.range();
-
-		if (serie_range.min.timeStamp < range.min.timeStamp) {
-			range.min.timeStamp = serie_range.min.timeStamp;
-		}
-		if (serie_range.max.timeStamp > range.max.timeStamp) {
-			range.max.timeStamp = serie_range.max.timeStamp;
+			if (serie_range.min.timeStamp < range.min.timeStamp) {
+				range.min.timeStamp = serie_range.min.timeStamp;
+			}
+			if (serie_range.max.timeStamp > range.max.timeStamp) {
+				range.max.timeStamp = serie_range.max.timeStamp;
+			}
 		}
 	}
 	if (range.min.timeStamp == INT64_MAX) {
@@ -201,7 +202,6 @@ bool compareValueY(const ValueChange::ValueY &value1, const ValueChange::ValueY 
 
 GraphModelData::GraphModelData(QObject *parent)
 	: QObject(parent)
-	, m_dataChanged(false)
 	, m_dataChangeEnabled(true)
 {
 }
@@ -223,10 +223,10 @@ void GraphModelData::addValueChange(int serie_index, const shv::gui::ValueChange
 	bool added = addValueChangeInternal(serie_index, value);
 	if (added) {
 		if (m_dataChangeEnabled) {
-			Q_EMIT dataChanged();
+			Q_EMIT dataChanged(QVector<int>{ serie_index });
 		}
-		else {
-			m_dataChanged = true;
+		else if (!m_changedSeries.contains(serie_index)){
+			m_changedSeries << serie_index;
 		}
 	}
 }
@@ -239,10 +239,10 @@ void GraphModelData::addValueChanges(int serie_index, const std::vector<shv::gui
 	}
 	if (added) {
 		if (m_dataChangeEnabled) {
-			Q_EMIT dataChanged();
+			Q_EMIT dataChanged(QVector<int>{ serie_index });
 		}
-		else {
-			m_dataChanged = true;
+		else if (!m_changedSeries.contains(serie_index)){
+			m_changedSeries << serie_index;
 		}
 	}
 }
@@ -252,16 +252,22 @@ void GraphModelData::addValueChanges(const std::vector<ValueChange> &values)
 	if (values.size() >= m_valueChanges.size()) {
 		SHV_EXCEPTION("addValueChanges: number of values in array exceeds the number of series");
 	}
-	bool added = false;
+	QVector<int> added;
 	for (uint i = 0; i < m_valueChanges.size(); ++i) {
-		added = addValueChangeInternal(i, values[i]) || added;
+		if (addValueChangeInternal(i, values[i])) {
+			added << i;
+		}
 	}
-	if (added) {
+	if (added.count()) {
 		if (m_dataChangeEnabled) {
-			Q_EMIT dataChanged();
+			Q_EMIT dataChanged(added);
 		}
 		else {
-			m_dataChanged = true;
+			for (int serie_index : added) {
+				if (!m_changedSeries.contains(serie_index)) {
+					m_changedSeries << serie_index;
+				}
+			}
 		}
 	}
 }
@@ -279,30 +285,35 @@ void GraphModelData::clearSerie(int serie_index)
 		serie.clear();
 		serie.shrink_to_fit();
 		if (m_dataChangeEnabled) {
-			Q_EMIT dataChanged();
+			Q_EMIT dataChanged(QVector<int>{ serie_index });
 		}
-		else {
-			m_dataChanged = true;
+		else if (!m_changedSeries.contains(serie_index)){
+			m_changedSeries << serie_index;
 		}
 	}
 }
 
 void GraphModelData::clearSeries()
 {
-	bool changed = true;
-	for (SerieData &serie : m_valueChanges) {
+	QVector<int> changed;
+	for (uint serie_index = 0; serie_index < m_valueChanges.size(); ++serie_index) {
+		SerieData &serie = m_valueChanges[serie_index];
 		if (serie.size()) {
-			changed = true;
+			changed << serie_index;
+			serie.clear();
 		}
-		serie.clear();
 		serie.shrink_to_fit();
 	}
-	if (changed) {
+	if (changed.size()) {
 		if (m_dataChangeEnabled) {
-			Q_EMIT dataChanged();
+			Q_EMIT dataChanged(changed);
 		}
 		else {
-			m_dataChanged = true;
+			for (int serie_index : changed) {
+				if (!m_changedSeries.contains(serie_index)) {
+					m_changedSeries << serie_index;
+				}
+			}
 		}
 	}
 }
@@ -314,10 +325,10 @@ void GraphModelData::dataChangeBegin()
 
 void GraphModelData::dataChangeEnd()
 {
-	if (!m_dataChangeEnabled && m_dataChanged) {
-		Q_EMIT dataChanged();
+	if (!m_dataChangeEnabled && m_changedSeries.size()) {
+		Q_EMIT dataChanged(m_changedSeries);
 	}
-	m_dataChanged = false;
+	m_changedSeries.clear();
 	m_dataChangeEnabled = true;
 }
 
@@ -328,10 +339,10 @@ SerieData::iterator GraphModelData::removeValueChanges(int serie_index, SerieDat
 	auto it = serie.erase(from, to);
 	if (serie.size() != old_size) {
 		if (m_dataChangeEnabled) {
-			Q_EMIT dataChanged();
+			Q_EMIT dataChanged(QVector<int>{ serie_index });
 		}
-		else {
-			m_dataChanged = true;
+		else if (!m_changedSeries.contains(serie_index)) {
+			m_changedSeries << serie_index;
 		}
 	}
 	return it;
