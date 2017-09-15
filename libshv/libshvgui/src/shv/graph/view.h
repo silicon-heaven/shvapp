@@ -116,7 +116,7 @@ public:
 		bool showCrossLine = true;
 		bool showDependent = true;
 		bool enableOvelapingSelections = false;
-		bool showBackgroundStripes = false;
+		bool showSerieBackgroundStripes = false;
 		QTimeZone sourceDataTimeZone = QTimeZone::utc();
 		QTimeZone viewTimeZone = QTimeZone::utc();
 		std::function <void (QMenu*)> contextMenuExtend;
@@ -164,7 +164,9 @@ public:
 	void addPointOfInterest(ValueChange::ValueX position, const QString &comment, const QColor &color);
 	void addPointOfInterest(PointOfInterest *poi);
 	void removePointsOfInterest();
-	void showBackgroundStripes(bool enable);
+
+	void addBackgroundStripe(BackgroundStripe *stripe);
+	void showBackgroundSerieStripes(bool enable);
 
 	OutsideSerieGroup *addOutsideSerieGroup(const QString &name);
 	void addOutsideSerieGroup(OutsideSerieGroup *group);
@@ -249,7 +251,10 @@ private:
 	void paintPointOfInterest(QPainter *painter, const GraphArea &area, PointOfInterest *poi);
 	void paintPointOfInterestVertical(QPainter *painter, const GraphArea &area, PointOfInterest *poi);
 	void paintPointOfInterestPoint(QPainter *painter, const GraphArea &area, PointOfInterest *poi);
-	void paintBackgroundStripes(QPainter *painter, const GraphArea &area);
+	void paintSerieBackgroundStripes(QPainter *painter, const GraphArea &area);
+	void paintSerieVerticalBackgroundStripe(QPainter *painter, const GraphArea &area, const Serie *serie, const BackgroundStripe *stripe);
+	void paintSerieHorizontalBackgroundStripe(QPainter *painter, const GraphArea &area, const Serie *serie, const BackgroundStripe *stripe);
+	void paintViewBackgroundStripes(QPainter *painter, const GraphArea &area);
 	void paintOutsideSeriesGroups(QPainter *painter, const GraphArea &area);
 
 	QString legend(qint64 position) const;
@@ -325,6 +330,7 @@ private:
 	QVector<PointOfInterest*> m_pointsOfInterest;
 	QMap<const PointOfInterest*, QPainterPath> m_poiPainterPaths;
 	QVector<OutsideSerieGroup*> m_outsideSeriesGroups;
+	QVector<BackgroundStripe*> m_backgroundStripes;
 	QVector<QMetaObject::Connection> m_connections;
 	Mode m_mode;
 	qint64 m_dynamicModePrepend;
