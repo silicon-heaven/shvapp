@@ -6,6 +6,7 @@
 #include <QPair>
 #include <memory>
 #include <cmath>
+#include <QVector>
 
 namespace shv {
 namespace gui {
@@ -138,7 +139,7 @@ struct SHVGUI_DECL_EXPORT GraphModelData : public QObject
 public:
 	GraphModelData(QObject *parent);
 
-	Q_SIGNAL void dataChanged();
+	Q_SIGNAL void dataChanged(QVector<int> series);
 
 	virtual SerieData &serieData(int serie_index);
 	virtual const SerieData &serieData(int serie_index) const;
@@ -167,7 +168,7 @@ protected:
 	ValueXInterval timeStampRange() const;
 
 	std::vector<SerieData> m_valueChanges;
-	bool m_dataChanged;
+	QVector<int> m_changedSeries;
 	bool m_dataChangeEnabled;
 };
 
@@ -178,7 +179,7 @@ struct SHVGUI_DECL_EXPORT GraphModel : public QObject
 public:
 	GraphModel(QObject *parent);
 
-	Q_SIGNAL void dataChanged();
+	Q_SIGNAL void dataChanged(QVector<int> series);
 
 	virtual SerieData &serieData(int serie_index);
 	virtual const SerieData &serieData(int serie_index) const;
