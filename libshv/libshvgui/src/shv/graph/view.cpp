@@ -1871,6 +1871,9 @@ void View::paintValueSerie(QPainter *painter, const QRect &rect, int x_axis_posi
 		polygon << QPoint(rect_last_point, first_point.y());
 	}
 	else if (last_point.x() < rect_last_point) {
+		if (m_dataRangeMax < m_loadedRangeMax) {
+			rect_last_point = xValueToRectPosition(m_dataRangeMax);
+		}
 		painter->drawLine(last_point.x(), last_point.y(), rect_last_point, last_point.y());
 		polygon << QPoint(last_point.x(), last_point.y());
 		polygon << QPoint(rect_last_point, last_point.y());
@@ -2204,8 +2207,16 @@ void View::paintViewBackgroundStripes(QPainter *painter, const View::GraphArea &
 			stripe_color.setAlpha(30);
 		}
 
-		int min = xValueToWidgetPosition(xValue(stripe->min().valueX));
-		int max = xValueToWidgetPosition(xValue(stripe->max().valueX));
+		qint64 min_value = xValue(stripe->min().valueX);
+		if (min_value < m_displayedRangeMin) {
+			min_value = m_displayedRangeMin;
+		}
+		qint64 max_value = xValue(stripe->max().valueX);
+		if (max_value > m_displayedRangeMax) {
+			max_value = m_displayedRangeMax;
+		}
+		int min = xValueToWidgetPosition(min_value);
+		int max = xValueToWidgetPosition(max_value);
 
 		if (max - min > 0) {
 			painter->fillRect(min, area.graphRect.top(), max - min, area.graphRect.height(), stripe_color);
