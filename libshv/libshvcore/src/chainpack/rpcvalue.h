@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../shvcoreglobal.h"
+#include "metatypes.h"
 
 #include <string>
 #include <vector>
@@ -42,17 +43,21 @@ public:
 		MetaIMap,
 	};
 	static const char* typeToName(Type t);
-	struct SHVCORE_DECL_EXPORT Tag {
+
+	struct SHVCORE_DECL_EXPORT Tag
+	{
 		enum Enum : CHAINPACK_UINT {
 			Invalid = 0,
 			MetaTypeId,
 			MetaTypeNameSpaceId,
+			MetaIMap,
 			MetaTypeName,
 			MetaTypeNameSpaceName,
 			USER = 8
 		};
-		static const char* name(Enum e);
+		//static const char* name(Enum e);
 	};
+
 	using Int = CHAINPACK_INT;
 	using UInt = CHAINPACK_UINT;
 	struct SHVCORE_DECL_EXPORT DateTime
@@ -103,14 +108,22 @@ public:
 	};
 	struct SHVCORE_DECL_EXPORT MetaData
 	{
+		RpcValue::UInt metaTypeId() const {return value(RpcValue::Tag::MetaTypeId).toUInt();}
+		void setMetaTypeId(RpcValue::UInt id) {setValue(RpcValue::Tag::MetaTypeId, id);}
+		RpcValue::UInt metaTypeNameSpaceId() const {return value(RpcValue::Tag::MetaTypeNameSpaceId).toUInt();}
+		void setMetaTypeNameSpaceId(RpcValue::UInt id) {setValue(RpcValue::Tag::MetaTypeNameSpaceId, id);}
 		std::vector<RpcValue::UInt> ikeys() const;
 		RpcValue value(RpcValue::UInt key) const;
 		void setValue(RpcValue::UInt key, const RpcValue &val);
 		bool isEmpty() const {return m_imap.empty();}
 		bool operator==(const MetaData &o) const;
+		const RpcValue::IMap& toIMap() const {return m_imap;}
+		std::string toStdString() const;
 	protected:
 		//Value::Map smap;
 		RpcValue::IMap m_imap;
+		//RpcValue::UInt m_metaTypeId = 0;
+		//RpcValue::UInt m_metaTypeNameSpaceId = 0;
 	};
 	//struct MetaTypeId { uint32_t id = 0; MetaTypeId(uint32_t id) : id(id) {}};
 	//struct MetaTypeNameSpaceId { uint32_t id = 0; MetaTypeNameSpaceId(uint32_t id) : id(id) {}};

@@ -341,7 +341,6 @@ const char *ChainPackProtocol::TypeInfo::name(ChainPackProtocol::TypeInfo::Enum 
 	case MetaIMap: return "MetaIMap";
 	case TRUE: return "TRUE";
 	case FALSE: return "FALSE";
-	case TERM: return "TERM";
 	default:
 		return "UNKNOWN";
 	}
@@ -413,7 +412,7 @@ RpcValue::Map ChainPackProtocol::readData_Map(std::istream &data)
 	}
 	return ret;
 }
-
+/*
 ChainPackProtocol::TypeInfo::Enum ChainPackProtocol::optimizedMetaTagType(RpcValue::Tag::Enum tag)
 {
 	switch(tag) {
@@ -423,7 +422,7 @@ ChainPackProtocol::TypeInfo::Enum ChainPackProtocol::optimizedMetaTagType(RpcVal
 		return ChainPackProtocol::TypeInfo::INVALID;
 	}
 }
-
+*/
 RpcValue::IMap ChainPackProtocol::readData_IMap(std::istream &data)
 {
 	RpcValue::IMap ret;
@@ -461,22 +460,19 @@ int ChainPackProtocol::write(std::ostream &out, const RpcValue &pack)
 void ChainPackProtocol::writeMetaData(std::ostream &out, const RpcValue &pack)
 {
 	const RpcValue::MetaData &md = pack.metaData();
-	for (const auto &key : md.ikeys()) {
-		ChainPackProtocol::TypeInfo::Enum type = optimizedMetaTagType((RpcValue::Tag::Enum)key);
-		if(type != ChainPackProtocol::TypeInfo::INVALID) {
-			out << (uint8_t)type;
-			RpcValue::UInt val = md.value(key).toUInt();
-			write_UIntData(out, val);
-		}
+	RpcValue::UInt mid = md.metaTypeId();
+	if(mid > 0) {
+		out << (uint8_t)ChainPackProtocol::TypeInfo::META_TYPE_ID;
+		write_UIntData(out, mid);
 	}
-	RpcValue::IMap imap;
-	for (const auto &key : md.ikeys()) {
-		if(optimizedMetaTagType((RpcValue::Tag::Enum)key) == ChainPackProtocol::TypeInfo::INVALID)
-			imap[key] = md.value(key);
+	RpcValue::UInt mnsid = md.metaTypeNameSpaceId();
+	if(mnsid > 0) {
+		out << (uint8_t)ChainPackProtocol::TypeInfo::META_TYPE_NAMESPACE_ID;
+		write_UIntData(out, mnsid);
 	}
-	if(!imap.empty()) {
+	if(!md.isEmpty()) {
 		out << (uint8_t)ChainPackProtocol::TypeInfo::MetaIMap;
-		writeData_IMap(out, imap);
+		writeData_IMap(out, md.toIMap());
 	}
 }
 
@@ -628,13 +624,13 @@ RpcValue::MetaData ChainPackProtocol::readMetaData(std::istream &data)
 		case ChainPackProtocol::TypeInfo::META_TYPE_ID:  {
 			data.get();
 			RpcValue::UInt u = read_UIntData<RpcValue::UInt>(data);
-			ret.setValue(RpcValue::Tag::MetaTypeId, u);
+			ret.setMetaTypeId(u);
 			break;
 		}
 		case ChainPackProtocol::TypeInfo::META_TYPE_NAMESPACE_ID:  {
 			data.get();
 			RpcValue::UInt u = read_UIntData<RpcValue::UInt>(data);
-			ret.setValue(RpcValue::Tag::MetaTypeNameSpaceId, u);
+			ret.setMetaTypeNameSpaceId(u);
 			break;
 		}
 		case ChainPackProtocol::TypeInfo::MetaIMap:  {

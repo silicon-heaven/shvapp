@@ -73,6 +73,7 @@ private:
 							   {"b", "bar"},
 							   {"c", RpcValue::List{1,2,3}},
 						   }});
+		rq.setMetaValue(ChainPackRpcMessageMetaKey::DeviceId, "aus/mel/pres/A");
 		std::stringstream out;
 		RpcValue cp1 = rq.value();
 		int len = rq.write(out);
@@ -124,6 +125,8 @@ private:
 							   {"b", "bar"},
 							   {"c", RpcValue::List{1,2,3}},
 						   }});
+		qDebug() << rq.toStdString();
+		QVERIFY(rq.isNotify());
 		std::stringstream out;
 		RpcValue cp1 = rq.value();
 		int len = rq.write(out);

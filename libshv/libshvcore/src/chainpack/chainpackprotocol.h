@@ -26,12 +26,10 @@ public:
 		enum Enum {
 			INVALID = -1,
 			/// auxiliary types used for optimization
-			TERM = 128, // first byte of packed Int or UInt cannot be like 0b1000000
-			META_TYPE_ID,
+			META_TYPE_ID = 128,
 			META_TYPE_NAMESPACE_ID,
 			FALSE,
 			TRUE,
-			CHUNK_HEADER,
 			/// types
 			Null,
 			UInt,
@@ -72,7 +70,7 @@ public:
 private:
 	static TypeInfo::Enum typeToTypeInfo(RpcValue::Type type);
 	static RpcValue::Type typeInfoToType(TypeInfo::Enum type_info);
-	static TypeInfo::Enum optimizedMetaTagType(RpcValue::Tag::Enum tag);
+	//static TypeInfo::Enum optimizedMetaTagType(RpcValue::Tag::Enum tag);
 
 	static void writeMetaData(std::ostream &out, const RpcValue &pack);
 	static bool writeTypeInfo(std::ostream &out, const RpcValue &pack);

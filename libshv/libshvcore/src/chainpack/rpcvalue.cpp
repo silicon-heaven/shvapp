@@ -166,16 +166,7 @@ protected:
 	void dumpText(std::string &out) const override
 	{
 		if(m_metaData) {
-			out += '<';
-			int n = 0;
-			for(auto key : m_metaData->ikeys()) {
-				if(n++ > 0)
-					out += ",";
-				out += std::to_string(key) + ':';
-				RpcValue meta_val = m_metaData->value(key);
-				meta_val.dumpText(out);
-			}
-			out += '>';
+			out += '<' + m_metaData->toStdString() + '>';
 		}
 		std::string s;
 		dumpTextValue(s);
@@ -889,6 +880,50 @@ bool RpcValue::MetaData::operator==(const RpcValue::MetaData &o) const
 		std::cerr << '\t' << it.first << ": " << it.second.dumpText() << std::endl;
 	*/
 	return m_imap == o.m_imap;
+}
+
+std::string RpcValue::MetaData::toStdString() const
+{
+	std::string out;
+	int n = 0;
+	UInt nsid = metaTypeNameSpaceId();
+	UInt mtid = metaTypeId();
+	/*
+	if(nsid > 0) {
+		out += "S:" + std::to_string(nsid);
+		n++;
+	}
+	if(mtid > 0) {
+		if(n++ > 0)
+			out += ",";
+		out += "T:" + std::to_string(mtid);
+		n++;
+	}
+	*/
+	for(auto key : ikeys()) {
+		//if(key == RpcValue::Tag::MetaTypeId || key == RpcValue::Tag::MetaTypeNameSpaceId)
+		//	continue;
+		if(n++ > 0)
+			out += ",";
+		const char *kn = MetaType::metaKeyName(nsid, mtid, key);
+		if(kn[0])
+			out += std::string(kn) + ':';
+		else
+			out += std::to_string(key) + ':';
+		RpcValue meta_val = value(key);
+		if(key == RpcValue::Tag::MetaTypeId) {
+			UInt id = meta_val.toUInt();
+			const char *n = MetaType::metaTypeName(nsid, id);
+			if(n[0])
+				out += n;
+			else
+				out += std::to_string(id);
+		}
+		else {
+			meta_val.dumpText(out);
+		}
+	}
+	return out;
 }
 
 }}}

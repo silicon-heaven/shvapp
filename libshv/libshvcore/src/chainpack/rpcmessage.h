@@ -13,8 +13,7 @@ class SHVCORE_DECL_EXPORT RpcMessage
 public:
 	struct Key {
 		enum Enum {
-			Id = 1,
-			Method,
+			Method = 1,
 			Params,
 			Result,
 			Error,
@@ -40,9 +39,13 @@ public:
 	bool isNotify() const;
 	std::string toStdString() const;
 
+	void setMetaValue(RpcValue::UInt key, const RpcValue &val);
+
 	virtual int write(std::ostream &out) const;
 protected:
-	void ensureMetaValues();
+	ChainPackRpcMessageMetaKey::RpcCallType::Enum rpcType() const;
+	void checkMetaValues();
+	void checkRpcTypeMetaValue();
 protected:
 	RpcValue m_value;
 };

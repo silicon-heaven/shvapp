@@ -202,7 +202,7 @@ private:
 	void binaryTest()
 	{
 		qDebug() << "============= chainpack binary test ============";
-		for (int i = ChainPackProtocol::TypeInfo::TERM; i <= ChainPackProtocol::TypeInfo::TRUE; ++i) {
+		for (int i = ChainPackProtocol::TypeInfo::META_TYPE_ID; i <= ChainPackProtocol::TypeInfo::TRUE; ++i) {
 			RpcValue::Blob out;
 			out += i;
 			ChainPackProtocol::TypeInfo::Enum e = (ChainPackProtocol::TypeInfo::Enum)i;
