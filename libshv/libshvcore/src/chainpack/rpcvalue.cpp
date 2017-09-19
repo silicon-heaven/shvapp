@@ -905,15 +905,15 @@ std::string RpcValue::MetaData::toStdString() const
 		//	continue;
 		if(n++ > 0)
 			out += ",";
-		const char *kn = MetaType::metaKeyName(nsid, mtid, key);
+		const char *kn = MetaTypes::metaKeyName(nsid, mtid, key);
 		if(kn[0])
 			out += std::string(kn) + ':';
 		else
 			out += std::to_string(key) + ':';
 		RpcValue meta_val = value(key);
-		if(key == RpcValue::Tag::MetaTypeId) {
+		if(key == MetaTypes::Tag::MetaTypeId) {
 			UInt id = meta_val.toUInt();
-			const char *n = MetaType::metaTypeName(nsid, id);
+			const char *n = MetaTypes::metaTypeName(nsid, id);
 			if(n[0])
 				out += n;
 			else

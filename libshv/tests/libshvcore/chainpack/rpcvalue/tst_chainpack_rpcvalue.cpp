@@ -483,10 +483,10 @@ private:
 		{
 			qDebug() << "------------- Meta";
 			RpcValue cp1{RpcValue::List{17, 18, 19}};
-			cp1.setMetaValue(RpcValue::Tag::MetaTypeNameSpaceId, (unsigned)1);
-			cp1.setMetaValue(RpcValue::Tag::MetaTypeId, (unsigned)2);
-			cp1.setMetaValue(RpcValue::Tag::USER, "foo");
-			cp1.setMetaValue(RpcValue::Tag::USER+1, RpcValue::List{1,2,3});
+			cp1.setMetaValue(MetaTypes::Tag::MetaTypeNameSpaceId, (unsigned)1);
+			cp1.setMetaValue(MetaTypes::Tag::MetaTypeId, (unsigned)2);
+			cp1.setMetaValue(MetaTypes::Tag::USER, "foo");
+			cp1.setMetaValue(MetaTypes::Tag::USER+1, RpcValue::List{1,2,3});
 			std::stringstream out;
 			int len = ChainPackProtocol::write(out, cp1);
 			RpcValue cp2 = ChainPackProtocol::read(out);

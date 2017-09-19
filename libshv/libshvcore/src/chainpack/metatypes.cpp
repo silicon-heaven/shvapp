@@ -4,18 +4,18 @@ namespace shv {
 namespace core {
 namespace chainpack {
 
-const char *MetaType::metaKeyName(int meta_type_namespace_id, int meta_type_id, int meta_key_id)
+const char *MetaTypes::metaKeyName(int namespace_id, int type_id, int tag)
 {
-	switch(meta_key_id) {
-	case ReservedMetaKey::MetaTypeId: return "T";
-	case ReservedMetaKey::MetaTypeNameSpaceId: return "S";
+	switch(tag) {
+	case MetaTypes::Tag::MetaTypeId: return "T";
+	case MetaTypes::Tag::MetaTypeNameSpaceId: return "S";
 	}
-	if(meta_type_namespace_id == MetaTypeNameSpaceId::Global) {
-		if(meta_type_id == GlobalMetaTypeId::ChainPackRpcMessage /*|| meta_type_id == GlobalMetaTypeId::SkyNetRpcMessage*/) {
-			switch(meta_key_id) {
-			case ChainPackRpcMessageMetaKey::RequestId: return "RqId";
-			case ChainPackRpcMessageMetaKey::RpcCallType: return "Type";
-			case ChainPackRpcMessageMetaKey::DeviceId: return "DevId";
+	if(namespace_id == MetaTypes::Global::Value) {
+		if(type_id == MetaTypes::Global::ChainPackRpcMessage::Value /*|| meta_type_id == GlobalMetaTypeId::SkyNetRpcMessage*/) {
+			switch(tag) {
+			case MetaTypes::Global::ChainPackRpcMessage::Tag::RequestId: return "RqId";
+			case MetaTypes::Global::ChainPackRpcMessage::Tag::RpcCallType: return "Type";
+			case MetaTypes::Global::ChainPackRpcMessage::Tag::DeviceId: return "DevId";
 			}
 		}
 		/*
@@ -30,11 +30,11 @@ const char *MetaType::metaKeyName(int meta_type_namespace_id, int meta_type_id, 
 }
 
 
-const char *MetaType::metaTypeName(int meta_type_namespace_id, int meta_type_id)
+const char *MetaTypes::metaTypeName(int namespace_id, int type_id)
 {
-	if(meta_type_namespace_id == MetaTypeNameSpaceId::Global) {
-		switch(meta_type_id) {
-		case GlobalMetaTypeId::ChainPackRpcMessage: return "Rpc";
+	if(namespace_id == MetaTypes::Global::Value) {
+		switch(type_id) {
+		case MetaTypes::Global::ChainPackRpcMessage::Value: return "Rpc";
 		//case GlobalMetaTypeId::SkyNetRpcMessage: return "SkyRpc";
 		}
 	}

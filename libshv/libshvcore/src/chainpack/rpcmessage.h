@@ -43,7 +43,7 @@ public:
 
 	virtual int write(std::ostream &out) const;
 protected:
-	ChainPackRpcMessageMetaKey::RpcCallType::Enum rpcType() const;
+	MetaTypes::Global::ChainPackRpcMessage::Tag::RpcCallType::Enum rpcType() const;
 	void checkMetaValues();
 	void checkRpcTypeMetaValue();
 protected:
