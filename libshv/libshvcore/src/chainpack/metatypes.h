@@ -36,10 +36,6 @@ public:
 		{
 			struct Tag
 			{
-				struct RpcCallType
-				{
-					enum Enum {Undefined = 0, Request, Response, Notify};
-				};
 				enum Enum {
 					RequestId = MetaTypes::Tag::USER,
 					RpcCallType,

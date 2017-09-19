@@ -22,6 +22,7 @@ public:
 			MAX_KEY
 		};
 	};
+	enum class RpcCallType : int { Undefined = 0, Request, Response, Notify };
 public:
 	RpcMessage() {}
 	RpcMessage(const RpcValue &val);
@@ -43,7 +44,7 @@ public:
 
 	virtual int write(std::ostream &out) const;
 protected:
-	MetaTypes::Global::ChainPackRpcMessage::Tag::RpcCallType::Enum rpcType() const;
+	RpcMessage::RpcCallType rpcType() const;
 	void checkMetaValues();
 	void checkRpcTypeMetaValue();
 protected:

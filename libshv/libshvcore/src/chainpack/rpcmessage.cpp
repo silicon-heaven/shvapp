@@ -56,35 +56,35 @@ bool RpcMessage::isValid() const
 
 bool RpcMessage::isRequest() const
 {
-	return rpcType() == MetaTypes::Global::ChainPackRpcMessage::Tag::RpcCallType::Request;
+	return rpcType() == RpcMessage::RpcCallType::Request;
 }
 
 bool RpcMessage::isNotify() const
 {
-	return rpcType() == MetaTypes::Global::ChainPackRpcMessage::Tag::RpcCallType::Notify;
+	return rpcType() == RpcMessage::RpcCallType::Notify;
 }
 
 bool RpcMessage::isResponse() const
 {
-	return rpcType() == MetaTypes::Global::ChainPackRpcMessage::Tag::RpcCallType::Response;
+	return rpcType() == RpcMessage::RpcCallType::Response;
 }
 
 int RpcMessage::write(std::ostream &out) const
 {
 	assert(m_value.isValid());
-	assert(rpcType() != MetaTypes::Global::ChainPackRpcMessage::Tag::RpcCallType::Undefined);
+	assert(rpcType() != RpcMessage::RpcCallType::Undefined);
 	return ChainPackProtocol::write(out, m_value);
 }
 
-MetaTypes::Global::ChainPackRpcMessage::Tag::RpcCallType::Enum RpcMessage::rpcType() const
+RpcMessage::RpcCallType RpcMessage::rpcType() const
 {
 	RpcValue::UInt rpc_id = id();
 	bool has_method = hasKey(Key::Method);
 	if(has_method)
-		return (rpc_id > 0)? MetaTypes::Global::ChainPackRpcMessage::Tag::RpcCallType::Request: MetaTypes::Global::ChainPackRpcMessage::Tag::RpcCallType::Notify;
+		return (rpc_id > 0)? RpcMessage::RpcCallType::Request: RpcMessage::RpcCallType::Notify;
 	if(hasKey(Key::Result) || hasKey(Key::Error))
-		return MetaTypes::Global::ChainPackRpcMessage::Tag::RpcCallType::Response;
-	return MetaTypes::Global::ChainPackRpcMessage::Tag::RpcCallType::Undefined;
+		return RpcMessage::RpcCallType::Response;
+	return RpcMessage::RpcCallType::Undefined;
 }
 
 void RpcMessage::checkMetaValues()
@@ -100,8 +100,8 @@ void RpcMessage::checkMetaValues()
 
 void RpcMessage::checkRpcTypeMetaValue()
 {
-	MetaTypes::Global::ChainPackRpcMessage::Tag::RpcCallType::Enum rpc_type = isResponse()? MetaTypes::Global::ChainPackRpcMessage::Tag::RpcCallType::Response: isNotify()? MetaTypes::Global::ChainPackRpcMessage::Tag::RpcCallType::Notify: MetaTypes::Global::ChainPackRpcMessage::Tag::RpcCallType::Request;
-	setMetaValue(MetaTypes::Global::ChainPackRpcMessage::Tag::RpcCallType, rpc_type);
+	RpcMessage::RpcCallType rpc_type = isResponse()? RpcMessage::RpcCallType::Response: isNotify()? RpcMessage::RpcCallType::Notify: RpcMessage::RpcCallType::Request;
+	setMetaValue(MetaTypes::Global::ChainPackRpcMessage::Tag::RpcCallType, (int)rpc_type);
 }
 
 RpcValue::String RpcRequest::method() const
