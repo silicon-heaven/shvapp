@@ -1,8 +1,8 @@
 #include "rpcdriver.h"
 #include "metatypes.h"
 #include "chainpackprotocol.h"
-#include "../shvexception.h"
-#include "../log.h"
+#include "../core/shvexception.h"
+#include "../core/log.h"
 
 #include <sstream>
 #include <iostream>

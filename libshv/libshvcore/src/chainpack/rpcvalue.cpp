@@ -21,7 +21,7 @@
 
 #include "rpcvalue.h"
 #include "jsonprotocol.h"
-#include "../shvexception.h"
+#include "../core/shvexception.h"
 
 #include <cassert>
 #include <cstdlib>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "shvcoreglobal.h"
+#include "../shvcoreglobal.h"
 
 #include <string>
 #include <vector>

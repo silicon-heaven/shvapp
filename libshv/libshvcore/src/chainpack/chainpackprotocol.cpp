@@ -1,6 +1,6 @@
 #include "chainpackprotocol.h"
 
-#include "../shvexception.h"
+#include "../core/shvexception.h"
 
 #include <iostream>
 #include <cassert>
