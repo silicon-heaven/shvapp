@@ -20,12 +20,12 @@ public:
 		};
 	};
 
-	template<int V>
+	template<unsigned V>
 	struct NameSpace
 	{
 		static constexpr int Value = V;
 	};
-	template<int V>
+	template<unsigned V>
 	struct TypeId
 	{
 		static constexpr int Value = V;
@@ -45,6 +45,9 @@ public:
 			};
 		};
 		//struct SkyNetRpcMessage : public TypeId<ChainPackRpcMessage::Value + 1> {};
+	};
+	struct Elesys : public NameSpace<1>
+	{
 	};
 public:
 	static const char *metaTypeName(int namespace_id, int type_id);

@@ -218,6 +218,22 @@ private:
 			str << std::setw(3) << i << " " << binary_dump(out).c_str() << " "  << ChainPackProtocol::TypeInfo::name(e);
 			qDebug() << str.str();
 		}
+		for (int i = ChainPackProtocol::TypeInfo::Null_Array; i <= ChainPackProtocol::TypeInfo::MetaIMap_Array; ++i) {
+			RpcValue::Blob out;
+			out += i;
+			ChainPackProtocol::TypeInfo::Enum e = (ChainPackProtocol::TypeInfo::Enum)i;
+			std::ostringstream str;
+			str << std::setw(3) << i << " " << binary_dump(out).c_str() << " "  << ChainPackProtocol::TypeInfo::name(e);
+			qDebug() << str.str();
+		}
+		for (int i = ChainPackProtocol::TypeInfo::TERM; i <= ChainPackProtocol::TypeInfo::TERM; ++i) {
+			RpcValue::Blob out;
+			out += i;
+			ChainPackProtocol::TypeInfo::Enum e = (ChainPackProtocol::TypeInfo::Enum)i;
+			std::ostringstream str;
+			str << std::setw(3) << i << " " << binary_dump(out).c_str() << " "  << ChainPackProtocol::TypeInfo::name(e);
+			qDebug() << str.str();
+		}
 		{
 			qDebug() << "------------- NULL";
 			RpcValue cp1{nullptr};
@@ -338,7 +354,7 @@ private:
 		}
 		{
 			qDebug() << "------------- blob";
-			RpcValue::Blob blob{"fpowfksapofkpsaokfsa"};
+			RpcValue::Blob blob{"fpowfksap\0ofkpsaokfsa"};
 			blob[5] = 0;
 			RpcValue cp1{blob};
 			std::stringstream out;
@@ -350,13 +366,13 @@ private:
 		}
 		{
 			qDebug() << "------------- string";
-			RpcValue::String str{"lhklhklfkjdslfkposkfp79"};
+			RpcValue::String str{"lhklhklfkjdsl\0fkposkfp79"};
 			str[5] = 0;
 			RpcValue cp1{str};
 			std::stringstream out;
-			ChainPackProtocol::write(out, cp1);
+			int len = ChainPackProtocol::write(out, cp1);
 			RpcValue cp2 = ChainPackProtocol::read(out);
-			//qDebug() << str << " " << cp1.dumpText() << " " << cp2.dumpText() << " len: " << len << " dump: " << binary_dump(out.str());
+			qDebug() << str << " " << cp1.toStdString() << " " << cp2.toStdString() << " len: " << len << " dump: " << binary_dump(out.str());
 			QVERIFY(cp1.type() == cp2.type());
 			QVERIFY(cp1.toString() == cp2.toString());
 		}
@@ -371,29 +387,6 @@ private:
 			qDebug() << str << " " << dt.toUtcString().c_str() << " " << cp1.toStdString() << " " << cp2.toStdString() << " len: " << len << " dump: " << binary_dump(out.str()).c_str();
 			QVERIFY(cp1.type() == cp2.type());
 			QVERIFY(cp1.toInt() == cp2.toInt());
-		}
-		{
-			qDebug() << "------------- List";
-			{
-				const std::string s = R"(["a",123,true,[1,2,3],null])";
-				string err;
-				RpcValue cp1 = RpcValue::parseJson(s, err);
-				std::stringstream out;
-				int len = ChainPackProtocol::write(out, cp1);
-				RpcValue cp2 = ChainPackProtocol::read(out);
-				qDebug() << s << " " << cp1.toStdString() << " " << cp2.toStdString() << " len: " << len << " dump: " << binary_dump(out.str()).c_str();
-				QVERIFY(cp1.type() == cp2.type());
-				QVERIFY(cp1.toList() == cp2.toList());
-			}
-			{
-				RpcValue cp1{RpcValue::List{1,2,3}};
-				std::stringstream out;
-				int len = ChainPackProtocol::write(out, cp1);
-				RpcValue cp2 = ChainPackProtocol::read(out);
-				qDebug() << cp1.toStdString() << " " << cp2.toStdString() << " len: " << len << " dump: " << binary_dump(out.str()).c_str();
-				QVERIFY(cp1.type() == cp2.type());
-				QVERIFY(cp1.toList() == cp2.toList());
-			}
 		}
 		{
 			qDebug() << "------------- Array";
@@ -417,6 +410,29 @@ private:
 				int len = ChainPackProtocol::write(out, cp1);
 				RpcValue cp2 = ChainPackProtocol::read(out);
 				qDebug() << cp1.toStdString() << " " << cp2.toStdString() << " len: " << len << " dump: " << binary_dump(out.str());
+				QVERIFY(cp1.type() == cp2.type());
+				QVERIFY(cp1.toList() == cp2.toList());
+			}
+		}
+		{
+			qDebug() << "------------- List";
+			{
+				const std::string s = R"(["a",123,true,[1,2,3],null])";
+				string err;
+				RpcValue cp1 = RpcValue::parseJson(s, err);
+				std::stringstream out;
+				int len = ChainPackProtocol::write(out, cp1);
+				RpcValue cp2 = ChainPackProtocol::read(out);
+				qDebug() << s << " " << cp1.toStdString() << " " << cp2.toStdString() << " len: " << len << " dump: " << binary_dump(out.str()).c_str();
+				QVERIFY(cp1.type() == cp2.type());
+				QVERIFY(cp1.toList() == cp2.toList());
+			}
+			{
+				RpcValue cp1{RpcValue::List{1,2,3}};
+				std::stringstream out;
+				int len = ChainPackProtocol::write(out, cp1);
+				RpcValue cp2 = ChainPackProtocol::read(out);
+				qDebug() << cp1.toStdString() << " " << cp2.toStdString() << " len: " << len << " dump: " << binary_dump(out.str()).c_str();
 				QVERIFY(cp1.type() == cp2.type());
 				QVERIFY(cp1.toList() == cp2.toList());
 			}
@@ -456,7 +472,7 @@ private:
 				RpcValue::IMap map {
 					{1, "foo"},
 					{2, "bar"},
-					{3, "baz"},
+					{333, 15u},
 				};
 				RpcValue cp1{map};
 				std::stringstream out;
@@ -483,8 +499,8 @@ private:
 		{
 			qDebug() << "------------- Meta";
 			RpcValue cp1{RpcValue::List{17, 18, 19}};
-			cp1.setMetaValue(MetaTypes::Tag::MetaTypeNameSpaceId, (unsigned)1);
-			cp1.setMetaValue(MetaTypes::Tag::MetaTypeId, (unsigned)2);
+			cp1.setMetaValue(MetaTypes::Tag::MetaTypeNameSpaceId, MetaTypes::Elesys::Value);
+			cp1.setMetaValue(MetaTypes::Tag::MetaTypeId, 2u);
 			cp1.setMetaValue(MetaTypes::Tag::USER, "foo");
 			cp1.setMetaValue(MetaTypes::Tag::USER+1, RpcValue::List{1,2,3});
 			std::stringstream out;
