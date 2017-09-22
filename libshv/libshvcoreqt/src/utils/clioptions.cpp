@@ -291,7 +291,7 @@ QPair<QString, QString> CLIOptions::applicationDirAndName() const
 	if(app_name.isEmpty()) {
 		if(m_allArgs.size()) {
 	#ifdef Q_OS_WIN
-			//static constexpr int MAX_PATH = 1024;
+			static constexpr int MAX_PATH = 1024;
 			QString app_file_path;
 			wchar_t buffer[MAX_PATH + 2];
 			DWORD v = GetModuleFileName(0, buffer, MAX_PATH + 1);
