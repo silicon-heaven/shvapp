@@ -70,7 +70,6 @@ void TheApp::installUnixSignalHandlers()
 	connect(m_snTerm, &QSocketNotifier::activated, this, &TheApp::handleSigTerm);
 	shvInfo() << "SIG_TERM handler installed OK";
 }
-#endif
 
 void TheApp::sigTermHandler(int)
 {
@@ -90,6 +89,7 @@ void TheApp::handleSigTerm()
 
 	m_snTerm->setEnabled(true);
 }
+#endif
 /*
 sql::SqlConnector *TheApp::sqlConnector()
 {
