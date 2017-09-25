@@ -97,7 +97,10 @@ public:
 	inline ShvLog &operator<<(const void * t) { stream->ts << t; return maybeSpace(); }
 	inline ShvLog &operator<<(std::nullptr_t) { stream->ts << "(nullptr)"; return maybeSpace(); }
 
+	static std::string modulesLogInfo();
+	static std::string categoriesLogInfo();
 	static const char *levelToString(ShvLog::Level level);
+	static const char *logCLIHelp();
 };
 
 inline ShvLog &ShvLog::operator=(const ShvLog &other)

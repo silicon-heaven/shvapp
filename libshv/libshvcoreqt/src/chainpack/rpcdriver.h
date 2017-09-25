@@ -32,6 +32,7 @@ public:
 	Q_SIGNAL void messageReceived(shv::core::chainpack::RpcValue msg);
 	void sendRequestSync(const shv::core::chainpack::RpcRequest& request, shv::core::chainpack::RpcResponse *presponse, int time_out_ms);
 
+	void abortConnection();
 	bool isConnected() const;
 	Q_SIGNAL void connectedChanged(bool is_connected);
 

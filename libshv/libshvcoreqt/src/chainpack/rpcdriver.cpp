@@ -19,7 +19,7 @@
 
 #define logRpc() shvCDebug("rpc")
 #define logRpcSyncCalls() shvCDebug("RpcSyncCalls")
-#define logLongFiles() shvCDebug("LongFiles")
+//#define logLongFiles() shvCDebug("LongFiles")
 
 namespace shv {
 namespace coreqt {
@@ -35,6 +35,8 @@ RpcDriver::RpcDriver(QObject *parent)
 
 RpcDriver::~RpcDriver()
 {
+	shvDebug() << __FUNCTION__;
+	abortConnection();
 }
 
 void RpcDriver::setSocket(QTcpSocket *socket)
@@ -184,6 +186,13 @@ void RpcDriver:: sendRequestSync(const core::chainpack::RpcRequest &request, cor
 	} while(false);
 	if(presponse)
 		*presponse = resp_msg;
+}
+
+void RpcDriver::abortConnection()
+{
+	if(m_socket) {
+		m_socket->abort();
+	}
 }
 
 }}}

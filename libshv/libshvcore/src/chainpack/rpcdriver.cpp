@@ -8,7 +8,6 @@
 #include <iostream>
 
 #define logRpc() shvCDebug("rpc")
-#define logLongFiles() shvCDebug("LongFiles")
 
 namespace shv {
 namespace core {
@@ -78,7 +77,6 @@ void RpcDriver::sendMessage(const shv::core::chainpack::RpcValue &msg)
 	std::string packed_data = os_packed_data.str();
 	logRpc() << "send message: packed data: " << (packed_data.size() > 50? "<... long data ...>" : packed_data);
 
-	logLongFiles() << "High priority message enqueued:" << packed_data.length() << "bytes";
 	m_highPriorityQueue.push_back(Chunk{std::move(packed_data)});
 
 	writePendingData();

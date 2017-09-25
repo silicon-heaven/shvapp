@@ -4,4 +4,5 @@ CONFIG += ordered
 SUBDIRS += \
     libshv \
     shvbroker \
+    shvagent \
 

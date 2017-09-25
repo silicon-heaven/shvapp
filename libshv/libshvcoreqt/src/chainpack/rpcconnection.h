@@ -36,6 +36,7 @@ public:
 	void connectToHost(const QString &host_name, quint16 port);
 	Q_SIGNAL void connectedChanged(bool is_connected);
 	bool isConnected() const;
+	void abort();
 	//QHostAddress peerAddress();
 	//int peerPort();
 
@@ -57,6 +58,8 @@ protected:
 	Q_SLOT RpcResponse sendMessageSync(const RpcRequest &rpc_request_message, int time_out_ms = 0);
 
 	Q_SIGNAL void connectToHostRequest(const QString &host_name, quint16 port);
+	Q_SIGNAL void abortConnectionRequest();
+
 	void onSocketConnected();
 	void onSocketDisconnected();
 

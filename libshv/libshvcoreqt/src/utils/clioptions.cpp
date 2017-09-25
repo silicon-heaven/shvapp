@@ -351,8 +351,7 @@ void CLIOptions::printHelp(QTextStream& os) const
 		QString oc = opt.comment();
 		if(!oc.isEmpty()) os << "\t" << opt.comment() << endl;
 	}
-	//os << qf::core::LogDevice::logModulesCLIHelp() << endl;
-	//os << qf::core::LogDevice::logCategoriesCLIHelp() << endl;
+	os << shv::core::ShvLog::logCLIHelp() << endl;
 }
 
 void CLIOptions::printHelp() const

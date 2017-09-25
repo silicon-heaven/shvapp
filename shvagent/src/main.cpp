@@ -12,7 +12,7 @@ int main(int argc, char *argv[])
 {
 	QCoreApplication::setOrganizationName("Elektroline");
 	QCoreApplication::setOrganizationDomain("elektroline.cz");
-	QCoreApplication::setApplicationName("shvbroker");
+	QCoreApplication::setApplicationName("shvagent");
 	QCoreApplication::setApplicationVersion("0.0.1");
 
 	std::vector<std::string> shv_args = shv::core::ShvLog::setGlobalTresholds(argc, argv);
@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
 		return EXIT_SUCCESS;
 	}
 	foreach(QString s, cli_opts.unusedArguments()) {
-		shvDebug() << "Undefined argument:" << s;
+		shvWarning() << "Undefined argument:" << s;
 	}
 
 	if(!cli_opts.loadConfigFile()) {
@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
 	}
 
 	shvInfo() << "======================================================================================";
-	shvInfo() << "Starting SHV BROKER server, PID:" << QCoreApplication::applicationPid() << "build:" << __DATE__ << __TIME__;
+	shvInfo() << "Starting SHV AGENT server, PID:" << QCoreApplication::applicationPid() << "build:" << __DATE__ << __TIME__;
 #ifdef GIT_COMMIT
 	shvInfo() << "GIT commit:" << SHV_EXPAND_AND_QUOTE(GIT_COMMIT);
 #endif
@@ -54,7 +54,6 @@ int main(int argc, char *argv[])
 	shvInfo() << "Logged modules:" << shv::core::ShvLog::modulesLogInfo();
 	shvInfo() << "Logged categories:" << shv::core::ShvLog::categoriesLogInfo();
 	shvInfo() << "--------------------------------------------------------------------------------------";
-	//break;
 
 	TheApp a(argc, argv, &cli_opts);
 

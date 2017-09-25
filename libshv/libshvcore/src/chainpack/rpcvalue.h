@@ -90,7 +90,22 @@ public:
 		}
 	};
 	using List = std::vector<RpcValue>;
-	using Map = std::map<RpcValue::String, RpcValue>;
+	class Map : public std::map<RpcValue::String, RpcValue>
+	{
+		using Super = std::map<RpcValue::String, RpcValue>;
+		using Super::Super;
+	public:
+		//Map() : Super() {}
+		//Map(const Super &t) : Super(t) {}
+		//Map& operator=(const Super &o) {}
+		RpcValue value(const std::string &key, const RpcValue &default_val = RpcValue()) const
+		{
+			auto it = find(key);
+			if(it == end())
+				return default_val;
+			return it->second;
+		}
+	};
 	using IMap = std::map<RpcValue::UInt, RpcValue>;
 	class SHVCORE_DECL_EXPORT Array : public List
 	{

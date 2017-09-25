@@ -178,6 +178,10 @@ std::vector<std::string> setModulesTresholdsFromArgs(const std::vector<std::stri
 		if(s == "-d" || s == "--debug") {
 			i++;
 			std::string tresholds =  (i < args.size())? args[i]: std::string();
+			if(!tresholds.empty() && tresholds[0] == '-') {
+				i--;
+				continue;
+			}
 			setModulesTresholds(String::split(tresholds, ','));
 		}
 		else {
@@ -193,8 +197,8 @@ void setCategoriesTresholds(const std::vector<std::string> &tresholds)
 		mylog << "setting defaultCategoriesLogTreshold to: " << ShvLog::levelToString(ShvLog::Level::Debug) << std::endl;
 		s_globalLogFilter.defaultCategoriesLogTreshold = ShvLog::Level::Debug;
 	}
-	else for(std::string module : tresholds) {
-		std::pair<std::string, ShvLog::Level> lev = parseCategoryLevel(module);
+	else for(std::string category : tresholds) {
+		std::pair<std::string, ShvLog::Level> lev = parseCategoryLevel(category);
 		if(lev.first.empty()) {
 			mylog << "setting defaultCategoriesLogTreshold to: " << ShvLog::levelToString(lev.second) << std::endl;
 			s_globalLogFilter.defaultCategoriesLogTreshold = lev.second;
@@ -211,12 +215,15 @@ std::vector<std::string> setCategoriesTresholdsFromArgs(const std::vector<std::s
 	using namespace std;
 	vector<string> ret;
 	s_globalLogFilter.categoriesTresholds.clear();
-	std::vector<string> tresholds;
 	for(size_t i=0; i<args.size(); i++) {
 		const string &s = args[i];
 		if(s == "-v" || s == "--verbose") {
 			i++;
 			std::string tresholds =  (i < args.size())? args[i]: std::string();
+			if(!tresholds.empty() && tresholds[0] == '-') {
+				i--;
+				continue;
+			}
 			setCategoriesTresholds(String::split(tresholds, ','));
 		}
 		else {
@@ -250,31 +257,7 @@ std::vector<std::string> ShvLog::setGlobalTresholds(int argc, char *argv[])
 	std::vector<std::string> ret;
 	for(int i=1; i<argc; i++) {
 		const std::string &s = argv[i];
-		if(s == "-lh" || s == "--log-help") {
-			i++;
-			std::cout << "log options:" << std::endl;
-			std::cout << "-lh, --log-help" << std::endl;
-			std::cout << "\t" << "Show logging help" << std::endl;
-			std::cout << "-lfn, --log-long-file-names" << std::endl;
-			std::cout << "\t" << "Log long file names" << std::endl;
-			std::cout << "-d, --log-file [<pattern>]:[D|I|W|E]" << std::endl;
-			std::cout << "\t" << "Set file log treshold" << std::endl;
-			std::cout << "\t" << "set treshold for all files containing pattern to treshold" << std::endl;
-			std::cout << "\t" << "when pattern is not set, set treshold for all files" << std::endl;
-			std::cout << "\t" << "when treshold is not set, set treshold D (Debug) for all files containing pattern" << std::endl;
-			std::cout << "\t" << "when nothing is not set, set treshold D (Debug) for all files" << std::endl;
-			std::cout << "\t" << "Examples:" << std::endl;
-			std::cout << "\t\t" << "-d" << "\t\t" << "set treshold D (Debug) for all files" << std::endl;
-			std::cout << "\t\t" << "-d :W" << "\t\t" << "set treshold W (Warning) for all files" << std::endl;
-			std::cout << "\t\t" << "-d foo" << "\t\t" << "set treshold D for all files containing 'foo'" << std::endl;
-			std::cout << "\t\t" << "-d bar:W" << "\t" << "set treshold W (Warning) for all files containing 'bar'" << std::endl;
-			std::cout << "-v, --log-category [<pattern>]:[D|I|W|E]" << std::endl;
-			std::cout << "\t" << "Set category log treshold" << std::endl;
-			std::cout << "\t" << "set treshold for all categories containing pattern to treshold" << std::endl;
-			std::cout << "\t" << "the same rules as for module logging are applied to categiries" << std::endl;
-			exit(0);
-		}
-		else if(s == "-lfn" || s == "--log-long-file-names") {
+		if(s == "-lfn" || s == "--log-long-file-names") {
 			i++;
 			s_logLongFileNames = true;
 		}
@@ -298,6 +281,36 @@ ShvLog::MessageOutput ShvLog::messageOutput()
 	return message_output;
 }
 
+std::string ShvLog::modulesLogInfo()
+{
+	std::string ret;
+	for (auto& kv : s_globalLogFilter.modulesTresholds) {
+		if(!ret.empty())
+			ret += ',';
+		ret += kv.first + ':' + levelToString(kv.second)[0];
+	}
+	if(!ret.empty())
+		ret += ',';
+	ret = ret + ':' + levelToString(s_globalLogFilter.defaultModulesLogTreshold)[0];
+	return ret;
+}
+
+std::string ShvLog::categoriesLogInfo()
+{
+	std::string ret;
+	for (auto& kv : s_globalLogFilter.categoriesTresholds) {
+		if(!ret.empty())
+			ret += ',';
+		ret += kv.first + ':' + levelToString(kv.second)[0];
+	}
+	if(s_globalLogFilter.defaultCategoriesLogTreshold != Level::Invalid) {
+		if(!ret.empty())
+			ret += ',';
+		ret = ret + ':' + levelToString(s_globalLogFilter.defaultCategoriesLogTreshold)[0];
+	}
+	return ret;
+}
+
 bool ShvLog::isMatchingLogFilter(ShvLog::Level level, const ShvLog::LogContext &log_context)
 {
 	const LogFilter &log_filter = s_globalLogFilter;
@@ -317,7 +330,10 @@ bool ShvLog::isMatchingLogFilter(ShvLog::Level level, const ShvLog::LogContext &
 			if(String::indexOf(cat, kv.first, String::CaseInsensitive) != std::string::npos)
 				return level <= kv.second;
 		}
+		if(log_filter.defaultCategoriesLogTreshold != Level::Invalid)
+			return level <= log_filter.defaultCategoriesLogTreshold;
 #endif
+		return false;
 	}
 	{
 		std::string module = moduleFromFileName(log_context.file);
@@ -346,6 +362,28 @@ const char* ShvLog::levelToString(ShvLog::Level level)
 		return "Invalid";
 	}
 	return "???";
+}
+
+const char *ShvLog::logCLIHelp()
+{
+	return
+		"-lfn, --log-long-file-names\n"
+		"\tLog long file names\n"
+		"-d, --log-file [<pattern>]:[D|I|W|E]\n"
+		"\tSet file log treshold\n"
+		"\tset treshold for all files containing pattern to treshold\n"
+		"\twhen pattern is not set, set treshold for all files\n"
+		"\twhen treshold is not set, set treshold D (Debug) for all files containing pattern\n"
+		"\twhen nothing is not set, set treshold D (Debug) for all files\n"
+		"\tExamples:\n"
+		"\t\t-d\t\tset treshold D (Debug) for all files\n"
+		"\t\t-d :W\t\tset treshold W (Warning) for all files\n"
+		"\t\t-d foo,bar\t\tset treshold D for all files containing 'foo' or 'bar'\n"
+		"\t\t-d bar:W\tset treshold W (Warning) for all files containing 'bar'\n"
+		"-v, --log-category [<pattern>]:[D|I|W|E]\n"
+		"\tSet category log treshold\n"
+		"\tset treshold for all categories containing pattern to treshold\n"
+		"\tthe same rules as for module logging are applied to categiries\n";
 }
 
 }}

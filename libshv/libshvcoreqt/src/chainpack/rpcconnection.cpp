@@ -25,21 +25,34 @@ RpcConnection::RpcConnection(QObject *parent)
 	connect(this, &RpcConnection::sendMessageRequest, m_rpcDriver, &RpcDriver::sendMessage, Qt::QueuedConnection);
 	connect(this, &RpcConnection::sendMessageSyncRequest, m_rpcDriver, &RpcDriver::sendRequestSync, Qt::BlockingQueuedConnection);
 	connect(this, &RpcConnection::connectToHostRequest, m_rpcDriver, &RpcDriver::connectToHost, Qt::QueuedConnection);
+	connect(this, &RpcConnection::abortConnectionRequest, m_rpcDriver, &RpcDriver::abortConnection, Qt::QueuedConnection);
 
 	connect(m_rpcDriver, &RpcDriver::connectedChanged, this, &RpcConnection::connectedChanged, Qt::QueuedConnection);
 	connect(m_rpcDriver, &RpcDriver::messageReceived, this, &RpcConnection::onMessageReceived, Qt::QueuedConnection);
-	//connect(m_socketDriver, &RpcDriver::rpcError, this, &RpcConnection::rpcError, Qt::QueuedConnection);
-
-	connect(m_rpcDriverThread, &QThread::finished, [this]() {
+	/*
+	connect(m_rpcDriverThread, &QThread::finished, this, [this]() {
 		delete this->m_rpcDriver;
 		this->m_rpcDriver = nullptr;
 	});
-
+	*/
 	m_rpcDriverThread->start();
 }
 
 RpcConnection::~RpcConnection()
 {
+	shvDebug() << __FUNCTION__;
+	m_rpcDriverThread->quit();
+	shvDebug() << "after quit";
+	//delete m_rpcDriver;
+	if(m_rpcDriverThread->isRunning()) {
+		shvDebug() << "stopping rpc driver thread";
+		m_rpcDriverThread->quit();
+	}
+	shvDebug() << "joining rpc driver thread";
+	bool ok = m_rpcDriverThread->wait();
+	shvDebug() << "rpc driver thread joined ok:" << ok;
+	delete m_rpcDriverThread;
+	delete m_rpcDriver;
 }
 
 void RpcConnection::setSocket(QTcpSocket *socket)
@@ -55,6 +68,11 @@ void RpcConnection::connectToHost(const QString &host_name, quint16 port)
 bool RpcConnection::isConnected() const
 {
 	return m_rpcDriver->isConnected();
+}
+
+void RpcConnection::abort()
+{
+	emit abortConnectionRequest();
 }
 
 void RpcConnection::onMessageReceived(const RpcConnection::RpcValue &rpc_val)

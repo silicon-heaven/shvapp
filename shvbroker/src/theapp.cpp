@@ -1,6 +1,9 @@
 #include "theapp.h"
+#include "rpc/tcpserver.h"
 
 #include <shv/coreqt/log.h>
+
+#include <shv/core/utils.h>
 
 #include <QSocketNotifier>
 #include <QTimer>
@@ -35,7 +38,7 @@ TheApp::TheApp(int &argc, char **argv, AppCliOptions *cli_opts)
 	connect(m_sqlConnectionWatchDog, SIGNAL(timeout()), this, SLOT(reconnectSqlServer()));
 	m_sqlConnectionWatchDog->start(SQL_RECONNECT_INTERVAL);
 	*/
-	//QTimer::singleShot(0, this, &TheApp::lazyInit);
+	QTimer::singleShot(0, this, &TheApp::lazyInit);
 }
 
 TheApp::~TheApp()
@@ -90,6 +93,7 @@ void TheApp::handleSigTerm()
 	m_snTerm->setEnabled(true);
 }
 #endif
+
 /*
 sql::SqlConnector *TheApp::sqlConnector()
 {
@@ -106,22 +110,6 @@ QString TheApp::serverProfile()
 QVariantMap TheApp::cliOptionsMap()
 {
 	return cliOptions()->values();
-}
-
-rpc::TcpServer* TheApp::startTcpServer()
-{
-	QF_SAFE_DELETE(m_tcpServer);
-	m_tcpServer = new rpc::TcpServer(this);
-	m_tcpServer->setPort(cliOptions()->serverPort());
-	if(m_tcpServer->start()) {
-		connect(depotModel(), &DepotModel::valueChangedWillBeEmitted, m_tcpServer, &rpc::TcpServer::broadcastDepotModelValueChanged, Qt::QueuedConnection);
-		connect(this, &TheApp::depotEvent, m_tcpServer, &rpc::TcpServer::broadcastDepotEvent, Qt::QueuedConnection);
-	}
-	else {
-		//QF_SAFE_DELETE(m_tcpServer);
-		QF_EXCEPTION("Cannot start TCP server!");
-	}
-	return m_tcpServer;
 }
 
 void TheApp::reconnectSqlServer()
@@ -155,9 +143,24 @@ void TheApp::onSqlServerConnected()
 	//m_depotModel->setValue(QStringList() << QStringLiteral("server") << QStringLiteral("startTime"), QVariant::fromValue(QDateTime::currentDateTime()), !shv::core::Exception::Throw);
 }
 
+void TheApp::startTcpServer()
+{
+	SHV_SAFE_DELETE(m_tcpServer);
+	m_tcpServer = new rpc::TcpServer(this);
+	//m_tcpServer->setPort(cliOptions()->serverPort());
+	if(m_tcpServer->start(cliOptions()->serverPort())) {
+		//connect(depotModel(), &DepotModel::valueChangedWillBeEmitted, m_tcpServer, &rpc::TcpServer::broadcastDepotModelValueChanged, Qt::QueuedConnection);
+		//connect(this, &TheApp::depotEvent, m_tcpServer, &rpc::TcpServer::broadcastDepotEvent, Qt::QueuedConnection);
+	}
+	else {
+		//QF_SAFE_DELETE(m_tcpServer);
+		SHV_EXCEPTION("Cannot start TCP server!");
+	}
+}
+
 void TheApp::lazyInit()
 {
 	//reconnectSqlServer();
-	//startTcpServer();
+	startTcpServer();
 }
 

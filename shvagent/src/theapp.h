@@ -6,8 +6,9 @@
 #include <QDateTime>
 
 class QSocketNotifier;
+class QTimer;
 
-namespace rpc { class TcpServer; }
+namespace rpc { class ClientConnection; }
 
 class TheApp : public QCoreApplication
 {
@@ -21,30 +22,15 @@ public:
 	QString versionString() const;
 
 	AppCliOptions* cliOptions() {return m_cliOptions;}
-	//sql::SqlConnector *sqlConnector();
 
 	static TheApp* instance() {return qobject_cast<TheApp*>(Super::instance());}
-public:
-	//rpc::TcpServer* tcpServer() {return m_tcpServer;}
-
-	Q_SIGNAL void sqlServerConnected();
 private:
 	void lazyInit();
-
-	QString serverProfile(); // unified access via Globals::serverProfile()
-	void startTcpServer();
-	//Q_SLOT void reconnectSqlServer();
-	Q_SLOT void onSqlServerError(const QString &err_mesg);
-	Q_SLOT void onSqlServerConnected();
-	//Q_SLOT void reloadServices();
-
+	void checkConnected();
 private:
 	AppCliOptions *m_cliOptions;
-	rpc::TcpServer *m_tcpServer = nullptr;
-	/*
-	sql::SqlConnector *m_sqlConnector = nullptr;
-	QTimer *m_sqlConnectionWatchDog;
-	*/
+	QTimer *m_checkConnectedTimer;
+	rpc::ClientConnection *m_clientConnection = nullptr;
 #ifdef Q_OS_UNIX
 private:
 	// Unix signal handlers.
@@ -53,7 +39,7 @@ private:
 	void installUnixSignalHandlers();
 	static void sigTermHandler(int);
 	Q_SLOT void handleSigTerm();
-
+private:
 	static int m_sigTermFd[2];
 	QSocketNotifier *m_snTerm = nullptr;
 #endif
