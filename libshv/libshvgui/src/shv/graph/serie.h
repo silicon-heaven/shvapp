@@ -70,11 +70,11 @@ public:
 	const SerieData &serieModelData(const View *view) const;
 	const SerieData &serieModelData(const GraphModel *model) const;
 
-private:
 	void update(bool force = false);
 	const Serie *masterSerie() const;
 	View *view() const;
 
+private:
 	QString m_name;
 	ValueType m_type;
 	QColor m_color;
