@@ -42,12 +42,12 @@ std::vector<std::string> String::split(const std::string &str, char delim, Split
 	size_t pos = 0;
 	while(true) {
 		size_t pos2 = str.find_first_of(delim, pos);
-		string s = (pos2 == string::npos)? str.substr(pos): str.substr(pos, pos - pos2);
+		string s = (pos2 == string::npos)? str.substr(pos): str.substr(pos, pos2 - pos);
 		if(split_behavior == KeepEmptyParts || !s.empty())
 			ret.push_back(s);
 		if(pos2 == string::npos)
 			break;
-		pos2 = pos;
+		pos = pos2 + 1;
 	}
 	return ret;
 }
