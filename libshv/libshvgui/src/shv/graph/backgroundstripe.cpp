@@ -109,6 +109,11 @@ void BackgroundStripe::setRange(const ValueChange &min, const ValueChange &max)
 	update();
 }
 
+void BackgroundStripe::setRange(const View::XAxisInterval &range)
+{
+	setRange(range.start, range.end);
+}
+
 void BackgroundStripe::setOutlineType(BackgroundStripe::OutlineType outline)
 {
 	if (m_outline != outline) {
@@ -136,8 +141,17 @@ void BackgroundStripe::setOutlineColor(const QColor &color)
 void BackgroundStripe::update()
 {
 	View *graph = qobject_cast<View*>(parent());
-	if (graph && graph->settings.showSerieBackgroundStripes) {
+	if (graph) {
 		graph->update();
+	}
+	else {
+		Serie *serie = qobject_cast<Serie*>(parent());
+		if (serie) {
+			View *graph = serie->view();
+			if (graph && graph->settings.showSerieBackgroundStripes) {
+				graph->update();
+			}
+		}
 	}
 }
 
