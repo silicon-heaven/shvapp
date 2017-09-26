@@ -109,9 +109,9 @@ void BackgroundStripe::setRange(const ValueChange &min, const ValueChange &max)
 	update();
 }
 
-void BackgroundStripe::setRange(const View::XAxisInterval &range)
+void BackgroundStripe::setRange(const ValueXInterval &range)
 {
-	setRange(range.start, range.end);
+	setRange(range.min, range.max);
 }
 
 void BackgroundStripe::setOutlineType(BackgroundStripe::OutlineType outline)
