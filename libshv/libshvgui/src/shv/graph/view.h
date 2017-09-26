@@ -122,12 +122,6 @@ public:
 		std::function <void (QMenu*)> contextMenuExtend;
 	};
 
-	struct XAxisInterval
-	{
-		ValueChange::ValueX start;
-		ValueChange::ValueX end;
-	};
-
 	View(QWidget *parent);
 	~View();
 
@@ -136,7 +130,7 @@ public:
 	void releaseModel();
 
 	void showRange(ValueChange::ValueX from, ValueChange::ValueX to);
-	void showRange(XAxisInterval range);
+	void showRange(ValueXInterval range);
 	void zoom(qint64 center, double scale);
 
 	GraphModel *model() const;
@@ -149,10 +143,10 @@ public:
 	void showDependentSeries(bool enable);
 	void computeGeometry();
 
-	QVector<XAxisInterval> selections() const;
-	XAxisInterval loadedRange() const;
-	XAxisInterval shownRange() const;
-	void addSelection(XAxisInterval selection);
+	std::vector<ValueXInterval> selections() const;
+	ValueXInterval loadedRange() const;
+	ValueXInterval shownRange() const;
+	void addSelection(ValueXInterval selection);
 	void clearSelections();
 
 	inline Mode mode() const { return m_mode; }

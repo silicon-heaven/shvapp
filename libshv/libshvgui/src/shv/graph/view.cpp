@@ -164,9 +164,9 @@ void View::showRange(ValueChange::ValueX from, ValueChange::ValueX to)
 	showRangeInternal(xValue(from), xValue(to));
 }
 
-void View::showRange(View::XAxisInterval range)
+void View::showRange(ValueXInterval range)
 {
-	showRange(range.start, range.end);
+	showRange(range.min, range.max);
 }
 
 void View::setModel(GraphModel *model)
@@ -201,8 +201,6 @@ void View::onModelDataChanged() //TODO improve change detection in model
 	qint64 orig_displayed_range_max = m_displayedRangeMax;
 	qint64 orig_displayed_range_length = orig_displayed_range_max - orig_displayed_range_min;
 
-	m_loadedRangeMin = UINT64_MAX;
-	m_loadedRangeMax = 0;
 	for (Serie *serie : m_series) {
 		const SerieData &serie_model_data = serie->serieModelData(this);
 		serie->displayedDataBegin = serie_model_data.begin();
@@ -1216,12 +1214,12 @@ void View::showDependentSeries(bool enable)
 	update();
 }
 
-QVector<View::XAxisInterval> View::selections() const
+std::vector<ValueXInterval> View::selections() const
 {
 	ValueChange::ValueX start(0);
 	ValueChange::ValueX end(0);
 
-	QVector<XAxisInterval> selections;
+	std::vector<ValueXInterval> selections;
 	for (const Selection &selection : m_selections) {
 		qint64 s_start = selection.start;
 		qint64 s_end = selection.end;
@@ -1244,29 +1242,29 @@ QVector<View::XAxisInterval> View::selections() const
 		default:
 			break;
 		}
-		selections << XAxisInterval { start, end };
+		selections.emplace_back(start, end, settings.xAxisType);
 	}
 
 	return selections;
 }
 
-View::XAxisInterval View::loadedRange() const
+ValueXInterval View::loadedRange() const
 {
-	return XAxisInterval { internalToValueX(m_loadedRangeMin), internalToValueX(m_loadedRangeMax) };
+	return ValueXInterval(internalToValueX(m_loadedRangeMin), internalToValueX(m_loadedRangeMax), settings.xAxisType);
 }
 
-View::XAxisInterval View::shownRange() const
+ValueXInterval View::shownRange() const
 {
-	return XAxisInterval { internalToValueX(m_displayedRangeMin), internalToValueX(m_displayedRangeMax) };
+	return ValueXInterval(internalToValueX(m_displayedRangeMin), internalToValueX(m_displayedRangeMax), settings.xAxisType);
 }
 
-void View::addSelection(XAxisInterval selection)
+void View::addSelection(ValueXInterval selection)
 {
 	bool overlap = false;
 
 	Selection new_selection;
-	new_selection.start = xValue(ValueChange { selection.start, {} });
-	new_selection.end = xValue(ValueChange { selection.end, {} });
+	new_selection.start = xValue(ValueChange { selection.min, {} });
+	new_selection.end = xValue(ValueChange { selection.max, {} });
 
 	for (const Selection &s: m_selections){
 		qint64 s_start = s.start;
@@ -1277,7 +1275,7 @@ void View::addSelection(XAxisInterval selection)
 		}
 
 		if ((new_selection.start <= s_end) && (new_selection.end >= s_start)) {
-				overlap = true;
+			overlap = true;
 		}
 	}
 

@@ -91,14 +91,17 @@ struct SHVGUI_DECL_EXPORT ValueChange
 	ValueChange() {}
 };
 
-struct ValueXInterval {
-	inline ValueXInterval(ValueChange::ValueX min, ValueChange::ValueX max) : min(min), max(max) {}
-	inline ValueXInterval(int min, int max) : min(min), max(max) {}
-	inline ValueXInterval(ValueChange::TimeStamp min, ValueChange::TimeStamp max) : min(min), max(max) {}
-	inline ValueXInterval(double min, double max) : min(min), max(max) {}
+struct ValueXInterval
+{
+	inline ValueXInterval(ValueChange min, ValueChange max, ValueType type) : min(min.valueX), max(max.valueX), type(type) {}
+	inline ValueXInterval(ValueChange::ValueX min, ValueChange::ValueX max, ValueType type) : min(min), max(max), type(type) {}
+	inline ValueXInterval(int min, int max) : min(min), max(max), type(ValueType::Int) {}
+	inline ValueXInterval(ValueChange::TimeStamp min, ValueChange::TimeStamp max) : min(min), max(max), type(ValueType::TimeStamp) {}
+	inline ValueXInterval(double min, double max) : min(min), max(max), type(ValueType::Double) {}
 
 	ValueChange::ValueX min;
 	ValueChange::ValueX max;
+	ValueType type;
 };
 
 SHVGUI_DECL_EXPORT bool compareValueX(const ValueChange &value1, const ValueChange &value2, ValueType type);

@@ -3,7 +3,6 @@
 #include "../../shvguiglobal.h"
 
 #include "graphmodel.h"
-#include "view.h"
 
 #include <QColor>
 
@@ -43,7 +42,7 @@ public:
 	void setMin(const ValueChange &min);
 	void setMax(const ValueChange &max);
 	void setRange(const ValueChange &min, const ValueChange &max);
-	void setRange(const View::XAxisInterval &range);
+	void setRange(const ValueXInterval &range);
 	void setOutlineType(OutlineType outline);
 	void setStripeColor(const QColor &color);
 	void setOutlineColor(const QColor &color);

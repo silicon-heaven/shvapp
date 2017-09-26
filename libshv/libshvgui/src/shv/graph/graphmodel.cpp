@@ -1,7 +1,5 @@
 #include "graphmodel.h"
 
-#include "float.h"
-
 #include <shv/core/shvexception.h>
 
 #include <QDebug>
@@ -48,16 +46,16 @@ QPair<SerieData::const_iterator, SerieData::const_iterator> SerieData::intersect
 ValueXInterval SerieData::range() const
 {
 	if (size()) {
-		return ValueXInterval { at(0).valueX, back().valueX };
+		return ValueXInterval(at(0).valueX, back().valueX, xType());
 	}
 	else {
 		switch (xType()) {
 		case ValueType::Double:
-			return ValueXInterval { ValueChange::ValueX(0.0), ValueChange::ValueX(0.0) };
+			return ValueXInterval(0.0, 0.0);
 		case ValueType::Int:
-			return ValueXInterval { ValueChange::ValueX(0), ValueChange::ValueX(0) };
+			return ValueXInterval(0, 0);
 		case ValueType::TimeStamp:
-			return ValueXInterval { ValueChange::ValueX(0LL), ValueChange::ValueX(0LL) };
+			return ValueXInterval(0LL, 0LL);
 		default:
 			SHV_EXCEPTION("Invalid type on X axis");
 		}
@@ -114,7 +112,7 @@ ValueXInterval GraphModelData::intRange() const
 
 ValueXInterval GraphModelData::doubleRange() const
 {
-	ValueXInterval range(DBL_MAX, DBL_MIN);
+	ValueXInterval range(std::numeric_limits<double>::max(), std::numeric_limits<double>::min());
 
 	for (const SerieData &serie : m_valueChanges) {
 		if (serie.xType() != ValueType::Double) {
@@ -129,7 +127,7 @@ ValueXInterval GraphModelData::doubleRange() const
 			range.max.doubleValue = serie_range.max.doubleValue;
 		}
 	}
-	if (range.min.doubleValue == DBL_MAX) {
+	if (range.min.doubleValue == std::numeric_limits<double>::max()) {
 		range = ValueXInterval(0.0, 0.0);
 	}
 
