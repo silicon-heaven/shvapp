@@ -273,9 +273,6 @@ private:
 	qint64 xValue(const ValueChange::ValueX &value_x) const;
 	ValueChange::ValueX internalToValueX(qint64 value) const;
 	QString xValueString(qint64 value, const QString &datetime_format) const;
-	void computeRange(double &min, double &max, const Serie *serie) const;
-	void computeRange(int &min, int &max, const Serie *serie) const;
-	void computeRange(qint64 &min, qint64 &max, const Serie *serie) const;
 	template<typename T> void computeRange(T &min, T &max) const;
 	void computeDataRange();
 	void showRangeInternal(qint64 from, qint64 to);

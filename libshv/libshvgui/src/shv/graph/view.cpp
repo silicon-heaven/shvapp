@@ -216,35 +216,33 @@ void View::onModelDataChanged() //TODO improve change detection in model
 	{
 		double min, max;
 		computeRange(min, max);
-		if (min < 0.0) {
-			SHV_EXCEPTION("GraphView cannot operate negative values on x axis");
-		}
 		m_xValueScale = INT64_MAX / max;
-		m_dataRangeMin = m_displayedRangeMin = m_loadedRangeMin = min * m_xValueScale;
-		m_dataRangeMax = m_displayedRangeMax = m_loadedRangeMax = max * m_xValueScale;
+		m_loadedRangeMin = min * m_xValueScale;
+		m_loadedRangeMax = max * m_xValueScale;
 		break;
 	}
 	case ValueType::Int:
 	{
 		int min, max;
 		computeRange(min, max);
-		if (min < 0.0) {
-			SHV_EXCEPTION("GraphView cannot operate negative values on x axis");
-		}
-		m_dataRangeMin = m_displayedRangeMin = m_loadedRangeMin = min;
-		m_dataRangeMax = m_displayedRangeMax = m_loadedRangeMax = max;
+		m_loadedRangeMin = min;
+		m_loadedRangeMax = max;
 		break;
 	}
 	case ValueType::TimeStamp:
 	{
 		computeRange(m_loadedRangeMin, m_loadedRangeMax);
-		m_dataRangeMin = m_displayedRangeMin = m_loadedRangeMin;
-		m_dataRangeMax = m_displayedRangeMax = m_loadedRangeMax;
 		break;
 	}
 	default:
 		break;
 	}
+	if (m_loadedRangeMin < 0LL) {
+		SHV_EXCEPTION("GraphView cannot operate negative values on x axis");
+	}
+	m_dataRangeMin = m_displayedRangeMin = m_loadedRangeMin;
+	m_dataRangeMax = m_displayedRangeMax = m_loadedRangeMax;
+
 	if (m_mode == Mode::Dynamic) {
 		qint64 loaded_range_length = m_loadedRangeMax - m_loadedRangeMin;
 
@@ -2467,19 +2465,6 @@ QString View::xValueString(qint64 value, const QString &datetime_format) const
 	return s;
 }
 
-void View::computeRange(double &min, double &max, const Serie *serie) const
-{
-	const SerieData &data = serie->serieModelData(this);
-	if (data.size()) {
-		if (data.at(0).valueX.doubleValue < min) {
-			min = data.at(0).valueX.doubleValue;
-		}
-		if (data.back().valueX.doubleValue > max) {
-			max = data.back().valueX.doubleValue;
-		}
-	}
-}
-
 template<typename T>
 void View::computeRange(T &min, T &max) const
 {
@@ -2487,39 +2472,13 @@ void View::computeRange(T &min, T &max) const
 	max = std::numeric_limits<T>::min();
 
 	for (const Serie *serie : m_series) {
-		computeRange(min, max, serie);
+		serie->serieModelData(this).extendRange(min, max);
 		for (const Serie *dependent_serie : serie->dependentSeries()) {
-			computeRange(min, max, dependent_serie);
+			dependent_serie->serieModelData(this).extendRange(min, max);
 		}
 	}
 	if (min == std::numeric_limits<T>::max() && max == std::numeric_limits<T>::min()) {
 		min = max = 0;
-	}
-}
-
-void View::computeRange(int &min, int &max, const Serie *serie) const
-{
-	const SerieData &data = serie->serieModelData(this);
-	if (data.size()) {
-		if (data.at(0).valueX.intValue < min) {
-			min = data.at(0).valueX.intValue;
-		}
-		if (data.back().valueX.intValue > max) {
-			max = data.back().valueX.intValue;
-		}
-	}
-}
-
-void View::computeRange(qint64 &min, qint64 &max, const Serie *serie) const
-{
-	const SerieData &data = serie->serieModelData(this);
-	if (data.size()) {
-		if (data.at(0).valueX.timeStamp < min) {
-			min = data.at(0).valueX.timeStamp;
-		}
-		if (data.back().valueX.timeStamp > max) {
-			max = data.back().valueX.timeStamp;
-		}
 	}
 }
 

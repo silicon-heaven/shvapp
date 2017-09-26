@@ -79,85 +79,47 @@ bool SerieData::addValueChange(const ValueChange &value)
 	return false;
 }
 
+void SerieData::extendRange(int &min, int &max) const
+{
+	if (size()) {
+		if (at(0).valueX.intValue < min) {
+			min = at(0).valueX.intValue;
+		}
+		if (back().valueX.intValue > max) {
+			max = back().valueX.intValue;
+		}
+	}
+}
+
+void SerieData::extendRange(double &min, double &max) const
+{
+	if (size()) {
+		if (at(0).valueX.doubleValue < min) {
+			min = at(0).valueX.doubleValue;
+		}
+		if (back().valueX.doubleValue > max) {
+			max = back().valueX.doubleValue;
+		}
+	}
+}
+
+void SerieData::extendRange(ValueChange::TimeStamp &min, ValueChange::TimeStamp &max) const
+{
+	if (size()) {
+		if (at(0).valueX.timeStamp < min) {
+			min = at(0).valueX.timeStamp;
+		}
+		if (back().valueX.timeStamp > max) {
+			max = back().valueX.timeStamp;
+		}
+	}
+}
+
 void GraphModelData::checkIndex(int serie_index) const
 {
 	if (serie_index >= (int)m_valueChanges.size()) {
 		SHV_EXCEPTION("bad serie index");
 	}
-}
-
-ValueXInterval GraphModelData::intRange() const
-{
-	ValueXInterval range(INT_MAX, INT_MIN);
-
-	for (const SerieData &serie : m_valueChanges) {
-		if (serie.xType() != ValueType::Int) {
-			SHV_EXCEPTION("Cannot determine data range when X types are different");
-		}
-
-		ValueXInterval serie_range = serie.range();
-		if (serie_range.min.intValue < range.min.intValue) {
-			range.min.intValue = serie_range.min.intValue;
-		}
-		if (serie_range.max.intValue > range.max.intValue) {
-			range.max.intValue = serie_range.max.intValue;
-		}
-	}
-	if (range.min.intValue == INT_MAX) {
-		range = ValueXInterval(0, 0);
-	}
-
-	return range;
-}
-
-ValueXInterval GraphModelData::doubleRange() const
-{
-	ValueXInterval range(std::numeric_limits<double>::max(), std::numeric_limits<double>::min());
-
-	for (const SerieData &serie : m_valueChanges) {
-		if (serie.xType() != ValueType::Double) {
-			SHV_EXCEPTION("Cannot determine data range when X types are different");
-		}
-
-		ValueXInterval serie_range = serie.range();
-		if (serie_range.min.doubleValue < range.min.doubleValue) {
-			range.min.doubleValue = serie_range.min.doubleValue;
-		}
-		if (serie_range.max.doubleValue > range.max.doubleValue) {
-			range.max.doubleValue = serie_range.max.doubleValue;
-		}
-	}
-	if (range.min.doubleValue == std::numeric_limits<double>::max()) {
-		range = ValueXInterval(0.0, 0.0);
-	}
-
-	return range;
-}
-
-ValueXInterval GraphModelData::timeStampRange() const
-{
-	ValueXInterval range((ValueChange::TimeStamp)INT64_MAX, (ValueChange::TimeStamp)INT64_MIN);
-
-	for (const SerieData &serie : m_valueChanges) {
-		if (serie.xType() != ValueType::TimeStamp) {
-			SHV_EXCEPTION("Cannot determine data range when X types are different");
-		}
-		if (serie.size()) {
-			ValueXInterval serie_range = serie.range();
-
-			if (serie_range.min.timeStamp < range.min.timeStamp) {
-				range.min.timeStamp = serie_range.min.timeStamp;
-			}
-			if (serie_range.max.timeStamp > range.max.timeStamp) {
-				range.max.timeStamp = serie_range.max.timeStamp;
-			}
-		}
-	}
-	if (range.min.timeStamp == INT64_MAX) {
-		range = ValueXInterval((ValueChange::TimeStamp)0, (ValueChange::TimeStamp)0);
-	}
-
-	return range;
 }
 
 bool compareValueX(const ValueChange &value1, const ValueChange &value2, ValueType type)
@@ -351,17 +313,38 @@ ValueXInterval GraphModelData::range() const
 	if (!m_valueChanges.size()) {
 		SHV_EXCEPTION("Cannot state range where no series are present");
 	}
+
 	ValueType type = m_valueChanges[0].xType();
 	switch (type) {
 	case ValueType::Double:
-		return doubleRange();
+		return computeRange<double>();
 	case ValueType::Int:
-		return intRange();
+		return computeRange<int>();
 	case ValueType::TimeStamp:
-		return timeStampRange();
+		return computeRange<ValueChange::TimeStamp>();
 	default:
 		SHV_EXCEPTION("Invalid X axis type");
 	}
+}
+
+template<typename T>
+ValueXInterval GraphModelData::computeRange() const
+{
+	T min = std::numeric_limits<T>::max();
+	T max = std::numeric_limits<T>::min();
+
+	ValueType type = m_valueChanges[0].xType();
+
+	for (const SerieData &serie : m_valueChanges) {
+		if (serie.xType() != type) {
+			SHV_EXCEPTION("Cannot determine range when different types on X axis");
+		}
+		serie.extendRange(min, max);
+	}
+	if (min == std::numeric_limits<T>::max() && max == std::numeric_limits<T>::min()) {
+		min = max = 0;
+	}
+	return ValueXInterval(min, max);
 }
 
 bool GraphModelData::addValueChangeInternal(int serie_index, const shv::gui::ValueChange &value)

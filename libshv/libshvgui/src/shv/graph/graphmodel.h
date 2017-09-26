@@ -130,6 +130,10 @@ public:
 	ValueXInterval range() const;
 	bool addValueChange(const ValueChange &value);
 
+	void extendRange(int &min, int &max) const;
+	void extendRange(double &min, double &max) const;
+	void extendRange(ValueChange::TimeStamp &min, ValueChange::TimeStamp &max) const;
+
 private:
 	ValueType m_xType;
 	ValueType m_yType;
@@ -165,10 +169,7 @@ public:
 protected:
 	void checkIndex(int serie_index) const;
 	virtual bool addValueChangeInternal(int serie_index, const shv::gui::ValueChange &value);
-
-	ValueXInterval intRange() const;
-	ValueXInterval doubleRange() const;
-	ValueXInterval timeStampRange() const;
+	template<typename T> ValueXInterval computeRange() const;
 
 	std::vector<SerieData> m_valueChanges;
 	QVector<int> m_changedSeries;
