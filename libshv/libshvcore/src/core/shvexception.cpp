@@ -15,5 +15,5 @@ shv::core::Exception::Exception(const std::string &_msg, const std::string &_whe
 
 const char *shv::core::Exception::what() const noexcept
 {
-	return message().c_str();
+	return m_msg.c_str();
 }
