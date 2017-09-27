@@ -45,7 +45,6 @@ public:
 	{
 		struct Axis
 		{
-//			enum RangeType { Automatic, Fixed };
 			enum RangeType { Fixed };
 			bool show = true;
 			QString description;
@@ -93,7 +92,6 @@ public:
 
 		struct Legend
 		{
-//			enum Type { Fixed, ToolTip };
 			enum Type { ToolTip };
 
 			bool show = true;
@@ -115,7 +113,6 @@ public:
 		QString legendStyle;
 		bool showCrossLine = true;
 		bool showDependent = true;
-		bool enableOvelapingSelections = false;
 		bool showSerieBackgroundStripes = false;
 		QTimeZone sourceDataTimeZone = QTimeZone::utc();
 		QTimeZone viewTimeZone = QTimeZone::utc();
@@ -205,6 +202,10 @@ private:
 		qint64 start;
 		qint64 end;
 
+		Selection(qint64 s = 0, qint64 e = 0) : start(s), end(e) {}
+
+		Selection normalized() const {return Selection(qMin(start, end), qMax(start, end));}
+		Selection& normalize() {if(end < start) qSwap(start, end); return *this;}
 		bool containsValue(qint64 value) const;
 	};
 

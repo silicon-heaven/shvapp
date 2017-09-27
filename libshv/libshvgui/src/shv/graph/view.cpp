@@ -784,7 +784,7 @@ void View::mousePressEvent(QMouseEvent *mouse_event)
 				if (mouse_event->modifiers() & Qt::ControlModifier) {
 					m_zoomSelection = { value, value };
 				}
-				else if (settings.enableOvelapingSelections || !selectionOnValue(value)){
+				else {
 					m_selections << Selection { value, value };
 				}
 			}
@@ -828,19 +828,7 @@ const View::Selection *View::selectionOnValue(qint64 value) const
 
 void View::updateLastValueInLastSelection(qint64 value)
 {
-	Selection &last_selection = m_selections.last();
-	const Selection *overlaping_selection = selectionOnValue(value);
-	if (overlaping_selection && overlaping_selection != &last_selection && !settings.enableOvelapingSelections) {
-		if (last_selection.start <= last_selection.end) {
-			last_selection.end = overlaping_selection->start;
-		}
-		else {
-			last_selection.end = overlaping_selection->end;
-		}
-	}
-	else {
-		last_selection.end = value;
-	}
+	m_selections.last().end = value;
 	Q_EMIT selectionsChanged();
 }
 
@@ -983,6 +971,7 @@ void View::mouseReleaseEvent(QMouseEvent *mouse_event)
 				}
 				else if (m_currentSelectionModifiers & Qt::ShiftModifier) {
 					updateLastValueInLastSelection(value);
+					m_selections.last().normalize();
 				}
 				m_currentSelectionModifiers = Qt::NoModifier;
 			}
