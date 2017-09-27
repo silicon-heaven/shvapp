@@ -972,6 +972,7 @@ void View::mouseReleaseEvent(QMouseEvent *mouse_event)
 				else if (m_currentSelectionModifiers & Qt::ShiftModifier) {
 					updateLastValueInLastSelection(value);
 					m_selections.last().normalize();
+					unionLastSelection();
 				}
 				m_currentSelectionModifiers = Qt::NoModifier;
 			}
@@ -2029,6 +2030,27 @@ int View::yPosition(ValueChange::ValueY value, const Serie *serie, const GraphAr
 		y_position = value.boolValue ? (serie->boolValue() / scale) : 0;
 	}
 	return y_position;
+}
+
+void View::unionLastSelection()
+{
+	Selection &last_selection = m_selections.last();
+
+	int i = 0;
+	while (i < m_selections.count()-1){
+		Selection &s = m_selections[i];
+
+		if ((last_selection.start <= s.end) && (last_selection.end >= s.start)){
+			last_selection = {qMin(last_selection.start, s.start), qMax(last_selection.end, s.end)};
+			m_selections.removeAt(i);
+		}
+		else{
+			i++;
+		}
+	}
+
+	Q_EMIT selectionsChanged();
+	update();
 }
 
 void View::paintPointsOfInterest(QPainter *painter, const GraphArea &area)
