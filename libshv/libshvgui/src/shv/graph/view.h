@@ -283,6 +283,7 @@ private:
 
 	static ValueChange::ValueY formattedSerieValue(const Serie *serie, SerieData::const_iterator it);
 	int yPosition(ValueChange::ValueY value, const Serie *serie, const GraphArea &area);
+	void unionLastSelection();
 
 	void showToolTip();
 
