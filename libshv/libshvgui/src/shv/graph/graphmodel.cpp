@@ -292,6 +292,18 @@ void GraphModelData::dataChangeEnd()
 	m_dataChangeEnabled = true;
 }
 
+void GraphModelData::registerChanges(int serie_index)
+{
+	if (!m_dataChangeEnabled) {
+		Q_EMIT dataChanged(QVector<int>() << serie_index);
+	}
+	else {
+		if (!m_changedSeries.contains(serie_index)) {
+			m_changedSeries << serie_index;
+		}
+	}
+}
+
 SerieData::iterator GraphModelData::removeValueChanges(int serie_index, SerieData::const_iterator from, SerieData::const_iterator to)
 {
 	SerieData &serie = serieData(serie_index);

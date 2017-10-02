@@ -162,6 +162,8 @@ public:
 	void dataChangeBegin();
 	void dataChangeEnd();
 
+	void registerChanges(int serie_index);
+
 	SerieData::iterator removeValueChanges(int serie_index, SerieData::const_iterator from, SerieData::const_iterator to);
 
 	ValueXInterval range() const;
