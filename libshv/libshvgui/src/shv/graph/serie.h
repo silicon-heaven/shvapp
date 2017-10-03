@@ -22,7 +22,7 @@ public:
 	enum class LineType { OneDimensional, TwoDimensional };
 	enum class YAxis { Y1, Y2 };
 
-	Serie(ValueType type, int m_serieIndex, const QString &name, const QColor &color, QObject *parent = 0);
+	Serie(ValueType type, int serieIndex, const QString &name, const QColor &color, QObject *parent = 0);
 	~Serie();
 
 	inline const QString &name() const { return m_name; }
@@ -69,6 +69,7 @@ public:
 
 	const SerieData &serieModelData(const View *view) const;
 	const SerieData &serieModelData(const GraphModel *model) const;
+	inline int serieIndex() const { return m_serieIndex; }
 
 	void update(bool force = false);
 	const Serie *masterSerie() const;
