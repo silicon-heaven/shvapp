@@ -166,12 +166,6 @@ GraphModelData::GraphModelData(QObject *parent)
 {
 }
 
-SerieData &GraphModelData::serieData(int serie_index)
-{
-	checkIndex(serie_index);
-	return m_valueChanges[serie_index];
-}
-
 const SerieData &GraphModelData::serieData(int serie_index) const
 {
 	checkIndex(serie_index);
@@ -180,7 +174,8 @@ const SerieData &GraphModelData::serieData(int serie_index) const
 
 void GraphModelData::addValueChange(int serie_index, const shv::gui::ValueChange &value)
 {
-	bool added = addValueChangeInternal(serie_index, value);
+	checkIndex(serie_index);
+	bool added = m_valueChanges[serie_index].addValueChange(value);
 	if (added) {
 		if (m_dataChangeEnabled) {
 			Q_EMIT dataChanged(QVector<int>{ serie_index });
@@ -193,9 +188,10 @@ void GraphModelData::addValueChange(int serie_index, const shv::gui::ValueChange
 
 void GraphModelData::addValueChanges(int serie_index, const std::vector<shv::gui::ValueChange> &values)
 {
+	checkIndex(serie_index);
 	bool added = false;
 	for (const shv::gui::ValueChange &value : values) {
-		added = addValueChangeInternal(serie_index, value) || added;
+		added = m_valueChanges[serie_index].addValueChange(value) || added;
 	}
 	if (added) {
 		if (m_dataChangeEnabled) {
@@ -214,7 +210,7 @@ void GraphModelData::addValueChanges(const std::vector<ValueChange> &values)
 	}
 	QVector<int> added;
 	for (uint i = 0; i < m_valueChanges.size(); ++i) {
-		if (addValueChangeInternal(i, values[i])) {
+		if (m_valueChanges[i].addValueChange(values[i])) {
 			added << i;
 		}
 	}
@@ -292,21 +288,10 @@ void GraphModelData::dataChangeEnd()
 	m_dataChangeEnabled = true;
 }
 
-void GraphModelData::registerChanges(int serie_index)
-{
-	if (!m_dataChangeEnabled) {
-		Q_EMIT dataChanged(QVector<int>() << serie_index);
-	}
-	else {
-		if (!m_changedSeries.contains(serie_index)) {
-			m_changedSeries << serie_index;
-		}
-	}
-}
-
 SerieData::iterator GraphModelData::removeValueChanges(int serie_index, SerieData::const_iterator from, SerieData::const_iterator to)
 {
-	SerieData &serie = serieData(serie_index);
+	checkIndex(serie_index);
+	SerieData &serie = m_valueChanges[serie_index];
 	auto old_size = serie.size();
 	auto it = serie.erase(from, to);
 	if (serie.size() != old_size) {
@@ -359,12 +344,6 @@ ValueXInterval GraphModelData::computeRange() const
 	return ValueXInterval(min, max);
 }
 
-bool GraphModelData::addValueChangeInternal(int serie_index, const shv::gui::ValueChange &value)
-{
-	SerieData &serie = serieData(serie_index);
-	return serie.addValueChange(value);
-}
-
 GraphModel::GraphModel(QObject *parent)
 	: QObject(parent)
 {
@@ -384,11 +363,6 @@ GraphModelData *GraphModel::data() const
 	if(!m_data)
 		SHV_EXCEPTION("No data set!");
 	return m_data;
-}
-
-SerieData &GraphModel::serieData(int serie_index)
-{
-	return data()->serieData(serie_index);
 }
 
 const SerieData &GraphModel::serieData(int serie_index) const
