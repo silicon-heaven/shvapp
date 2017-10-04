@@ -22,7 +22,7 @@ public:
 	enum class LineType { OneDimensional, TwoDimensional };
 	enum class YAxis { Y1, Y2 };
 
-	Serie(ValueType type, int serieIndex, const QString &name, const QColor &color, QObject *parent = 0);
+	Serie(ValueType type, int serie_index, const QString &name, const QColor &color, QObject *parent = 0);
 	~Serie();
 
 	inline const QString &name() const { return m_name; }
@@ -39,7 +39,7 @@ public:
 	const QVector<BackgroundStripe*> &backgroundStripes() const  { return m_backgroundStripes; }
 	void addBackgroundStripe(BackgroundStripe *stripe);
 
-	inline int lineWidth() const  { return m_lineWidth; }
+	int lineWidth() const  { return m_lineWidth; }
 	void setLineWidth(int width);
 
 	const QVector<Serie*> &dependentSeries() const;

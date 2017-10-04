@@ -10,12 +10,12 @@ namespace shv {
 namespace gui {
 namespace graphview {
 
-Serie::Serie(ValueType type, int serieIndex, const QString &name, const QColor &color, QObject *parent)
+Serie::Serie(ValueType type, int serie_index, const QString &name, const QColor &color, QObject *parent)
 	: QObject(parent)
 	, m_name(name)
 	, m_type(type)
 	, m_color(color)
-	, m_serieIndex(serieIndex)
+	, m_serieIndex(serie_index)
 {
 	View *graph = qobject_cast<View*>(parent);
 	if (graph) {
