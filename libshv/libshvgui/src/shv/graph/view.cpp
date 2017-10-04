@@ -2225,10 +2225,10 @@ void View::paintViewBackgroundStripes(QPainter *painter, const View::GraphArea &
 		if (max_value > m_displayedRangeMax) {
 			max_value = m_displayedRangeMax;
 		}
-		int min = xValueToWidgetPosition(min_value);
-		int max = xValueToWidgetPosition(max_value);
+		if (max_value - min_value > 0LL) {
+			int min = xValueToWidgetPosition(min_value);
+			int max = xValueToWidgetPosition(max_value);
 
-		if (max - min > 0) {
 			painter->fillRect(min, area.graphRect.top(), max - min, area.graphRect.height(), stripe_color);
 			if (stripe->outLineType() != BackgroundStripe::OutlineType::No) {
 				QColor outline_color = stripe->outlineColor();

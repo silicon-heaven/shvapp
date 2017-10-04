@@ -148,7 +148,6 @@ public:
 
 	Q_SIGNAL void dataChanged(QVector<int> series);
 
-	virtual SerieData &serieData(int serie_index);
 	virtual const SerieData &serieData(int serie_index) const;
 
 	void addValueChange(int serie_index, const shv::gui::ValueChange &value);
@@ -168,7 +167,6 @@ public:
 
 protected:
 	void checkIndex(int serie_index) const;
-	virtual bool addValueChangeInternal(int serie_index, const shv::gui::ValueChange &value);
 	template<typename T> ValueXInterval computeRange() const;
 
 	std::vector<SerieData> m_valueChanges;
@@ -185,7 +183,6 @@ public:
 
 	Q_SIGNAL void dataChanged(QVector<int> series);
 
-	virtual SerieData &serieData(int serie_index);
 	virtual const SerieData &serieData(int serie_index) const;
 
 	void setData(GraphModelData *model_data);
