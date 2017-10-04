@@ -1167,10 +1167,13 @@ void View::addSerie(Serie *serie)
 
 Serie *View::serie(int index)
 {
-	if (index >= m_series.count()) {
-		SHV_EXCEPTION("GraphView: invalid serie index");
+	for (Serie *serie : m_series){
+		if (serie->serieIndex() == index){
+			return serie;
+		}
 	}
-	return m_series[index];
+
+	SHV_EXCEPTION("GraphView: invalid serie index");
 }
 
 void View::splitSeries()
