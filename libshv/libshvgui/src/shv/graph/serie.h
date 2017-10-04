@@ -39,7 +39,7 @@ public:
 	const QVector<BackgroundStripe*> &backgroundStripes() const  { return m_backgroundStripes; }
 	void addBackgroundStripe(BackgroundStripe *stripe);
 
-	int lineWidth() const  { return m_lineWidth; }
+	inline int lineWidth() const  { return m_lineWidth; }
 	void setLineWidth(int width);
 
 	const QVector<Serie*> &dependentSeries() const;
