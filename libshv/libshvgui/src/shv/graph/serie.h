@@ -75,6 +75,8 @@ public:
 	const Serie *masterSerie() const;
 	View *view() const;
 
+	Q_SIGNAL void visibilityChanged();
+
 private:
 	QString m_name;
 	ValueType m_type;

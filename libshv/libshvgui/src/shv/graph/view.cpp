@@ -1015,6 +1015,7 @@ bool View::eventFilter(QObject *watched, QEvent *event)
 					computeDataRange();
 					computeGeometry();
 					update();
+					Q_EMIT shownRangeChanged();
 				}
 			}
 			else { //(watched == m_rightRangeSelectorHandle)
@@ -1029,6 +1030,7 @@ bool View::eventFilter(QObject *watched, QEvent *event)
 					computeDataRange();
 					computeGeometry();
 					update();
+					Q_EMIT shownRangeChanged();
 				}
 
 			}
@@ -1416,6 +1418,7 @@ void View::showRangeInternal(qint64 from, qint64 to)
 		computeRangeSelectorPosition();
 	}
 	update();
+	Q_EMIT shownRangeChanged();
 }
 
 void View::paintYAxisDescription(QPainter *painter, const GraphArea &area)

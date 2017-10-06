@@ -166,6 +166,7 @@ void Serie::show(bool enable)
 	if (enable != m_show) {
 		m_show = enable;
 		update(true);
+		Q_EMIT visibilityChanged();
 	}
 }
 
