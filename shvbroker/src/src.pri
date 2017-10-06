@@ -9,6 +9,7 @@ SOURCES += \
     $$PWD/appclioptions.cpp \
 
 include ($$PWD/rpc/rpc.pri)
+include ($$PWD/sql/sql.pri)
 
 
 
