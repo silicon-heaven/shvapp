@@ -164,6 +164,7 @@ public:
 
 	void setViewTimezone(const QTimeZone &tz);
 	Q_SIGNAL void selectionsChanged();
+	Q_SIGNAL void shownRangeChanged();
 
 	void setLoadedRange(const ValueChange::ValueX &min, const ValueChange::ValueX &max);
 
