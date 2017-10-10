@@ -38,8 +38,8 @@ SHV_TOP_SRCDIR = $$PWD/..
 
 INCLUDEPATH += \
         #$$QUICKBOX_HOME/libqf/libqfcore/include \
-        $$SHV_TOP_SRCDIR/libshv/libshvcore/include \
-        $$SHV_TOP_SRCDIR/libshv/libshvcoreqt/include \
+        ../3rdparty/libshv/libshvcore/include \
+        ../3rdparty/libshv/libshvcoreqt/include \
 
 
 RESOURCES += \

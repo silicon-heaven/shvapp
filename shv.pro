@@ -2,7 +2,7 @@ TEMPLATE = subdirs
 CONFIG += ordered
 
 SUBDIRS += \
-    libshv \
+    3rdparty \
     shvbroker \
     shvagent \
 

@@ -1,0 +1,3 @@
+[submodule "3rdparty/libshv"]
+	path = 3rdparty/libshv
+	url = http://jessie.elektroline.cz/elektroline/libshv.git
