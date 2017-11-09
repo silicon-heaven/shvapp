@@ -18,8 +18,12 @@ class ServerConnection : public QObject
 	using Super = QObject;
 public:
 	explicit ServerConnection(QTcpSocket* socket, QObject *parent = 0);
-	QString peerAddress() const;
+	~ServerConnection() Q_DECL_OVERRIDE;
+
+	QString agentName() {return objectName();}
+	void setAgentName(const QString &n) {setObjectName(n);}
 private:
+	QString peerAddress() const;
 	shv::coreqt::chainpack::RpcConnection* rpcConnection();
 	void processRpcMessage(const shv::core::chainpack::RpcMessage &msg);
 	void sendHello();
