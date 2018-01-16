@@ -54,13 +54,13 @@ void ServerConnection::sendHello()
 {
 	setAgentName(QStringLiteral("%1:%2").arg(peerAddress()).arg(m_socket->peerPort()));
 	shvInfo() << "sending hello to:" << agentName();
-	m_pendingAuthChallenge = std::to_string(std::rand());
+	m_pendingAuthNonce = std::to_string(std::rand());
 	cp::RpcValue::Map params {
 		{"protocol", cp::RpcValue::Map{{"version", 1}}},
-		{"challenge", m_pendingAuthChallenge}
+		{"nonce", m_pendingAuthNonce}
 	};
 	QTimer::singleShot(3000, this, [this]() {
-		if(m_helloRequestId > 0 || !m_pendingAuthChallenge.empty()) {
+		if(m_helloRequestId > 0 || !m_pendingAuthNonce.empty()) {
 			shvError() << "HELLO request client time out! Dropping client connection." << agentName();
 			this->deleteLater();
 		}
@@ -72,6 +72,8 @@ std::string ServerConnection::passwordHash(const std::string &user)
 {
 	if(user == "iot")
 		return std::string();
+	if(user == "timepress")
+		return std::string();
 
 	QCryptographicHash hash(QCryptographicHash::Algorithm::Sha1);
 	hash.addData(user.c_str(), user.length());
@@ -82,7 +84,7 @@ std::string ServerConnection::passwordHash(const std::string &user)
 void ServerConnection::processRpcMessage(const cp::RpcMessage &msg)
 {
 	logRpc() << msg.toStdString();
-	if(m_helloRequestId > 0 || !m_pendingAuthChallenge.empty()) {
+	if(m_helloRequestId > 0 || !m_pendingAuthNonce.empty()) {
 		if(msg.isResponse()) {
 			cp::RpcResponse resp(msg);
 			if(resp.isError()) {
@@ -98,17 +100,17 @@ void ServerConnection::processRpcMessage(const cp::RpcMessage &msg)
 					std::string password_hash = passwordHash(user);
 					bool password_ok = password_hash.empty();
 					if(!password_ok) {
-						std::string challenge_sha1 = result.value("challenge").toString();
-						std::string challenge = m_pendingAuthChallenge + passwordHash(user);
+						std::string nonce_sha1 = result.value("nonce").toString();
+						std::string nonce = m_pendingAuthNonce + passwordHash(user);
 						QCryptographicHash hash(QCryptographicHash::Algorithm::Sha1);
-						hash.addData(challenge.c_str(), challenge.length());
+						hash.addData(nonce.c_str(), nonce.length());
 						std::string sha1 = std::string(hash.result().toHex().constData());
-						shvInfo() << challenge_sha1 << "vs" << sha1;
-						password_ok = (challenge_sha1 == sha1);
+						shvInfo() << nonce_sha1 << "vs" << sha1;
+						password_ok = (nonce_sha1 == sha1);
 					}
 					if(password_ok) {
 						m_helloRequestId = 0;
-						m_pendingAuthChallenge.clear();
+						m_pendingAuthNonce.clear();
 						shvInfo() << "Agent logged in user:" << user << "from:" << agentName();
 					}
 					else {

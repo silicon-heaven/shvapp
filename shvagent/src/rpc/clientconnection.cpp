@@ -46,6 +46,7 @@ void ClientConnection::onConnectedChanged(bool is_connected)
 	}
 	else {
 		shvInfo() << "Disconnected from RPC server";
+		m_isWaitingForHello = true;
 	}
 }
 /*
@@ -114,13 +115,13 @@ void ClientConnection::processRpcMessage(const cp::RpcMessage &msg)
 					//QString server_profile = params.value(QStringLiteral("profile")).toString();
 					//Application::instance()->setServerProfile(server_profile);
 					//m_clientId = params.value(QStringLiteral("clientId")).toInt();
-					std::string challenge = params.value("challenge").toString();
-					challenge += passwordHash(user());
+					std::string nonce = params.value("nonce").toString();
+					nonce += passwordHash(user());
 					QCryptographicHash hash(QCryptographicHash::Algorithm::Sha1);
-					hash.addData(challenge.c_str(), challenge.length());
+					hash.addData(nonce.c_str(), nonce.length());
 					QByteArray sha1 = hash.result().toHex();
 					cp::RpcValue::Map result{
-						{"challenge", std::string(sha1.constData())},
+						{"nonce", std::string(sha1.constData())},
 						{"login", cp::RpcValue::Map{ {"user", user().toStdString()}, }},
 					};
 					rpcConnection()->sendResponse(rq.id(), result);

@@ -31,7 +31,7 @@ private:
 private:
 	QTcpSocket* m_socket = nullptr;
 	shv::coreqt::chainpack::RpcConnection* m_rpcConnection = nullptr;
-	std::string m_pendingAuthChallenge;
+	std::string m_pendingAuthNonce;
 	unsigned m_helloRequestId = 0;
 };
 
