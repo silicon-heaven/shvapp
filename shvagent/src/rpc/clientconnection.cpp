@@ -15,6 +15,7 @@
 #define logRpc() shvCDebug("rpc")
 
 namespace cp = shv::core::chainpack;
+//namespace cpq = shv::coreqt::chainpack;
 
 namespace rpc {
 
@@ -29,6 +30,7 @@ ClientConnection::ClientConnection(QObject *parent)
 	{
 		m_rpcConnection = new shv::coreqt::chainpack::RpcConnection(this);
 		m_rpcConnection->setSocket(socket);
+		m_rpcConnection->setProtocolVersion(cp::RpcDriver::Cpon);
 		connect(m_rpcConnection, &shv::coreqt::chainpack::RpcConnection::connectedChanged, this, &ClientConnection::onConnectedChanged);
 		connect(m_rpcConnection, &shv::coreqt::chainpack::RpcConnection::messageReceived, this, &ClientConnection::processRpcMessage);
 	}
@@ -43,12 +45,20 @@ void ClientConnection::onConnectedChanged(bool is_connected)
 {
 	if(is_connected) {
 		shvInfo() << "Connected to RPC server";
+		//sendKnockKnock(cp::RpcDriver::ChainPack);
+		sendKnockKnock(cp::RpcDriver::Cpon);
+		m_isWaitingForHello = true;
 	}
 	else {
 		shvInfo() << "Disconnected from RPC server";
-		m_isWaitingForHello = true;
 	}
 }
+
+void ClientConnection::sendKnockKnock(int protocol_version, const std::string &profile)
+{
+	rpcConnection()->sendNotify("knockknock", cp::RpcValue::Map{{"protocolVersion", protocol_version}, {"profile", profile}});
+}
+
 /*
 void ClientConnection::onStateChanged(QAbstractSocket::SocketState socket_state)
 {
@@ -127,6 +137,7 @@ void ClientConnection::processRpcMessage(const cp::RpcMessage &msg)
 					rpcConnection()->sendResponse(rq.id(), result);
 					m_isWaitingForHello = false;
 					shvInfo() << "Sending HELLO to RPC server";
+					QTimer::singleShot(1000, this, &ClientConnection::lublicatorTesting);
 				}
 				else {
 					shvError() << "HELLO request invalid! Dropping connection." << rq.method();
@@ -146,6 +157,36 @@ void ClientConnection::processRpcMessage(const cp::RpcMessage &msg)
 	}
 	else {
 		shvError() << "unhandled response";
+	}
+}
+
+void ClientConnection::lublicatorTesting()
+{
+	if(!rpcConnection()->isConnected())
+		return;
+	try {
+		shvInfo() << "==================================================";
+		shvInfo() << "   Lublicator Testing";
+		shvInfo() << "==================================================";
+		{
+			shvInfo() << "------------ read shv tree";
+			QString shv_path;
+			while(true) {
+				shvInfo() << "\tcall:" << "get" << "on shv path:" << shv_path;
+				cp::RpcResponse resp = rpcConnection()->callShvMethodSync(shv_path, "get");
+				shvInfo() << "\tgot response:" << resp.toStdString();
+				if(resp.isError())
+					throw shv::core::Exception(resp.error().message());
+				const cp::RpcValue::List list = resp.result().toList();
+				if(list.empty())
+					break;
+				shv_path += '/' + QString::fromStdString(list[0].toString());
+			}
+			shvInfo() << "GOT:" << shv_path;
+		}
+	}
+	catch (shv::core::Exception &e) {
+		shvError() << "FAILED:" << e.message();
 	}
 }
 

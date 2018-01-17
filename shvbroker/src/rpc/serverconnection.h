@@ -26,7 +26,7 @@ private:
 	QString peerAddress() const;
 	shv::coreqt::chainpack::RpcConnection* rpcConnection();
 	void processRpcMessage(const shv::core::chainpack::RpcMessage &msg);
-	void sendHello();
+	void sendHello(unsigned protocol_version);
 	std::string passwordHash(const std::string &user);
 private:
 	QTcpSocket* m_socket = nullptr;

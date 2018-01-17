@@ -31,6 +31,9 @@ private:
 	std::string passwordHash(const QString &user);
 	void processRpcMessage(const shv::core::chainpack::RpcMessage &msg);
 	void onConnectedChanged(bool is_connected);
+	void sendKnockKnock(int protocol_version, const std::string &profile = std::string());
+private:
+	void lublicatorTesting();
 private:
 	shv::coreqt::chainpack::RpcConnection* m_rpcConnection = nullptr;
 	bool m_isWaitingForHello = true;
