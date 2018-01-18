@@ -175,7 +175,7 @@ void ClientConnection::lublicatorTesting()
 			QString shv_path;
 			while(true) {
 				shvInfo() << "\tcall:" << "get" << "on shv path:" << shv_path;
-				cp::RpcResponse resp = rpcConnection()->callShvMethodSync(shv_path, "get");
+				cp::RpcResponse resp = rpcConnection()->callShvMethodSync(shv_path, cp::RpcMessage::METHOD_GET);
 				shvInfo() << "\tgot response:" << resp.toStdString();
 				if(resp.isError())
 					throw shv::core::Exception(resp.error().message());
@@ -191,7 +191,7 @@ void ClientConnection::lublicatorTesting()
 			QString shv_path_lubl = "/shv/eu/pl/lublin/odpojovace/15/";
 			for(auto prop : {"status", "batteryLimitLow", "batteryLimitHigh", "batteryLevelSimulation"}) {
 				QString shv_path = shv_path_lubl + prop;
-				cp::RpcResponse resp = rpcConnection()->callShvMethodSync(shv_path, "get");
+				cp::RpcResponse resp = rpcConnection()->callShvMethodSync(shv_path, cp::RpcMessage::METHOD_GET);
 				shvInfo() << "\tproperty" << prop << ":" << resp.result().toStdString();
 			}
 			{
@@ -199,7 +199,7 @@ void ClientConnection::lublicatorTesting()
 				for (int val = 200; val < 260; val += 5) {
 					cp::RpcValue::Decimal dec_val(val, 1);
 					shvInfo() << "\tcall:" << "set" << dec_val.toString() << "on shv path:" << shv_path;
-					cp::RpcResponse resp = rpcConnection()->callShvMethodSync(shv_path, "set", dec_val);
+					cp::RpcResponse resp = rpcConnection()->callShvMethodSync(shv_path, cp::RpcMessage::METHOD_SET, dec_val);
 					shvInfo() << "\tgot response:" << resp.toStdString();
 					if(resp.isError())
 						throw shv::core::Exception(resp.error().message());
@@ -207,12 +207,12 @@ void ClientConnection::lublicatorTesting()
 			}
 			for(auto prop : {"status", "batteryLimitLow", "batteryLimitHigh", "batteryLevelSimulation"}) {
 				QString shv_path = shv_path_lubl + prop;
-				cp::RpcResponse resp = rpcConnection()->callShvMethodSync(shv_path, "get");
+				cp::RpcResponse resp = rpcConnection()->callShvMethodSync(shv_path, cp::RpcMessage::METHOD_GET);
 				shvInfo() << "\tproperty" << prop << ":" << resp.result().toStdString();
 			}
 			{
 				QString shv_path = shv_path_lubl + "batteryLevelSimulation";
-				rpcConnection()->callShvMethodSync(shv_path, "set", cp::RpcValue::Decimal(240, 1));
+				rpcConnection()->callShvMethodSync(shv_path, cp::RpcMessage::METHOD_SET, cp::RpcValue::Decimal(240, 1));
 			}
 		}
 	}
