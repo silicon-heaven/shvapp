@@ -29,7 +29,7 @@ public:
 	const shv::core::chainpack::RpcValue::List& propertyNames() const;
 	shv::core::chainpack::RpcValue propertyValue(const std::string &property_name) const;
 	bool setPropertyValue(const std::string &property_name, const shv::core::chainpack::RpcValue &val);
-	Q_SIGNAL void propertyValueChanged(const std::string &device_name, const std::string &property_name, const shv::core::chainpack::RpcValue &new_val);
+	Q_SIGNAL void propertyValueChanged(const std::string &property_name, const shv::core::chainpack::RpcValue &new_val);
 private:
 	std::map<std::string, shv::core::chainpack::RpcValue> m_properties;
 };
@@ -42,6 +42,8 @@ public:
 
 	void onRpcMessageReceived(const shv::core::chainpack::RpcMessage &msg);
 	Q_SIGNAL void sendRpcMessage(const shv::core::chainpack::RpcMessage &msg);
+private:
+	void onLublicatorPropertyValueChanged(const std::string &property_name, const shv::core::chainpack::RpcValue &new_val);
 private:
 	static constexpr size_t LUB_CNT = 27;
 	Lublicator m_lublicators[LUB_CNT];

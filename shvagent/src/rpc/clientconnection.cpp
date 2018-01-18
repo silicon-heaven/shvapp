@@ -115,9 +115,6 @@ void ClientConnection::processRpcMessage(const cp::RpcMessage &msg)
 	}
 	if(msg.isRequest()) {
 		cp::RpcRequest rq(msg);
-		if(rq.isNotify()) {
-			return;
-		}
 		try {
 			if(m_isWaitingForHello) {
 				if(rq.method() == "hello") {
@@ -155,6 +152,11 @@ void ClientConnection::processRpcMessage(const cp::RpcMessage &msg)
 			rpcConnection()->sendError(rq.id(), err);
 		}
 	}
+	else if(msg.isNotify()) {
+		cp::RpcRequest ntf(msg);
+		shvInfo() << "RPC notify received:" << ntf.toStdString();
+		return;
+	}
 	else {
 		shvError() << "unhandled response";
 	}
@@ -183,6 +185,35 @@ void ClientConnection::lublicatorTesting()
 				shv_path += '/' + QString::fromStdString(list[0].toString());
 			}
 			shvInfo() << "GOT:" << shv_path;
+		}
+		{
+			shvInfo() << "------------ set battery level";
+			QString shv_path_lubl = "/shv/eu/pl/lublin/odpojovace/15/";
+			for(auto prop : {"status", "batteryLimitLow", "batteryLimitHigh", "batteryLevelSimulation"}) {
+				QString shv_path = shv_path_lubl + prop;
+				cp::RpcResponse resp = rpcConnection()->callShvMethodSync(shv_path, "get");
+				shvInfo() << "\tproperty" << prop << ":" << resp.result().toStdString();
+			}
+			{
+				QString shv_path = shv_path_lubl + "batteryLevelSimulation";
+				for (int val = 200; val < 260; val += 5) {
+					cp::RpcValue::Decimal dec_val(val, 1);
+					shvInfo() << "\tcall:" << "set" << dec_val.toString() << "on shv path:" << shv_path;
+					cp::RpcResponse resp = rpcConnection()->callShvMethodSync(shv_path, "set", dec_val);
+					shvInfo() << "\tgot response:" << resp.toStdString();
+					if(resp.isError())
+						throw shv::core::Exception(resp.error().message());
+				}
+			}
+			for(auto prop : {"status", "batteryLimitLow", "batteryLimitHigh", "batteryLevelSimulation"}) {
+				QString shv_path = shv_path_lubl + prop;
+				cp::RpcResponse resp = rpcConnection()->callShvMethodSync(shv_path, "get");
+				shvInfo() << "\tproperty" << prop << ":" << resp.result().toStdString();
+			}
+			{
+				QString shv_path = shv_path_lubl + "batteryLevelSimulation";
+				rpcConnection()->callShvMethodSync(shv_path, "set", cp::RpcValue::Decimal(240, 1));
+			}
 		}
 	}
 	catch (shv::core::Exception &e) {

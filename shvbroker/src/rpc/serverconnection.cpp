@@ -138,7 +138,7 @@ void ServerConnection::processRpcMessage(const cp::RpcMessage &msg)
 	}
 	else if(msg.isRequest()) {
 		cp::RpcRequest rq(msg);
-		shvInfo() << "RPC request received:" << rq.toStdString();
+		shvInfo() << "=> RPC request received:" << rq.toStdString();
 	}
 	else if(msg.isNotify()) {
 		cp::RpcNotify ntf(msg);
@@ -150,7 +150,7 @@ void ServerConnection::processRpcMessage(const cp::RpcMessage &msg)
 			rpcConnection()->setProtocolVersion(ver);
 			sendHello(ver);
 		}
-		shvInfo() << "RPC notify received:" << ntf.toStdString();
+		shvInfo() << "=> RPC notify received:" << ntf.toStdString();
 	}
 }
 
