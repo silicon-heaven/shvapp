@@ -5,8 +5,8 @@
 #include <shv/coreqt/chainpack/rpcconnection.h>
 #include <shv/coreqt/log.h>
 
-//#include <shv/core/chainpack/chainpackprotocol.h>
-#include <shv/core/chainpack/rpcmessage.h>
+//#include <shv/chainpack/chainpackprotocol.h>
+#include <shv/chainpack/rpcmessage.h>
 
 #include <QTcpSocket>
 #include <QHostAddress>
@@ -17,7 +17,7 @@
 
 #define logRpc() shvCDebug("rpc")
 
-namespace cp = shv::core::chainpack;
+namespace cp = shv::chainpack;
 
 namespace rpc {
 
@@ -143,9 +143,9 @@ void ServerConnection::processRpcMessage(const cp::RpcMessage &msg)
 	else if(msg.isNotify()) {
 		cp::RpcNotify ntf(msg);
 		if(ntf.method() == "knockknock") {
-			const shv::core::chainpack::RpcValue::Map m = ntf.params().toMap();
+			const shv::chainpack::RpcValue::Map m = ntf.params().toMap();
 			cp::RpcDriver::ProtocolVersion ver = (cp::RpcDriver::ProtocolVersion)m.value("procolVersion", cp::RpcDriver::ChainPack).toInt();
-			const shv::core::chainpack::RpcValue::String profile = m.value("profile").toString();
+			const shv::chainpack::RpcValue::String profile = m.value("profile").toString();
 			shvInfo() << "Client is knocking, profile:" << profile << "protocol version:" << ver;
 			rpcConnection()->setProtocolVersion(ver);
 			sendHello(ver);

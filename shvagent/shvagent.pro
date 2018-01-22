@@ -23,6 +23,7 @@ LIBS += \
         -L$$LIBDIR \
 
 LIBS += \
+        -lshvchainpack \
         -lshvcore \
         -lshvcoreqt \
 
@@ -37,6 +38,8 @@ SHV_TOP_SRCDIR = $$PWD/..
 #include( $$PROJECT_TOP_SRCDIR/common.pri )
 
 INCLUDEPATH += \
+        ../3rdparty/libshv/3rdparty/necrolog \
+        ../3rdparty/libshv/libshvchainpack/include \
         ../3rdparty/libshv/libshvcore/include \
         ../3rdparty/libshv/libshvcoreqt/include \
 

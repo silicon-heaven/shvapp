@@ -15,7 +15,7 @@ int main(int argc, char *argv[])
 	QCoreApplication::setApplicationName("shvagent");
 	QCoreApplication::setApplicationVersion("0.0.1");
 
-	std::vector<std::string> shv_args = shv::core::ShvLog::setGlobalTresholds(argc, argv);
+	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);
 	QStringList args;
 	for(const std::string &arg : shv_args)
 		args << QString::fromStdString(arg);
@@ -51,8 +51,7 @@ int main(int argc, char *argv[])
 #endif
 	shvInfo() << QDateTime::currentDateTime().toString(Qt::ISODate).toStdString() << "UTC:" << QDateTime::currentDateTimeUtc().toString(Qt::ISODate).toStdString();
 	shvInfo() << "======================================================================================";
-	shvInfo() << "Logged modules:" << shv::core::ShvLog::modulesLogInfo();
-	shvInfo() << "Logged categories:" << shv::core::ShvLog::categoriesLogInfo();
+	shvInfo() << "Log tresholds:" << NecroLog::tresholdsLogInfo();
 	shvInfo() << "--------------------------------------------------------------------------------------";
 
 	TheApp a(argc, argv, &cli_opts);

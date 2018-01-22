@@ -69,7 +69,7 @@ QSqlDatabase SqlConnector::sqlConnection() const
 	QSqlDatabase conn;// = qf::core::sql::Connection::forName();
 	return conn;
 }
-
+#if 0
 static QString variant_to_string(const QVariant &val)
 {
 	QVariant v = val;// = eyascore::rpc::Protocol::encodeVariant(val);
@@ -89,7 +89,7 @@ static QString variant_to_string(const QVariant &val)
 	*/
 	return v.toString();
 }
-
+#endif
 void SqlConnector::close()
 {
 	QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);

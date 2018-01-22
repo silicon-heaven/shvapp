@@ -1,11 +1,12 @@
 #include "revitest.h"
 
-#include <shv/core/chainpack/rpcmessage.h>
+#include <shv/chainpack/rpcmessage.h>
 #include <shv/core/string.h>
+#include <shv/core/shvexception.h>
 
 #include <shv/coreqt/log.h>
 
-namespace cp = shv::core::chainpack;
+namespace cp = shv::chainpack;
 
 namespace processor {
 
@@ -47,7 +48,7 @@ bool Lublicator::setStatus(unsigned stat)
 	return false;
 }
 
-const shv::core::chainpack::RpcValue::List &Lublicator::propertyNames() const
+const shv::chainpack::RpcValue::List &Lublicator::propertyNames() const
 {
 	static cp::RpcValue::List keys;
 	if(keys.empty()) for(auto const& imap: m_properties)
@@ -55,7 +56,7 @@ const shv::core::chainpack::RpcValue::List &Lublicator::propertyNames() const
 	return keys;
 }
 
-shv::core::chainpack::RpcValue Lublicator::propertyValue(const std::string &property_name) const
+shv::chainpack::RpcValue Lublicator::propertyValue(const std::string &property_name) const
 {
 	if(property_name == S_NAME)
 		return objectName().toStdString();
@@ -65,7 +66,7 @@ shv::core::chainpack::RpcValue Lublicator::propertyValue(const std::string &prop
 	return it->second;
 }
 
-bool Lublicator::setPropertyValue(const std::string &property_name, const shv::core::chainpack::RpcValue &val)
+bool Lublicator::setPropertyValue(const std::string &property_name, const shv::chainpack::RpcValue &val)
 {
 	if(property_name == S_STATUS)
 		return false;
@@ -123,7 +124,7 @@ Revitest::Revitest(QObject *parent)
 }
 
 // /shv/eu/pl/lublin/odpojovace/1..27/properties
-void Revitest::onRpcMessageReceived(const shv::core::chainpack::RpcMessage &msg)
+void Revitest::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 {
 	shvLogFuncFrame() << msg.toStdString();
 	if(msg.isRequest()) {
@@ -241,13 +242,13 @@ void Revitest::onRpcMessageReceived(const shv::core::chainpack::RpcMessage &msg)
 	else if(msg.isNotify()) {
 		cp::RpcNotify nt(msg);
 		if(nt.method() == "knockknock") {
-			//const shv::core::chainpack::RpcValue::Map m = ntf.params().toMap();
+			//const shv::chainpack::RpcValue::Map m = ntf.params().toMap();
 		}
 		shvInfo() << "RPC notify received:" << nt.toStdString();
 }
 }
 
-void Revitest::onLublicatorPropertyValueChanged(const std::string &property_name, const shv::core::chainpack::RpcValue &new_val)
+void Revitest::onLublicatorPropertyValueChanged(const std::string &property_name, const shv::chainpack::RpcValue &new_val)
 {
 	cp::RpcNotify ntf;
 	ntf.setMethod(cp::RpcMessage::METHOD_VALUE_CHANGED);

@@ -1,11 +1,11 @@
 #pragma once
 
-#include <shv/core/chainpack/rpcvalue.h>
+#include <shv/chainpack/rpcvalue.h>
 #include <shv/coreqt/utils.h>
 
 #include <QObject>
 
-namespace shv { namespace core { namespace chainpack { class RpcMessage; }}}
+namespace shv { namespace chainpack { class RpcMessage; }}
 
 namespace processor {
 
@@ -26,12 +26,12 @@ public:
 	unsigned status() const;
 	bool setStatus(unsigned stat);
 
-	const shv::core::chainpack::RpcValue::List& propertyNames() const;
-	shv::core::chainpack::RpcValue propertyValue(const std::string &property_name) const;
-	bool setPropertyValue(const std::string &property_name, const shv::core::chainpack::RpcValue &val);
-	Q_SIGNAL void propertyValueChanged(const std::string &property_name, const shv::core::chainpack::RpcValue &new_val);
+	const shv::chainpack::RpcValue::List& propertyNames() const;
+	shv::chainpack::RpcValue propertyValue(const std::string &property_name) const;
+	bool setPropertyValue(const std::string &property_name, const shv::chainpack::RpcValue &val);
+	Q_SIGNAL void propertyValueChanged(const std::string &property_name, const shv::chainpack::RpcValue &new_val);
 private:
-	std::map<std::string, shv::core::chainpack::RpcValue> m_properties;
+	std::map<std::string, shv::chainpack::RpcValue> m_properties;
 };
 
 class Revitest : public QObject
@@ -40,10 +40,10 @@ class Revitest : public QObject
 public:
 	explicit Revitest(QObject *parent = nullptr);
 
-	void onRpcMessageReceived(const shv::core::chainpack::RpcMessage &msg);
-	Q_SIGNAL void sendRpcMessage(const shv::core::chainpack::RpcMessage &msg);
+	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
+	Q_SIGNAL void sendRpcMessage(const shv::chainpack::RpcMessage &msg);
 private:
-	void onLublicatorPropertyValueChanged(const std::string &property_name, const shv::core::chainpack::RpcValue &new_val);
+	void onLublicatorPropertyValueChanged(const std::string &property_name, const shv::chainpack::RpcValue &new_val);
 private:
 	static constexpr size_t LUB_CNT = 27;
 	Lublicator m_lublicators[LUB_CNT];

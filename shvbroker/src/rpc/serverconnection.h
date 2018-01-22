@@ -6,7 +6,7 @@
 class QTcpSocket;
 //class Agent;
 
-namespace shv { namespace core { namespace chainpack { class RpcMessage; }}}
+namespace shv { namespace chainpack { class RpcMessage; }}
 namespace shv { namespace coreqt { namespace chainpack { class RpcConnection; }}}
 
 namespace rpc {
@@ -25,7 +25,7 @@ public:
 private:
 	QString peerAddress() const;
 	shv::coreqt::chainpack::RpcConnection* rpcConnection();
-	void processRpcMessage(const shv::core::chainpack::RpcMessage &msg);
+	void processRpcMessage(const shv::chainpack::RpcMessage &msg);
 	void sendHello(unsigned protocol_version);
 	std::string passwordHash(const std::string &user);
 private:

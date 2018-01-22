@@ -4,8 +4,8 @@
 #include <shv/coreqt/chainpack/rpcconnection.h>
 #include <shv/coreqt/log.h>
 
-#include <shv/core/chainpack/chainpackprotocol.h>
-#include <shv/core/chainpack/rpcmessage.h>
+#include <shv/chainpack/chainpackprotocol.h>
+#include <shv/chainpack/rpcmessage.h>
 
 #include <QTcpSocket>
 #include <QHostAddress>
@@ -14,7 +14,7 @@
 
 #define logRpc() shvCDebug("rpc")
 
-namespace cp = shv::core::chainpack;
+namespace cp = shv::chainpack;
 //namespace cpq = shv::coreqt::chainpack;
 
 namespace rpc {
