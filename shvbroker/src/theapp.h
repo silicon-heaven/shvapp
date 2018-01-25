@@ -7,6 +7,7 @@
 
 class QSocketNotifier;
 
+namespace shv { namespace chainpack { class RpcMessage; }}
 namespace rpc { class TcpServer; }
 
 class TheApp : public QCoreApplication
@@ -38,6 +39,7 @@ private:
 	Q_SLOT void onSqlServerConnected();
 	//Q_SLOT void reloadServices();
 
+	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 private:
 	AppCliOptions *m_cliOptions;
 	rpc::TcpServer *m_tcpServer = nullptr;

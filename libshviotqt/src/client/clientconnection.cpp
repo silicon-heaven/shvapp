@@ -1,8 +1,10 @@
 #include "clientconnection.h"
-#include "../theapp.h"
+//#include "../theapp.h"
 
 #include <shv/coreqt/chainpack/rpcconnection.h>
 #include <shv/coreqt/log.h>
+
+#include <shv/core/shvexception.h>
 
 #include <shv/chainpack/chainpackprotocol.h>
 #include <shv/chainpack/rpcmessage.h>
@@ -15,48 +17,43 @@
 #define logRpc() shvCDebug("rpc")
 
 namespace cp = shv::chainpack;
-//namespace cpq = shv::coreqt::chainpack;
+namespace cpq = shv::coreqt::chainpack;
 
-namespace rpc {
+namespace shv {
+namespace iotqt {
+namespace client {
 
-ClientConnection::ClientConnection(QObject *parent)
+Connection::Connection(QObject *parent)
 	: Super(parent)
 	//, m_socket(new QTcpSocket(this))
 {
-	QTcpSocket *socket = new QTcpSocket();
-	//connect(socket, &QTcpSocket::disconnected, this, &ClientConnection::deleteLater);
-	//connect(socket, &QTcpSocket::stateChanged, this, &ClientConnection::onStateChanged);
-	//connect(socket, static_cast<void(QAbstractSocket::*)(QAbstractSocket::SocketError)>(&QAbstractSocket::error), this, &ClientConnection::onConnectError);
-	{
-		m_rpcConnection = new shv::coreqt::chainpack::RpcConnection(this);
-		m_rpcConnection->setSocket(socket);
-		m_rpcConnection->setProtocolVersion(cp::RpcDriver::Cpon);
-		connect(m_rpcConnection, &shv::coreqt::chainpack::RpcConnection::connectedChanged, this, &ClientConnection::onConnectedChanged);
-		connect(m_rpcConnection, &shv::coreqt::chainpack::RpcConnection::messageReceived, this, &ClientConnection::processRpcMessage);
-	}
 }
 
-ClientConnection::~ClientConnection()
+Connection::~Connection()
 {
 	shvDebug() << Q_FUNC_INFO;
+	abort();
 }
 
-void ClientConnection::onConnectedChanged(bool is_connected)
+void Connection::onConnectedChanged(bool is_connected)
 {
 	if(is_connected) {
 		shvInfo() << "Connected to RPC server";
 		//sendKnockKnock(cp::RpcDriver::ChainPack);
-		sendKnockKnock(cp::RpcDriver::Cpon);
-		m_isWaitingForHello = true;
+		sendKnockKnock();
 	}
 	else {
 		shvInfo() << "Disconnected from RPC server";
 	}
 }
 
-void ClientConnection::sendKnockKnock(int protocol_version, const std::string &profile)
+void Connection::sendKnockKnock()
 {
-	rpcConnection()->sendNotify("knockknock", cp::RpcValue::Map{{"protocolVersion", protocol_version}, {"profile", profile}});
+	m_isWaitingForHello = true;
+	rpcConnection()->sendNotify(cp::Rpc::KNOCK_KNOCK, cp::RpcValue::Map{{"profile", profile()}
+																, {"deviceId", deviceId()}
+																//, {"protocolVersion", protocolVersion()}
+								});
 }
 
 /*
@@ -75,29 +72,48 @@ QString ClientConnection::peerAddress() const
 	return m_socket->peerAddress().toString();
 }
 */
-shv::coreqt::chainpack::RpcConnection *ClientConnection::rpcConnection() const
+shv::coreqt::chainpack::RpcConnection *Connection::rpcConnection()
 {
+	if(!m_rpcConnection) {
+		QTcpSocket *socket = new QTcpSocket();
+		//connect(socket, &QTcpSocket::disconnected, this, &ClientConnection::deleteLater);
+		//connect(socket, &QTcpSocket::stateChanged, this, &ClientConnection::onStateChanged);
+		//connect(socket, static_cast<void(QAbstractSocket::*)(QAbstractSocket::SocketError)>(&QAbstractSocket::error), this, &ClientConnection::onConnectError);
+		{
+			m_rpcConnection = new shv::coreqt::chainpack::RpcConnection(cpq::RpcConnection::SyncCalls::Supported, this);
+			m_rpcConnection->setSocket(socket);
+			m_rpcConnection->setProtocolVersion(protocolVersion());
+			connect(m_rpcConnection, &shv::coreqt::chainpack::RpcConnection::connectedChanged, this, &Connection::onConnectedChanged);
+			connect(m_rpcConnection, &shv::coreqt::chainpack::RpcConnection::messageReceived, this, &Connection::processRpcMessage);
+		}
+	}
 	return m_rpcConnection;
 }
 
-void ClientConnection::connectToHost(const QString& address, int port)
+void Connection::connectToHost(const QString& address, int port)
 {
 	shv::coreqt::chainpack::RpcConnection *conn = rpcConnection();
 	shvInfo() << "Connecting to" << address << port;
 	conn->connectToHost(address, port);
 }
 
-bool ClientConnection::isConnected() const
+bool Connection::isConnected() const
 {
-	return rpcConnection()->isConnected();
+	if(!m_rpcConnection)
+		return false;
+	return const_cast<Connection*>(this)->rpcConnection()->isConnected();
 }
 
-void ClientConnection::abort()
+void Connection::abort()
 {
-	rpcConnection()->abort();
+	if(m_rpcConnection) {
+		rpcConnection()->abort();
+		delete m_rpcConnection;
+		m_rpcConnection = nullptr;
+	}
 }
 
-std::string ClientConnection::passwordHash(const QString &user)
+std::string Connection::passwordHash(const QString &user)
 {
 	QCryptographicHash hash(QCryptographicHash::Algorithm::Sha1);
 	hash.addData(user.toUtf8());
@@ -105,7 +121,7 @@ std::string ClientConnection::passwordHash(const QString &user)
 	return std::string(sha1.constData(), sha1.length());
 }
 
-void ClientConnection::processRpcMessage(const cp::RpcMessage &msg)
+void Connection::processRpcMessage(const cp::RpcMessage &msg)
 {
 	logRpc() << msg.toStdString();
 	if(m_isWaitingForHello && (msg.isNotify() || msg.isResponse())) {
@@ -134,7 +150,7 @@ void ClientConnection::processRpcMessage(const cp::RpcMessage &msg)
 					rpcConnection()->sendResponse(rq.id(), result);
 					m_isWaitingForHello = false;
 					shvInfo() << "Sending HELLO to RPC server";
-					QTimer::singleShot(1000, this, &ClientConnection::lublicatorTesting);
+					//QTimer::singleShot(1000, this, &Connection::lublicatorTesting);
 				}
 				else {
 					shvError() << "HELLO request invalid! Dropping connection." << rq.method();
@@ -161,8 +177,8 @@ void ClientConnection::processRpcMessage(const cp::RpcMessage &msg)
 		shvError() << "unhandled response";
 	}
 }
-
-void ClientConnection::lublicatorTesting()
+#if 0
+void Connection::lublicatorTesting()
 {
 	if(!rpcConnection()->isConnected())
 		return;
@@ -220,7 +236,7 @@ void ClientConnection::lublicatorTesting()
 		shvError() << "FAILED:" << e.message();
 	}
 }
-
-} // namespace rpc
+#endif
+}}}
 
 

@@ -147,6 +147,7 @@ void TheApp::startTcpServer()
 {
 	SHV_SAFE_DELETE(m_tcpServer);
 	m_tcpServer = new rpc::TcpServer(this);
+	connect(m_tcpServer, &rpc::TcpServer::rpcMessageReceived, this, &TheApp::onRpcMessageReceived);
 	//m_tcpServer->setPort(cliOptions()->serverPort());
 	if(m_tcpServer->start(cliOptions()->serverPort())) {
 		//connect(depotModel(), &DepotModel::valueChangedWillBeEmitted, m_tcpServer, &rpc::TcpServer::broadcastDepotModelValueChanged, Qt::QueuedConnection);
@@ -162,5 +163,10 @@ void TheApp::lazyInit()
 {
 	//reconnectSqlServer();
 	startTcpServer();
+}
+
+void TheApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
+{
+
 }
 

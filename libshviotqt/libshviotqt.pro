@@ -22,13 +22,15 @@ message ( DESTDIR: $$DESTDIR )
 DEFINES += SHVIOTQT_BUILD_DLL
 
 INCLUDEPATH += \
-	$$PWD/../libshvcore/include \
-	$$PWD/../libshvchainpack/include \
+	$$PWD/../3rdparty/libshv/libshvcore/include \
+	$$PWD/../3rdparty/libshv/libshvcoreqt/include \
+	$$PWD/../3rdparty/libshv/libshvchainpack/include \
 	../3rdparty/libshv/3rdparty/necrolog \
 
 LIBS += \
     -L$$DESTDIR \
-    -lshvcore
-    -lshvchainpack
+    -lshvchainpack \
+    -lshvcore \
+    -lshvcoreqt \
 
 include($$PWD/src/src.pri)

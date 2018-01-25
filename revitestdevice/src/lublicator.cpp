@@ -1,6 +1,7 @@
-#include "revitest.h"
+#include "lublicator.h"
 
 #include <shv/chainpack/rpcmessage.h>
+//#include <shv/chainpack/rpcdriver.h>
 #include <shv/core/string.h>
 #include <shv/core/shvexception.h>
 
@@ -8,20 +9,18 @@
 
 namespace cp = shv::chainpack;
 
-namespace processor {
-
 namespace {
-const std::string S_STATUS = "status";
-const std::string S_NAME = "name";
-const std::string S_BATT_LOW = "batteryLimitLow";
-const std::string S_BATT_HI = "batteryLimitHigh";
-const std::string S_BATT_LEVSIM = "batteryLevelSimulation";
+const ShvNode::String S_STATUS = "status";
+const ShvNode::String S_NAME = "name";
+const ShvNode::String S_BATT_LOW = "batteryLimitLow";
+const ShvNode::String S_BATT_HI = "batteryLimitHigh";
+const ShvNode::String S_BATT_LEVSIM = "batteryLevelSimulation";
 
 static const std::string ODPOJOVACE_PATH = "/shv/eu/pl/lublin/odpojovace/";
 }
 
 Lublicator::Lublicator(QObject *parent)
-	: QObject(parent)
+	: Super(parent)
 {
 	m_properties[S_STATUS] = cp::RpcValue::UInt(0);
 	m_properties[S_NAME] = "";
@@ -48,10 +47,10 @@ bool Lublicator::setStatus(unsigned stat)
 	return false;
 }
 
-const shv::chainpack::RpcValue::List &Lublicator::propertyNames() const
+ShvNode::StringList Lublicator::propertyNames() const
 {
-	static cp::RpcValue::List keys;
-	if(keys.empty()) for(auto const& imap: m_properties)
+	static ShvNode::StringList keys;
+	if(keys.empty()) for(const auto &imap: m_properties)
 		keys.push_back(imap.first);
 	return keys;
 }
@@ -241,9 +240,9 @@ void Revitest::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 	}
 	else if(msg.isNotify()) {
 		cp::RpcNotify nt(msg);
-		if(nt.method() == "knockknock") {
+		//if(nt.method() == shv::chainpack::Rpc::KNOCK_KNOCK) {
 			//const shv::chainpack::RpcValue::Map m = ntf.params().toMap();
-		}
+		//}
 		shvInfo() << "RPC notify received:" << nt.toStdString();
 }
 }
@@ -258,4 +257,3 @@ void Revitest::onLublicatorPropertyValueChanged(const std::string &property_name
 	emit sendRpcMessage(ntf);
 }
 
-} // namespace processor

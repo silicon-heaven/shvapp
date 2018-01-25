@@ -1,12 +1,14 @@
 
 HEADERS += \
-    $$PWD/theapp.h \
     $$PWD/appclioptions.h \
+    $$PWD/lublicator.h \
+    $$PWD/revitestapp.h \
 
 SOURCES += \
     $$PWD/main.cpp\
-    $$PWD/theapp.cpp \
     $$PWD/appclioptions.cpp \
+    $$PWD/lublicator.cpp \
+    $$PWD/revitestapp.cpp \
 
 #include ($$PWD/rpc/rpc.pri)
 

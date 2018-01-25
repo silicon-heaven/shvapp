@@ -22,17 +22,23 @@ public:
 
 	QString agentName() {return objectName();}
 	void setAgentName(const QString &n) {setObjectName(n);}
+
+	int connectionId() const {return m_connectionId;}
+
+	Q_SIGNAL void rpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 private:
 	QString peerAddress() const;
 	shv::coreqt::chainpack::RpcConnection* rpcConnection();
-	void processRpcMessage(const shv::chainpack::RpcMessage &msg);
-	void sendHello(unsigned protocol_version);
+	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
+	void sendHello();
 	std::string passwordHash(const std::string &user);
 private:
 	QTcpSocket* m_socket = nullptr;
 	shv::coreqt::chainpack::RpcConnection* m_rpcConnection = nullptr;
 	std::string m_pendingAuthNonce;
 	unsigned m_helloRequestId = 0;
+	bool m_knockknockReceived = false;
+	int m_connectionId;
 };
 
 } // namespace rpc

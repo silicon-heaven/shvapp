@@ -6,4 +6,5 @@ SUBDIRS += \
     libshviotqt \
     shvbroker \
     shvagent \
+    revitestdevice \
 

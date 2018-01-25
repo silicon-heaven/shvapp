@@ -1,17 +1,19 @@
 #pragma once
 
+#include <shv/iotqt/shvnode.h>
 #include <shv/chainpack/rpcvalue.h>
 #include <shv/coreqt/utils.h>
 
 #include <QObject>
+#include <QMap>
 
 namespace shv { namespace chainpack { class RpcMessage; }}
 
-namespace processor {
-
-class Lublicator : public QObject
+class Lublicator : public ShvNode
 {
 	Q_OBJECT
+private:
+	using Super = ShvNode;
 public:
 	enum class Status : unsigned {
 			 PosOff      = 1 << 0,
@@ -26,12 +28,11 @@ public:
 	unsigned status() const;
 	bool setStatus(unsigned stat);
 
-	const shv::chainpack::RpcValue::List& propertyNames() const;
-	shv::chainpack::RpcValue propertyValue(const std::string &property_name) const;
-	bool setPropertyValue(const std::string &property_name, const shv::chainpack::RpcValue &val);
-	Q_SIGNAL void propertyValueChanged(const std::string &property_name, const shv::chainpack::RpcValue &new_val);
+	StringList propertyNames() const override;
+	shv::chainpack::RpcValue propertyValue(const String &property_name) const override;
+	bool setPropertyValue(const String &property_name, const shv::chainpack::RpcValue &val) override;
 private:
-	std::map<std::string, shv::chainpack::RpcValue> m_properties;
+	std::map<String, shv::chainpack::RpcValue> m_properties;
 };
 
 class Revitest : public QObject
@@ -49,4 +50,3 @@ private:
 	Lublicator m_lublicators[LUB_CNT];
 };
 
-} // namespace processor

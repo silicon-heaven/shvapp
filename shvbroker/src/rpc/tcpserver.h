@@ -4,7 +4,11 @@
 
 #include <QTcpServer>
 
+namespace shv { namespace chainpack { class RpcMessage; }}
+
 namespace rpc {
+
+class ServerConnection;
 
 class TcpServer : public QTcpServer
 {
@@ -18,9 +22,14 @@ public:
 	explicit TcpServer(QObject *parent = 0);
 
 	bool start(int port);
-	int numConnections();
+	//int numConnections();
+	ServerConnection* connectionById(int connection_id);
+	Q_SIGNAL void rpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 protected:
 	void onNewConnection();
+	void onConnectionDeleted(int connection_id);
+protected:
+	std::map<int, ServerConnection*> m_connections;
 };
 
 } // namespace rpc
