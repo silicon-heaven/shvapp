@@ -26,6 +26,7 @@ LIBS += \
         -lshvchainpack \
         -lshvcore \
         -lshvcoreqt \
+        -lshviotqt \
 
 unix {
         LIBS += \
@@ -42,6 +43,7 @@ INCLUDEPATH += \
         ../3rdparty/libshv/libshvchainpack/include \
         ../3rdparty/libshv/libshvcore/include \
         ../3rdparty/libshv/libshvcoreqt/include \
+        ../libshviotqt/include \
 
 
 RESOURCES += \

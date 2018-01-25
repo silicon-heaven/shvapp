@@ -50,7 +50,7 @@ void TcpServer::onNewConnection()
 		connect(c, &ServerConnection::destroyed, [this, cid]() {
 			onConnectionDeleted(cid);
 		});
-		connect(c, &ServerConnection::rpcMessageReceived, this, &TcpServer::rpcMessageReceived);
+		connect(c, &ServerConnection::rpcDataReceived, this, &TcpServer::rpcDataReceived);
 	}
 }
 

@@ -4,6 +4,9 @@
 
 #include <QObject>
 
+namespace shv {
+namespace iotqt {
+
 class ShvNode;
 
 class SHVIOTQT_DECL_EXPORT ShvNodeTree : public QObject
@@ -21,3 +24,5 @@ protected:
 	//std::map<std::string, ShvNode*> m_root;
 	ShvNode* m_root = nullptr;
 };
+
+}}

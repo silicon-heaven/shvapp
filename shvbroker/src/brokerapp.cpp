@@ -1,12 +1,16 @@
-#include "theapp.h"
+#include "brokerapp.h"
 #include "rpc/tcpserver.h"
 
+#include <shv/iotqt/shvnode.h>
+#include <shv/iotqt/shvnodetree.h>
 #include <shv/coreqt/log.h>
 
 #include <shv/core/utils.h>
 
 #include <QSocketNotifier>
 #include <QTimer>
+
+#include <ctime>
 
 #ifdef Q_OS_UNIX
 #include <signal.h>
@@ -18,49 +22,53 @@
 //#define logOpcuaReceive qfCInfo("OpcuaReceive")
 
 #ifdef Q_OS_UNIX
-int TheApp::m_sigTermFd[2];
+int BrokerApp::m_sigTermFd[2];
 #endif
 
 //static constexpr int SQL_RECONNECT_INTERVAL = 3000;
 
-TheApp::TheApp(int &argc, char **argv, AppCliOptions *cli_opts)
+BrokerApp::BrokerApp(int &argc, char **argv, AppCliOptions *cli_opts)
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
 {
 	shvInfo() << "creating SHV BROKER application object ver." << versionString();
+	std::srand(std::time(nullptr));
 #ifdef Q_OS_UNIX
 	//syslog (LOG_INFO, "Server started");
 	installUnixSignalHandlers();
 #endif
-	connect(this, &TheApp::sqlServerConnected, this, &TheApp::onSqlServerConnected);
+	connect(this, &BrokerApp::sqlServerConnected, this, &BrokerApp::onSqlServerConnected);
 	/*
 	m_sqlConnectionWatchDog = new QTimer(this);
 	connect(m_sqlConnectionWatchDog, SIGNAL(timeout()), this, SLOT(reconnectSqlServer()));
 	m_sqlConnectionWatchDog->start(SQL_RECONNECT_INTERVAL);
 	*/
-	QTimer::singleShot(0, this, &TheApp::lazyInit);
+	m_deviceTree = new shv::iotqt::ShvNodeTree(this);
+	m_deviceTree->mkdir("test");
+
+	QTimer::singleShot(0, this, &BrokerApp::lazyInit);
 }
 
-TheApp::~TheApp()
+BrokerApp::~BrokerApp()
 {
 	shvInfo() << "Destroying SHV BROKER application object";
 	//QF_SAFE_DELETE(m_tcpServer);
 	//QF_SAFE_DELETE(m_sqlConnector);
 }
 
-QString TheApp::versionString() const
+QString BrokerApp::versionString() const
 {
 	return QCoreApplication::applicationVersion();
 }
 
 #ifdef Q_OS_UNIX
-void TheApp::installUnixSignalHandlers()
+void BrokerApp::installUnixSignalHandlers()
 {
 	shvInfo() << "installing Unix signals handlers";
 	{
 		struct sigaction term;
 
-		term.sa_handler = TheApp::sigTermHandler;
+		term.sa_handler = BrokerApp::sigTermHandler;
 		sigemptyset(&term.sa_mask);
 		term.sa_flags |= SA_RESTART;
 
@@ -70,18 +78,18 @@ void TheApp::installUnixSignalHandlers()
 	if(::socketpair(AF_UNIX, SOCK_STREAM, 0, m_sigTermFd))
 		qFatal("Couldn't create SIG_TERM socketpair");
 	m_snTerm = new QSocketNotifier(m_sigTermFd[1], QSocketNotifier::Read, this);
-	connect(m_snTerm, &QSocketNotifier::activated, this, &TheApp::handleSigTerm);
+	connect(m_snTerm, &QSocketNotifier::activated, this, &BrokerApp::handleSigTerm);
 	shvInfo() << "SIG_TERM handler installed OK";
 }
 
-void TheApp::sigTermHandler(int)
+void BrokerApp::sigTermHandler(int)
 {
 	shvInfo() << "SIG TERM";
 	char a = 1;
 	::write(m_sigTermFd[0], &a, sizeof(a));
 }
 
-void TheApp::handleSigTerm()
+void BrokerApp::handleSigTerm()
 {
 	m_snTerm->setEnabled(false);
 	char tmp;
@@ -129,25 +137,25 @@ void TheApp::reconnectSqlServer()
 	}
 }
 */
-void TheApp::onSqlServerError(const QString &err_mesg)
+void BrokerApp::onSqlServerError(const QString &err_mesg)
 {
 	Q_UNUSED(err_mesg)
 	//SHV_SAFE_DELETE(m_sqlConnector);
 	//m_sqlConnectionWatchDog->start(SQL_RECONNECT_INTERVAL);
 }
 
-void TheApp::onSqlServerConnected()
+void BrokerApp::onSqlServerConnected()
 {
 	//connect(depotModel(), &DepotModel::valueChangedWillBeEmitted, m_sqlConnector, &sql::SqlConnector::saveDepotModelJournal, Qt::UniqueConnection);
 	//connect(this, &TheApp::opcValueWillBeSet, m_sqlConnector, &sql::SqlConnector::saveDepotModelJournal, Qt::UniqueConnection);
 	//m_depotModel->setValue(QStringList() << QStringLiteral("server") << QStringLiteral("startTime"), QVariant::fromValue(QDateTime::currentDateTime()), !shv::core::Exception::Throw);
 }
 
-void TheApp::startTcpServer()
+void BrokerApp::startTcpServer()
 {
 	SHV_SAFE_DELETE(m_tcpServer);
 	m_tcpServer = new rpc::TcpServer(this);
-	connect(m_tcpServer, &rpc::TcpServer::rpcMessageReceived, this, &TheApp::onRpcMessageReceived);
+	connect(m_tcpServer, &rpc::TcpServer::rpcDataReceived, this, &BrokerApp::onRpcDataReceived);
 	//m_tcpServer->setPort(cliOptions()->serverPort());
 	if(m_tcpServer->start(cliOptions()->serverPort())) {
 		//connect(depotModel(), &DepotModel::valueChangedWillBeEmitted, m_tcpServer, &rpc::TcpServer::broadcastDepotModelValueChanged, Qt::QueuedConnection);
@@ -159,13 +167,13 @@ void TheApp::startTcpServer()
 	}
 }
 
-void TheApp::lazyInit()
+void BrokerApp::lazyInit()
 {
 	//reconnectSqlServer();
 	startTcpServer();
 }
 
-void TheApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
+void BrokerApp::onRpcDataReceived(const shv::chainpack::RpcValue::MetaData &meta, const std::string &data)
 {
 
 }

@@ -1,5 +1,5 @@
 #include "sqlconnector.h"
-#include "../theapp.h"
+#include "../brokerapp.h"
 
 #include <shv/coreqt/log.h>
 
@@ -42,7 +42,7 @@ void SqlConnector::open(const QString &host, int port, const QString &password)
 			break;
 		}
 		shvInfo() << "connected to SQL server - OK";
-		QString db_profile = TheApp::instance()->cliOptions()->profile();
+		QString db_profile = BrokerApp::instance()->cliOptions()->profile();
 		db_ok = checkDbSchema(db_profile);
 		if(!db_ok)
 			break;

@@ -8,13 +8,14 @@
 #include <shv/coreqt/log.h>
 
 namespace cp = shv::chainpack;
+namespace iot = shv::iotqt;
 
 namespace {
-const ShvNode::String S_STATUS = "status";
-const ShvNode::String S_NAME = "name";
-const ShvNode::String S_BATT_LOW = "batteryLimitLow";
-const ShvNode::String S_BATT_HI = "batteryLimitHigh";
-const ShvNode::String S_BATT_LEVSIM = "batteryLevelSimulation";
+const iot::ShvNode::String S_STATUS = "status";
+const iot::ShvNode::String S_NAME = "name";
+const iot::ShvNode::String S_BATT_LOW = "batteryLimitLow";
+const iot::ShvNode::String S_BATT_HI = "batteryLimitHigh";
+const iot::ShvNode::String S_BATT_LEVSIM = "batteryLevelSimulation";
 
 static const std::string ODPOJOVACE_PATH = "/shv/eu/pl/lublin/odpojovace/";
 }
@@ -47,7 +48,7 @@ bool Lublicator::setStatus(unsigned stat)
 	return false;
 }
 
-ShvNode::StringList Lublicator::propertyNames() const
+iot::ShvNode::StringList Lublicator::propertyNames() const
 {
 	static ShvNode::StringList keys;
 	if(keys.empty()) for(const auto &imap: m_properties)

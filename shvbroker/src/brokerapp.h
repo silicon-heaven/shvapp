@@ -2,29 +2,32 @@
 
 #include "appclioptions.h"
 
+#include <shv/chainpack/rpcvalue.h>
+
 #include <QCoreApplication>
 #include <QDateTime>
 
 class QSocketNotifier;
 
-namespace shv { namespace chainpack { class RpcMessage; }}
+namespace shv { namespace iotqt { class ShvNodeTree; }}
+//namespace shv { namespace chainpack { class RpcMessage; }}
 namespace rpc { class TcpServer; }
 
-class TheApp : public QCoreApplication
+class BrokerApp : public QCoreApplication
 {
 	Q_OBJECT
 private:
 	typedef QCoreApplication Super;
 public:
-	TheApp(int &argc, char **argv, AppCliOptions* cli_opts);
-	~TheApp() Q_DECL_OVERRIDE;
+	BrokerApp(int &argc, char **argv, AppCliOptions* cli_opts);
+	~BrokerApp() Q_DECL_OVERRIDE;
 
 	QString versionString() const;
 
 	AppCliOptions* cliOptions() {return m_cliOptions;}
 	//sql::SqlConnector *sqlConnector();
 
-	static TheApp* instance() {return qobject_cast<TheApp*>(Super::instance());}
+	static BrokerApp* instance() {return qobject_cast<BrokerApp*>(Super::instance());}
 public:
 	//rpc::TcpServer* tcpServer() {return m_tcpServer;}
 
@@ -39,10 +42,11 @@ private:
 	Q_SLOT void onSqlServerConnected();
 	//Q_SLOT void reloadServices();
 
-	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
+	void onRpcDataReceived(const shv::chainpack::RpcValue::MetaData &meta, const std::string &data);
 private:
 	AppCliOptions *m_cliOptions;
 	rpc::TcpServer *m_tcpServer = nullptr;
+	shv::iotqt::ShvNodeTree *m_deviceTree = nullptr;
 	/*
 	sql::SqlConnector *m_sqlConnector = nullptr;
 	QTimer *m_sqlConnectionWatchDog;

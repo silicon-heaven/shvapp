@@ -1,4 +1,4 @@
-#include "theapp.h"
+#include "brokerapp.h"
 #include "appclioptions.h"
 
 #include <shv/core/utils.h>
@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
 	shvInfo() << "--------------------------------------------------------------------------------------";
 	//break;
 
-	TheApp a(argc, argv, &cli_opts);
+	BrokerApp a(argc, argv, &cli_opts);
 
 	QString lc_name = cli_opts.locale();
 	{

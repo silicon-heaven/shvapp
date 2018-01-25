@@ -1,5 +1,5 @@
 ﻿#include "serverconnection.h"
-#include "../theapp.h"
+#include "../brokerapp.h"
 
 #include <shv/coreqt/chainpack/rpcconnection.h>
 #include <shv/coreqt/log.h>
@@ -12,8 +12,6 @@
 #include <QTimer>
 #include <QCryptographicHash>
 
-#include <ctime>
-
 #define logRpc() shvCDebug("rpc")
 
 namespace cp = shv::chainpack;
@@ -25,17 +23,15 @@ static int s_connectionId = 0;
 
 ServerConnection::ServerConnection(QTcpSocket *socket, QObject *parent)
 	: Super(parent)
-	, m_socket(socket)
+	//, m_socket(socket)
 	, m_connectionId(++s_connectionId)
 {
-	std::srand(std::time(nullptr));
+	setSocket(socket);
 	socket->setParent(nullptr);
-	connect(m_socket, &QTcpSocket::disconnected, this, &ServerConnection::deleteLater);
-	{
-		m_rpcConnection = new shv::coreqt::chainpack::RpcConnection(cpq::RpcConnection::SyncCalls::NotSupported, this);
-		m_rpcConnection->setSocket(m_socket);
-		connect(m_rpcConnection, &cpq::RpcConnection::messageReceived, this, &ServerConnection::onRpcMessageReceived);
-	}
+	connect(this, &ServerConnection::connectedChanged, [this](bool is_connected) {
+		if(!is_connected)
+			this->deleteLater();
+	});
 }
 
 ServerConnection::~ServerConnection()
@@ -43,14 +39,29 @@ ServerConnection::~ServerConnection()
 	shvInfo() << "Agent disconnected:" << agentName();
 }
 
-QString ServerConnection::peerAddress() const
+namespace {
+int nextRpcId()
 {
-	return m_socket->peerAddress().toString();
+	static int n = 0;
+	return ++n;
+}
+}
+int ServerConnection::callMethodASync(const std::string & method, const cp::RpcValue &params)
+{
+	int id = nextRpcId();
+	cp::RpcRequest rq;
+	rq.setId(id);
+	rq.setMethod(method);
+	rq.setParams(params);
+	sendMessage(rq.value());
+	return id;
 }
 
-shv::coreqt::chainpack::RpcConnection *ServerConnection::rpcConnection()
+QString ServerConnection::peerAddress() const
 {
-	return m_rpcConnection;
+	if(m_socket)
+		return m_socket->peerAddress().toString();
+	return QString();
 }
 
 void ServerConnection::sendHello()
@@ -68,7 +79,7 @@ void ServerConnection::sendHello()
 			this->deleteLater();
 		}
 	});
-	m_helloRequestId = rpcConnection()->callMethodASync("hello", params);
+	m_helloRequestId = callMethodASync("hello", params);
 }
 
 std::string ServerConnection::passwordHash(const std::string &user)
@@ -84,10 +95,12 @@ std::string ServerConnection::passwordHash(const std::string &user)
 	return std::string(sha1.constData(), sha1.length());
 }
 
-void ServerConnection::onRpcMessageReceived(const cp::RpcMessage &msg)
+void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolVersion protocol_version, shv::chainpack::RpcValue::MetaData &&md, const std::string &data, size_t start_pos, size_t data_len)
 {
-	logRpc() << msg.toStdString();
 	if(!m_knockknockReceived) {
+		cp::RpcValue val = decodeData(protocol_version, data, start_pos);
+		val.setMetaData(std::move(md));
+		cp::RpcMessage msg(val);
 		if(msg.isNotify()) {
 			cp::RpcNotify ntf(msg);
 			shvInfo() << "=> RPC notify received:" << ntf.toStdString();
@@ -106,6 +119,9 @@ void ServerConnection::onRpcMessageReceived(const cp::RpcMessage &msg)
 		this->deleteLater();
 	}
 	if(m_helloRequestId > 0 || !m_pendingAuthNonce.empty()) {
+		cp::RpcValue val = decodeData(protocol_version, data, start_pos);
+		val.setMetaData(std::move(md));
+		cp::RpcMessage msg(val);
 		if(msg.isResponse()) {
 			cp::RpcResponse resp(msg);
 			if(resp.isError()) {
@@ -159,11 +175,29 @@ void ServerConnection::onRpcMessageReceived(const cp::RpcMessage &msg)
 		}
 		return;
 	}
+	/*
+	cp::RpcValue embrio_val;
+	embrio_val.setMetaData(std::move(md));
+	cp::RpcMessage embrio(embrio_val);
+	embrio.setProtocolVersion(protocol_version);
+	//shv::chainpack::RpcValue shv_path = embrio.shvPath();
+	//embrio.setShvPath(cp::RpcValue());
+	*/
+	cp::RpcValue::MetaData meta_data(std::move(md));
+	meta_data.setValue(shv::chainpack::meta::RpcMessage::Tag::ProtocolVersion, (unsigned)protocol_version);
+	meta_data.setValue(shv::chainpack::meta::RpcMessage::Tag::ConnectionId, connectionId());
+	std::string msg_data(data, start_pos, data_len);
+	emit rpcDataReceived(meta_data, msg_data);
+}
+/*
+void ServerConnection::onRpcMessageReceived(const cp::RpcMessage &msg)
+{
+	logRpc() << msg.toStdString();
 	cp::RpcMessage msg2(msg);
 	msg2.setConnectionId(connectionId());
 	emit rpcMessageReceived(msg2);
 }
-
+*/
 } // namespace rpc
 
 

@@ -3,7 +3,7 @@
 #include <shv/iotqt/client/consoleapplication.h>
 
 class AppCliOptions;
-class ShvNodeTree;
+namespace shv { namespace iotqt { class ShvNodeTree; }}
 
 class RevitestApp : public shv::iotqt::client::ConsoleApplication
 {
@@ -16,6 +16,6 @@ public:
 private:
 	void createDevices();
 private:
-	ShvNodeTree *m_devices = nullptr;
+	shv::iotqt::ShvNodeTree *m_devices = nullptr;
 };
 

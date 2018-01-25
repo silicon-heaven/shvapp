@@ -9,11 +9,11 @@
 
 namespace shv { namespace chainpack { class RpcMessage; }}
 
-class Lublicator : public ShvNode
+class Lublicator : public shv::iotqt::ShvNode
 {
 	Q_OBJECT
 private:
-	using Super = ShvNode;
+	using Super = shv::iotqt::ShvNode;
 public:
 	enum class Status : unsigned {
 			 PosOff      = 1 << 0,

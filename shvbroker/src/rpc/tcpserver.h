@@ -1,6 +1,7 @@
 #pragma once
 
 #include <shv/core/utils.h>
+#include <shv/chainpack/rpcvalue.h>
 
 #include <QTcpServer>
 
@@ -24,7 +25,8 @@ public:
 	bool start(int port);
 	//int numConnections();
 	ServerConnection* connectionById(int connection_id);
-	Q_SIGNAL void rpcMessageReceived(const shv::chainpack::RpcMessage &msg);
+	//Q_SIGNAL void rpcMessageReceived(const shv::chainpack::RpcMessage &msg);
+	Q_SIGNAL void rpcDataReceived(const shv::chainpack::RpcValue::MetaData &meta, const std::string &data);
 protected:
 	void onNewConnection();
 	void onConnectionDeleted(int connection_id);

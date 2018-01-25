@@ -2,6 +2,9 @@
 
 #include <shv/chainpack/rpcvalue.h>
 
+namespace shv {
+namespace iotqt {
+
 ShvNode::ShvNode(QObject *parent)
 	: QObject(parent)
 {
@@ -58,3 +61,5 @@ bool ShvNode::setPropertyValue_helper(const ShvNode::String &property_name, cons
 	Q_UNUSED(val)
 	return false;
 }
+
+}}

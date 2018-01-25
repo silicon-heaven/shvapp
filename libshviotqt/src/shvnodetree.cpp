@@ -2,6 +2,9 @@
 
 #include <shv/core/string.h>
 
+namespace shv {
+namespace iotqt {
+
 ShvNodeTree::ShvNodeTree(QObject *parent)
 	: QObject(parent)
 {
@@ -35,3 +38,5 @@ ShvNode *ShvNodeTree::mdcd(const ShvNode::String &path, ShvNode::String *path_re
 	}
 	return ret;
 }
+
+}}

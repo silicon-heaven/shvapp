@@ -6,6 +6,9 @@
 
 namespace shv { namespace chainpack { class RpcValue; }}
 
+namespace shv {
+namespace iotqt {
+
 class SHVIOTQT_DECL_EXPORT ShvNode : public QObject
 {
 	Q_OBJECT
@@ -32,3 +35,5 @@ protected:
 private:
 	String m_nodeName;
 };
+
+}}

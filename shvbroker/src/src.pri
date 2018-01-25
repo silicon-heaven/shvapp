@@ -1,12 +1,12 @@
 
 HEADERS += \
-    $$PWD/theapp.h \
     $$PWD/appclioptions.h \
+    $$PWD/brokerapp.h
 
 SOURCES += \
     $$PWD/main.cpp\
-    $$PWD/theapp.cpp \
     $$PWD/appclioptions.cpp \
+    $$PWD/brokerapp.cpp
 
 include ($$PWD/rpc/rpc.pri)
 include ($$PWD/sql/sql.pri)
