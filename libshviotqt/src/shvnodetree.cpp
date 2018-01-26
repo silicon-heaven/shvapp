@@ -1,6 +1,6 @@
 #include "shvnodetree.h"
 
-#include <shv/core/string.h>
+#include <shv/coreqt/log.h>
 
 namespace shv {
 namespace iotqt {
@@ -11,18 +11,17 @@ ShvNodeTree::ShvNodeTree(QObject *parent)
 
 }
 
-ShvNode *ShvNodeTree::mdcd(const ShvNode::String &path, ShvNode::String *path_rest, bool create_dirs)
+ShvNode *ShvNodeTree::mdcd(const ShvNode::StringList &path, ShvNode::String *path_rest, bool create_dirs)
 {
-	ShvNode::StringList lst = shv::core::String::split(path);
 	ShvNode *ret = m_root;
 	size_t ix;
-	for (ix = 0; ix < lst.size(); ++ix) {
-		const ShvNode::String &s = lst[ix];
+	for (ix = 0; ix < path.size(); ++ix) {
+		const ShvNode::String &s = path[ix];
 		ShvNode *nd2 = ret->childNode(s);
 		if(nd2 == nullptr) {
 			if(create_dirs) {
 				ret = new ShvNode(ret);
-				ret->setNodeName(lst[ix]);
+				ret->setNodeName(path[ix]);
 			}
 			else {
 				break;
@@ -33,10 +32,35 @@ ShvNode *ShvNodeTree::mdcd(const ShvNode::String &path, ShvNode::String *path_re
 		}
 	}
 	if(path_rest) {
-		lst = ShvNode::StringList(lst.begin() + ix, lst.end());
-		*path_rest = shv::core::String::join(lst, '/');
+		auto path2 = ShvNode::StringList(path.begin() + ix, path.end());
+		*path_rest = shv::core::String::join(path2, '/');
 	}
 	return ret;
+}
+
+bool ShvNodeTree::mount(const ShvNode::String &path, ShvNode *node)
+{
+	ShvNode::StringList lst = shv::core::String::split(path);
+	if(lst.empty()) {
+		shvError() << "Cannot mount node on empty path:" << path;
+		return false;
+	}
+	std::string last_id = lst.back();
+	lst.pop_back();
+	ShvNode *parent_nd = nullptr;
+	if(lst.empty()) {
+		parent_nd = m_root;
+	}
+	else {
+		parent_nd = mdcd(lst, nullptr, true);
+	}
+	ShvNode *ch = parent_nd->childNode(last_id);
+	if(ch) {
+		shvError() << "Node exist allready:" << path;
+		return false;
+	}
+	node->setParentNode(parent_nd);
+	return true;
 }
 
 }}

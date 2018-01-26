@@ -19,7 +19,11 @@ ShvNode *ShvNode::childNode(const String &name) const
 
 void ShvNode::setParentNode(ShvNode *parent)
 {
+	//ShvNode* old_parent = qobject_cast<ShvNode*>(parent());
 	setParent(parent);
+	//if(!parent && old_parent) {
+	//	if(old_parent->ch)
+	//}
 }
 
 ShvNode::StringList ShvNode::propertyNames() const

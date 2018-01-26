@@ -145,7 +145,8 @@ void Connection::processRpcMessage(const cp::RpcMessage &msg)
 					QByteArray sha1 = hash.result().toHex();
 					cp::RpcValue::Map result{
 						{"nonce", std::string(sha1.constData())},
-						{"login", cp::RpcValue::Map{ {"user", user().toStdString()}, }},
+						{"login", cp::RpcValue::Map{ {"user", user().toStdString()}
+													 , {"deviceId", deviceId()} }},
 					};
 					rpcConnection()->sendResponse(rq.id(), result);
 					m_isWaitingForHello = false;

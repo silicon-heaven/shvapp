@@ -67,7 +67,7 @@ QString ServerConnection::peerAddress() const
 void ServerConnection::sendHello()
 {
 	setAgentName(QStringLiteral("%1:%2").arg(peerAddress()).arg(m_socket->peerPort()));
-	shvInfo() << "sending hello to:" << agentName();
+	shvInfo() << "sending hello to:" << agentName() << "profile:" << m_profile;
 	m_pendingAuthNonce = std::to_string(std::rand());
 	cp::RpcValue::Map params {
 		//{"protocol", cp::RpcValue::Map{{"version", protocol_version}}},
@@ -109,8 +109,10 @@ void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolVersion pr
 				const shv::chainpack::RpcValue::Map m = ntf.params().toMap();
 				//cp::RpcDriver::ProtocolVersion ver = (cp::RpcDriver::ProtocolVersion)m.value("procolVersion", (unsigned)cp::RpcDriver::ProtocolVersion::ChainPack).toInt();
 				const shv::chainpack::RpcValue::String profile = m.value("profile").toString();
-				shvInfo() << "Client is knocking, profile:" << profile << "device id::" << m.value("deviceId").toStdString();
+				shvInfo() << "Client is knocking, profile:" << profile;// << "device id::" << m.value("deviceId").toStdString();
 				//rpcConnection()->setProtocolVersion(ver);
+				//emit knockknocReceived(connectionId(), m);
+				m_profile = profile;
 				sendHello();
 				return;
 			}
@@ -132,24 +134,29 @@ void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolVersion pr
 				if(resp.id() == m_helloRequestId) {
 					cp::RpcValue::Map result = resp.result().toMap();
 					const cp::RpcValue::Map login = result.value("login").toMap();
-					const cp::RpcValue::String user = login.value("user").toString();
+					m_user = login.value("user").toString();
+					m_deviceId = login.value("deviceId");
 
-					std::string password_hash = passwordHash(user);
-					shvInfo() << "login - user:" << user << "password:" << password_hash;
+					std::string password_hash = passwordHash(m_user);
+					shvInfo() << "login - user:" << m_user << "password:" << password_hash;
 					bool password_ok = password_hash.empty();
 					if(!password_ok) {
 						std::string nonce_sha1 = result.value("nonce").toString();
-						std::string nonce = m_pendingAuthNonce + passwordHash(user);
+						std::string nonce = m_pendingAuthNonce + passwordHash(m_user);
 						QCryptographicHash hash(QCryptographicHash::Algorithm::Sha1);
 						hash.addData(nonce.c_str(), nonce.length());
 						std::string sha1 = std::string(hash.result().toHex().constData());
 						shvInfo() << nonce_sha1 << "vs" << sha1;
 						password_ok = (nonce_sha1 == sha1);
 					}
-					if(password_ok && !user.empty()) {
+					if(password_ok && !m_user.empty()) {
 						m_helloRequestId = 0;
 						m_pendingAuthNonce.clear();
-						shvInfo() << "Agent logged in user:" << user << "from:" << agentName();
+						shvInfo() << "Client logged in user:" << m_user << "from:" << agentName();
+						if(BrokerApp::instance()->onClientLogin(connectionId())) {
+							shvError() << "Client refused by application.";
+							this->deleteLater();
+						}
 						/*
 						if(user == "timepress") {
 							processor::Revitest *rv = new processor::Revitest(this);
@@ -159,7 +166,7 @@ void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolVersion pr
 						*/
 					}
 					else {
-						shvError() << "Invalid autentication for user:" << user << "at:" << agentName();
+						shvError() << "Invalid autentication for user:" << m_user << "at:" << agentName();
 						this->deleteLater();
 					}
 				}
@@ -184,10 +191,10 @@ void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolVersion pr
 	//embrio.setShvPath(cp::RpcValue());
 	*/
 	cp::RpcValue::MetaData meta_data(std::move(md));
-	meta_data.setValue(shv::chainpack::meta::RpcMessage::Tag::ProtocolVersion, (unsigned)protocol_version);
-	meta_data.setValue(shv::chainpack::meta::RpcMessage::Tag::ConnectionId, connectionId());
+	cp::RpcMessage::setProtocolVersion(meta_data, protocol_version);
+	cp::RpcMessage::setConnectionId(meta_data, connectionId());
 	std::string msg_data(data, start_pos, data_len);
-	emit rpcDataReceived(meta_data, msg_data);
+	BrokerApp::instance()->onRpcDataReceived(meta_data, msg_data);
 }
 /*
 void ServerConnection::onRpcMessageReceived(const cp::RpcMessage &msg)

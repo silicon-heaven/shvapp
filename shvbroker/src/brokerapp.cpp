@@ -1,11 +1,14 @@
 #include "brokerapp.h"
 #include "rpc/tcpserver.h"
+#include "rpc/serverconnection.h"
 
 #include <shv/iotqt/shvnode.h>
 #include <shv/iotqt/shvnodetree.h>
 #include <shv/coreqt/log.h>
 
+#include <shv/core/string.h>
 #include <shv/core/utils.h>
+#include <shv/chainpack/rpcmessage.h>
 
 #include <QSocketNotifier>
 #include <QTimer>
@@ -19,6 +22,8 @@
 #include <unistd.h>
 #endif
 
+
+namespace cp = shv::chainpack;
 //#define logOpcuaReceive qfCInfo("OpcuaReceive")
 
 #ifdef Q_OS_UNIX
@@ -26,6 +31,15 @@ int BrokerApp::m_sigTermFd[2];
 #endif
 
 //static constexpr int SQL_RECONNECT_INTERVAL = 3000;
+ConnectionNode::ConnectionNode(rpc::ServerConnection *connection, QObject *parent)
+ : Super(parent)
+ , m_connection(connection)
+{
+	connect(connection, &rpc::ServerConnection::destroyed, [this]() {
+		this->setParentNode(nullptr);
+		delete this;
+	});
+}
 
 BrokerApp::BrokerApp(int &argc, char **argv, AppCliOptions *cli_opts)
 	: Super(argc, argv)
@@ -59,6 +73,13 @@ BrokerApp::~BrokerApp()
 QString BrokerApp::versionString() const
 {
 	return QCoreApplication::applicationVersion();
+}
+
+rpc::TcpServer *BrokerApp::tcpServer()
+{
+	if(!m_tcpServer)
+		SHV_EXCEPTION("TCP server is NULL!");
+	return m_tcpServer;
 }
 
 #ifdef Q_OS_UNIX
@@ -155,14 +176,7 @@ void BrokerApp::startTcpServer()
 {
 	SHV_SAFE_DELETE(m_tcpServer);
 	m_tcpServer = new rpc::TcpServer(this);
-	connect(m_tcpServer, &rpc::TcpServer::rpcDataReceived, this, &BrokerApp::onRpcDataReceived);
-	//m_tcpServer->setPort(cliOptions()->serverPort());
-	if(m_tcpServer->start(cliOptions()->serverPort())) {
-		//connect(depotModel(), &DepotModel::valueChangedWillBeEmitted, m_tcpServer, &rpc::TcpServer::broadcastDepotModelValueChanged, Qt::QueuedConnection);
-		//connect(this, &TheApp::depotEvent, m_tcpServer, &rpc::TcpServer::broadcastDepotEvent, Qt::QueuedConnection);
-	}
-	else {
-		//QF_SAFE_DELETE(m_tcpServer);
+	if(!m_tcpServer->start(cliOptions()->serverPort())) {
 		SHV_EXCEPTION("Cannot start TCP server!");
 	}
 }
@@ -173,8 +187,36 @@ void BrokerApp::lazyInit()
 	startTcpServer();
 }
 
-void BrokerApp::onRpcDataReceived(const shv::chainpack::RpcValue::MetaData &meta, const std::string &data)
+bool BrokerApp::onClientLogin(int connection_id)
 {
-
+	rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
+	if(!conn) {
+		shvError() << "Cannot find connection for ID:" << connection_id;
+		return false;
+	}
+	const std::string device_id = conn->deviceId().toString();
+	ConnectionNode *nd = new ConnectionNode(conn);
+	if(!m_deviceTree->mount(device_id, nd)) {
+		shvError() << "Cannot mount connection to device tree, connection id:" << connection_id;
+		return false;
+	}
+	return true;
 }
+
+void BrokerApp::onRpcDataReceived(const cp::RpcValue::MetaData &meta, const std::string &data)
+{
+	const std::string shv_path = cp::RpcMessage::shvPath(meta).toString();
+	std::string path_rest;
+	ConnectionNode *nd = qobject_cast<ConnectionNode *>(m_deviceTree->cd(shv_path, &path_rest));
+	if(nd) {
+		cp::RpcValue::MetaData meta2(meta);
+		cp::RpcMessage::setShvPath(meta2, path_rest.empty()? cp::RpcValue(): cp::RpcValue(path_rest));
+		rpc::ServerConnection *conn2 = nd->connection();
+		conn2->sendRawData(std::move(meta2), std::string(data));
+	}
+	else {
+		shvWarning() << "Device tree path not found:" << shv_path;
+	}
+}
+
 

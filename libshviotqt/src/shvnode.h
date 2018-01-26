@@ -18,6 +18,7 @@ public:
 public:
 	explicit ShvNode(QObject *parent = nullptr);
 
+	//size_t childNodeCount() const {return propertyNames().size();}
 	virtual ShvNode* childNode(const String &name) const;
 	virtual void setParentNode(ShvNode *parent);
 	virtual String nodeName() {return m_nodeName;}

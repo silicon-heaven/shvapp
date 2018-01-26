@@ -2,6 +2,8 @@
 
 #include "shvnode.h"
 
+#include <shv/core/string.h>
+
 #include <QObject>
 
 namespace shv {
@@ -15,11 +17,19 @@ class SHVIOTQT_DECL_EXPORT ShvNodeTree : public QObject
 public:
 	explicit ShvNodeTree(QObject *parent = nullptr);
 
-	ShvNode* mkdir(const ShvNode::String &path, ShvNode::String *path_rest = nullptr) {return mdcd(path, path_rest, true);}
-	ShvNode* cd(const ShvNode::String &path, ShvNode::String *path_rest = nullptr) {return mdcd(path, path_rest, false);}
-	//bool mount(const ShvNode::String &path, ShvNode *node, bool create_dirs);
+	ShvNode* mkdir(const ShvNode::String &path, ShvNode::String *path_rest = nullptr)
+	{
+		ShvNode::StringList lst = shv::core::String::split(path);
+		return mdcd(lst, path_rest, true);
+	}
+	ShvNode* cd(const ShvNode::String &path, ShvNode::String *path_rest = nullptr)
+	{
+		ShvNode::StringList lst = shv::core::String::split(path);
+		return mdcd(lst, path_rest, false);
+	}
+	bool mount(const ShvNode::String &path, ShvNode *node);
 protected:
-	ShvNode* mdcd(const ShvNode::String &path, ShvNode::String *path_rest, bool create_dirs);
+	ShvNode* mdcd(const ShvNode::StringList &path, ShvNode::String *path_rest, bool create_dirs);
 protected:
 	//std::map<std::string, ShvNode*> m_root;
 	ShvNode* m_root = nullptr;

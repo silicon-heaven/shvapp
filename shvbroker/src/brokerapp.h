@@ -2,6 +2,8 @@
 
 #include "appclioptions.h"
 
+#include <shv/iotqt/shvnode.h>
+
 #include <shv/chainpack/rpcvalue.h>
 
 #include <QCoreApplication>
@@ -11,7 +13,19 @@ class QSocketNotifier;
 
 namespace shv { namespace iotqt { class ShvNodeTree; }}
 //namespace shv { namespace chainpack { class RpcMessage; }}
-namespace rpc { class TcpServer; }
+namespace rpc { class TcpServer; class ServerConnection; }
+
+class ConnectionNode : public shv::iotqt::ShvNode
+{
+	Q_OBJECT
+private:
+	using Super = shv::iotqt::ShvNode;
+public:
+	ConnectionNode(rpc::ServerConnection *connection, QObject *parent = nullptr);
+	rpc::ServerConnection * connection() const {return m_connection;}
+private:
+	rpc::ServerConnection * m_connection = nullptr;
+};
 
 class BrokerApp : public QCoreApplication
 {
@@ -28,8 +42,11 @@ public:
 	//sql::SqlConnector *sqlConnector();
 
 	static BrokerApp* instance() {return qobject_cast<BrokerApp*>(Super::instance());}
+
+	bool onClientLogin(int connection_id);
+	void onRpcDataReceived(const shv::chainpack::RpcValue::MetaData &meta, const std::string &data);
 public:
-	//rpc::TcpServer* tcpServer() {return m_tcpServer;}
+	rpc::TcpServer* tcpServer();
 
 	Q_SIGNAL void sqlServerConnected();
 private:
@@ -41,8 +58,6 @@ private:
 	Q_SLOT void onSqlServerError(const QString &err_mesg);
 	Q_SLOT void onSqlServerConnected();
 	//Q_SLOT void reloadServices();
-
-	void onRpcDataReceived(const shv::chainpack::RpcValue::MetaData &meta, const std::string &data);
 private:
 	AppCliOptions *m_cliOptions;
 	rpc::TcpServer *m_tcpServer = nullptr;

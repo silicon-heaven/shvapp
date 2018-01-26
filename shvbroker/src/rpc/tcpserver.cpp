@@ -32,13 +32,7 @@ ServerConnection *TcpServer::connectionById(int connection_id)
 		return nullptr;
 	return it->second;
 }
-/*
-int TcpServer::numConnections()
-{
-	QList<ServerConnection*> cns = findChildren<ServerConnection*>(QString(), Qt::FindDirectChildrenOnly);
-	return cns.count();
-}
-*/
+
 void TcpServer::onNewConnection()
 {
 	QTcpSocket *sock = nextPendingConnection();
@@ -50,7 +44,6 @@ void TcpServer::onNewConnection()
 		connect(c, &ServerConnection::destroyed, [this, cid]() {
 			onConnectionDeleted(cid);
 		});
-		connect(c, &ServerConnection::rpcDataReceived, this, &TcpServer::rpcDataReceived);
 	}
 }
 

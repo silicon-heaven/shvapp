@@ -27,10 +27,12 @@ public:
 	void setAgentName(const QString &n) {setObjectName(n);}
 
 	int connectionId() const {return m_connectionId;}
+	const shv::chainpack::RpcValue& deviceId() const {return m_deviceId;}
 
 	int callMethodASync(const std::string &method, const shv::chainpack::RpcValue &params = shv::chainpack::RpcValue());
 
-	Q_SIGNAL void rpcDataReceived(const shv::chainpack::RpcValue::MetaData &meta, const std::string &data);
+	//Q_SIGNAL void knockknocReceived(int connection_id, const shv::chainpack::RpcValue::Map &params);
+	//Q_SIGNAL void rpcDataReceived(const shv::chainpack::RpcValue::MetaData &meta, const std::string &data);
 	//Q_SIGNAL void rpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 protected:
 	void onRpcDataReceived(shv::chainpack::Rpc::ProtocolVersion protocol_version, shv::chainpack::RpcValue::MetaData &&md, const std::string &data, size_t start_pos, size_t data_len) override;
@@ -45,6 +47,9 @@ private:
 	std::string m_pendingAuthNonce;
 	unsigned m_helloRequestId = 0;
 	bool m_knockknockReceived = false;
+	std::string m_profile;
+	std::string m_user;
+	shv::chainpack::RpcValue m_deviceId;
 	int m_connectionId;
 };
 
