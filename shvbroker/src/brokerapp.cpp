@@ -187,6 +187,12 @@ void BrokerApp::lazyInit()
 	startTcpServer();
 }
 
+std::string BrokerApp::mountPointForDevice(const shv::chainpack::RpcValue &device_id)
+{
+	Q_UNUSED(device_id)
+	return std::string();
+}
+
 bool BrokerApp::onClientLogin(int connection_id)
 {
 	rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
@@ -194,25 +200,32 @@ bool BrokerApp::onClientLogin(int connection_id)
 		shvError() << "Cannot find connection for ID:" << connection_id;
 		return false;
 	}
-	const std::string device_id = conn->deviceId().toString();
+	std::string mount_point = conn->device().toMap().value("mount").toString();
+	if(mount_point.empty()) {
+		shv::chainpack::RpcValue device_id = conn->device().toMap().value("id");
+		mount_point = mountPointForDevice(device_id);
+		if(mount_point.empty()) {
+			shvError() << "Cannot find mount point for device:" << device_id.toStdString();
+			return false;
+		}
+	}
 	ConnectionNode *nd = new ConnectionNode(conn);
-	if(!m_deviceTree->mount(device_id, nd)) {
+	if(!m_deviceTree->mount(mount_point, nd)) {
 		shvError() << "Cannot mount connection to device tree, connection id:" << connection_id;
 		return false;
 	}
 	return true;
 }
 
-void BrokerApp::onRpcDataReceived(const cp::RpcValue::MetaData &meta, const std::string &data)
+void BrokerApp::onRpcDataReceived(cp::RpcValue::MetaData &&meta, std::string &&data)
 {
 	const std::string shv_path = cp::RpcMessage::shvPath(meta).toString();
 	std::string path_rest;
 	ConnectionNode *nd = qobject_cast<ConnectionNode *>(m_deviceTree->cd(shv_path, &path_rest));
 	if(nd) {
-		cp::RpcValue::MetaData meta2(meta);
-		cp::RpcMessage::setShvPath(meta2, path_rest.empty()? cp::RpcValue(): cp::RpcValue(path_rest));
+		cp::RpcMessage::setShvPath(meta, path_rest.empty()? cp::RpcValue(): cp::RpcValue(path_rest));
 		rpc::ServerConnection *conn2 = nd->connection();
-		conn2->sendRawData(std::move(meta2), std::string(data));
+		conn2->sendRawData(std::move(meta), std::move(data));
 	}
 	else {
 		shvWarning() << "Device tree path not found:" << shv_path;

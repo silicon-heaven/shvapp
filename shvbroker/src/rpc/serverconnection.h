@@ -27,7 +27,7 @@ public:
 	void setAgentName(const QString &n) {setObjectName(n);}
 
 	int connectionId() const {return m_connectionId;}
-	const shv::chainpack::RpcValue& deviceId() const {return m_deviceId;}
+	const shv::chainpack::RpcValue& device() const {return m_device;}
 
 	int callMethodASync(const std::string &method, const shv::chainpack::RpcValue &params = shv::chainpack::RpcValue());
 
@@ -49,7 +49,7 @@ private:
 	bool m_knockknockReceived = false;
 	std::string m_profile;
 	std::string m_user;
-	shv::chainpack::RpcValue m_deviceId;
+	shv::chainpack::RpcValue m_device;
 	int m_connectionId;
 };
 

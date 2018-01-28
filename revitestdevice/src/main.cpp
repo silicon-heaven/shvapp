@@ -46,13 +46,14 @@ int main(int argc, char *argv[])
 	}
 
 	shvInfo() << "======================================================================================";
-	shvInfo() << "Starting SHV AGENT server, PID:" << QCoreApplication::applicationPid() << "build:" << __DATE__ << __TIME__;
+	shvInfo() << "Starting revidestdevice, PID:" << QCoreApplication::applicationPid() << "build:" << __DATE__ << __TIME__;
 #ifdef GIT_COMMIT
 	shvInfo() << "GIT commit:" << SHV_EXPAND_AND_QUOTE(GIT_COMMIT);
 #endif
 	shvInfo() << QDateTime::currentDateTime().toString(Qt::ISODate).toStdString() << "UTC:" << QDateTime::currentDateTimeUtc().toString(Qt::ISODate).toStdString();
 	shvInfo() << "======================================================================================";
 	shvInfo() << "Log tresholds:" << NecroLog::tresholdsLogInfo();
+	shvInfo() << NecroLog::instantiationInfo();
 	shvInfo() << "--------------------------------------------------------------------------------------";
 
 	RevitestApp a(argc, argv, &cli_opts);

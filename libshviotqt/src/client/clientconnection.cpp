@@ -51,7 +51,7 @@ void Connection::sendKnockKnock()
 {
 	m_isWaitingForHello = true;
 	rpcConnection()->sendNotify(cp::Rpc::KNOCK_KNOCK, cp::RpcValue::Map{{"profile", profile()}
-																, {"deviceId", deviceId()}
+																//, {"deviceId", deviceId()}
 																//, {"protocolVersion", protocolVersion()}
 								});
 }
@@ -144,9 +144,12 @@ void Connection::processRpcMessage(const cp::RpcMessage &msg)
 					hash.addData(nonce.c_str(), nonce.length());
 					QByteArray sha1 = hash.result().toHex();
 					cp::RpcValue::Map result{
-						{"nonce", std::string(sha1.constData())},
-						{"login", cp::RpcValue::Map{ {"user", user().toStdString()}
-													 , {"deviceId", deviceId()} }},
+						{"login", cp::RpcValue::Map {
+								{"user", user().toStdString()}
+								, {"password", std::string(sha1.constData())}
+							}
+						},
+						{"device", device()},
 					};
 					rpcConnection()->sendResponse(rq.id(), result);
 					m_isWaitingForHello = false;

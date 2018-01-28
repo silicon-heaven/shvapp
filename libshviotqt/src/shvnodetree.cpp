@@ -7,6 +7,7 @@ namespace iotqt {
 
 ShvNodeTree::ShvNodeTree(QObject *parent)
 	: QObject(parent)
+	, m_root(new ShvNode(this))
 {
 
 }

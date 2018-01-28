@@ -135,13 +135,13 @@ void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolVersion pr
 					cp::RpcValue::Map result = resp.result().toMap();
 					const cp::RpcValue::Map login = result.value("login").toMap();
 					m_user = login.value("user").toString();
-					m_deviceId = login.value("deviceId");
+					m_device = result.value("device");
 
 					std::string password_hash = passwordHash(m_user);
 					shvInfo() << "login - user:" << m_user << "password:" << password_hash;
 					bool password_ok = password_hash.empty();
 					if(!password_ok) {
-						std::string nonce_sha1 = result.value("nonce").toString();
+						std::string nonce_sha1 = login.value("password").toString();
 						std::string nonce = m_pendingAuthNonce + passwordHash(m_user);
 						QCryptographicHash hash(QCryptographicHash::Algorithm::Sha1);
 						hash.addData(nonce.c_str(), nonce.length());
@@ -190,11 +190,11 @@ void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolVersion pr
 	//shv::chainpack::RpcValue shv_path = embrio.shvPath();
 	//embrio.setShvPath(cp::RpcValue());
 	*/
-	cp::RpcValue::MetaData meta_data(std::move(md));
-	cp::RpcMessage::setProtocolVersion(meta_data, protocol_version);
-	cp::RpcMessage::setConnectionId(meta_data, connectionId());
+	//cp::RpcValue::MetaData meta_data(std::move(md));
+	cp::RpcMessage::setProtocolVersion(md, protocol_version);
+	cp::RpcMessage::setConnectionId(md, connectionId());
 	std::string msg_data(data, start_pos, data_len);
-	BrokerApp::instance()->onRpcDataReceived(meta_data, msg_data);
+	BrokerApp::instance()->onRpcDataReceived(std::move(md), std::move(msg_data));
 }
 /*
 void ServerConnection::onRpcMessageReceived(const cp::RpcMessage &msg)

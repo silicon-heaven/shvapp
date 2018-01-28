@@ -44,7 +44,7 @@ public:
 	static BrokerApp* instance() {return qobject_cast<BrokerApp*>(Super::instance());}
 
 	bool onClientLogin(int connection_id);
-	void onRpcDataReceived(const shv::chainpack::RpcValue::MetaData &meta, const std::string &data);
+	void onRpcDataReceived(shv::chainpack::RpcValue::MetaData &&meta, std::string &&data);
 public:
 	rpc::TcpServer* tcpServer();
 
@@ -58,6 +58,7 @@ private:
 	Q_SLOT void onSqlServerError(const QString &err_mesg);
 	Q_SLOT void onSqlServerConnected();
 	//Q_SLOT void reloadServices();
+	std::string mountPointForDevice(const shv::chainpack::RpcValue &device_id);
 private:
 	AppCliOptions *m_cliOptions;
 	rpc::TcpServer *m_tcpServer = nullptr;

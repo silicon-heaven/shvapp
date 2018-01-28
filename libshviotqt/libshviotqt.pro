@@ -25,10 +25,11 @@ INCLUDEPATH += \
 	$$PWD/../3rdparty/libshv/libshvcore/include \
 	$$PWD/../3rdparty/libshv/libshvcoreqt/include \
 	$$PWD/../3rdparty/libshv/libshvchainpack/include \
-	../3rdparty/libshv/3rdparty/necrolog \
+	../3rdparty/libshv/3rdparty/necrolog/include \
 
 LIBS += \
     -L$$DESTDIR \
+    -lnecrolog \
     -lshvchainpack \
     -lshvcore \
     -lshvcoreqt \

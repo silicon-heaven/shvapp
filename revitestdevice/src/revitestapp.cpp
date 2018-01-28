@@ -15,7 +15,10 @@ RevitestApp::RevitestApp(int &argc, char **argv, AppCliOptions* cli_opts)
 {
 	m_clientConnection->setProtocolVersion(shv::chainpack::Rpc::ProtocolVersion::Cpon);
 	m_clientConnection->setProfile("agent");
-	m_clientConnection->setDeviceId("/test/shv/eu/pl/lublin/odpojovace");
+	cp::RpcValue::Map dev;
+	dev["mount"] = "/test/shv/eu/pl/lublin/odpojovace";
+	dev["id"] = 123456;
+	m_clientConnection->setDevice(dev);
 	m_clientConnection->setUser("iot");
 	createDevices();
 }
