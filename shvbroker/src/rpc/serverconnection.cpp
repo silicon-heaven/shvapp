@@ -153,7 +153,7 @@ void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolVersion pr
 						m_helloRequestId = 0;
 						m_pendingAuthNonce.clear();
 						shvInfo() << "Client logged in user:" << m_user << "from:" << agentName();
-						if(BrokerApp::instance()->onClientLogin(connectionId())) {
+						if(!BrokerApp::instance()->onClientLogin(connectionId())) {
 							shvError() << "Client refused by application.";
 							this->deleteLater();
 						}

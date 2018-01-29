@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
 	shvInfo() << QDateTime::currentDateTime().toString(Qt::ISODate).toStdString() << "UTC:" << QDateTime::currentDateTimeUtc().toString(Qt::ISODate).toStdString();
 	shvInfo() << "======================================================================================";
 	shvInfo() << "Log tresholds:" << NecroLog::tresholdsLogInfo();
-	shvInfo() << NecroLog::instantiationInfo();
+	//shvInfo() << NecroLog::instantiationInfo();
 	shvInfo() << "--------------------------------------------------------------------------------------";
 
 	RevitestApp a(argc, argv, &cli_opts);
