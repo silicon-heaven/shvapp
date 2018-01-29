@@ -35,7 +35,7 @@ Connection::~Connection()
 	abort();
 }
 
-void Connection::onConnectedChanged(bool is_connected)
+void Connection::onSocketConnectedChanged(bool is_connected)
 {
 	if(is_connected) {
 		shvInfo() << "Connected to RPC server";
@@ -83,7 +83,7 @@ shv::coreqt::chainpack::RpcConnection *Connection::rpcConnection()
 			m_rpcConnection = new shv::coreqt::chainpack::RpcConnection(cpq::RpcConnection::SyncCalls::Supported, this);
 			m_rpcConnection->setSocket(socket);
 			m_rpcConnection->setProtocolVersion(protocolVersion());
-			connect(m_rpcConnection, &shv::coreqt::chainpack::RpcConnection::connectedChanged, this, &Connection::onConnectedChanged);
+			connect(m_rpcConnection, &shv::coreqt::chainpack::RpcConnection::socketConnectedChanged, this, &Connection::onSocketConnectedChanged);
 			connect(m_rpcConnection, &shv::coreqt::chainpack::RpcConnection::messageReceived, this, &Connection::processRpcMessage);
 		}
 	}
@@ -97,11 +97,11 @@ void Connection::connectToHost(const QString& address, int port)
 	conn->connectToHost(address, port);
 }
 
-bool Connection::isConnected() const
+bool Connection::isSocketConnected() const
 {
 	if(!m_rpcConnection)
 		return false;
-	return const_cast<Connection*>(this)->rpcConnection()->isConnected();
+	return const_cast<Connection*>(this)->rpcConnection()->isSocketConnected();
 }
 
 void Connection::abort()

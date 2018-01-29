@@ -114,7 +114,7 @@ void ConsoleApplication::lazyInit()
 
 void ConsoleApplication::checkConnected()
 {
-	if(!m_clientConnection->isConnected()) {
+	if(!m_clientConnection->isSocketConnected()) {
 		m_clientConnection->abort();
 		shvInfo().nospace() << "connecting to: " << m_cliOptions->userName() << "@" << m_cliOptions->serverHost() << ":" << m_cliOptions->serverPort();
 		//m_clientConnection->setProtocolVersion(protocolVersion());

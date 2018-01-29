@@ -28,7 +28,7 @@ ServerConnection::ServerConnection(QTcpSocket *socket, QObject *parent)
 {
 	setSocket(socket);
 	socket->setParent(nullptr);
-	connect(this, &ServerConnection::connectedChanged, [this](bool is_connected) {
+	connect(this, &ServerConnection::socketConnectedChanged, [this](bool is_connected) {
 		if(!is_connected)
 			this->deleteLater();
 	});

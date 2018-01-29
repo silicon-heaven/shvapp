@@ -40,13 +40,13 @@ public:
 
 	void connectToHost(const QString& address, int port);
 	//QString peerAddress() const;
-	bool isConnected() const;
+	bool isSocketConnected() const;
 	void abort();
 private:
 	shv::coreqt::chainpack::RpcConnection* rpcConnection();
 	std::string passwordHash(const QString &user);
 	void processRpcMessage(const shv::chainpack::RpcMessage &msg);
-	void onConnectedChanged(bool is_connected);
+	void onSocketConnectedChanged(bool is_connected);
 	void sendKnockKnock();
 private:
 	//void lublicatorTesting();
