@@ -227,7 +227,7 @@ void Revitest::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 				SHV_EXCEPTION("invalid method name:" + method);
 		}
 		catch(shv::core::Exception &e) {
-			rsp.setError(cp::RpcResponse::Error::createError(cp::RpcResponse::Error::MethodInvocationException, e.message()));
+			rsp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodInvocationException, e.message()));
 		}
 		if(!rsp.isError()) {
 			rsp.setResult(result);

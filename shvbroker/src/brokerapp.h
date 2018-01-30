@@ -43,7 +43,7 @@ public:
 
 	static BrokerApp* instance() {return qobject_cast<BrokerApp*>(Super::instance());}
 
-	bool onClientLogin(int connection_id);
+	void onClientLogin(int connection_id);
 	void onRpcDataReceived(shv::chainpack::RpcValue::MetaData &&meta, std::string &&data);
 public:
 	rpc::TcpServer* tcpServer();

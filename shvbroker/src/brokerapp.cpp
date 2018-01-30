@@ -193,28 +193,23 @@ std::string BrokerApp::mountPointForDevice(const shv::chainpack::RpcValue &devic
 	return std::string();
 }
 
-bool BrokerApp::onClientLogin(int connection_id)
+void BrokerApp::onClientLogin(int connection_id)
 {
 	rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
-	if(!conn) {
-		shvError() << "Cannot find connection for ID:" << connection_id;
-		return false;
-	}
+	if(!conn)
+		SHV_EXCEPTION("Cannot find connection for ID: " + std::to_string(connection_id));
 	std::string mount_point = conn->device().toMap().value("mount").toString();
 	if(mount_point.empty()) {
 		shv::chainpack::RpcValue device_id = conn->device().toMap().value("id");
 		mount_point = mountPointForDevice(device_id);
-		if(mount_point.empty()) {
-			shvError() << "Cannot find mount point for device:" << device_id.toStdString();
-			return false;
-		}
+		if(mount_point.empty())
+			SHV_EXCEPTION("Cannot find mount point for device: " + device_id.toStdString());
 	}
+	if(mount_point.empty())
+		SHV_EXCEPTION("Mount point is empty.");
 	ConnectionNode *nd = new ConnectionNode(conn);
-	if(!m_deviceTree->mount(mount_point, nd)) {
-		shvError() << "Cannot mount connection to device tree, connection id:" << connection_id;
-		return false;
-	}
-	return true;
+	if(!m_deviceTree->mount(mount_point, nd))
+		SHV_EXCEPTION("Cannot mount connection to device tree, connection id: " + std::to_string(connection_id));
 }
 
 void BrokerApp::onRpcDataReceived(cp::RpcValue::MetaData &&meta, std::string &&data)

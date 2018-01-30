@@ -30,6 +30,8 @@ public:
 	const shv::chainpack::RpcValue& device() const {return m_device;}
 
 	int callMethodASync(const std::string &method, const shv::chainpack::RpcValue &params = shv::chainpack::RpcValue());
+	void sendResponse(int request_id, const shv::chainpack::RpcValue &result);
+	void sendError(int request_id, const shv::chainpack::RpcResponse::Error &error);
 
 	//Q_SIGNAL void knockknocReceived(int connection_id, const shv::chainpack::RpcValue::Map &params);
 	//Q_SIGNAL void rpcDataReceived(const shv::chainpack::RpcValue::MetaData &meta, const std::string &data);
@@ -39,15 +41,15 @@ protected:
 private:
 	QString peerAddress() const;
 	//void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
-	void sendHello();
 	std::string passwordHash(const std::string &user);
 private:
 	//QTcpSocket* m_socket = nullptr;
 	//ServerRpcDriver* m_rpcDriver = nullptr;
+	//unsigned m_helloRequestId = 0;
 	std::string m_pendingAuthNonce;
-	unsigned m_helloRequestId = 0;
-	bool m_knockknockReceived = false;
-	std::string m_profile;
+	bool m_helloReceived = false;
+	bool m_loginReceived = false;
+	//std::string m_profile;
 	std::string m_user;
 	shv::chainpack::RpcValue m_device;
 	int m_connectionId;

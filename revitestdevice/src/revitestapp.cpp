@@ -14,7 +14,7 @@ RevitestApp::RevitestApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	: Super(argc, argv, cli_opts)
 {
 	m_clientConnection->setProtocolVersion(shv::chainpack::Rpc::ProtocolVersion::Cpon);
-	m_clientConnection->setProfile("agent");
+	//m_clientConnection->setProfile("agent");
 	cp::RpcValue::Map dev;
 	dev["mount"] = "/test/shv/eu/pl/lublin/odpojovace";
 	dev["id"] = 123456;

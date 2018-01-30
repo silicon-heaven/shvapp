@@ -21,6 +21,11 @@ int main(int argc, char *argv[])
 	for(const std::string &arg : shv_args)
 		args << QString::fromStdString(arg);
 
+	shvDebug() << "debug log test";
+	shvInfo() << "info log test";
+	shvWarning() << "warning log test";
+	shvError() << "error log test";
+
 	int ret = 0;
 
 	AppCliOptions cli_opts;

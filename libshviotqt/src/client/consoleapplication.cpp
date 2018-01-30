@@ -31,7 +31,7 @@ ConsoleApplication::ConsoleApplication(int &argc, char **argv, AppCliOptions *cl
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
 {
-	shvInfo() << "creating SHV BROKER application object ver." << versionString();
+	shvInfo() << "creating SHV client application object ver." << versionString();
 #ifdef Q_OS_UNIX
 	//syslog (LOG_INFO, "Server started");
 	installUnixSignalHandlers();
