@@ -26,6 +26,8 @@ namespace client {
 Connection::Connection(QObject *parent)
 	: Super(cpq::RpcConnection::SyncCalls::Supported, parent)
 {
+	//setDevice(cp::RpcValue(nullptr));
+
 	QTcpSocket *socket = new QTcpSocket();
 	setSocket(socket);
 
@@ -52,6 +54,8 @@ void Connection::onSocketConnectedChanged(bool is_connected)
 	if(is_connected) {
 		shvInfo() << "Socket connected to RPC server";
 		//sendKnockKnock(cp::RpcDriver::ChainPack);
+		//RpcResponse resp = callMethodSync("echo", "ahoj babi");
+		//shvInfo() << "+++" << resp.toStdString();
 		sendHello();
 	}
 	else {
@@ -85,7 +89,7 @@ void Connection::sendLogin(const chainpack::RpcValue &server_hello)
 	m_loginRequestId = callMethodASync(cp::Rpc::METH_LOGIN
 									   , cp::RpcValue::Map {
 										   {"login", cp::RpcValue::Map {
-												{"user", user().toStdString()},
+												{"user", user()},
 												{"password", std::string(sha1.constData())},
 											}
 										   },
@@ -93,10 +97,10 @@ void Connection::sendLogin(const chainpack::RpcValue &server_hello)
 									   });
 }
 
-std::string Connection::passwordHash(const QString &user)
+std::string Connection::passwordHash(const std::string &user)
 {
 	QCryptographicHash hash(QCryptographicHash::Algorithm::Sha1);
-	hash.addData(user.toUtf8());
+	hash.addData(user.data(), user.size());
 	QByteArray sha1 = hash.result().toHex();
 	return std::string(sha1.constData(), sha1.length());
 }
@@ -114,7 +118,7 @@ bool Connection::onRpcMessageReceived(const cp::RpcMessage &msg)
 			shvInfo() << "Handshake response received:" << resp.toStdString();
 			if(resp.isError())
 				break;
-			unsigned id = resp.id();
+			unsigned id = resp.requestId();
 			if(id == 0)
 				break;
 			if(m_helloRequestId == id) {
@@ -132,66 +136,7 @@ bool Connection::onRpcMessageReceived(const cp::RpcMessage &msg)
 	}
 	return false;
 }
-#if 0
-void Connection::lublicatorTesting()
-{
-	if(!rpcConnection()->isConnected())
-		return;
-	try {
-		shvInfo() << "==================================================";
-		shvInfo() << "   Lublicator Testing";
-		shvInfo() << "==================================================";
-		{
-			shvInfo() << "------------ read shv tree";
-			QString shv_path;
-			while(true) {
-				shvInfo() << "\tcall:" << "get" << "on shv path:" << shv_path;
-				cp::RpcResponse resp = rpcConnection()->callShvMethodSync(shv_path, cp::RpcMessage::METHOD_GET);
-				shvInfo() << "\tgot response:" << resp.toStdString();
-				if(resp.isError())
-					throw shv::core::Exception(resp.error().message());
-				const cp::RpcValue::List list = resp.result().toList();
-				if(list.empty())
-					break;
-				shv_path += '/' + QString::fromStdString(list[0].toString());
-			}
-			shvInfo() << "GOT:" << shv_path;
-		}
-		{
-			shvInfo() << "------------ set battery level";
-			QString shv_path_lubl = "/shv/eu/pl/lublin/odpojovace/15/";
-			for(auto prop : {"status", "batteryLimitLow", "batteryLimitHigh", "batteryLevelSimulation"}) {
-				QString shv_path = shv_path_lubl + prop;
-				cp::RpcResponse resp = rpcConnection()->callShvMethodSync(shv_path, cp::RpcMessage::METHOD_GET);
-				shvInfo() << "\tproperty" << prop << ":" << resp.result().toStdString();
-			}
-			{
-				QString shv_path = shv_path_lubl + "batteryLevelSimulation";
-				for (int val = 200; val < 260; val += 5) {
-					cp::RpcValue::Decimal dec_val(val, 1);
-					shvInfo() << "\tcall:" << "set" << dec_val.toString() << "on shv path:" << shv_path;
-					cp::RpcResponse resp = rpcConnection()->callShvMethodSync(shv_path, cp::RpcMessage::METHOD_SET, dec_val);
-					shvInfo() << "\tgot response:" << resp.toStdString();
-					if(resp.isError())
-						throw shv::core::Exception(resp.error().message());
-				}
-			}
-			for(auto prop : {"status", "batteryLimitLow", "batteryLimitHigh", "batteryLevelSimulation"}) {
-				QString shv_path = shv_path_lubl + prop;
-				cp::RpcResponse resp = rpcConnection()->callShvMethodSync(shv_path, cp::RpcMessage::METHOD_GET);
-				shvInfo() << "\tproperty" << prop << ":" << resp.result().toStdString();
-			}
-			{
-				QString shv_path = shv_path_lubl + "batteryLevelSimulation";
-				rpcConnection()->callShvMethodSync(shv_path, cp::RpcMessage::METHOD_SET, cp::RpcValue::Decimal(240, 1));
-			}
-		}
-	}
-	catch (shv::core::Exception &e) {
-		shvError() << "FAILED:" << e.message();
-	}
-}
-#endif
+
 }}}
 
 

@@ -55,7 +55,7 @@ int ServerConnection::callMethodASync(const std::string & method, const cp::RpcV
 {
 	int id = nextRpcId();
 	cp::RpcRequest rq;
-	rq.setId(id);
+	rq.setRequestId(id);
 	rq.setMethod(method);
 	rq.setParams(params);
 	sendMessage(rq.value());
@@ -65,7 +65,7 @@ int ServerConnection::callMethodASync(const std::string & method, const cp::RpcV
 void ServerConnection::sendResponse(int request_id, const cp::RpcValue &result)
 {
 	cp::RpcResponse resp;
-	resp.setId(request_id);
+	resp.setRequestId(request_id);
 	resp.setResult(result);
 	sendMessage(resp.value());
 }
@@ -73,7 +73,7 @@ void ServerConnection::sendResponse(int request_id, const cp::RpcValue &result)
 void ServerConnection::sendError(int request_id, const cp::RpcResponse::Error &error)
 {
 	cp::RpcResponse resp;
-	resp.setId(request_id);
+	resp.setRequestId(request_id);
 	resp.setError(error);
 	sendMessage(resp.value());
 }
@@ -100,8 +100,6 @@ std::string ServerConnection::passwordHash(const std::string &user)
 
 void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolVersion protocol_version, shv::chainpack::RpcValue::MetaData &&md, const std::string &data, size_t start_pos, size_t data_len)
 {
-	logRpcMsg() << "<==" << md.toStdString() << ((data.size() - start_pos) > 100? "<... long data ...>" : shv::chainpack::Utils::toHex(data, start_pos));
-
 	if(!m_helloReceived || !m_loginReceived) {
 		cp::RpcValue val = decodeData(protocol_version, data, start_pos);
 		val.setMetaData(std::move(md));
@@ -115,6 +113,12 @@ void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolVersion pr
 		cp::RpcRequest rq(msg);
 		try {
 			//shvInfo() << "RPC request received:" << rq.toStdString();
+			if(!m_helloReceived && !m_loginReceived && rq.method() == "echo" && BrokerApp::instance()->cliOptions()->isEchoEnabled()) {
+				shvInfo() << "Client echo request received";// << profile;// << "device id::" << m.value("deviceId").toStdString();
+				m_pendingAuthNonce = std::to_string(std::rand());
+				sendResponse(rq.requestId(), rq.params());
+				return;
+			}
 			if(!m_helloReceived && !m_loginReceived && rq.method() == shv::chainpack::Rpc::METH_HELLO) {
 				shvInfo() << "Client hello received";// << profile;// << "device id::" << m.value("deviceId").toStdString();
 				//const shv::chainpack::RpcValue::String profile = m.value("profile").toString();
@@ -126,7 +130,7 @@ void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolVersion pr
 					//{"protocol", cp::RpcValue::Map{{"version", protocol_version}}},
 					{"nonce", m_pendingAuthNonce}
 				};
-				sendResponse(rq.id(), params);
+				sendResponse(rq.requestId(), params);
 				QTimer::singleShot(3000, this, [this]() {
 					if(!m_loginReceived) {
 						shvError() << "client login time out! Dropping client connection." << agentName();
@@ -158,7 +162,7 @@ void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolVersion pr
 				if(password_ok && !m_user.empty()) {
 					shvInfo() << "Client logged in user:" << m_user << "from:" << agentName();
 					BrokerApp::instance()->onClientLogin(connectionId());
-					sendResponse(rq.id(), true);
+					sendResponse(rq.requestId(), true);
 				}
 				else {
 					SHV_EXCEPTION("Invalid authentication for user: " + m_user + " at: " + agentName().toStdString());
@@ -167,13 +171,15 @@ void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolVersion pr
 			}
 		}
 		catch(shv::core::Exception &e) {
-			sendError(rq.id(), cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodInvocationException, e.message()));
+			sendError(rq.requestId(), cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodInvocationException, e.message()));
 		}
 		shvError() << "Initial handshake error! Dropping client connection." << agentName() << msg.toStdString();
-		this->deleteLater();
+		QTimer::singleShot(100, this, &ServerConnection::deleteLater); // need some time to send error to client
+		//this->deleteLater();
 		return;
 	}
 
+	logRpcMsg() << RCV_LOG_ARROW << md.toStdString() << shv::chainpack::Utils::toHexElided(data, start_pos, 100);
 	cp::RpcMessage::setProtocolVersion(md, protocol_version);
 	cp::RpcMessage::setConnectionId(md, connectionId());
 	std::string msg_data(data, start_pos, data_len);

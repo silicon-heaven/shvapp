@@ -12,5 +12,7 @@ private:
 public:
 	TheApp(int &argc, char **argv, AppCliOptions* cli_opts);
 	~TheApp() Q_DECL_OVERRIDE;
+private:
+	void onBrokerConnectedChanged(bool is_connected);
 };
 

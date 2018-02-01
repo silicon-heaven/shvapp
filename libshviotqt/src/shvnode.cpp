@@ -2,13 +2,15 @@
 
 #include <shv/chainpack/rpcvalue.h>
 
+#include <shv/coreqt/log.h>
+
 namespace shv {
 namespace iotqt {
 
 ShvNode::ShvNode(QObject *parent)
 	: QObject(parent)
 {
-
+	shvDebug() << __FUNCTION__ << this;
 }
 
 ShvNode *ShvNode::childNode(const String &name) const
@@ -24,6 +26,20 @@ void ShvNode::setParentNode(ShvNode *parent)
 	//if(!parent && old_parent) {
 	//	if(old_parent->ch)
 	//}
+}
+
+void ShvNode::setNodeName(ShvNode::String &&n)
+{
+	setObjectName(QString::fromStdString(n));
+	shvDebug() << __FUNCTION__ << this << n;
+	m_nodeName = std::move(n);
+}
+
+void ShvNode::setNodeName(const ShvNode::String &n)
+{
+	setObjectName(QString::fromStdString(n));
+	shvDebug() << __FUNCTION__ << this << n;
+	m_nodeName = n;
 }
 
 ShvNode::StringList ShvNode::propertyNames() const

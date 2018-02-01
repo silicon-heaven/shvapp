@@ -22,8 +22,8 @@ public:
 	virtual ShvNode* childNode(const String &name) const;
 	virtual void setParentNode(ShvNode *parent);
 	virtual String nodeName() {return m_nodeName;}
-	void setNodeName(String &&n) {setObjectName(QString::fromStdString(n)); m_nodeName = std::move(n);}
-	void setNodeName(const String &n) {setObjectName(QString::fromStdString(n)); m_nodeName = n;}
+	void setNodeName(String &&n);
+	void setNodeName(const String &n);
 
 	virtual shv::chainpack::RpcValue shvValue() const;
 

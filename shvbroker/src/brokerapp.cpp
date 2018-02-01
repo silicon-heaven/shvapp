@@ -31,7 +31,7 @@ int BrokerApp::m_sigTermFd[2];
 #endif
 
 //static constexpr int SQL_RECONNECT_INTERVAL = 3000;
-ConnectionNode::ConnectionNode(rpc::ServerConnection *connection, QObject *parent)
+ClientNode::ClientNode(rpc::ServerConnection *connection, QObject *parent)
  : Super(parent)
  , m_connection(connection)
 {
@@ -58,7 +58,7 @@ BrokerApp::BrokerApp(int &argc, char **argv, AppCliOptions *cli_opts)
 	m_sqlConnectionWatchDog->start(SQL_RECONNECT_INTERVAL);
 	*/
 	m_deviceTree = new shv::iotqt::ShvNodeTree(this);
-	m_deviceTree->mkdir("test");
+	//m_deviceTree->mkdir("test");
 
 	QTimer::singleShot(0, this, &BrokerApp::lazyInit);
 }
@@ -198,32 +198,61 @@ void BrokerApp::onClientLogin(int connection_id)
 	rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
 	if(!conn)
 		SHV_EXCEPTION("Cannot find connection for ID: " + std::to_string(connection_id));
-	std::string mount_point = conn->device().toMap().value("mount").toString();
-	if(mount_point.empty()) {
-		shv::chainpack::RpcValue device_id = conn->device().toMap().value("id");
-		mount_point = mountPointForDevice(device_id);
+	const shv::chainpack::RpcValue::Map &device = conn->device().toMap();
+	if(!device.empty()) {
+		std::string mount_point = device.value("mount").toString();
+		if(mount_point.empty()) {
+			shv::chainpack::RpcValue device_id = device.value("id");
+			mount_point = mountPointForDevice(device_id);
+			if(mount_point.empty())
+				SHV_EXCEPTION("Cannot find mount point for device: " + device_id.toStdString());
+		}
 		if(mount_point.empty())
-			SHV_EXCEPTION("Cannot find mount point for device: " + device_id.toStdString());
+			SHV_EXCEPTION("Mount point is empty.");
+		ClientNode *nd = new ClientNode(conn);
+		shvInfo() << "connection id:" << connection_id << "mounting device on path:" << mount_point;
+		if(!m_deviceTree->mount(mount_point, nd))
+			SHV_EXCEPTION("Cannot mount connection to device tree, connection id: " + std::to_string(connection_id));
 	}
-	if(mount_point.empty())
-		SHV_EXCEPTION("Mount point is empty.");
-	ConnectionNode *nd = new ConnectionNode(conn);
-	if(!m_deviceTree->mount(mount_point, nd))
-		SHV_EXCEPTION("Cannot mount connection to device tree, connection id: " + std::to_string(connection_id));
 }
 
 void BrokerApp::onRpcDataReceived(cp::RpcValue::MetaData &&meta, std::string &&data)
 {
 	const std::string shv_path = cp::RpcMessage::shvPath(meta).toString();
 	std::string path_rest;
-	ConnectionNode *nd = qobject_cast<ConnectionNode *>(m_deviceTree->cd(shv_path, &path_rest));
-	if(nd) {
+	shv::iotqt::ShvNode *nd = m_deviceTree->cd(shv_path, &path_rest);
+	ClientNode *client_nd = qobject_cast<ClientNode *>(nd);
+	if(client_nd) {
 		cp::RpcMessage::setShvPath(meta, path_rest.empty()? cp::RpcValue(): cp::RpcValue(path_rest));
-		rpc::ServerConnection *conn2 = nd->connection();
+		rpc::ServerConnection *conn2 = client_nd->connection();
 		conn2->sendRawData(std::move(meta), std::move(data));
 	}
+	else if(nd) {
+		rpc::ServerConnection *conn = tcpServer()->connectionById(cp::RpcMessage::connectionId(meta).toInt());
+		if(conn) {
+			cp::RpcMessage rpc_msg = cp::RpcDriver::composeRpcMessage(std::move(meta), data, !cp::Exception::Throw);
+			if(rpc_msg.isRequest()) {
+				cp::RpcRequest rq(rpc_msg);
+				if(rq.method() == cp::Rpc::METH_GET) {
+					shv::iotqt::ShvNode::StringList props = nd->propertyNames();
+					shvWarning() << shv_path << "children:" << shv::core::String::join(props, ", ");
+					conn->sendResponse(rq.requestId(), props);
+				}
+			}
+		}
+	}
 	else {
-		shvWarning() << "Device tree path not found:" << shv_path;
+		std::string err_msg = "Device tree path not found: " + shv_path;
+		shvWarning() << err_msg;
+		cp::RpcMessage rpc_msg = cp::RpcDriver::composeRpcMessage(std::move(meta), data, !cp::Exception::Throw);
+		if(rpc_msg.isRequest()) {
+			rpc::ServerConnection *conn = tcpServer()->connectionById(rpc_msg.connectionId().toInt());
+			if(conn) {
+				conn->sendError(rpc_msg.requestId(), cp::RpcResponse::Error::create(
+									cp::RpcResponse::Error::MethodInvocationException
+									, err_msg));
+			}
+		}
 	}
 }
 

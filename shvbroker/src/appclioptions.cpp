@@ -8,4 +8,5 @@ AppCliOptions::AppCliOptions(QObject *parent)
 	addOption("server.port").setType(QVariant::Int).setNames("--server-port").setComment("Server port").setDefaultValue(3755);
 	addOption("sql.host").setType(QVariant::String).setNames("-s", "--sql-host").setComment("SQL server host");
 	addOption("sql.port").setType(QVariant::Int).setNames("--sql-port").setComment("SQL server port").setDefaultValue(5432);
+	addOption("debug.echoEnabled").setType(QVariant::Bool).setNames("--echo-enabled").setComment("Enable 'echo' debug request before login").setDefaultValue(false);
 }

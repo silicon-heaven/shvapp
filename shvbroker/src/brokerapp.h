@@ -15,13 +15,13 @@ namespace shv { namespace iotqt { class ShvNodeTree; }}
 //namespace shv { namespace chainpack { class RpcMessage; }}
 namespace rpc { class TcpServer; class ServerConnection; }
 
-class ConnectionNode : public shv::iotqt::ShvNode
+class ClientNode : public shv::iotqt::ShvNode
 {
 	Q_OBJECT
 private:
 	using Super = shv::iotqt::ShvNode;
 public:
-	ConnectionNode(rpc::ServerConnection *connection, QObject *parent = nullptr);
+	ClientNode(rpc::ServerConnection *connection, QObject *parent = nullptr);
 	rpc::ServerConnection * connection() const {return m_connection;}
 private:
 	rpc::ServerConnection * m_connection = nullptr;

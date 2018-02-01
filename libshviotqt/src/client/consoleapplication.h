@@ -35,6 +35,7 @@ public:
 	QString versionString() const;
 
 	AppCliOptions* cliOptions() {return m_cliOptions;}
+	Connection *clientConnection() {return m_clientConnection;}
 
 	static ConsoleApplication* instance() {return qobject_cast<ConsoleApplication*>(Super::instance());}
 protected:

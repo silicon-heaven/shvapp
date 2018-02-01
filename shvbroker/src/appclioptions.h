@@ -18,5 +18,6 @@ public:
 	CLIOPTION_GETTER_SETTER2(int, "server.port", s, setS, erverPort)
 	CLIOPTION_GETTER_SETTER2(QString, "sql.host", s, setS, qlHost)
 	CLIOPTION_GETTER_SETTER2(int, "sql.port", s, setS, qlPort)
+	CLIOPTION_GETTER_SETTER2(bool, "debug.echoEnabled", is, set, EchoEnabled)
 };
 

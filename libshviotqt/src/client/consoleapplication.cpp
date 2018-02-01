@@ -40,7 +40,7 @@ ConsoleApplication::ConsoleApplication(int &argc, char **argv, AppCliOptions *cl
 	m_clientConnection = new Connection(this);
 	//m_clientConnection->setProfile(profile());
 	//m_clientConnection->setDeviceId(deviceId());
-	m_clientConnection->setUser(m_cliOptions->userName());
+	m_clientConnection->setUser(m_cliOptions->userName().toStdString());
 
 	m_checkConnectedTimer = new QTimer(this);
 	m_checkConnectedTimer->start(1000 * 10);
@@ -118,7 +118,7 @@ void ConsoleApplication::checkConnected()
 		m_clientConnection->abort();
 		shvInfo().nospace() << "connecting to: " << m_cliOptions->userName() << "@" << m_cliOptions->serverHost() << ":" << m_cliOptions->serverPort();
 		//m_clientConnection->setProtocolVersion(protocolVersion());
-		m_clientConnection->connectToHost(m_cliOptions->serverHost(), m_cliOptions->serverPort());
+		m_clientConnection->connectToHost(m_cliOptions->serverHost().toStdString(), m_cliOptions->serverPort());
 	}
 }
 

@@ -32,7 +32,7 @@ class SHVIOTQT_DECL_EXPORT Connection : public shv::coreqt::chainpack::RpcConnec
 	Q_OBJECT
 	using Super = shv::coreqt::chainpack::RpcConnection;
 
-	SHV_FIELD_IMPL(QString, u, U, ser)
+	SHV_FIELD_IMPL(std::string, u, U, ser)
 	//SHV_FIELD_IMPL(std::string, p, P, rofile)
 	SHV_FIELD_IMPL(shv::chainpack::RpcValue, d, D, evice)
 
@@ -43,7 +43,7 @@ public:
 protected:
 	bool onRpcMessageReceived(const shv::chainpack::RpcMessage &msg) override;
 private:
-	std::string passwordHash(const QString &user);
+	std::string passwordHash(const std::string &user);
 	void onSocketConnectedChanged(bool is_connected);
 	void sendHello();
 	void sendLogin(const shv::chainpack::RpcValue &server_hello);

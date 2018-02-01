@@ -9,7 +9,20 @@ ShvNodeTree::ShvNodeTree(QObject *parent)
 	: QObject(parent)
 	, m_root(new ShvNode(this))
 {
+	m_root->setNodeName("<ROOT>");
+}
 
+ShvNode *ShvNodeTree::mkdir(const ShvNode::String &path, ShvNode::String *path_rest)
+{
+	ShvNode::StringList lst = shv::core::String::split(path, '/');
+	return mdcd(lst, path_rest, true);
+}
+
+ShvNode *ShvNodeTree::cd(const ShvNode::String &path, ShvNode::String *path_rest)
+{
+	ShvNode::StringList lst = shv::core::String::split(path, '/');
+	shvWarning() << path << "->" << shv::core::String::join(lst, '-');
+	return mdcd(lst, path_rest, false);
 }
 
 ShvNode *ShvNodeTree::mdcd(const ShvNode::StringList &path, ShvNode::String *path_rest, bool create_dirs)
@@ -25,6 +38,7 @@ ShvNode *ShvNodeTree::mdcd(const ShvNode::StringList &path, ShvNode::String *pat
 				ret->setNodeName(path[ix]);
 			}
 			else {
+				ret = nullptr;
 				break;
 			}
 		}
@@ -41,7 +55,7 @@ ShvNode *ShvNodeTree::mdcd(const ShvNode::StringList &path, ShvNode::String *pat
 
 bool ShvNodeTree::mount(const ShvNode::String &path, ShvNode *node)
 {
-	ShvNode::StringList lst = shv::core::String::split(path);
+	ShvNode::StringList lst = shv::core::String::split(path, '/');
 	if(lst.empty()) {
 		shvError() << "Cannot mount node on empty path:" << path;
 		return false;

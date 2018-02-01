@@ -132,12 +132,12 @@ void Revitest::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 		std::string method = rq.method();
 		//const cp::RpcValue::Map params = rq.params().toMap();
 		cp::RpcResponse rsp{};
-		rsp.setId(rq.id());
+		rsp.setRequestId(rq.requestId());
 		cp::RpcValue result;
 
 		try {
-			bool is_get = method == cp::RpcMessage::METHOD_GET;
-			bool is_set = method == cp::RpcMessage::METHOD_SET;
+			bool is_get = method == cp::Rpc::METH_GET;
+			bool is_set = method == cp::Rpc::METH_SET;
 
 			const cp::RpcValue::String str_path = rq.shvPath().toString();
 
@@ -251,7 +251,7 @@ void Revitest::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 void Revitest::onLublicatorPropertyValueChanged(const std::string &property_name, const shv::chainpack::RpcValue &new_val)
 {
 	cp::RpcNotify ntf;
-	ntf.setMethod(cp::RpcMessage::METHOD_VALUE_CHANGED);
+	ntf.setMethod(cp::Rpc::METH_VAL_CHANGED);
 	ntf.setParams(new_val);
 	ntf.setShvPath(ODPOJOVACE_PATH + property_name);
 	shvInfo() << "LublicatorPropertyValueChanged:" << ntf.toStdString();
