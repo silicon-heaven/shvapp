@@ -31,7 +31,7 @@ linux-deploy:
   script:
     - cd build
     - rsync -avz lib bin gitlab-jessie@35.167.83.38:/opt/shv/ 
-    - ssh -t gitlab-jessie@35.167.83.38 "/opt/shv/install.sh"
+    - ssh -t gitlab-jessie@35.167.83.38 "sudo /opt/shv/install.sh"
 
   environment:
     name: jessie
