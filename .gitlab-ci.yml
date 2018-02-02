@@ -30,7 +30,7 @@ linux-deploy:
     deploy
   script:
     - cd build
-    - rsync -avz lib bin gitlab-jessie@35.167.83.38:/opt/eyas/eyassrv/ 
+    - rsync -avz lib bin gitlab-jessie@35.167.83.38:/opt/shv/ 
     - ssh -t gitlab-jessie@35.167.83.38 "/opt/shv/install.sh"
 
   environment:
