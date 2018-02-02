@@ -14,11 +14,11 @@ linux:
     paths:
     - build/
   script:
-    - git submodule update --init --force --recursive
+    #- git submodule update --init --force --recursive
     - rm -rf build
     - mkdir -p build
     - cd build
-    - /opt/qt/5.8/gcc_64/bin/qmake -r ../shv.pro DEFINES+=GIT_COMMIT=${CI_BUILD_REF}
+    - /opt/qt/5.8/gcc_64/bin/qmake -r CONFIG+=no-libshv-gui ../shv.pro DEFINES+=GIT_COMMIT=${CI_BUILD_REF}
     - make -j2
 
 linux-deploy:
