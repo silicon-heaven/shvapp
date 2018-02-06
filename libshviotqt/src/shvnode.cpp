@@ -13,6 +13,11 @@ ShvNode::ShvNode(QObject *parent)
 	shvDebug() << __FUNCTION__ << this;
 }
 
+ShvNode *ShvNode::parentNode() const
+{
+	return qobject_cast<ShvNode*>(parent());
+}
+
 ShvNode *ShvNode::childNode(const String &name) const
 {
 	ShvNode *nd = findChild<ShvNode*>(QString::fromStdString(name), Qt::FindDirectChildrenOnly);
@@ -40,6 +45,17 @@ void ShvNode::setNodeName(const ShvNode::String &n)
 	setObjectName(QString::fromStdString(n));
 	shvDebug() << __FUNCTION__ << this << n;
 	m_nodeName = n;
+}
+
+ShvNode::String ShvNode::nodePath() const
+{
+	String ret;
+	const ShvNode *nd = this;
+	while(nd) {
+		ret = nd->nodeName() + '/' + ret;
+		nd = nd->parentNode();
+	}
+	return ret;
 }
 
 ShvNode::StringList ShvNode::propertyNames() const

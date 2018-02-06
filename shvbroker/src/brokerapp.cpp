@@ -8,6 +8,7 @@
 
 #include <shv/core/string.h>
 #include <shv/core/utils.h>
+#include <shv/core/assert.h>
 #include <shv/chainpack/rpcmessage.h>
 
 #include <QSocketNotifier>
@@ -213,6 +214,7 @@ void BrokerApp::onClientLogin(int connection_id)
 		shvInfo() << "connection id:" << connection_id << "mounting device on path:" << mount_point;
 		if(!m_deviceTree->mount(mount_point, nd))
 			SHV_EXCEPTION("Cannot mount connection to device tree, connection id: " + std::to_string(connection_id));
+		conn->setMountPoint(nd->nodePath());
 		//m_deviceTree->dumpObjectTree();
 	}
 }
@@ -221,13 +223,13 @@ void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData
 {
 	if(cp::RpcMessage::isRequest(meta)) {
 		cp::RpcMessage::setCallerId(meta, connection_id);
-		const std::string shv_path = cp::RpcMessage::shvPath(meta).toString();
+		const std::string shv_path = cp::RpcMessage::shvPath(meta);
 		std::string path_rest;
 		shv::iotqt::ShvNode *nd = m_deviceTree->cd(shv_path, &path_rest);
 		ClientNode *client_nd = qobject_cast<ClientNode *>(nd);
 		//shvWarning() << nd << client_nd << "shv path:" << shv_path << "rest:" << path_rest;// << meta.toStdString();
 		if(client_nd) {
-			cp::RpcMessage::setShvPath(meta, path_rest.empty()? cp::RpcValue(): cp::RpcValue(path_rest));
+			cp::RpcMessage::setShvPath(meta, path_rest.empty()? std::string(): path_rest);
 			rpc::ServerConnection *conn2 = client_nd->connection();
 			conn2->sendRawData(std::move(meta), std::move(data));
 		}
@@ -269,14 +271,26 @@ void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData
 	}
 	else if(cp::RpcMessage::isNotify(meta)) {
 		shvInfo() << "NTF:" << meta.toStdString() << "from:" << connection_id;
-		// send it to all clients for now
-		for(unsigned id : tcpServer()->connectionIds()) {
-			if(id == connection_id)
-				continue;
-			rpc::ServerConnection *conn = tcpServer()->connectionById(id);
+		std::string full_shv_path;
+		{
+			rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
 			if(conn) {
-				shvInfo() << "\t broadcasting to connection id:" << id;
-				conn->sendRawData(std::move(meta), std::move(data));
+				full_shv_path = conn->mountPoint();
+				if(!full_shv_path.empty())
+					full_shv_path += cp::RpcMessage::shvPath(meta);
+			}
+		}
+		if(!full_shv_path.empty()) {
+			// send it to all clients for now
+			cp::RpcMessage::setShvPath(meta, full_shv_path);
+			for(unsigned id : tcpServer()->connectionIds()) {
+				if(id == connection_id)
+					continue;
+				rpc::ServerConnection *conn = tcpServer()->connectionById(id);
+				if(conn) {
+					shvInfo() << "\t broadcasting to connection id:" << id;
+					conn->sendRawData(std::move(meta), std::move(data));
+				}
 			}
 		}
 	}

@@ -153,7 +153,7 @@ void Revitest::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 			bool is_get = method == cp::Rpc::METH_GET;
 			bool is_set = method == cp::Rpc::METH_SET;
 
-			const cp::RpcValue::String str_path = rq.shvPath().toString();
+			const cp::RpcValue::String str_path = rq.shvPath();
 
 			std::vector<std::string> path = shv::core::String::split(str_path, '/');
 			//static const std::vector<std::string> odpojovace_path = shv::core::String::split(ODPOJOVACE_PATH, '/');

@@ -3,8 +3,11 @@
 #include <shv/coreqt/chainpack/rpcdriver.h>
 
 #include <shv/chainpack/rpcmessage.h>
+#include <shv/core/utils.h>
 
 #include <QObject>
+
+#include <string>
 
 class QTcpSocket;
 //class Agent;
@@ -19,6 +22,8 @@ class ServerConnection : public shv::coreqt::chainpack::RpcDriver
 	Q_OBJECT
 
 	using Super = shv::coreqt::chainpack::RpcDriver;
+
+	SHV_FIELD_IMPL(std::string, m, M, ountPoint)
 public:
 	explicit ServerConnection(QTcpSocket* socket, QObject *parent = 0);
 	~ServerConnection() Q_DECL_OVERRIDE;

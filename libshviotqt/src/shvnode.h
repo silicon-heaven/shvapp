@@ -19,11 +19,14 @@ public:
 	explicit ShvNode(QObject *parent = nullptr);
 
 	//size_t childNodeCount() const {return propertyNames().size();}
+	ShvNode* parentNode() const;
 	virtual ShvNode* childNode(const String &name) const;
 	virtual void setParentNode(ShvNode *parent);
-	virtual String nodeName() {return m_nodeName;}
+	virtual String nodeName() const {return m_nodeName;}
 	void setNodeName(String &&n);
 	void setNodeName(const String &n);
+
+	String nodePath() const;
 
 	virtual shv::chainpack::RpcValue shvValue() const;
 
