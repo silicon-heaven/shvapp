@@ -23,7 +23,7 @@ public:
 	explicit TcpServer(QObject *parent = 0);
 
 	bool start(int port);
-	//int numConnections();
+	std::vector<unsigned> connectionIds() const;
 	ServerConnection* connectionById(unsigned connection_id);
 protected:
 	void onNewConnection();

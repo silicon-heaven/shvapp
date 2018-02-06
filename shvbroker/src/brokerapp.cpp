@@ -217,21 +217,22 @@ void BrokerApp::onClientLogin(int connection_id)
 	}
 }
 
-void BrokerApp::onRpcDataReceived(cp::RpcValue::MetaData &&meta, std::string &&data)
+void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData &&meta, std::string &&data)
 {
 	if(cp::RpcMessage::isRequest(meta)) {
+		cp::RpcMessage::setCallerId(meta, connection_id);
 		const std::string shv_path = cp::RpcMessage::shvPath(meta).toString();
 		std::string path_rest;
 		shv::iotqt::ShvNode *nd = m_deviceTree->cd(shv_path, &path_rest);
 		ClientNode *client_nd = qobject_cast<ClientNode *>(nd);
-		shvWarning() << nd << client_nd << "shv path:" << shv_path << "rest:" << path_rest;// << meta.toStdString();
+		//shvWarning() << nd << client_nd << "shv path:" << shv_path << "rest:" << path_rest;// << meta.toStdString();
 		if(client_nd) {
 			cp::RpcMessage::setShvPath(meta, path_rest.empty()? cp::RpcValue(): cp::RpcValue(path_rest));
 			rpc::ServerConnection *conn2 = client_nd->connection();
 			conn2->sendRawData(std::move(meta), std::move(data));
 		}
 		else if(nd) {
-			rpc::ServerConnection *conn = tcpServer()->connectionById(cp::RpcMessage::callerId(meta));
+			rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
 			if(conn) {
 				cp::RpcMessage rpc_msg = cp::RpcDriver::composeRpcMessage(std::move(meta), data, !cp::Exception::Throw);
 				if(rpc_msg.isRequest()) {
@@ -249,7 +250,7 @@ void BrokerApp::onRpcDataReceived(cp::RpcValue::MetaData &&meta, std::string &&d
 			shvWarning() << err_msg;
 			cp::RpcMessage rpc_msg = cp::RpcDriver::composeRpcMessage(std::move(meta), data, !cp::Exception::Throw);
 			if(rpc_msg.isRequest()) {
-				rpc::ServerConnection *conn = tcpServer()->connectionById(rpc_msg.callerId());
+				rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
 				if(conn) {
 					conn->sendError(rpc_msg.requestId(), cp::RpcResponse::Error::create(
 										cp::RpcResponse::Error::MethodInvocationException
@@ -259,11 +260,24 @@ void BrokerApp::onRpcDataReceived(cp::RpcValue::MetaData &&meta, std::string &&d
 		}
 	}
 	else if(cp::RpcMessage::isResponse(meta)) {
+		shvInfo() << "RESP conn id:" << connection_id << meta.toStdString();
 		unsigned caller_connection_id = cp::RpcMessage::callerId(meta);
-		shvWarning() << "conn id:" << caller_connection_id << meta.toStdString();
 		rpc::ServerConnection *conn = tcpServer()->connectionById(caller_connection_id);
 		if(conn) {
 			conn->sendRawData(std::move(meta), std::move(data));
+		}
+	}
+	else if(cp::RpcMessage::isNotify(meta)) {
+		shvInfo() << "NTF:" << meta.toStdString() << "from:" << connection_id;
+		// send it to all clients for now
+		for(unsigned id : tcpServer()->connectionIds()) {
+			if(id == connection_id)
+				continue;
+			rpc::ServerConnection *conn = tcpServer()->connectionById(id);
+			if(conn) {
+				shvInfo() << "\t broadcasting to connection id:" << id;
+				conn->sendRawData(std::move(meta), std::move(data));
+			}
 		}
 	}
 }

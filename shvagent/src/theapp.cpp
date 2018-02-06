@@ -19,6 +19,7 @@ TheApp::TheApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	rpc->setUser("iot");
 	rpc->setProtocolVersion(shv::chainpack::Rpc::ProtocolVersion::ChainPack);
 	connect(rpc, &shv::iotqt::client::Connection::brokerConnectedChanged, this, &TheApp::onBrokerConnectedChanged);
+	connect(rpc, &shv::iotqt::client::Connection::messageReceived, this, &TheApp::onRpcMessageReceived);
 }
 
 TheApp::~TheApp()
@@ -105,5 +106,22 @@ void TheApp::onBrokerConnectedChanged(bool is_connected)
 	}
 	catch (shv::core::Exception &e) {
 		shvError() << "Lublicator Testing FAILED:" << e.message();
+	}
+}
+
+void TheApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
+{
+	shvLogFuncFrame() << msg.toCpon();
+	if(msg.isRequest()) {
+		cp::RpcRequest rq(msg);
+		shvInfo() << "RPC request received:" << rq.toCpon();
+	}
+	else if(msg.isResponse()) {
+		cp::RpcResponse rp(msg);
+		shvInfo() << "RPC response received:" << rp.toCpon();
+	}
+	else if(msg.isNotify()) {
+		cp::RpcNotify nt(msg);
+		shvInfo() << "RPC notify received:" << nt.toCpon();
 	}
 }

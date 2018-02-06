@@ -25,6 +25,14 @@ bool TcpServer::start(int port)
 	return true;
 }
 
+std::vector<unsigned> TcpServer::connectionIds() const
+{
+	std::vector<unsigned> ret;
+	for(const auto &pair : m_connections)
+		ret.push_back(pair.first);
+	return ret;
+}
+
 ServerConnection *TcpServer::connectionById(unsigned connection_id)
 {
 	auto it = m_connections.find(connection_id);

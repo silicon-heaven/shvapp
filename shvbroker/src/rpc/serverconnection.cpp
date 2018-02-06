@@ -181,10 +181,8 @@ void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolVersion pr
 
 	logRpcMsg() << RCV_LOG_ARROW << md.toStdString() << shv::chainpack::Utils::toHexElided(data, start_pos, 100);
 	cp::RpcMessage::setProtocolVersion(md, protocol_version);
-	if(cp::RpcMessage::isRequest(md))
-		cp::RpcMessage::setCallerId(md, connectionId());
 	std::string msg_data(data, start_pos, data_len);
-	BrokerApp::instance()->onRpcDataReceived(std::move(md), std::move(msg_data));
+	BrokerApp::instance()->onRpcDataReceived(connectionId(), std::move(md), std::move(msg_data));
 }
 
 } // namespace rpc
