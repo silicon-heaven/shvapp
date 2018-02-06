@@ -8,6 +8,7 @@
 #include <QMap>
 
 namespace shv { namespace chainpack { class RpcMessage; }}
+namespace shv { namespace iotqt { class ShvNodeTree; }}
 
 class Lublicator : public shv::iotqt::ShvNode
 {
@@ -45,8 +46,10 @@ public:
 	Q_SIGNAL void sendRpcMessage(const shv::chainpack::RpcMessage &msg);
 private:
 	void onLublicatorPropertyValueChanged(const std::string &property_name, const shv::chainpack::RpcValue &new_val);
+	void createDevices();
 private:
 	static constexpr size_t LUB_CNT = 27;
-	Lublicator m_lublicators[LUB_CNT];
+	//Lublicator m_lublicators[LUB_CNT];
+	shv::iotqt::ShvNodeTree *m_devices = nullptr;
 };
 

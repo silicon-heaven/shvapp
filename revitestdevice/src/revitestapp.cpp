@@ -20,7 +20,9 @@ RevitestApp::RevitestApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	dev["id"] = 123456;
 	m_clientConnection->setDevice(dev);
 	m_clientConnection->setUser("iot");
-	createDevices();
+	m_revitest = new Revitest(this);
+	connect(m_clientConnection, &shv::iotqt::client::Connection::messageReceived, m_revitest, &Revitest::onRpcMessageReceived);
+	connect(m_revitest, &Revitest::sendRpcMessage, m_clientConnection, &shv::iotqt::client::Connection::sendMessage);
 }
 
 RevitestApp::~RevitestApp()
@@ -28,12 +30,3 @@ RevitestApp::~RevitestApp()
 	shvInfo() << "destroying shv agent application";
 }
 
-void RevitestApp::createDevices()
-{
-	m_devices = new iot::ShvNodeTree(this);
-	static constexpr size_t LUB_CNT = 27;
-	for (size_t i = 0; i < LUB_CNT; ++i) {
-		auto *nd = new Lublicator(m_devices);
-		nd->setNodeName(std::to_string(i+1));
-	}
-}

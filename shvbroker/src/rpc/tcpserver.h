@@ -24,12 +24,12 @@ public:
 
 	bool start(int port);
 	//int numConnections();
-	ServerConnection* connectionById(int connection_id);
+	ServerConnection* connectionById(unsigned connection_id);
 protected:
 	void onNewConnection();
 	void onConnectionDeleted(int connection_id);
 protected:
-	std::map<int, ServerConnection*> m_connections;
+	std::map<unsigned, ServerConnection*> m_connections;
 };
 
 } // namespace rpc

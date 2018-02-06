@@ -17,6 +17,8 @@ class SHVIOTQT_DECL_EXPORT ShvNodeTree : public QObject
 public:
 	explicit ShvNodeTree(QObject *parent = nullptr);
 
+	ShvNode* root() const {return m_root;}
+
 	ShvNode* mkdir(const ShvNode::String &path, ShvNode::String *path_rest = nullptr);
 	ShvNode* cd(const ShvNode::String &path, ShvNode::String *path_rest = nullptr);
 	bool mount(const ShvNode::String &path, ShvNode *node);

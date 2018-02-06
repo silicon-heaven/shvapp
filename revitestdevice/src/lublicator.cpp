@@ -7,6 +7,8 @@
 
 #include <shv/coreqt/log.h>
 
+#include <shv/iotqt/shvnodetree.h>
+
 namespace cp = shv::chainpack;
 namespace iot = shv::iotqt;
 
@@ -17,7 +19,7 @@ const iot::ShvNode::String S_BATT_LOW = "batteryLimitLow";
 const iot::ShvNode::String S_BATT_HI = "batteryLimitHigh";
 const iot::ShvNode::String S_BATT_LEVSIM = "batteryLevelSimulation";
 
-static const std::string ODPOJOVACE_PATH = "/shv/eu/pl/lublin/odpojovace/";
+//static const std::string ODPOJOVACE_PATH = "/shv/eu/pl/lublin/odpojovace/";
 }
 
 Lublicator::Lublicator(QObject *parent)
@@ -117,22 +119,34 @@ Revitest::Revitest(QObject *parent)
 	: QObject(parent)
 {
 	shvLogFuncFrame();
+	createDevices();
+	/*
 	for (size_t i = 0; i < LUB_CNT; ++i) {
 		m_lublicators[i].setObjectName(QString::number(i+1));
 		connect(&m_lublicators[i], &Lublicator::propertyValueChanged, this, &Revitest::onLublicatorPropertyValueChanged);
 	}
+	*/
 }
 
-// /shv/eu/pl/lublin/odpojovace/1..27/properties
+void Revitest::createDevices()
+{
+	m_devices = new iot::ShvNodeTree(this);
+	static constexpr size_t LUB_CNT = 27;
+	for (size_t i = 0; i < LUB_CNT; ++i) {
+		auto *nd = new Lublicator(m_devices->root());
+		nd->setNodeName(std::to_string(i+1));
+		connect(nd, &Lublicator::propertyValueChanged, this, &Revitest::onLublicatorPropertyValueChanged);
+	}
+}
+
 void Revitest::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 {
-	shvLogFuncFrame() << msg.toStdString();
+	shvLogFuncFrame() << msg.toCpon();
 	if(msg.isRequest()) {
 		cp::RpcRequest rq(msg);
 		std::string method = rq.method();
 		//const cp::RpcValue::Map params = rq.params().toMap();
-		cp::RpcResponse rsp{};
-		rsp.setRequestId(rq.requestId());
+		cp::RpcResponse rsp = cp::RpcResponse::forRequest(rq);
 		cp::RpcValue result;
 
 		try {
@@ -142,89 +156,55 @@ void Revitest::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 			const cp::RpcValue::String str_path = rq.shvPath().toString();
 
 			std::vector<std::string> path = shv::core::String::split(str_path, '/');
-			static const std::vector<std::string> odpojovace_path = shv::core::String::split(ODPOJOVACE_PATH, '/');
-
-			auto lublicator_for_path = [this](const std::vector<std::string> &path) -> Lublicator&
+			//static const std::vector<std::string> odpojovace_path = shv::core::String::split(ODPOJOVACE_PATH, '/');
+			auto lublicator_for_path = [this](const std::vector<std::string> &path) -> Lublicator*
 			{
-				auto ix = QString::fromStdString(path[odpojovace_path.size()]).toUInt();
-				if(ix <= 0)
-					SHV_EXCEPTION("invalid lublicator path:" + shv::core::String::join(path, '/'));
-				ix--;
-				if(ix >= LUB_CNT)
-					SHV_EXCEPTION("invalid lublicator path:" + shv::core::String::join(path, '/'));
-				return m_lublicators[ix];
+				if(path.size() < 1)
+					SHV_EXCEPTION("invalid path");
+				shv::iotqt::ShvNode *nd = m_devices->cd(path[0]);
+				Lublicator *ret = qobject_cast<Lublicator*>(nd);
+				if(!ret)
+					SHV_EXCEPTION("invalid path: " + path[0]);
+				return ret;
 			};
-
 			if(is_set) {
-				if(!shv::core::String::startsWith(str_path, ODPOJOVACE_PATH))
+				//if(!shv::core::String::startsWith(str_path, ODPOJOVACE_PATH))
+				//	SHV_EXCEPTION("cannot write on path:" + str_path);
+				if(path.size() < 2)
 					SHV_EXCEPTION("cannot write on path:" + str_path);
-				if(path.size() != odpojovace_path.size() + 2)
-					SHV_EXCEPTION("cannot write on path:" + str_path);
-				Lublicator &lubl = lublicator_for_path(path);
+				Lublicator *lubl = lublicator_for_path(path);
 				cp::RpcValue val = rq.params();
-				std::string property_name = path[odpojovace_path.size() + 1];
-				bool ok = lubl.setPropertyValue(property_name, val);
+				std::string property_name = path[1];
+				bool ok = lubl->setPropertyValue(property_name, val);
 				if(!ok)
 					SHV_EXCEPTION("cannot write property value on path:" + str_path);
 				result = true;
 			}
-			else if(is_get) do {
+			else if(is_get) {
+				shvInfo() << "reading property:" << shv::core::String::join(path, '/');
 				if(path.empty()) {
-					result = cp::RpcValue::List{odpojovace_path[0]};
-					break;
+					result = m_devices->root()->propertyNames();
 				}
-				size_t i;
-				for (i = 0; i < path.size(); ++i) {
-					if(i < odpojovace_path.size()) {
-						if(path[i] != odpojovace_path[i])
-							SHV_EXCEPTION("invalid path:" + str_path);
-						if(i == path.size() - 1) {
-							if(i == odpojovace_path.size() - 1) {
-								if(is_get) {
-									auto lst = cp::RpcValue::List{};
-									for (size_t i = 0; i < LUB_CNT; ++i)
-										lst.push_back(std::to_string(i + 1));
-									result = lst;
-									break;
-								}
-								SHV_EXCEPTION("cannot write on path:" + str_path);
-							}
-							else {
-								result = cp::RpcValue::List{odpojovace_path[i+1]};
-								break;
-							}
-						}
-					}
-					else {
-						auto ix = QString::fromStdString(path[odpojovace_path.size()]).toUInt();
-						if(ix == 0)
-							SHV_EXCEPTION("invalid path:" + str_path);
-						ix--;
-						if(ix >= LUB_CNT)
-							SHV_EXCEPTION("invalid path:" + str_path);
-						auto &lubl = m_lublicators[ix];
-						if(path.size() == odpojovace_path.size() + 1) {
-							if(is_get) {
-								result = lubl.propertyNames();
-								break;
-							}
-							SHV_EXCEPTION("cannot write on path:" + str_path);
-						}
-						else if(path.size() == odpojovace_path.size() + 2) {
-							std::string property_name = path[odpojovace_path.size() + 1];
-							Lublicator &lubl = lublicator_for_path(path);
-							cp::RpcValue val = lubl.propertyValue(property_name);
-							if(!val.isValid())
-								SHV_EXCEPTION("cannot read property on path:" + str_path);
-							result = val;
-							break;
-						}
-						SHV_EXCEPTION("invalid path:" + str_path);
-					}
+				else if(path.size() == 1) {
+					result = lublicator_for_path(path)->propertyNames();
 				}
-			} while(false);
-			else
+				else if(path.size() == 2) {
+					Lublicator *lub = lublicator_for_path(path);
+					shv::chainpack::RpcValue val = lub->propertyValue(path[1]);
+					if(!val.isValid())
+						result = "???";
+					//	SHV_EXCEPTION("cannot read property on path:" + str_path);
+					else
+						result = val;
+					shvInfo() << "\t value:" << val.toCpon();
+				}
+				else {
+					SHV_EXCEPTION("invalid path: " + str_path);
+				}
+			}
+			else {
 				SHV_EXCEPTION("invalid method name:" + method);
+			}
 		}
 		catch(shv::core::Exception &e) {
 			rsp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodInvocationException, e.message()));
@@ -232,20 +212,17 @@ void Revitest::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 		if(!rsp.isError()) {
 			rsp.setResult(result);
 		}
-		shvDebug() << "sending RPC response:" << rsp.toStdString();
+		shvDebug() << "sending RPC response:" << rsp.toCpon();
 		emit sendRpcMessage(rsp);
 	}
 	else if(msg.isResponse()) {
 		cp::RpcResponse rp(msg);
-		shvInfo() << "RPC response received:" << rp.toStdString();
+		shvInfo() << "RPC response received:" << rp.toCpon();
 	}
 	else if(msg.isNotify()) {
 		cp::RpcNotify nt(msg);
-		//if(nt.method() == shv::chainpack::Rpc::KNOCK_KNOCK) {
-			//const shv::chainpack::RpcValue::Map m = ntf.params().toMap();
-		//}
-		shvInfo() << "RPC notify received:" << nt.toStdString();
-}
+		shvInfo() << "RPC notify received:" << nt.toCpon();
+	}
 }
 
 void Revitest::onLublicatorPropertyValueChanged(const std::string &property_name, const shv::chainpack::RpcValue &new_val)
@@ -253,8 +230,8 @@ void Revitest::onLublicatorPropertyValueChanged(const std::string &property_name
 	cp::RpcNotify ntf;
 	ntf.setMethod(cp::Rpc::METH_VAL_CHANGED);
 	ntf.setParams(new_val);
-	ntf.setShvPath(ODPOJOVACE_PATH + property_name);
-	shvInfo() << "LublicatorPropertyValueChanged:" << ntf.toStdString();
+	ntf.setShvPath(property_name);
+	shvInfo() << "LublicatorPropertyValueChanged:" << ntf.toCpon();
 	emit sendRpcMessage(ntf);
 }
 

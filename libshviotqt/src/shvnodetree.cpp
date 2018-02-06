@@ -21,7 +21,7 @@ ShvNode *ShvNodeTree::mkdir(const ShvNode::String &path, ShvNode::String *path_r
 ShvNode *ShvNodeTree::cd(const ShvNode::String &path, ShvNode::String *path_rest)
 {
 	ShvNode::StringList lst = shv::core::String::split(path, '/');
-	shvWarning() << path << "->" << shv::core::String::join(lst, '-');
+	//shvWarning() << path << "->" << shv::core::String::join(lst, '-');
 	return mdcd(lst, path_rest, false);
 }
 
@@ -38,7 +38,7 @@ ShvNode *ShvNodeTree::mdcd(const ShvNode::StringList &path, ShvNode::String *pat
 				ret->setNodeName(path[ix]);
 			}
 			else {
-				ret = nullptr;
+				//ret = nullptr;
 				break;
 			}
 		}
@@ -75,6 +75,7 @@ bool ShvNodeTree::mount(const ShvNode::String &path, ShvNode *node)
 		return false;
 	}
 	node->setParentNode(parent_nd);
+	node->setNodeName(last_id);
 	return true;
 }
 

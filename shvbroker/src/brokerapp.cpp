@@ -213,45 +213,57 @@ void BrokerApp::onClientLogin(int connection_id)
 		shvInfo() << "connection id:" << connection_id << "mounting device on path:" << mount_point;
 		if(!m_deviceTree->mount(mount_point, nd))
 			SHV_EXCEPTION("Cannot mount connection to device tree, connection id: " + std::to_string(connection_id));
+		//m_deviceTree->dumpObjectTree();
 	}
 }
 
 void BrokerApp::onRpcDataReceived(cp::RpcValue::MetaData &&meta, std::string &&data)
 {
-	const std::string shv_path = cp::RpcMessage::shvPath(meta).toString();
-	std::string path_rest;
-	shv::iotqt::ShvNode *nd = m_deviceTree->cd(shv_path, &path_rest);
-	ClientNode *client_nd = qobject_cast<ClientNode *>(nd);
-	if(client_nd) {
-		cp::RpcMessage::setShvPath(meta, path_rest.empty()? cp::RpcValue(): cp::RpcValue(path_rest));
-		rpc::ServerConnection *conn2 = client_nd->connection();
-		conn2->sendRawData(std::move(meta), std::move(data));
-	}
-	else if(nd) {
-		rpc::ServerConnection *conn = tcpServer()->connectionById(cp::RpcMessage::connectionId(meta).toInt());
-		if(conn) {
+	if(cp::RpcMessage::isRequest(meta)) {
+		const std::string shv_path = cp::RpcMessage::shvPath(meta).toString();
+		std::string path_rest;
+		shv::iotqt::ShvNode *nd = m_deviceTree->cd(shv_path, &path_rest);
+		ClientNode *client_nd = qobject_cast<ClientNode *>(nd);
+		shvWarning() << nd << client_nd << "shv path:" << shv_path << "rest:" << path_rest;// << meta.toStdString();
+		if(client_nd) {
+			cp::RpcMessage::setShvPath(meta, path_rest.empty()? cp::RpcValue(): cp::RpcValue(path_rest));
+			rpc::ServerConnection *conn2 = client_nd->connection();
+			conn2->sendRawData(std::move(meta), std::move(data));
+		}
+		else if(nd) {
+			rpc::ServerConnection *conn = tcpServer()->connectionById(cp::RpcMessage::callerId(meta));
+			if(conn) {
+				cp::RpcMessage rpc_msg = cp::RpcDriver::composeRpcMessage(std::move(meta), data, !cp::Exception::Throw);
+				if(rpc_msg.isRequest()) {
+					cp::RpcRequest rq(rpc_msg);
+					if(rq.method() == cp::Rpc::METH_GET) {
+						shv::iotqt::ShvNode::StringList props = nd->propertyNames();
+						//shvWarning() << shv_path << "children:" << shv::core::String::join(props, ", ");
+						conn->sendResponse(rq.requestId(), props);
+					}
+				}
+			}
+		}
+		else {
+			std::string err_msg = "Device tree path not found: " + shv_path;
+			shvWarning() << err_msg;
 			cp::RpcMessage rpc_msg = cp::RpcDriver::composeRpcMessage(std::move(meta), data, !cp::Exception::Throw);
 			if(rpc_msg.isRequest()) {
-				cp::RpcRequest rq(rpc_msg);
-				if(rq.method() == cp::Rpc::METH_GET) {
-					shv::iotqt::ShvNode::StringList props = nd->propertyNames();
-					shvWarning() << shv_path << "children:" << shv::core::String::join(props, ", ");
-					conn->sendResponse(rq.requestId(), props);
+				rpc::ServerConnection *conn = tcpServer()->connectionById(rpc_msg.callerId());
+				if(conn) {
+					conn->sendError(rpc_msg.requestId(), cp::RpcResponse::Error::create(
+										cp::RpcResponse::Error::MethodInvocationException
+										, err_msg));
 				}
 			}
 		}
 	}
-	else {
-		std::string err_msg = "Device tree path not found: " + shv_path;
-		shvWarning() << err_msg;
-		cp::RpcMessage rpc_msg = cp::RpcDriver::composeRpcMessage(std::move(meta), data, !cp::Exception::Throw);
-		if(rpc_msg.isRequest()) {
-			rpc::ServerConnection *conn = tcpServer()->connectionById(rpc_msg.connectionId().toInt());
-			if(conn) {
-				conn->sendError(rpc_msg.requestId(), cp::RpcResponse::Error::create(
-									cp::RpcResponse::Error::MethodInvocationException
-									, err_msg));
-			}
+	else if(cp::RpcMessage::isResponse(meta)) {
+		unsigned caller_connection_id = cp::RpcMessage::callerId(meta);
+		shvWarning() << "conn id:" << caller_connection_id << meta.toStdString();
+		rpc::ServerConnection *conn = tcpServer()->connectionById(caller_connection_id);
+		if(conn) {
+			conn->sendRawData(std::move(meta), std::move(data));
 		}
 	}
 }

@@ -28,17 +28,28 @@ TheApp::~TheApp()
 
 static void print_children(shv::iotqt::client::Connection *rpc, const std::string &path, int indent)
 {
-	std::string shv_path = path;
 	//shvInfo() << "\tcall:" << "get" << "on shv path:" << shv_path;
-	cp::RpcResponse resp = rpc->callShvMethodSync(shv_path, cp::Rpc::METH_GET);
-	//shvInfo() << "\tgot response:" << resp.toStdString();
+	cp::RpcResponse resp = rpc->callShvMethodSync(path, cp::Rpc::METH_GET);
+	shvDebug() << "\tgot response:" << resp.toCpon();
 	if(resp.isError())
 		throw shv::core::Exception(resp.error().message());
-	const cp::RpcValue::List list = resp.result().toList();
-	for(auto dir : list) {
-		shv_path += '/' + dir.toString();
-		shvInfo() << std::string(indent, ' ') << dir.toString();
-		print_children(rpc, shv_path, indent + 2);
+	shv::chainpack::RpcValue result = resp.result();
+	if(result.isList()) {
+		const cp::RpcValue::List list = resp.result().toList();
+		for(const auto &dir : list) {
+			std::string s = dir.toString();
+			if(s.empty()) {
+				shvError() << "empty dir name";
+			}
+			else {
+				std::string path2 = path + '/' + s;
+				shvInfo() << std::string(indent, ' ') << s;
+				print_children(rpc, path2, indent + 2);
+			}
+		}
+	}
+	else {
+		shvInfo() << std::string(indent, ' ') << result.toCpon();
 	}
 }
 
@@ -56,25 +67,29 @@ void TheApp::onBrokerConnectedChanged(bool is_connected)
 			print_children(rpc, "", 0);
 			//shvInfo() << "GOT:" << shv_path;
 		}
-#if 0
 		{
-			shvInfo() << "------------ set battery level";
-			QString shv_path_lubl = "/shv/eu/pl/lublin/odpojovace/15/";
+			shvInfo() << "------------ get battery level";
+			std::string shv_path_lubl = "/test/shv/eu/pl/lublin/odpojovace/15/";
+			shvInfo() << shv_path_lubl;
 			for(auto prop : {"status", "batteryLimitLow", "batteryLimitHigh", "batteryLevelSimulation"}) {
-				QString shv_path = shv_path_lubl + prop;
-				cp::RpcResponse resp = rpc->callShvMethodSync(shv_path, cp::RpcMessage::METHOD_GET);
+				std::string shv_path = shv_path_lubl + prop;
+				cp::RpcResponse resp = rpc->callShvMethodSync(shv_path, cp::Rpc::METH_GET);
 				shvInfo() << "\tproperty" << prop << ":" << resp.result().toStdString();
 			}
+			for (int val = 200; val < 260; val += 5) {
+				std::string shv_path = shv_path_lubl + "batteryLevelSimulation";
+				cp::RpcValue::Decimal dec_val(val, 1);
+				shvInfo() << "\tcall:" << "set" << dec_val.toString() << "on shv path:" << shv_path;
+				cp::RpcResponse resp = rpc->callShvMethodSync(shv_path, cp::Rpc::METH_SET, dec_val);
+				shvInfo() << "\tgot response:" << resp.toCpon();
+				if(resp.isError())
+					throw shv::core::Exception(resp.error().message());
+			}
+		}
+#if 0
+		{
 			{
 				QString shv_path = shv_path_lubl + "batteryLevelSimulation";
-				for (int val = 200; val < 260; val += 5) {
-					cp::RpcValue::Decimal dec_val(val, 1);
-					shvInfo() << "\tcall:" << "set" << dec_val.toString() << "on shv path:" << shv_path;
-					cp::RpcResponse resp = rpc->callShvMethodSync(shv_path, cp::RpcMessage::METHOD_SET, dec_val);
-					shvInfo() << "\tgot response:" << resp.toStdString();
-					if(resp.isError())
-						throw shv::core::Exception(resp.error().message());
-				}
 			}
 			for(auto prop : {"status", "batteryLimitLow", "batteryLimitHigh", "batteryLevelSimulation"}) {
 				QString shv_path = shv_path_lubl + prop;

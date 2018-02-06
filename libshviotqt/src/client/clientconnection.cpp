@@ -107,7 +107,7 @@ std::string Connection::passwordHash(const std::string &user)
 
 bool Connection::onRpcMessageReceived(const cp::RpcMessage &msg)
 {
-	logRpc() << msg.toStdString();
+	logRpc() << msg.toCpon();
 	if(Super::onRpcMessageReceived(msg))
 		return true;
 	if(!isBrokerConnected()) {
@@ -115,7 +115,7 @@ bool Connection::onRpcMessageReceived(const cp::RpcMessage &msg)
 			if(!msg.isResponse())
 				break;
 			cp::RpcResponse resp(msg);
-			shvInfo() << "Handshake response received:" << resp.toStdString();
+			shvInfo() << "Handshake response received:" << resp.toCpon();
 			if(resp.isError())
 				break;
 			unsigned id = resp.requestId();
@@ -130,7 +130,7 @@ bool Connection::onRpcMessageReceived(const cp::RpcMessage &msg)
 				return true;
 			}
 		} while(false);
-		shvError() << "Invalid handshake message! Dropping connection." << msg.toStdString();
+		shvError() << "Invalid handshake message! Dropping connection." << msg.toCpon();
 		this->deleteLater();
 		return true;
 	}

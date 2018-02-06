@@ -104,9 +104,9 @@ void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolVersion pr
 		cp::RpcValue val = decodeData(protocol_version, data, start_pos);
 		val.setMetaData(std::move(md));
 		cp::RpcMessage msg(val);
-		logRpcMsg() << msg.toStdString();
+		logRpcMsg() << msg.toCpon();
 		if(!msg.isRequest()) {
-			shvError() << "Initial message is not RPC request! Dropping client connection." << agentName() << msg.toStdString();
+			shvError() << "Initial message is not RPC request! Dropping client connection." << agentName() << msg.toCpon();
 			this->deleteLater();
 			return;
 		}
@@ -173,7 +173,7 @@ void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolVersion pr
 		catch(shv::core::Exception &e) {
 			sendError(rq.requestId(), cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodInvocationException, e.message()));
 		}
-		shvError() << "Initial handshake error! Dropping client connection." << agentName() << msg.toStdString();
+		shvError() << "Initial handshake error! Dropping client connection." << agentName() << msg.toCpon();
 		QTimer::singleShot(100, this, &ServerConnection::deleteLater); // need some time to send error to client
 		//this->deleteLater();
 		return;
@@ -181,7 +181,8 @@ void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolVersion pr
 
 	logRpcMsg() << RCV_LOG_ARROW << md.toStdString() << shv::chainpack::Utils::toHexElided(data, start_pos, 100);
 	cp::RpcMessage::setProtocolVersion(md, protocol_version);
-	cp::RpcMessage::setConnectionId(md, connectionId());
+	if(cp::RpcMessage::isRequest(md))
+		cp::RpcMessage::setCallerId(md, connectionId());
 	std::string msg_data(data, start_pos, data_len);
 	BrokerApp::instance()->onRpcDataReceived(std::move(md), std::move(msg_data));
 }

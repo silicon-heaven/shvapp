@@ -45,8 +45,10 @@ void ShvNode::setNodeName(const ShvNode::String &n)
 ShvNode::StringList ShvNode::propertyNames() const
 {
 	StringList ret;
-	for(ShvNode *nd : findChildren<ShvNode*>(QString(), Qt::FindDirectChildrenOnly))
+	for(ShvNode *nd : findChildren<ShvNode*>(QString(), Qt::FindDirectChildrenOnly)) {
+		shvDebug() << "child:" << nd << nd->nodeName();
 		ret.push_back(nd->nodeName());
+	}
 	return ret;
 }
 

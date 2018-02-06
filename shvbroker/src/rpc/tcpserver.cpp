@@ -25,7 +25,7 @@ bool TcpServer::start(int port)
 	return true;
 }
 
-ServerConnection *TcpServer::connectionById(int connection_id)
+ServerConnection *TcpServer::connectionById(unsigned connection_id)
 {
 	auto it = m_connections.find(connection_id);
 	if(it == m_connections.end())
