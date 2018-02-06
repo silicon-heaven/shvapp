@@ -9,7 +9,8 @@ ShvNodeTree::ShvNodeTree(QObject *parent)
 	: QObject(parent)
 	, m_root(new ShvNode(this))
 {
-	m_root->setNodeName("<ROOT>");
+	m_root->setNodeName(std::string()); // root node have to have empty nodeName for ShvNode::nodePath() proper function
+	m_root->setObjectName("<ROOT>");
 }
 
 ShvNode *ShvNodeTree::mkdir(const ShvNode::String &path, ShvNode::String *path_rest)
