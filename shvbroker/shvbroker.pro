@@ -44,6 +44,7 @@ INCLUDEPATH += \
         ../3rdparty/libshv/libshvchainpack/include \
         ../3rdparty/libshv/libshvcore/include \
         ../3rdparty/libshv/libshvcoreqt/include \
+        ../3rdparty/libshv/libshviotqt/include \
         ../libshviotqt/include \
 
 
