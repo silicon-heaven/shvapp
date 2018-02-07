@@ -28,6 +28,8 @@ public:
 
 	String nodePath() const;
 
+	virtual bool isRootNode() const {return false;}
+
 	virtual shv::chainpack::RpcValue shvValue() const;
 
 	virtual StringList propertyNames() const;
@@ -38,6 +40,15 @@ protected:
 	virtual bool setPropertyValue_helper(const String &property_name, const shv::chainpack::RpcValue &val);
 private:
 	String m_nodeName;
+};
+
+class SHVIOTQT_DECL_EXPORT ShvRootNode : public ShvNode
+{
+	using Super = ShvNode;
+public:
+	explicit ShvRootNode(QObject *parent = nullptr) : Super(parent) {}
+
+	bool isRootNode() const override {return true;}
 };
 
 }}

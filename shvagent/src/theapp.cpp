@@ -85,6 +85,7 @@ void TheApp::onBrokerConnectedChanged(bool is_connected)
 				shvInfo() << "\tgot response:" << resp.toCpon();
 				if(resp.isError())
 					throw shv::core::Exception(resp.error().message());
+				QCoreApplication::processEvents();
 			}
 		}
 #if 0

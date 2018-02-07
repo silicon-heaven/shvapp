@@ -26,11 +26,7 @@ ShvNode *ShvNode::childNode(const String &name) const
 
 void ShvNode::setParentNode(ShvNode *parent)
 {
-	//ShvNode* old_parent = qobject_cast<ShvNode*>(parent());
 	setParent(parent);
-	//if(!parent && old_parent) {
-	//	if(old_parent->ch)
-	//}
 }
 
 void ShvNode::setNodeName(ShvNode::String &&n)
@@ -52,7 +48,9 @@ ShvNode::String ShvNode::nodePath() const
 	String ret;
 	const ShvNode *nd = this;
 	while(nd) {
-		ret = nd->nodeName() + '/' + ret;
+		ret = '/' + ret;
+		if(!nd->isRootNode())
+			ret = nd->nodeName() + ret;
 		nd = nd->parentNode();
 	}
 	return ret;
