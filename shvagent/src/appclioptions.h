@@ -12,8 +12,5 @@ private:
 public:
 	AppCliOptions(QObject *parent = NULL);
 	~AppCliOptions() Q_DECL_OVERRIDE {}
-
-	CLIOPTION_GETTER_SETTER2(int, "server.port", s, setS, erverPort)
-	CLIOPTION_GETTER_SETTER2(QString, "server.host", s, setS, erverHost)
 };
 
