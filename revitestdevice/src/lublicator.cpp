@@ -1,9 +1,8 @@
 #include "lublicator.h"
 
 #include <shv/chainpack/rpcmessage.h>
-//#include <shv/chainpack/rpcdriver.h>
 #include <shv/core/string.h>
-#include <shv/core/shvexception.h>
+#include <shv/core/exception.h>
 
 #include <shv/coreqt/log.h>
 

@@ -1,7 +1,7 @@
 #include "theapp.h"
 #include "appclioptions.h"
 
-#include <shv/iotqt/client/connection.h>
+#include <shv/iotqt/client/clientconnection.h>
 
 #include <shv/coreqt/log.h>
 
@@ -10,7 +10,7 @@ namespace cp = shv::chainpack;
 TheApp::TheApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	: Super(argc, argv, cli_opts)
 {
-	shv::iotqt::client::Connection *rpc = clientConnection();
+	shv::iotqt::client::ClientConnection *rpc = clientConnection();
 	//rpc->setProfile("agent");
 	//cp::RpcValue::Map dev;
 	//dev["mount"] = "/test/shv/eu/pl/lublin/odpojovace";
@@ -18,8 +18,8 @@ TheApp::TheApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	//rpc->setDevice(dev);
 	rpc->setUser("iot");
 	rpc->setProtocolVersion(shv::chainpack::Rpc::ProtocolVersion::ChainPack);
-	connect(rpc, &shv::iotqt::client::Connection::brokerConnectedChanged, this, &TheApp::onBrokerConnectedChanged);
-	connect(rpc, &shv::iotqt::client::Connection::messageReceived, this, &TheApp::onRpcMessageReceived);
+	connect(rpc, &shv::iotqt::client::ClientConnection::brokerConnectedChanged, this, &TheApp::onBrokerConnectedChanged);
+	connect(rpc, &shv::iotqt::client::ClientConnection::messageReceived, this, &TheApp::onRpcMessageReceived);
 }
 
 TheApp::~TheApp()
@@ -27,7 +27,7 @@ TheApp::~TheApp()
 	shvInfo() << "destroying shv agent application";
 }
 
-static void print_children(shv::iotqt::client::Connection *rpc, const std::string &path, int indent)
+static void print_children(shv::iotqt::client::ClientConnection *rpc, const std::string &path, int indent)
 {
 	//shvInfo() << "\tcall:" << "get" << "on shv path:" << shv_path;
 	cp::RpcResponse resp = rpc->callShvMethodSync(path, cp::Rpc::METH_GET);
@@ -62,7 +62,7 @@ void TheApp::onBrokerConnectedChanged(bool is_connected)
 		shvInfo() << "==================================================";
 		shvInfo() << "   Lublicator Testing";
 		shvInfo() << "==================================================";
-		shv::iotqt::client::Connection *rpc = clientConnection();
+		shv::iotqt::client::ClientConnection *rpc = clientConnection();
 		{
 			shvInfo() << "------------ read shv tree";
 			print_children(rpc, "", 0);
@@ -75,7 +75,7 @@ void TheApp::onBrokerConnectedChanged(bool is_connected)
 			for(auto prop : {"status", "batteryLimitLow", "batteryLimitHigh", "batteryLevelSimulation"}) {
 				std::string shv_path = shv_path_lubl + prop;
 				cp::RpcResponse resp = rpc->callShvMethodSync(shv_path, cp::Rpc::METH_GET);
-				shvInfo() << "\tproperty" << prop << ":" << resp.result().toStdString();
+				shvInfo() << "\tproperty" << prop << ":" << resp.result().toCpon();
 			}
 			for (int val = 200; val < 260; val += 5) {
 				std::string shv_path = shv_path_lubl + "batteryLevelSimulation";

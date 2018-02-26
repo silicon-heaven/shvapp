@@ -206,7 +206,7 @@ void BrokerApp::onClientLogin(int connection_id)
 			shv::chainpack::RpcValue device_id = device.value("id");
 			mount_point = mountPointForDevice(device_id);
 			if(mount_point.empty())
-				SHV_EXCEPTION("Cannot find mount point for device: " + device_id.toStdString());
+				SHV_EXCEPTION("Cannot find mount point for device: " + device_id.toCpon());
 		}
 		if(mount_point.empty())
 			SHV_EXCEPTION("Mount point is empty.");
@@ -222,6 +222,7 @@ void BrokerApp::onClientLogin(int connection_id)
 void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData &&meta, std::string &&data)
 {
 	if(cp::RpcMessage::isRequest(meta)) {
+		shvDebug() << "REQ conn id:" << connection_id << meta.toStdString();
 		cp::RpcMessage::setCallerId(meta, connection_id);
 		const std::string shv_path = cp::RpcMessage::shvPath(meta);
 		std::string path_rest;
@@ -242,7 +243,7 @@ void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData
 					if(rq.method() == cp::Rpc::METH_GET) {
 						shv::iotqt::ShvNode::StringList props = nd->propertyNames();
 						//shvWarning() << shv_path << "children:" << shv::core::String::join(props, ", ");
-						conn->sendResponse(rq.requestId(), props);
+						conn->sendResponse(rq.id(), props);
 					}
 				}
 			}
@@ -254,7 +255,7 @@ void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData
 			if(rpc_msg.isRequest()) {
 				rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
 				if(conn) {
-					conn->sendError(rpc_msg.requestId(), cp::RpcResponse::Error::create(
+					conn->sendError(rpc_msg.id(), cp::RpcResponse::Error::create(
 										cp::RpcResponse::Error::MethodInvocationException
 										, err_msg));
 				}
@@ -262,7 +263,7 @@ void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData
 		}
 	}
 	else if(cp::RpcMessage::isResponse(meta)) {
-		shvInfo() << "RESP conn id:" << connection_id << meta.toStdString();
+		shvDebug() << "RESP conn id:" << connection_id << meta.toStdString();
 		unsigned caller_connection_id = cp::RpcMessage::callerId(meta);
 		rpc::ServerConnection *conn = tcpServer()->connectionById(caller_connection_id);
 		if(conn) {
@@ -270,7 +271,7 @@ void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData
 		}
 	}
 	else if(cp::RpcMessage::isNotify(meta)) {
-		shvInfo() << "NTF:" << meta.toStdString() << "from:" << connection_id;
+		shvDebug() << "NTF:" << meta.toStdString() << "from:" << connection_id;
 		std::string full_shv_path;
 		{
 			rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
@@ -288,7 +289,7 @@ void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData
 					continue;
 				rpc::ServerConnection *conn = tcpServer()->connectionById(id);
 				if(conn) {
-					shvInfo() << "\t broadcasting to connection id:" << id;
+					shvDebug() << "\t broadcasting to connection id:" << id;
 					conn->sendRawData(std::move(meta), std::move(data));
 				}
 			}

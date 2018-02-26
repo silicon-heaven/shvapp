@@ -8,8 +8,8 @@ SOURCES += \
     $$PWD/appclioptions.cpp \
     $$PWD/brokerapp.cpp
 
-include ($$PWD/rpc/rpc.pri)
 include ($$PWD/sql/sql.pri)
+include ($$PWD/rpc/rpc.pri)
 
 
 
