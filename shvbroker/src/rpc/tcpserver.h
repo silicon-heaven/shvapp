@@ -1,21 +1,21 @@
 #pragma once
 
-#include <shv/iotqt/server/tcpserver.h>
+#include <shv/iotqt/rpc/tcpserver.h>
 
 namespace rpc {
 
 class ServerConnection;
 
-class TcpServer : public shv::iotqt::server::TcpServer
+class TcpServer : public shv::iotqt::rpc::TcpServer
 {
 	Q_OBJECT
-	using Super = shv::iotqt::server::TcpServer;
+    using Super = shv::iotqt::rpc::TcpServer;
 public:
 	TcpServer(QObject *parent = 0);
 
 	ServerConnection* connectionById(unsigned connection_id);
 protected:
-	shv::iotqt::server::ServerConnection* createServerConnection(QTcpSocket *socket, QObject *parent) override;
+    shv::iotqt::rpc::ServerConnection* createServerConnection(QTcpSocket *socket, QObject *parent) override;
 };
 
 } // namespace rpc

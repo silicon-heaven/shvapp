@@ -1,23 +1,25 @@
 #pragma once
 
-#include <shv/iotqt/client/consoleapplication.h>
+#include <QCoreApplication>
 
 class AppCliOptions;
 class Revitest;
+namespace shv { namespace chainpack { class RpcMessage; }}
+namespace shv { namespace iotqt { namespace rpc { class DeviceConnection; }}}
 
-namespace shv { namespace iotqt { class ShvNodeTree; }}
-
-class RevitestApp : public shv::iotqt::client::ConsoleApplication
+class RevitestApp : public QCoreApplication
 {
 	Q_OBJECT
 private:
-	using Super = shv::iotqt::client::ConsoleApplication;
+	using Super = QCoreApplication;
 public:
 	RevitestApp(int &argc, char **argv, AppCliOptions* cli_opts);
 	~RevitestApp() Q_DECL_OVERRIDE;
 private:
-	//void createDevices();
+	//void onBrokerConnectedChanged(bool is_connected);
+	//void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 private:
 	Revitest *m_revitest;
+	shv::iotqt::rpc::DeviceConnection *m_rpcConnection = nullptr;
+	AppCliOptions* m_cliOptions;
 };
-

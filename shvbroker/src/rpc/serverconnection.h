@@ -1,18 +1,18 @@
 #pragma once
 
-#include <shv/iotqt/server/serverconnection.h>
+#include <shv/iotqt/rpc/serverconnection.h>
 
 namespace rpc {
 
-class ServerConnection : public shv::iotqt::server::ServerConnection
+class ServerConnection : public shv::iotqt::rpc::ServerConnection
 {
 	Q_OBJECT
 
-	using Super = shv::iotqt::server::ServerConnection;
+	using Super = shv::iotqt::rpc::ServerConnection;
 
 	SHV_FIELD_IMPL(std::string, m, M, ountPoint)
-public:
-	ServerConnection(QTcpSocket* socket, QObject *parent = 0);
+	public:
+		ServerConnection(QTcpSocket* socket, QObject *parent = 0);
 
 	const shv::chainpack::RpcValue& device() const {return m_device;}
 private:

@@ -1,25 +1,25 @@
 #include "theapp.h"
 #include "appclioptions.h"
 
-#include <shv/iotqt/client/clientconnection.h>
+#include <shv/iotqt/rpc/clientconnection.h>
 
 #include <shv/coreqt/log.h>
 
 namespace cp = shv::chainpack;
 
 TheApp::TheApp(int &argc, char **argv, AppCliOptions* cli_opts)
-	: Super(argc, argv, cli_opts)
+	: Super(argc, argv)
+	, m_cliOptions(cli_opts)
 {
-	shv::iotqt::client::ClientConnection *rpc = clientConnection();
-	//rpc->setProfile("agent");
-	//cp::RpcValue::Map dev;
-	//dev["mount"] = "/test/shv/eu/pl/lublin/odpojovace";
-	//dev["id"] = 123456;
-	//rpc->setDevice(dev);
-	rpc->setUser("iot");
-	rpc->setProtocolVersion(shv::chainpack::Rpc::ProtocolVersion::ChainPack);
-	connect(rpc, &shv::iotqt::client::ClientConnection::brokerConnectedChanged, this, &TheApp::onBrokerConnectedChanged);
-	connect(rpc, &shv::iotqt::client::ClientConnection::messageReceived, this, &TheApp::onRpcMessageReceived);
+	m_rpcConnection = new shv::iotqt::rpc::ClientConnection(this);
+	m_rpcConnection->setHost(cli_opts->serverHost().toStdString());
+	m_rpcConnection->setPort(cli_opts->serverPort());
+	m_rpcConnection->setUser("iot");
+	m_rpcConnection->setProtocolVersion(shv::chainpack::Rpc::ProtocolVersion::ChainPack);
+	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &TheApp::onBrokerConnectedChanged);
+	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &TheApp::onRpcMessageReceived);
+
+	m_rpcConnection->open();
 }
 
 TheApp::~TheApp()
@@ -27,7 +27,7 @@ TheApp::~TheApp()
 	shvInfo() << "destroying shv agent application";
 }
 
-static void print_children(shv::iotqt::client::ClientConnection *rpc, const std::string &path, int indent)
+static void print_children(shv::iotqt::rpc::ClientConnection *rpc, const std::string &path, int indent)
 {
 	//shvInfo() << "\tcall:" << "get" << "on shv path:" << shv_path;
 	cp::RpcResponse resp = rpc->callShvMethodSync(path, cp::Rpc::METH_GET);
@@ -62,7 +62,7 @@ void TheApp::onBrokerConnectedChanged(bool is_connected)
 		shvInfo() << "==================================================";
 		shvInfo() << "   Lublicator Testing";
 		shvInfo() << "==================================================";
-		shv::iotqt::client::ClientConnection *rpc = clientConnection();
+		shv::iotqt::rpc::ClientConnection *rpc = m_rpcConnection;
 		{
 			shvInfo() << "------------ read shv tree";
 			print_children(rpc, "", 0);

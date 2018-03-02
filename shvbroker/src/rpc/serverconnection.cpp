@@ -10,14 +10,13 @@
 #define logRpcMsg() shvCDebug("RpcMsg")
 
 namespace cp = shv::chainpack;
-namespace cpq = shv::iotqt::chainpack;
 
 namespace rpc {
 
 ServerConnection::ServerConnection(QTcpSocket *socket, QObject *parent)
 	: Super(socket, parent)
 {
-	connect(this, &ServerConnection::socketConnectedChanged, [this](bool is_connected) {
+    connect(this, &ServerConnection::socketConnectedChanged, [this](bool is_connected) {
 		if(is_connected) {
 			m_helloReceived = m_loginReceived = false;
 		}
@@ -40,7 +39,7 @@ std::string ServerConnection::passwordHash(const std::string &user)
 void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolVersion protocol_version, shv::chainpack::RpcValue::MetaData &&md, const std::string &data, size_t start_pos, size_t data_len)
 {
 	logRpcMsg() << RCV_LOG_ARROW << md.toStdString() << shv::chainpack::Utils::toHexElided(data, start_pos, 100);
-	if(isLoginPhase()) {
+	if(isInitPhase()) {
 		Super::onRpcDataReceived(protocol_version, std::move(md), data, start_pos, data_len);
 		return;
 	}

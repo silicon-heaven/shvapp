@@ -243,7 +243,7 @@ void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData
 					if(rq.method() == cp::Rpc::METH_GET) {
 						shv::iotqt::ShvNode::StringList props = nd->propertyNames();
 						//shvWarning() << shv_path << "children:" << shv::core::String::join(props, ", ");
-						conn->sendResponse(rq.id(), props);
+						conn->sendResponse(rq.requestId(), props);
 					}
 				}
 			}
@@ -255,7 +255,7 @@ void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData
 			if(rpc_msg.isRequest()) {
 				rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
 				if(conn) {
-					conn->sendError(rpc_msg.id(), cp::RpcResponse::Error::create(
+					conn->sendError(rpc_msg.requestId(), cp::RpcResponse::Error::create(
 										cp::RpcResponse::Error::MethodInvocationException
 										, err_msg));
 				}

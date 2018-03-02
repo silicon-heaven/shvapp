@@ -63,45 +63,10 @@ int main(int argc, char *argv[])
 
 	RevitestApp a(argc, argv, &cli_opts);
 
-	QString lc_name = cli_opts.locale();
-	{
-		if (lc_name.isEmpty() || lc_name == QStringLiteral("system")) {
-			lc_name = QLocale::system().name();
-		}
-		QString app_translations_path = QCoreApplication::applicationDirPath() + QStringLiteral("/translations");
-		//QString qt_translations_path = QLibraryInfo::location(QLibraryInfo::TranslationsPath);
-		QString qt_translations_path = app_translations_path;
-		shvInfo() << "Loading translations for:" << lc_name;
-		{
-			QTranslator *qt_translator = new QTranslator(&a);
-			QString tr_name = "qt_" + lc_name;
-			bool ok = qt_translator->load(tr_name, qt_translations_path);
-			if (ok) {
-				ok = a.installTranslator(qt_translator);
-				shvInfo() << "Installing translator file:" << tr_name << " ... " << (ok ? "OK": "ERROR");
-			}
-			else {
-				shvInfo() << "Erorr loading translator file:" << (qt_translations_path + '/' + tr_name);
-			}
-		}
-		for (QString prefix : {"libqfcore", "libeyascore", "eyassrv"}) {
-			QTranslator *qt_translator = new QTranslator(&a);
-			QString tr_name = prefix + "." + lc_name;
-			bool ok = qt_translator->load(tr_name, app_translations_path);
-			if(ok) {
-				ok = a.installTranslator(qt_translator);
-				shvInfo() << "Installing translator file:" << tr_name << " ... " << (ok? "OK": "ERROR");
-			}
-			else {
-				shvInfo() << "Erorr loading translator file:" << (app_translations_path + '/' + tr_name);
-			}
-		}
-	}
-
 	shvInfo() << "starting main thread event loop";
 	ret = a.exec();
 	shvInfo() << "main event loop exit code:" << ret;
-	shvInfo() << "EYAS server bye ...";
+	shvInfo() << "bye ...";
 
 	return ret;
 }

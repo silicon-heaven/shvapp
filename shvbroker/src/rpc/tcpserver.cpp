@@ -14,7 +14,7 @@ ServerConnection *TcpServer::connectionById(unsigned connection_id)
 	return qobject_cast<rpc::ServerConnection *>(Super::connectionById(connection_id));
 }
 
-shv::iotqt::server::ServerConnection *TcpServer::createServerConnection(QTcpSocket *socket, QObject *parent)
+shv::iotqt::rpc::ServerConnection *TcpServer::createServerConnection(QTcpSocket *socket, QObject *parent)
 {
 	return new ServerConnection(socket, parent);
 }
