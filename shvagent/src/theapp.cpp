@@ -15,7 +15,13 @@ TheApp::TheApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	m_rpcConnection->setHost(cli_opts->serverHost().toStdString());
 	m_rpcConnection->setPort(cli_opts->serverPort());
 	m_rpcConnection->setUser("iot");
-	m_rpcConnection->setProtocolVersion(shv::chainpack::Rpc::ProtocolVersion::ChainPack);
+	QString pv = cli_opts->protocolVersion();
+	if(pv == QLatin1String("cpon"))
+		m_rpcConnection->setProtocolVersion(shv::chainpack::Rpc::ProtocolVersion::Cpon);
+	else if(pv == QLatin1String("jsonrpc"))
+		m_rpcConnection->setProtocolVersion(shv::chainpack::Rpc::ProtocolVersion::JsonRpc);
+	else
+		m_rpcConnection->setProtocolVersion(shv::chainpack::Rpc::ProtocolVersion::ChainPack);
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &TheApp::onBrokerConnectedChanged);
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &TheApp::onRpcMessageReceived);
 
