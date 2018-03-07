@@ -36,10 +36,12 @@ ClientNode::ClientNode(rpc::ServerConnection *connection, QObject *parent)
  : Super(parent)
  , m_connection(connection)
 {
+	/*
 	connect(connection, &rpc::ServerConnection::destroyed, [this]() {
 		this->setParentNode(nullptr);
 		delete this;
 	});
+	*/
 }
 
 BrokerApp::BrokerApp(int &argc, char **argv, AppCliOptions *cli_opts)
@@ -215,7 +217,11 @@ void BrokerApp::onClientLogin(int connection_id)
 		if(!m_deviceTree->mount(mount_point, nd))
 			SHV_EXCEPTION("Cannot mount connection to device tree, connection id: " + std::to_string(connection_id));
 		conn->setMountPoint(nd->nodePath());
-		//m_deviceTree->dumpObjectTree();
+		connect(conn, &rpc::ServerConnection::destroyed, nd, &ClientNode::deleteLater);
+		//connect(nd, &ClientNode::destroyed, [this](){
+		//	shvWarning() << m_deviceTree->dump();
+		//});
+		//shvInfo() << m_deviceTree->dump();
 	}
 }
 
@@ -288,9 +294,9 @@ void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData
 				if(id == connection_id)
 					continue;
 				rpc::ServerConnection *conn = tcpServer()->connectionById(id);
-				if(conn) {
+				if(conn && conn->isSocketConnected()) {
 					shvDebug() << "\t broadcasting to connection id:" << id;
-					conn->sendRawData(std::move(meta), std::move(data));
+					conn->sendRawData(meta, std::string(data));
 				}
 			}
 		}

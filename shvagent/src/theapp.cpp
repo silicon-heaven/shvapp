@@ -5,6 +5,8 @@
 
 #include <shv/coreqt/log.h>
 
+#include <QTimer>
+
 namespace cp = shv::chainpack;
 
 TheApp::TheApp(int &argc, char **argv, AppCliOptions* cli_opts)
@@ -25,7 +27,7 @@ TheApp::TheApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &TheApp::onBrokerConnectedChanged);
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &TheApp::onRpcMessageReceived);
 
-	m_rpcConnection->open();
+	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
 }
 
 TheApp::~TheApp()
