@@ -3,7 +3,7 @@ CONFIG += ordered
 
 SUBDIRS += \
 	libshv/3rdparty/necrolog \
-    libshv/libshvchainpack \
+	libshv/libshvchainpack \
 	libshv/libshvcore \
 	libshv/libshvcoreqt \
 	libshv/libshviotqt \

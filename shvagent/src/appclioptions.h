@@ -10,7 +10,7 @@ class AppCliOptions : public shv::iotqt::rpc::ClientAppCliOptions
 private:
 	using Super = shv::iotqt::rpc::ClientAppCliOptions;
 
-	CLIOPTION_GETTER_SETTER2(QString, "protocol.version", p, setP, rotocolVersion)
+	CLIOPTION_GETTER_SETTER2(QString, "protocol.type", p, setP, rotocolType)
 public:
 	AppCliOptions(QObject *parent = NULL);
 	~AppCliOptions() Q_DECL_OVERRIDE {}

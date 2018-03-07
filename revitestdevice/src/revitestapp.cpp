@@ -17,7 +17,7 @@ RevitestApp::RevitestApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	m_rpcConnection = new shv::iotqt::rpc::DeviceConnection(this);
 	m_rpcConnection->setHost(cli_opts->serverHost().toStdString());
 	m_rpcConnection->setPort(cli_opts->serverPort());
-	m_rpcConnection->setProtocolVersion(shv::chainpack::Rpc::ProtocolVersion::Cpon);
+	m_rpcConnection->setProtocolType(shv::chainpack::Rpc::ProtocolType::Cpon);
 	//m_clientConnection->setProfile("agent");
 	cp::RpcValue::Map dev;
 	dev["mount"] = "/test/shv/eu/pl/lublin/odpojovace";

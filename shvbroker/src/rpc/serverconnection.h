@@ -17,7 +17,7 @@ class ServerConnection : public shv::iotqt::rpc::ServerConnection
 	const shv::chainpack::RpcValue& device() const {return m_device;}
 private:
 	std::string passwordHash(const std::string &user);
-	void onRpcDataReceived(shv::chainpack::Rpc::ProtocolVersion protocol_version, shv::chainpack::RpcValue::MetaData &&md, const std::string &data, size_t start_pos, size_t data_len) override;
+	void onRpcDataReceived(shv::chainpack::Rpc::ProtocolType protocol_version, shv::chainpack::RpcValue::MetaData &&md, const std::string &data, size_t start_pos, size_t data_len) override;
 	bool login(const shv::chainpack::RpcValue &auth_params) override;
 private:
 	shv::chainpack::RpcValue m_device;

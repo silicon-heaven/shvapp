@@ -36,7 +36,7 @@ std::string ServerConnection::passwordHash(const std::string &user)
 	return std::string(sha1.constData(), sha1.length());
 }
 
-void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolVersion protocol_version, shv::chainpack::RpcValue::MetaData &&md, const std::string &data, size_t start_pos, size_t data_len)
+void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolType protocol_version, shv::chainpack::RpcValue::MetaData &&md, const std::string &data, size_t start_pos, size_t data_len)
 {
 	logRpcMsg() << RCV_LOG_ARROW << md.toStdString() << shv::chainpack::Utils::toHexElided(data, start_pos, 100);
 	try {
@@ -44,7 +44,7 @@ void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolVersion pr
 			Super::onRpcDataReceived(protocol_version, std::move(md), data, start_pos, data_len);
 			return;
 		}
-		cp::RpcMessage::setProtocolVersion(md, protocol_version);
+		cp::RpcMessage::setProtocolType(md, protocol_version);
 		std::string msg_data(data, start_pos, data_len);
 		BrokerApp::instance()->onRpcDataReceived(connectionId(), std::move(md), std::move(msg_data));
 	}
