@@ -13,6 +13,8 @@ TheApp::TheApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
 {
+	cp::RpcMessage::setMetaTypeImplicit(cli_opts->isMetaTypeImplicit());
+
 	m_rpcConnection = new shv::iotqt::rpc::ClientConnection(this);
 	m_rpcConnection->setHost(cli_opts->serverHost().toStdString());
 	m_rpcConnection->setPort(cli_opts->serverPort());

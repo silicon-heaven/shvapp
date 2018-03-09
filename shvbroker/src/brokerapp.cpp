@@ -54,6 +54,9 @@ BrokerApp::BrokerApp(int &argc, char **argv, AppCliOptions *cli_opts)
 	//syslog (LOG_INFO, "Server started");
 	installUnixSignalHandlers();
 #endif
+
+	cp::RpcMessage::setMetaTypeImplicit(cli_opts->isMetaTypeImplicit());
+
 	connect(this, &BrokerApp::sqlServerConnected, this, &BrokerApp::onSqlServerConnected);
 	/*
 	m_sqlConnectionWatchDog = new QTimer(this);
@@ -228,8 +231,8 @@ void BrokerApp::onClientLogin(int connection_id)
 void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData &&meta, std::string &&data)
 {
 	if(cp::RpcMessage::isRequest(meta)) {
-		shvDebug() << "REQ conn id:" << connection_id << meta.toStdString();
-		cp::RpcMessage::setCallerId(meta, connection_id);
+		shvDebug() << "REQUEST conn id:" << connection_id << meta.toStdString();
+		cp::RpcMessage::pushCallerId(meta, connection_id);
 		const std::string shv_path = cp::RpcMessage::destination(meta);
 		std::string path_rest;
 		shv::iotqt::ShvNode *nd = m_deviceTree->cd(shv_path, &path_rest);
@@ -269,15 +272,21 @@ void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData
 		}
 	}
 	else if(cp::RpcMessage::isResponse(meta)) {
-		shvDebug() << "RESP conn id:" << connection_id << meta.toStdString();
-		unsigned caller_connection_id = cp::RpcMessage::callerId(meta);
-		rpc::ServerConnection *conn = tcpServer()->connectionById(caller_connection_id);
-		if(conn) {
-			conn->sendRawData(std::move(meta), std::move(data));
+		shvDebug() << "RESPONSE conn id:" << connection_id << meta.toStdString();
+		cp::RpcValue::UInt caller_id = cp::RpcMessage::popCallerId(meta);
+		if(caller_id > 0) {
+			rpc::ServerConnection *conn = tcpServer()->connectionById(caller_id);
+			if(conn)
+				conn->sendRawData(std::move(meta), std::move(data));
+			else
+				shvWarning() << "Got RPC response for not-exists connection, may be it was closed meanwhile. Connection id:" << caller_id;
+		}
+		else {
+			shvError() << "Got RPC response without src connection specified, throwing message away.";
 		}
 	}
 	else if(cp::RpcMessage::isNotify(meta)) {
-		shvDebug() << "NTF:" << meta.toStdString() << "from:" << connection_id;
+		shvDebug() << "NOTIFY:" << meta.toStdString() << "from:" << connection_id;
 		std::string full_shv_path;
 		{
 			rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);

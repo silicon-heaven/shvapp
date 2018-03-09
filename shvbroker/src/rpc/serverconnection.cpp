@@ -16,7 +16,7 @@ namespace rpc {
 ServerConnection::ServerConnection(QTcpSocket *socket, QObject *parent)
 	: Super(socket, parent)
 {
-    connect(this, &ServerConnection::socketConnectedChanged, [this](bool is_connected) {
+	connect(this, &ServerConnection::socketConnectedChanged, [this](bool is_connected) {
 		if(is_connected) {
 			m_helloReceived = m_loginReceived = false;
 		}
@@ -27,7 +27,7 @@ std::string ServerConnection::passwordHash(const std::string &user)
 {
 	if(user == "iot")
 		return std::string();
-	if(user == "timepress")
+	if(user == "revitest")
 		return std::string();
 
 	QCryptographicHash hash(QCryptographicHash::Algorithm::Sha1);
