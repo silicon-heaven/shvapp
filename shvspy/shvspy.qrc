@@ -1,0 +1,15 @@
+<RCC>
+	<qresource prefix="/shvspy">
+		<file>images/under-construction.png</file>
+		<file>images/disconnected.png</file>
+		<file>images/connected.png</file>
+		<file>images/plus.png</file>
+		<file>images/minus.png</file>
+		<file>images/edit.png</file>
+
+		<file>images/object.png</file>
+		<file>images/variable.png</file>
+
+		<file>images/shvspy-256x256.png</file>
+	</qresource>
+</RCC>

@@ -233,13 +233,13 @@ void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData
 	if(cp::RpcMessage::isRequest(meta)) {
 		shvDebug() << "REQUEST conn id:" << connection_id << meta.toStdString();
 		cp::RpcMessage::pushCallerId(meta, connection_id);
-		const std::string shv_path = cp::RpcMessage::destination(meta);
+		const std::string shv_path = cp::RpcMessage::shvPath(meta);
 		std::string path_rest;
 		shv::iotqt::ShvNode *nd = m_deviceTree->cd(shv_path, &path_rest);
 		ClientNode *client_nd = qobject_cast<ClientNode *>(nd);
 		//shvWarning() << nd << client_nd << "shv path:" << shv_path << "rest:" << path_rest;// << meta.toStdString();
 		if(client_nd) {
-			cp::RpcMessage::setDestination(meta, path_rest.empty()? std::string(): path_rest);
+			cp::RpcMessage::setShvPath(meta, path_rest.empty()? std::string(): path_rest);
 			rpc::ServerConnection *conn2 = client_nd->connection();
 			conn2->sendRawData(std::move(meta), std::move(data));
 		}
@@ -293,12 +293,12 @@ void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData
 			if(conn) {
 				full_shv_path = conn->mountPoint();
 				if(!full_shv_path.empty())
-					full_shv_path += cp::RpcMessage::destination(meta);
+					full_shv_path += cp::RpcMessage::shvPath(meta);
 			}
 		}
 		if(!full_shv_path.empty()) {
 			// send it to all clients for now
-			cp::RpcMessage::setDestination(meta, full_shv_path);
+			cp::RpcMessage::setShvPath(meta, full_shv_path);
 			for(unsigned id : tcpServer()->connectionIds()) {
 				if(id == connection_id)
 					continue;

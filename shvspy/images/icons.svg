@@ -1,0 +1,367 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="744.09448819"
+   height="1052.3622047"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.48.4 r9939"
+   sodipodi:docname="icons.svg">
+  <defs
+     id="defs4" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="1.979899"
+     inkscape:cx="124.70023"
+     inkscape:cy="96.80517"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1403"
+     inkscape:window-height="1018"
+     inkscape:window-x="3394"
+     inkscape:window-y="-15"
+     inkscape:window-maximized="0"
+     showguides="true"
+     inkscape:guide-bbox="true">
+    <sodipodi:guide
+       orientation="0,1"
+       position="-15.152288,141.42136"
+       id="guide3796" />
+    <sodipodi:guide
+       orientation="1,0"
+       position="26.263966,9.5964492"
+       id="guide3798" />
+    <sodipodi:guide
+       orientation="1,0"
+       position="190.41375,7.0710678"
+       id="guide3800" />
+  </sodipodi:namedview>
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <rect
+       style="fill:#f9f9f9;fill-opacity:1"
+       id="rect3907"
+       width="256"
+       height="256"
+       x="283.55042"
+       y="604.43323"
+       ry="22.021507"
+       inkscape:export-filename="/home/fanda/proj/eyas/lib/libqfopcua/tools/qfopcuaspy/images/object.png"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90" />
+    <path
+       inkscape:connector-curvature="0"
+       id="path3919"
+       d="m 502.85434,784.33497 c -10e-6,-4.69405 -2.64219,-8.4515 -5.92298,-8.45151 l -170.79651,10e-6 c -3.28081,0 -5.88835,3.75746 -5.88835,8.4515 l -1e-5,39.5558 c 1e-5,4.69405 2.60756,8.48613 5.88835,8.48614 l 170.79652,0 c 3.28079,0 5.92298,-3.79209 5.92297,-8.48614 z"
+       style="fill:#0088aa;fill-opacity:1"
+       sodipodi:nodetypes="sssssssss"
+       inkscape:export-filename="/home/fanda/proj/eyas/lib/libqfopcua/tools/qfopcuaspy/images/object.png"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90" />
+    <g
+       id="g3861"
+       transform="matrix(1.1842387,0,0,1.1842387,-15.392189,26.749242)"
+       inkscape:export-filename="/home/fanda/proj/eyas/lib/libqfopcua/tools/qfopcuaspy/images/connected.png"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90">
+      <rect
+         ry="18.595497"
+         y="16.955841"
+         x="23.233511"
+         height="216.17264"
+         width="216.17264"
+         id="rect3021"
+         style="fill:#d40000" />
+      <g
+         transform="matrix(0.70710678,0.70710678,-0.70710678,0.70710678,157.78742,-218.56829)"
+         style="fill:#ffffff"
+         id="g3023">
+        <rect
+           ry="16.162441"
+           y="-240.41631"
+           x="238.85381"
+           height="32.324883"
+           width="149.96001"
+           id="rect2992"
+           style="fill:#ffffff"
+           transform="matrix(0,1,-1,0,0,0)" />
+        <path
+           style="fill:#ffffff"
+           d="m 155.75387,225.21998 0,53.69854 0.34375,0 c -0.20758,1.82354 -0.34375,3.66672 -0.34375,5.53593 0,31.76693 30.6685,57.52097 68.5,57.52097 37.8315,0 68.5,-25.75404 68.5,-57.52097 0,-1.86921 -0.10492,-3.71239 -0.3125,-5.53593 l 0.3125,0 0,-53.69854 -137,0 z"
+           id="path2985"
+           inkscape:connector-curvature="0" />
+        <rect
+           style="fill:#ffffff"
+           id="rect2990"
+           width="185.86806"
+           height="23.72785"
+           x="131.31984"
+           y="223.27225"
+           ry="11.863925" />
+        <g
+           style="fill:#ffffff"
+           id="g2998"
+           transform="matrix(1,0,0,0.9395749,-1.5152264,32.532302)">
+          <rect
+             ry="11.616755"
+             y="-205.06097"
+             x="141.20461"
+             height="23.233509"
+             width="154.55333"
+             id="rect2994"
+             style="fill:#ffffff"
+             transform="matrix(0,1,-1,0,0,0)" />
+          <rect
+             transform="matrix(0,1,-1,0,0,0)"
+             style="fill:#ffffff"
+             id="rect2996"
+             width="154.55333"
+             height="23.233509"
+             x="141.20461"
+             y="-269.71072"
+             ry="11.616755" />
+        </g>
+      </g>
+    </g>
+    <g
+       id="g3871"
+       transform="matrix(1.1842387,0,0,1.1842387,-10.427518,26.749242)"
+       inkscape:export-filename="/home/fanda/proj/eyas/lib/libqfopcua/tools/qfopcuaspy/images/disconnected.png"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90">
+      <rect
+         style="fill:#009f00;fill-opacity:1"
+         id="rect3031"
+         width="216.17264"
+         height="216.17264"
+         x="248.49753"
+         y="16.955841"
+         ry="18.595497" />
+      <g
+         id="g3033"
+         style="fill:#ffffff"
+         transform="matrix(0.70710678,0.70710678,-0.70710678,0.70710678,383.05144,-218.56829)">
+        <rect
+           transform="matrix(0,1,-1,0,0,0)"
+           style="fill:#ffffff"
+           id="rect3035"
+           width="149.96001"
+           height="32.324883"
+           x="238.85381"
+           y="-240.41631"
+           ry="16.162441" />
+        <path
+           inkscape:connector-curvature="0"
+           id="path3037"
+           d="m 155.75387,225.21998 0,53.69854 0.34375,0 c -0.20758,1.82354 -0.34375,3.66672 -0.34375,5.53593 0,31.76693 30.6685,57.52097 68.5,57.52097 37.8315,0 68.5,-25.75404 68.5,-57.52097 0,-1.86921 -0.10492,-3.71239 -0.3125,-5.53593 l 0.3125,0 0,-53.69854 -137,0 z"
+           style="fill:#ffffff" />
+        <rect
+           ry="11.863925"
+           y="223.27225"
+           x="131.31984"
+           height="23.72785"
+           width="185.86806"
+           id="rect3039"
+           style="fill:#ffffff" />
+        <g
+           transform="matrix(1,0,0,0.9395749,-1.5152264,32.532302)"
+           id="g3041"
+           style="fill:#ffffff">
+          <rect
+             transform="matrix(0,1,-1,0,0,0)"
+             style="fill:#ffffff"
+             id="rect3043"
+             width="154.55333"
+             height="23.233509"
+             x="141.20461"
+             y="-205.06097"
+             ry="11.616755" />
+          <rect
+             ry="11.616755"
+             y="-269.71072"
+             x="141.20461"
+             height="23.233509"
+             width="154.55333"
+             id="rect3045"
+             style="fill:#ffffff"
+             transform="matrix(0,1,-1,0,0,0)" />
+        </g>
+      </g>
+    </g>
+    <rect
+       style="fill:#72bcc5;fill-opacity:1"
+       id="rect3815"
+       width="256"
+       height="256"
+       x="12.121833"
+       y="332.70218"
+       ry="22.021507"
+       inkscape:export-filename="/home/fanda/proj/eyas/lib/libqfopcua/tools/qfopcuaspy/images/plus.png"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90" />
+    <path
+       style="fill:#ffffff;fill-opacity:1"
+       d="m 125.6531,365.20217 c -3.43187,0 -6.19633,2.76445 -6.19633,6.19631 l 0,68.67059 -68.670568,0 c -3.431865,0 -6.164383,2.76445 -6.164383,6.19632 l 0,28.90552 c 0,3.43187 2.732518,6.19632 6.164383,6.19632 l 68.670568,0 0,68.63864 c 0,3.43187 2.76446,6.19632 6.19633,6.19632 l 28.90552,0 c 3.43187,0 6.19632,-2.76445 6.19632,-6.19632 l 0,-68.63864 68.67059,0 c 3.43186,0 6.19631,-2.76445 6.19631,-6.19632 l 0,-28.90552 c 0,-3.43187 -2.76445,-6.19632 -6.19631,-6.19632 l -68.67059,0 0,-68.67059 c 0,-3.43186 -2.76445,-6.19631 -6.19632,-6.19631 l -28.90552,0 z"
+       id="rect3819"
+       inkscape:connector-curvature="0"
+       inkscape:export-filename="/home/fanda/proj/eyas/lib/libqfopcua/tools/qfopcuaspy/images/plus.png"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90" />
+    <rect
+       ry="22.021507"
+       y="330.68188"
+       x="281.83255"
+       height="256"
+       width="256"
+       id="rect3830"
+       style="fill:#de8787;fill-opacity:1"
+       inkscape:export-filename="/home/fanda/proj/eyas/lib/libqfopcua/tools/qfopcuaspy/images/minus.png"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90" />
+    <path
+       inkscape:connector-curvature="0"
+       id="path3832"
+       d="m 321.44189,438.2697 c -3.39557,0 -6.09918,2.73522 -6.09918,6.13079 l 0,28.59977 c 0,3.39557 2.70361,6.13078 6.09918,6.13078 58.91658,0 117.83317,0 176.74976,0 3.39556,0 6.13077,-2.73521 6.13077,-6.13078 l 0,-28.59977 c 0,-3.39557 -2.73521,-6.13079 -6.13077,-6.13079 -58.91659,0 -117.83318,0 -176.74976,0 z"
+       style="fill:#ffffff;fill-opacity:1"
+       sodipodi:nodetypes="cssccsscc"
+       inkscape:export-filename="/home/fanda/proj/eyas/lib/libqfopcua/tools/qfopcuaspy/images/minus.png"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90" />
+    <rect
+       inkscape:export-ydpi="90"
+       inkscape:export-xdpi="90"
+       inkscape:export-filename="/home/fanda/proj/eyas/lib/libqfopcua/tools/qfopcuaspy/images/edit.png"
+       ry="22.021507"
+       y="604.43323"
+       x="12.121833"
+       height="256"
+       width="256"
+       id="rect3885"
+       style="fill:#79aa58;fill-opacity:1" />
+    <path
+       sodipodi:nodetypes="ssssssssssssssssss"
+       style="fill:#ffffff;fill-opacity:1"
+       d="m 170.2393,626.0094 c -4.06517,-2.34702 -8.64031,-1.93755 -10.28071,0.90369 L 74.56034,774.82722 c -1.640401,2.84126 0.30988,6.97818 4.375044,9.32521 l 34.256316,19.7779 c 4.06517,2.34702 8.65299,1.98486 10.29339,-0.85639 l 85.39826,-147.91412 c 1.64039,-2.84125 -0.32256,-7.0255 -4.38773,-9.37252 z m 2.42432,13.80375 18.89241,10.51869 c 2.80056,1.55926 3.83666,4.921 2.37703,7.45172 l -76.55125,132.72603 c -1.45964,2.53075 -4.90888,3.34004 -7.62458,1.6373 L 91.369886,780.61803 c -2.715699,-1.70274 -3.855096,-4.89162 -2.39434,-7.42172 L 165.02173,641.48044 c 1.46075,-2.53009 4.84134,-3.22654 7.64189,-1.66729 z"
+       id="path3889"
+       inkscape:connector-curvature="0" />
+    <path
+       sodipodi:nodetypes="cccccc"
+       style="fill:#ffffff;fill-opacity:1;stroke:none"
+       d="m 75.831124,785.08988 c -1.299937,-0.51076 -2.149522,-0.28166 -2.272455,1.14123 l -2.777531,50.00736 41.706902,-27.38885 c 0.73306,-1.05779 0.48244,-1.91883 -0.46697,-2.64012 z"
+       id="path3891"
+       inkscape:connector-curvature="0" />
+    <rect
+       inkscape:export-ydpi="90"
+       inkscape:export-xdpi="90"
+       inkscape:export-filename="/home/fanda/proj/eyas/lib/libqfopcua/tools/qfopcuaspy/images/variable.png"
+       ry="22.021507"
+       y="604.43323"
+       x="554.979"
+       height="256"
+       width="256"
+       id="rect3926"
+       style="fill:#f9f9f9;fill-opacity:1" />
+    <path
+       style="fill:#ffcc00;fill-opacity:1;stroke:none"
+       d="m 442.4375,636.9375 c -45.36625,0 -82.15625,36.75875 -82.15625,82.125 0,45.36625 36.79,82.15625 82.15625,82.15625 45.36625,0 82.125,-36.79 82.125,-82.15625 0,-45.36625 -36.75875,-82.125 -82.125,-82.125 z"
+       id="path3939"
+       inkscape:connector-curvature="0"
+       inkscape:export-filename="/home/fanda/proj/eyas/lib/libqfopcua/tools/qfopcuaspy/images/object.png"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90"
+       sodipodi:nodetypes="sssss" />
+    <path
+       style="fill:#d40000;fill-opacity:1;stroke:none"
+       d="M 367.5625,616.75 289.5,759.25 c -0.36884,4.10024 1.91385,6.08314 6.03125,6.5625 l 145.84375,0.625 c 4.80759,-0.66376 6.9496,-2.67671 4.84375,-6.8125 z"
+       id="path3946"
+       inkscape:connector-curvature="0"
+       inkscape:export-filename="/home/fanda/proj/eyas/lib/libqfopcua/tools/qfopcuaspy/images/object.png"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90"
+       sodipodi:nodetypes="cccccc" />
+    <g
+       id="g3958"
+       transform="translate(1.890625e-5,-1.1255325)"
+       inkscape:export-filename="/home/fanda/proj/eyas/lib/libqfopcua/tools/qfopcuaspy/images/variable.png"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90">
+      <path
+         inkscape:connector-curvature="0"
+         id="path3930"
+         d="m 774.28291,640.9064 c -10e-6,-4.69405 -2.64219,-8.4515 -5.92298,-8.45151 l -170.79651,10e-6 c -3.28081,0 -5.88835,3.75746 -5.88835,8.4515 l -10e-6,39.5558 c 10e-6,4.69405 2.60756,8.48613 5.88835,8.48614 l 170.79652,0 c 3.28079,0 5.92298,-3.79209 5.92297,-8.48614 z"
+         style="fill:#0088aa;fill-opacity:1"
+         sodipodi:nodetypes="sssssssss" />
+      <path
+         sodipodi:nodetypes="sssssssss"
+         style="fill:#0088aa;fill-opacity:1"
+         d="m 774.28291,713.76357 c -10e-6,-4.69405 -2.64219,-8.4515 -5.92298,-8.45151 l -170.79651,10e-6 c -3.28081,0 -5.88835,3.75746 -5.88835,8.4515 l -10e-6,39.5558 c 10e-6,4.69405 2.60756,8.48613 5.88835,8.48614 l 170.79652,0 c 3.28079,0 5.92298,-3.79209 5.92297,-8.48614 z"
+         id="path3954"
+         inkscape:connector-curvature="0" />
+      <path
+         inkscape:connector-curvature="0"
+         id="path3956"
+         d="m 774.28291,786.62069 c -10e-6,-4.69405 -2.64219,-8.4515 -5.92298,-8.45151 l -170.79651,10e-6 c -3.28081,0 -5.88835,3.75746 -5.88835,8.4515 l -10e-6,39.5558 c 10e-6,4.69405 2.60756,8.48613 5.88835,8.48614 l 170.79652,0 c 3.28079,0 5.92298,-3.79209 5.92297,-8.48614 z"
+         style="fill:#0088aa;fill-opacity:1"
+         sodipodi:nodetypes="sssssssss" />
+    </g>
+    <rect
+       inkscape:export-ydpi="90"
+       inkscape:export-xdpi="90"
+       inkscape:export-filename="/home/fanda/proj/eyas/lib/libqfopcua/tools/qfopcuaspy/images/icon.png"
+       ry="22.021507"
+       y="877.29034"
+       x="15.570721"
+       height="256"
+       width="256"
+       id="rect3016"
+       style="fill:#f7f9f9;fill-opacity:1" />
+    <path
+       inkscape:export-ydpi="90"
+       inkscape:export-xdpi="90"
+       inkscape:export-filename="/home/fanda/proj/eyas/lib/libqfopcua/tools/qfopcuaspy/images/object.png"
+       sodipodi:nodetypes="sssssssss"
+       style="fill:#0088aa;fill-opacity:1"
+       d="m 248.00663,1065.1921 c -1e-5,-4.694 -2.81027,-8.4515 -6.29977,-8.4515 l -181.661883,0 c -3.489522,0 -6.262942,3.7575 -6.262942,8.4515 l -1.1e-5,39.5558 c 1.1e-5,4.6941 2.773442,8.4861 6.262943,8.4862 l 181.661893,0 c 3.4895,0 6.29977,-3.7921 6.29976,-8.4862 z"
+       id="path3018"
+       inkscape:connector-curvature="0" />
+    <path
+       style="fill:#ffcc00;fill-opacity:1;stroke:none"
+       d="m 35.489847,921.5441 c -5.587513,0 -10.118887,4.44515 -10.25,10 l 0,0.25 c -0.0086,26.91109 0.0158,43.80411 0.03125,70.7188 0.0097,45.3662 36.789996,82.1562 82.156253,82.1562 45.36625,0 82.20666,-37.6988 82.125,-82.1562 -0.1005,-26.93652 -0.0625,-43.81883 -0.0625,-70.7188 0,-5.67062 -4.57938,-10.25 -10.25,-10.25 l -33.0625,0 c -5.5869,0 -10.08669,4.446 -10.21875,10 -0.002,0.0832 -0.0312,0.16629 -0.0312,0.25 0.0427,27.05296 0.0781,44.03044 0.0937,71.1251 0.0284,15.4837 -12.82469,28.5936 -28.625,28.5936 -15.800313,10e-5 -28.592553,-12.7934 -28.593753,-28.5936 l 0,-71.1251 c 0,-5.67062 -4.548133,-10.25 -10.21875,-10.25 z"
+       id="path3020"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="scccsccsscccscsss" />
+    <path
+       style="fill:#d40000;fill-opacity:1;stroke:none"
+       d="m 181.58281,892.62421 -78.0625,142.50009 c -0.36884,4.1003 1.91385,6.0832 6.03125,6.5624 l 52.28125,0.2188 0,-45.87496 c 0,-0.9058 2.72943,-1.65634 6.125,-1.65634 l 28.59375,0 c 3.39557,0 6.15625,0.75054 6.15625,1.65634 l 0,46.06246 52.6875,0.2187 c 4.80759,-0.6637 6.9496,-2.6766 4.84375,-6.8124 L 181.58281,892.62421 z"
+       id="path3022"
+       inkscape:connector-curvature="0" />
+  </g>
+</svg>

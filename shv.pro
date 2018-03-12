@@ -5,5 +5,6 @@ SUBDIRS += \
     3rdparty \
     shvbroker \
     shvagent \
+    shvspy \
     revitestdevice \
 
