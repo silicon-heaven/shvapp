@@ -25,8 +25,8 @@ MainWindow::MainWindow(QWidget *parent) :
 {
 	ui->setupUi(this);
 
-	setWindowTitle(tr("QFreeOpcUa Spy"));
-	setWindowIcon(QIcon(":/qfopcuaspy/images/qfopcuaspy-256x256.png"));
+	//setWindowTitle(tr("QFreeOpcUa Spy"));
+	setWindowIcon(QIcon(":/shvspy/images/qfopcuaspy-256x256.png"));
 
 	ui->treeServers->setModel(TheApp::instance()->serverTreeModel());
 	connect(ui->treeServers->selectionModel(), &QItemSelectionModel::currentChanged, this, &MainWindow::onCurrentSelectionChanged);

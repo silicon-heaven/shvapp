@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>QFreeOpcUA Spy</string>
+   <string>Silicon Heaven Spy</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -138,8 +138,8 @@
   </widget>
   <action name="actAddServer">
    <property name="icon">
-    <iconset>
-     <normaloff>:/qfopcuaspy/images/plus.png</normaloff>:/qfopcuaspy/images/plus.png</iconset>
+    <iconset resource="../shvspy.qrc">
+     <normaloff>:/shvspy/images/plus.png</normaloff>:/shvspy/images/plus.png</iconset>
    </property>
    <property name="text">
     <string>Add server</string>
@@ -147,8 +147,8 @@
   </action>
   <action name="actEditServer">
    <property name="icon">
-    <iconset>
-     <normaloff>:/qfopcuaspy/images/edit.png</normaloff>:/qfopcuaspy/images/edit.png</iconset>
+    <iconset resource="../shvspy.qrc">
+     <normaloff>:/shvspy/images/edit.png</normaloff>:/shvspy/images/edit.png</iconset>
    </property>
    <property name="text">
     <string>Server Properties</string>
@@ -156,8 +156,8 @@
   </action>
   <action name="actRemoveServer">
    <property name="icon">
-    <iconset>
-     <normaloff>:/qfopcuaspy/images/minus.png</normaloff>:/qfopcuaspy/images/minus.png</iconset>
+    <iconset resource="../shvspy.qrc">
+     <normaloff>:/shvspy/images/minus.png</normaloff>:/shvspy/images/minus.png</iconset>
    </property>
    <property name="text">
     <string>Remove Server</string>
@@ -190,6 +190,8 @@
    <header>src/servertreeview.h</header>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="../shvspy.qrc"/>
+ </resources>
  <connections/>
 </ui>

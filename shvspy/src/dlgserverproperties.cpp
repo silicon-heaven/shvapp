@@ -1,7 +1,7 @@
 #include "dlgserverproperties.h"
 #include "ui_dlgserverproperties.h"
 
-//#include "theapp.h"
+#include <shv/chainpack/abstractrpcconnection.h>
 
 #include <QSettings>
 #include <QDebug>
@@ -36,14 +36,13 @@ void DlgServerProperties::setServerProperties(const QVariantMap &props)
 {
 	ui->edName->setText(props.value("name").toString());
 	ui->edHost->setText(props.value("host").toString());
-	ui->edPort->setValue(props.value("port", 4840).toInt());
+	ui->edPort->setValue(props.value("port", shv::chainpack::AbstractRpcConnection::DEFAULT_RPC_BROKER_PORT).toInt());
 	ui->edUser->setText(props.value("user").toString());
 	ui->edPassword->setText(props.value("password").toString());
 }
 
 void DlgServerProperties::done(int res)
 {
-	qDebug() << Q_FUNC_INFO;
 	QSettings settings;
 	settings.setValue(QStringLiteral("ui/dlgServerProperties/geometry"), saveGeometry());
 	Super::done(res);

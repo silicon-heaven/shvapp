@@ -27,8 +27,8 @@ QVariant ServerNode::data(int role) const
 		//}
 	}
 	else if(role == Qt::DecorationRole) {
-		static QIcon connected = QIcon(QStringLiteral(":/qfopcuaspy/images/connected.png"));
-		static QIcon disconnected = QIcon(QStringLiteral(":/qfopcuaspy/images/disconnected.png"));
+		static QIcon connected = QIcon(QStringLiteral(":/shvspy/images/connected.png"));
+		static QIcon disconnected = QIcon(QStringLiteral(":/shvspy/images/disconnected.png"));
 		ret = isConnected()? connected: disconnected;
 	}
 	else

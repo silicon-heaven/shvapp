@@ -26,10 +26,10 @@ public:
 	SubscriptionsModel* subscriptionsModel() {return m_subscriptionsModel;}
 	const shv::core::utils::Crypt& crypt() {return m_crypt;}
 private:
-	ServerTreeModel *m_serverTreeModel;
-	AttributesModel *m_attributesModel;
-	SubscriptionsModel *m_subscriptionsModel;
-	AppCliOptions* m_cliOptions;
+	ServerTreeModel *m_serverTreeModel = nullptr;
+	AttributesModel *m_attributesModel = nullptr;
+	SubscriptionsModel *m_subscriptionsModel = nullptr;
+	AppCliOptions* m_cliOptions = nullptr;
 	shv::core::utils::Crypt m_crypt;
 };
 

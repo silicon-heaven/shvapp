@@ -26,8 +26,8 @@ QVariant ShvNodeItem::data(int role) const
 		/*
 		QVariant v = attribute(qfopcua::AttributeId::NodeClass);
 		qfopcua::NodeClass::Enum nc = qfopcua::NodeClass::fromInt(v.toInt());
-		static QIcon object = QIcon(QStringLiteral(":/qfopcuaspy/images/object"));
-		static QIcon variable = QIcon(QStringLiteral(":/qfopcuaspy/images/variable"));
+		static QIcon object = QIcon(QStringLiteral(":/shvspy/images/object"));
+		static QIcon variable = QIcon(QStringLiteral(":/shvspy/images/variable"));
 		switch(nc) {
 		case qfopcua::NodeClass::Object:
 			ret = object;
