@@ -191,25 +191,9 @@ void MainWindow::openNode(const QModelIndex &ix)
 {
 	//shvInfo() << QF_FUNC_NAME;
 	QStandardItem *it = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
-	{
-		ServerNode *nd = dynamic_cast<ServerNode*>(it);
-		if(nd) {
-			if(nd->isConnected()) {
-				nd->setConnected(false);
-			}
-			else {
-				bool ok = nd->setConnected(true);
-				if(ok) {
-					//shvInfo() << nd->client();
-					//connect(nd->clientConnection(), &qfopcua::Client::opcUaError, this, &MainWindow::showOpcUaError, (Qt::ConnectionType)(Qt::QueuedConnection | Qt::UniqueConnection));
-				}
-				else {
-					//QMessageBox::warning(this, tr("Connect error"), nd->connectionErrorString());
-				}
-			}
-			return;
-		}
-	}
+	ServerNode *nd = dynamic_cast<ServerNode*>(it);
+	if(nd)
+		nd->open();
 }
 
 void MainWindow::onCurrentSelectionChanged(const QModelIndex &curr_ix, const QModelIndex &prev_ix)

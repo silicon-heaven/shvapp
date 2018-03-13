@@ -4,8 +4,9 @@
 
 class ServerNode;
 
-class ShvNodeItem : public QStandardItem
+class ShvNodeItem : public QObject, public QStandardItem
 {
+	Q_OBJECT
 private:
 	typedef QStandardItem Super;
 public:

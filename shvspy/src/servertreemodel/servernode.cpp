@@ -27,18 +27,19 @@ QVariant ServerNode::data(int role) const
 		//}
 	}
 	else if(role == Qt::DecorationRole) {
-		static QIcon connected = QIcon(QStringLiteral(":/shvspy/images/connected.png"));
-		static QIcon disconnected = QIcon(QStringLiteral(":/shvspy/images/disconnected.png"));
-		ret = isConnected()? connected: disconnected;
+		static QIcon ico_connected = QIcon(QStringLiteral(":/shvspy/images/connected.png"));
+		static QIcon ico_connecting = QIcon(QStringLiteral(":/shvspy/images/connecting.png"));
+		static QIcon ico_disconnected = QIcon(QStringLiteral(":/shvspy/images/disconnected.png"));
+		switch (openStatus()) {
+		case OpenStatus::Connected: return ico_connected;
+		case OpenStatus::Connecting: return ico_connecting;
+		case OpenStatus::Disconnected: return ico_disconnected;
+		default: return QIcon();
+		}
 	}
 	else
 		ret = Super::data(role);
 	return ret;
-}
-
-bool ServerNode::isConnected() const
-{
-	return m_clientConnection && m_clientConnection->isBrokerConnected();
 }
 
 QVariantMap ServerNode::serverProperties() const
@@ -67,25 +68,22 @@ void ServerNode::setServerProperties(const QVariantMap &props)
 	emitDataChanged();
 }
 
-bool ServerNode::setConnected(bool b)
+void ServerNode::open()
 {
-	if(b == isConnected())
-		return true;
-	bool ret = true;
-	if(b) {
-		clientConnection()->open();
-		if(ret) {
-			//m_nodeId = clientConnection()->getRootNode();
-			//loadChildren(true);
-		}
-	}
-	else {
-		m_nodeId.clear();
-		clientConnection()->close();
-		removeRows(0, rowCount());
-	}
+	close();
+	clientConnection()->open();
+	m_openStatus = OpenStatus::Connecting;
 	emitDataChanged();
-	return ret;
+}
+
+void ServerNode::close()
+{
+	if(openStatus() == OpenStatus::Disconnected)
+		return;
+	if(m_clientConnection)
+		m_clientConnection->close();
+	m_openStatus = OpenStatus::Disconnected;
+	emitDataChanged();
 }
 /*
 QString ServerNode::connectionErrorString()
@@ -100,7 +98,11 @@ shv::iotqt::rpc::ClientConnection *ServerNode::clientConnection()
 {
 	if(!m_clientConnection) {
 		m_clientConnection = new shv::iotqt::rpc::ClientConnection(nullptr);
-		//m_clientConnection->setDebug(QApplication::instance()->arguments().contains(QStringLiteral("--opcua-debug")));
+		m_clientConnection->setCheckBrokerConnectedInterval(0);
+		connect(m_clientConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, [this](bool is_connected) {
+			m_openStatus = is_connected? OpenStatus::Connected: OpenStatus::Disconnected;
+			emitDataChanged();
+		});
 	}
 	return m_clientConnection;
 }

@@ -10,6 +10,8 @@ class ServerNode : public ShvNodeItem
 private:
 	typedef ShvNodeItem Super;
 public:
+	enum class OpenStatus {Invalid = 0, Disconnected, Connecting, Connected};
+public:
 	explicit ServerNode(const std::string &server_name);
 	~ServerNode() Q_DECL_OVERRIDE;
 
@@ -18,8 +20,9 @@ public:
 	int oid() const {return m_oid;}
 	void setOid(int i) {m_oid = i;}
 
-	bool isConnected() const;
-	bool setConnected(bool b);
+	OpenStatus openStatus() const {return m_openStatus;}
+	void open();
+	void close();
 	//QString connectionErrorString();
 
 	QVariantMap serverProperties() const;
@@ -31,6 +34,7 @@ private:
 	int m_oid = 0;
 	std::string m_serverName;
 	shv::iotqt::rpc::ClientConnection *m_clientConnection = nullptr;
+	OpenStatus m_openStatus = OpenStatus::Disconnected;
 };
 
 #endif // SERVERNODE_H
