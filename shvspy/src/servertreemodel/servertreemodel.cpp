@@ -1,5 +1,5 @@
 #include "servertreemodel.h"
-#include "servernode.h"
+#include "shvbrokernodeitem.h"
 
 #include "../theapp.h"
 
@@ -21,8 +21,9 @@ ServerTreeModel::~ServerTreeModel()
 {
 }
 
-ServerNode *ServerTreeModel::createConnection(const QVariantMap &params)
+ShvBrokerNodeItem *ServerTreeModel::createConnection(const QVariantMap &params)
 {
+	/*
 	static int seq_no = 0;
 
 	int oid = params.value("oid").toInt();
@@ -33,13 +34,14 @@ ServerNode *ServerTreeModel::createConnection(const QVariantMap &params)
 		if(oid > seq_no)
 			seq_no = oid;
 	}
-	ServerNode *ret = new ServerNode(params.value("name").toString().toStdString());
+	*/
+	ShvBrokerNodeItem *ret = new ShvBrokerNodeItem(params.value("name").toString().toStdString());
 	ret->setServerProperties(params);
-	ret->setOid(oid);
+	//ret->setOid(oid);
 	invisibleRootItem()->appendRow(ret);
 	return ret;
 }
-
+/*
 ServerNode *ServerTreeModel::connectionForOid(int oid)
 {
 	ServerNode *ret = nullptr;
@@ -54,7 +56,7 @@ ServerNode *ServerTreeModel::connectionForOid(int oid)
 	}
 	return ret;
 }
-
+*/
 int ServerTreeModel::columnCount(const QModelIndex &parent) const
 {
 	Q_UNUSED(parent);
@@ -63,7 +65,21 @@ int ServerTreeModel::columnCount(const QModelIndex &parent) const
 
 int ServerTreeModel::rowCount(const QModelIndex &parent) const
 {
-	return Super::rowCount(parent);
+	QStandardItem *par_it = itemFromIndex(parent);
+	shvDebug() << "ServerTreeModel::rowCount, item:" << par_it << "parent model index valid:" << parent.isValid();
+	ShvNodeItem *par_nd = dynamic_cast<ShvNodeItem*>(par_it);
+	if(par_nd) {
+		if(par_nd->nodeId() == "localhost")
+			par_nd->shvPath();
+		shvDebug() << "\t parent node:" << par_nd << "id:" << par_nd->nodeId() << "path:" << par_nd->shvPath();
+		if(!par_nd->isChildrenLoaded() && !par_nd->isChildrenLoading()) {
+			shvDebug() << "l\t oading" << par_nd->shvPath();
+			par_nd->loadChildren();
+		}
+	}
+	int rcnt = Super::rowCount(parent);
+	shvDebug() << "\t return:" << rcnt;
+	return rcnt;
 }
 
 QVariant ServerTreeModel::data(const QModelIndex &ix, int role) const
@@ -98,7 +114,7 @@ void ServerTreeModel::saveSettings(QSettings &settings)
 	QStandardItem *root = invisibleRootItem();
 	QVariantList lst;
 	for(int i=0; i<root->rowCount(); i++) {
-		ServerNode *nd = dynamic_cast<ServerNode*>(root->child(i));
+		ShvBrokerNodeItem *nd = dynamic_cast<ShvBrokerNodeItem*>(root->child(i));
 		SHV_ASSERT_EX(nd != nullptr, "Internal error");
 		QVariantMap props = nd->serverProperties();
 		props["password"] = QString::fromStdString(TheApp::instance()->crypt().encrypt(props.value("password").toString().toStdString(), 30));

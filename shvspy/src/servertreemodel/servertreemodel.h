@@ -2,7 +2,7 @@
 
 #include <QStandardItemModel>
 
-class ServerNode;
+class ShvBrokerNodeItem;
 class QSettings;
 
 class ServerTreeModel : public QStandardItemModel
@@ -22,8 +22,8 @@ public:
 	void loadSettings(const QSettings &settings);
 	void saveSettings(QSettings &settings);
 public:
-	ServerNode* createConnection(const QVariantMap &params);
-	ServerNode* connectionForOid(int oid);
+	ShvBrokerNodeItem* createConnection(const QVariantMap &params);
+	//ServerNode* connectionForOid(int oid);
 private:
 };
 

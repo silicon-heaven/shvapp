@@ -2,11 +2,12 @@
 
 #include <QStandardItem>
 
-class ServerNode;
+class ShvBrokerNodeItem;
 
-class ShvNodeItem : public QObject, public QStandardItem
+namespace shv { namespace chainpack { class RpcMessage; } }
+
+class ShvNodeItem : public QStandardItem
 {
-	Q_OBJECT
 private:
 	typedef QStandardItem Super;
 public:
@@ -14,15 +15,21 @@ public:
 	~ShvNodeItem() Q_DECL_OVERRIDE;
 
 	const std::string& nodeId() const {return m_nodeId;}
-	ServerNode* serverNode() const;
+	ShvBrokerNodeItem* serverNode() const;
 
 	QVariant data(int role = Qt::UserRole + 1) const Q_DECL_OVERRIDE;
-	void loadChildren(bool force);
+	void loadChildren();
+	bool isChildrenLoaded() const {return m_childrenLoaded;}
+	bool isChildrenLoading() const {return m_loadChildrenRqId > 0;}
+	std::string shvPath() const;
+
+	void processRpcMessage(const shv::chainpack::RpcMessage &msg);
 protected:
 	//QVariant attribute(qfopcua::AttributeId::Enum attr_id) const;
 protected:
 	std::string m_nodeId;
 	//mutable QMap<qfopcua::AttributeId::Enum, QVariant> m_attribudes;
 	bool m_childrenLoaded = false;
+	unsigned m_loadChildrenRqId = 0;
 };
 

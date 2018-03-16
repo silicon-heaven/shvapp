@@ -43,20 +43,20 @@ bool Lublicator::setStatus(unsigned stat)
 	unsigned old_stat = status();
 	if(old_stat != stat) {
 		m_properties[S_STATUS] = stat;
-		emit propertyValueChanged(objectName().toStdString() + '/' + S_STATUS, stat);
+		//emit propertyValueChanged(objectName().toStdString() + '/' + S_STATUS, stat);
 		return true;
 	}
 	return false;
 }
 
-iot::ShvNode::StringList Lublicator::propertyNames() const
+iot::ShvNode::StringList Lublicator::childNodeIds() const
 {
 	static ShvNode::StringList keys;
 	if(keys.empty()) for(const auto &imap: m_properties)
 		keys.push_back(imap.first);
 	return keys;
 }
-
+/*
 shv::chainpack::RpcValue Lublicator::propertyValue(const std::string &property_name) const
 {
 	if(property_name == S_NAME)
@@ -113,7 +113,7 @@ bool Lublicator::setPropertyValue(const std::string &property_name, const shv::c
 
 	return true;
 }
-
+*/
 Revitest::Revitest(QObject *parent)
 	: QObject(parent)
 {
@@ -133,8 +133,8 @@ void Revitest::createDevices()
 	static constexpr size_t LUB_CNT = 27;
 	for (size_t i = 0; i < LUB_CNT; ++i) {
 		auto *nd = new Lublicator(m_devices->root());
-		nd->setNodeName(std::to_string(i+1));
-		connect(nd, &Lublicator::propertyValueChanged, this, &Revitest::onLublicatorPropertyValueChanged);
+		nd->setNodeId(std::to_string(i+1));
+		//connect(nd, &Lublicator::propertyValueChanged, this, &Revitest::onLublicatorPropertyValueChanged);
 	}
 }
 
@@ -174,21 +174,22 @@ void Revitest::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 				Lublicator *lubl = lublicator_for_path(path);
 				cp::RpcValue val = rq.params();
 				std::string property_name = path[1];
-				bool ok = lubl->setPropertyValue(property_name, val);
-				if(!ok)
-					SHV_EXCEPTION("cannot write property value on path:" + str_path);
+				//bool ok = lubl->setPropertyValue(property_name, val);
+				//if(!ok)
+				//	SHV_EXCEPTION("cannot write property value on path:" + str_path);
 				result = true;
 			}
 			else if(is_get) {
 				shvInfo() << "reading property:" << shv::core::String::join(path, '/');
 				if(path.empty()) {
-					result = m_devices->root()->propertyNames();
+					result = m_devices->root()->childNodeIds();
 				}
 				else if(path.size() == 1) {
-					result = lublicator_for_path(path)->propertyNames();
+					//result = lublicator_for_path(path)->propertyNames();
 				}
 				else if(path.size() == 2) {
 					Lublicator *lub = lublicator_for_path(path);
+					/*
 					shv::chainpack::RpcValue val = lub->propertyValue(path[1]);
 					if(!val.isValid())
 						result = "???";
@@ -196,6 +197,7 @@ void Revitest::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 					else
 						result = val;
 					shvInfo() << "\t value:" << val.toCpon();
+					*/
 				}
 				else {
 					SHV_EXCEPTION("invalid path: " + str_path);

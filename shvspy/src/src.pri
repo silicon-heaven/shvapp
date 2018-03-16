@@ -3,7 +3,6 @@ HEADERS += \
 	$$PWD/dlgserverproperties.h \
 	$$PWD/theapp.h \
 	$$PWD/servertreemodel/servertreemodel.h \
-	$$PWD/servertreemodel/servernode.h \
 	$$PWD/attributesmodel/attributesmodel.h \
 	$$PWD/attributesmodel/attributenode.h \
     $$PWD/attributesmodel/attributenodebase.h \
@@ -18,7 +17,8 @@ HEADERS += \
     $$PWD/dlgsubscriptionparameters.h \
     $$PWD/dlgdumpnode.h \
     $$PWD/appclioptions.h \
-    $$PWD/servertreemodel/shvnodeitem.h
+    $$PWD/servertreemodel/shvnodeitem.h \
+    $$PWD/servertreemodel/shvbrokernodeitem.h
 
 SOURCES += \
 	$$PWD/main.cpp\
@@ -26,7 +26,6 @@ SOURCES += \
 	$$PWD/dlgserverproperties.cpp \
 	$$PWD/theapp.cpp \
 	$$PWD/servertreemodel/servertreemodel.cpp \
-	$$PWD/servertreemodel/servernode.cpp \
 	$$PWD/attributesmodel/attributesmodel.cpp \
 	$$PWD/attributesmodel/attributenode.cpp \
     $$PWD/attributesmodel/attributenodebase.cpp \
@@ -41,7 +40,8 @@ SOURCES += \
     $$PWD/dlgsubscriptionparameters.cpp \
     $$PWD/dlgdumpnode.cpp \
     $$PWD/appclioptions.cpp \
-    $$PWD/servertreemodel/shvnodeitem.cpp
+    $$PWD/servertreemodel/shvnodeitem.cpp \
+    $$PWD/servertreemodel/shvbrokernodeitem.cpp
 
 FORMS += \
 	$$PWD/mainwindow.ui \

@@ -219,13 +219,13 @@ void BrokerApp::onClientLogin(int connection_id)
 		shvInfo() << "connection id:" << connection_id << "mounting device on path:" << mount_point;
 		if(!m_deviceTree->mount(mount_point, nd))
 			SHV_EXCEPTION("Cannot mount connection to device tree, connection id: " + std::to_string(connection_id));
-		conn->setMountPoint(nd->nodePath());
+		conn->setMountPoint(nd->shvPath());
 		connect(conn, &rpc::ServerConnection::destroyed, nd, &ClientNode::deleteLater);
 		//connect(nd, &ClientNode::destroyed, [this](){
 		//	shvWarning() << m_deviceTree->dump();
 		//});
-		//shvInfo() << m_deviceTree->dump();
 	}
+	shvInfo() << m_deviceTree->dumpTree();
 }
 
 void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData &&meta, std::string &&data)
@@ -244,18 +244,22 @@ void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData
 			conn2->sendRawData(std::move(meta), std::move(data));
 		}
 		else if(nd) {
-			rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
-			if(conn) {
-				cp::RpcMessage rpc_msg = cp::RpcDriver::composeRpcMessage(std::move(meta), data, !cp::Exception::Throw);
-				if(rpc_msg.isRequest()) {
-					cp::RpcRequest rq(rpc_msg);
-					if(rq.method() == cp::Rpc::METH_GET) {
-						shv::iotqt::ShvNode::StringList props = nd->propertyNames();
-						//shvWarning() << shv_path << "children:" << shv::core::String::join(props, ", ");
-						conn->sendResponse(rq.requestId(), props);
-					}
-				}
+			cp::RpcMessage rpc_msg = cp::RpcDriver::composeRpcMessage(std::move(meta), data, cp::Exception::Throw);
+			cp::RpcRequest rq(rpc_msg);
+			cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
+			try {
+				cp::RpcValue result = nd->processRpcRequest(rpc_msg);
+				resp.setResult(result);
 			}
+			catch (shv::core::Exception &e) {
+				shvError() << e.message();
+				resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodInvocationException, e.message()));
+			}
+			rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
+			if(conn)
+				conn->sendMessage(resp);
+			else
+				shvError() << "Cannot find connection for ID:" << connection_id;
 		}
 		else {
 			std::string err_msg = "Device tree path not found: " + shv_path;

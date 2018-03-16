@@ -9,7 +9,7 @@ class MainWindow;
 class QCloseEvent;
 class QStandardItemModel;
 
-class ServerNode;
+class ShvBrokerNodeItem;
 
 class MainWindow : public QMainWindow
 {
@@ -35,7 +35,7 @@ protected:
 
 	//Q_SLOT void showOpcUaError(const QString &what);
 
-	void editServer(ServerNode *srv, bool copy_server);
+	void editServer(ShvBrokerNodeItem *srv, bool copy_server);
 	void openNode(const QModelIndex &ix);
 
 	void closeEvent(QCloseEvent *ev) Q_DECL_OVERRIDE;

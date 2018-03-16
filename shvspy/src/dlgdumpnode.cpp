@@ -1,6 +1,6 @@
 #include "dlgdumpnode.h"
 #include "ui_dlgdumpnode.h"
-#include "servertreemodel/servernode.h"
+#include "servertreemodel/shvbrokernodeitem.h"
 
 #include <QTextStream>
 

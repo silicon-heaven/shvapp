@@ -4,7 +4,7 @@
 #include "subscriptionsmodel/subscriptionsmodel.h"
 #include "attributesmodel/attributesmodel.h"
 #include "servertreemodel/servertreemodel.h"
-#include "servertreemodel/servernode.h"
+#include "servertreemodel/shvbrokernodeitem.h"
 
 #include "dlgdumpnode.h"
 #include "dlgserverproperties.h"
@@ -65,7 +65,7 @@ void MainWindow::on_actEditServer_triggered()
 {
 	QModelIndex ix = ui->treeServers->currentIndex();
 	QStandardItem *it = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
-	ServerNode *nd = dynamic_cast<ServerNode*>(it);
+	ShvBrokerNodeItem *nd = dynamic_cast<ShvBrokerNodeItem*>(it);
 	if(nd) {
 		editServer(nd, false);
 	}
@@ -75,7 +75,7 @@ void MainWindow::on_actCopyServer_triggered()
 {
 	QModelIndex ix = ui->treeServers->currentIndex();
 	QStandardItem *it = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
-	ServerNode *nd = dynamic_cast<ServerNode*>(it);
+	ShvBrokerNodeItem *nd = dynamic_cast<ShvBrokerNodeItem*>(it);
 	if(nd) {
 		editServer(nd, true);
 	}
@@ -85,7 +85,7 @@ void MainWindow::on_actRemoveServer_triggered()
 {
 	QModelIndex ix = ui->treeServers->currentIndex();
 	QStandardItem *it = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
-	ServerNode *nd = dynamic_cast<ServerNode*>(it);
+	ShvBrokerNodeItem *nd = dynamic_cast<ShvBrokerNodeItem*>(it);
 	if(nd) {
 		if(QMessageBox::question(this, tr("Question"), tr("Realy drop server deinition for '%1'").arg(nd->text())) == QMessageBox::Yes) {
 			TheApp::instance()->serverTreeModel()->invisibleRootItem()->removeRow(ix.row());
@@ -125,7 +125,7 @@ void MainWindow::on_actDumpNode_triggered()
 {
 	QModelIndex ix = ui->treeServers->currentIndex();
 	ShvNodeItem *nd = dynamic_cast<ShvNodeItem*>(TheApp::instance()->serverTreeModel()->itemFromIndex(ix));
-	ServerNode *snd = dynamic_cast<ServerNode*>(nd);
+	ShvBrokerNodeItem *snd = dynamic_cast<ShvBrokerNodeItem*>(nd);
 	if(nd && !snd) {
 		DlgDumpNode dlg(nd, this);
 		dlg.generateText();
@@ -137,7 +137,7 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 {
 	QModelIndex ix = ui->treeServers->indexAt(pos);
 	QStandardItem *it = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
-	ServerNode *snd = dynamic_cast<ServerNode*>(it);
+	ShvBrokerNodeItem *snd = dynamic_cast<ShvBrokerNodeItem*>(it);
 	QMenu m;
 	QAction *a_dumpEyasIds = nullptr;
 	if(!it) {
@@ -191,7 +191,7 @@ void MainWindow::openNode(const QModelIndex &ix)
 {
 	//shvInfo() << QF_FUNC_NAME;
 	QStandardItem *it = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
-	ServerNode *nd = dynamic_cast<ServerNode*>(it);
+	ShvBrokerNodeItem *nd = dynamic_cast<ShvBrokerNodeItem*>(it);
 	if(nd)
 		nd->open();
 }
@@ -235,7 +235,7 @@ void MainWindow::showOpcUaError(const QString &what)
 	QMessageBox::critical(this, tr("Opc UA Error"), what);
 }
 */
-void MainWindow::editServer(ServerNode *srv, bool copy_server)
+void MainWindow::editServer(ShvBrokerNodeItem *srv, bool copy_server)
 {
 	shvLogFuncFrame() << srv;
 	QVariantMap server_props;
