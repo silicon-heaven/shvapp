@@ -57,12 +57,21 @@ ServerNode *ServerTreeModel::connectionForOid(int oid)
 	return ret;
 }
 */
-int ServerTreeModel::columnCount(const QModelIndex &parent) const
+bool ServerTreeModel::hasChildren(const QModelIndex &parent) const
 {
-	Q_UNUSED(parent);
-	return 1;
+	QStandardItem *par_it = itemFromIndex(parent);
+	ShvNodeItem *par_nd = dynamic_cast<ShvNodeItem*>(par_it);
+	ShvBrokerNodeItem *par_brnd = dynamic_cast<ShvBrokerNodeItem*>(par_nd);
+	//shvDebug() << "ServerTreeModel::hasChildren, item:" << par_it << "parent model index valid:" << parent.isValid();
+	if(par_nd && !par_brnd) {
+		if(!par_nd->isChildrenLoaded() && !par_nd->isChildrenLoading()) {
+			par_nd->loadChildren();
+			return true;
+		}
+	}
+	return Super::hasChildren(parent);
 }
-
+/*
 int ServerTreeModel::rowCount(const QModelIndex &parent) const
 {
 	QStandardItem *par_it = itemFromIndex(parent);
@@ -80,6 +89,12 @@ int ServerTreeModel::rowCount(const QModelIndex &parent) const
 	int rcnt = Super::rowCount(parent);
 	shvDebug() << "\t return:" << rcnt;
 	return rcnt;
+}
+*/
+int ServerTreeModel::columnCount(const QModelIndex &parent) const
+{
+	Q_UNUSED(parent);
+	return 1;
 }
 
 QVariant ServerTreeModel::data(const QModelIndex &ix, int role) const

@@ -87,7 +87,7 @@ void ShvNodeItem::processRpcMessage(const shv::chainpack::RpcMessage &msg)
 			removeRows(0, rowCount());
 			for(const cp::RpcValue &ndid : resp.result().toList()) {
 				QStandardItem *it = new ShvNodeItem(ndid.toString());
-				it->appendRow(new QStandardItem("kkt"));
+				//it->appendRow(new QStandardItem("kkt"));
 				appendRow(it);
 			}
 		}

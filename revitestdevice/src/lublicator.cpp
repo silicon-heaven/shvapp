@@ -2,6 +2,7 @@
 
 #include <shv/chainpack/rpcmessage.h>
 #include <shv/core/string.h>
+#include <shv/core/stringview.h>
 #include <shv/core/exception.h>
 
 #include <shv/coreqt/log.h>
@@ -143,18 +144,18 @@ void Revitest::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 	shvLogFuncFrame() << msg.toCpon();
 	if(msg.isRequest()) {
 		cp::RpcRequest rq(msg);
-		std::string method = rq.method();
-		//const cp::RpcValue::Map params = rq.params().toMap();
 		cp::RpcResponse rsp = cp::RpcResponse::forRequest(rq);
 		cp::RpcValue result;
 
 		try {
-			bool is_get = method == cp::Rpc::METH_GET;
-			bool is_set = method == cp::Rpc::METH_SET;
-
-			const cp::RpcValue::String str_path = rq.shvPath();
-
-			std::vector<std::string> path = shv::core::String::split(str_path, '/');
+			const cp::RpcValue::String path = rq.shvPath();
+			shv::iotqt::ShvNode *nd = m_devices->cd(path);
+			shvInfo() << "path:" << path << "->" << nd;
+			if(!nd)
+				SHV_EXCEPTION("invalid path: " + path);
+			result = nd->processRpcRequest(rq);
+			/*
+			std::vector<shv::core::StringView> path = shv::core::StringView(str_path).split('/');
 			//static const std::vector<std::string> odpojovace_path = shv::core::String::split(ODPOJOVACE_PATH, '/');
 			auto lublicator_for_path = [this](const std::vector<std::string> &path) -> Lublicator*
 			{
@@ -180,32 +181,8 @@ void Revitest::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 				result = true;
 			}
 			else if(is_get) {
-				shvInfo() << "reading property:" << shv::core::String::join(path, '/');
-				if(path.empty()) {
-					result = m_devices->root()->childNodeIds();
-				}
-				else if(path.size() == 1) {
-					//result = lublicator_for_path(path)->propertyNames();
-				}
-				else if(path.size() == 2) {
-					Lublicator *lub = lublicator_for_path(path);
-					/*
-					shv::chainpack::RpcValue val = lub->propertyValue(path[1]);
-					if(!val.isValid())
-						result = "???";
-					//	SHV_EXCEPTION("cannot read property on path:" + str_path);
-					else
-						result = val;
-					shvInfo() << "\t value:" << val.toCpon();
-					*/
-				}
-				else {
-					SHV_EXCEPTION("invalid path: " + str_path);
-				}
 			}
-			else {
-				SHV_EXCEPTION("invalid method name:" + method);
-			}
+			*/
 		}
 		catch(shv::core::Exception &e) {
 			rsp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodInvocationException, e.message()));
