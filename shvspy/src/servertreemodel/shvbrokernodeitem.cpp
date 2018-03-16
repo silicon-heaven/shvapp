@@ -24,8 +24,8 @@ struct ShvBrokerNodeItem::RpcRequestInfo
 	}
 };
 
-ShvBrokerNodeItem::ShvBrokerNodeItem(const std::string &server_name)
-	: Super(server_name)
+ShvBrokerNodeItem::ShvBrokerNodeItem(unsigned model_id, const std::string &server_name)
+	: Super(model_id, server_name)
 {
 	QTimer *rpc_rq_timeout = new QTimer(this);
 	rpc_rq_timeout->start(5000);

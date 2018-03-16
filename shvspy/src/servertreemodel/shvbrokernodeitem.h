@@ -8,7 +8,7 @@
 namespace shv { namespace chainpack { class RpcMessage; } }
 namespace shv { namespace iotqt { namespace rpc { class ClientConnection; } } }
 
-class ShvBrokerNodeItem : public QObject, public ShvNodeItem
+class ShvBrokerNodeItem : public ShvNodeItem
 {
 	Q_OBJECT
 private:
@@ -16,7 +16,7 @@ private:
 public:
 	enum class OpenStatus {Invalid = 0, Disconnected, Connecting, Connected};
 public:
-	explicit ShvBrokerNodeItem(const std::string &server_name);
+	explicit ShvBrokerNodeItem(unsigned model_id, const std::string &server_name);
 	~ShvBrokerNodeItem() Q_DECL_OVERRIDE;
 
 	QVariant data(int role = Qt::UserRole + 1) const Q_DECL_OVERRIDE;

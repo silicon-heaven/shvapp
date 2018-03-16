@@ -14,31 +14,28 @@
 ServerTreeModel::ServerTreeModel(QObject *parent)
 	: Super(parent)
 {
-
+	m_invisibleRoot = new ShvNodeRootItem(this);
 }
 
 ServerTreeModel::~ServerTreeModel()
 {
 }
 
+QModelIndex ServerTreeModel::index(int row, int column, const QModelIndex &parent) const
+{
+	ShvNodeItem *pnd = itemFromIndex(parent);
+	if(!pnd || column > 0)
+		return QModelIndex();
+	ShvNodeItem *nd = pnd->childAt(row);
+	return createIndex(row, 0, nd->modelId());
+}
+
 ShvBrokerNodeItem *ServerTreeModel::createConnection(const QVariantMap &params)
 {
-	/*
-	static int seq_no = 0;
-
-	int oid = params.value("oid").toInt();
-	if(oid == 0) {
-		oid = ++seq_no;
-	}
-	else {
-		if(oid > seq_no)
-			seq_no = oid;
-	}
-	*/
-	ShvBrokerNodeItem *ret = new ShvBrokerNodeItem(params.value("name").toString().toStdString());
+	ShvBrokerNodeItem *ret = new ShvBrokerNodeItem(nextId(), params.value("name").toString().toStdString());
 	ret->setServerProperties(params);
 	//ret->setOid(oid);
-	invisibleRootItem()->appendRow(ret);
+	invisibleRootItem()->appendChild(ret);
 	return ret;
 }
 /*
@@ -90,6 +87,14 @@ QVariant ServerTreeModel::data(const QModelIndex &ix, int role) const
 QVariant ServerTreeModel::headerData(int section, Qt::Orientation o, int role) const
 {
 	return Super::headerData(section, o, role);
+}
+
+ShvNodeItem *ServerTreeModel::itemFromIndex(const QModelIndex &ix) const
+{
+	if(!ix.isValid())
+		return m_invisibleRoot;
+	ShvNodeItem *nd = m_nodes.value(ix.internalId());
+	return nd;
 }
 
 void ServerTreeModel::loadSettings(const QSettings &settings)

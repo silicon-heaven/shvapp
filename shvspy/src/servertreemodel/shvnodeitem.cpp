@@ -8,9 +8,12 @@
 
 namespace cp = shv::chainpack;
 
-ShvNodeItem::ShvNodeItem(const std::string &ndid)
-	: Super(QString::fromStdString(ndid)), m_nodeId(ndid)
+ShvNodeItem::ShvNodeItem(unsigned model_id, const std::string &ndid, QObject *parent)
+	: Super(parent)
+	, m_nodeId(ndid)
+	, m_modelId(model_id)
 {
+	setObjectName(QString::fromStdString(nodeid));
 }
 
 ShvNodeItem::~ShvNodeItem()
@@ -58,6 +61,31 @@ ShvBrokerNodeItem *ShvNodeItem::serverNode() const
 			break;
 	}
 	SHV_ASSERT_EX(ret != nullptr, "ServerNode parent must exist.");
+	return ret;
+}
+
+ShvNodeItem *ShvNodeItem::parentNode() const
+{
+	return qobject_cast<ShvNodeItem*>(parent());
+}
+
+ShvNodeItem *ShvNodeItem::childAt(int ix) const
+{
+	if(ix < 0 || ix >= m_children.count())
+		SHV_EXCEPTION("Invalid child index");
+	return m_children[ix];
+}
+
+void ShvNodeItem::insertChild(int ix, ShvNodeItem *n)
+{
+	m_children.insert(ix, n);
+}
+
+ShvNodeItem *ShvNodeItem::takeChild(int ix)
+{
+	ShvNodeItem *ret = childAt(ix);
+	ret->setParent(nullptr);
+	m_children.remove(ix);
 	return ret;
 }
 
