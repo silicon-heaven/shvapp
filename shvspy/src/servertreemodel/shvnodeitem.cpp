@@ -81,15 +81,15 @@ void ShvNodeItem::processRpcMessage(const shv::chainpack::RpcMessage &msg)
 		cp::RpcResponse resp(msg);
 		unsigned rqid = resp.requestId();
 		if(rqid == m_loadChildrenRqId) {
+			//shvWarning() << m_loadChildrenRqId << "resolved";
 			m_loadChildrenRqId = 0;
 			m_childrenLoaded = true;
-
 			removeRows(0, rowCount());
 			for(const cp::RpcValue &ndid : resp.result().toList()) {
 				QStandardItem *it = new ShvNodeItem(ndid.toString());
-				//it->appendRow(new QStandardItem("kkt"));
 				appendRow(it);
 			}
+			emitDataChanged();
 		}
 	}
 }

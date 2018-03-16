@@ -30,7 +30,7 @@ public:
 	bool setStatus(unsigned stat);
 
 	StringList childNodeIds() const override;
-	//shv::chainpack::RpcValue propertyValue(const String &property_name) const override;
+	shv::chainpack::RpcValue propertyValue(const String &property_name) const;
 	//bool setPropertyValue(const String &property_name, const shv::chainpack::RpcValue &val) override;
 private:
 	std::map<String, shv::chainpack::RpcValue> m_properties;

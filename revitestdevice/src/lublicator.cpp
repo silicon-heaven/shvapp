@@ -57,17 +57,17 @@ iot::ShvNode::StringList Lublicator::childNodeIds() const
 		keys.push_back(imap.first);
 	return keys;
 }
-/*
+
 shv::chainpack::RpcValue Lublicator::propertyValue(const std::string &property_name) const
 {
-	if(property_name == S_NAME)
-		return objectName().toStdString();
+	//if(property_name == S_NAME)
+	//	return objectName().toStdString();
 	auto it = m_properties.find(property_name);
 	if(it == m_properties.end())
 		return cp::RpcValue();
 	return it->second;
 }
-
+/*
 bool Lublicator::setPropertyValue(const std::string &property_name, const shv::chainpack::RpcValue &val)
 {
 	if(property_name == S_STATUS)
@@ -148,12 +148,31 @@ void Revitest::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 		cp::RpcValue result;
 
 		try {
-			const cp::RpcValue::String path = rq.shvPath();
-			shv::iotqt::ShvNode *nd = m_devices->cd(path);
-			shvInfo() << "path:" << path << "->" << nd;
+			const std::string path = rq.shvPath();
+			std::string path_rest;
+			shv::iotqt::ShvNode *nd = m_devices->cd(path, &path_rest);
+			shvInfo() << "path:" << path << "->" << nd << "path rest:" << path_rest;
 			if(!nd)
 				SHV_EXCEPTION("invalid path: " + path);
-			result = nd->processRpcRequest(rq);
+			if(path_rest.empty()) {
+				result = nd->processRpcRequest(rq);
+			}
+			else {
+				Lublicator *lubl = qobject_cast<Lublicator*>(nd);
+				if(!lubl)
+					SHV_EXCEPTION("invalid lublicator: " + path);
+				shv::chainpack::RpcValue::String method = rq.method();
+				if(method == "ls") {
+					result = cp::RpcValue();
+				}
+				else if(method == cp::Rpc::METH_GET) {
+					result = lubl->propertyValue(path_rest);
+				}
+				else {
+					SHV_EXCEPTION("Invalid method: " + method + " called for node: " + path);
+				}
+
+			}
 			/*
 			std::vector<shv::core::StringView> path = shv::core::StringView(str_path).split('/');
 			//static const std::vector<std::string> odpojovace_path = shv::core::String::split(ODPOJOVACE_PATH, '/');
