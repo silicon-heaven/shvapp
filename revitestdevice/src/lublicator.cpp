@@ -165,6 +165,9 @@ void Revitest::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 				if(method == "ls") {
 					result = cp::RpcValue();
 				}
+				else if(method == "dir") {
+					result = cp::RpcValue::List{cp::Rpc::METH_GET, cp::Rpc::METH_SET};
+				}
 				else if(method == cp::Rpc::METH_GET) {
 					result = lubl->propertyValue(path_rest);
 				}

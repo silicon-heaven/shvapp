@@ -124,7 +124,7 @@
       <number>1</number>
      </property>
      <item>
-      <widget class="QTreeView" name="treeAttributes">
+      <widget class="QTableView" name="tblAttributes">
        <property name="editTriggers">
         <set>QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed</set>
        </property>

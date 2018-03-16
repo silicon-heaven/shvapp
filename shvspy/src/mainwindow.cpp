@@ -31,7 +31,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui->treeServers->setModel(TheApp::instance()->serverTreeModel());
 	connect(ui->treeServers->selectionModel(), &QItemSelectionModel::currentChanged, this, &MainWindow::onCurrentSelectionChanged);
 
-	ui->treeAttributes->setModel(TheApp::instance()->attributesModel());
+	ui->tblAttributes->setModel(TheApp::instance()->attributesModel());
 
 	//ui->tblSubscriptions->setModel(TheApp::instance()->subscriptionsModel());
 	{
@@ -200,26 +200,21 @@ void MainWindow::onCurrentSelectionChanged(const QModelIndex &curr_ix, const QMo
 {
 	Q_UNUSED(curr_ix)
 	Q_UNUSED(prev_ix)
-	/*
+
 	QStandardItem *it = TheApp::instance()->serverTreeModel()->itemFromIndex(curr_ix);
 	{
 		ShvNodeItem *nd = dynamic_cast<ShvNodeItem*>(it);
-		ServerNode *snd = dynamic_cast<ServerNode*>(nd);
-		qfopcua::NodeId node_id;
-		if(nd && !snd) {
+		ShvBrokerNodeItem *bnd = dynamic_cast<ShvBrokerNodeItem*>(nd);
+		AttributesModel *m = TheApp::instance()->attributesModel();
+		if(bnd) {
 			// hide attributes for server nodes
-			node_id = nd->nodeId();
+			m->load(nullptr);
 		}
-		TheApp::instance()->attributesModel()->setNode(nd->serverNode()->clientConnection(), node_id);
-		ui->treeAttributes->expandAll();
-		ui->treeAttributes->header()->resizeSections(QHeaderView::ResizeToContents);
-
-		if(!snd && nd) {
-			// preload children of clicked node
-			nd->loadChildren(false);
+		else {
+			m->load(nd);
 		}
+		ui->tblAttributes->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
 	}
-	*/
 }
 /*
 void MainWindow::onSubscribedDataChanged(const qfopcua::DataValue &data_value, int att_id, const qfopcua::NodeId &node_id, qfopcua::Subscription::MonitoredItemId handle, qfopcua::Subscription::Id subscription_id)

@@ -1,4 +1,5 @@
 #include "attributesmodel.h"
+
 #include "attributenode.h"
 #include "nodeidattributenode.h"
 #include "datavalueattributenode.h"
@@ -8,14 +9,18 @@
 #include "qualifiednameattributenode.h"
 
 #include "../theapp.h"
+#include "../servertreemodel/shvbrokernodeitem.h"
 
 #include <shv/core/utils.h>
 #include <shv/coreqt/log.h>
 #include <shv/core/assert.h>
+#include <shv/iotqt/rpc/clientconnection.h>
 
 #include <QSettings>
 #include <QJsonDocument>
 #include <QJsonParseError>
+
+namespace cp = shv::chainpack;
 
 AttributesModel::AttributesModel(QObject *parent)
 	: Super(parent)
@@ -47,6 +52,7 @@ Qt::ItemFlags AttributesModel::flags(const QModelIndex &ix) const
 
 QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 {
+	/*
 	QVariant ret;
 	AttributeNodeBase *nd = dynamic_cast<AttributeNodeBase*>(itemFromIndex(ix.sibling(ix.row(), 0)));
 	SHV_ASSERT(nd != nullptr, QString("Internal error ix(%1, %2) %3").arg(ix.row()).arg(ix.column()).arg(ix.internalId()), return QVariant());
@@ -66,7 +72,8 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 		else
 			ret = Super::data(ix, role);
 	}
-	return ret;
+	*/
+	return Super::data(ix, role);
 }
 
 bool AttributesModel::setData(const QModelIndex &ix, const QVariant &val, int role)
@@ -122,13 +129,14 @@ QVariant AttributesModel::headerData(int section, Qt::Orientation o, int role) c
 	if(o == Qt::Horizontal) {
 		if(role == Qt::DisplayRole) {
 			if(section == 0)
-				ret = tr("Attribute");
+				ret = tr("Method");
 			else if(section == 1)
 				ret = tr("Value");
 		}
 	}
 	return ret;
 }
+
 /*
 void AttributesModel::setNode(qfopcua::Client *client, const qfopcua::NodeId &node_id)
 {
@@ -146,26 +154,34 @@ qfopcua::DataValue AttributesModel::attribute(qfopcua::AttributeId::Enum attr_id
 	return ret;
 }
 */
-void AttributesModel::load()
+void AttributesModel::load(ShvNodeItem *nd)
 {
+	m_nodeItem = nd;
 	clear();
-	/*
-	if(m_nodeId.isNull())
+	if(!nd)
 		return;
-	appendNode(createNode(qfopcua::AttributeId::NodeId));
-	appendNode(createNode(qfopcua::AttributeId::NodeClass));
-	appendNode(createNode(qfopcua::AttributeId::BrowseName));
-	appendNode(createNode(qfopcua::AttributeId::DisplayName));
-	appendNode(createNode(qfopcua::AttributeId::Description));
-	appendNode(createNode(qfopcua::AttributeId::WriteMask));
-	appendNode(createNode(qfopcua::AttributeId::UserWriteMask));
-	appendNode(createNode(qfopcua::AttributeId::Value));
-	appendNode(createNode(qfopcua::AttributeId::DataType));
-	appendNode(createNode(qfopcua::AttributeId::AccessLevel));
-	appendNode(createNode(qfopcua::AttributeId::UserAccessLevel));
-	*/
+	ShvBrokerNodeItem *brnd = nd->serverNode();
+	shv::iotqt::rpc::ClientConnection *cc = brnd->clientConnection();
+	m_rpcRqId = cc->callShvMethod(nd->shvPath(), "dir");
+	connect(cc, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &AttributesModel::onRpcMessageReceived, Qt::UniqueConnection);
+	clear();
 }
 
+void AttributesModel::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
+{
+	if(msg.isResponse()) {
+		cp::RpcResponse resp(msg);
+		if(resp.requestId() == m_rpcRqId) {
+			for(const cp::RpcValue &val : resp.result().toList()) {
+				appendRow(QList<QStandardItem*>{
+							  new QStandardItem(QString::fromStdString(val.toString())),
+							  new QStandardItem("<not called>"),
+						  });
+			}
+		}
+	}
+}
+/*
 void AttributesModel::appendNode(AttributeNode *nd, bool load)
 {
 	QList<QStandardItem*> lst;
@@ -178,7 +194,7 @@ void AttributesModel::appendNode(AttributeNode *nd, bool load)
 	//	m_userAccessLevel = nd->value().toInt();
 	//}
 }
-/*
+
 AttributeNode *AttributesModel::createNode(qfopcua::AttributeId::Enum attr_id)
 {
 	AttributeNode *ret;

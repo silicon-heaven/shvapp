@@ -191,7 +191,8 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 		unsigned rqid = resp.requestId();
 		auto it = m_runningRpcRequests.find(rqid);
 		if(it == m_runningRpcRequests.end()) {
-			shvWarning() << "unexpected request id:" << rqid;
+			//shvWarning() << "unexpected request id:" << rqid;
+			// can be load attributes request
 			return;
 		}
 		const std::string &path = it->second.nodePath;

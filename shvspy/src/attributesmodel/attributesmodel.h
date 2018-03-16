@@ -7,7 +7,9 @@
 #include <QStandardItemModel>
 #include <QPointer>
 
-class AttributeNode;
+class ShvNodeItem;
+
+namespace shv { namespace chainpack { class RpcMessage; }}
 
 class AttributesModel : public QStandardItemModel
 {
@@ -23,17 +25,14 @@ public:
 	bool setData(const QModelIndex &ix, const QVariant &val, int role = Qt::EditRole) Q_DECL_OVERRIDE;
 	QVariant headerData ( int section, Qt::Orientation o, int role = Qt::DisplayRole ) const Q_DECL_OVERRIDE;
 
-	//void setNode(qfopcua::Client *client, const qfopcua::NodeId &node_id);
-	//qfopcua::DataValue attribute(qfopcua::AttributeId::Enum attr_id) const;
-	//qfopcua::NodeId nodeId() const {return m_nodeId;}
+	void load(ShvNodeItem *nd);
 private:
-	void load();
-	void appendNode(AttributeNode *nd, bool load = true);
-	//AttributeNode* createNode(qfopcua::AttributeId::Enum attr_id);
+	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 private:
 	//QPointer<qfopcua::Client> m_client;
-	//qfopcua::NodeId m_nodeId;
-	int m_userAccessLevel = 0;
+	ShvNodeItem *m_nodeItem = nullptr;
+	unsigned m_rpcRqId = 0;
+	//shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
 };
 
 #endif // ATTRIBUTESMODEL_H
