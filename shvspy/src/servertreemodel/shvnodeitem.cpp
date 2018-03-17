@@ -1,67 +1,66 @@
 #include "shvnodeitem.h"
 #include "shvbrokernodeitem.h"
+#include "servertreemodel.h"
 
 #include <shv/iotqt/rpc/clientconnection.h>
 //#include <qfopcua/datavalue.h>
 
 #include <shv/core/assert.h>
 
+#include <QIcon>
+#include <QVariant>
+
 namespace cp = shv::chainpack;
 
-ShvNodeItem::ShvNodeItem(unsigned model_id, const std::string &ndid, QObject *parent)
+ShvNodeItem::ShvNodeItem(ServerTreeModel *m, const std::string &ndid, ShvNodeItem *parent)
 	: Super(parent)
 	, m_nodeId(ndid)
-	, m_modelId(model_id)
+	, m_treeModelId(m->nextId())
 {
-	setObjectName(QString::fromStdString(nodeid));
+	setObjectName(QString::fromStdString(ndid));
+	m->m_nodes[m_treeModelId] = this;
 }
 
 ShvNodeItem::~ShvNodeItem()
 {
+	treeModel()->m_nodes.remove(m_treeModelId);
+}
+
+ServerTreeModel *ShvNodeItem::treeModel() const
+{
+	for(QObject *o = this->parent(); o; o = o->parent()) {
+		ServerTreeModel *m = qobject_cast<ServerTreeModel*>(o);
+		if(m)
+			return m;
+	}
+	SHV_EXCEPTION("ServerTreeModel parent must exist.");
+	return nullptr;
 }
 
 QVariant ShvNodeItem::data(int role) const
 {
-	QVariant ret = Super::data(role);
+	QVariant ret;
 	if(role == Qt::DisplayRole) {
-		//qfopcua::QualifiedName qn = attribute(qfopcua::AttributeId::BrowseName).value<qfopcua::QualifiedName>();
-		//ret = qn.text();
+		ret = objectName();
 	}
 	else if(role == Qt::DecorationRole) {
 		if(isChildrenLoading()) {
 			static QIcon ico_reload = QIcon(QStringLiteral(":/shvspy/images/reload"));
 			ret = ico_reload;
 		}
-		/*
-		QVariant v = attribute(qfopcua::AttributeId::NodeClass);
-		qfopcua::NodeClass::Enum nc = qfopcua::NodeClass::fromInt(v.toInt());
-		static QIcon object = QIcon(QStringLiteral(":/shvspy/images/object"));
-		static QIcon variable = QIcon(QStringLiteral(":/shvspy/images/variable"));
-		switch(nc) {
-		case qfopcua::NodeClass::Object:
-			ret = object;
-			break;
-		case qfopcua::NodeClass::Variable:
-			ret = variable;
-			break;
-		default:
-			break;
-		}
-		*/
 	}
 	return ret;
 }
 
 ShvBrokerNodeItem *ShvNodeItem::serverNode() const
 {
-	ShvBrokerNodeItem *ret = nullptr;
-	for(QStandardItem *it = const_cast<ShvNodeItem*>(this); it; it=it->parent()) {
-		ret = dynamic_cast<ShvBrokerNodeItem*>(it);
-		if(ret)
-			break;
+	for(ShvNodeItem *nd = const_cast<ShvNodeItem*>(this); nd; nd=nd->parentNode()) {
+		ShvBrokerNodeItem *bnd = qobject_cast<ShvBrokerNodeItem *>(nd);
+		if(bnd)
+			return bnd;
 	}
-	SHV_ASSERT_EX(ret != nullptr, "ServerNode parent must exist.");
-	return ret;
+	SHV_EXCEPTION("ServerNode parent must exist.");
+	return nullptr;
 }
 
 ShvNodeItem *ShvNodeItem::parentNode() const
@@ -78,15 +77,36 @@ ShvNodeItem *ShvNodeItem::childAt(int ix) const
 
 void ShvNodeItem::insertChild(int ix, ShvNodeItem *n)
 {
+	ServerTreeModel *m = treeModel();
+	m->beginInsertRows(m->indexFromItem(this), ix, ix);
+	n->setParent(this);
 	m_children.insert(ix, n);
+	m->endInsertRows();
 }
 
 ShvNodeItem *ShvNodeItem::takeChild(int ix)
 {
 	ShvNodeItem *ret = childAt(ix);
-	ret->setParent(nullptr);
-	m_children.remove(ix);
+	if(ret) {
+		ServerTreeModel *m = treeModel();
+		m->beginRemoveRows(m->indexFromItem(this), ix, ix);
+		ret->setParent(nullptr);
+		m_children.remove(ix);
+		m->endRemoveRows();
+	}
 	return ret;
+}
+
+void ShvNodeItem::deleteChildren()
+{
+	if(childCount() == 0)
+		return;
+	ServerTreeModel *m = treeModel();
+	m->beginRemoveRows(m->indexFromItem(this), 0, childCount() - 1);
+	qDeleteAll(m_children);
+	m_children.clear();
+	m->endRemoveRows();
+	emitDataChanged();
 }
 
 std::string ShvNodeItem::shvPath() const
@@ -98,7 +118,7 @@ std::string ShvNodeItem::shvPath() const
 		ret = '/' + ret;
 		if(nd != srv_nd)
 			ret = nd->nodeId() + ret;
-		nd = dynamic_cast<ShvNodeItem*>(nd->Super::parent());
+		nd = nd->parentNode();
 	}
 	return ret;
 }
@@ -112,14 +132,22 @@ void ShvNodeItem::processRpcMessage(const shv::chainpack::RpcMessage &msg)
 			m_loadChildrenRqId = 0;
 			m_childrenLoaded = true;
 
-			removeRows(0, rowCount());
+			deleteChildren();
+			ServerTreeModel *m = treeModel();
 			for(const cp::RpcValue &ndid : resp.result().toList()) {
-				QStandardItem *it = new ShvNodeItem(ndid.toString());
-				it->appendRow(new QStandardItem("kkt"));
-				appendRow(it);
+				ShvNodeItem *nd = new ShvNodeItem(m, ndid.toString());
+				appendChild(nd);
 			}
+			emitDataChanged();
 		}
 	}
+}
+
+void ShvNodeItem::emitDataChanged()
+{
+	ServerTreeModel *m = treeModel();
+	QModelIndex ix = m->indexFromItem(this);
+	emit m->dataChanged(ix, ix);
 }
 
 void ShvNodeItem::loadChildren()
@@ -143,3 +171,9 @@ QVariant ShvNodeItem::attribute(qfopcua::AttributeId::Enum attr_id) const
 	return ret;
 }
 */
+
+ShvNodeRootItem::ShvNodeRootItem(ServerTreeModel *parent)
+	: Super(parent, std::string(), nullptr)
+{
+	setParent(parent);
+}
