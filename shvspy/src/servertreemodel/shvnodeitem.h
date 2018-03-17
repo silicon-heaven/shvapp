@@ -52,6 +52,7 @@ public:
 	std::string shvPath() const;
 
 	const QVector<ShvMetaMethod>& methods() const {return m_methods;}
+	void setMethodParams(int method_ix, const shv::chainpack::RpcValue &params);
 	void callMethod(int method_ix);
 
 	void loadChildren();

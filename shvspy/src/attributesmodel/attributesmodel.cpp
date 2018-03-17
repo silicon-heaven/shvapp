@@ -3,6 +3,7 @@
 #include "../theapp.h"
 #include "../servertreemodel/shvnodeitem.h"
 
+#include <shv/chainpack/cponreader.h>
 #include <shv/chainpack/cponwriter.h>
 #include <shv/chainpack/rpcvalue.h>
 #include <shv/core/utils.h>
@@ -36,6 +37,8 @@ int AttributesModel::rowCount(const QModelIndex &parent) const
 Qt::ItemFlags AttributesModel::flags(const QModelIndex &ix) const
 {
 	Qt::ItemFlags ret = Super::flags(ix);
+	if(ix.column() == ColParams)
+		ret |= Qt::ItemIsEditable;
 	/*
 	bool editable = false;
 	if(ix.column() == 1) {
@@ -72,18 +75,15 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 		default:
 			break;
 		}
-		/*
-		if(resp.isError()) {
-			mtd.result.clear();
-			mtd.error = resp.error().toString();
+		break;
+	}
+	case Qt::EditRole: {
+		switch (ix.column()) {
+		case ColParams:
+			return m_rows.value(ix.row()).value(ix.column());
+		default:
+			break;
 		}
-		else {
-			std::ostringstream os(mtd.result);
-			cp::CponWriter wr(os);
-			wr << resp.result();
-			mtd.error.clear();
-		}
-		*/
 		break;
 	}
 	case Qt::DecorationRole: {
@@ -124,54 +124,34 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 	}
 	*/
 }
-#if 0
+
 bool AttributesModel::setData(const QModelIndex &ix, const QVariant &val, int role)
 {
 	shvLogFuncFrame() << val.toString() << val.typeName() << "role:" << role;
-	bool ret = false;
 	if(role == Qt::EditRole) {
-		ValueAttributeNode *nd = dynamic_cast<ValueAttributeNode*>(itemFromIndex(ix.sibling(ix.row(), 0)));
-		if(nd) {
-			QVariant val_to_set = val;
-			AttributeNode *pnd = dynamic_cast<AttributeNode*>(nd->parent());
-			ValueAttributeNode *vnd = dynamic_cast<ValueAttributeNode*>(nd->parent());
-			if(vnd) {
-				// set array value
-				QVariantList arr;
-				for (int i = 0; i < vnd->rowCount(); ++i) {
-					ValueAttributeNode *chnd = dynamic_cast<ValueAttributeNode*>(vnd->child(i));
-					SHV_ASSERT(chnd != nullptr, "Bad child.", return false);
-					if(i == ix.row())
-						arr << chnd->fromEditorValue(val);
-					else
-						arr << chnd->value();
+		if(ix.column() == ColParams) {
+			std::string cpon = val.toString().toStdString();
+			cp::RpcValue params;
+			if(!cpon.empty()) {
+				try {
+					std::istringstream is(cpon);
+					cp::CponReader rd(is);
+					rd >> params;
+					if(!m_shvTreeNodeItem.isNull()) {
+						m_shvTreeNodeItem->setMethodParams(ix.row(), params);
+						loadRow(ix.row());
+						return true;
+					}
 				}
-				val_to_set = arr;
-				pnd = dynamic_cast<AttributeNode*>(vnd->parent());
+				catch (cp::CponReader::ParseException &e) {
+					shvError() << "error parsing params:" << e.mesage();
+				}
 			}
-			else {
-				val_to_set = nd->fromEditorValue(val_to_set);
-			}
-			/*
-			SHV_ASSERT(pnd != nullptr, "Bad parent, should be type of AttributeNode.", return false);
-			qfopcua::NodeId ndid = pnd->attributesModel()->nodeId();
-			int type = pnd->value().userType();
-			shvInfo() << ndid.toString() << "retyping" << val_to_set << "to node type:" << QMetaType::typeName(pnd->value().userType());
-			val_to_set.convert(type);
-			shvInfo() << "retyped" << val_to_set;
-			ret = m_client->setAttribute(ndid, pnd->attributeId(), val_to_set);
-			if(ret) {
-				pnd->load(true);
-			}
-			else {
-				qfError() << "Set attribute error:" << m_client->errorString();
-			}
-			*/
 		}
 	}
-	return ret;
+	return false;
 }
-#endif
+
 QVariant AttributesModel::headerData(int section, Qt::Orientation o, int role) const
 {
 	QVariant ret;

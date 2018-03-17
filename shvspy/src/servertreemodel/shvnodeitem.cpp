@@ -199,6 +199,14 @@ void ShvNodeItem::loadMethods()
 	//emitDataChanged();
 }
 
+void ShvNodeItem::setMethodParams(int method_ix, const shv::chainpack::RpcValue &params)
+{
+	if(method_ix < 0 || method_ix >= m_methods.count())
+		return;
+	ShvMetaMethod &mtd = m_methods[method_ix];
+	mtd.params = params;
+}
+
 void ShvNodeItem::callMethod(int method_ix)
 {
 	//const QVector<ShvMetaMethod> &mm = m_methods();

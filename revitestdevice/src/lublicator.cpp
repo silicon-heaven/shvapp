@@ -67,7 +67,7 @@ shv::chainpack::RpcValue Lublicator::propertyValue(const std::string &property_n
 		return cp::RpcValue();
 	return it->second;
 }
-/*
+
 bool Lublicator::setPropertyValue(const std::string &property_name, const shv::chainpack::RpcValue &val)
 {
 	if(property_name == S_STATUS)
@@ -114,7 +114,7 @@ bool Lublicator::setPropertyValue(const std::string &property_name, const shv::c
 
 	return true;
 }
-*/
+
 Revitest::Revitest(QObject *parent)
 	: QObject(parent)
 {
@@ -171,40 +171,14 @@ void Revitest::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 				else if(method == cp::Rpc::METH_GET) {
 					result = lubl->propertyValue(path_rest);
 				}
+				else if(method == cp::Rpc::METH_SET) {
+					result = lubl->setPropertyValue(path_rest, rq.params());
+				}
 				else {
 					SHV_EXCEPTION("Invalid method: " + method + " called for node: " + path);
 				}
 
 			}
-			/*
-			std::vector<shv::core::StringView> path = shv::core::StringView(str_path).split('/');
-			//static const std::vector<std::string> odpojovace_path = shv::core::String::split(ODPOJOVACE_PATH, '/');
-			auto lublicator_for_path = [this](const std::vector<std::string> &path) -> Lublicator*
-			{
-				if(path.size() < 1)
-					SHV_EXCEPTION("invalid path");
-				shv::iotqt::ShvNode *nd = m_devices->cd(path[0]);
-				Lublicator *ret = qobject_cast<Lublicator*>(nd);
-				if(!ret)
-					SHV_EXCEPTION("invalid path: " + path[0]);
-				return ret;
-			};
-			if(is_set) {
-				//if(!shv::core::String::startsWith(str_path, ODPOJOVACE_PATH))
-				//	SHV_EXCEPTION("cannot write on path:" + str_path);
-				if(path.size() < 2)
-					SHV_EXCEPTION("cannot write on path:" + str_path);
-				Lublicator *lubl = lublicator_for_path(path);
-				cp::RpcValue val = rq.params();
-				std::string property_name = path[1];
-				//bool ok = lubl->setPropertyValue(property_name, val);
-				//if(!ok)
-				//	SHV_EXCEPTION("cannot write property value on path:" + str_path);
-				result = true;
-			}
-			else if(is_get) {
-			}
-			*/
 		}
 		catch(shv::core::Exception &e) {
 			rsp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodInvocationException, e.message()));
