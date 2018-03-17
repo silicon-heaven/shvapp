@@ -33,6 +33,10 @@ MainWindow::MainWindow(QWidget *parent) :
 
 	ui->tblAttributes->setModel(TheApp::instance()->attributesModel());
 	ui->tblAttributes->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
+	connect(ui->tblAttributes, &QTableView::activated, [this](const QModelIndex &ix) {
+		if(ix.column() == AttributesModel::ColBtRun)
+			TheApp::instance()->attributesModel()->callMethod(ix.row());
+	});
 
 	//ui->tblSubscriptions->setModel(TheApp::instance()->subscriptionsModel());
 	{

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <shv/core/utils.h>
+#include <shv/chainpack/rpcmessage.h>
+#include <shv/chainpack/rpcvalue.h>
 
 #include <QObject>
 #include <QVector>
@@ -8,13 +10,21 @@
 class ShvBrokerNodeItem;
 class ServerTreeModel;
 
-namespace shv { namespace chainpack { class RpcMessage; } }
+//namespace shv { namespace chainpack { class RpcMessage; class RpcResponse; } }
 
-class ShvMetaMethod
+struct ShvMetaMethod
 {
-	SHV_FIELD_IMPL(std::string, n, N, ame)
+	std::string method;
+	shv::chainpack::RpcValue params;
+	shv::chainpack::RpcResponse response;
+	unsigned rpcRequestId = 0;
+	/*
+	SHV_FIELD_IMPL(std::string, m, M, ethodName)
 	SHV_FIELD_IMPL(std::string, p, P, arams)
 	SHV_FIELD_IMPL(std::string, r, R, esult)
+	SHV_FIELD_IMPL(std::string, e, E, rror)
+	SHV_FIELD_IMPL2(unsigned, r, R, pcRequestId, 0)
+	*/
 };
 
 class ShvNodeItem : public QObject
@@ -42,6 +52,7 @@ public:
 	std::string shvPath() const;
 
 	const QVector<ShvMetaMethod>& methods() const {return m_methods;}
+	void callMethod(int method_ix);
 
 	void loadChildren();
 	bool isChildrenLoaded() const {return m_childrenLoaded;}
@@ -52,6 +63,8 @@ public:
 	bool isMethodsLoaded() const {return m_methodsLoaded;}
 	bool isMethodsLoading() const {return m_loadMethodsRqId > 0;}
 	Q_SIGNAL void methodsLoaded();
+
+	Q_SIGNAL void rpcMethodCallFinished(int method_ix);
 
 	void processRpcMessage(const shv::chainpack::RpcMessage &msg);
 protected:

@@ -3,7 +3,8 @@
 #include "servertreemodel.h"
 
 #include <shv/iotqt/rpc/clientconnection.h>
-//#include <qfopcua/datavalue.h>
+#include <shv/chainpack/cponreader.h>
+#include <shv/chainpack/cponwriter.h>
 
 #include <shv/core/assert.h>
 
@@ -147,10 +148,21 @@ void ShvNodeItem::processRpcMessage(const shv::chainpack::RpcMessage &msg)
 			m_methods.clear();
 			for(const cp::RpcValue &v : resp.result().toList()) {
 				ShvMetaMethod mm;
-				mm.setName(v.toString());
+				mm.method = v.toString();
 				m_methods.push_back(mm);
 			}
 			emit methodsLoaded();
+		}
+		else {
+			for (int i = 0; i < m_methods.count(); ++i) {
+				ShvMetaMethod &mtd = m_methods[i];
+				if(mtd.rpcRequestId == rqid) {
+					mtd.rpcRequestId = 0;
+					mtd.response = resp;
+					emit rpcMethodCallFinished(i);
+					break;
+				}
+			}
 		}
 	}
 }
@@ -186,20 +198,32 @@ void ShvNodeItem::loadMethods()
 	m_loadMethodsRqId = srv_nd->callShvMethod(shvPath(), "dir", cp::RpcValue());
 	//emitDataChanged();
 }
-/*
-QVariant ShvNodeItem::attribute(qfopcua::AttributeId::Enum attr_id) const
+
+void ShvNodeItem::callMethod(int method_ix)
 {
-	shvLogFuncFrame() << "att_id:" << qfopcua::AttributeId::toString(attr_id);
-	if(!m_attribudes.contains(attr_id)) {
-		ServerNode *srvnd = serverNode();
-		qfopcua::DataValue dv = srvnd->clientConnection()->getAttribute(m_nodeId, attr_id);
-		qfDebug() << dv.toString();
-		m_attribudes[attr_id] = dv.value();
+	//const QVector<ShvMetaMethod> &mm = m_methods();
+	if(method_ix < 0 || method_ix >= m_methods.count())
+		return;
+	ShvMetaMethod &mtd = m_methods[method_ix];
+	if(mtd.method.empty())
+		return;
+	/*
+	cp::RpcValue params;
+	if(!mtd.params.empty()) {
+		std::istringstream is(mtd.params);
+		try {
+			cp::CponReader rd(is);
+			rd >> params;
+		}
+		catch (cp::CponReader::ParseException &e) {
+			shvError() << "error parsing params:" << e.mesage();
+		}
 	}
-	QVariant ret = m_attribudes.value(attr_id);
-	return ret;
+	*/
+	mtd.response = cp::RpcResponse();
+	ShvBrokerNodeItem *srv_nd = serverNode();
+	mtd.rpcRequestId = srv_nd->callShvMethod(shvPath(), mtd.method, mtd.params);
 }
-*/
 
 ShvNodeRootItem::ShvNodeRootItem(ServerTreeModel *parent)
 	: Super(parent, std::string(), nullptr)

@@ -3,6 +3,7 @@
 #include "../theapp.h"
 #include "../servertreemodel/shvnodeitem.h"
 
+#include <shv/chainpack/cponwriter.h>
 #include <shv/chainpack/rpcvalue.h>
 #include <shv/core/utils.h>
 #include <shv/coreqt/log.h>
@@ -11,6 +12,9 @@
 #include <QSettings>
 #include <QJsonDocument>
 #include <QJsonParseError>
+#include <QIcon>
+
+namespace cp = shv::chainpack;
 
 AttributesModel::AttributesModel(QObject *parent)
 	: Super(parent)
@@ -60,8 +64,39 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 
 	switch (role) {
 	case Qt::DisplayRole: {
-		if(ix.column() == ColMethodName)
-			return QString::fromStdString(mms[ix.row()].name());
+		switch (ix.column()) {
+		case ColMethodName:
+		case ColParams:
+		case ColResult:
+			return m_rows.value(ix.row()).value(ix.column());
+		default:
+			break;
+		}
+		/*
+		if(resp.isError()) {
+			mtd.result.clear();
+			mtd.error = resp.error().toString();
+		}
+		else {
+			std::ostringstream os(mtd.result);
+			cp::CponWriter wr(os);
+			wr << resp.result();
+			mtd.error.clear();
+		}
+		*/
+		break;
+	}
+	case Qt::DecorationRole: {
+		if(ix.column() == ColBtRun) {
+			static QIcon ico_run = QIcon(QStringLiteral(":/shvspy/images/run"));
+			return ico_run;
+		}
+		break;
+	}
+	case Qt::ToolTipRole: {
+		if(ix.column() == ColBtRun) {
+			return tr("Call remote method");
+		}
 		break;
 	}
 	default:
@@ -155,18 +190,92 @@ QVariant AttributesModel::headerData(int section, Qt::Orientation o, int role) c
 
 void AttributesModel::load(ShvNodeItem *nd)
 {
+	m_rows.clear();
 	if(!m_shvTreeNodeItem.isNull())
 		m_shvTreeNodeItem->disconnect(this);
 	m_shvTreeNodeItem = nd;
 	if(nd) {
-		if(!nd->checkMethodsLoaded())
-			connect(nd, &ShvNodeItem::methodsLoaded, this, &AttributesModel::onMethodsLoaded, Qt::UniqueConnection);
+		connect(nd, &ShvNodeItem::methodsLoaded, this, &AttributesModel::onMethodsLoaded, Qt::UniqueConnection);
+		connect(nd, &ShvNodeItem::rpcMethodCallFinished, this, &AttributesModel::onRpcMethodCallFinished, Qt::UniqueConnection);
+		nd->checkMethodsLoaded();
 	}
-	emit layoutChanged();
+	loadRows();
+}
+
+void AttributesModel::callMethod(int method_ix)
+{
+	if(m_shvTreeNodeItem.isNull())
+		return;
+	m_shvTreeNodeItem->callMethod(method_ix);
 }
 
 void AttributesModel::onMethodsLoaded()
 {
+	loadRows();
+}
+
+void AttributesModel::onRpcMethodCallFinished(int method_ix)
+{
+	loadRow(method_ix);
+	QModelIndex ix1 = index(method_ix, 0);
+	QModelIndex ix2 = index(method_ix, ColCnt - 1);
+	emit dataChanged(ix1, ix2);
+}
+
+void AttributesModel::loadRow(int method_ix)
+{
+	if(method_ix < 0 || method_ix >= m_rows.count() || m_shvTreeNodeItem.isNull())
+		return;
+	const QVector<ShvMetaMethod> &mm = m_shvTreeNodeItem->methods();
+	const ShvMetaMethod & mtd = mm[method_ix];
+	RowVals &rv = m_rows[method_ix];
+	rv[ColMethodName] = QString::fromStdString(mtd.method);
+	if(mtd.params.isValid()) {
+		std::ostringstream os;
+		cp::CponWriter wr(os);
+		wr << mtd.params;
+		rv[ColParams] = QString::fromStdString(os.str());
+	}
+	if(mtd.response.isError()) {
+		rv[ColResult] = QString::fromStdString(mtd.response.error().toString());
+	}
+	else if(mtd.response.result().isValid()) {
+		std::ostringstream os;
+		cp::CponWriter wr(os);
+		wr << mtd.response.result();
+		rv[ColResult] = QString::fromStdString(os.str());
+	}
+}
+
+void AttributesModel::loadRows()
+{
+	m_rows.clear();
+	if(!m_shvTreeNodeItem.isNull()) {
+		const QVector<ShvMetaMethod> &mm = m_shvTreeNodeItem->methods();
+		for (int i = 0; i < mm.count(); ++i) {
+			const ShvMetaMethod & mtd = mm[i];
+			RowVals rv;
+			rv.resize(ColCnt);
+			m_rows.insert(m_rows.count(), rv);
+			loadRow(m_rows.count() - 1);
+			rv[ColMethodName] = QString::fromStdString(mtd.method);
+			{
+				std::ostringstream os;
+				cp::CponWriter wr(os);
+				wr << mtd.params;
+				rv[ColParams] = QString::fromStdString(os.str());
+			}
+			if(mtd.response.isError()) {
+				rv[ColResult] = QString::fromStdString(mtd.response.error().toString());
+			}
+			else {
+				std::ostringstream os;
+				cp::CponWriter wr(os);
+				wr << mtd.response.result();
+				rv[ColResult] = QString::fromStdString(os.str());
+			}
+		}
+	}
 	emit layoutChanged();
 }
 /*

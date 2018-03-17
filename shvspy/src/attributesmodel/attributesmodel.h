@@ -15,7 +15,7 @@ class AttributesModel : public QAbstractTableModel
 private:
 	typedef QAbstractTableModel Super;
 public:
-	enum Columns {ColMethodName = 0, ColParams, ColResult, ColCnt};
+	enum Columns {ColMethodName = 0, ColParams, ColResult, ColBtRun, ColCnt};
 public:
 	AttributesModel(QObject *parent = nullptr);
 	~AttributesModel() Q_DECL_OVERRIDE;
@@ -28,9 +28,15 @@ public:
 	QVariant headerData ( int section, Qt::Orientation o, int role = Qt::DisplayRole ) const Q_DECL_OVERRIDE;
 
 	void load(ShvNodeItem *nd);
+	void callMethod(int row);
 private:
 	//void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	void onMethodsLoaded();
+	void onRpcMethodCallFinished(int method_ix);
+	void loadRow(int method_ix);
+	void loadRows();
 private:
 	QPointer<ShvNodeItem> m_shvTreeNodeItem;
+	using RowVals = QVector<QVariant>;
+	QVector<RowVals> m_rows;
 };
