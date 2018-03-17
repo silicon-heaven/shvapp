@@ -140,6 +140,18 @@ void ShvNodeItem::processRpcMessage(const shv::chainpack::RpcMessage &msg)
 			}
 			emitDataChanged();
 		}
+		else if(rqid == m_loadMethodsRqId) {
+			m_loadMethodsRqId = 0;
+			m_methodsLoaded = true;
+
+			m_methods.clear();
+			for(const cp::RpcValue &v : resp.result().toList()) {
+				ShvMetaMethod mm;
+				mm.setName(v.toString());
+				m_methods.push_back(mm);
+			}
+			emit methodsLoaded();
+		}
 	}
 }
 
@@ -154,8 +166,25 @@ void ShvNodeItem::loadChildren()
 {
 	m_childrenLoaded = false;
 	ShvBrokerNodeItem *srv_nd = serverNode();
-	m_loadChildrenRqId = srv_nd->requestLoadChildren(shvPath());
+	m_loadChildrenRqId = srv_nd->callShvMethod(shvPath(), "ls", cp::RpcValue());
 	emitDataChanged();
+}
+
+bool ShvNodeItem::checkMethodsLoaded()
+{
+	if(!isMethodsLoaded() && !isMethodsLoading()) {
+		loadMethods();
+		return false;
+	}
+	return true;
+}
+
+void ShvNodeItem::loadMethods()
+{
+	m_methodsLoaded = false;
+	ShvBrokerNodeItem *srv_nd = serverNode();
+	m_loadMethodsRqId = srv_nd->callShvMethod(shvPath(), "dir", cp::RpcValue());
+	//emitDataChanged();
 }
 /*
 QVariant ShvNodeItem::attribute(qfopcua::AttributeId::Enum attr_id) const

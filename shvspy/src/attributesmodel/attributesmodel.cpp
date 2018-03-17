@@ -1,14 +1,9 @@
 #include "attributesmodel.h"
-#include "attributenode.h"
-#include "nodeidattributenode.h"
-#include "datavalueattributenode.h"
-#include "valueattributenode.h"
-#include "accesslevelattributenode.h"
-#include "nodeclassattributenode.h"
-#include "qualifiednameattributenode.h"
 
 #include "../theapp.h"
+#include "../servertreemodel/shvnodeitem.h"
 
+#include <shv/chainpack/rpcvalue.h>
 #include <shv/core/utils.h>
 #include <shv/coreqt/log.h>
 #include <shv/core/assert.h>
@@ -26,8 +21,18 @@ AttributesModel::~AttributesModel()
 {
 }
 
+int AttributesModel::rowCount(const QModelIndex &parent) const
+{
+	Q_UNUSED(parent)
+	if(m_shvTreeNodeItem.isNull())
+		return 0;
+	return m_shvTreeNodeItem->methods().count();
+}
+
 Qt::ItemFlags AttributesModel::flags(const QModelIndex &ix) const
 {
+	Qt::ItemFlags ret = Super::flags(ix);
+	/*
 	bool editable = false;
 	if(ix.column() == 1) {
 		ValueAttributeNode *nd = dynamic_cast<ValueAttributeNode*>(itemFromIndex(ix.sibling(ix.row(), 0)));
@@ -36,18 +41,34 @@ Qt::ItemFlags AttributesModel::flags(const QModelIndex &ix) const
 			//editable = (m_userAccessLevel & qfopcua::AccessLevel::CurrentWrite);
 		}
 	}
-	Qt::ItemFlags ret = Super::flags(ix);
 	if(editable)
 		ret |= Qt::ItemIsEditable;
 	else {
 		ret &= ~Qt::ItemIsEditable;
 	}
+	*/
 	return ret;
 }
 
 QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 {
-	QVariant ret;
+	if(m_shvTreeNodeItem.isNull())
+		return QVariant();
+	const QVector<ShvMetaMethod> &mms = m_shvTreeNodeItem->methods();
+	if(ix.row() < 0 || ix.row() >= mms.count())
+		return QVariant();
+
+	switch (role) {
+	case Qt::DisplayRole: {
+		if(ix.column() == ColMethodName)
+			return QString::fromStdString(mms[ix.row()].name());
+		break;
+	}
+	default:
+		break;
+	}
+	return QVariant();
+	/*
 	AttributeNodeBase *nd = dynamic_cast<AttributeNodeBase*>(itemFromIndex(ix.sibling(ix.row(), 0)));
 	SHV_ASSERT(nd != nullptr, QString("Internal error ix(%1, %2) %3").arg(ix.row()).arg(ix.column()).arg(ix.internalId()), return QVariant());
 	if(ix.column() == 0) {
@@ -66,9 +87,9 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 		else
 			ret = Super::data(ix, role);
 	}
-	return ret;
+	*/
 }
-
+#if 0
 bool AttributesModel::setData(const QModelIndex &ix, const QVariant &val, int role)
 {
 	shvLogFuncFrame() << val.toString() << val.typeName() << "role:" << role;
@@ -115,99 +136,52 @@ bool AttributesModel::setData(const QModelIndex &ix, const QVariant &val, int ro
 	}
 	return ret;
 }
-
+#endif
 QVariant AttributesModel::headerData(int section, Qt::Orientation o, int role) const
 {
 	QVariant ret;
 	if(o == Qt::Horizontal) {
 		if(role == Qt::DisplayRole) {
-			if(section == 0)
-				ret = tr("Attribute");
-			else if(section == 1)
-				ret = tr("Value");
+			if(section == ColMethodName)
+				ret = tr("Method");
+			else if(section == ColParams)
+				ret = tr("Params");
+			else if(section == ColResult)
+				ret = tr("Result");
 		}
 	}
 	return ret;
 }
-/*
-void AttributesModel::setNode(qfopcua::Client *client, const qfopcua::NodeId &node_id)
-{
-	m_client = client;
-	m_nodeId = node_id;
-	load();
-}
 
-qfopcua::DataValue AttributesModel::attribute(qfopcua::AttributeId::Enum attr_id) const
+void AttributesModel::load(ShvNodeItem *nd)
 {
-	//shvLogFuncFrame() << "att_id:" << qfopcua::AttributeId::toString(attr_id);
-	qfopcua::DataValue ret;
-	if(!m_client.isNull())
-		ret = m_client->getAttribute(m_nodeId, attr_id);
-	return ret;
-}
-*/
-void AttributesModel::load()
-{
-	clear();
-	/*
-	if(m_nodeId.isNull())
-		return;
-	appendNode(createNode(qfopcua::AttributeId::NodeId));
-	appendNode(createNode(qfopcua::AttributeId::NodeClass));
-	appendNode(createNode(qfopcua::AttributeId::BrowseName));
-	appendNode(createNode(qfopcua::AttributeId::DisplayName));
-	appendNode(createNode(qfopcua::AttributeId::Description));
-	appendNode(createNode(qfopcua::AttributeId::WriteMask));
-	appendNode(createNode(qfopcua::AttributeId::UserWriteMask));
-	appendNode(createNode(qfopcua::AttributeId::Value));
-	appendNode(createNode(qfopcua::AttributeId::DataType));
-	appendNode(createNode(qfopcua::AttributeId::AccessLevel));
-	appendNode(createNode(qfopcua::AttributeId::UserAccessLevel));
-	*/
-}
-
-void AttributesModel::appendNode(AttributeNode *nd, bool load)
-{
-	QList<QStandardItem*> lst;
-	lst << nd;
-	lst << new QStandardItem();
-	invisibleRootItem()->appendRow(lst);
-	if(load)
-		nd->load(true);
-	//if(nd->attributeId() == qfopcua::AttributeId::UserAccessLevel) {
-	//	m_userAccessLevel = nd->value().toInt();
-	//}
-}
-/*
-AttributeNode *AttributesModel::createNode(qfopcua::AttributeId::Enum attr_id)
-{
-	AttributeNode *ret;
-	switch(attr_id) {
-	case qfopcua::AttributeId::NodeId:
-	case qfopcua::AttributeId::DataType:
-		ret = new NodeIdAttributeNode(attr_id);
-		break;
-	case qfopcua::AttributeId::Value:
-		ret = new DataValueAttributeNode(attr_id);
-		break;
-	case qfopcua::AttributeId::AccessLevel:
-	case qfopcua::AttributeId::UserAccessLevel:
-		ret = new AccessLevelAttributeNode(attr_id);
-		break;
-	case qfopcua::AttributeId::NodeClass:
-		ret = new NodeClassAttributeNode(attr_id);
-		break;
-	case qfopcua::AttributeId::BrowseName:
-		ret = new QualifiedNameAttributeNode(attr_id);
-		break;
-	case qfopcua::AttributeId::DisplayName:
-	case qfopcua::AttributeId::Description:
-	case qfopcua::AttributeId::WriteMask:
-	case qfopcua::AttributeId::UserWriteMask:
-	default:
-		ret = new AttributeNode(attr_id);
-		break;
+	if(!m_shvTreeNodeItem.isNull())
+		m_shvTreeNodeItem->disconnect(this);
+	m_shvTreeNodeItem = nd;
+	if(nd) {
+		if(!nd->checkMethodsLoaded())
+			connect(nd, &ShvNodeItem::methodsLoaded, this, &AttributesModel::onMethodsLoaded, Qt::UniqueConnection);
 	}
-	return ret;
+	emit layoutChanged();
+}
+
+void AttributesModel::onMethodsLoaded()
+{
+	emit layoutChanged();
+}
+/*
+void AttributesModel::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
+{
+	if(msg.isResponse()) {
+		cp::RpcResponse resp(msg);
+		if(resp.requestId() == m_rpcRqId) {
+			for(const cp::RpcValue &val : resp.result().toList()) {
+				appendRow(QList<QStandardItem*>{
+							  new QStandardItem(QString::fromStdString(val.toString())),
+							  new QStandardItem("<not called>"),
+						  });
+			}
+		}
+	}
 }
 */

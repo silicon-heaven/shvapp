@@ -4,14 +4,6 @@ HEADERS += \
 	$$PWD/theapp.h \
 	$$PWD/servertreemodel/servertreemodel.h \
 	$$PWD/attributesmodel/attributesmodel.h \
-	$$PWD/attributesmodel/attributenode.h \
-    $$PWD/attributesmodel/attributenodebase.h \
-    $$PWD/attributesmodel/nodeidattributenode.h \
-    $$PWD/attributesmodel/qualifiednameattributenode.h \
-    $$PWD/attributesmodel/datavalueattributenode.h \
-    $$PWD/attributesmodel/valueattributenode.h \
-    $$PWD/attributesmodel/accesslevelattributenode.h \
-    $$PWD/attributesmodel/nodeclassattributenode.h \
     $$PWD/servertreeview.h \
     $$PWD/subscriptionsmodel/subscriptionsmodel.h \
     $$PWD/dlgsubscriptionparameters.h \
@@ -27,14 +19,6 @@ SOURCES += \
 	$$PWD/theapp.cpp \
 	$$PWD/servertreemodel/servertreemodel.cpp \
 	$$PWD/attributesmodel/attributesmodel.cpp \
-	$$PWD/attributesmodel/attributenode.cpp \
-    $$PWD/attributesmodel/attributenodebase.cpp \
-    $$PWD/attributesmodel/nodeidattributenode.cpp \
-    $$PWD/attributesmodel/qualifiednameattributenode.cpp \
-    $$PWD/attributesmodel/datavalueattributenode.cpp \
-    $$PWD/attributesmodel/valueattributenode.cpp \
-    $$PWD/attributesmodel/accesslevelattributenode.cpp \
-    $$PWD/attributesmodel/nodeclassattributenode.cpp \
     $$PWD/servertreeview.cpp \
     $$PWD/subscriptionsmodel/subscriptionsmodel.cpp \
     $$PWD/dlgsubscriptionparameters.cpp \

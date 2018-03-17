@@ -2,10 +2,11 @@
 
 #include "shvnodeitem.h"
 
+//#include <shv/chainpack/rpcvalue.h>
 
 #include <map>
 
-namespace shv { namespace chainpack { class RpcMessage; } }
+namespace shv { namespace chainpack { class RpcValue; class RpcMessage; } }
 namespace shv { namespace iotqt { namespace rpc { class ClientConnection; } } }
 
 class ShvBrokerNodeItem : public ShvNodeItem
@@ -32,7 +33,7 @@ public:
 
 	shv::iotqt::rpc::ClientConnection *clientConnection();
 
-	unsigned requestLoadChildren(const std::string &path);
+	unsigned callShvMethod(const std::string &shv_path, const std::string &method, const shv::chainpack::RpcValue &params);
 
 	ShvNodeItem *findNode(const std::string &path, std::string *path_rest = nullptr);
 private:

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <shv/core/utils.h>
+
 #include <QObject>
 #include <QVector>
 
@@ -7,6 +9,13 @@ class ShvBrokerNodeItem;
 class ServerTreeModel;
 
 namespace shv { namespace chainpack { class RpcMessage; } }
+
+class ShvMetaMethod
+{
+	SHV_FIELD_IMPL(std::string, n, N, ame)
+	SHV_FIELD_IMPL(std::string, p, P, arams)
+	SHV_FIELD_IMPL(std::string, r, R, esult)
+};
 
 class ShvNodeItem : public QObject
 {
@@ -30,10 +39,19 @@ public:
 	unsigned modelId() const {return m_treeModelId;}
 
 	virtual QVariant data(int role = Qt::UserRole + 1) const;
+	std::string shvPath() const;
+
+	const QVector<ShvMetaMethod>& methods() const {return m_methods;}
+
 	void loadChildren();
 	bool isChildrenLoaded() const {return m_childrenLoaded;}
 	bool isChildrenLoading() const {return m_loadChildrenRqId > 0;}
-	std::string shvPath() const;
+
+	bool checkMethodsLoaded();
+	void loadMethods();
+	bool isMethodsLoaded() const {return m_methodsLoaded;}
+	bool isMethodsLoading() const {return m_loadMethodsRqId > 0;}
+	Q_SIGNAL void methodsLoaded();
 
 	void processRpcMessage(const shv::chainpack::RpcMessage &msg);
 protected:
@@ -44,6 +62,9 @@ protected:
 	bool m_childrenLoaded = false;
 	unsigned m_loadChildrenRqId = 0;
 	QVector<ShvNodeItem*> m_children;
+	QVector<ShvMetaMethod> m_methods;
+	bool m_methodsLoaded = false;
+	unsigned m_loadMethodsRqId = 0;
 	unsigned m_treeModelId = 0;
 };
 

@@ -29,9 +29,10 @@ MainWindow::MainWindow(QWidget *parent) :
 	setWindowIcon(QIcon(":/shvspy/images/qfopcuaspy-256x256.png"));
 
 	ui->treeServers->setModel(TheApp::instance()->serverTreeModel());
-	connect(ui->treeServers->selectionModel(), &QItemSelectionModel::currentChanged, this, &MainWindow::onCurrentSelectionChanged);
+	connect(ui->treeServers->selectionModel(), &QItemSelectionModel::currentChanged, this, &MainWindow::onShvTreeViewCurrentSelectionChanged);
 
-	ui->treeAttributes->setModel(TheApp::instance()->attributesModel());
+	ui->tblAttributes->setModel(TheApp::instance()->attributesModel());
+	ui->tblAttributes->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
 
 	//ui->tblSubscriptions->setModel(TheApp::instance()->subscriptionsModel());
 	{
@@ -197,30 +198,21 @@ void MainWindow::openNode(const QModelIndex &ix)
 		bnd->open();
 }
 
-void MainWindow::onCurrentSelectionChanged(const QModelIndex &curr_ix, const QModelIndex &prev_ix)
+void MainWindow::onShvTreeViewCurrentSelectionChanged(const QModelIndex &curr_ix, const QModelIndex &prev_ix)
 {
-	Q_UNUSED(curr_ix)
 	Q_UNUSED(prev_ix)
-	/*
-	QStandardItem *it = TheApp::instance()->serverTreeModel()->itemFromIndex(curr_ix);
+	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(curr_ix);
 	{
-		ShvNodeItem *nd = dynamic_cast<ShvNodeItem*>(it);
-		ServerNode *snd = dynamic_cast<ServerNode*>(nd);
-		qfopcua::NodeId node_id;
-		if(nd && !snd) {
+		ShvBrokerNodeItem *bnd = qobject_cast<ShvBrokerNodeItem*>(nd);
+		AttributesModel *m = TheApp::instance()->attributesModel();
+		if(bnd) {
 			// hide attributes for server nodes
-			node_id = nd->nodeId();
+			m->load(nullptr);
 		}
-		TheApp::instance()->attributesModel()->setNode(nd->serverNode()->clientConnection(), node_id);
-		ui->treeAttributes->expandAll();
-		ui->treeAttributes->header()->resizeSections(QHeaderView::ResizeToContents);
-
-		if(!snd && nd) {
-			// preload children of clicked node
-			nd->loadChildren(false);
+		else {
+			m->load(nd);
 		}
 	}
-	*/
 }
 /*
 void MainWindow::onSubscribedDataChanged(const qfopcua::DataValue &data_value, int att_id, const qfopcua::NodeId &node_id, qfopcua::Subscription::MonitoredItemId handle, qfopcua::Subscription::Id subscription_id)

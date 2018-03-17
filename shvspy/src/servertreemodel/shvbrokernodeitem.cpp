@@ -169,11 +169,11 @@ ShvNodeItem* ShvBrokerNodeItem::findNode(const std::string &path, std::string *p
 	return ret;
 }
 
-unsigned ShvBrokerNodeItem::requestLoadChildren(const std::string &path)
+unsigned ShvBrokerNodeItem::callShvMethod(const std::string &shv_path, const std::string &method, const cp::RpcValue &params)
 {
 	shv::iotqt::rpc::ClientConnection *cc = clientConnection();
-	unsigned rqid = cc->callShvMethod(path, "ls");
-	m_runningRpcRequests[rqid].nodePath = path;
+	unsigned rqid = cc->callShvMethod(shv_path, method, params);
+	m_runningRpcRequests[rqid].nodePath = shv_path;
 	return rqid;
 }
 
