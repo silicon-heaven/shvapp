@@ -14,31 +14,40 @@
 ServerTreeModel::ServerTreeModel(QObject *parent)
 	: Super(parent)
 {
-
+	m_invisibleRoot = new ShvNodeRootItem(this);
 }
 
 ServerTreeModel::~ServerTreeModel()
 {
+	delete m_invisibleRoot;
+}
+
+QModelIndex ServerTreeModel::index(int row, int column, const QModelIndex &parent) const
+{
+	ShvNodeItem *pnd = itemFromIndex(parent);
+	if(!pnd || column > 0)
+		return QModelIndex();
+	if(row < pnd->childCount()) {
+		ShvNodeItem *nd = pnd->childAt(row);
+		return createIndex(row, 0, nd->modelId());
+	}
+	return QModelIndex();
+}
+
+QModelIndex ServerTreeModel::parent(const QModelIndex &child) const
+{
+	ShvNodeItem *nd = itemFromIndex(child);
+	if(nd)
+		return indexFromItem(nd->parentNode());
+	return QModelIndex();
 }
 
 ShvBrokerNodeItem *ServerTreeModel::createConnection(const QVariantMap &params)
 {
-	/*
-	static int seq_no = 0;
-
-	int oid = params.value("oid").toInt();
-	if(oid == 0) {
-		oid = ++seq_no;
-	}
-	else {
-		if(oid > seq_no)
-			seq_no = oid;
-	}
-	*/
-	ShvBrokerNodeItem *ret = new ShvBrokerNodeItem(params.value("name").toString().toStdString());
+	ShvBrokerNodeItem *ret = new ShvBrokerNodeItem(this, params.value("name").toString().toStdString());
 	ret->setServerProperties(params);
-	//ret->setOid(oid);
-	invisibleRootItem()->appendRow(ret);
+	ShvNodeRootItem *root = invisibleRootItem();
+	root->appendChild(ret);
 	return ret;
 }
 /*
@@ -57,54 +66,83 @@ ServerNode *ServerTreeModel::connectionForOid(int oid)
 	return ret;
 }
 */
-bool ServerTreeModel::hasChildren(const QModelIndex &parent) const
-{
-	QStandardItem *par_it = itemFromIndex(parent);
-	ShvNodeItem *par_nd = dynamic_cast<ShvNodeItem*>(par_it);
-	ShvBrokerNodeItem *par_brnd = dynamic_cast<ShvBrokerNodeItem*>(par_nd);
-	//shvDebug() << "ServerTreeModel::hasChildren, item:" << par_it << "parent model index valid:" << parent.isValid();
-	if(par_nd && !par_brnd) {
-		if(!par_nd->isChildrenLoaded() && !par_nd->isChildrenLoading()) {
-			par_nd->loadChildren();
-			return true;
-		}
-	}
-	return Super::hasChildren(parent);
-}
-/*
-int ServerTreeModel::rowCount(const QModelIndex &parent) const
-{
-	QStandardItem *par_it = itemFromIndex(parent);
-	shvDebug() << "ServerTreeModel::rowCount, item:" << par_it << "parent model index valid:" << parent.isValid();
-	ShvNodeItem *par_nd = dynamic_cast<ShvNodeItem*>(par_it);
-	if(par_nd) {
-		if(par_nd->nodeId() == "localhost")
-			par_nd->shvPath();
-		shvDebug() << "\t parent node:" << par_nd << "id:" << par_nd->nodeId() << "path:" << par_nd->shvPath();
-		if(!par_nd->isChildrenLoaded() && !par_nd->isChildrenLoading()) {
-			shvDebug() << "l\t oading" << par_nd->shvPath();
-			par_nd->loadChildren();
-		}
-	}
-	int rcnt = Super::rowCount(parent);
-	shvDebug() << "\t return:" << rcnt;
-	return rcnt;
-}
-*/
 int ServerTreeModel::columnCount(const QModelIndex &parent) const
 {
 	Q_UNUSED(parent);
 	return 1;
 }
 
+bool ServerTreeModel::hasChildren(const QModelIndex &parent) const
+{
+	return rowCount(parent) > 0;
+}
+
+int ServerTreeModel::rowCount(const QModelIndex &parent) const
+{
+	ShvNodeItem *par_nd = itemFromIndex(parent);
+	ShvBrokerNodeItem *par_brnd = qobject_cast<ShvBrokerNodeItem*>(par_nd);
+	//shvDebug() << "ServerTreeModel::rowCount, item:" << par_it << "parent model index valid:" << parent.isValid();
+	//ShvNodeItem *par_nd = dynamic_cast<ShvNodeItem*>(par_it);
+	if(par_brnd || par_nd == invisibleRootItem()) {
+		return par_nd->childCount();
+	}
+	if(par_nd) {
+		//if(par_nd->nodeId() == "localhost")
+		//	par_nd->shvPath();
+		shvDebug() << "\t parent node:" << par_nd << "id:" << par_nd->nodeId() << "path:" << par_nd->shvPath();
+		if(!par_nd->isChildrenLoaded() && !par_nd->isChildrenLoading()) {
+			shvDebug() << "l\t oading" << par_nd->shvPath();
+			par_nd->loadChildren();
+		}
+		return par_nd->childCount();
+	}
+	return 0;
+}
+
 QVariant ServerTreeModel::data(const QModelIndex &ix, int role) const
 {
-	return Super::data(ix, role);
+	ShvNodeItem *nd = itemFromIndex(ix);
+	if(nd)
+		return nd->data(role);
+	return QVariant();
 }
 
 QVariant ServerTreeModel::headerData(int section, Qt::Orientation o, int role) const
 {
-	return Super::headerData(section, o, role);
+	Q_UNUSED(section)
+	if(o == Qt::Horizontal) {
+		if(role == Qt::DisplayRole) {
+			return tr("Node");
+		}
+	}
+	return QVariant();
+}
+
+ShvNodeItem *ServerTreeModel::itemFromIndex(const QModelIndex &ix) const
+{
+	if(!ix.isValid())
+		return m_invisibleRoot;
+	ShvNodeItem *nd = m_nodes.value(ix.internalId());
+	return nd;
+}
+
+QModelIndex ServerTreeModel::indexFromItem(ShvNodeItem *nd) const
+{
+	if(!nd || nd == invisibleRootItem())
+		return QModelIndex();
+	ShvNodeItem *pnd = nd->parentNode();
+	if(!pnd)
+		return QModelIndex();
+	unsigned model_id = nd->modelId();
+	int row;
+	for (row = 0; row < pnd->childCount(); ++row) {
+		ShvNodeItem *cnd = pnd->childAt(row);
+		if(cnd == nd)
+			break;
+	}
+	if(row < pnd->childCount())
+		return createIndex(row, 0, model_id);
+	return QModelIndex();
 }
 
 void ServerTreeModel::loadSettings(const QSettings &settings)
@@ -126,10 +164,10 @@ void ServerTreeModel::loadSettings(const QSettings &settings)
 
 void ServerTreeModel::saveSettings(QSettings &settings)
 {
-	QStandardItem *root = invisibleRootItem();
+	ShvNodeRootItem *root = invisibleRootItem();
 	QVariantList lst;
-	for(int i=0; i<root->rowCount(); i++) {
-		ShvBrokerNodeItem *nd = dynamic_cast<ShvBrokerNodeItem*>(root->child(i));
+	for(int i=0; i<root->childCount(); i++) {
+		ShvBrokerNodeItem *nd = qobject_cast<ShvBrokerNodeItem*>(root->childAt(i));
 		SHV_ASSERT_EX(nd != nullptr, "Internal error");
 		QVariantMap props = nd->serverProperties();
 		props["password"] = QString::fromStdString(TheApp::instance()->crypt().encrypt(props.value("password").toString().toStdString(), 30));

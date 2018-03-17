@@ -29,7 +29,7 @@ protected:
 	Q_SLOT void on_treeServers_doubleClicked(const QModelIndex &ix) {openNode(ix);}
 	Q_SLOT void on_treeServers_enterKeyPressed(const QModelIndex &ix) {openNode(ix);}
 	Q_SLOT void on_treeServers_customContextMenuRequested(const QPoint &pos);
-	Q_SLOT void onCurrentSelectionChanged(const QModelIndex &curr_ix, const QModelIndex &prev_ix);
+	Q_SLOT void onShvTreeViewCurrentSelectionChanged(const QModelIndex &curr_ix, const QModelIndex &prev_ix);
 
 	//Q_SLOT void onSubscribedDataChanged(const qfopcua::DataValue &data_value, int att_id, const qfopcua::NodeId &node_id, qfopcua::Subscription::MonitoredItemId handle, qfopcua::Subscription::Id subscription_id);
 

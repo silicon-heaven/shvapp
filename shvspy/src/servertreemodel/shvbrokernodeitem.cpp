@@ -9,6 +9,7 @@
 
 #include <QApplication>
 #include <QElapsedTimer>
+#include <QIcon>
 #include <QTimer>
 
 namespace cp = shv::chainpack;
@@ -24,8 +25,8 @@ struct ShvBrokerNodeItem::RpcRequestInfo
 	}
 };
 
-ShvBrokerNodeItem::ShvBrokerNodeItem(const std::string &server_name)
-	: Super(server_name)
+ShvBrokerNodeItem::ShvBrokerNodeItem(ServerTreeModel *m, const std::string &server_name)
+	: Super(m, server_name)
 {
 	QTimer *rpc_rq_timeout = new QTimer(this);
 	rpc_rq_timeout->start(5000);
@@ -97,7 +98,6 @@ void ShvBrokerNodeItem::setServerProperties(const QVariantMap &props)
 	cli->setPort(props.value("port").toInt());
 	cli->setUser(props.value("user").toString().toStdString());
 	cli->setPassword(props.value("password").toString().toStdString());
-	emitDataChanged();
 }
 
 void ShvBrokerNodeItem::open()
@@ -115,8 +115,7 @@ void ShvBrokerNodeItem::close()
 	if(m_clientConnection)
 		m_clientConnection->close();
 	m_openStatus = OpenStatus::Disconnected;
-	removeRows(0, rowCount());
-	emitDataChanged();
+	deleteChildren();
 }
 /*
 QString ServerNode::connectionErrorString()
@@ -148,18 +147,12 @@ ShvNodeItem* ShvBrokerNodeItem::findNode(const std::string &path, std::string *p
 	ShvNodeItem *ret = this;
 	shv::core::StringView sv(path);
 	std::vector<shv::core::StringView> id_list = sv.split('/');
-	/*
-	if(id_list.empty()) {
-		if(path_rest)
-			*path_rest = path.substr(node_id.start());
-	}
-	*/
+
 	for(const shv::core::StringView &node_id : id_list) {
 		int i;
-		int row_cnt = ret->rowCount();
+		int row_cnt = ret->childCount();
 		for (i = 0; i < row_cnt; ++i) {
-			QStandardItem *it = ret->child(i);
-			ShvNodeItem *nd = dynamic_cast<ShvNodeItem*>(it);
+			ShvNodeItem *nd = ret->childAt(i);
 			if(nd) {
 				if(node_id == nd->nodeId()) {
 					ret = nd;
@@ -176,11 +169,11 @@ ShvNodeItem* ShvBrokerNodeItem::findNode(const std::string &path, std::string *p
 	return ret;
 }
 
-unsigned ShvBrokerNodeItem::requestLoadChildren(const std::string &path)
+unsigned ShvBrokerNodeItem::callShvMethod(const std::string &shv_path, const std::string &method, const cp::RpcValue &params)
 {
 	shv::iotqt::rpc::ClientConnection *cc = clientConnection();
-	unsigned rqid = cc->callShvMethod(path, "ls");
-	m_runningRpcRequests[rqid].nodePath = path;
+	unsigned rqid = cc->callShvMethod(shv_path, method, params);
+	m_runningRpcRequests[rqid].nodePath = shv_path;
 	return rqid;
 }
 

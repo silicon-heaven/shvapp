@@ -2,13 +2,14 @@
 
 #include "shvnodeitem.h"
 
+//#include <shv/chainpack/rpcvalue.h>
 
 #include <map>
 
-namespace shv { namespace chainpack { class RpcMessage; } }
+namespace shv { namespace chainpack { class RpcValue; class RpcMessage; } }
 namespace shv { namespace iotqt { namespace rpc { class ClientConnection; } } }
 
-class ShvBrokerNodeItem : public QObject, public ShvNodeItem
+class ShvBrokerNodeItem : public ShvNodeItem
 {
 	Q_OBJECT
 private:
@@ -16,7 +17,7 @@ private:
 public:
 	enum class OpenStatus {Invalid = 0, Disconnected, Connecting, Connected};
 public:
-	explicit ShvBrokerNodeItem(const std::string &server_name);
+	explicit ShvBrokerNodeItem(ServerTreeModel *m, const std::string &server_name);
 	~ShvBrokerNodeItem() Q_DECL_OVERRIDE;
 
 	QVariant data(int role = Qt::UserRole + 1) const Q_DECL_OVERRIDE;
@@ -32,7 +33,7 @@ public:
 
 	shv::iotqt::rpc::ClientConnection *clientConnection();
 
-	unsigned requestLoadChildren(const std::string &path);
+	unsigned callShvMethod(const std::string &shv_path, const std::string &method, const shv::chainpack::RpcValue &params);
 
 	ShvNodeItem *findNode(const std::string &path, std::string *path_rest = nullptr);
 private:

@@ -29,9 +29,10 @@ MainWindow::MainWindow(QWidget *parent) :
 	setWindowIcon(QIcon(":/shvspy/images/qfopcuaspy-256x256.png"));
 
 	ui->treeServers->setModel(TheApp::instance()->serverTreeModel());
-	connect(ui->treeServers->selectionModel(), &QItemSelectionModel::currentChanged, this, &MainWindow::onCurrentSelectionChanged);
+	connect(ui->treeServers->selectionModel(), &QItemSelectionModel::currentChanged, this, &MainWindow::onShvTreeViewCurrentSelectionChanged);
 
 	ui->tblAttributes->setModel(TheApp::instance()->attributesModel());
+	ui->tblAttributes->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
 
 	//ui->tblSubscriptions->setModel(TheApp::instance()->subscriptionsModel());
 	{
@@ -64,31 +65,32 @@ void MainWindow::on_actAddServer_triggered()
 void MainWindow::on_actEditServer_triggered()
 {
 	QModelIndex ix = ui->treeServers->currentIndex();
-	QStandardItem *it = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
-	ShvBrokerNodeItem *nd = dynamic_cast<ShvBrokerNodeItem*>(it);
-	if(nd) {
-		editServer(nd, false);
+	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
+	ShvBrokerNodeItem *brnd = qobject_cast<ShvBrokerNodeItem*>(nd);
+	if(brnd) {
+		editServer(brnd, false);
 	}
 }
 
 void MainWindow::on_actCopyServer_triggered()
 {
 	QModelIndex ix = ui->treeServers->currentIndex();
-	QStandardItem *it = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
-	ShvBrokerNodeItem *nd = dynamic_cast<ShvBrokerNodeItem*>(it);
-	if(nd) {
-		editServer(nd, true);
+	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
+	ShvBrokerNodeItem *brnd = qobject_cast<ShvBrokerNodeItem*>(nd);
+	if(brnd) {
+		editServer(brnd, true);
 	}
 }
 
 void MainWindow::on_actRemoveServer_triggered()
 {
 	QModelIndex ix = ui->treeServers->currentIndex();
-	QStandardItem *it = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
-	ShvBrokerNodeItem *nd = dynamic_cast<ShvBrokerNodeItem*>(it);
-	if(nd) {
-		if(QMessageBox::question(this, tr("Question"), tr("Realy drop server deinition for '%1'").arg(nd->text())) == QMessageBox::Yes) {
-			TheApp::instance()->serverTreeModel()->invisibleRootItem()->removeRow(ix.row());
+	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
+	ShvBrokerNodeItem *brnd = qobject_cast<ShvBrokerNodeItem*>(nd);
+	if(brnd) {
+		if(QMessageBox::question(this, tr("Question"), tr("Realy drop server deinition for '%1'").arg(nd->objectName())) == QMessageBox::Yes) {
+			nd = TheApp::instance()->serverTreeModel()->invisibleRootItem()->takeChild(ix.row());
+			delete nd;
 		}
 	}
 }
@@ -124,8 +126,8 @@ void MainWindow::on_actSubscribeNodeValue_triggered()
 void MainWindow::on_actDumpNode_triggered()
 {
 	QModelIndex ix = ui->treeServers->currentIndex();
-	ShvNodeItem *nd = dynamic_cast<ShvNodeItem*>(TheApp::instance()->serverTreeModel()->itemFromIndex(ix));
-	ShvBrokerNodeItem *snd = dynamic_cast<ShvBrokerNodeItem*>(nd);
+	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
+	ShvBrokerNodeItem *snd = qobject_cast<ShvBrokerNodeItem*>(nd);
 	if(nd && !snd) {
 		DlgDumpNode dlg(nd, this);
 		dlg.generateText();
@@ -136,11 +138,11 @@ void MainWindow::on_actDumpNode_triggered()
 void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 {
 	QModelIndex ix = ui->treeServers->indexAt(pos);
-	QStandardItem *it = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
-	ShvBrokerNodeItem *snd = dynamic_cast<ShvBrokerNodeItem*>(it);
+	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
+	ShvBrokerNodeItem *snd = qobject_cast<ShvBrokerNodeItem*>(nd);
 	QMenu m;
 	QAction *a_dumpEyasIds = nullptr;
-	if(!it) {
+	if(!nd) {
 		m.addAction(ui->actAddServer);
 	}
 	else if(snd) {
@@ -190,21 +192,18 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 void MainWindow::openNode(const QModelIndex &ix)
 {
 	//shvInfo() << QF_FUNC_NAME;
-	QStandardItem *it = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
-	ShvBrokerNodeItem *nd = dynamic_cast<ShvBrokerNodeItem*>(it);
-	if(nd)
-		nd->open();
+	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
+	ShvBrokerNodeItem *bnd = qobject_cast<ShvBrokerNodeItem*>(nd);
+	if(bnd)
+		bnd->open();
 }
 
-void MainWindow::onCurrentSelectionChanged(const QModelIndex &curr_ix, const QModelIndex &prev_ix)
+void MainWindow::onShvTreeViewCurrentSelectionChanged(const QModelIndex &curr_ix, const QModelIndex &prev_ix)
 {
-	Q_UNUSED(curr_ix)
 	Q_UNUSED(prev_ix)
-
-	QStandardItem *it = TheApp::instance()->serverTreeModel()->itemFromIndex(curr_ix);
+	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(curr_ix);
 	{
-		ShvNodeItem *nd = dynamic_cast<ShvNodeItem*>(it);
-		ShvBrokerNodeItem *bnd = dynamic_cast<ShvBrokerNodeItem*>(nd);
+		ShvBrokerNodeItem *bnd = qobject_cast<ShvBrokerNodeItem*>(nd);
 		AttributesModel *m = TheApp::instance()->attributesModel();
 		if(bnd) {
 			// hide attributes for server nodes
@@ -213,7 +212,6 @@ void MainWindow::onCurrentSelectionChanged(const QModelIndex &curr_ix, const QMo
 		else {
 			m->load(nd);
 		}
-		ui->tblAttributes->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
 	}
 }
 /*
