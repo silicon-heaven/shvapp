@@ -86,6 +86,9 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 		if(ix.column() == ColBtRun) {
 			return tr("Call remote method");
 		}
+		else {
+			return data(ix, Qt::DisplayRole);
+		}
 		break;
 	}
 	default:

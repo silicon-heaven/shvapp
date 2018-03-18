@@ -95,8 +95,8 @@
         <string>...</string>
        </property>
        <property name="icon">
-        <iconset>
-         <normaloff>:/qf/qmlwidgets/images/flat/settings.svg</normaloff>:/qf/qmlwidgets/images/flat/settings.svg</iconset>
+        <iconset resource="../../shvspy.qrc">
+         <normaloff>:/shvspy/images/settings.svg</normaloff>:/shvspy/images/settings.svg</iconset>
        </property>
        <property name="popupMode">
         <enum>QToolButton::InstantPopup</enum>
