@@ -33,6 +33,7 @@ public:
 	shv::chainpack::RpcValue::List propertyMethods(const String &property_name) const;
 	shv::chainpack::RpcValue propertyValue(const String &property_name) const;
 	bool setPropertyValue(const String &property_name, const shv::chainpack::RpcValue &val);
+	Q_SIGNAL void propertyValueChanged(const std::string &property_name, const shv::chainpack::RpcValue &new_val);
 private:
 	std::map<String, shv::chainpack::RpcValue> m_properties;
 };

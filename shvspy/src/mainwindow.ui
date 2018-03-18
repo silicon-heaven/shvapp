@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>865</width>
-    <height>481</height>
+    <width>754</width>
+    <height>548</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -80,7 +80,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>865</width>
+     <width>754</width>
      <height>27</height>
     </rect>
    </property>
@@ -190,8 +190,23 @@
    </attribute>
    <widget class="QWidget" name="dockWidgetContents">
     <layout class="QVBoxLayout" name="verticalLayout_4">
+     <property name="spacing">
+      <number>1</number>
+     </property>
+     <property name="leftMargin">
+      <number>1</number>
+     </property>
+     <property name="topMargin">
+      <number>1</number>
+     </property>
+     <property name="rightMargin">
+      <number>1</number>
+     </property>
+     <property name="bottomMargin">
+      <number>1</number>
+     </property>
      <item>
-      <widget class="QPlainTextEdit" name="plainTextEdit"/>
+      <widget class="LogWidget" name="notificationsLogWidget" native="true"/>
      </item>
     </layout>
    </widget>
@@ -248,6 +263,12 @@
    <class>ServerTreeView</class>
    <extends>QTreeView</extends>
    <header>src/servertreeview.h</header>
+  </customwidget>
+  <customwidget>
+   <class>LogWidget</class>
+   <extends>QWidget</extends>
+   <header>src/log/logwidget.h</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources>

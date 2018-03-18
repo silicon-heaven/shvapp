@@ -4,6 +4,7 @@
 #include "attributesmodel/attributesmodel.h"
 #include "servertreemodel/servertreemodel.h"
 #include "servertreemodel/shvbrokernodeitem.h"
+#include "log/rpcnotificationsmodel.h"
 
 #include "dlgdumpnode.h"
 #include "dlgserverproperties.h"
@@ -38,6 +39,8 @@ MainWindow::MainWindow(QWidget *parent) :
 		if(ix.column() == AttributesModel::ColBtRun)
 			TheApp::instance()->attributesModel()->callMethod(ix.row());
 	});
+
+	ui->notificationsLogWidget->setLogTableModel(TheApp::instance()->rpcNotificationsModel());
 
 	//ui->tblSubscriptions->setModel(TheApp::instance()->subscriptionsModel());
 	QSettings settings;
@@ -189,8 +192,12 @@ void MainWindow::openNode(const QModelIndex &ix)
 	//shvInfo() << QF_FUNC_NAME;
 	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
 	ShvBrokerNodeItem *bnd = qobject_cast<ShvBrokerNodeItem*>(nd);
-	if(bnd)
-		bnd->open();
+	if(bnd) {
+		if(bnd->isOpen())
+			bnd->close();
+		else
+			bnd->open();
+	}
 }
 
 void MainWindow::onShvTreeViewCurrentSelectionChanged(const QModelIndex &curr_ix, const QModelIndex &prev_ix)

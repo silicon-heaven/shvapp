@@ -14,6 +14,11 @@
 		<file>images/object.png</file>
 		<file>images/variable.png</file>
 
+		<file>images/copy.svg</file>
+		<file>images/cut.svg</file>
+		<file>images/delete.svg</file>
+		<file>images/fit-width.svg</file>
+
 		<file>images/shvspy-256x256.png</file>
 	</qresource>
 </RCC>

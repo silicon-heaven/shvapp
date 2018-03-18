@@ -31,3 +31,4 @@ FORMS += \
     $$PWD/dlgsubscriptionparameters.ui \
     $$PWD/dlgdumpnode.ui
 
+include ( $$PWD/log/log.pri )

@@ -2,10 +2,12 @@
 #include "shvbrokernodeitem.h"
 
 #include "../theapp.h"
+#include "../log/rpcnotificationsmodel.h"
 
 #include <shv/core/utils.h>
 #include <shv/coreqt/log.h>
 #include <shv/core/assert.h>
+#include <shv/iotqt/rpc/clientconnection.h>
 
 #include <QSettings>
 #include <QJsonDocument>
@@ -45,6 +47,12 @@ QModelIndex ServerTreeModel::parent(const QModelIndex &child) const
 ShvBrokerNodeItem *ServerTreeModel::createConnection(const QVariantMap &params)
 {
 	ShvBrokerNodeItem *ret = new ShvBrokerNodeItem(this, params.value("name").toString().toStdString());
+	const std::string broker_name = ret->nodeId();
+	connect(ret->clientConnection(), &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, [broker_name](const shv::chainpack::RpcMessage &msg) {
+		//shvInfo() << msg.toPrettyString();
+		RpcNotificationsModel *m = TheApp::instance()->rpcNotificationsModel();
+		m->addLogRow(broker_name, msg);
+	});
 	ret->setServerProperties(params);
 	ShvNodeRootItem *root = invisibleRootItem();
 	root->appendChild(ret);

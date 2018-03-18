@@ -46,7 +46,7 @@ bool Lublicator::setStatus(unsigned stat)
 	unsigned old_stat = status();
 	if(old_stat != stat) {
 		m_properties[S_STATUS] = stat;
-		//emit propertyValueChanged(objectName().toStdString() + '/' + S_STATUS, stat);
+		emit propertyValueChanged(objectName().toStdString() + '/' + S_STATUS, stat);
 		return true;
 	}
 	return false;
@@ -84,13 +84,13 @@ shv::chainpack::RpcValue Lublicator::propertyValue(const std::string &property_n
 	return it->second;
 }
 
-bool Lublicator::setPropertyValue(const std::string &property_name, const shv::chainpack::RpcValue &val)
+bool Lublicator::setPropertyValue(const shv::iotqt::ShvNode::String &property_name, const shv::chainpack::RpcValue &val)
 {
 	if(property_name == S_STATUS)
 		return false;
 	if(property_name == S_NAME)
 		return false;
-	if(property_name == "cmdPosOn") {
+	if(property_name == S_CMD_POS_ON) {
 		unsigned stat = status();
 		stat &= ~(unsigned)Status::PosOff;
 		stat |= (unsigned)Status::PosMiddle;
@@ -100,7 +100,7 @@ bool Lublicator::setPropertyValue(const std::string &property_name, const shv::c
 		setStatus(stat);
 		return true;
 	}
-	if(property_name == "cmdPosOff") {
+	if(property_name == S_CMD_POS_OFF) {
 		unsigned stat = status();
 		stat &= ~(unsigned)Status::PosOn;
 		stat |= (unsigned)Status::PosMiddle;
@@ -110,6 +110,10 @@ bool Lublicator::setPropertyValue(const std::string &property_name, const shv::c
 		setStatus(stat);
 		return true;
 	}
+	if(property_name == S_BATT_LEVSIM) {
+		//shvWarning() << "new bat lev:" << val.toCpon() << val.toDecimal().mantisa();
+		m_properties[S_BATT_LEVSIM] = val;
+	}
 	auto it = m_properties.find(property_name);
 	if(it == m_properties.end())
 		return false;
@@ -118,7 +122,7 @@ bool Lublicator::setPropertyValue(const std::string &property_name, const shv::c
 		unsigned stat = status();
 		int batt_hi = m_properties.at(S_BATT_HI).toDecimal().mantisa();
 		int batt_lo = m_properties.at(S_BATT_LOW).toDecimal().mantisa();
-		int batt_lev = m_properties.at(S_BATT_LEVSIM).toDecimal().mantisa();
+		int batt_lev = m_properties.at(S_BATT_LEVSIM).toDouble() * 10;
 		stat &= ~(unsigned)Status::BatteryHigh;
 		stat &= ~(unsigned)Status::BatteryLow;
 		if(batt_lev > batt_hi)
@@ -151,7 +155,7 @@ void Revitest::createDevices()
 	for (size_t i = 0; i < LUB_CNT; ++i) {
 		auto *nd = new Lublicator(m_devices->root());
 		nd->setNodeId(std::to_string(i+1));
-		//connect(nd, &Lublicator::propertyValueChanged, this, &Revitest::onLublicatorPropertyValueChanged);
+		connect(nd, &Lublicator::propertyValueChanged, this, &Revitest::onLublicatorPropertyValueChanged);
 	}
 }
 
@@ -167,7 +171,7 @@ void Revitest::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 			const std::string path = rq.shvPath();
 			std::string path_rest;
 			shv::iotqt::ShvNode *nd = m_devices->cd(path, &path_rest);
-			shvInfo() << "path:" << path << "->" << nd << "path rest:" << path_rest;
+			//shvInfo() << "path:" << path << "->" << nd << "path rest:" << path_rest;
 			if(!nd)
 				SHV_EXCEPTION("invalid path: " + path);
 			if(path_rest.empty()) {

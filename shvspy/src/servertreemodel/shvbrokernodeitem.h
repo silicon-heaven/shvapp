@@ -24,6 +24,7 @@ public:
 
 	OpenStatus openStatus() const {return m_openStatus;}
 
+	bool isOpen() {return openStatus() == OpenStatus::Connected;}
 	void open();
 	void close();
 	//QString connectionErrorString();

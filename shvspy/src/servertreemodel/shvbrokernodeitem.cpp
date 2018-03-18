@@ -129,7 +129,7 @@ QString ServerNode::connectionErrorString()
 shv::iotqt::rpc::ClientConnection *ShvBrokerNodeItem::clientConnection()
 {
 	if(!m_clientConnection) {
-		m_clientConnection = new shv::iotqt::rpc::ClientConnection(nullptr);
+		m_clientConnection = new shv::iotqt::rpc::ClientConnection(shv::iotqt::rpc::ClientConnection::SyncCalls::Disabled, nullptr);
 		m_clientConnection->setCheckBrokerConnectedInterval(0);
 		connect(m_clientConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, [this](bool is_connected) {
 			m_openStatus = is_connected? OpenStatus::Connected: OpenStatus::Disconnected;

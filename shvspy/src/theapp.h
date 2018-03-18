@@ -7,7 +7,7 @@
 
 class ServerTreeModel;
 class AttributesModel;
-class SubscriptionsModel;
+class RpcNotificationsModel;
 class AppCliOptions;
 
 class TheApp : public QApplication
@@ -23,12 +23,12 @@ public:
 public:
 	ServerTreeModel* serverTreeModel() {return m_serverTreeModel;}
 	AttributesModel* attributesModel() {return m_attributesModel;}
-	SubscriptionsModel* subscriptionsModel() {return m_subscriptionsModel;}
+	RpcNotificationsModel* rpcNotificationsModel() {return m_rpcNotificationsModel;}
 	const shv::core::utils::Crypt& crypt() {return m_crypt;}
 private:
 	ServerTreeModel *m_serverTreeModel = nullptr;
 	AttributesModel *m_attributesModel = nullptr;
-	SubscriptionsModel *m_subscriptionsModel = nullptr;
+	RpcNotificationsModel *m_rpcNotificationsModel = nullptr;
 	AppCliOptions* m_cliOptions = nullptr;
 	shv::core::utils::Crypt m_crypt;
 };
