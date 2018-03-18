@@ -207,14 +207,14 @@ void ShvNodeItem::setMethodParams(int method_ix, const shv::chainpack::RpcValue 
 	mtd.params = params;
 }
 
-void ShvNodeItem::callMethod(int method_ix)
+unsigned ShvNodeItem::callMethod(int method_ix)
 {
 	//const QVector<ShvMetaMethod> &mm = m_methods();
 	if(method_ix < 0 || method_ix >= m_methods.count())
-		return;
+		return 0;
 	ShvMetaMethod &mtd = m_methods[method_ix];
 	if(mtd.method.empty())
-		return;
+		return 0;
 	/*
 	cp::RpcValue params;
 	if(!mtd.params.empty()) {
@@ -231,6 +231,7 @@ void ShvNodeItem::callMethod(int method_ix)
 	mtd.response = cp::RpcResponse();
 	ShvBrokerNodeItem *srv_nd = serverNode();
 	mtd.rpcRequestId = srv_nd->callShvMethod(shvPath(), mtd.method, mtd.params);
+	return mtd.rpcRequestId;
 }
 
 ShvNodeRootItem::ShvNodeRootItem(ServerTreeModel *parent)

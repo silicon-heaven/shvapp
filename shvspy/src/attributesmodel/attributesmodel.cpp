@@ -39,21 +39,8 @@ Qt::ItemFlags AttributesModel::flags(const QModelIndex &ix) const
 	Qt::ItemFlags ret = Super::flags(ix);
 	if(ix.column() == ColParams)
 		ret |= Qt::ItemIsEditable;
-	/*
-	bool editable = false;
-	if(ix.column() == 1) {
-		ValueAttributeNode *nd = dynamic_cast<ValueAttributeNode*>(itemFromIndex(ix.sibling(ix.row(), 0)));
-		//shvInfo() << ix.row() << nd << m_userAccessLevel;
-		if(nd) {
-			//editable = (m_userAccessLevel & qfopcua::AccessLevel::CurrentWrite);
-		}
-	}
-	if(editable)
-		ret |= Qt::ItemIsEditable;
-	else {
-		ret &= ~Qt::ItemIsEditable;
-	}
-	*/
+	if(ix.column() == ColBtRun)
+		ret &= ~Qt::ItemIsSelectable;
 	return ret;
 }
 
@@ -89,7 +76,9 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 	case Qt::DecorationRole: {
 		if(ix.column() == ColBtRun) {
 			static QIcon ico_run = QIcon(QStringLiteral(":/shvspy/images/run"));
-			return ico_run;
+			static QIcon ico_reload = QIcon(QStringLiteral(":/shvspy/images/reload"));
+			auto v = m_rows.value(ix.row()).value(ix.column());
+			return (v.toUInt() > 0)? ico_reload: ico_run;
 		}
 		break;
 	}
@@ -186,20 +175,38 @@ void AttributesModel::callMethod(int method_ix)
 {
 	if(m_shvTreeNodeItem.isNull())
 		return;
-	m_shvTreeNodeItem->callMethod(method_ix);
+	unsigned rqid = m_shvTreeNodeItem->callMethod(method_ix);
+	m_rows[method_ix][ColBtRun] = rqid;
+	emitRowChanged(method_ix);
 }
 
 void AttributesModel::onMethodsLoaded()
 {
 	loadRows();
+	callGet();
 }
 
 void AttributesModel::onRpcMethodCallFinished(int method_ix)
 {
 	loadRow(method_ix);
-	QModelIndex ix1 = index(method_ix, 0);
-	QModelIndex ix2 = index(method_ix, ColCnt - 1);
+	emitRowChanged(method_ix);
+}
+
+void AttributesModel::emitRowChanged(int row_ix)
+{
+	QModelIndex ix1 = index(row_ix, 0);
+	QModelIndex ix2 = index(row_ix, ColCnt - 1);
 	emit dataChanged(ix1, ix2);
+}
+
+void AttributesModel::callGet()
+{
+	for (int i = 0; i < m_rows.count(); ++i) {
+		QString mn = m_rows[i].value(ColMethodName).toString();
+		if(mn == QLatin1String(cp::Rpc::METH_GET)) {
+			callMethod(i);
+		}
+	}
 }
 
 void AttributesModel::loadRow(int method_ix)
@@ -225,6 +232,7 @@ void AttributesModel::loadRow(int method_ix)
 		wr << mtd.response.result();
 		rv[ColResult] = QString::fromStdString(os.str());
 	}
+	rv[ColBtRun] = mtd.rpcRequestId;
 }
 
 void AttributesModel::loadRows()
@@ -258,6 +266,7 @@ void AttributesModel::loadRows()
 	}
 	emit layoutChanged();
 }
+
 /*
 void AttributesModel::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 {

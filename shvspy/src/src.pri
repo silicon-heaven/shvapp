@@ -5,7 +5,6 @@ HEADERS += \
 	$$PWD/servertreemodel/servertreemodel.h \
 	$$PWD/attributesmodel/attributesmodel.h \
     $$PWD/servertreeview.h \
-    $$PWD/subscriptionsmodel/subscriptionsmodel.h \
     $$PWD/dlgsubscriptionparameters.h \
     $$PWD/dlgdumpnode.h \
     $$PWD/appclioptions.h \
@@ -20,7 +19,6 @@ SOURCES += \
 	$$PWD/servertreemodel/servertreemodel.cpp \
 	$$PWD/attributesmodel/attributesmodel.cpp \
     $$PWD/servertreeview.cpp \
-    $$PWD/subscriptionsmodel/subscriptionsmodel.cpp \
     $$PWD/dlgsubscriptionparameters.cpp \
     $$PWD/dlgdumpnode.cpp \
     $$PWD/appclioptions.cpp \

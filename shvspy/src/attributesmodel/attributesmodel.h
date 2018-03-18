@@ -35,6 +35,8 @@ private:
 	void onRpcMethodCallFinished(int method_ix);
 	void loadRow(int method_ix);
 	void loadRows();
+	void emitRowChanged(int row_ix);
+	void callGet();
 private:
 	QPointer<ShvNodeItem> m_shvTreeNodeItem;
 	using RowVals = QVector<QVariant>;

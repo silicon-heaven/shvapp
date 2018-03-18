@@ -53,7 +53,7 @@ public:
 
 	const QVector<ShvMetaMethod>& methods() const {return m_methods;}
 	void setMethodParams(int method_ix, const shv::chainpack::RpcValue &params);
-	void callMethod(int method_ix);
+	unsigned callMethod(int method_ix);
 
 	void loadChildren();
 	bool isChildrenLoaded() const {return m_childrenLoaded;}

@@ -1,9 +1,8 @@
 #include "theapp.h"
 #include "servertreemodel/servertreemodel.h"
 #include "attributesmodel/attributesmodel.h"
-#include "subscriptionsmodel/subscriptionsmodel.h"
 
-#include <QSettings>
+//#include <QSettings>
 
 TheApp::TheApp(int &argc, char **argv, AppCliOptions *cli_opts)
 	: Super(argc, argv)
@@ -12,7 +11,6 @@ TheApp::TheApp(int &argc, char **argv, AppCliOptions *cli_opts)
 {
 	m_serverTreeModel = new ServerTreeModel(this);
 	m_attributesModel = new AttributesModel(this);
-	//m_subscriptionsModel = new SubscriptionsModel(this);
 }
 
 TheApp::~TheApp()

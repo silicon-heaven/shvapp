@@ -1,7 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "theapp.h"
-#include "subscriptionsmodel/subscriptionsmodel.h"
 #include "attributesmodel/attributesmodel.h"
 #include "servertreemodel/servertreemodel.h"
 #include "servertreemodel/shvbrokernodeitem.h"
@@ -33,22 +32,14 @@ MainWindow::MainWindow(QWidget *parent) :
 
 	ui->tblAttributes->setModel(TheApp::instance()->attributesModel());
 	ui->tblAttributes->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
+	ui->tblAttributes->verticalHeader()->setDefaultSectionSize(fontMetrics().height() * 1.3);
+
 	connect(ui->tblAttributes, &QTableView::activated, [this](const QModelIndex &ix) {
 		if(ix.column() == AttributesModel::ColBtRun)
 			TheApp::instance()->attributesModel()->callMethod(ix.row());
 	});
 
 	//ui->tblSubscriptions->setModel(TheApp::instance()->subscriptionsModel());
-	{
-		QTableView *tbl = this->ui->tblSubscriptions;
-		QAction *a = new QAction("Resize columns to content", tbl);
-		connect(a, &QAction::triggered, [tbl](bool) {
-			tbl->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
-			tbl->verticalHeader()->resizeSections(QHeaderView::ResizeToContents);
-		});
-		tbl->addAction(a);
-	}
-
 	QSettings settings;
 	restoreGeometry(settings.value(QStringLiteral("ui/mainWindow/geometry")).toByteArray());
 	restoreState(settings.value(QStringLiteral("ui/mainWindow/state")).toByteArray());
