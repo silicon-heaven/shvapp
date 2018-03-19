@@ -238,22 +238,12 @@
     <string>Remove Server</string>
    </property>
   </action>
-  <action name="actSubscribeNodeValue">
-   <property name="text">
-    <string>Subscribe node value</string>
-   </property>
-  </action>
   <action name="actCopyServer">
    <property name="text">
     <string>Copy server</string>
    </property>
    <property name="toolTip">
     <string>Copy server</string>
-   </property>
-  </action>
-  <action name="actDumpNode">
-   <property name="text">
-    <string>Dump Node</string>
    </property>
   </action>
  </widget>

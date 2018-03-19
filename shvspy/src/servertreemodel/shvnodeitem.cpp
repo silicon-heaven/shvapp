@@ -234,6 +234,15 @@ unsigned ShvNodeItem::callMethod(int method_ix)
 	return mtd.rpcRequestId;
 }
 
+void ShvNodeItem::reload()
+{
+	deleteChildren();
+	m_methods.clear();
+	loadChildren();
+	loadMethods();
+	emitDataChanged();
+}
+
 ShvNodeRootItem::ShvNodeRootItem(ServerTreeModel *parent)
 	: Super(parent, std::string(), nullptr)
 {

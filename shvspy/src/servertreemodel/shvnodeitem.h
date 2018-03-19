@@ -55,6 +55,8 @@ public:
 	void setMethodParams(int method_ix, const shv::chainpack::RpcValue &params);
 	unsigned callMethod(int method_ix);
 
+	void reload();
+
 	void loadChildren();
 	bool isChildrenLoaded() const {return m_childrenLoaded;}
 	bool isChildrenLoading() const {return m_loadChildrenRqId > 0;}

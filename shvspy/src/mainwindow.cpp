@@ -139,7 +139,7 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
 	ShvBrokerNodeItem *snd = qobject_cast<ShvBrokerNodeItem*>(nd);
 	QMenu m;
-	QAction *a_dumpEyasIds = nullptr;
+	QAction *a_reloadNodee = nullptr;
 	if(!nd) {
 		m.addAction(ui->actAddServer);
 	}
@@ -150,39 +150,17 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 		m.addAction(ui->actRemoveServer);
 	}
 	else {
-		m.addAction(ui->actSubscribeNodeValue);
-		m.addAction(ui->actDumpNode);
-		a_dumpEyasIds = new QAction(tr("Dump EYAS IDs"), &m);
-		m.addAction(a_dumpEyasIds);
+		a_reloadNodee = new QAction(tr("Reload"), &m);
+		m.addAction(a_reloadNodee);
 	}
 	if(!m.actions().isEmpty()) {
 		QAction *a = m.exec(ui->treeServers->viewport()->mapToGlobal(pos));
 		if(a) {
-#if 0
-			if(a == a_dumpEyasIds) {
-				QStandardItem *it = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
-				ShvNodeItem *current_ua_nd = dynamic_cast<ShvNodeItem*>(it);
-				if(current_ua_nd) {
-					bool ok;
-					QString browse_name = QInputDialog::getText(this, tr("Get text"),
-														   tr("property to enumerate:"), QLineEdit::Normal,
-														   "tc_dev.name", &ok);
-					if(ok) {
-						QStringList browse_name_path = browse_name.split('.');
-						qfopcua::Client *ua_client = current_ua_nd->serverNode()->clientConnection();
-						const qfopcua::NodeIdList lst = ua_client->getChildren(current_ua_nd->nodeId());
-						for(const qfopcua::NodeId &parent_ndid : lst) {
-							//() << "parent" << parent_ndid.toString() << "browser name:" << browse_name;
-							qfopcua::NodeId child_ndid = ua_client->getChild(parent_ndid, browse_name_path);
-							if(child_ndid.isNull())
-								break;
-							qfopcua::DataValue dv = ua_client->getAttribute(child_ndid, qfopcua::AttributeId::Value);
-							shvInfo() << child_ndid.toString() << dv.value().toString();
-						}
-					}
-				}
+			if(a == a_reloadNodee) {
+				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
+				if(nd)
+					nd->reload();
 			}
-#endif
 		}
 	}
 }
