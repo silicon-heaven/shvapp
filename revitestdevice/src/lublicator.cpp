@@ -14,12 +14,28 @@ namespace iot = shv::iotqt;
 
 namespace {
 const iot::ShvNode::String S_STATUS = "status";
-const iot::ShvNode::String S_NAME = "name";
-const iot::ShvNode::String S_BATT_LOW = "batteryLimitLow";
-const iot::ShvNode::String S_BATT_HI = "batteryLimitHigh";
-const iot::ShvNode::String S_BATT_LEVSIM = "batteryLevelSimulation";
-const iot::ShvNode::String S_CMD_POS_ON = "cmdPosOn";
-const iot::ShvNode::String S_CMD_POS_OFF = "cmdPosOff";
+//const iot::ShvNode::String S_NAME = "name";
+//const iot::ShvNode::String S_BATT_LOW = "batteryLimitLow";
+//const iot::ShvNode::String S_BATT_HI = "batteryLimitHigh";
+//const iot::ShvNode::String S_BATT_LEVSIM = "batteryLevelSimulation";
+const iot::ShvNode::String M_CMD_POS_ON = "cmdOn";
+const iot::ShvNode::String M_CMD_POS_OFF = "cmdOff";
+
+enum class Status : unsigned
+{
+	PosOff      = 1 << 0,
+	PosOn       = 1 << 1,
+	PosMiddle   = 1 << 2,
+	PosError    = 1 << 3,
+	BatteryLow  = 1 << 4,
+	BatteryHigh = 1 << 5,
+	DoorOpenCabinet = 1 << 6,
+	DoorOpenMotor = 1 << 7,
+	ModeAuto    = 1 << 8,
+	ModeRemote  = 1 << 9,
+	ModeService = 1 << 10,
+	MainSwitch  = 1 << 11
+};
 
 //static const std::string ODPOJOVACE_PATH = "/shv/eu/pl/lublin/odpojovace/";
 }
@@ -28,12 +44,12 @@ Lublicator::Lublicator(QObject *parent)
 	: Super(parent)
 {
 	m_properties[S_STATUS] = cp::RpcValue::UInt(0);
-	m_properties[S_NAME] = "";
-	m_properties[S_BATT_HI] = cp::RpcValue::Decimal(245, 1);
-	m_properties[S_BATT_LOW] = cp::RpcValue::Decimal(232, 1);
-	m_properties[S_BATT_LEVSIM] = cp::RpcValue::Decimal(240, 1);
-	m_properties[S_CMD_POS_ON];
-	m_properties[S_CMD_POS_OFF];
+	//m_properties[S_NAME] = "";
+//	m_properties[S_BATT_HI] = cp::RpcValue::Decimal(245, 1);
+//	m_properties[S_BATT_LOW] = cp::RpcValue::Decimal(232, 1);
+//	m_properties[S_BATT_LEVSIM] = cp::RpcValue::Decimal(240, 1);
+//	m_properties[S_CMD_POS_ON];
+//	m_properties[S_CMD_POS_OFF];
 }
 
 unsigned Lublicator::status() const
@@ -60,18 +76,16 @@ iot::ShvNode::StringList Lublicator::childNodeIds() const
 	return keys;
 }
 
-shv::chainpack::RpcValue::List Lublicator::propertyMethods(const shv::iotqt::ShvNode::String &property_name) const
+shv::chainpack::RpcValue::List Lublicator::propertyMethods(const shv::iotqt::ShvNode::String &prop_name) const
 {
-	if(property_name == S_CMD_POS_ON || property_name == S_CMD_POS_OFF) {
-		return cp::RpcValue::List{cp::Rpc::METH_SET};
+	//shvWarning() << prop_name;
+	if(prop_name.empty()) {
+		return cp::RpcValue::List{cp::Rpc::METH_DIR, cp::Rpc::METH_LS, M_CMD_POS_ON, M_CMD_POS_OFF, "getLog"};
 	}
-	else if(property_name == S_BATT_HI
-			|| property_name == S_BATT_LOW
-			|| property_name == S_NAME
-			|| property_name == S_STATUS) {
-		return cp::RpcValue::List{cp::Rpc::METH_GET};
+	else if(prop_name == "status") {
+		return cp::RpcValue::List{cp::Rpc::METH_DIR, cp::Rpc::METH_GET};
 	}
-	return cp::RpcValue::List{cp::Rpc::METH_GET, cp::Rpc::METH_SET};
+	return cp::RpcValue::List();
 }
 
 shv::chainpack::RpcValue Lublicator::propertyValue(const std::string &property_name) const
@@ -84,8 +98,11 @@ shv::chainpack::RpcValue Lublicator::propertyValue(const std::string &property_n
 	return it->second;
 }
 
-bool Lublicator::setPropertyValue(const shv::iotqt::ShvNode::String &property_name, const shv::chainpack::RpcValue &val)
+bool Lublicator::setPropertyValue(const shv::iotqt::ShvNode::String &prop_name, const shv::chainpack::RpcValue &val)
 {
+	Q_UNUSED(prop_name)
+	Q_UNUSED(val)
+	/*
 	if(property_name == S_STATUS)
 		return false;
 	if(property_name == S_NAME)
@@ -131,7 +148,7 @@ bool Lublicator::setPropertyValue(const shv::iotqt::ShvNode::String &property_na
 			stat |= (unsigned)Status::BatteryLow;
 		setStatus(stat);
 	}
-
+	*/
 	return true;
 }
 
@@ -171,10 +188,10 @@ void Revitest::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 			const std::string path = rq.shvPath();
 			std::string path_rest;
 			shv::iotqt::ShvNode *nd = m_devices->cd(path, &path_rest);
-			//shvInfo() << "path:" << path << "->" << nd << "path rest:" << path_rest;
+			shvInfo() << "path:" << path << "->" << nd << "path rest:" << path_rest;
 			if(!nd)
 				SHV_EXCEPTION("invalid path: " + path);
-			if(path_rest.empty()) {
+			if(path.empty()) {
 				result = nd->processRpcRequest(rq);
 			}
 			else {
@@ -182,10 +199,11 @@ void Revitest::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 				if(!lubl)
 					SHV_EXCEPTION("invalid lublicator: " + path);
 				shv::chainpack::RpcValue::String method = rq.method();
-				if(method == "ls") {
-					result = cp::RpcValue();
+				if(method == cp::Rpc::METH_LS) {
+					if(path_rest.empty())
+						result = lubl->childNodeIds();
 				}
-				else if(method == "dir") {
+				else if(method == cp::Rpc::METH_DIR) {
 					result = lubl->propertyMethods(path_rest);
 				}
 				else if(method == cp::Rpc::METH_GET) {
@@ -194,10 +212,29 @@ void Revitest::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 				else if(method == cp::Rpc::METH_SET) {
 					result = lubl->setPropertyValue(path_rest, rq.params());
 				}
+				else if(method == M_CMD_POS_ON) {
+					unsigned stat = lubl->status();
+					stat &= ~(unsigned)Status::PosOff;
+					stat |= (unsigned)Status::PosMiddle;
+					lubl->setStatus(stat);
+					stat &= ~(unsigned)Status::PosMiddle;
+					stat |= (unsigned)Status::PosOn;
+					lubl->setStatus(stat);
+					result = true;
+				}
+				else if(method == M_CMD_POS_OFF) {
+					unsigned stat = lubl->status();
+					stat &= ~(unsigned)Status::PosOn;
+					stat |= (unsigned)Status::PosMiddle;
+					lubl->setStatus(stat);
+					stat &= ~(unsigned)Status::PosMiddle;
+					stat |= (unsigned)Status::PosOff;
+					lubl->setStatus(stat);
+					result = true;
+				}
 				else {
 					SHV_EXCEPTION("Invalid method: " + method + " called for node: " + path);
 				}
-
 			}
 		}
 		catch(shv::core::Exception &e) {

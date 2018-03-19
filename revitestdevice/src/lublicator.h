@@ -16,13 +16,20 @@ class Lublicator : public shv::iotqt::ShvNode
 private:
 	using Super = shv::iotqt::ShvNode;
 public:
-	enum class Status : unsigned {
-			 PosOff      = 1 << 0,
-			 PosOn       = 1 << 1,
-			 PosMiddle   = 1 << 2,
-			 PosError    = 1 << 3,
-			 BatteryLow  = 1 << 4,
-			 BatteryHigh = 1 << 5,
+	enum class Status : unsigned
+	{
+		PosOff      = 1 << 0,
+		PosOn       = 1 << 1,
+		PosMiddle   = 1 << 2,
+		PosError    = 1 << 3,
+		BatteryLow  = 1 << 4,
+		BatteryHigh = 1 << 5,
+		DoorOpenCabinet = 1 << 6,
+		DoorOpenMotor = 1 << 7,
+		ModeAuto    = 1 << 8,
+		ModeRemote  = 1 << 9,
+		ModeService = 1 << 10,
+		MainSwitch  = 1 << 11
 	};
 	explicit Lublicator(QObject *parent = nullptr);
 
@@ -30,9 +37,9 @@ public:
 	bool setStatus(unsigned stat);
 
 	StringList childNodeIds() const override;
-	shv::chainpack::RpcValue::List propertyMethods(const String &property_name) const;
+	shv::chainpack::RpcValue::List propertyMethods(const String &prop_name) const;
 	shv::chainpack::RpcValue propertyValue(const String &property_name) const;
-	bool setPropertyValue(const String &property_name, const shv::chainpack::RpcValue &val);
+	bool setPropertyValue(const String &prop_name, const shv::chainpack::RpcValue &val);
 	Q_SIGNAL void propertyValueChanged(const std::string &property_name, const shv::chainpack::RpcValue &new_val);
 private:
 	std::map<String, shv::chainpack::RpcValue> m_properties;
