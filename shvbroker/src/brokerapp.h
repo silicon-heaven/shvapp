@@ -22,6 +22,8 @@ private:
 	using Super = shv::iotqt::ShvNode;
 public:
 	ClientNode(rpc::ServerConnection *connection, QObject *parent = nullptr);
+	~ClientNode() override;
+
 	rpc::ServerConnection * connection() const {return m_connection;}
 private:
 	rpc::ServerConnection * m_connection = nullptr;

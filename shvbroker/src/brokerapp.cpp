@@ -36,12 +36,12 @@ ClientNode::ClientNode(rpc::ServerConnection *connection, QObject *parent)
  : Super(parent)
  , m_connection(connection)
 {
-	/*
-	connect(connection, &rpc::ServerConnection::destroyed, [this]() {
-		this->setParentNode(nullptr);
-		delete this;
-	});
-	*/
+	shvInfo() << "Creating client node:" << this;
+}
+
+ClientNode::~ClientNode()
+{
+	shvInfo() << "Destroying client node:" << this;
 }
 
 BrokerApp::BrokerApp(int &argc, char **argv, AppCliOptions *cli_opts)
@@ -216,7 +216,7 @@ void BrokerApp::onClientLogin(int connection_id)
 		if(mount_point.empty())
 			SHV_EXCEPTION("Mount point is empty.");
 		ClientNode *nd = new ClientNode(conn);
-		shvInfo() << "connection id:" << connection_id << "mounting device on path:" << mount_point;
+		shvInfo() << "Client node:" << nd << "connection id:" << connection_id << "mounting device on path:" << mount_point;
 		if(!m_deviceTree->mount(mount_point, nd))
 			SHV_EXCEPTION("Cannot mount connection to device tree, connection id: " + std::to_string(connection_id));
 		conn->setMountPoint(nd->shvPath());
