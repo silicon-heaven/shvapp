@@ -24,7 +24,9 @@ RevitestApp::RevitestApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	cp::RpcValue::Map dev;
 	dev["mount"] = "/test/lublin/odpojovace";
 	dev["id"] = "123456";
-	m_rpcConnection->setDevice(dev);
+	cp::RpcValue::Map opts;
+	opts[cp::Rpc::TYPE_DEVICE] = dev;
+	m_rpcConnection->setconnectionOptions(opts);
 	m_rpcConnection->setUser("iot");
 	m_revitest = new Revitest(this);
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, m_revitest, &Revitest::onRpcMessageReceived);

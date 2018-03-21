@@ -23,6 +23,12 @@ ServerConnection::ServerConnection(QTcpSocket *socket, QObject *parent)
 	});
 }
 
+shv::chainpack::RpcValue ServerConnection::deviceId() const
+{
+	const shv::chainpack::RpcValue::Map &device = connectionOptions().value(cp::Rpc::TYPE_DEVICE).toMap();
+	return device.value("id");
+}
+
 std::string ServerConnection::passwordHash(const std::string &user)
 {
 	if(user == "iot")
@@ -75,7 +81,8 @@ bool ServerConnection::login(const shv::chainpack::RpcValue &auth_params)
 		password_ok = (nonce_sha1 == sha1);
 	}
 	if(password_ok) {
-		m_device = params.value("device");
+		m_connectionType = params.value("type").toString();
+		m_connectionOptions = params.value("options");
 		BrokerApp::instance()->onClientLogin(connectionId());
 	}
 	return password_ok;

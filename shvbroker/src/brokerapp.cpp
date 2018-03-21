@@ -204,11 +204,12 @@ void BrokerApp::onClientLogin(int connection_id)
 	rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
 	if(!conn)
 		SHV_EXCEPTION("Cannot find connection for ID: " + std::to_string(connection_id));
-	const shv::chainpack::RpcValue::Map &device = conn->device().toMap();
-	if(!device.empty()) {
+	const shv::chainpack::RpcValue::Map &opts = conn->connectionOptions();
+	if(conn->connectionType() == cp::Rpc::TYPE_DEVICE) {
+		const shv::chainpack::RpcValue::Map &device = opts.value(cp::Rpc::TYPE_DEVICE).toMap();
 		std::string mount_point = device.value("mount").toString();
+		shv::chainpack::RpcValue device_id = conn->deviceId();
 		if(mount_point.empty()) {
-			shv::chainpack::RpcValue device_id = device.value("id");
 			mount_point = mountPointForDevice(device_id);
 			if(mount_point.empty())
 				SHV_EXCEPTION("Cannot find mount point for device: " + device_id.toCpon());
@@ -217,6 +218,15 @@ void BrokerApp::onClientLogin(int connection_id)
 			SHV_EXCEPTION("Mount point is empty.");
 		ClientNode *nd = new ClientNode(conn);
 		shvInfo() << "Client node:" << nd << "connection id:" << connection_id << "mounting device on path:" << mount_point;
+		ClientNode *curr_cli_nd = qobject_cast<ClientNode*>(m_deviceTree->cd(mount_point));
+		if(curr_cli_nd) {
+			shvWarning() << "The mount point" << mount_point << "exists already";
+			if(curr_cli_nd->connection()->deviceId() == device_id) {
+				shvWarning() << "The same device ID will be remounted:" << device_id.toCpon();
+				curr_cli_nd->connection()->abort();
+				delete curr_cli_nd;
+			}
+		}
 		if(!m_deviceTree->mount(mount_point, nd))
 			SHV_EXCEPTION("Cannot mount connection to device tree, connection id: " + std::to_string(connection_id));
 		conn->setMountPoint(nd->shvPath());
@@ -225,7 +235,7 @@ void BrokerApp::onClientLogin(int connection_id)
 		//	shvWarning() << m_deviceTree->dump();
 		//});
 	}
-	shvInfo() << m_deviceTree->dumpTree();
+	//shvInfo() << m_deviceTree->dumpTree();
 }
 
 void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData &&meta, std::string &&data)
