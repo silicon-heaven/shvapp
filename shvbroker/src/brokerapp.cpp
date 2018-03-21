@@ -1,4 +1,6 @@
 #include "brokerapp.h"
+#include "shvclientnode.h"
+#include "brokernode.h"
 #include "rpc/tcpserver.h"
 #include "rpc/serverconnection.h"
 
@@ -32,18 +34,6 @@ int BrokerApp::m_sigTermFd[2];
 #endif
 
 //static constexpr int SQL_RECONNECT_INTERVAL = 3000;
-ClientNode::ClientNode(rpc::ServerConnection *connection, QObject *parent)
- : Super(parent)
- , m_connection(connection)
-{
-	shvInfo() << "Creating client node:" << this;
-}
-
-ClientNode::~ClientNode()
-{
-	shvInfo() << "Destroying client node:" << this;
-}
-
 BrokerApp::BrokerApp(int &argc, char **argv, AppCliOptions *cli_opts)
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
@@ -64,6 +54,8 @@ BrokerApp::BrokerApp(int &argc, char **argv, AppCliOptions *cli_opts)
 	m_sqlConnectionWatchDog->start(SQL_RECONNECT_INTERVAL);
 	*/
 	m_deviceTree = new shv::iotqt::ShvNodeTree(this);
+	BrokerNode *bn = new BrokerNode();
+	m_deviceTree->mount(".broker", bn);
 	//m_deviceTree->mkdir("test");
 
 	QTimer::singleShot(0, this, &BrokerApp::lazyInit);
@@ -216,9 +208,9 @@ void BrokerApp::onClientLogin(int connection_id)
 		}
 		if(mount_point.empty())
 			SHV_EXCEPTION("Mount point is empty.");
-		ClientNode *nd = new ClientNode(conn);
+		ShvClientNode *nd = new ShvClientNode(conn);
 		shvInfo() << "Client node:" << nd << "connection id:" << connection_id << "mounting device on path:" << mount_point;
-		ClientNode *curr_cli_nd = qobject_cast<ClientNode*>(m_deviceTree->cd(mount_point));
+		ShvClientNode *curr_cli_nd = qobject_cast<ShvClientNode*>(m_deviceTree->cd(mount_point));
 		if(curr_cli_nd) {
 			shvWarning() << "The mount point" << mount_point << "exists already";
 			if(curr_cli_nd->connection()->deviceId() == device_id) {
@@ -230,7 +222,7 @@ void BrokerApp::onClientLogin(int connection_id)
 		if(!m_deviceTree->mount(mount_point, nd))
 			SHV_EXCEPTION("Cannot mount connection to device tree, connection id: " + std::to_string(connection_id));
 		conn->setMountPoint(nd->shvPath());
-		connect(conn, &rpc::ServerConnection::destroyed, nd, &ClientNode::deleteLater);
+		connect(conn, &rpc::ServerConnection::destroyed, nd, &ShvClientNode::deleteLater);
 		//connect(nd, &ClientNode::destroyed, [this](){
 		//	shvWarning() << m_deviceTree->dump();
 		//});
@@ -246,15 +238,16 @@ void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData
 		const std::string shv_path = cp::RpcMessage::shvPath(meta);
 		std::string path_rest;
 		shv::iotqt::ShvNode *nd = m_deviceTree->cd(shv_path, &path_rest);
-		ClientNode *client_nd = qobject_cast<ClientNode *>(nd);
+		ShvClientNode *client_nd = qobject_cast<ShvClientNode *>(nd);
 		//shvWarning() << nd << client_nd << "shv path:" << shv_path << "rest:" << path_rest;// << meta.toStdString();
 		if(client_nd) {
-			cp::RpcMessage::setShvPath(meta, path_rest.empty()? std::string(): path_rest);
+			cp::RpcMessage::setShvPath(meta, path_rest);
 			rpc::ServerConnection *conn2 = client_nd->connection();
 			conn2->sendRawData(std::move(meta), std::move(data));
 		}
 		else if(nd) {
 			cp::RpcMessage rpc_msg = cp::RpcDriver::composeRpcMessage(std::move(meta), data, cp::Exception::Throw);
+			rpc_msg.setShvPath(path_rest);
 			cp::RpcRequest rq(rpc_msg);
 			cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
 			try {
