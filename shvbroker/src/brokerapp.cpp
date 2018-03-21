@@ -11,6 +11,7 @@
 #include <shv/core/string.h>
 #include <shv/core/utils.h>
 #include <shv/core/assert.h>
+#include <shv/chainpack/chainpackwriter.h>
 #include <shv/chainpack/rpcmessage.h>
 
 #include <QSocketNotifier>
@@ -223,9 +224,11 @@ void BrokerApp::onClientLogin(int connection_id)
 			SHV_EXCEPTION("Cannot mount connection to device tree, connection id: " + std::to_string(connection_id));
 		conn->setMountPoint(nd->shvPath());
 		connect(conn, &rpc::ServerConnection::destroyed, nd, &ShvClientNode::deleteLater);
-		//connect(nd, &ClientNode::destroyed, [this](){
-		//	shvWarning() << m_deviceTree->dump();
-		//});
+		connect(conn, &rpc::ServerConnection::destroyed, [this, connection_id, mount_point]() {
+			shvInfo() << "server connection destroyed";
+			sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_DISCONNECTED, cp::RpcValue());
+		});
+		sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_CONNECTED, cp::RpcValue());
 	}
 	//shvInfo() << m_deviceTree->dumpTree();
 }
@@ -304,17 +307,40 @@ void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData
 			}
 		}
 		if(!full_shv_path.empty()) {
-			// send it to all clients for now
 			cp::RpcMessage::setShvPath(meta, full_shv_path);
-			for(unsigned id : tcpServer()->connectionIds()) {
-				if(id == connection_id)
-					continue;
-				rpc::ServerConnection *conn = tcpServer()->connectionById(id);
-				if(conn && conn->isSocketConnected()) {
-					shvDebug() << "\t broadcasting to connection id:" << id;
-					conn->sendRawData(meta, std::string(data));
-				}
-			}
+			sendNotifyToSubscribers(connection_id, meta, data);
+		}
+	}
+}
+
+void BrokerApp::sendNotifyToSubscribers(unsigned sender_connection_id, const shv::chainpack::RpcValue::MetaData &meta_data, const std::string &data)
+{
+	// send it to all clients for now
+	for(unsigned id : tcpServer()->connectionIds()) {
+		if(id == sender_connection_id)
+			continue;
+		rpc::ServerConnection *conn = tcpServer()->connectionById(id);
+		if(conn && conn->isBrokerConnected()) {
+			shvDebug() << "\t broadcasting to connection id:" << id;
+			conn->sendRawData(meta_data, std::string(data));
+		}
+	}
+}
+
+void BrokerApp::sendNotifyToSubscribers(unsigned sender_connection_id, const std::string &shv_path, std::string method, const shv::chainpack::RpcValue &params)
+{
+	cp::RpcNotify ntf;
+	ntf.setShvPath(shv_path);
+	ntf.setMethod(std::move(method));
+	ntf.setParams(params);
+	// send it to all clients for now
+	for(unsigned id : tcpServer()->connectionIds()) {
+		if(id == sender_connection_id)
+			continue;
+		rpc::ServerConnection *conn = tcpServer()->connectionById(id);
+		if(conn && conn->isBrokerConnected()) {
+			shvDebug() << "\t broadcasting to connection id:" << id;
+			conn->sendMessage(ntf);
 		}
 	}
 }

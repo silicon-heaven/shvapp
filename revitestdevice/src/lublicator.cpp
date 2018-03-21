@@ -259,7 +259,7 @@ void Revitest::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 void Revitest::onLublicatorPropertyValueChanged(const std::string &property_name, const shv::chainpack::RpcValue &new_val)
 {
 	cp::RpcNotify ntf;
-	ntf.setMethod(cp::Rpc::METH_VAL_CHANGED);
+	ntf.setMethod(cp::Rpc::NTF_VAL_CHANGED);
 	ntf.setParams(new_val);
 	ntf.setShvPath(property_name);
 	shvInfo() << "LublicatorPropertyValueChanged:" << ntf.toCpon();

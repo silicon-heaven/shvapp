@@ -26,6 +26,7 @@ RevitestApp::RevitestApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	dev["id"] = "123456";
 	cp::RpcValue::Map opts;
 	opts[cp::Rpc::TYPE_DEVICE] = dev;
+	//opts[cp::Rpc::OPT_IDLE_WD_TIMEOUT] = 30;
 	m_rpcConnection->setconnectionOptions(opts);
 	m_rpcConnection->setUser("iot");
 	m_revitest = new Revitest(this);

@@ -5,6 +5,7 @@
 #include <shv/coreqt/log.h>
 
 #include <QCryptographicHash>
+#include <QTcpSocket>
 #include <QTimer>
 
 #define logRpcMsg() shvCDebug("RpcMsg")
@@ -16,6 +17,7 @@ namespace rpc {
 ServerConnection::ServerConnection(QTcpSocket *socket, QObject *parent)
 	: Super(socket, parent)
 {
+	connect(socket, &QTcpSocket::disconnected, this, &ServerConnection::deleteLater);
 	connect(this, &ServerConnection::socketConnectedChanged, [this](bool is_connected) {
 		if(is_connected) {
 			m_helloReceived = m_loginReceived = false;
@@ -27,6 +29,28 @@ shv::chainpack::RpcValue ServerConnection::deviceId() const
 {
 	const shv::chainpack::RpcValue::Map &device = connectionOptions().value(cp::Rpc::TYPE_DEVICE).toMap();
 	return device.value("id");
+}
+
+void ServerConnection::setIdleWatchDogTimeOut(unsigned sec)
+{
+	if(sec == 0) {
+		shvInfo() << "connection ID:" << connectionId() << "switchong idle watch dog timeout OFF";
+		if(m_idleWatchDogTimer) {
+			delete m_idleWatchDogTimer;
+			m_idleWatchDogTimer = nullptr;
+		}
+	}
+	else {
+		if(!m_idleWatchDogTimer) {
+			m_idleWatchDogTimer = new QTimer(this);
+			connect(m_idleWatchDogTimer, &QTimer::timeout, [this]() {
+				shvError() << "Connection was idle for more than" << m_idleWatchDogTimer->interval()/1000 << "sec. It will be aborted.";
+				this->abort();
+			});
+		}
+		shvInfo() << "connection ID:" << connectionId() << "setting idle watch dog timeout to" << sec << "seconds";
+		m_idleWatchDogTimer->start(sec * 1000);
+	}
 }
 
 std::string ServerConnection::passwordHash(const std::string &user)
@@ -50,6 +74,8 @@ void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolType proto
 			Super::onRpcDataReceived(protocol_version, std::move(md), data, start_pos, data_len);
 			return;
 		}
+		if(m_idleWatchDogTimer)
+			m_idleWatchDogTimer->start();
 		cp::RpcMessage::setProtocolType(md, protocol_version);
 		std::string msg_data(data, start_pos, data_len);
 		BrokerApp::instance()->onRpcDataReceived(connectionId(), std::move(md), std::move(msg_data));
@@ -83,6 +109,9 @@ bool ServerConnection::login(const shv::chainpack::RpcValue &auth_params)
 	if(password_ok) {
 		m_connectionType = params.value("type").toString();
 		m_connectionOptions = params.value("options");
+		const shv::chainpack::RpcValue::Map &opts = m_connectionOptions.toMap();
+		shv::chainpack::RpcValue::UInt t = opts.value(cp::Rpc::OPT_IDLE_WD_TIMEOUT).toUInt();
+		setIdleWatchDogTimeOut(t);
 		BrokerApp::instance()->onClientLogin(connectionId());
 	}
 	return password_ok;

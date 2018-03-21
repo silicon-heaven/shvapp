@@ -200,7 +200,7 @@ void TheApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 	else if(msg.isNotify()) {
 		cp::RpcNotify nt(msg);
 		shvInfo() << "RPC notify received:" << nt.toCpon();
-		if(nt.method() == cp::Rpc::METH_VAL_CHANGED) {
+		if(nt.method() == cp::Rpc::NTF_VAL_CHANGED) {
 			if(nt.shvPath() == "/test/shv/lublicator2/status") {
 				shvInfo() << lublicatorStatusToString(nt.params().toUInt());
 			}
