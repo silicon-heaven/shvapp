@@ -54,6 +54,7 @@ private:
 	AppCliOptions *m_cliOptions;
 	rpc::TcpServer *m_tcpServer = nullptr;
 	shv::iotqt::node::ShvNodeTree *m_deviceTree = nullptr;
+	shv::chainpack::RpcValue m_fstab;
 	/*
 	sql::SqlConnector *m_sqlConnector = nullptr;
 	QTimer *m_sqlConnectionWatchDog;

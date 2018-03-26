@@ -22,6 +22,6 @@ private:
 	shv::iotqt::rpc::DeviceConnection *m_rpcConnection = nullptr;
 	AppCliOptions* m_cliOptions;
 
-	shv::iotqt::node::ShvNodeTree *m_deviceTree = nullptr;
+	shv::iotqt::node::ShvNodeTree *m_shvTree = nullptr;
 };
 

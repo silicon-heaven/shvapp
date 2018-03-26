@@ -12,5 +12,7 @@ private:
 public:
 	AppCliOptions(QObject *parent = NULL);
 	~AppCliOptions() Q_DECL_OVERRIDE {}
+
+	CLIOPTION_GETTER_SETTER2(QString, "sysfs.rootDir", s, setS, ysFsRootDir)
 };
 

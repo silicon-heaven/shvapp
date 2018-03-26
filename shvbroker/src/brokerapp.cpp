@@ -11,13 +11,16 @@
 #include <shv/core/string.h>
 #include <shv/core/utils.h>
 #include <shv/core/assert.h>
+#include <shv/core/stringview.h>
 #include <shv/chainpack/chainpackwriter.h>
+#include <shv/chainpack/cponreader.h>
 #include <shv/chainpack/rpcmessage.h>
 
 #include <QSocketNotifier>
 #include <QTimer>
 
 #include <ctime>
+#include <fstream>
 
 #ifdef Q_OS_UNIX
 #include <signal.h>
@@ -26,6 +29,7 @@
 #include <unistd.h>
 #endif
 
+static const std::string DIR_BROKER = ".broker";
 
 namespace cp = shv::chainpack;
 //#define logOpcuaReceive qfCInfo("OpcuaReceive")
@@ -56,7 +60,7 @@ BrokerApp::BrokerApp(int &argc, char **argv, AppCliOptions *cli_opts)
 	*/
 	m_deviceTree = new shv::iotqt::node::ShvNodeTree(this);
 	BrokerNode *bn = new BrokerNode();
-	m_deviceTree->mount(".broker", bn);
+	m_deviceTree->mount(DIR_BROKER + "/app", bn);
 	//m_deviceTree->mkdir("test");
 
 	QTimer::singleShot(0, this, &BrokerApp::lazyInit);
@@ -188,8 +192,27 @@ void BrokerApp::lazyInit()
 
 std::string BrokerApp::mountPointForDevice(const shv::chainpack::RpcValue &device_id)
 {
-	Q_UNUSED(device_id)
-	return std::string();
+	if(!m_fstab.isValid()) {
+		std::string fn = m_cliOptions->fstab().toStdString();
+		if(!fn.empty()) {
+			std::ifstream is(fn, std::ios::binary);
+			if (!is.is_open()) {
+				shvError() << "Cannot open fstab file" << fn << "for reading";
+			}
+			else {
+				cp::CponReader rd(is);
+				std::string err;
+				rd.read(m_fstab, err);
+				if(!err.empty())
+					shvError() << "Error parsing fstab file:" << err;
+			}
+		}
+		if(!m_fstab.isValid())
+			m_fstab = cp::RpcValue::Map();
+	}
+	const std::string dev_id = device_id.toStdString();
+	std::string mount_point = m_fstab.toMap().value(dev_id).toString();
+	return mount_point;
 }
 
 void BrokerApp::onClientLogin(int connection_id)
@@ -198,17 +221,25 @@ void BrokerApp::onClientLogin(int connection_id)
 	if(!conn)
 		SHV_EXCEPTION("Cannot find connection for ID: " + std::to_string(connection_id));
 	const shv::chainpack::RpcValue::Map &opts = conn->connectionOptions();
-	if(conn->connectionType() == cp::Rpc::TYPE_DEVICE) {
-		const shv::chainpack::RpcValue::Map &device = opts.value(cp::Rpc::TYPE_DEVICE).toMap();
-		std::string mount_point = device.value("mount").toString();
+	if(conn->connectionType() == cp::Rpc::TYPE_DEVICE) do {
 		shv::chainpack::RpcValue device_id = conn->deviceId();
+		std::string mount_point = mountPointForDevice(device_id);
 		if(mount_point.empty()) {
-			mount_point = mountPointForDevice(device_id);
-			if(mount_point.empty())
-				SHV_EXCEPTION("Cannot find mount point for device: " + device_id.toCpon());
+			const shv::chainpack::RpcValue::Map &device = opts.value(cp::Rpc::TYPE_DEVICE).toMap();
+			mount_point = device.value("mount").toString();
+			std::vector<shv::core::StringView> path = shv::core::StringView(mount_point).split('/');
+			//if(path.empty())
+			//	SHV_EXCEPTION("Cannot find mount point for device: " + device_id.toCpon());
+			if(!(path[0] == "test")) {
+				shvWarning() << "Mount point can be explicitly specified to test/ dir only, dev id:" << device_id.toCpon();
+				mount_point.clear();
+			}
 		}
-		if(mount_point.empty())
-			SHV_EXCEPTION("Mount point is empty.");
+		if(mount_point.empty()) {
+			//SHV_EXCEPTION("Mount point is empty.");
+			mount_point = DIR_BROKER + "/mountError/" + std::to_string(connection_id);
+			shvWarning() << "Device will be mounted to" << mount_point << ", dev id:" << device_id.toCpon();
+		}
 		ShvClientNode *nd = new ShvClientNode(conn);
 		shvInfo() << "Client node:" << nd << "connection id:" << connection_id << "mounting device on path:" << mount_point;
 		ShvClientNode *curr_cli_nd = qobject_cast<ShvClientNode*>(m_deviceTree->cd(mount_point));
@@ -229,7 +260,7 @@ void BrokerApp::onClientLogin(int connection_id)
 			sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_DISCONNECTED, cp::RpcValue());
 		});
 		sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_CONNECTED, cp::RpcValue());
-	}
+	} while(false);
 	//shvInfo() << m_deviceTree->dumpTree();
 }
 

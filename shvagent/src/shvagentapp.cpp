@@ -26,9 +26,14 @@ ShvAgentApp::ShvAgentApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &ShvAgentApp::onBrokerConnectedChanged);
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvAgentApp::onRpcMessageReceived);
 
-	m_deviceTree = new shv::iotqt::node::ShvNodeTree(this);
-	shv::iotqt::node::LocalFSNode *fsn = new shv::iotqt::node::LocalFSNode("/home/fanda/t");
-	m_deviceTree->mount(".agent/fs", fsn);
+	m_shvTree = new shv::iotqt::node::ShvNodeTree(this);
+	QString sys_fs_root_dir = cli_opts->sysFsRootDir();
+	if(!sys_fs_root_dir.isEmpty() && QDir(sys_fs_root_dir).exists()) {
+		const char *SYS_FS = "sys/fs";
+		shvInfo() << "Exporting" << sys_fs_root_dir << "as" << SYS_FS << "node";
+		shv::iotqt::node::LocalFSNode *fsn = new shv::iotqt::node::LocalFSNode(sys_fs_root_dir);
+		m_shvTree->mount(SYS_FS, fsn);
+	}
 
 	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
 }
@@ -202,7 +207,7 @@ void ShvAgentApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 			//shvInfo() << "RPC request received:" << rq.toCpon();
 			const std::string shv_path = rq.shvPath();
 			std::string path_rest;
-			shv::iotqt::node::ShvNode *nd = m_deviceTree->cd(shv_path, &path_rest);
+			shv::iotqt::node::ShvNode *nd = m_shvTree->cd(shv_path, &path_rest);
 			if(!nd)
 				SHV_EXCEPTION("Path not found: " + shv_path);
 			rq.setShvPath(path_rest);

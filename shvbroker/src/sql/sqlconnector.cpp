@@ -42,7 +42,7 @@ void SqlConnector::open(const QString &host, int port, const QString &password)
 			break;
 		}
 		shvInfo() << "connected to SQL server - OK";
-		QString db_profile = BrokerApp::instance()->cliOptions()->profile();
+		QString db_profile = "shvbroker";// BrokerApp::instance()->cliOptions()->profile();
 		db_ok = checkDbSchema(db_profile);
 		if(!db_ok)
 			break;
@@ -97,6 +97,7 @@ void SqlConnector::close()
 
 bool SqlConnector::checkDbSchema(const QString &db_profile)
 {
+	Q_UNUSED(db_profile)
 	return false;
 	/*
 	QSqlDatabase db = sqlConnection();
