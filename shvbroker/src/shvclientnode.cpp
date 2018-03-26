@@ -2,7 +2,7 @@
 
 #include <shv/coreqt/log.h>
 
-ShvClientNode::ShvClientNode(rpc::ServerConnection *connection, QObject *parent)
+ShvClientNode::ShvClientNode(rpc::ServerConnection *connection, ShvNode *parent)
  : Super(parent)
  , m_connection(connection)
 {

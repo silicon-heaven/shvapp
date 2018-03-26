@@ -20,7 +20,8 @@ public:
 	~TheApp() Q_DECL_OVERRIDE;
 
 	static TheApp* instance() {return qobject_cast<TheApp*>(Super::instance());}
-public:
+	AppCliOptions* cliOptions() {return m_cliOptions;}
+
 	ServerTreeModel* serverTreeModel() {return m_serverTreeModel;}
 	AttributesModel* attributesModel() {return m_attributesModel;}
 	RpcNotificationsModel* rpcNotificationsModel() {return m_rpcNotificationsModel;}

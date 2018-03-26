@@ -6,7 +6,7 @@
 #include "servertreemodel/shvbrokernodeitem.h"
 #include "log/rpcnotificationsmodel.h"
 
-#include "dlgdumpnode.h"
+//#include "dlgdumpnode.h"
 #include "dlgserverproperties.h"
 #include "dlgsubscriptionparameters.h"
 
@@ -120,7 +120,7 @@ void MainWindow::on_actSubscribeNodeValue_triggered()
 		}
 	}
 }
-*/
+
 void MainWindow::on_actDumpNode_triggered()
 {
 	QModelIndex ix = ui->treeServers->currentIndex();
@@ -132,7 +132,7 @@ void MainWindow::on_actDumpNode_triggered()
 		dlg.exec();
 	}
 }
-
+*/
 void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 {
 	QModelIndex ix = ui->treeServers->indexAt(pos);

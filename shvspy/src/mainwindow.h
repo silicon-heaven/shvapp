@@ -31,17 +31,10 @@ protected:
 	Q_SLOT void on_treeServers_customContextMenuRequested(const QPoint &pos);
 	Q_SLOT void onShvTreeViewCurrentSelectionChanged(const QModelIndex &curr_ix, const QModelIndex &prev_ix);
 
-	//Q_SLOT void onSubscribedDataChanged(const qfopcua::DataValue &data_value, int att_id, const qfopcua::NodeId &node_id, qfopcua::Subscription::MonitoredItemId handle, qfopcua::Subscription::Id subscription_id);
-
-	//Q_SLOT void showOpcUaError(const QString &what);
-
 	void editServer(ShvBrokerNodeItem *srv, bool copy_server);
 	void openNode(const QModelIndex &ix);
 
 	void closeEvent(QCloseEvent *ev) Q_DECL_OVERRIDE;
-private slots:
-	void on_actDumpNode_triggered();
-
 private:
 	Ui::MainWindow *ui;
 	QStandardItemModel *m_opcObjects;

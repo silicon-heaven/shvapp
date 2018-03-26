@@ -1,6 +1,6 @@
 #pragma once
 
-#include <shv/iotqt/shvnode.h>
+#include <shv/iotqt/node//shvnode.h>
 #include <shv/chainpack/rpcvalue.h>
 #include <shv/coreqt/utils.h>
 
@@ -8,13 +8,13 @@
 #include <QMap>
 
 namespace shv { namespace chainpack { class RpcMessage; }}
-namespace shv { namespace iotqt { class ShvNodeTree; }}
+namespace shv { namespace iotqt { namespace node { class ShvNodeTree; }}}
 
-class Lublicator : public shv::iotqt::ShvNode
+class Lublicator : public shv::iotqt::node::ShvNode
 {
 	Q_OBJECT
 private:
-	using Super = shv::iotqt::ShvNode;
+	using Super = shv::iotqt::node::ShvNode;
 public:
 	enum class Status : unsigned
 	{
@@ -31,7 +31,7 @@ public:
 		ModeService = 1 << 10,
 		MainSwitch  = 1 << 11
 	};
-	explicit Lublicator(QObject *parent = nullptr);
+	explicit Lublicator(shv::iotqt::node::ShvNode *parent = nullptr);
 
 	unsigned status() const;
 	bool setStatus(unsigned stat);
@@ -59,6 +59,6 @@ private:
 private:
 	static constexpr size_t LUB_CNT = 27;
 	//Lublicator m_lublicators[LUB_CNT];
-	shv::iotqt::ShvNodeTree *m_devices = nullptr;
+	shv::iotqt::node::ShvNodeTree *m_devices = nullptr;
 };
 

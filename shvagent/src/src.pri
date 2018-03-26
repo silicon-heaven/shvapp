@@ -1,12 +1,12 @@
 
 HEADERS += \
-    $$PWD/theapp.h \
     $$PWD/appclioptions.h \
+    $$PWD/shvagentapp.h
 
 SOURCES += \
     $$PWD/main.cpp\
-    $$PWD/theapp.cpp \
     $$PWD/appclioptions.cpp \
+    $$PWD/shvagentapp.cpp
 
 #include ($$PWD/rpc/rpc.pri)
 

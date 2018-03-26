@@ -7,19 +7,19 @@
 
 #include <shv/coreqt/log.h>
 
-#include <shv/iotqt/shvnodetree.h>
+#include <shv/iotqt/node//shvnodetree.h>
 
 namespace cp = shv::chainpack;
 namespace iot = shv::iotqt;
 
 namespace {
-const iot::ShvNode::String S_STATUS = "status";
+const iot::node::ShvNode::String S_STATUS = "status";
 //const iot::ShvNode::String S_NAME = "name";
 //const iot::ShvNode::String S_BATT_LOW = "batteryLimitLow";
 //const iot::ShvNode::String S_BATT_HI = "batteryLimitHigh";
 //const iot::ShvNode::String S_BATT_LEVSIM = "batteryLevelSimulation";
-const iot::ShvNode::String M_CMD_POS_ON = "cmdOn";
-const iot::ShvNode::String M_CMD_POS_OFF = "cmdOff";
+const iot::node::ShvNode::String M_CMD_POS_ON = "cmdOn";
+const iot::node::ShvNode::String M_CMD_POS_OFF = "cmdOff";
 
 enum class Status : unsigned
 {
@@ -40,7 +40,7 @@ enum class Status : unsigned
 //static const std::string ODPOJOVACE_PATH = "/shv/eu/pl/lublin/odpojovace/";
 }
 
-Lublicator::Lublicator(QObject *parent)
+Lublicator::Lublicator(ShvNode *parent)
 	: Super(parent)
 {
 	m_properties[S_STATUS] = cp::RpcValue::UInt(0);
@@ -68,7 +68,7 @@ bool Lublicator::setStatus(unsigned stat)
 	return false;
 }
 
-iot::ShvNode::StringList Lublicator::childNodeIds() const
+shv::iotqt::node::ShvNode::StringList Lublicator::childNodeIds() const
 {
 	static ShvNode::StringList keys;
 	if(keys.empty()) for(const auto &imap: m_properties)
@@ -76,7 +76,7 @@ iot::ShvNode::StringList Lublicator::childNodeIds() const
 	return keys;
 }
 
-shv::chainpack::RpcValue::List Lublicator::propertyMethods(const shv::iotqt::ShvNode::String &prop_name) const
+shv::chainpack::RpcValue::List Lublicator::propertyMethods(const shv::iotqt::node::ShvNode::String &prop_name) const
 {
 	//shvWarning() << prop_name;
 	if(prop_name.empty()) {
@@ -98,7 +98,7 @@ shv::chainpack::RpcValue Lublicator::propertyValue(const std::string &property_n
 	return it->second;
 }
 
-bool Lublicator::setPropertyValue(const shv::iotqt::ShvNode::String &prop_name, const shv::chainpack::RpcValue &val)
+bool Lublicator::setPropertyValue(const shv::iotqt::node::ShvNode::String &prop_name, const shv::chainpack::RpcValue &val)
 {
 	Q_UNUSED(prop_name)
 	Q_UNUSED(val)
@@ -167,7 +167,7 @@ Revitest::Revitest(QObject *parent)
 
 void Revitest::createDevices()
 {
-	m_devices = new iot::ShvNodeTree(this);
+	m_devices = new shv::iotqt::node::ShvNodeTree(this);
 	static constexpr size_t LUB_CNT = 27;
 	for (size_t i = 0; i < LUB_CNT; ++i) {
 		auto *nd = new Lublicator(m_devices->root());
@@ -187,8 +187,8 @@ void Revitest::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 		try {
 			const std::string path = rq.shvPath();
 			std::string path_rest;
-			shv::iotqt::ShvNode *nd = m_devices->cd(path, &path_rest);
-			shvInfo() << "path:" << path << "->" << nd << "path rest:" << path_rest;
+			shv::iotqt::node::ShvNode *nd = m_devices->cd(path, &path_rest);
+			//shvInfo() << "path:" << path << "->" << nd << "path rest:" << path_rest;
 			if(!nd)
 				SHV_EXCEPTION("invalid path: " + path);
 			if(path.empty()) {
@@ -262,7 +262,7 @@ void Revitest::onLublicatorPropertyValueChanged(const std::string &property_name
 	ntf.setMethod(cp::Rpc::NTF_VAL_CHANGED);
 	ntf.setParams(new_val);
 	ntf.setShvPath(property_name);
-	shvInfo() << "LublicatorPropertyValueChanged:" << ntf.toCpon();
+	//shvInfo() << "LublicatorPropertyValueChanged:" << ntf.toCpon();
 	emit sendRpcMessage(ntf);
 }
 

@@ -6,7 +6,7 @@
 
 namespace cp = shv::chainpack;
 
-BrokerNode::BrokerNode(QObject *parent)
+BrokerNode::BrokerNode(shv::iotqt::node::ShvNode *parent)
 	: Super(parent)
 {
 }

@@ -4,8 +4,8 @@
 #include "rpc/tcpserver.h"
 #include "rpc/serverconnection.h"
 
-#include <shv/iotqt/shvnode.h>
-#include <shv/iotqt/shvnodetree.h>
+#include <shv/iotqt/node/shvnode.h>
+#include <shv/iotqt/node/shvnodetree.h>
 #include <shv/coreqt/log.h>
 
 #include <shv/core/string.h>
@@ -46,7 +46,7 @@ BrokerApp::BrokerApp(int &argc, char **argv, AppCliOptions *cli_opts)
 	installUnixSignalHandlers();
 #endif
 
-	cp::RpcMessage::setMetaTypeImplicit(cli_opts->isMetaTypeImplicit());
+	cp::RpcMessage::setMetaTypeExplicit(cli_opts->isMetaTypeExplicit());
 
 	connect(this, &BrokerApp::sqlServerConnected, this, &BrokerApp::onSqlServerConnected);
 	/*
@@ -54,7 +54,7 @@ BrokerApp::BrokerApp(int &argc, char **argv, AppCliOptions *cli_opts)
 	connect(m_sqlConnectionWatchDog, SIGNAL(timeout()), this, SLOT(reconnectSqlServer()));
 	m_sqlConnectionWatchDog->start(SQL_RECONNECT_INTERVAL);
 	*/
-	m_deviceTree = new shv::iotqt::ShvNodeTree(this);
+	m_deviceTree = new shv::iotqt::node::ShvNodeTree(this);
 	BrokerNode *bn = new BrokerNode();
 	m_deviceTree->mount(".broker", bn);
 	//m_deviceTree->mkdir("test");
@@ -240,7 +240,7 @@ void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData
 		cp::RpcMessage::pushCallerId(meta, connection_id);
 		const std::string shv_path = cp::RpcMessage::shvPath(meta);
 		std::string path_rest;
-		shv::iotqt::ShvNode *nd = m_deviceTree->cd(shv_path, &path_rest);
+		shv::iotqt::node::ShvNode *nd = m_deviceTree->cd(shv_path, &path_rest);
 		ShvClientNode *client_nd = qobject_cast<ShvClientNode *>(nd);
 		//shvWarning() << nd << client_nd << "shv path:" << shv_path << "rest:" << path_rest;// << meta.toStdString();
 		if(client_nd) {

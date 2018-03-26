@@ -1,16 +1,16 @@
 #pragma once
 
-#include <shv/iotqt/shvnode.h>
+#include <shv/iotqt/node/shvnode.h>
 
 namespace rpc { class TcpServer; class ServerConnection; }
 
-class ShvClientNode : public shv::iotqt::ShvNode
+class ShvClientNode : public shv::iotqt::node::ShvNode
 {
 	Q_OBJECT
 private:
-	using Super = shv::iotqt::ShvNode;
+	using Super = shv::iotqt::node::ShvNode;
 public:
-	ShvClientNode(rpc::ServerConnection *connection, QObject *parent = nullptr);
+	ShvClientNode(rpc::ServerConnection *connection, shv::iotqt::node::ShvNode *parent = nullptr);
 	~ShvClientNode() override;
 
 	rpc::ServerConnection * connection() const {return m_connection;}

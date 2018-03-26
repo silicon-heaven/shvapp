@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
 		return EXIT_SUCCESS;
 	}
 	foreach(QString s, cli_opts.unusedArguments()) {
-		shvDebug() << "Undefined argument:" << s;
+		shvError() << "Undefined argument:" << s;
 	}
 
 	if(!cli_opts.loadConfigFile()) {

@@ -2,7 +2,7 @@
 
 #include "appclioptions.h"
 
-#include <shv/iotqt/shvnode.h>
+#include <shv/iotqt/node/shvnode.h>
 
 #include <shv/chainpack/rpcvalue.h>
 
@@ -11,7 +11,7 @@
 
 class QSocketNotifier;
 
-namespace shv { namespace iotqt { class ShvNodeTree; }}
+namespace shv { namespace iotqt { namespace node { class ShvNodeTree; }}}
 namespace shv { namespace chainpack { class RpcNotify; }}
 namespace rpc { class TcpServer; class ServerConnection; }
 
@@ -53,7 +53,7 @@ private:
 private:
 	AppCliOptions *m_cliOptions;
 	rpc::TcpServer *m_tcpServer = nullptr;
-	shv::iotqt::ShvNodeTree *m_deviceTree = nullptr;
+	shv::iotqt::node::ShvNodeTree *m_deviceTree = nullptr;
 	/*
 	sql::SqlConnector *m_sqlConnector = nullptr;
 	QTimer *m_sqlConnectionWatchDog;

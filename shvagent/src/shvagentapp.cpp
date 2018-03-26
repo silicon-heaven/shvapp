@@ -1,7 +1,9 @@
-#include "theapp.h"
+#include "shvagentapp.h"
 #include "appclioptions.h"
 
-#include <shv/iotqt/rpc/clientconnection.h>
+#include <shv/iotqt/rpc/deviceconnection.h>
+#include <shv/iotqt/node/shvnodetree.h>
+#include <shv/iotqt/node/localfsnode.h>
 
 #include <shv/coreqt/log.h>
 
@@ -9,34 +11,33 @@
 
 namespace cp = shv::chainpack;
 
-TheApp::TheApp(int &argc, char **argv, AppCliOptions* cli_opts)
+ShvAgentApp::ShvAgentApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
 {
-	cp::RpcMessage::setMetaTypeImplicit(cli_opts->isMetaTypeImplicit());
+	cp::RpcMessage::setMetaTypeExplicit(cli_opts->isMetaTypeExplicit());
 
-	m_rpcConnection = new shv::iotqt::rpc::ClientConnection(this);
-	m_rpcConnection->setHost(cli_opts->serverHost().toStdString());
-	m_rpcConnection->setPort(cli_opts->serverPort());
-	m_rpcConnection->setUser("iot");
-	QString pv = cli_opts->protocolType();
-	if(pv == QLatin1String("cpon"))
-		m_rpcConnection->setProtocolType(shv::chainpack::Rpc::ProtocolType::Cpon);
-	else if(pv == QLatin1String("jsonrpc"))
-		m_rpcConnection->setProtocolType(shv::chainpack::Rpc::ProtocolType::JsonRpc);
-	else
-		m_rpcConnection->setProtocolType(shv::chainpack::Rpc::ProtocolType::ChainPack);
-	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &TheApp::onBrokerConnectedChanged);
-	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &TheApp::onRpcMessageReceived);
+	m_rpcConnection = new shv::iotqt::rpc::DeviceConnection(this);
+
+	if(!cli_opts->user_isset())
+		cli_opts->setUser("iot");
+	m_rpcConnection->setCliOptions(cli_opts);
+
+	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &ShvAgentApp::onBrokerConnectedChanged);
+	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvAgentApp::onRpcMessageReceived);
+
+	m_deviceTree = new shv::iotqt::node::ShvNodeTree(this);
+	shv::iotqt::node::LocalFSNode *fsn = new shv::iotqt::node::LocalFSNode("/home/fanda/t");
+	m_deviceTree->mount(".agent/fs", fsn);
 
 	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
 }
 
-TheApp::~TheApp()
+ShvAgentApp::~ShvAgentApp()
 {
 	shvInfo() << "destroying shv agent application";
 }
-
+/*
 enum class LublicatorStatus : unsigned
 {
 	PosOff      = 1 << 0,
@@ -70,7 +71,8 @@ std::string lublicatorStatusToString(unsigned st)
 	if(st & (unsigned)LublicatorStatus::MainSwitch) ret += " | MainSwitch";
 	return ret;
 }
-
+*/
+#if 0
 static void print_children(shv::iotqt::rpc::ClientConnection *rpc, const std::string &path, int indent)
 {
 	//shvInfo() << "\tcall:" << "get" << "on shv path:" << shv_path;
@@ -89,10 +91,12 @@ static void print_children(shv::iotqt::rpc::ClientConnection *rpc, const std::st
 			if(s.empty()) {
 				shvError() << "empty dir name";
 			}
+			/*
 			else if(s == "odpojovace") {
 				shvInfo() << "skipping dir:" << s;
 				continue;
 			}
+			*/
 			else {
 				std::string path2 = path + '/' + s;
 				shvInfo() << std::string(indent, ' ') << s;
@@ -101,15 +105,16 @@ static void print_children(shv::iotqt::rpc::ClientConnection *rpc, const std::st
 		}
 	}
 	else {
-		shvInfo() << std::string(indent, ' ') << result.toCpon() << lublicatorStatusToString(result.toUInt());
+		shvInfo() << std::string(indent, ' ') << result.toCpon();// << lublicatorStatusToString(result.toUInt());
 	}
 }
-
-void TheApp::onBrokerConnectedChanged(bool is_connected)
+#endif
+void ShvAgentApp::onBrokerConnectedChanged(bool is_connected)
 {
 	if(!is_connected)
 		return;
 	try {
+#if 0
 		shvInfo() << "==================================================";
 		shvInfo() << "   Lublicator Testing";
 		shvInfo() << "==================================================";
@@ -164,6 +169,7 @@ void TheApp::onBrokerConnectedChanged(bool is_connected)
 				QCoreApplication::processEvents();
 			}
 		}
+#endif
 #if 0
 		{
 			{
@@ -186,12 +192,26 @@ void TheApp::onBrokerConnectedChanged(bool is_connected)
 	}
 }
 
-void TheApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
+void ShvAgentApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 {
 	shvLogFuncFrame() << msg.toCpon();
 	if(msg.isRequest()) {
 		cp::RpcRequest rq(msg);
-		shvInfo() << "RPC request received:" << rq.toCpon();
+		cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
+		try {
+			//shvInfo() << "RPC request received:" << rq.toCpon();
+			const std::string shv_path = rq.shvPath();
+			std::string path_rest;
+			shv::iotqt::node::ShvNode *nd = m_deviceTree->cd(shv_path, &path_rest);
+			if(!nd)
+				SHV_EXCEPTION("Path not found: " + shv_path);
+			rq.setShvPath(path_rest);
+			resp.setResult(nd->processRpcRequest(rq));
+		}
+		catch (shv::core::Exception &e) {
+			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodInvocationException, e.message()));
+		}
+		m_rpcConnection->sendMessage(resp);
 	}
 	else if(msg.isResponse()) {
 		cp::RpcResponse rp(msg);
@@ -200,10 +220,12 @@ void TheApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 	else if(msg.isNotify()) {
 		cp::RpcNotify nt(msg);
 		shvInfo() << "RPC notify received:" << nt.toCpon();
+		/*
 		if(nt.method() == cp::Rpc::NTF_VAL_CHANGED) {
 			if(nt.shvPath() == "/test/shv/lublicator2/status") {
 				shvInfo() << lublicatorStatusToString(nt.params().toUInt());
 			}
 		}
+		*/
 	}
 }
