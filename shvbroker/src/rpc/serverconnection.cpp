@@ -55,14 +55,14 @@ void ServerConnection::setIdleWatchDogTimeOut(unsigned sec)
 
 std::string ServerConnection::passwordHash(const std::string &user)
 {
-	if(user == "iot")
-		return std::string();
 	if(user == "revitest")
 		return std::string();
 
 	QCryptographicHash hash(QCryptographicHash::Algorithm::Sha1);
-	hash.addData(user.c_str(), user.length());
+	std::string pass = (user == "iot")? "lub42DUB": user;
+	hash.addData(pass.data(), pass.size());
 	QByteArray sha1 = hash.result().toHex();
+	//shvWarning() << user << pass << sha1;
 	return std::string(sha1.constData(), sha1.length());
 }
 
@@ -99,9 +99,10 @@ bool ServerConnection::login(const shv::chainpack::RpcValue &auth_params)
 	bool password_ok = password_hash.empty();
 	if(!password_ok) {
 		std::string nonce_sha1 = login.value("password").toString();
-		std::string nonce = m_pendingAuthNonce + passwordHash(m_user);
+		std::string nonce = m_pendingAuthNonce + password_hash;
+		//shvWarning() << m_pendingAuthNonce << "prd" << nonce;
 		QCryptographicHash hash(QCryptographicHash::Algorithm::Sha1);
-		hash.addData(nonce.c_str(), nonce.length());
+		hash.addData(nonce.data(), nonce.length());
 		std::string sha1 = std::string(hash.result().toHex().constData());
 		shvInfo() << nonce_sha1 << "vs" << sha1;
 		password_ok = (nonce_sha1 == sha1);

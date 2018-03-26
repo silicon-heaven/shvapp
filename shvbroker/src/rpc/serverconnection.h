@@ -30,10 +30,6 @@ private:
 private:
 	std::string m_connectionType;
 	shv::chainpack::RpcValue m_connectionOptions;
-	std::string m_user;
-	std::string m_pendingAuthNonce;
-	bool m_helloReceived = false;
-	bool m_loginReceived = false;
 	QTimer *m_idleWatchDogTimer = nullptr;
 };
 
