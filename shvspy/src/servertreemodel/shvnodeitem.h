@@ -59,6 +59,7 @@ public:
 
 	void loadChildren();
 	bool isChildrenLoaded() const {return m_childrenLoaded;}
+	void setChildrenLoaded() {m_childrenLoaded = true;}
 	bool isChildrenLoading() const {return m_loadChildrenRqId > 0;}
 
 	bool checkMethodsLoaded();
