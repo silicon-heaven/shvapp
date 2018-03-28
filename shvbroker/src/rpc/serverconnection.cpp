@@ -69,6 +69,7 @@ std::string ServerConnection::passwordHash(const std::string &user)
 void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolType protocol_version, shv::chainpack::RpcValue::MetaData &&md, const std::string &data, size_t start_pos, size_t data_len)
 {
 	logRpcMsg() << RCV_LOG_ARROW << md.toStdString() << shv::chainpack::Utils::toHexElided(data, start_pos, 100);
+	shvInfo() << __FILE__ << RCV_LOG_ARROW << md.toStdString() << shv::chainpack::Utils::toHexElided(data, start_pos, 100);
 	try {
 		if(isInitPhase()) {
 			Super::onRpcDataReceived(protocol_version, std::move(md), data, start_pos, data_len);
