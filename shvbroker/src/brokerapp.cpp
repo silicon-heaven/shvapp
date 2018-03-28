@@ -230,7 +230,7 @@ void BrokerApp::onClientLogin(int connection_id)
 			std::vector<shv::core::StringView> path = shv::core::StringView(mount_point).split('/');
 			//if(path.empty())
 			//	SHV_EXCEPTION("Cannot find mount point for device: " + device_id.toCpon());
-			if(!(path[0] == "test")) {
+			if(path.empty() || !(path[0] == "test")) {
 				shvWarning() << "Mount point can be explicitly specified to test/ dir only, dev id:" << device_id.toCpon();
 				mount_point.clear();
 			}
