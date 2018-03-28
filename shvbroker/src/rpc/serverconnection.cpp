@@ -17,7 +17,10 @@ namespace rpc {
 ServerConnection::ServerConnection(QTcpSocket *socket, QObject *parent)
 	: Super(socket, parent)
 {
-	connect(socket, &QTcpSocket::disconnected, this, &ServerConnection::deleteLater);
+	connect(socket, &QTcpSocket::disconnected, this, [this]() {
+		shvInfo() << "Socket disconnected, deleting connection:" << connectionId();
+		deleteLater();
+	});
 	connect(this, &ServerConnection::socketConnectedChanged, [this](bool is_connected) {
 		if(is_connected) {
 			m_helloReceived = m_loginReceived = false;
@@ -68,9 +71,7 @@ std::string ServerConnection::passwordHash(const std::string &user)
 
 void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolType protocol_version, shv::chainpack::RpcValue::MetaData &&md, const std::string &data, size_t start_pos, size_t data_len)
 {
-	shvInfo() << "1" << __FILE__;
 	logRpcMsg() << RCV_LOG_ARROW << md.toStdString() << shv::chainpack::Utils::toHexElided(data, start_pos, 100);
-	shvInfo() << "2" << __FILE__;
 	try {
 		if(isInitPhase()) {
 			Super::onRpcDataReceived(protocol_version, std::move(md), data, start_pos, data_len);
