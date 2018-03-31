@@ -243,7 +243,8 @@ void BrokerApp::onClientLogin(int connection_id)
 		// delete whole client tree, when client is destroyed
 		connect(conn, &rpc::ServerConnection::destroyed, cli_nd->parentNode(), &ShvClientNode::deleteLater);
 		// abort connection if client tree is deleted
-		connect(cli_nd->parentNode(), &ShvClientNode::destroyed, conn, &rpc::ServerConnection::abort);
+		//connect(cli_nd->parentNode(), &ShvClientNode::destroyed, conn, &rpc::ServerConnection::abort);
+		conn->setParent(cli_nd);
 	}
 
 	if(conn->connectionType() == cp::Rpc::TYPE_DEVICE) {

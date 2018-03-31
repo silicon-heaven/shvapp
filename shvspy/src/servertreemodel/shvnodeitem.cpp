@@ -116,9 +116,9 @@ std::string ShvNodeItem::shvPath() const
 	ShvBrokerNodeItem *srv_nd = serverNode();
 	const ShvNodeItem *nd = this;
 	while(nd) {
-		ret = '/' + ret;
-		if(nd != srv_nd)
-			ret = nd->nodeId() + ret;
+		if(nd == srv_nd)
+			break;
+		ret = nd->nodeId() + '/' + ret;
 		nd = nd->parentNode();
 	}
 	return ret;
