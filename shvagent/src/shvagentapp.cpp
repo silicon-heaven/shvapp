@@ -26,7 +26,7 @@ shv::chainpack::RpcValue AppRootNode::call(const std::string &method, const shv:
 	return Super::call(method, params);
 }
 
-ShvAgentApp::ShvAgentApp(int &argc, char **argv, AppCliOptions* cli_opts)
+ShvRExecApp::ShvRExecApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
 {
@@ -40,8 +40,8 @@ ShvAgentApp::ShvAgentApp(int &argc, char **argv, AppCliOptions* cli_opts)
 		cli_opts->setPassword("lub42DUB");
 	m_rpcConnection->setCliOptions(cli_opts);
 
-	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &ShvAgentApp::onBrokerConnectedChanged);
-	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvAgentApp::onRpcMessageReceived);
+	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &ShvRExecApp::onBrokerConnectedChanged);
+	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvRExecApp::onRpcMessageReceived);
 
 	AppRootNode *root = new AppRootNode();
 	m_shvTree = new shv::iotqt::node::ShvNodeTree(root, this);
@@ -57,7 +57,7 @@ ShvAgentApp::ShvAgentApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
 }
 
-ShvAgentApp::~ShvAgentApp()
+ShvRExecApp::~ShvRExecApp()
 {
 	shvInfo() << "destroying shv agent application";
 }
@@ -133,7 +133,7 @@ static void print_children(shv::iotqt::rpc::ClientConnection *rpc, const std::st
 	}
 }
 #endif
-void ShvAgentApp::onBrokerConnectedChanged(bool is_connected)
+void ShvRExecApp::onBrokerConnectedChanged(bool is_connected)
 {
 	if(!is_connected)
 		return;
@@ -216,7 +216,7 @@ void ShvAgentApp::onBrokerConnectedChanged(bool is_connected)
 	}
 }
 
-void ShvAgentApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
+void ShvRExecApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 {
 	shvLogFuncFrame() << msg.toCpon();
 	if(msg.isRequest()) {

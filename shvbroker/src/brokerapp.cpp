@@ -240,6 +240,7 @@ void BrokerApp::onClientLogin(int connection_id)
 		if(!m_deviceTree->mount(mount_point, cli_nd))
 			SHV_EXCEPTION("Cannot mount connection to device tree, connection id: " + std::to_string(connection_id)
 						  + " shv path: " + mount_point);
+		conn->setMountPoint(mount_point);
 		// delete whole client tree, when client is destroyed
 		connect(conn, &rpc::ServerConnection::destroyed, cli_nd->parentNode(), &ShvClientNode::deleteLater);
 		// abort connection if client tree is deleted
@@ -279,6 +280,7 @@ void BrokerApp::onClientLogin(int connection_id)
 			if(!m_deviceTree->mount(mount_point, cli_nd))
 				SHV_EXCEPTION("Cannot mount connection to device tree, connection id: " + std::to_string(connection_id));
 			mount_point = cli_nd->shvPath();
+			/// overwrite client default mount point
 			conn->setMountPoint(mount_point);
 			connect(conn, &rpc::ServerConnection::destroyed, cli_nd, &ShvClientNode::deleteLater);
 			connect(conn, &rpc::ServerConnection::destroyed, [this, connection_id, mount_point]() {

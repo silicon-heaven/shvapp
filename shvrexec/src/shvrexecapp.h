@@ -4,7 +4,9 @@
 
 #include <QCoreApplication>
 
+class QProcess;
 class AppCliOptions;
+
 namespace shv { namespace chainpack { class RpcMessage; }}
 namespace shv { namespace iotqt { namespace rpc { class DeviceConnection; }}}
 namespace shv { namespace iotqt { namespace node { class ShvNodeTree; }}}
@@ -27,13 +29,22 @@ private:
 public:
 	ShvRExecApp(int &argc, char **argv, AppCliOptions* cli_opts);
 	~ShvRExecApp() Q_DECL_OVERRIDE;
+
+	static ShvRExecApp* instance();
+
+	qint64 writeProcessStdin(const char *data, size_t len);
 private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
+
+	void onReadyReadProcessStandardOutput();
+	void onReadyReadProcessStandardError();
 private:
 	shv::iotqt::rpc::DeviceConnection *m_rpcConnection = nullptr;
 	AppCliOptions* m_cliOptions;
 
 	shv::iotqt::node::ShvNodeTree *m_shvTree = nullptr;
+
+	QProcess *m_cmdProc = nullptr;
 };
 

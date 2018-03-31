@@ -7,12 +7,12 @@ else {
 }
 message ( QF_PROJECT_TOP_BUILDDIR == '$$QF_PROJECT_TOP_BUILDDIR' )
 
-QT += core network
+QT += core network 
 QT -= gui
 CONFIG += c++11
 
 TEMPLATE = app
-TARGET = shvagent
+TARGET = shvrexec
 
 DESTDIR = $$QF_PROJECT_TOP_BUILDDIR/bin
 

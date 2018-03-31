@@ -7,8 +7,9 @@
 //#include <shv/chainpack/cponwriter.h>
 #include <shv/chainpack/rpcvalue.h>
 #include <shv/core/utils.h>
-#include <shv/coreqt/log.h>
 #include <shv/core/assert.h>
+#include <shv/coreqt/log.h>
+#include <shv/iotqt/rpc/rpc.h>
 
 #include <QSettings>
 #include <QJsonDocument>
@@ -85,6 +86,16 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 	case Qt::ToolTipRole: {
 		if(ix.column() == ColBtRun) {
 			return tr("Call remote method");
+		}
+		else if(ix.column() == ColResult) {
+			cp::RpcValue rv = qvariant_cast<cp::RpcValue>(m_rows.value(ix.row()).value(ColRawResult));
+			if(rv.isBlob()) {
+				const shv::chainpack::RpcValue::Blob &bb = rv.toBlob();
+				return QString::fromUtf8(bb.data(), bb.size());
+			}
+			else {
+				return data(ix, Qt::DisplayRole);
+			}
 		}
 		else {
 			return data(ix, Qt::DisplayRole);
@@ -224,9 +235,11 @@ void AttributesModel::loadRow(int method_ix)
 		rv[ColParams] = QString::fromStdString(mtd.params.toCpon());
 	}
 	if(mtd.response.isError()) {
+		rv[ColRawResult] = QVariant::fromValue(cp::RpcValue());
 		rv[ColResult] = QString::fromStdString(mtd.response.error().toString());
 	}
 	else if(mtd.response.result().isValid()) {
+		rv[ColRawResult] = QVariant::fromValue(mtd.response.result());
 		rv[ColResult] = QString::fromStdString(mtd.response.result().toCpon());
 	}
 	rv[ColBtRun] = mtd.rpcRequestId;
