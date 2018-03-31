@@ -221,7 +221,32 @@ void BrokerApp::onClientLogin(int connection_id)
 	if(!conn)
 		SHV_EXCEPTION("Cannot find connection for ID: " + std::to_string(connection_id));
 	const shv::chainpack::RpcValue::Map &opts = conn->connectionOptions();
-	if(conn->connectionType() == cp::Rpc::TYPE_DEVICE) do {
+
+	{
+		ShvClientNode *cli_nd = new ShvClientNode(conn);
+		std::string mount_point = DIR_BROKER + "/clients/" + std::to_string(conn->connectionId()) + "/app";
+		shvInfo() << "Client node:" << cli_nd << "connection id:" << connection_id << "mounting device on path:" << mount_point;
+		shv::iotqt::node::ShvNode *curr_nd = m_deviceTree->cd(mount_point);
+		ShvClientNode *curr_cli_nd = qobject_cast<ShvClientNode*>(curr_nd);
+		if(curr_nd && !curr_cli_nd) {
+			shvError() << "node on" << mount_point << "is not SHV client, this should never happen!";
+			delete curr_nd;
+		}
+		if(curr_cli_nd) {
+			shvWarning() << "The SHV client on" << mount_point << "exists already, this should never happen!";
+			curr_cli_nd->connection()->abort();
+			delete curr_cli_nd;
+		}
+		if(!m_deviceTree->mount(mount_point, cli_nd))
+			SHV_EXCEPTION("Cannot mount connection to device tree, connection id: " + std::to_string(connection_id)
+						  + " shv path: " + mount_point);
+		// delete whole client tree, when client is destroyed
+		connect(conn, &rpc::ServerConnection::destroyed, cli_nd->parentNode(), &ShvClientNode::deleteLater);
+		// abort connection if client tree is deleted
+		connect(cli_nd->parentNode(), &ShvClientNode::destroyed, conn, &rpc::ServerConnection::abort);
+	}
+
+	if(conn->connectionType() == cp::Rpc::TYPE_DEVICE) {
 		shv::chainpack::RpcValue device_id = conn->deviceId();
 		std::string mount_point = mountPointForDevice(device_id);
 		if(mount_point.empty()) {
@@ -236,31 +261,32 @@ void BrokerApp::onClientLogin(int connection_id)
 			}
 		}
 		if(mount_point.empty()) {
-			//SHV_EXCEPTION("Mount point is empty.");
-			mount_point = DIR_BROKER + "/mountError/" + std::to_string(connection_id);
-			shvWarning() << "Device will be mounted to" << mount_point << ", dev id:" << device_id.toCpon();
+			//mount_point = DIR_BROKER + "/mountError/" + std::to_string(connection_id);
+			//shvWarning() << "Device will be mounted to" << mount_point << ", dev id:" << device_id.toCpon();
+			shvWarning() << "cannot find mount point for device id:" << device_id.toCpon() << "connection id:" << connection_id;
 		}
-		ShvClientNode *nd = new ShvClientNode(conn);
-		shvInfo() << "Client node:" << nd << "connection id:" << connection_id << "mounting device on path:" << mount_point;
-		ShvClientNode *curr_cli_nd = qobject_cast<ShvClientNode*>(m_deviceTree->cd(mount_point));
-		if(curr_cli_nd) {
-			shvWarning() << "The mount point" << mount_point << "exists already";
-			if(curr_cli_nd->connection()->deviceId() == device_id) {
-				shvWarning() << "The same device ID will be remounted:" << device_id.toCpon();
-				curr_cli_nd->connection()->abort();
-				delete curr_cli_nd;
+		if(!mount_point.empty()) {
+			ShvClientNode *curr_cli_nd = qobject_cast<ShvClientNode*>(m_deviceTree->cd(mount_point));
+			if(curr_cli_nd) {
+				shvWarning() << "The mount point" << mount_point << "exists already";
+				if(curr_cli_nd->connection()->deviceId() == device_id) {
+					shvWarning() << "The same device ID will be remounted:" << device_id.toCpon();
+					delete curr_cli_nd;
+				}
 			}
+			ShvClientNode *cli_nd = new ShvClientNode(conn);
+			if(!m_deviceTree->mount(mount_point, cli_nd))
+				SHV_EXCEPTION("Cannot mount connection to device tree, connection id: " + std::to_string(connection_id));
+			mount_point = cli_nd->shvPath();
+			conn->setMountPoint(mount_point);
+			connect(conn, &rpc::ServerConnection::destroyed, cli_nd, &ShvClientNode::deleteLater);
+			connect(conn, &rpc::ServerConnection::destroyed, [this, connection_id, mount_point]() {
+				shvInfo() << "server connection destroyed";
+				sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_DISCONNECTED, cp::RpcValue());
+			});
+			sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_CONNECTED, cp::RpcValue());
 		}
-		if(!m_deviceTree->mount(mount_point, nd))
-			SHV_EXCEPTION("Cannot mount connection to device tree, connection id: " + std::to_string(connection_id));
-		conn->setMountPoint(nd->shvPath());
-		connect(conn, &rpc::ServerConnection::destroyed, nd, &ShvClientNode::deleteLater);
-		connect(conn, &rpc::ServerConnection::destroyed, [this, connection_id, mount_point]() {
-			shvInfo() << "server connection destroyed";
-			sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_DISCONNECTED, cp::RpcValue());
-		});
-		sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_CONNECTED, cp::RpcValue());
-	} while(false);
+	}
 	//shvInfo() << m_deviceTree->dumpTree();
 }
 

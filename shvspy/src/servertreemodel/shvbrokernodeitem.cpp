@@ -201,5 +201,29 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 		}
 		m_runningRpcRequests.erase(it);
 	}
+	else if(msg.isRequest()) {
+		cp::RpcRequest rq(msg);
+		cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
+		try {
+			//shvInfo() << "RPC request received:" << rq.toCpon();
+			const std::string shv_path = rq.shvPath();
+			if(!shv_path.empty())
+				SHV_EXCEPTION("Invalid path: " + shv_path);
+			std::string method = rq.method();
+			if(method == cp::Rpc::METH_DIR) {
+				resp.setResult(cp::RpcValue::List{cp::Rpc::METH_DIR, cp::Rpc::METH_PING, cp::Rpc::METH_APP_NAME});
+			}
+			else if(method == cp::Rpc::METH_PING) {
+				resp.setResult(true);
+			}
+			else if(method == cp::Rpc::METH_APP_NAME) {
+				resp.setResult(QCoreApplication::instance()->applicationName().toStdString());
+			}
+		}
+		catch (shv::core::Exception &e) {
+			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodInvocationException, e.message()));
+		}
+		m_clientConnection->sendMessage(resp);
+	}
 }
 

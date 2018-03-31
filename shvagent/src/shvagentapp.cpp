@@ -11,6 +11,21 @@
 
 namespace cp = shv::chainpack;
 
+shv::chainpack::RpcValue AppRootNode::dir(const shv::chainpack::RpcValue &methods_params)
+{
+	cp::RpcValue::List ret = Super::dir(methods_params).toList();
+	ret.push_back(cp::Rpc::METH_APP_NAME);
+	return ret;
+}
+
+shv::chainpack::RpcValue AppRootNode::call(const std::string &method, const shv::chainpack::RpcValue &params)
+{
+	if(method == cp::Rpc::METH_APP_NAME) {
+		return QCoreApplication::instance()->applicationName().toStdString();
+	}
+	return Super::call(method, params);
+}
+
 ShvAgentApp::ShvAgentApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
@@ -28,7 +43,9 @@ ShvAgentApp::ShvAgentApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &ShvAgentApp::onBrokerConnectedChanged);
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvAgentApp::onRpcMessageReceived);
 
-	m_shvTree = new shv::iotqt::node::ShvNodeTree(this);
+	AppRootNode *root = new AppRootNode();
+	m_shvTree = new shv::iotqt::node::ShvNodeTree(root, this);
+	m_shvTree->mkdir("sys");
 	QString sys_fs_root_dir = cli_opts->sysFsRootDir();
 	if(!sys_fs_root_dir.isEmpty() && QDir(sys_fs_root_dir).exists()) {
 		const char *SYS_FS = "sys/fs";
@@ -236,3 +253,4 @@ void ShvAgentApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 		*/
 	}
 }
+
