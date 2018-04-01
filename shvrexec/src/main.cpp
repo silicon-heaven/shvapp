@@ -9,8 +9,15 @@
 #include <QTranslator>
 #include <QDateTime>
 
+#include <iostream>
+#include <termios.h>
+#include <unistd.h>
+
 int main(int argc, char *argv[])
 {
+	//for (int i = 0; i < argc; ++i)
+	//	std::cerr << i << " " << argv[i] << std::endl;
+
 	QCoreApplication::setOrganizationName("Elektroline");
 	QCoreApplication::setOrganizationDomain("elektroline.cz");
 	QCoreApplication::setApplicationName("shvrexec");
@@ -43,6 +50,26 @@ int main(int argc, char *argv[])
 
 	if(!cli_opts.loadConfigFile()) {
 		return EXIT_FAILURE;
+	}
+
+	if(!cli_opts.password_isset()) {
+		std::cout << "password: ";
+		std::string password;
+		const bool is_tty = ::isatty(STDERR_FILENO);
+		if(is_tty) {
+			termios oldt;
+			::tcgetattr(STDIN_FILENO, &oldt);
+			termios newt = oldt;
+			newt.c_lflag &= ~ECHO;
+			::tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+			std::getline(std::cin, password);
+			::tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+			std::cout << "\n";
+		}
+		else {
+			std::getline(std::cin, password);
+		}
+		cli_opts.setPassword(QString::fromStdString(password));
 	}
 
 	shvInfo() << "======================================================================================";

@@ -45,11 +45,15 @@ ShvRExecApp::ShvRExecApp(int &argc, char **argv, AppCliOptions* cli_opts)
 
 	if(!cli_opts->user_isset())
 		cli_opts->setUser("iot");
-	if(!cli_opts->password_isset())
-		cli_opts->setPassword("lub42DUB");
 	m_rpcConnection->setCliOptions(cli_opts);
 	m_rpcConnection->setCheckBrokerConnectedInterval(0);
 
+	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::socketConnectedChanged, [](bool connected) {
+		if(!connected) {
+			shvError() << "Socket disconnected, quitting";
+			quit();
+		}
+	});
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &ShvRExecApp::onBrokerConnectedChanged);
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvRExecApp::onRpcMessageReceived);
 
@@ -72,6 +76,7 @@ ShvRExecApp::ShvRExecApp(int &argc, char **argv, AppCliOptions* cli_opts)
 ShvRExecApp::~ShvRExecApp()
 {
 	shvInfo() << "destroying shv agent application";
+	disconnect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::socketConnectedChanged, 0, 0);
 }
 
 ShvRExecApp *ShvRExecApp::instance()
@@ -96,6 +101,14 @@ void ShvRExecApp::onBrokerConnectedChanged(bool is_connected)
 		connect(m_cmdProc, &QProcess::readyReadStandardError, this, &ShvRExecApp::onReadyReadProcessStandardError);
 		connect(m_cmdProc, &QProcess::errorOccurred, [](QProcess::ProcessError error) {
 			shvError() << "Exec process error:" << error;
+			quit();
+		});
+		connect(m_cmdProc, &QProcess::stateChanged, [](QProcess::ProcessState state) {
+			shvDebug() << "Exec process new state:" << state;
+		});
+		connect(m_cmdProc, QOverload<int>::of(&QProcess::finished), this, [this](int exit_code) {
+			shvInfo() << "Process" << m_cmdProc->program() << "finished with exit code:" << exit_code;
+			quit();
 		});
 		m_cmdProc->start(program, arguments);
 	}
