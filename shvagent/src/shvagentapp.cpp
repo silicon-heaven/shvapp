@@ -7,14 +7,18 @@
 
 #include <shv/coreqt/log.h>
 
+#include <QProcess>
 #include <QTimer>
 
 namespace cp = shv::chainpack;
+
+static const char METH_OPEN_RSH[] = "openRsh";
 
 shv::chainpack::RpcValue AppRootNode::dir(const shv::chainpack::RpcValue &methods_params)
 {
 	cp::RpcValue::List ret = Super::dir(methods_params).toList();
 	ret.push_back(cp::Rpc::METH_APP_NAME);
+	ret.push_back(METH_OPEN_RSH);
 	return ret;
 }
 
@@ -22,6 +26,12 @@ shv::chainpack::RpcValue AppRootNode::call(const std::string &method, const shv:
 {
 	if(method == cp::Rpc::METH_APP_NAME) {
 		return QCoreApplication::instance()->applicationName().toStdString();
+	}
+	else if(method == METH_OPEN_RSH) {
+		const shv::chainpack::RpcValue::Map &m = params.toMap();
+		std::string proc_name = m.value("name").toString();
+		ShvRExecApp *app = ShvRExecApp::instance();
+		return app->openRsh(proc_name);
 	}
 	return Super::call(method, params);
 }
@@ -61,78 +71,51 @@ ShvRExecApp::~ShvRExecApp()
 {
 	shvInfo() << "destroying shv agent application";
 }
-/*
-enum class LublicatorStatus : unsigned
-{
-	PosOff      = 1 << 0,
-	PosOn       = 1 << 1,
-	PosMiddle   = 1 << 2,
-	PosError    = 1 << 3,
-	BatteryLow  = 1 << 4,
-	BatteryHigh = 1 << 5,
-	DoorOpenCabinet = 1 << 6,
-	DoorOpenMotor = 1 << 7,
-	ModeAuto    = 1 << 8,
-	ModeRemote  = 1 << 9,
-	ModeService = 1 << 10,
-	MainSwitch  = 1 << 11
-};
 
-std::string lublicatorStatusToString(unsigned st)
+ShvRExecApp *ShvRExecApp::instance()
 {
-	std::string ret;
-	if(st & (unsigned)LublicatorStatus::PosOff) ret += " | PosOff";
-	if(st & (unsigned)LublicatorStatus::PosOn) ret += " | PosOn";
-	if(st & (unsigned)LublicatorStatus::PosMiddle) ret += " | PosMiddle";
-	if(st & (unsigned)LublicatorStatus::PosError) ret += " | PosError";
-	if(st & (unsigned)LublicatorStatus::BatteryLow) ret += " | BatteryLow";
-	if(st & (unsigned)LublicatorStatus::BatteryHigh) ret += " | BatteryHigh";
-	if(st & (unsigned)LublicatorStatus::DoorOpenCabinet) ret += " | DoorOpenCabinet";
-	if(st & (unsigned)LublicatorStatus::DoorOpenMotor) ret += " | DoorOpenMotor";
-	if(st & (unsigned)LublicatorStatus::ModeAuto) ret += " | ModeAuto";
-	if(st & (unsigned)LublicatorStatus::ModeRemote) ret += " | ModeRemote";
-	if(st & (unsigned)LublicatorStatus::ModeService) ret += " | ModeService";
-	if(st & (unsigned)LublicatorStatus::MainSwitch) ret += " | MainSwitch";
-	return ret;
+	return qobject_cast<ShvRExecApp *>(QCoreApplication::instance());
 }
-*/
-#if 0
-static void print_children(shv::iotqt::rpc::ClientConnection *rpc, const std::string &path, int indent)
+
+shv::chainpack::RpcValue ShvRExecApp::openRsh(const std::string &name)
 {
-	//shvInfo() << "\tcall:" << "get" << "on shv path:" << shv_path;
-	cp::RpcResponse resp = rpc->callShvMethodSync(path, cp::Rpc::METH_GET);
-	shvDebug() << "\tgot response:" << resp.toCpon();
-	if(resp.isError()) {
-		//throw shv::core::Exception(resp.error().message());
-		shvError() << resp.error().message();
-		return;
-	}
-	shv::chainpack::RpcValue result = resp.result();
-	if(result.isList()) {
-		const cp::RpcValue::List list = resp.result().toList();
-		for(const auto &dir : list) {
-			std::string s = dir.toString();
-			if(s.empty()) {
-				shvError() << "empty dir name";
-			}
-			/*
-			else if(s == "odpojovace") {
-				shvInfo() << "skipping dir:" << s;
-				continue;
-			}
-			*/
-			else {
-				std::string path2 = path + '/' + s;
-				shvInfo() << std::string(indent, ' ') << s;
-				print_children(rpc, path2, indent + 2);
-			}
+	QString qname = QString::fromStdString(name);
+	{
+		QProcess*p = findChild<QProcess*>(qname);
+		if(p) {
+			shvWarning() << "Process with name:" << qname << "exists already, it will be canceled.";
+			p->close();
+			delete p;
 		}
 	}
-	else {
-		shvInfo() << std::string(indent, ' ') << result.toCpon();// << lublicatorStatusToString(result.toUInt());
-	}
+	shv::iotqt::rpc::DeviceConnection *conn = m_rpcConnection;
+	std::string mount_point = ".broker/clients/" + std::to_string(conn->serverClientId()) + "/rproc/" + name;
+	QString app = QCoreApplication::applicationDirPath() + "/shvrexec";
+	QStringList params;
+	params << "-s" << QString::fromStdString(conn->host());
+	params << "-p" << QString::number(conn->port());
+	params << "-u" << QString::fromStdString(conn->user());
+	params << "-m" << QString::fromStdString(mount_point);
+	params << "-e" << "/bin/sh";
+	QProcess *proc = new QProcess(this);
+	proc->setCurrentReadChannel(QProcess::StandardError);
+	//connect(proc, SIGNAL(finished(int)), proc, SLOT(deleteLater()));
+	connect(proc, QOverload<int>::of(&QProcess::finished), [proc](int exit_code) {
+		shvInfo() << "Process" << proc->program() << "finished with exit code:" << exit_code;
+	});
+	connect(proc, &QProcess::readyReadStandardError, [proc]() {
+		QByteArray ba = proc->readAll();
+		shvWarning() << "Process stderr:" << std::string(ba.constData(), ba.size());
+	});
+	shvInfo() << "starting child process:" << app << params.join(' ');
+	proc->start(app, params);
+	proc->write(conn->password().data(), conn->password().size());
+	proc->write("\n", 1);
+	cp::RpcValue::Map ret;
+	ret["mount"] = mount_point;
+	return ret;
 }
-#endif
+
 void ShvRExecApp::onBrokerConnectedChanged(bool is_connected)
 {
 	if(!is_connected)

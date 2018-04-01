@@ -27,6 +27,11 @@ private:
 public:
 	ShvRExecApp(int &argc, char **argv, AppCliOptions* cli_opts);
 	~ShvRExecApp() Q_DECL_OVERRIDE;
+
+	static ShvRExecApp *instance();
+	//shv::iotqt::rpc::DeviceConnection *rpcConnection() const {return m_rpcConnection;}
+
+	shv::chainpack::RpcValue openRsh(const std::string &name);
 private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
