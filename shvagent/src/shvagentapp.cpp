@@ -1,5 +1,6 @@
 #include "shvagentapp.h"
 #include "appclioptions.h"
+#include "sessionprocess.h"
 
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/node/shvnodetree.h>
@@ -89,24 +90,20 @@ shv::chainpack::RpcValue ShvRExecApp::openRsh(const std::string &name)
 		}
 	}
 	shv::iotqt::rpc::DeviceConnection *conn = m_rpcConnection;
-	std::string mount_point = ".broker/clients/" + std::to_string(conn->serverClientId()) + "/rproc/" + name;
+	std::string mount_point = ".broker/clients/" + std::to_string(conn->brokerClientId()) + "/rproc/" + name;
 	QString app = QCoreApplication::applicationDirPath() + "/shvrexec";
 	QStringList params;
+	SessionProcess *proc = new SessionProcess(this);
 	params << "-s" << QString::fromStdString(conn->host());
 	params << "-p" << QString::number(conn->port());
 	params << "-u" << QString::fromStdString(conn->user());
 	params << "-m" << QString::fromStdString(mount_point);
+	cp::RpcValue::Map st;
+	st["clientId"] = m_rpcConnection->brokerClientId();
+	st["sessionId"] = (uint64_t)proc;
+	std::string session_token = cp::Utils::toHex(cp::RpcValue(st).toChainPack());
+	params << "-st" << QString::fromStdString(session_token);
 	params << "-e" << "/bin/sh";
-	QProcess *proc = new QProcess(this);
-	proc->setCurrentReadChannel(QProcess::StandardError);
-	//connect(proc, SIGNAL(finished(int)), proc, SLOT(deleteLater()));
-	connect(proc, QOverload<int>::of(&QProcess::finished), [proc](int exit_code) {
-		shvInfo() << "Process" << proc->program() << "finished with exit code:" << exit_code;
-	});
-	connect(proc, &QProcess::readyReadStandardError, [proc]() {
-		QByteArray ba = proc->readAll();
-		shvWarning() << "Process stderr:" << std::string(ba.constData(), ba.size());
-	});
 	shvInfo() << "starting child process:" << app << params.join(' ');
 	proc->start(app, params);
 	proc->write(conn->password().data(), conn->password().size());
