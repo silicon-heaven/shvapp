@@ -48,6 +48,8 @@ private:
 	//Q_SLOT void reloadServices();
 	std::string mountPointForDevice(const shv::chainpack::RpcValue &device_id);
 
+	void onRootNodeSendRpcMesage(const shv::chainpack::RpcMessage &msg);
+
 	void sendNotifyToSubscribers(unsigned sender_connection_id, const std::string &shv_path, std::string method, const shv::chainpack::RpcValue &params);
 	void sendNotifyToSubscribers(unsigned sender_connection_id, const shv::chainpack::RpcValue::MetaData &meta_data, const std::string &data);
 private:

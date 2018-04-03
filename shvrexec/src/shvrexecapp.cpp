@@ -10,6 +10,8 @@
 #include <QProcess>
 #include <QTimer>
 
+#include <iostream>
+
 namespace cp = shv::chainpack;
 
 const char METH_STDIN_WRITE[] = "stdinWrite";
@@ -91,6 +93,12 @@ void ShvRExecApp::onBrokerConnectedChanged(bool is_connected)
 		m_cmdProc = nullptr;
 	}
 	if(is_connected) {
+		{
+			/// send mount point to agent
+			const cp::RpcValue &v = m_rpcConnection->loginResult();
+			std::string s = v.toCpon();
+			std::cout << s << std::endl;
+		}
 		QString exec_cmd = m_cliOptions->execCommand();
 		shvInfo() << "Starting process:" << exec_cmd;
 		QStringList sl = exec_cmd.split(' ', QString::SkipEmptyParts);
@@ -119,7 +127,7 @@ void ShvRExecApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 	shvLogFuncFrame() << msg.toCpon();
 	if(msg.isRequest()) {
 		cp::RpcRequest rq(msg);
-		cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
+		cp::RpcResponse resp = cp::RpcResponse::forRequest(rq.metaData());
 		try {
 			//shvInfo() << "RPC request received:" << rq.toCpon();
 			const std::string shv_path = rq.shvPath();

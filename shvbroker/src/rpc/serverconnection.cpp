@@ -88,7 +88,7 @@ void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolType proto
 	}
 }
 
-bool ServerConnection::login(const shv::chainpack::RpcValue &auth_params)
+shv::chainpack::RpcValue ServerConnection::login(const shv::chainpack::RpcValue &auth_params)
 {
 	const cp::RpcValue::Map params = auth_params.toMap();
 	const cp::RpcValue::Map login = params.value("login").toMap();
@@ -107,7 +107,7 @@ bool ServerConnection::login(const shv::chainpack::RpcValue &auth_params)
 		QCryptographicHash hash(QCryptographicHash::Algorithm::Sha1);
 		hash.addData(nonce.data(), nonce.length());
 		std::string sha1 = std::string(hash.result().toHex().constData());
-		shvInfo() << nonce_sha1 << "vs" << sha1;
+		//shvInfo() << nonce_sha1 << "vs" << sha1;
 		password_ok = (nonce_sha1 == sha1);
 	}
 	if(password_ok) {
@@ -117,8 +117,13 @@ bool ServerConnection::login(const shv::chainpack::RpcValue &auth_params)
 		shv::chainpack::RpcValue::UInt t = opts.value(cp::Rpc::OPT_IDLE_WD_TIMEOUT).toUInt();
 		setIdleWatchDogTimeOut(t);
 		BrokerApp::instance()->onClientLogin(connectionId());
+
+		cp::RpcValue::Map login_resp;
+		login_resp[cp::Rpc::KEY_CLIENT_ID] = connectionId();
+		login_resp[cp::Rpc::KEY_MOUT_POINT] = mountPoint();
+		return login_resp;
 	}
-	return password_ok;
+	return cp::RpcValue();
 }
 
 } // namespace rpc

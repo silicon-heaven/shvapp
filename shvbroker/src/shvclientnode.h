@@ -14,6 +14,8 @@ public:
 	~ShvClientNode() override;
 
 	rpc::ServerConnection * connection() const {return m_connection;}
+
+	void processRawData(const shv::chainpack::RpcValue::MetaData &meta, std::string &&data) override;
 private:
 	rpc::ServerConnection * m_connection = nullptr;
 };

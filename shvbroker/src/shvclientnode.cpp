@@ -16,4 +16,10 @@ ShvClientNode::~ShvClientNode()
 	shvInfo() << "Destroying client node:" << this << "connection:" << m_connection->connectionId();
 }
 
+void ShvClientNode::processRawData(const shv::chainpack::RpcValue::MetaData &meta, std::string &&data)
+{
+	rpc::ServerConnection *conn = connection();
+	conn->sendRawData(meta, std::move(data));
+}
+
 

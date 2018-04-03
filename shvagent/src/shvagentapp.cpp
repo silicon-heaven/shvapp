@@ -28,13 +28,17 @@ shv::chainpack::RpcValue AppRootNode::call(const std::string &method, const shv:
 	if(method == cp::Rpc::METH_APP_NAME) {
 		return QCoreApplication::instance()->applicationName().toStdString();
 	}
-	else if(method == METH_OPEN_RSH) {
-		const shv::chainpack::RpcValue::Map &m = params.toMap();
-		std::string proc_name = m.value("name").toString();
-		ShvRExecApp *app = ShvRExecApp::instance();
-		return app->openRsh(proc_name);
-	}
 	return Super::call(method, params);
+}
+
+shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::RpcRequest &rq)
+{
+	if(rq.method() == METH_OPEN_RSH) {
+		ShvRExecApp *app = ShvRExecApp::instance();
+		app->openRsh(rq);
+		return cp::RpcValue();
+	}
+	return Super::processRpcRequest(rq);
 }
 
 ShvRExecApp::ShvRExecApp(int &argc, char **argv, AppCliOptions* cli_opts)
@@ -78,8 +82,10 @@ ShvRExecApp *ShvRExecApp::instance()
 	return qobject_cast<ShvRExecApp *>(QCoreApplication::instance());
 }
 
-shv::chainpack::RpcValue ShvRExecApp::openRsh(const std::string &name)
+void ShvRExecApp::openRsh(const shv::chainpack::RpcRequest &rq)
 {
+	const shv::chainpack::RpcValue::Map &m = rq.params().toMap();
+	std::string name = m.value("name").toString();
 	QString qname = QString::fromStdString(name);
 	{
 		QProcess*p = findChild<QProcess*>(qname);
@@ -94,6 +100,22 @@ shv::chainpack::RpcValue ShvRExecApp::openRsh(const std::string &name)
 	QString app = QCoreApplication::applicationDirPath() + "/shvrexec";
 	QStringList params;
 	SessionProcess *proc = new SessionProcess(this);
+	proc->setCurrentReadChannel(QProcess::StandardOutput);
+	auto rq2 = rq;
+	connect(proc, &SessionProcess::readyReadStandardOutput, [this, proc, rq2]() {
+		QByteArray ba = proc->readLine();
+		std::string data(ba.constData(), ba.size());
+		std::string errstr;
+		cp::RpcValue ret = cp::RpcValue::parseCpon(data, &errstr);
+		if(errstr.empty()) {
+			cp::RpcResponse resp = cp::RpcResponse::forRequest(rq2);
+			resp.setResult(ret);
+			m_shvTree->root()->emitSendRpcMesage(resp);
+		}
+		else {
+			shvError() << errstr << "data:" << data;
+		}
+	});
 	params << "-s" << QString::fromStdString(conn->host());
 	params << "-p" << QString::number(conn->port());
 	params << "-u" << QString::fromStdString(conn->user());
@@ -108,9 +130,6 @@ shv::chainpack::RpcValue ShvRExecApp::openRsh(const std::string &name)
 	proc->start(app, params);
 	proc->write(conn->password().data(), conn->password().size());
 	proc->write("\n", 1);
-	cp::RpcValue::Map ret;
-	ret["mount"] = mount_point;
-	return ret;
 }
 
 void ShvRExecApp::onBrokerConnectedChanged(bool is_connected)
@@ -201,7 +220,7 @@ void ShvRExecApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 	shvLogFuncFrame() << msg.toCpon();
 	if(msg.isRequest()) {
 		cp::RpcRequest rq(msg);
-		cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
+		cp::RpcResponse resp = cp::RpcResponse::forRequest(rq.metaData());
 		try {
 			//shvInfo() << "RPC request received:" << rq.toCpon();
 			const std::string shv_path = rq.shvPath();

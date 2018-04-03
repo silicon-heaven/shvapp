@@ -17,6 +17,8 @@ public:
 
 	shv::chainpack::RpcValue dir(const shv::chainpack::RpcValue &methods_params) override;
 	shv::chainpack::RpcValue call(const std::string &method, const shv::chainpack::RpcValue &params) override;
+
+	shv::chainpack::RpcValue processRpcRequest(const shv::chainpack::RpcRequest &rq) override;
 };
 
 class ShvRExecApp : public QCoreApplication
@@ -31,7 +33,7 @@ public:
 	static ShvRExecApp *instance();
 	//shv::iotqt::rpc::DeviceConnection *rpcConnection() const {return m_rpcConnection;}
 
-	shv::chainpack::RpcValue openRsh(const std::string &name);
+	void openRsh(const shv::chainpack::RpcRequest &rq);
 private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);

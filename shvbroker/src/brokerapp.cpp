@@ -59,6 +59,7 @@ BrokerApp::BrokerApp(int &argc, char **argv, AppCliOptions *cli_opts)
 	m_sqlConnectionWatchDog->start(SQL_RECONNECT_INTERVAL);
 	*/
 	m_deviceTree = new shv::iotqt::node::ShvNodeTree(this);
+	connect(m_deviceTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, this, &BrokerApp::onRootNodeSendRpcMesage);
 	BrokerNode *bn = new BrokerNode();
 	m_deviceTree->mount(DIR_BROKER + "/app", bn);
 	//m_deviceTree->mkdir("test");
@@ -297,44 +298,57 @@ void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData
 {
 	if(cp::RpcMessage::isRequest(meta)) {
 		shvDebug() << "REQUEST conn id:" << connection_id << meta.toStdString();
-		cp::RpcMessage::pushCallerId(meta, connection_id);
 		const std::string shv_path = cp::RpcMessage::shvPath(meta);
 		std::string path_rest;
 		shv::iotqt::node::ShvNode *nd = m_deviceTree->cd(shv_path, &path_rest);
-		ShvClientNode *client_nd = qobject_cast<ShvClientNode *>(nd);
-		//shvWarning() << nd << client_nd << "shv path:" << shv_path << "rest:" << path_rest;// << meta.toStdString();
-		if(client_nd) {
+		if(nd) {
 			cp::RpcMessage::setShvPath(meta, path_rest);
-			rpc::ServerConnection *conn2 = client_nd->connection();
-			conn2->sendRawData(std::move(meta), std::move(data));
-		}
-		else if(nd) {
-			cp::RpcMessage rpc_msg = cp::RpcDriver::composeRpcMessage(std::move(meta), data, cp::Exception::Throw);
-			rpc_msg.setShvPath(path_rest);
-			cp::RpcRequest rq(rpc_msg);
-			cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
-			try {
-				cp::RpcValue result = nd->processRpcRequest(rpc_msg);
-				resp.setResult(result);
+			cp::RpcMessage::pushCallerId(meta, connection_id);
+			nd->processRawData(meta, std::move(data));
+#if 0
+			ShvClientNode *client_nd = qobject_cast<ShvClientNode *>(nd);
+			//shvWarning() << nd << client_nd << "shv path:" << shv_path << "rest:" << path_rest;// << meta.toStdString();
+			cp::RpcMessage::setShvPath(meta, path_rest);
+			if(client_nd) {
+				rpc::ServerConnection *conn2 = client_nd->connection();
+				conn2->sendRawData(meta, std::move(data));
 			}
-			catch (shv::core::Exception &e) {
-				shvError() << e.message();
-				resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodInvocationException, e.message()));
+			else if(nd) {
+				cp::RpcMessage rpc_msg = cp::RpcDriver::composeRpcMessage(std::move(meta), data, cp::Exception::Throw);
+				rpc_msg.setShvPath(path_rest);
+				cp::RpcRequest rq(rpc_msg);
+				cp::RpcResponse resp = cp::RpcResponse::forRequest(rq.metaData());
+				bool response_deffered = false;
+				try {
+					cp::RpcValue result = nd->processRpcRequest(rq);
+					if(result.isValid())
+						resp.setResult(result);
+					else
+						response_deffered = true;
+				}
+				catch (shv::core::Exception &e) {
+					shvError() << e.message();
+					resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodInvocationException, e.message()));
+				}
+				if(!response_deffered) {
+					resp.popCallerId();
+					rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
+					if(conn)
+						conn->sendMessage(resp);
+					else
+						shvError() << "Cannot find connection for ID:" << connection_id;
+				}
 			}
-			rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
-			if(conn)
-				conn->sendMessage(resp);
-			else
-				shvError() << "Cannot find connection for ID:" << connection_id;
+#endif
 		}
 		else {
 			std::string err_msg = "Device tree path not found: " + shv_path;
 			shvWarning() << err_msg;
-			cp::RpcMessage rpc_msg = cp::RpcDriver::composeRpcMessage(std::move(meta), data, !cp::Exception::Throw);
-			if(rpc_msg.isRequest()) {
+			if(cp::RpcMessage::isRequest(meta)) {
+				//cp::RpcMessage rpc_msg = cp::RpcDriver::composeRpcMessage(std::move(meta), data, !cp::Exception::Throw);
 				rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
 				if(conn) {
-					conn->sendError(rpc_msg.requestId(), cp::RpcResponse::Error::create(
+					conn->sendError(cp::RpcMessage::requestId(meta), cp::RpcResponse::Error::create(
 										cp::RpcResponse::Error::MethodInvocationException
 										, err_msg));
 				}
@@ -371,6 +385,21 @@ void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData
 			sendNotifyToSubscribers(connection_id, meta, data);
 		}
 	}
+}
+
+void BrokerApp::onRootNodeSendRpcMesage(const shv::chainpack::RpcMessage &msg)
+{
+	if(msg.isResponse()) {
+		cp::RpcResponse resp(msg);
+		shv::chainpack::RpcValue::UInt connection_id = resp.popCallerId();
+		rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
+		if(conn)
+			conn->sendMessage(resp);
+		else
+			shvError() << "Cannot find connection for ID:" << connection_id;
+		return;
+	}
+	shvError() << "Send message not implemented.";// << msg.toCpon();
 }
 
 void BrokerApp::sendNotifyToSubscribers(unsigned sender_connection_id, const shv::chainpack::RpcValue::MetaData &meta_data, const std::string &data)
