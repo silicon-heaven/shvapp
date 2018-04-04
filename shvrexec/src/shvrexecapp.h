@@ -8,7 +8,7 @@ class QProcess;
 class AppCliOptions;
 
 namespace shv { namespace chainpack { class RpcMessage; }}
-namespace shv { namespace iotqt { namespace rpc { class DeviceConnection; }}}
+namespace shv { namespace iotqt { namespace rpc { class TunnelConnection; }}}
 namespace shv { namespace iotqt { namespace node { class ShvNodeTree; }}}
 
 class AppRootNode : public shv::iotqt::node::ShvRootNode
@@ -40,7 +40,7 @@ private:
 	void onReadyReadProcessStandardOutput();
 	void onReadyReadProcessStandardError();
 private:
-	shv::iotqt::rpc::DeviceConnection *m_rpcConnection = nullptr;
+	shv::iotqt::rpc::TunnelConnection *m_rpcConnection = nullptr;
 	AppCliOptions* m_cliOptions;
 
 	shv::iotqt::node::ShvNodeTree *m_shvTree = nullptr;

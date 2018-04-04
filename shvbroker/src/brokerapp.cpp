@@ -250,11 +250,13 @@ void BrokerApp::onClientLogin(int connection_id)
 	}
 
 	if(conn->connectionType() == cp::Rpc::TYPE_DEVICE) {
+		std::string mount_point;
 		shv::chainpack::RpcValue device_id = conn->deviceId();
-		std::string mount_point = mountPointForDevice(device_id);
+		if(device_id.isValid())
+			mount_point = mountPointForDevice(device_id);
 		if(mount_point.empty()) {
 			const shv::chainpack::RpcValue::Map &device = opts.value(cp::Rpc::TYPE_DEVICE).toMap();
-			mount_point = device.value("mount").toString();
+			mount_point = device.value(cp::Rpc::KEY_MOUT_POINT).toString();
 			std::vector<shv::core::StringView> path = shv::core::StringView(mount_point).split('/');
 			//if(path.empty())
 			//	SHV_EXCEPTION("Cannot find mount point for device: " + device_id.toCpon());
@@ -391,6 +393,8 @@ void BrokerApp::onRootNodeSendRpcMesage(const shv::chainpack::RpcMessage &msg)
 {
 	if(msg.isResponse()) {
 		cp::RpcResponse resp(msg);
+		if(resp.requestId().toUInt() == 0) // RPC calls with requestID == 0 does not expect response
+			return;
 		shv::chainpack::RpcValue::UInt connection_id = resp.popCallerId();
 		rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
 		if(conn)

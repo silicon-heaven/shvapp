@@ -1,14 +1,12 @@
 #pragma once
 
-#include <shv/iotqt/rpc/clientappclioptions.h>
+#include <shv/iotqt/rpc/tunnelconnection.h>
 
-#include <QSet>
-
-class AppCliOptions : public shv::iotqt::rpc::ClientAppCliOptions
+class AppCliOptions : public shv::iotqt::rpc::TunnelAppCliOptions
 {
 	Q_OBJECT
 private:
-	using Super = shv::iotqt::rpc::ClientAppCliOptions;
+	using Super = shv::iotqt::rpc::TunnelAppCliOptions;
 public:
 	AppCliOptions(QObject *parent = NULL);
 	~AppCliOptions() Q_DECL_OVERRIDE {}

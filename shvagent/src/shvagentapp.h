@@ -21,16 +21,16 @@ public:
 	shv::chainpack::RpcValue processRpcRequest(const shv::chainpack::RpcRequest &rq) override;
 };
 
-class ShvRExecApp : public QCoreApplication
+class ShvAgentApp : public QCoreApplication
 {
 	Q_OBJECT
 private:
 	using Super = QCoreApplication;
 public:
-	ShvRExecApp(int &argc, char **argv, AppCliOptions* cli_opts);
-	~ShvRExecApp() Q_DECL_OVERRIDE;
+	ShvAgentApp(int &argc, char **argv, AppCliOptions* cli_opts);
+	~ShvAgentApp() Q_DECL_OVERRIDE;
 
-	static ShvRExecApp *instance();
+	static ShvAgentApp *instance();
 	//shv::iotqt::rpc::DeviceConnection *rpcConnection() const {return m_rpcConnection;}
 
 	void openRsh(const shv::chainpack::RpcRequest &rq);

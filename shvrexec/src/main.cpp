@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
 	if(!cli_opts.loadConfigFile()) {
 		return EXIT_FAILURE;
 	}
-
+	/*
 	if(!cli_opts.password_isset()) {
 		std::string password;
 		const bool is_tty = ::isatty(STDERR_FILENO);
@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
 		}
 		cli_opts.setPassword(QString::fromStdString(password));
 	}
-
+	*/
 	shvInfo() << "======================================================================================";
 	shvInfo() << "Starting SHV Remote Exec, PID:" << QCoreApplication::applicationPid() << "build:" << __DATE__ << __TIME__;
 #ifdef GIT_COMMIT

@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
 	shvInfo() << "Log tresholds:" << NecroLog::tresholdsLogInfo();
 	shvInfo() << "--------------------------------------------------------------------------------------";
 
-	ShvRExecApp a(argc, argv, &cli_opts);
+	ShvAgentApp a(argc, argv, &cli_opts);
 
 	shvInfo() << "starting main thread event loop";
 	ret = a.exec();
