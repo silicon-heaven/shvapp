@@ -128,7 +128,7 @@ void ShvNodeItem::processRpcMessage(const shv::chainpack::RpcMessage &msg)
 {
 	if(msg.isResponse()) {
 		cp::RpcResponse resp(msg);
-		unsigned rqid = resp.requestId();
+		unsigned rqid = resp.requestId().toUInt();
 		if(rqid == m_loadChildrenRqId) {
 			m_loadChildrenRqId = 0;
 			m_childrenLoaded = true;

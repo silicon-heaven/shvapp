@@ -19,5 +19,6 @@ void SessionProcess::onFinished(int exit_code)
 void SessionProcess::onReadyReadStandardError()
 {
 	QByteArray ba = readAll();
-	shvWarning() << "Process stderr:" << std::string(ba.constData(), ba.size());
+	if(!ba.isEmpty())
+		shvWarning() << "Process stderr:" << std::string(ba.constData(), ba.size());
 }

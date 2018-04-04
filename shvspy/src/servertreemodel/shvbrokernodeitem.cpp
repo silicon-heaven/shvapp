@@ -184,7 +184,7 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 {
 	if(msg.isResponse()) {
 		cp::RpcResponse resp(msg);
-		unsigned rqid = resp.requestId();
+		unsigned rqid = resp.requestId().toUInt();
 		auto it = m_runningRpcRequests.find(rqid);
 		if(it == m_runningRpcRequests.end()) {
 			//shvWarning() << "unexpected request id:" << rqid;

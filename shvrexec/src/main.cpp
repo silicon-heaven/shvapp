@@ -53,10 +53,10 @@ int main(int argc, char *argv[])
 	}
 
 	if(!cli_opts.password_isset()) {
-		std::cout << "password: ";
 		std::string password;
 		const bool is_tty = ::isatty(STDERR_FILENO);
 		if(is_tty) {
+			std::cout << "password: ";
 			termios oldt;
 			::tcgetattr(STDIN_FILENO, &oldt);
 			termios newt = oldt;
