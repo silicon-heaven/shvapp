@@ -4,6 +4,7 @@
 
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/rpc/tunnelconnection.h>
+#include <shv/iotqt/rpc/tunnelhandle.h>
 #include <shv/iotqt/node/shvnodetree.h>
 #include <shv/iotqt/node/localfsnode.h>
 #include <shv/coreqt/log.h>
@@ -21,6 +22,7 @@ shv::chainpack::RpcValue AppRootNode::dir(const shv::chainpack::RpcValue &method
 {
 	cp::RpcValue::List ret = Super::dir(methods_params).toList();
 	ret.push_back(cp::Rpc::METH_APP_NAME);
+	ret.push_back(cp::Rpc::METH_CONNECTION_TYPE);
 	ret.push_back(METH_OPEN_RSH);
 	return ret;
 }
@@ -29,6 +31,9 @@ shv::chainpack::RpcValue AppRootNode::call(const std::string &method, const shv:
 {
 	if(method == cp::Rpc::METH_APP_NAME) {
 		return QCoreApplication::instance()->applicationName().toStdString();
+	}
+	if(method == cp::Rpc::METH_CONNECTION_TYPE) {
+		return ShvAgentApp::instance()->rpcConnection()->connectionType();
 	}
 	return Super::call(method, params);
 }
@@ -62,6 +67,7 @@ ShvAgentApp::ShvAgentApp(int &argc, char **argv, AppCliOptions* cli_opts)
 
 	AppRootNode *root = new AppRootNode();
 	m_shvTree = new shv::iotqt::node::ShvNodeTree(root, this);
+	//connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, this, &ShvAgentApp::onRootNodeSendRpcMesage);
 	m_shvTree->mkdir("sys/rproc");
 	QString sys_fs_root_dir = cli_opts->sysFsRootDir();
 	if(!sys_fs_root_dir.isEmpty() && QDir(sys_fs_root_dir).exists()) {
@@ -87,12 +93,12 @@ ShvAgentApp *ShvAgentApp::instance()
 void ShvAgentApp::openRsh(const shv::chainpack::RpcRequest &rq)
 {
 	//const shv::chainpack::RpcValue::Map &m = rq.params().toMap();
+	/*
 	std::string tun_name;// = m.value("name").toString();
 	if(tun_name.empty()) {
 		static int n = 0;
 		tun_name = "proc" + std::to_string(++n);
 	}
-	/*
 	QString qname = QString::fromStdString(name);
 	{
 		QProcess*p = findChild<SessionProcess*>(qname);
@@ -117,37 +123,33 @@ void ShvAgentApp::openRsh(const shv::chainpack::RpcRequest &rq)
 	tun_params[TunnelParamsMT::Key::User] = m_rpcConnection->user();
 	tun_params[TunnelParamsMT::Key::Password] = m_rpcConnection->password();
 	tun_params[TunnelParamsMT::Key::ParentClientId] = m_rpcConnection->brokerClientId();
-	tun_params[TunnelParamsMT::Key::CallerClientIds] = rq.callerId();
-	tun_params[TunnelParamsMT::Key::TunnelResponseRequestId] = rq.requestId();
-	tun_params[TunnelParamsMT::Key::TunName] = tun_name;
+	tun_params[TunnelParamsMT::Key::CallerClientIds] = rq.callerIds();
+	//tun_params[TunnelParamsMT::Key::TunnelResponseRequestId] = rq.requestId();
+	//tun_params[TunnelParamsMT::Key::TunName] = tun_name;
 	//std::string mount_point = ".broker/clients/" + std::to_string(m_rpcConnection->brokerClientId()) + "/rproc/" + name;
 	QString app = QCoreApplication::applicationDirPath() + "/shvrexec";
 	QStringList params;
 	SessionProcess *proc = new SessionProcess(this);
-	proc->setCurrentReadChannel(QProcess::StandardOutput);
+	//proc->setCurrentReadChannel(QProcess::StandardOutput);
 	auto rq2 = rq;
 	connect(proc, &SessionProcess::readyReadStandardOutput, [this, proc, rq2]() {
-		if(!proc->canReadLine())
+		if(!proc->canReadLine()) {
 			return;
-		QByteArray ba = proc->readLine();
-		std::string data(ba.constData(), ba.size());
-		std::string errstr;
-		cp::RpcValue::Map ret = cp::RpcValue::fromCpon(data, &errstr).toMap();
-		if(errstr.empty()) {
-			cp::RpcResponse resp = cp::RpcResponse::forRequest(rq2);
-			std::string p = rq2.shvPath();
-			std::string rel_path;
-			size_t cnt = shv::core::StringView(p).split('/').size();
-			for (size_t i = 0; i < cnt; ++i)
-				rel_path += "../";
-			rel_path += ".broker/clients/" + ret.value("tunnelClientId").toStdString() + "/app";
-			ret["tunnelRelPath"] = rel_path;
-			resp.setResult(ret);
-			m_shvTree->root()->emitSendRpcMesage(resp);
 		}
-		else {
-			shvError() << "Error parsing tunneled process stdout:" << errstr << "data:" << data;
+		cp::RpcResponse resp = cp::RpcResponse::forRequest(rq2);
+		try {
+			QByteArray ba = proc->readLine();
+			std::string data(ba.constData(), ba.size());
+			cp::RpcValue::Map m = cp::RpcValue::fromCpon(data).toMap();
+			cp::RpcValue::Map result;
+			result[cp::Rpc::KEY_TUNNEL_HANDLE] = m.value(cp::Rpc::KEY_TUNNEL_HANDLE);
+			resp.setResult(result);
 		}
+		catch (std::exception &e) {
+			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodInvocationException, e.what()));
+		}
+		shvInfo() << "Process started, sending response:" << resp.toPrettyString();
+		m_rpcConnection->sendMessage(resp);
 	});
 	/*
 	params << "-s" << QString::fromStdString(m_rpcConnection->host());
@@ -265,7 +267,11 @@ void ShvAgentApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 			if(!nd)
 				SHV_EXCEPTION("Path not found: " + shv_path);
 			rq.setShvPath(path_rest);
-			resp.setResult(nd->processRpcRequest(rq));
+			shv::chainpack::RpcValue result = nd->processRpcRequest(rq);
+			if(result.isValid())
+				resp.setResult(result);
+			else
+				return;
 		}
 		catch (shv::core::Exception &e) {
 			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodInvocationException, e.message()));
@@ -289,4 +295,16 @@ void ShvAgentApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 		*/
 	}
 }
-
+/*
+void ShvAgentApp::onRootNodeSendRpcMesage(const shv::chainpack::RpcMessage &msg)
+{
+	if(msg.isResponse()) {
+		cp::RpcResponse resp(msg);
+		if(resp.requestId().toUInt() == 0) // RPC calls with requestID == 0 does not expect response
+			return;
+		m_rpcConnection->sendMessage(resp);
+		return;
+	}
+	shvError() << "Send message not implemented.";// << msg.toCpon();
+}
+*/

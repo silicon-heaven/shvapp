@@ -31,6 +31,7 @@ public:
 	~ShvRExecApp() Q_DECL_OVERRIDE;
 
 	static ShvRExecApp* instance();
+	shv::iotqt::rpc::TunnelConnection *rpcConnection() const {return m_rpcConnection;}
 
 	qint64 writeProcessStdin(const char *data, size_t len);
 private:
@@ -44,6 +45,8 @@ private:
 	AppCliOptions* m_cliOptions;
 
 	shv::iotqt::node::ShvNodeTree *m_shvTree = nullptr;
+
+	shv::chainpack::RpcValue m_tunnelHandle;
 
 	QProcess *m_cmdProc = nullptr;
 };

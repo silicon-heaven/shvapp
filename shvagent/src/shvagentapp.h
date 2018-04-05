@@ -31,12 +31,13 @@ public:
 	~ShvAgentApp() Q_DECL_OVERRIDE;
 
 	static ShvAgentApp *instance();
-	//shv::iotqt::rpc::DeviceConnection *rpcConnection() const {return m_rpcConnection;}
+	shv::iotqt::rpc::DeviceConnection *rpcConnection() const {return m_rpcConnection;}
 
 	void openRsh(const shv::chainpack::RpcRequest &rq);
 private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
+	//void onRootNodeSendRpcMesage(const shv::chainpack::RpcMessage &msg);
 private:
 	shv::iotqt::rpc::DeviceConnection *m_rpcConnection = nullptr;
 	AppCliOptions* m_cliOptions;

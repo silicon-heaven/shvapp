@@ -147,7 +147,7 @@ bool AttributesModel::setData(const QModelIndex &ix, const QVariant &val, int ro
 					}
 				}
 				catch (cp::CponReader::ParseException &e) {
-					shvError() << "error parsing params:" << e.mesage();
+					shvError() << "error parsing params:" << e.what();
 				}
 			}
 		}

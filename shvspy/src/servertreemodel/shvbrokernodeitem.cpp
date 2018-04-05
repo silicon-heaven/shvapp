@@ -49,7 +49,7 @@ ShvBrokerNodeItem::ShvBrokerNodeItem(ServerTreeModel *m, const std::string &serv
 
 ShvBrokerNodeItem::~ShvBrokerNodeItem()
 {
-	SHV_SAFE_DELETE(m_clientConnection);
+	SHV_SAFE_DELETE(m_rpcConnection);
 }
 
 QVariant ShvBrokerNodeItem::data(int role) const
@@ -80,13 +80,13 @@ QVariant ShvBrokerNodeItem::data(int role) const
 QVariantMap ShvBrokerNodeItem::serverProperties() const
 {
 	QVariantMap ret;
-	if(m_clientConnection) {
+	if(m_rpcConnection) {
 		//ret["oid"] = oid();
 		ret["name"] = QString::fromStdString(nodeId());
-		ret["host"] = QString::fromStdString(m_clientConnection->host());
-		ret["port"] = m_clientConnection->port();
-		ret["user"] = QString::fromStdString(m_clientConnection->user());
-		ret["password"] = QString::fromStdString(m_clientConnection->password());
+		ret["host"] = QString::fromStdString(m_rpcConnection->host());
+		ret["port"] = m_rpcConnection->port();
+		ret["user"] = QString::fromStdString(m_rpcConnection->user());
+		ret["password"] = QString::fromStdString(m_rpcConnection->password());
 	}
 	return ret;
 }
@@ -114,8 +114,8 @@ void ShvBrokerNodeItem::close()
 {
 	if(openStatus() == OpenStatus::Disconnected)
 		return;
-	if(m_clientConnection)
-		m_clientConnection->close();
+	if(m_rpcConnection)
+		m_rpcConnection->close();
 	m_openStatus = OpenStatus::Disconnected;
 	deleteChildren();
 }
@@ -130,19 +130,19 @@ QString ServerNode::connectionErrorString()
 */
 shv::iotqt::rpc::ClientConnection *ShvBrokerNodeItem::clientConnection()
 {
-	if(!m_clientConnection) {
-		m_clientConnection = new shv::iotqt::rpc::ClientConnection(shv::iotqt::rpc::ClientConnection::SyncCalls::Disabled, nullptr);
-		m_clientConnection->setCliOptions(TheApp::instance()->cliOptions());
-		m_clientConnection->setCheckBrokerConnectedInterval(0);
-		connect(m_clientConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, [this](bool is_connected) {
+	if(!m_rpcConnection) {
+		m_rpcConnection = new shv::iotqt::rpc::ClientConnection(shv::iotqt::rpc::ClientConnection::SyncCalls::Disabled, nullptr);
+		m_rpcConnection->setCliOptions(TheApp::instance()->cliOptions());
+		m_rpcConnection->setCheckBrokerConnectedInterval(0);
+		connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, [this](bool is_connected) {
 			m_openStatus = is_connected? OpenStatus::Connected: OpenStatus::Disconnected;
 			emitDataChanged();
 			if(is_connected)
 				loadChildren();
 		});
-		connect(m_clientConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvBrokerNodeItem::onRpcMessageReceived);
+		connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvBrokerNodeItem::onRpcMessageReceived);
 	}
-	return m_clientConnection;
+	return m_rpcConnection;
 }
 
 ShvNodeItem* ShvBrokerNodeItem::findNode(const std::string &path, std::string *path_rest)
@@ -211,7 +211,12 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 				SHV_EXCEPTION("Invalid path: " + shv_path);
 			std::string method = rq.method();
 			if(method == cp::Rpc::METH_DIR) {
-				resp.setResult(cp::RpcValue::List{cp::Rpc::METH_DIR, cp::Rpc::METH_PING, cp::Rpc::METH_APP_NAME});
+				resp.setResult(cp::RpcValue::List{
+								   cp::Rpc::METH_DIR,
+								   cp::Rpc::METH_PING,
+								   cp::Rpc::METH_APP_NAME,
+								   cp::Rpc::METH_CONNECTION_TYPE,
+							   });
 			}
 			else if(method == cp::Rpc::METH_PING) {
 				resp.setResult(true);
@@ -219,11 +224,14 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 			else if(method == cp::Rpc::METH_APP_NAME) {
 				resp.setResult(QCoreApplication::instance()->applicationName().toStdString());
 			}
+			else if(method == cp::Rpc::METH_CONNECTION_TYPE) {
+				resp.setResult(m_rpcConnection->connectionType());
+			}
 		}
 		catch (shv::core::Exception &e) {
 			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodInvocationException, e.message()));
 		}
-		m_clientConnection->sendMessage(resp);
+		m_rpcConnection->sendMessage(resp);
 	}
 }
 

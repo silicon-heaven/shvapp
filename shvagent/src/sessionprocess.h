@@ -9,6 +9,6 @@ public:
 	SessionProcess(QObject *parent);
 private:
 	void onFinished(int exit_code);
-	void onReadyReadStandardOutput();
+	//void onReadyReadStandardOutput();
 	void onReadyReadStandardError();
 };

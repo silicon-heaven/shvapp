@@ -86,6 +86,11 @@ rpc::TcpServer *BrokerApp::tcpServer()
 	return m_tcpServer;
 }
 
+rpc::ServerConnection *BrokerApp::clientById(unsigned client_id)
+{
+	return tcpServer()->connectionById(client_id);
+}
+
 #ifdef Q_OS_UNIX
 void BrokerApp::installUnixSignalHandlers()
 {

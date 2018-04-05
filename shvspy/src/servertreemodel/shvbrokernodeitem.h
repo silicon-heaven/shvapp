@@ -42,7 +42,7 @@ private:
 private:
 	int m_oid = 0;
 	std::string m_serverName;
-	shv::iotqt::rpc::ClientConnection *m_clientConnection = nullptr;
+	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
 	OpenStatus m_openStatus = OpenStatus::Disconnected;
 	struct RpcRequestInfo;
 	std::map<unsigned, RpcRequestInfo> m_runningRpcRequests;

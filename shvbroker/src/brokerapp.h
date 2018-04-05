@@ -35,6 +35,7 @@ public:
 	void onRpcDataReceived(unsigned connection_id, shv::chainpack::RpcValue::MetaData &&meta, std::string &&data);
 public:
 	rpc::TcpServer* tcpServer();
+	rpc::ServerConnection* clientById(unsigned client_id);
 
 	Q_SIGNAL void sqlServerConnected();
 private:

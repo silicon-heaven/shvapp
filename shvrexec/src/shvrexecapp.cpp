@@ -2,6 +2,7 @@
 #include "appclioptions.h"
 
 #include <shv/iotqt/rpc/tunnelconnection.h>
+#include <shv/iotqt/rpc/tunnelhandle.h>
 #include <shv/iotqt/node/shvnodetree.h>
 
 #include <shv/coreqt/log.h>
@@ -19,6 +20,8 @@ shv::chainpack::RpcValue AppRootNode::dir(const shv::chainpack::RpcValue &method
 {
 	cp::RpcValue::List ret = Super::dir(methods_params).toList();
 	ret.push_back(cp::Rpc::METH_APP_NAME);
+	ret.push_back(cp::Rpc::METH_CONNECTION_TYPE);
+	ret.push_back(cp::Rpc::KEY_TUNNEL_HANDLE);
 	ret.push_back(METH_STDIN_WRITE);
 	return ret;
 }
@@ -28,7 +31,13 @@ shv::chainpack::RpcValue AppRootNode::call(const std::string &method, const shv:
 	if(method == cp::Rpc::METH_APP_NAME) {
 		return QCoreApplication::instance()->applicationName().toStdString();
 	}
-	else if(method == METH_STDIN_WRITE) {
+	if(method == cp::Rpc::METH_CONNECTION_TYPE) {
+		return ShvRExecApp::instance()->rpcConnection()->connectionType();
+	}
+	if(method == cp::Rpc::KEY_TUNNEL_HANDLE) {
+		return ShvRExecApp::instance()->rpcConnection()->tunnelHandle();
+	}
+	if(method == METH_STDIN_WRITE) {
 		const shv::chainpack::RpcValue::String &data = params.toString();
 		qint64 len = ShvRExecApp::instance()->writeProcessStdin(data.data(), data.size());
 		if(len < 0)
@@ -48,8 +57,8 @@ ShvRExecApp::ShvRExecApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	{
 		std::string tunnel_params;
 		std::getline(std::cin, tunnel_params);
-		const shv::chainpack::RpcValue::IMap &m = cp::RpcValue::fromCpon(tunnel_params).toIMap();
-		m_rpcConnection->setTunnelParams(m);
+		cp::RpcValue v = cp::RpcValue::fromCpon(tunnel_params);
+		m_rpcConnection->setTunnelParams(v.toIMap());
 	}
 
 	cli_opts->setHeartbeatInterval(0);
@@ -121,14 +130,23 @@ void ShvRExecApp::onBrokerConnectedChanged(bool is_connected)
 			quit();
 		});
 		connect(m_cmdProc, &QProcess::stateChanged, [this](QProcess::ProcessState state) {
-			shvDebug() << "Exec process new state:" << state;
+			shvInfo() << "Exec process new state:" << state;
 			if(state == QProcess::Running) {
-				/// send mount point to agent
+				/// send tunnel handle to agent
 				cp::RpcValue::Map ret;
-				unsigned id = m_rpcConnection->brokerClientId();
-				ret["tunnelClientId"] = id;
+				unsigned tun_id = m_rpcConnection->brokerClientId();
+				shv::iotqt::rpc::TunnelHandle th(m_rpcConnection->tunnelParams().callerClientIds(), tun_id);
+				//rpcConnection()->setTunnelHandle(th.toRpcValue()); we do not need type info if key is called tunnelHandle :)
+				rpcConnection()->setTunnelHandle(th);
+				ret[cp::Rpc::KEY_TUNNEL_HANDLE] = rpcConnection()->tunnelHandle();
 				std::string s = cp::RpcValue(ret).toCpon();
+				shvInfo() << "Process" << m_cmdProc->program() << "started, tunnel handle:" << s;
 				std::cout << s << "\n";
+				std::cout.flush();
+				/// may be BUG in Qt, maybe in me, but QProcess::readyReadStandardOutput
+				/// is not emited unless I write to std::cerr
+				/// UPDATE: flush helped
+				//std::cerr << "\n";
 			}
 		});
 		connect(m_cmdProc, QOverload<int>::of(&QProcess::finished), this, [this](int exit_code) {
@@ -191,8 +209,8 @@ qint64 ShvRExecApp::writeProcessStdin(const char *data, size_t len)
 
 void ShvRExecApp::onReadyReadProcessStandardOutput()
 {
-	m_cmdProc->setReadChannel(QProcess::StandardOutput);
-	QByteArray ba = m_cmdProc->readAll();
+	//m_cmdProc->setReadChannel(QProcess::StandardOutput);
+	QByteArray ba = m_cmdProc->readAllStandardOutput();
 	if(!m_rpcConnection->isBrokerConnected()) {
 		shvError() << "Broker is not connected, throwing away process stdout:" << ba;
 		quit();
@@ -200,8 +218,8 @@ void ShvRExecApp::onReadyReadProcessStandardOutput()
 	else {
 		const shv::iotqt::rpc::TunnelParams &pars = m_rpcConnection->tunnelParams();
 		cp::RpcResponse resp;
-		resp.setCallerId(pars.value(shv::iotqt::rpc::TunnelParams::MetaType::Key::CallerClientIds));
-		resp.setRequestId(pars.value(shv::iotqt::rpc::TunnelParams::MetaType::Key::TunnelResponseRequestId));
+		resp.setCallerIds(pars.value(shv::iotqt::rpc::TunnelParams::MetaType::Key::CallerClientIds));
+		resp.setTunnelHandle(m_tunnelHandle);
 		cp::RpcValue::List result;
 		result.push_back(1);
 		result.push_back(cp::RpcValue::Blob(ba.constData(), ba.size()));
@@ -212,8 +230,8 @@ void ShvRExecApp::onReadyReadProcessStandardOutput()
 
 void ShvRExecApp::onReadyReadProcessStandardError()
 {
-	m_cmdProc->setReadChannel(QProcess::StandardError);
-	QByteArray ba = m_cmdProc->readAll();
+	//m_cmdProc->setReadChannel(QProcess::StandardError);
+	QByteArray ba = m_cmdProc->readAllStandardError();
 	if(!m_rpcConnection->isBrokerConnected()) {
 		shvError() << "Broker is not connected, throwing away process stderr:" << ba;
 		quit();
@@ -221,8 +239,8 @@ void ShvRExecApp::onReadyReadProcessStandardError()
 	else {
 		const shv::iotqt::rpc::TunnelParams &pars = m_rpcConnection->tunnelParams();
 		cp::RpcResponse resp;
-		resp.setCallerId(pars.value(shv::iotqt::rpc::TunnelParams::MetaType::Key::CallerClientIds));
-		resp.setRequestId(pars.value(shv::iotqt::rpc::TunnelParams::MetaType::Key::TunnelResponseRequestId));
+		resp.setCallerIds(pars.value(shv::iotqt::rpc::TunnelParams::MetaType::Key::CallerClientIds));
+		resp.setTunnelHandle(m_tunnelHandle);
 		cp::RpcValue::List result;
 		result.push_back(2);
 		result.push_back(cp::RpcValue::Blob(ba.constData(), ba.size()));
