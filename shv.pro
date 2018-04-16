@@ -7,5 +7,5 @@ SUBDIRS += \
     shvagent \
     shvrexec \
     shvspy \
-    revitestdevice \
+#    revitestdevice \
 

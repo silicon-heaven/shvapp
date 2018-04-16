@@ -33,7 +33,9 @@ public:
 
 	void onClientLogin(int connection_id);
 	void onRpcDataReceived(unsigned connection_id, shv::chainpack::RpcValue::MetaData &&meta, std::string &&data);
-public:
+
+	void createSubscription(int client_id, const std::string &path, const std::string &method);
+
 	rpc::TcpServer* tcpServer();
 	rpc::ServerConnection* clientById(unsigned client_id);
 
@@ -51,7 +53,7 @@ private:
 
 	void onRootNodeSendRpcMesage(const shv::chainpack::RpcMessage &msg);
 
-	void sendNotifyToSubscribers(unsigned sender_connection_id, const std::string &shv_path, std::string method, const shv::chainpack::RpcValue &params);
+	void sendNotifyToSubscribers(unsigned sender_connection_id, const std::string &shv_path, const std::string &method, const shv::chainpack::RpcValue &params);
 	void sendNotifyToSubscribers(unsigned sender_connection_id, const shv::chainpack::RpcValue::MetaData &meta_data, const std::string &data);
 private:
 	AppCliOptions *m_cliOptions;

@@ -68,8 +68,9 @@ bool Lublicator::setStatus(unsigned stat)
 	return false;
 }
 
-shv::iotqt::node::ShvNode::StringList Lublicator::childNodeIds() const
+shv::iotqt::node::ShvNode::StringList Lublicator::childNames(const std::string &shv_path) const
 {
+	Q_UNUSED(shv_path)
 	static ShvNode::StringList keys;
 	if(keys.empty()) for(const auto &imap: m_properties)
 		keys.push_back(imap.first);
@@ -185,34 +186,34 @@ void Revitest::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 		cp::RpcValue result;
 
 		try {
-			const std::string path = rq.shvPath();
+			cp::RpcValue shv_path = rq.shvPath();
 			std::string path_rest;
-			shv::iotqt::node::ShvNode *nd = m_devices->cd(path, &path_rest);
+			shv::iotqt::node::ShvNode *nd = m_devices->cd(shv_path.toString(), &path_rest);
 			//shvInfo() << "path:" << path << "->" << nd << "path rest:" << path_rest;
 			if(!nd)
-				SHV_EXCEPTION("invalid path: " + path);
-			if(path.empty()) {
+				SHV_EXCEPTION("invalid path: " + shv_path.toString());
+			if(shv_path.toString().empty()) {
 				result = nd->processRpcRequest(rq);
 			}
 			else {
 				Lublicator *lubl = qobject_cast<Lublicator*>(nd);
 				if(!lubl)
-					SHV_EXCEPTION("invalid lublicator: " + path);
-				shv::chainpack::RpcValue::String method = rq.method();
-				if(method == cp::Rpc::METH_LS) {
+					SHV_EXCEPTION("invalid lublicator: " + shv_path.toString());
+				cp::RpcValue method = rq.method();
+				if(method.toString() == cp::Rpc::METH_LS) {
 					if(path_rest.empty())
-						result = lubl->childNodeIds();
+						result = lubl->childNames();
 				}
-				else if(method == cp::Rpc::METH_DIR) {
+				else if(method.toString() == cp::Rpc::METH_DIR) {
 					result = lubl->propertyMethods(path_rest);
 				}
-				else if(method == cp::Rpc::METH_GET) {
+				else if(method.toString() == cp::Rpc::METH_GET) {
 					result = lubl->propertyValue(path_rest);
 				}
-				else if(method == cp::Rpc::METH_SET) {
+				else if(method.toString() == cp::Rpc::METH_SET) {
 					result = lubl->setPropertyValue(path_rest, rq.params());
 				}
-				else if(method == M_CMD_POS_ON) {
+				else if(method.toString() == M_CMD_POS_ON) {
 					unsigned stat = lubl->status();
 					stat &= ~(unsigned)Status::PosOff;
 					stat |= (unsigned)Status::PosMiddle;
@@ -222,7 +223,7 @@ void Revitest::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 					lubl->setStatus(stat);
 					result = true;
 				}
-				else if(method == M_CMD_POS_OFF) {
+				else if(method.toString() == M_CMD_POS_OFF) {
 					unsigned stat = lubl->status();
 					stat &= ~(unsigned)Status::PosOn;
 					stat |= (unsigned)Status::PosMiddle;
@@ -233,7 +234,7 @@ void Revitest::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 					result = true;
 				}
 				else {
-					SHV_EXCEPTION("Invalid method: " + method + " called for node: " + path);
+					SHV_EXCEPTION("Invalid method: " + method.toString() + " called for node: " + shv_path.toString());
 				}
 			}
 		}

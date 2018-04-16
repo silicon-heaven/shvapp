@@ -1,6 +1,7 @@
 #include "brokerapp.h"
 #include "shvclientnode.h"
 #include "brokernode.h"
+#include "subscriptionsnode.h"
 #include "rpc/tcpserver.h"
 #include "rpc/serverconnection.h"
 
@@ -253,6 +254,13 @@ void BrokerApp::onClientLogin(int connection_id)
 		//connect(cli_nd->parentNode(), &ShvClientNode::destroyed, conn, &rpc::ServerConnection::abort);
 		conn->setParent(cli_nd);
 	}
+	{
+		std::string mount_point = DIR_BROKER + "/clients/" + std::to_string(conn->connectionId()) + "/subscriptions";
+		SubscriptionsNode *nd = new SubscriptionsNode(conn);
+		if(!m_deviceTree->mount(mount_point, nd))
+			SHV_EXCEPTION("Cannot mount connection subscription list to device tree, connection id: " + std::to_string(connection_id)
+						  + " shv path: " + mount_point);
+	}
 
 	if(conn->connectionType() == cp::Rpc::TYPE_DEVICE) {
 		std::string mount_point;
@@ -305,9 +313,9 @@ void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData
 {
 	if(cp::RpcMessage::isRequest(meta)) {
 		shvDebug() << "REQUEST conn id:" << connection_id << meta.toStdString();
-		const std::string shv_path = cp::RpcMessage::shvPath(meta);
+		cp::RpcValue shv_path = cp::RpcMessage::shvPath(meta);
 		std::string path_rest;
-		shv::iotqt::node::ShvNode *nd = m_deviceTree->cd(shv_path, &path_rest);
+		shv::iotqt::node::ShvNode *nd = m_deviceTree->cd(shv_path.toString(), &path_rest);
 		if(nd) {
 			cp::RpcMessage::setShvPath(meta, path_rest);
 			cp::RpcMessage::pushCallerId(meta, connection_id);
@@ -349,7 +357,7 @@ void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData
 #endif
 		}
 		else {
-			std::string err_msg = "Device tree path not found: " + shv_path;
+			std::string err_msg = "Device tree path not found: " + shv_path.toString();
 			shvWarning() << err_msg;
 			if(cp::RpcMessage::isRequest(meta)) {
 				//cp::RpcMessage rpc_msg = cp::RpcDriver::composeRpcMessage(std::move(meta), data, !cp::Exception::Throw);
@@ -384,7 +392,7 @@ void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData
 			if(conn) {
 				full_shv_path = conn->mountPoint();
 				if(!full_shv_path.empty())
-					full_shv_path += cp::RpcMessage::shvPath(meta);
+					full_shv_path += cp::RpcMessage::shvPath(meta).toString();
 			}
 		}
 		if(!full_shv_path.empty()) {
@@ -419,17 +427,21 @@ void BrokerApp::sendNotifyToSubscribers(unsigned sender_connection_id, const shv
 			continue;
 		rpc::ServerConnection *conn = tcpServer()->connectionById(id);
 		if(conn && conn->isBrokerConnected()) {
-			shvDebug() << "\t broadcasting to connection id:" << id;
-			conn->sendRawData(meta_data, std::string(data));
+			const cp::RpcValue shv_path = cp::RpcMessage::shvPath(meta_data);
+			const cp::RpcValue method = cp::RpcMessage::method(meta_data);
+			if(conn->isSubscribed(shv_path.toString(), method.toString())) {
+				shvDebug() << "\t broadcasting to connection id:" << id;
+				conn->sendRawData(meta_data, std::string(data));
+			}
 		}
 	}
 }
 
-void BrokerApp::sendNotifyToSubscribers(unsigned sender_connection_id, const std::string &shv_path, std::string method, const shv::chainpack::RpcValue &params)
+void BrokerApp::sendNotifyToSubscribers(unsigned sender_connection_id, const std::string &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
 {
 	cp::RpcNotify ntf;
 	ntf.setShvPath(shv_path);
-	ntf.setMethod(std::move(method));
+	ntf.setMethod(method);
 	ntf.setParams(params);
 	// send it to all clients for now
 	for(unsigned id : tcpServer()->connectionIds()) {
@@ -437,10 +449,20 @@ void BrokerApp::sendNotifyToSubscribers(unsigned sender_connection_id, const std
 			continue;
 		rpc::ServerConnection *conn = tcpServer()->connectionById(id);
 		if(conn && conn->isBrokerConnected()) {
-			shvDebug() << "\t broadcasting to connection id:" << id;
-			conn->sendMessage(ntf);
+			if(conn->isSubscribed(shv_path, method)) {
+				shvDebug() << "\t broadcasting to connection id:" << id;
+				conn->sendMessage(ntf);
+			}
 		}
 	}
+}
+
+void BrokerApp::createSubscription(int client_id, const std::string &path, const std::string &method)
+{
+	rpc::ServerConnection *conn = tcpServer()->connectionById(client_id);
+	if(!conn)
+		SHV_EXCEPTION("Connot create subscription, client doesn't exist.");
+	conn->createSubscription(path, method);
 }
 
 

@@ -8,6 +8,7 @@
 #include <shv/iotqt/node/shvnodetree.h>
 #include <shv/iotqt/node/localfsnode.h>
 #include <shv/coreqt/log.h>
+#include <shv/chainpack/metamethod.h>
 
 #include <shv/core/stringview.h>
 
@@ -18,24 +19,41 @@ namespace cp = shv::chainpack;
 
 static const char METH_OPEN_RSH[] = "openRsh";
 
-shv::chainpack::RpcValue AppRootNode::dir(const shv::chainpack::RpcValue &methods_params)
+static std::vector<cp::MetaMethod> meta_methods {
+	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false},
+	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false},
+	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false},
+	{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, false},
+	{METH_OPEN_RSH, cp::MetaMethod::Signature::RetVoid, false},
+};
+
+size_t AppRootNode::methodCount(const std::string &shv_path)
 {
-	cp::RpcValue::List ret = Super::dir(methods_params).toList();
-	ret.push_back(cp::Rpc::METH_APP_NAME);
-	ret.push_back(cp::Rpc::METH_CONNECTION_TYPE);
-	ret.push_back(METH_OPEN_RSH);
-	return ret;
+	Q_UNUSED(shv_path)
+	return meta_methods.size();
 }
 
-shv::chainpack::RpcValue AppRootNode::call(const std::string &method, const shv::chainpack::RpcValue &params)
+const shv::chainpack::MetaMethod *AppRootNode::metaMethod(size_t ix, const std::string &shv_path)
 {
+	Q_UNUSED(shv_path)
+	if(meta_methods.size() <= ix)
+		SHV_EXCEPTION("Invalid method index: " + std::to_string(ix) + " of: " + std::to_string(meta_methods.size()));
+	return &(meta_methods[ix]);
+}
+
+shv::chainpack::RpcValue AppRootNode::call(const shv::chainpack::RpcValue &method_params, const std::string &shv_path)
+{
+	if(!shv_path.empty())
+		SHV_EXCEPTION("Subtree '" + shv_path + "' not exists!");
+	cp::RpcValueGenList mpl(method_params);
+	shv::chainpack::RpcValue method = mpl.value(0);
 	if(method == cp::Rpc::METH_APP_NAME) {
 		return QCoreApplication::instance()->applicationName().toStdString();
 	}
 	if(method == cp::Rpc::METH_CONNECTION_TYPE) {
 		return ShvAgentApp::instance()->rpcConnection()->connectionType();
 	}
-	return Super::call(method, params);
+	return Super::call(method_params, shv_path);
 }
 
 shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::RpcRequest &rq)
@@ -261,11 +279,11 @@ void ShvAgentApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 		cp::RpcResponse resp = cp::RpcResponse::forRequest(rq.metaData());
 		try {
 			//shvInfo() << "RPC request received:" << rq.toCpon();
-			const std::string shv_path = rq.shvPath();
+			const cp::RpcValue shv_path = rq.shvPath();
 			std::string path_rest;
-			shv::iotqt::node::ShvNode *nd = m_shvTree->cd(shv_path, &path_rest);
+			shv::iotqt::node::ShvNode *nd = m_shvTree->cd(shv_path.toString(), &path_rest);
 			if(!nd)
-				SHV_EXCEPTION("Path not found: " + shv_path);
+				SHV_EXCEPTION("Path not found: " + shv_path.toString());
 			rq.setShvPath(path_rest);
 			shv::chainpack::RpcValue result = nd->processRpcRequest(rq);
 			if(result.isValid())

@@ -3,6 +3,7 @@
 #include "../brokerapp.h"
 
 #include <shv/coreqt/log.h>
+#include <shv/core/stringview.h>
 
 #include <QCryptographicHash>
 #include <QTcpSocket>
@@ -124,6 +125,62 @@ shv::chainpack::RpcValue ServerConnection::login(const shv::chainpack::RpcValue 
 		return login_resp;
 	}
 	return cp::RpcValue();
+}
+
+void ServerConnection::createSubscription(const std::string &path, const std::string &method)
+{
+	shv::core::StringView p(path);
+	while(p.length() && p[0] == '/')
+		p = p.mid(1);
+	Subscription su(p.toString(), method);
+	auto it = std::find(m_subscriptions.begin(), m_subscriptions.end(), su);
+	if(it == m_subscriptions.end()) {
+		m_subscriptions.push_back(su);
+		std::sort(m_subscriptions.begin(), m_subscriptions.end());
+	}
+	else {
+		*it = su;
+	}
+}
+
+bool ServerConnection::isSubscribed(const std::string &path, const std::string &method) const
+{
+	shv::core::StringView shv_path(path);
+	while(shv_path.length() && shv_path[0] == '/')
+		shv_path = shv_path.mid(1);
+	for (const auto &key : m_subscriptions) {
+		shv::core::StringView pattern(key.pathPattern);
+		if(key.match(shv_path, method))
+			return true;
+	}
+	return false;
+}
+
+bool ServerConnection::Subscription::operator<(const ServerConnection::Subscription &o) const
+{
+	int i = pathPattern.compare(o.pathPattern);
+	if(i == 0)
+		return method < o.method;
+	return (i < 0);
+}
+
+bool ServerConnection::Subscription::operator==(const ServerConnection::Subscription &o) const
+{
+	int i = pathPattern.compare(o.pathPattern);
+	if(i == 0)
+		return method == o.method;
+	return false;
+}
+
+bool ServerConnection::Subscription::match(const shv::core::StringView &shv_path, const shv::core::StringView &shv_method) const
+{
+	if(shv_path.startsWith(pathPattern)) {
+		if(shv_path.length() == pathPattern.length())
+			return (method.empty() || shv_method == method);
+		if(shv_path.length() > pathPattern.length() && shv_path[pathPattern.length()] == '/')
+			return (method.empty() || shv_method == method);
+	}
+	return false;
 }
 
 } // namespace rpc

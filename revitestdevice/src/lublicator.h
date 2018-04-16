@@ -36,7 +36,8 @@ public:
 	unsigned status() const;
 	bool setStatus(unsigned stat);
 
-	StringList childNodeIds() const override;
+	using Super::childNames;
+	StringList childNames(const std::string &shv_path) const override;
 	shv::chainpack::RpcValue::List propertyMethods(const String &prop_name) const;
 	shv::chainpack::RpcValue propertyValue(const String &property_name) const;
 	bool setPropertyValue(const String &prop_name, const shv::chainpack::RpcValue &val);

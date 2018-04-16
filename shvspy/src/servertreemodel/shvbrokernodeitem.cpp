@@ -206,10 +206,10 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 		cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
 		try {
 			//shvInfo() << "RPC request received:" << rq.toCpon();
-			const std::string shv_path = rq.shvPath();
-			if(!shv_path.empty())
-				SHV_EXCEPTION("Invalid path: " + shv_path);
-			std::string method = rq.method();
+			cp::RpcValue shv_path = rq.shvPath();
+			if(!shv_path.toString().empty())
+				SHV_EXCEPTION("Invalid path: " + shv_path.toString());
+			const cp::RpcValue method = rq.method();
 			if(method == cp::Rpc::METH_DIR) {
 				resp.setResult(cp::RpcValue::List{
 								   cp::Rpc::METH_DIR,
@@ -218,13 +218,13 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 								   cp::Rpc::METH_CONNECTION_TYPE,
 							   });
 			}
-			else if(method == cp::Rpc::METH_PING) {
+			else if(method.toString() == cp::Rpc::METH_PING) {
 				resp.setResult(true);
 			}
-			else if(method == cp::Rpc::METH_APP_NAME) {
+			else if(method.toString() == cp::Rpc::METH_APP_NAME) {
 				resp.setResult(QCoreApplication::instance()->applicationName().toStdString());
 			}
-			else if(method == cp::Rpc::METH_CONNECTION_TYPE) {
+			else if(method.toString() == cp::Rpc::METH_CONNECTION_TYPE) {
 				resp.setResult(m_rpcConnection->connectionType());
 			}
 		}

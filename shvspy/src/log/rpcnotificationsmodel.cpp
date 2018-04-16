@@ -30,8 +30,8 @@ void RpcNotificationsModel::addLogRow(const std::string &broker_name, const shv:
 		LogTableModelRow rw;
 		rw.resize(ColCnt);
 		rw[ColBroker] = QString::fromStdString(broker_name);
-		rw[ColShvPath] = QString::fromStdString(ntf.shvPath());
-		rw[ColMethod] = QString::fromStdString(ntf.method());
+		rw[ColShvPath] = QString::fromStdString(ntf.shvPath().toString());
+		rw[ColMethod] = QString::fromStdString(ntf.method().toString());
 		rw[ColParams] = QString::fromStdString(ntf.params().toCpon());
 		Super::addLogRow(rw);
 	}
