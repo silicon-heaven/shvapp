@@ -20,7 +20,7 @@ public:
 	size_t methodCount(const std::string &shv_path = std::string()) override;
 	const shv::chainpack::MetaMethod* metaMethod(size_t ix, const std::string &shv_path = std::string()) override;
 
-	shv::chainpack::RpcValue call(const shv::chainpack::RpcValue &method_params, const std::string &shv_path = std::string()) override;
+	shv::chainpack::RpcValue call(const std::string &method, const shv::chainpack::RpcValue &params, const std::string &shv_path = std::string()) override;
 };
 
 class ShvRExecApp : public QCoreApplication

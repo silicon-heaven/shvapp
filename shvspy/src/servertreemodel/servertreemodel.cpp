@@ -82,6 +82,11 @@ int ServerTreeModel::columnCount(const QModelIndex &parent) const
 
 bool ServerTreeModel::hasChildren(const QModelIndex &parent) const
 {
+	ShvNodeItem *par_nd = itemFromIndex(parent);
+	if(par_nd) {
+		if(par_nd->hasChildren().isValid())
+			return par_nd->hasChildren().toBool();
+	}
 	return rowCount(parent) > 0;
 }
 

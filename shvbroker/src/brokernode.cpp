@@ -15,19 +15,17 @@ BrokerNode::BrokerNode(shv::iotqt::node::ShvNode *parent)
 {
 }
 
-shv::chainpack::RpcValue BrokerNode::call(const shv::chainpack::RpcValue &method_params, const std::string &shv_path)
+shv::chainpack::RpcValue BrokerNode::call(const std::string &method, const shv::chainpack::RpcValue &params, const std::string &shv_path)
 {
 	if(!shv_path.empty())
 		SHV_EXCEPTION("Subtree '" + shv_path + "' not exists!");
-	cp::RpcValueGenList mpl(method_params);
-	shv::chainpack::RpcValue method = mpl.value(0);
-	if(method.toString() == cp::Rpc::METH_PING) {
+	if(method == cp::Rpc::METH_PING) {
 		return true;
 	}
-	if(method.toString() == cp::Rpc::METH_ECHO) {
-		return mpl.value(1);
+	if(method == cp::Rpc::METH_ECHO) {
+		return params;
 	}
-	return Super::call(method_params);
+	return Super::call(method, params);
 }
 
 static std::vector<cp::MetaMethod> meta_methods {

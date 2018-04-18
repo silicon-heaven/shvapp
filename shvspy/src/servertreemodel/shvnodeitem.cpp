@@ -141,10 +141,12 @@ void ShvNodeItem::processRpcMessage(const shv::chainpack::RpcMessage &msg)
 				std::string ndid = long_dir_entry.empty()? dir_entry.toStdString(): long_dir_entry.value(0).toStdString();
 				ShvNodeItem *nd = new ShvNodeItem(m, ndid);
 				if(!long_dir_entry.empty()) {
-					const cp::RpcValue::List &dir = long_dir_entry.value(1).toList();
-					bool has_children = !(std::find(dir.begin(), dir.end(), cp::Rpc::METH_LS) == dir.end());
-					if(!has_children)
-						nd->setChildrenLoaded();
+					cp::RpcValue has_children = long_dir_entry.value(1);
+					if(has_children.isBool()) {
+						nd->setHasChildren(has_children.toBool());
+						if(!has_children.toBool())
+							nd->setChildrenLoaded();
+					}
 				}
 				appendChild(nd);
 			}
@@ -187,7 +189,7 @@ void ShvNodeItem::loadChildren()
 {
 	m_childrenLoaded = false;
 	ShvBrokerNodeItem *srv_nd = serverNode();
-	m_loadChildrenRqId = srv_nd->callShvMethod(shvPath(), "ls", cp::RpcValue::List{cp::RpcValue::List{"dir", "ls"}});
+	m_loadChildrenRqId = srv_nd->callShvMethod(shvPath(), "ls", (unsigned)0x7F);
 	emitDataChanged();
 }
 

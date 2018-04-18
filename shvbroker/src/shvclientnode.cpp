@@ -45,4 +45,12 @@ void ShvClientNode::processRawData(const shv::chainpack::RpcValue::MetaData &met
 	}
 }
 
+bool ShvClientNode::hasChildren(const std::string &shv_path)
+{
+	//shvWarning() << "ShvClientNode::hasChildren path:" << shv_path << "ret:" << true;
+	if(!shv_path.empty())
+		SHV_EXCEPTION("Subtree RPC request'" + shvPath() + "' on single node!");
+	return true;
+}
+
 

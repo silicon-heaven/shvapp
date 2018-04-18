@@ -41,19 +41,17 @@ const shv::chainpack::MetaMethod *AppRootNode::metaMethod(size_t ix, const std::
 	return &(meta_methods[ix]);
 }
 
-shv::chainpack::RpcValue AppRootNode::call(const shv::chainpack::RpcValue &method_params, const std::string &shv_path)
+shv::chainpack::RpcValue AppRootNode::call(const std::string &method, const shv::chainpack::RpcValue &params, const std::string &shv_path)
 {
 	if(!shv_path.empty())
 		SHV_EXCEPTION("Subtree '" + shv_path + "' not exists!");
-	cp::RpcValueGenList mpl(method_params);
-	shv::chainpack::RpcValue method = mpl.value(0);
 	if(method == cp::Rpc::METH_APP_NAME) {
 		return QCoreApplication::instance()->applicationName().toStdString();
 	}
 	if(method == cp::Rpc::METH_CONNECTION_TYPE) {
 		return ShvAgentApp::instance()->rpcConnection()->connectionType();
 	}
-	return Super::call(method_params, shv_path);
+	return Super::call(method, params, shv_path);
 }
 
 shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::RpcRequest &rq)

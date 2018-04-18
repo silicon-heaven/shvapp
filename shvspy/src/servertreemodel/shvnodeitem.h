@@ -6,6 +6,7 @@
 
 #include <QObject>
 #include <QVector>
+#include <QVariant>
 
 class ShvBrokerNodeItem;
 class ServerTreeModel;
@@ -57,6 +58,8 @@ public:
 
 	void reload();
 
+	void setHasChildren(bool b) {m_hasChildren = b;}
+	QVariant hasChildren() const {return m_hasChildren;}
 	void loadChildren();
 	bool isChildrenLoaded() const {return m_childrenLoaded;}
 	void setChildrenLoaded() {m_childrenLoaded = true;}
@@ -76,6 +79,7 @@ protected:
 protected:
 	std::string m_nodeId;
 	//mutable QMap<qfopcua::AttributeId::Enum, QVariant> m_attribudes;
+	QVariant m_hasChildren;
 	bool m_childrenLoaded = false;
 	unsigned m_loadChildrenRqId = 0;
 	QVector<ShvNodeItem*> m_children;
