@@ -34,11 +34,12 @@ public:
 
 	shv::iotqt::rpc::ClientConnection *clientConnection();
 
-	unsigned callShvMethod(const std::string &shv_path, const std::string &method, const shv::chainpack::RpcValue &params);
+	unsigned callNodeRpcMethod(const std::string &calling_node_shv_path, const std::string &method, const shv::chainpack::RpcValue &params);
 
 	ShvNodeItem *findNode(const std::string &path, std::string *path_rest = nullptr);
 private:
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
+	void createSubscriptions();
 private:
 	int m_oid = 0;
 	std::string m_serverName;

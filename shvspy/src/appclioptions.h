@@ -11,6 +11,7 @@ private:
 	using Super = shv::iotqt::rpc::ClientAppCliOptions;
 
 	CLIOPTION_GETTER_SETTER2(QString, "protocol.type", p, setP, rotocolType)
+	CLIOPTION_GETTER_SETTER2(QString, "broker.subscribtions", s, setS, ubscriptions)
 public:
 	AppCliOptions(QObject *parent = NULL);
 	~AppCliOptions() Q_DECL_OVERRIDE {}

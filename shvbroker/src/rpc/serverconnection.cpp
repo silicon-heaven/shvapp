@@ -148,9 +148,8 @@ bool ServerConnection::isSubscribed(const std::string &path, const std::string &
 	shv::core::StringView shv_path(path);
 	while(shv_path.length() && shv_path[0] == '/')
 		shv_path = shv_path.mid(1);
-	for (const auto &key : m_subscriptions) {
-		shv::core::StringView pattern(key.pathPattern);
-		if(key.match(shv_path, method))
+	for (const Subscription &subs : m_subscriptions) {
+		if(subs.match(shv_path, method))
 			return true;
 	}
 	return false;
@@ -174,10 +173,12 @@ bool ServerConnection::Subscription::operator==(const ServerConnection::Subscrip
 
 bool ServerConnection::Subscription::match(const shv::core::StringView &shv_path, const shv::core::StringView &shv_method) const
 {
+	//shvInfo() << pathPattern << ':' << method << "match" << shv_path.toString() << ':' << shv_method.toString();// << "==" << true;
 	if(shv_path.startsWith(pathPattern)) {
 		if(shv_path.length() == pathPattern.length())
 			return (method.empty() || shv_method == method);
-		if(shv_path.length() > pathPattern.length() && shv_path[pathPattern.length()] == '/')
+		if(shv_path.length() > pathPattern.length()
+				&& (pathPattern.empty() || shv_path[pathPattern.length()] == '/'))
 			return (method.empty() || shv_method == method);
 	}
 	return false;

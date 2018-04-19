@@ -1,6 +1,7 @@
 #include "lublicator.h"
 
 #include <shv/chainpack/rpcmessage.h>
+#include <shv/chainpack/metamethod.h>
 #include <shv/core/string.h>
 #include <shv/core/stringview.h>
 #include <shv/core/exception.h>
@@ -12,14 +13,13 @@
 namespace cp = shv::chainpack;
 namespace iot = shv::iotqt;
 
+const char *Lublicator::PROP_STATUS = "status";
+const char *Lublicator::METH_DEVICE_ID = "deviceId";
+const char *Lublicator::METH_CMD_ON = "cmdOn";
+const char *Lublicator::METH_CMD_OFF = "cmdOff";
+const char *Lublicator::METH_GET_LOG = "getLog";
+
 namespace {
-const iot::node::ShvNode::String S_STATUS = "status";
-//const iot::ShvNode::String S_NAME = "name";
-//const iot::ShvNode::String S_BATT_LOW = "batteryLimitLow";
-//const iot::ShvNode::String S_BATT_HI = "batteryLimitHigh";
-//const iot::ShvNode::String S_BATT_LEVSIM = "batteryLevelSimulation";
-const iot::node::ShvNode::String M_CMD_POS_ON = "cmdOn";
-const iot::node::ShvNode::String M_CMD_POS_OFF = "cmdOff";
 
 enum class Status : unsigned
 {
@@ -43,7 +43,7 @@ enum class Status : unsigned
 Lublicator::Lublicator(ShvNode *parent)
 	: Super(parent)
 {
-	m_properties[S_STATUS] = cp::RpcValue::UInt(0);
+	//m_properties[S_STATUS] = cp::RpcValue::UInt(0);
 	//m_properties[S_NAME] = "";
 //	m_properties[S_BATT_HI] = cp::RpcValue::Decimal(245, 1);
 //	m_properties[S_BATT_LOW] = cp::RpcValue::Decimal(232, 1);
@@ -54,20 +54,79 @@ Lublicator::Lublicator(ShvNode *parent)
 
 unsigned Lublicator::status() const
 {
-	return m_properties.at(S_STATUS).toUInt();
+	return m_status;
 }
 
 bool Lublicator::setStatus(unsigned stat)
 {
 	unsigned old_stat = status();
 	if(old_stat != stat) {
-		m_properties[S_STATUS] = stat;
-		emit propertyValueChanged(objectName().toStdString() + '/' + S_STATUS, stat);
+		m_status = stat;
+		emit propertyValueChanged(nodeId() + '/' + PROP_STATUS, stat);
 		return true;
 	}
 	return false;
 }
 
+static std::vector<cp::MetaMethod> meta_methods {
+	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false},
+	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false},
+	{Lublicator::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, false},
+	{Lublicator::METH_CMD_ON, cp::MetaMethod::Signature::VoidVoid, false},
+	{Lublicator::METH_CMD_OFF, cp::MetaMethod::Signature::VoidVoid, false},
+	//{Lublicator::METH_GET_LOG, cp::MetaMethod::Signature::RetParam, false},
+};
+
+size_t Lublicator::methodCount(const std::string &shv_path)
+{
+	if(shv_path.empty())
+		return 2;
+	return meta_methods.size();
+}
+
+const shv::chainpack::MetaMethod *Lublicator::metaMethod(size_t ix, const std::string &shv_path)
+{
+	Q_UNUSED(shv_path)
+	return &(meta_methods.at(ix));
+}
+
+shv::iotqt::node::ShvNode::StringList Lublicator::childNames(const std::string &shv_path)
+{
+	if(shv_path.empty())
+		return shv::iotqt::node::ShvNode::StringList{PROP_STATUS};
+	return shv::iotqt::node::ShvNode::StringList{};
+}
+
+shv::chainpack::RpcValue Lublicator::call(const std::string &method, const shv::chainpack::RpcValue &params, const std::string &shv_path)
+{
+	if(shv_path.empty()) {
+		if(method == METH_DEVICE_ID) {
+			return parentNode()->nodeId();
+		}
+		if(method == METH_CMD_ON) {
+			unsigned stat = status();
+			stat &= ~(unsigned)Status::PosOff;
+			stat |= (unsigned)Status::PosMiddle;
+			setStatus(stat);
+			stat &= ~(unsigned)Status::PosMiddle;
+			stat |= (unsigned)Status::PosOn;
+			setStatus(stat);
+			return true;
+		}
+		if(method == METH_CMD_OFF) {
+			unsigned stat = status();
+			stat &= ~(unsigned)Status::PosOn;
+			stat |= (unsigned)Status::PosMiddle;
+			setStatus(stat);
+			stat &= ~(unsigned)Status::PosMiddle;
+			stat |= (unsigned)Status::PosOff;
+			setStatus(stat);
+			return true;
+		}
+	}
+	return Super::call(method, params, shv_path);
+}
+#if 0
 shv::iotqt::node::ShvNode::StringList Lublicator::childNames(const std::string &shv_path) const
 {
 	Q_UNUSED(shv_path)
@@ -152,7 +211,7 @@ bool Lublicator::setPropertyValue(const shv::iotqt::node::ShvNode::String &prop_
 	*/
 	return true;
 }
-
+#endif
 Revitest::Revitest(QObject *parent)
 	: QObject(parent)
 {
@@ -177,6 +236,42 @@ void Revitest::createDevices()
 	}
 }
 
+void Revitest::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
+{
+	shvLogFuncFrame() << msg.toCpon();
+	if(msg.isRequest()) {
+		cp::RpcRequest rq(msg);
+		cp::RpcResponse resp = cp::RpcResponse::forRequest(rq.metaData());
+		try {
+			//shvInfo() << "RPC request received:" << rq.toCpon();
+			const cp::RpcValue shv_path = rq.shvPath();
+			std::string path_rest;
+			shv::iotqt::node::ShvNode *nd = m_devices->cd(shv_path.toString(), &path_rest);
+			if(!nd)
+				SHV_EXCEPTION("Path not found: " + shv_path.toString());
+			rq.setShvPath(path_rest);
+			shv::chainpack::RpcValue result = nd->processRpcRequest(rq);
+			if(result.isValid())
+				resp.setResult(result);
+			else
+				return;
+		}
+		catch (shv::core::Exception &e) {
+			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodInvocationException, e.message()));
+		}
+		if(resp.requestId().toInt() > 0) // RPC calls with requestID == 0 does not expect response
+			emit sendRpcMessage(resp);
+	}
+	else if(msg.isResponse()) {
+		cp::RpcResponse rp(msg);
+		shvInfo() << "RPC response received:" << rp.toCpon();
+	}
+	else if(msg.isNotify()) {
+		cp::RpcNotify nt(msg);
+		shvInfo() << "RPC notify received:" << nt.toCpon();
+	}
+}
+#if 0
 void Revitest::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 {
 	shvLogFuncFrame() << msg.toCpon();
@@ -256,7 +351,7 @@ void Revitest::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 		shvInfo() << "RPC notify received:" << nt.toCpon();
 	}
 }
-
+#endif
 void Revitest::onLublicatorPropertyValueChanged(const std::string &property_name, const shv::chainpack::RpcValue &new_val)
 {
 	cp::RpcNotify ntf;

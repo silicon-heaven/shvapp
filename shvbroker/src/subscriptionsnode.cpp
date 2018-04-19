@@ -54,6 +54,7 @@ const shv::chainpack::MetaMethod *SubscriptionsNode::metaMethod(size_t ix, const
 
 shv::iotqt::node::ShvNode::StringList SubscriptionsNode::childNames(const std::string &shv_path)
 {
+	shvLogFuncFrame() << shv_path;
 	if(shv_path.empty())
 		return shv::iotqt::node::ShvNode::StringList{ND_BY_ID, ND_BY_PATH};
 	if(shv_path == ND_BY_ID) {

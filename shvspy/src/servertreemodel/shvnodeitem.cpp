@@ -189,7 +189,7 @@ void ShvNodeItem::loadChildren()
 {
 	m_childrenLoaded = false;
 	ShvBrokerNodeItem *srv_nd = serverNode();
-	m_loadChildrenRqId = srv_nd->callShvMethod(shvPath(), "ls", (unsigned)0x7F);
+	m_loadChildrenRqId = srv_nd->callNodeRpcMethod(shvPath(), "ls", (unsigned)0x7F);
 	emitDataChanged();
 }
 
@@ -206,7 +206,7 @@ void ShvNodeItem::loadMethods()
 {
 	m_methodsLoaded = false;
 	ShvBrokerNodeItem *srv_nd = serverNode();
-	m_loadMethodsRqId = srv_nd->callShvMethod(shvPath(), "dir", cp::RpcValue());
+	m_loadMethodsRqId = srv_nd->callNodeRpcMethod(shvPath(), "dir", cp::RpcValue());
 	//emitDataChanged();
 }
 
@@ -241,7 +241,7 @@ unsigned ShvNodeItem::callMethod(int method_ix)
 	*/
 	mtd.response = cp::RpcResponse();
 	ShvBrokerNodeItem *srv_nd = serverNode();
-	mtd.rpcRequestId = srv_nd->callShvMethod(shvPath(), mtd.method, mtd.params);
+	mtd.rpcRequestId = srv_nd->callNodeRpcMethod(shvPath(), mtd.method, mtd.params);
 	return mtd.rpcRequestId;
 }
 

@@ -33,6 +33,7 @@ static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_PING, cp::MetaMethod::Signature::VoidVoid, false},
 	{cp::Rpc::METH_ECHO, cp::MetaMethod::Signature::RetParam, false},
+	{cp::Rpc::METH_SUBSCRIBE, cp::MetaMethod::Signature::RetParam, false},
 };
 
 size_t BrokerNode::methodCount(const std::string &shv_path)

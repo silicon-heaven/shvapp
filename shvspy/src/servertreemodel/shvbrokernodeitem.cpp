@@ -18,7 +18,7 @@ namespace cp = shv::chainpack;
 
 struct ShvBrokerNodeItem::RpcRequestInfo
 {
-	std::string nodePath;
+	std::string shvPath;
 	QElapsedTimer startTS;
 
 	RpcRequestInfo()
@@ -38,7 +38,7 @@ ShvBrokerNodeItem::ShvBrokerNodeItem(ServerTreeModel *m, const std::string &serv
 		auto it = m_runningRpcRequests.begin();
 		while (it != m_runningRpcRequests.end()) {
 			if(it->second.startTS.msecsTo(tm2) > shv::iotqt::rpc::ClientConnection::defaultRpcTimeout()) {
-				shvWarning() << "RPC request timeout expired for node:" << it->second.nodePath;
+				shvWarning() << "RPC request timeout expired for node:" << it->second.shvPath;
 				it = m_runningRpcRequests.erase(it);
 			}
 			else
@@ -137,8 +137,10 @@ shv::iotqt::rpc::ClientConnection *ShvBrokerNodeItem::clientConnection()
 		connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, [this](bool is_connected) {
 			m_openStatus = is_connected? OpenStatus::Connected: OpenStatus::Disconnected;
 			emitDataChanged();
-			if(is_connected)
+			if(is_connected) {
+				createSubscriptions();
 				loadChildren();
+			}
 		});
 		connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvBrokerNodeItem::onRpcMessageReceived);
 	}
@@ -172,11 +174,11 @@ ShvNodeItem* ShvBrokerNodeItem::findNode(const std::string &path, std::string *p
 	return ret;
 }
 
-unsigned ShvBrokerNodeItem::callShvMethod(const std::string &shv_path, const std::string &method, const cp::RpcValue &params)
+unsigned ShvBrokerNodeItem::callNodeRpcMethod(const std::string &calling_node_shv_path, const std::string &method, const cp::RpcValue &params)
 {
 	shv::iotqt::rpc::ClientConnection *cc = clientConnection();
-	unsigned rqid = cc->callShvMethod(shv_path, method, params);
-	m_runningRpcRequests[rqid].nodePath = shv_path;
+	unsigned rqid = cc->callShvMethod(calling_node_shv_path, method, params);
+	m_runningRpcRequests[rqid].shvPath = calling_node_shv_path;
 	return rqid;
 }
 
@@ -191,7 +193,7 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 			// can be load attributes request
 			return;
 		}
-		const std::string &path = it->second.nodePath;
+		const std::string &path = it->second.shvPath;
 		ShvNodeItem *nd = findNode(path);
 		if(nd) {
 			nd->processRpcMessage(msg);
@@ -232,6 +234,32 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodInvocationException, e.message()));
 		}
 		m_rpcConnection->sendMessage(resp);
+	}
+}
+
+void ShvBrokerNodeItem::createSubscriptions()
+{
+	std::string subscriptions = TheApp::instance()->cliOptions()->subscriptions().toStdString();
+	std::vector<shv::core::StringView> slst = shv::core::StringView(subscriptions).split(',');
+	for(const shv::core::StringView &sv1 : slst) {
+		std::vector<shv::core::StringView> slst2 = sv1.split(':', shv::core::StringView::KeepEmptyParts);
+		if(slst2.size() != 3) {
+			shvError() << "Invalid subscription:" << sv1.toString();
+			continue;
+		}
+		std::string broker_name = slst2[0].toString();
+		if(broker_name == nodeId()) {
+			std::string path = slst2[1].toString();
+			std::string method = slst2[2].toString();
+			shvInfo() << "Create subscription:" << broker_name << "creating subscription" << path << ":" << method;
+			shv::iotqt::rpc::ClientConnection *cc = clientConnection();
+			cc->callShvMethod(cp::Rpc::DIR_BROKER_APP
+						  , cp::Rpc::METH_SUBSCRIBE
+						  , cp::RpcValue::Map{
+							  {cp::Rpc::PAR_PATH, path},
+							  {cp::Rpc::PAR_METHOD, method},
+						  });
+		}
 	}
 }
 

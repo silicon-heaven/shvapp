@@ -31,19 +31,34 @@ public:
 		ModeService = 1 << 10,
 		MainSwitch  = 1 << 11
 	};
+
+	static const char *PROP_STATUS;
+	static const char *METH_DEVICE_ID;
+	static const char *METH_CMD_ON;
+	static const char *METH_CMD_OFF;
+	static const char *METH_GET_LOG;
+
 	explicit Lublicator(shv::iotqt::node::ShvNode *parent = nullptr);
 
 	unsigned status() const;
 	bool setStatus(unsigned stat);
-
+/*
 	using Super::childNames;
 	StringList childNames(const std::string &shv_path) const override;
 	shv::chainpack::RpcValue::List propertyMethods(const String &prop_name) const;
 	shv::chainpack::RpcValue propertyValue(const String &property_name) const;
 	bool setPropertyValue(const String &prop_name, const shv::chainpack::RpcValue &val);
+*/
 	Q_SIGNAL void propertyValueChanged(const std::string &property_name, const shv::chainpack::RpcValue &new_val);
+
+	size_t methodCount(const std::string &shv_path = std::string()) override;
+	const shv::chainpack::MetaMethod* metaMethod(size_t ix, const std::string &shv_path = std::string()) override;
+
+	StringList childNames(const std::string &shv_path = std::string()) override;
+
+	shv::chainpack::RpcValue call(const std::string &method, const shv::chainpack::RpcValue &params, const std::string &shv_path = std::string()) override;
 private:
-	std::map<String, shv::chainpack::RpcValue> m_properties;
+	unsigned m_status = 0;
 };
 
 class Revitest : public QObject

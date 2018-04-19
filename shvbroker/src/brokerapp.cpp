@@ -30,8 +30,6 @@
 #include <unistd.h>
 #endif
 
-static const std::string DIR_BROKER = ".broker";
-
 namespace cp = shv::chainpack;
 //#define logOpcuaReceive qfCInfo("OpcuaReceive")
 
@@ -62,7 +60,7 @@ BrokerApp::BrokerApp(int &argc, char **argv, AppCliOptions *cli_opts)
 	m_deviceTree = new shv::iotqt::node::ShvNodeTree(this);
 	connect(m_deviceTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, this, &BrokerApp::onRootNodeSendRpcMesage);
 	BrokerNode *bn = new BrokerNode();
-	m_deviceTree->mount(DIR_BROKER + "/app", bn);
+	m_deviceTree->mount(cp::Rpc::DIR_BROKER_APP, bn);
 	//m_deviceTree->mkdir("test");
 
 	QTimer::singleShot(0, this, &BrokerApp::lazyInit);
@@ -231,7 +229,7 @@ void BrokerApp::onClientLogin(int connection_id)
 
 	{
 		ShvClientNode *cli_nd = new ShvClientNode(conn);
-		std::string mount_point = DIR_BROKER + "/clients/" + std::to_string(conn->connectionId()) + "/app";
+		std::string mount_point = std::string(cp::Rpc::DIR_BROKER) + "/clients/" + std::to_string(conn->connectionId()) + "/app";
 		shvInfo() << "Client node:" << cli_nd << "connection id:" << connection_id << "mounting device on path:" << mount_point;
 		shv::iotqt::node::ShvNode *curr_nd = m_deviceTree->cd(mount_point);
 		ShvClientNode *curr_cli_nd = qobject_cast<ShvClientNode*>(curr_nd);
@@ -255,7 +253,7 @@ void BrokerApp::onClientLogin(int connection_id)
 		conn->setParent(cli_nd);
 	}
 	{
-		std::string mount_point = DIR_BROKER + "/clients/" + std::to_string(conn->connectionId()) + "/subscriptions";
+		std::string mount_point = std::string(cp::Rpc::DIR_BROKER) + "/clients/" + std::to_string(conn->connectionId()) + "/subscriptions";
 		SubscriptionsNode *nd = new SubscriptionsNode(conn);
 		if(!m_deviceTree->mount(mount_point, nd))
 			SHV_EXCEPTION("Cannot mount connection subscription list to device tree, connection id: " + std::to_string(connection_id)
@@ -296,6 +294,7 @@ void BrokerApp::onClientLogin(int connection_id)
 			if(!m_deviceTree->mount(mount_point, cli_nd))
 				SHV_EXCEPTION("Cannot mount connection to device tree, connection id: " + std::to_string(connection_id));
 			mount_point = cli_nd->shvPath();
+			shvInfo() << "device id:" << device_id.toCpon() << " mounted on:" << mount_point;
 			/// overwrite client default mount point
 			conn->setMountPoint(mount_point);
 			connect(conn, &rpc::ServerConnection::destroyed, cli_nd, &ShvClientNode::deleteLater);
