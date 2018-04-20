@@ -82,30 +82,39 @@ static std::vector<cp::MetaMethod> meta_methods_status {
 	{cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, false},
 };
 
-size_t Lublicator::methodCount(const std::string &shv_path)
+size_t Lublicator::methodCount2(const std::string &shv_path)
 {
 	if(shv_path.empty())
 		return meta_methods_device.size();
 	return meta_methods_status.size();
 }
 
-const shv::chainpack::MetaMethod *Lublicator::metaMethod(size_t ix, const std::string &shv_path)
+const shv::chainpack::MetaMethod *Lublicator::metaMethod2(size_t ix, const std::string &shv_path)
 {
 	if(shv_path.empty())
 		return &(meta_methods_device.at(ix));
 	return &(meta_methods_status.at(ix));
 }
 
-shv::iotqt::node::ShvNode::StringList Lublicator::childNames(const std::string &shv_path)
+bool Lublicator::hasChildren2(const std::string &shv_path)
 {
+	return shv_path.empty();
+}
+
+shv::iotqt::node::ShvNode::StringList Lublicator::childNames2(const std::string &shv_path)
+{
+	shvLogFuncFrame() << shvPath() << "for:" << shv_path;
 	if(shv_path.empty())
 		return shv::iotqt::node::ShvNode::StringList{PROP_STATUS};
 	return shv::iotqt::node::ShvNode::StringList{};
 }
 
-shv::chainpack::RpcValue Lublicator::call(const std::string &method, const shv::chainpack::RpcValue &params, const std::string &shv_path)
+shv::chainpack::RpcValue Lublicator::call2(const std::string &method, const shv::chainpack::RpcValue &params, const std::string &shv_path)
 {
 	if(shv_path.empty()) {
+		if(method == cp::Rpc::METH_GET) {
+			return status();
+		}
 		if(method == METH_DEVICE_ID) {
 			return parentNode()->nodeId();
 		}
@@ -130,7 +139,11 @@ shv::chainpack::RpcValue Lublicator::call(const std::string &method, const shv::
 			return true;
 		}
 	}
-	return Super::call(method, params, shv_path);
+	else if(shv_path == "status") {
+		if(method == cp::Rpc::METH_GET) {
+			return status();
+		}
+	}	return Super::call2(method, params, shv_path);
 }
 #if 0
 shv::iotqt::node::ShvNode::StringList Lublicator::childNames(const std::string &shv_path) const

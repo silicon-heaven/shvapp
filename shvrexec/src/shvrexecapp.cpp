@@ -26,24 +26,20 @@ static std::vector<cp::MetaMethod> meta_methods {
 	{METH_WRITE, cp::MetaMethod::Signature::RetParam, false},
 };
 
-size_t AppRootNode::methodCount(const std::string &shv_path)
+size_t AppRootNode::methodCount()
 {
-	Q_UNUSED(shv_path)
 	return meta_methods.size();
 }
 
-const cp::MetaMethod *AppRootNode::metaMethod(size_t ix, const std::string &shv_path)
+const cp::MetaMethod *AppRootNode::metaMethod(size_t ix)
 {
-	Q_UNUSED(shv_path)
 	if(meta_methods.size() <= ix)
 		SHV_EXCEPTION("Invalid method index: " + std::to_string(ix) + " of: " + std::to_string(meta_methods.size()));
 	return &(meta_methods[ix]);
 }
 
-shv::chainpack::RpcValue AppRootNode::call(const std::string &method, const shv::chainpack::RpcValue &params, const std::string &shv_path)
+shv::chainpack::RpcValue AppRootNode::call(const std::string &method, const shv::chainpack::RpcValue &params)
 {
-	if(!shv_path.empty())
-		SHV_EXCEPTION("Subtree '" + shv_path + "' not exists!");
 	if(method == cp::Rpc::METH_APP_NAME) {
 		return QCoreApplication::instance()->applicationName().toStdString();
 	}

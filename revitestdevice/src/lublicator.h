@@ -1,6 +1,6 @@
 #pragma once
 
-#include <shv/iotqt/node//shvnode.h>
+#include <shv/iotqt/node//shvtreenode.h>
 #include <shv/chainpack/rpcvalue.h>
 #include <shv/coreqt/utils.h>
 
@@ -8,13 +8,12 @@
 #include <QMap>
 
 namespace shv { namespace chainpack { class RpcMessage; }}
-namespace shv { namespace iotqt { namespace node { class ShvNodeTree; }}}
 
-class Lublicator : public shv::iotqt::node::ShvNode
+class Lublicator : public shv::iotqt::node::ShvTreeNode
 {
 	Q_OBJECT
 private:
-	using Super = shv::iotqt::node::ShvNode;
+	using Super = shv::iotqt::node::ShvTreeNode;
 public:
 	enum class Status : unsigned
 	{
@@ -42,22 +41,17 @@ public:
 
 	unsigned status() const;
 	bool setStatus(unsigned stat);
-/*
-	using Super::childNames;
-	StringList childNames(const std::string &shv_path) const override;
-	shv::chainpack::RpcValue::List propertyMethods(const String &prop_name) const;
-	shv::chainpack::RpcValue propertyValue(const String &property_name) const;
-	bool setPropertyValue(const String &prop_name, const shv::chainpack::RpcValue &val);
-*/
+
 	Q_SIGNAL void propertyValueChanged(const std::string &property_name, const shv::chainpack::RpcValue &new_val);
 
-	size_t methodCount(const std::string &shv_path = std::string()) override;
-	const shv::chainpack::MetaMethod* metaMethod(size_t ix, const std::string &shv_path = std::string()) override;
+	size_t methodCount2(const std::string &shv_path = std::string()) override;
+	const shv::chainpack::MetaMethod* metaMethod2(size_t ix, const std::string &shv_path = std::string()) override;
 
-	StringList childNames(const std::string &shv_path = std::string()) override;
+	bool hasChildren2(const std::string &shv_path) override;
+	StringList childNames2(const std::string &shv_path = std::string()) override;
 	//shv::chainpack::RpcValue lsAttributes(const std::string &node_id, unsigned attributes, const std::string &shv_path) override;
 
-	shv::chainpack::RpcValue call(const std::string &method, const shv::chainpack::RpcValue &params, const std::string &shv_path = std::string()) override;
+	shv::chainpack::RpcValue call2(const std::string &method, const shv::chainpack::RpcValue &params, const std::string &shv_path = std::string()) override;
 private:
 	unsigned m_status = 0;
 };

@@ -17,10 +17,10 @@ class AppRootNode : public shv::iotqt::node::ShvRootNode
 public:
 	explicit AppRootNode(QObject *parent = nullptr) : Super(parent) {}
 
-	size_t methodCount(const std::string &shv_path = std::string()) override;
-	const shv::chainpack::MetaMethod* metaMethod(size_t ix, const std::string &shv_path = std::string()) override;
+	size_t methodCount() override;
+	const shv::chainpack::MetaMethod* metaMethod(size_t ix) override;
 
-	shv::chainpack::RpcValue call(const std::string &method, const shv::chainpack::RpcValue &params, const std::string &shv_path = std::string()) override;
+	shv::chainpack::RpcValue call(const std::string &method, const shv::chainpack::RpcValue &params) override;
 };
 
 class ShvRExecApp : public QCoreApplication

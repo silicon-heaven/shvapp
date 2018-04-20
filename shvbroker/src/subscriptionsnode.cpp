@@ -37,14 +37,14 @@ SubscriptionsNode::SubscriptionsNode(rpc::ServerConnection *conn)
 {
 }
 
-size_t SubscriptionsNode::methodCount(const std::string &shv_path)
+size_t SubscriptionsNode::methodCount2(const std::string &shv_path)
 {
 	if(shv_path.empty() || shv_path == ND_BY_ID || shv_path == ND_BY_PATH)
 		return meta_methods1.size();
 	return meta_methods2.size();
 }
 
-const shv::chainpack::MetaMethod *SubscriptionsNode::metaMethod(size_t ix, const std::string &shv_path)
+const shv::chainpack::MetaMethod *SubscriptionsNode::metaMethod2(size_t ix, const std::string &shv_path)
 {
 	const std::vector<cp::MetaMethod> &mms = (shv_path.empty() || shv_path == ND_BY_ID || shv_path == ND_BY_PATH)? meta_methods1: meta_methods2;
 	if(mms.size() <= ix)
@@ -52,7 +52,7 @@ const shv::chainpack::MetaMethod *SubscriptionsNode::metaMethod(size_t ix, const
 	return &(mms[ix]);
 }
 
-shv::iotqt::node::ShvNode::StringList SubscriptionsNode::childNames(const std::string &shv_path)
+shv::iotqt::node::ShvNode::StringList SubscriptionsNode::childNames2(const std::string &shv_path)
 {
 	shvLogFuncFrame() << shv_path;
 	if(shv_path.empty())
@@ -72,10 +72,12 @@ shv::iotqt::node::ShvNode::StringList SubscriptionsNode::childNames(const std::s
 		}
 		return ret;
 	}
+	//if(shv::core::StringView(shv_path).startsWith(ND_BY_ID))
+	//	return
 	return shv::iotqt::node::ShvNode::StringList{};
 }
 
-shv::chainpack::RpcValue SubscriptionsNode::call(const std::string &method, const shv::chainpack::RpcValue &params, const std::string &shv_path)
+shv::chainpack::RpcValue SubscriptionsNode::call2(const std::string &method, const shv::chainpack::RpcValue &params, const std::string &shv_path)
 {
 	if(method == METH_PATH || method == METH_METHOD) {
 		std::vector<shv::core::StringView> lst = shv::core::StringView(shv_path).split('/');
@@ -101,7 +103,7 @@ shv::chainpack::RpcValue SubscriptionsNode::call(const std::string &method, cons
 		if(method == METH_METHOD)
 			return subs->method;
 	}
-	return Super::call(method, params, shv_path);
+	return Super::call2(method, params, shv_path);
 }
 
 /*
