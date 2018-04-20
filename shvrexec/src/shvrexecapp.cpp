@@ -168,6 +168,7 @@ void ShvRExecApp::onBrokerConnectedChanged(bool is_connected)
 		QString program = sl.value(0);
 		QStringList arguments = sl.mid(1);
 		m_cmdProc = new QProcess(this);
+		connect(QCoreApplication::instance(), &QCoreApplication::aboutToQuit, m_cmdProc, &QProcess::terminate);
 		connect(m_cmdProc, &QProcess::readyReadStandardOutput, this, &ShvRExecApp::onReadyReadProcessStandardOutput);
 		connect(m_cmdProc, &QProcess::readyReadStandardError, this, &ShvRExecApp::onReadyReadProcessStandardError);
 		connect(m_cmdProc, &QProcess::errorOccurred, [](QProcess::ProcessError error) {
