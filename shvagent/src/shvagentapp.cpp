@@ -104,29 +104,6 @@ ShvAgentApp *ShvAgentApp::instance()
 
 void ShvAgentApp::openRsh(const shv::chainpack::RpcRequest &rq)
 {
-	//const shv::chainpack::RpcValue::Map &m = rq.params().toMap();
-	/*
-	std::string tun_name;// = m.value("name").toString();
-	if(tun_name.empty()) {
-		static int n = 0;
-		tun_name = "proc" + std::to_string(++n);
-	}
-	QString qname = QString::fromStdString(name);
-	{
-		QProcess*p = findChild<SessionProcess*>(qname);
-		if(p) {
-			shvWarning() << "Process with name:" << name << "exists already.";
-			//p->close();
-			//delete p;
-			cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
-			resp.setError(cp::RpcResponse::Error::create(
-							  cp::RpcResponse::Error::MethodInvocationException,
-							  "Process with name: " + name + " exists already."));
-			m_shvTree->root()->emitSendRpcMesage(resp);
-			return;
-		}
-	}
-	*/
 	using TunnelParams = shv::iotqt::rpc::TunnelParams;
 	using TunnelParamsMT = shv::iotqt::rpc::TunnelParams::MetaType;
 	TunnelParams tun_params;
@@ -163,17 +140,7 @@ void ShvAgentApp::openRsh(const shv::chainpack::RpcRequest &rq)
 		shvInfo() << "Process started, sending response:" << resp.toPrettyString();
 		m_rpcConnection->sendMessage(resp);
 	});
-	/*
-	params << "-s" << QString::fromStdString(m_rpcConnection->host());
-	params << "-p" << QString::number(m_rpcConnection->port());
-	params << "-u" << QString::fromStdString(m_rpcConnection->user());
-	params << "-m" << QString::fromStdString(mount_point);
-	cp::RpcValue::Map st;
-	st["clientId"] = m_rpcConnection->brokerClientId();
-	st["sessionId"] = (uint64_t)proc;
-	std::string session_token = cp::Utils::toHex(cp::RpcValue(st).toChainPack());
-	params << "-st" << QString::fromStdString(session_token);
-	*/
+
 	params << "-e" << "/bin/sh";
 	shvInfo() << "starting child process:" << app << params.join(' ');
 	proc->start(app, params);
