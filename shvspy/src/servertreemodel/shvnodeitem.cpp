@@ -189,7 +189,7 @@ void ShvNodeItem::loadChildren()
 {
 	m_childrenLoaded = false;
 	ShvBrokerNodeItem *srv_nd = serverNode();
-	m_loadChildrenRqId = srv_nd->callNodeRpcMethod(shvPath(), "ls", (unsigned)0x7F);
+	m_loadChildrenRqId = srv_nd->callNodeRpcMethod(shvPath(), "ls", cp::RpcValue::List{std::string(), (unsigned)0x7F});
 	emitDataChanged();
 }
 
