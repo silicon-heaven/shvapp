@@ -3,7 +3,7 @@
 #include <QCoreApplication>
 
 class AppCliOptions;
-class Revitest;
+class RevitestDevice;
 namespace shv { namespace chainpack { class RpcMessage; }}
 namespace shv { namespace iotqt { namespace rpc { class DeviceConnection; }}}
 
@@ -19,7 +19,7 @@ private:
 	//void onBrokerConnectedChanged(bool is_connected);
 	//void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 private:
-	Revitest *m_revitest;
+	RevitestDevice *m_revitest;
 	shv::iotqt::rpc::DeviceConnection *m_rpcConnection = nullptr;
 	AppCliOptions* m_cliOptions;
 };

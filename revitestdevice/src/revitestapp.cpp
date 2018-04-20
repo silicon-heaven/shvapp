@@ -1,6 +1,7 @@
 #include "revitestapp.h"
 #include "appclioptions.h"
-#include "lublicator.h"
+//#include "lublicator.h"
+#include "revitestdevice.h"
 
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/node/shvnodetree.h>
@@ -26,9 +27,9 @@ RevitestApp::RevitestApp(int &argc, char **argv, AppCliOptions* cli_opts)
 		cli_opts->setMountPoint("/test/lublin/odpojovace");
 	m_rpcConnection->setCliOptions(cli_opts);
 
-	m_revitest = new Revitest(this);
-	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, m_revitest, &Revitest::onRpcMessageReceived);
-	connect(m_revitest, &Revitest::sendRpcMessage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
+	m_revitest = new RevitestDevice(this);
+	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, m_revitest, &RevitestDevice::onRpcMessageReceived);
+	connect(m_revitest, &RevitestDevice::sendRpcMessage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
 
 	m_rpcConnection->open();
 }

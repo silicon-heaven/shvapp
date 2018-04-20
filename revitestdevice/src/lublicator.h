@@ -55,26 +55,12 @@ public:
 	const shv::chainpack::MetaMethod* metaMethod(size_t ix, const std::string &shv_path = std::string()) override;
 
 	StringList childNames(const std::string &shv_path = std::string()) override;
+	//shv::chainpack::RpcValue lsAttributes(const std::string &node_id, unsigned attributes, const std::string &shv_path) override;
 
 	shv::chainpack::RpcValue call(const std::string &method, const shv::chainpack::RpcValue &params, const std::string &shv_path = std::string()) override;
 private:
 	unsigned m_status = 0;
 };
 
-class Revitest : public QObject
-{
-	Q_OBJECT
-public:
-	explicit Revitest(QObject *parent = nullptr);
 
-	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
-	Q_SIGNAL void sendRpcMessage(const shv::chainpack::RpcMessage &msg);
-private:
-	void onLublicatorPropertyValueChanged(const std::string &property_name, const shv::chainpack::RpcValue &new_val);
-	void createDevices();
-private:
-	static constexpr size_t LUB_CNT = 27;
-	//Lublicator m_lublicators[LUB_CNT];
-	shv::iotqt::node::ShvNodeTree *m_devices = nullptr;
-};
 

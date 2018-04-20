@@ -141,6 +141,9 @@ shv::iotqt::rpc::ClientConnection *ShvBrokerNodeItem::clientConnection()
 				createSubscriptions();
 				loadChildren();
 			}
+			else {
+				deleteChildren();
+			}
 		});
 		connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvBrokerNodeItem::onRpcMessageReceived);
 	}
