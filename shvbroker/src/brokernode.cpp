@@ -23,9 +23,9 @@ shv::chainpack::RpcValue BrokerNode::call2(const std::string &method, const shv:
 		return true;
 	}
 	if(method == cp::Rpc::METH_ECHO) {
-		return params;
+		return params.isValid()? params: nullptr;
 	}
-	return Super::call(method, params);
+	return Super::call2(method, params, shv_path);
 }
 
 shv::iotqt::node::ShvNode::StringList BrokerNode::childNames2(const std::string &shv_path)
