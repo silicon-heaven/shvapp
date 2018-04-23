@@ -45,10 +45,10 @@ void ShvClientNode::processRawData(const shv::chainpack::RpcValue::MetaData &met
 	}
 }
 
-bool ShvClientNode::hasChildren()
+shv::chainpack::RpcValue ShvClientNode::hasChildren()
 {
 	//shvWarning() << "ShvClientNode::hasChildren path:" << shv_path << "ret:" << true;
-	return true;
+	return nullptr;
 }
 
 

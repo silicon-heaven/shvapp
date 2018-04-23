@@ -16,7 +16,7 @@ public:
 	rpc::ServerConnection * connection() const {return m_connection;}
 
 	void processRawData(const shv::chainpack::RpcValue::MetaData &meta, std::string &&data) override;
-	bool hasChildren() override;
+	shv::chainpack::RpcValue hasChildren() override;
 private:
 	rpc::ServerConnection * m_connection = nullptr;
 };
