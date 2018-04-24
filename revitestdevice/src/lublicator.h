@@ -47,7 +47,7 @@ public:
 	size_t methodCount2(const std::string &shv_path = std::string()) override;
 	const shv::chainpack::MetaMethod* metaMethod2(size_t ix, const std::string &shv_path = std::string()) override;
 
-	bool hasChildren2(const std::string &shv_path) override;
+	shv::chainpack::RpcValue hasChildren2(const std::string &shv_path) override;
 	StringList childNames2(const std::string &shv_path = std::string()) override;
 	//shv::chainpack::RpcValue lsAttributes(const std::string &node_id, unsigned attributes, const std::string &shv_path) override;
 

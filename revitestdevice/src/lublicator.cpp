@@ -96,7 +96,7 @@ const shv::chainpack::MetaMethod *Lublicator::metaMethod2(size_t ix, const std::
 	return &(meta_methods_status.at(ix));
 }
 
-bool Lublicator::hasChildren2(const std::string &shv_path)
+shv::chainpack::RpcValue Lublicator::hasChildren2(const std::string &shv_path)
 {
 	return shv_path.empty();
 }

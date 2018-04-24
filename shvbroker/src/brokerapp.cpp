@@ -389,9 +389,8 @@ void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData
 		{
 			rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
 			if(conn) {
-				full_shv_path = conn->mountPoint();
-				if(!full_shv_path.empty())
-					full_shv_path += cp::RpcMessage::shvPath(meta).toString();
+				if(!conn->mountPoint().empty())
+					full_shv_path = cp::Rpc::joinShvPath(conn->mountPoint(), cp::RpcMessage::shvPath(meta).toString());
 			}
 		}
 		if(!full_shv_path.empty()) {
