@@ -13,6 +13,20 @@
 
 namespace cp = shv::chainpack;
 
+std::string ShvMetaMethod::signatureStr() const
+{
+	std::string ret;
+	switch (signature) {
+	case cp::MetaMethod::Signature::VoidVoid: ret = "void()"; break;
+	case cp::MetaMethod::Signature::VoidParam: ret = "void(param)"; break;
+	case cp::MetaMethod::Signature::RetVoid: ret = "ret()"; break;
+	case cp::MetaMethod::Signature::RetParam: ret = "ret(param)"; break;
+	}
+	//if(isSignal)
+	//	ret = ret + " NTF";
+	return ret;
+}
+
 ShvNodeItem::ShvNodeItem(ServerTreeModel *m, const std::string &ndid, ShvNodeItem *parent)
 	: Super(parent)
 	, m_nodeId(ndid)
@@ -159,7 +173,10 @@ void ShvNodeItem::processRpcMessage(const shv::chainpack::RpcMessage &msg)
 			m_methods.clear();
 			for(const cp::RpcValue &v : resp.result().toList()) {
 				ShvMetaMethod mm;
-				mm.method = v.toString();
+				cp::RpcValueGenList lst(v);
+				mm.method = lst.value(0).toString();
+				mm.signature = (cp::MetaMethod::Signature) lst.value(1).toUInt();
+				mm.isNotify = lst.value(2).toBool();
 				m_methods.push_back(mm);
 			}
 			emit methodsLoaded();
@@ -206,7 +223,7 @@ void ShvNodeItem::loadMethods()
 {
 	m_methodsLoaded = false;
 	ShvBrokerNodeItem *srv_nd = serverNode();
-	m_loadMethodsRqId = srv_nd->callNodeRpcMethod(shvPath(), "dir", cp::RpcValue());
+	m_loadMethodsRqId = srv_nd->callNodeRpcMethod(shvPath(), "dir", cp::RpcValue::List{std::string(), 127});
 	//emitDataChanged();
 }
 
@@ -224,21 +241,8 @@ unsigned ShvNodeItem::callMethod(int method_ix)
 	if(method_ix < 0 || method_ix >= m_methods.count())
 		return 0;
 	ShvMetaMethod &mtd = m_methods[method_ix];
-	if(mtd.method.empty())
+	if(mtd.method.empty() || mtd.isNotify)
 		return 0;
-	/*
-	cp::RpcValue params;
-	if(!mtd.params.empty()) {
-		std::istringstream is(mtd.params);
-		try {
-			cp::CponReader rd(is);
-			rd >> params;
-		}
-		catch (cp::CponReader::ParseException &e) {
-			shvError() << "error parsing params:" << e.mesage();
-		}
-	}
-	*/
 	mtd.response = cp::RpcResponse();
 	ShvBrokerNodeItem *srv_nd = serverNode();
 	mtd.rpcRequestId = srv_nd->callNodeRpcMethod(shvPath(), mtd.method, mtd.params);
@@ -259,3 +263,4 @@ ShvNodeRootItem::ShvNodeRootItem(ServerTreeModel *parent)
 {
 	setParent(parent);
 }
+

@@ -57,9 +57,12 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 	case Qt::DisplayRole: {
 		switch (ix.column()) {
 		case ColMethodName:
+		case ColSignature:
 		case ColParams:
 		case ColResult:
 			return m_rows.value(ix.row()).value(ix.column());
+		case ColIsNotify:
+			return m_rows.value(ix.row()).value(ix.column()).toBool()? "Y": QVariant();
 		default:
 			break;
 		}
@@ -76,10 +79,13 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 	}
 	case Qt::DecorationRole: {
 		if(ix.column() == ColBtRun) {
-			static QIcon ico_run = QIcon(QStringLiteral(":/shvspy/images/run"));
-			static QIcon ico_reload = QIcon(QStringLiteral(":/shvspy/images/reload"));
-			auto v = m_rows.value(ix.row()).value(ix.column());
-			return (v.toUInt() > 0)? ico_reload: ico_run;
+			bool is_notify = m_rows.value(ix.row()).value(ColIsNotify).toBool();
+			if(!is_notify) {
+				static QIcon ico_run = QIcon(QStringLiteral(":/shvspy/images/run"));
+				static QIcon ico_reload = QIcon(QStringLiteral(":/shvspy/images/reload"));
+				auto v = m_rows.value(ix.row()).value(ColBtRun);
+				return (v.toUInt() > 0)? ico_reload: ico_run;
+			}
 		}
 		break;
 	}
@@ -97,6 +103,10 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 				return data(ix, Qt::DisplayRole);
 			}
 		}
+		else if(ix.column() == ColIsNotify) {
+			bool is_notify = m_rows.value(ix.row()).value(ColIsNotify).toBool();
+			return is_notify? tr("Method is notify signal"): QVariant();
+		}
 		else {
 			return data(ix, Qt::DisplayRole);
 		}
@@ -106,26 +116,6 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 		break;
 	}
 	return QVariant();
-	/*
-	AttributeNodeBase *nd = dynamic_cast<AttributeNodeBase*>(itemFromIndex(ix.sibling(ix.row(), 0)));
-	SHV_ASSERT(nd != nullptr, QString("Internal error ix(%1, %2) %3").arg(ix.row()).arg(ix.column()).arg(ix.internalId()), return QVariant());
-	if(ix.column() == 0) {
-		if(role == Qt::DisplayRole)
-			ret = nd->name();
-		else
-			ret = Super::data(ix, role);
-	}
-	else if(ix.column() == 1) {
-		if(role == Qt::DisplayRole)
-			ret = nd->displayValue();
-		else if(role == Qt::ToolTipRole)
-			ret = nd->displayValue();
-		else if(role == Qt::EditRole)
-			ret = nd->toEditorValue(nd->value());
-		else
-			ret = Super::data(ix, role);
-	}
-	*/
 }
 
 bool AttributesModel::setData(const QModelIndex &ix, const QVariant &val, int role)
@@ -162,6 +152,10 @@ QVariant AttributesModel::headerData(int section, Qt::Orientation o, int role) c
 		if(role == Qt::DisplayRole) {
 			if(section == ColMethodName)
 				ret = tr("Method");
+			else if(section == ColSignature)
+				ret = tr("Signature");
+			else if(section == ColIsNotify)
+				ret = tr("Ntf");
 			else if(section == ColParams)
 				ret = tr("Params");
 			else if(section == ColResult)
@@ -231,6 +225,8 @@ void AttributesModel::loadRow(int method_ix)
 	const ShvMetaMethod & mtd = mm[method_ix];
 	RowVals &rv = m_rows[method_ix];
 	rv[ColMethodName] = QString::fromStdString(mtd.method);
+	rv[ColSignature] = QString::fromStdString(mtd.signatureStr());
+	rv[ColIsNotify] = mtd.isNotify;
 	if(mtd.params.isValid()) {
 		rv[ColParams] = QString::fromStdString(mtd.params.toCpon());
 	}
@@ -251,17 +247,10 @@ void AttributesModel::loadRows()
 	if(!m_shvTreeNodeItem.isNull()) {
 		const QVector<ShvMetaMethod> &mm = m_shvTreeNodeItem->methods();
 		for (int i = 0; i < mm.count(); ++i) {
-			const ShvMetaMethod & mtd = mm[i];
 			RowVals rv;
 			rv.resize(ColCnt);
 			m_rows.insert(m_rows.count(), rv);
 			loadRow(m_rows.count() - 1);
-			rv[ColMethodName] = QString::fromStdString(mtd.method);
-			rv[ColParams] = QString::fromStdString(mtd.params.toCpon());
-			if(mtd.response.isError())
-				rv[ColResult] = QString::fromStdString(mtd.response.error().toString());
-			else
-				rv[ColResult] = QString::fromStdString(mtd.response.toCpon());
 		}
 	}
 	emit layoutChanged();

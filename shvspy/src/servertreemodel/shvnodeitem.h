@@ -3,6 +3,7 @@
 #include <shv/core/utils.h>
 #include <shv/chainpack/rpcmessage.h>
 #include <shv/chainpack/rpcvalue.h>
+#include <shv/chainpack/metamethod.h>
 
 #include <QObject>
 #include <QVector>
@@ -16,16 +17,13 @@ class ServerTreeModel;
 struct ShvMetaMethod
 {
 	std::string method;
+	shv::chainpack::MetaMethod::Signature signature = shv::chainpack::MetaMethod::Signature::VoidVoid;
+	bool isNotify = false;
 	shv::chainpack::RpcValue params;
 	shv::chainpack::RpcResponse response;
 	unsigned rpcRequestId = 0;
-	/*
-	SHV_FIELD_IMPL(std::string, m, M, ethodName)
-	SHV_FIELD_IMPL(std::string, p, P, arams)
-	SHV_FIELD_IMPL(std::string, r, R, esult)
-	SHV_FIELD_IMPL(std::string, e, E, rror)
-	SHV_FIELD_IMPL2(unsigned, r, R, pcRequestId, 0)
-	*/
+
+	std::string signatureStr() const;
 };
 
 class ShvNodeItem : public QObject

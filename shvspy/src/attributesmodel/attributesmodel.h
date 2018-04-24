@@ -15,7 +15,7 @@ class AttributesModel : public QAbstractTableModel
 private:
 	typedef QAbstractTableModel Super;
 public:
-	enum Columns {ColMethodName = 0, ColParams, ColResult, ColBtRun, ColRawResult, ColCnt};
+	enum Columns {ColMethodName = 0, ColSignature, ColIsNotify, ColParams, ColResult, ColBtRun, ColRawResult, ColCnt};
 public:
 	AttributesModel(QObject *parent = nullptr);
 	~AttributesModel() Q_DECL_OVERRIDE;
