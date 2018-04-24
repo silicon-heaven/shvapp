@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
 {
 	QCoreApplication::setOrganizationName("Elektroline");
 	QCoreApplication::setOrganizationDomain("elektroline.cz");
-	QCoreApplication::setApplicationName("shvagent");
+	QCoreApplication::setApplicationName("bfsview");
 	QCoreApplication::setApplicationVersion("0.0.1");
 
 	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);
@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
 	}
 
 	shvInfo() << "======================================================================================";
-	shvInfo() << "Starting SHV AGENT server, PID:" << QCoreApplication::applicationPid() << "build:" << __DATE__ << __TIME__;
+	shvInfo() << "Starting BfsView, PID:" << QCoreApplication::applicationPid() << "build:" << __DATE__ << __TIME__;
 #ifdef GIT_COMMIT
 	shvInfo() << "GIT commit:" << SHV_EXPAND_AND_QUOTE(GIT_COMMIT);
 #endif

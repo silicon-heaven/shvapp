@@ -52,6 +52,7 @@ public:
 
 	static BfsViewApp *instance();
 	shv::iotqt::rpc::DeviceConnection *rpcConnection() const {return m_rpcConnection;}
+	AppCliOptions* cliOptions() {return m_cliOptions;}
 
 private:
 	void onBrokerConnectedChanged(bool is_connected);

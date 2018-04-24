@@ -24,6 +24,7 @@ static const char METH_SIM_SET[] = "sim_set";
 static std::vector<cp::MetaMethod> meta_methods_root {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false},
+	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, false},
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false},
 	{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, false},
 };
@@ -44,6 +45,9 @@ shv::chainpack::RpcValue AppRootNode::call(const std::string &method, const shv:
 {
 	if(method == cp::Rpc::METH_APP_NAME) {
 		return QCoreApplication::instance()->applicationName().toStdString();
+	}
+	if(method == cp::Rpc::METH_DEVICE_ID) {
+		return BfsViewApp::instance()->cliOptions()->deviceId().toStdString();
 	}
 	if(method == cp::Rpc::METH_CONNECTION_TYPE) {
 		return BfsViewApp::instance()->rpcConnection()->connectionType();
@@ -140,7 +144,8 @@ BfsViewApp::BfsViewApp(int &argc, char **argv, AppCliOptions* cli_opts)
 		shvInfo() << "pwrStatus publis interval set to:" << cli_opts->pwrStatusPublishInterval() << "sec.";
 		QTimer *tm = new QTimer(this);
 		connect(tm, &QTimer::timeout, [this]() {
-			m_pwrStatusNode->emitPwrStatusChanged();
+			if(rpcConnection()->isBrokerConnected())
+				m_pwrStatusNode->emitPwrStatusChanged();
 		});
 		tm->start(m_cliOptions->pwrStatusPublishInterval() * 1000);
 	}
