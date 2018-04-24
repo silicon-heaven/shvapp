@@ -83,10 +83,12 @@ const shv::chainpack::MetaMethod *PwrStatusNode::metaMethod(size_t ix)
 shv::chainpack::RpcValue PwrStatusNode::call(const std::string &method, const shv::chainpack::RpcValue &params)
 {
 	if(method == cp::Rpc::METH_GET) {
-		return QCoreApplication::instance()->applicationName().toStdString();
+		return pwrStatus();
 	}
-	if(method == cp::Rpc::METH_CONNECTION_TYPE) {
-		return BfsViewApp::instance()->rpcConnection()->connectionType();
+	if(method == METH_SIM_SET) {
+		unsigned s = params.toUInt();
+		setPwrStatus(s);
+		return true;
 	}
 	return Super::call(method, params);
 }
