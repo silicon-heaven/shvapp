@@ -32,7 +32,7 @@ ServerConnection::ServerConnection(QTcpSocket *socket, QObject *parent)
 shv::chainpack::RpcValue ServerConnection::deviceId() const
 {
 	const shv::chainpack::RpcValue::Map &device = connectionOptions().value(cp::Rpc::TYPE_DEVICE).toMap();
-	return device.value("id");
+	return device.value(cp::Rpc::KEY_DEVICE_ID);
 }
 
 void ServerConnection::setIdleWatchDogTimeOut(unsigned sec)
