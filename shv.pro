@@ -8,4 +8,5 @@ SUBDIRS += \
     shvrexec \
     shvspy \
     revitestdevice \
+    bfsview \
 
