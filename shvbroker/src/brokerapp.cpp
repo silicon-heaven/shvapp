@@ -313,51 +313,22 @@ void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData
 {
 	if(cp::RpcMessage::isRequest(meta)) {
 		shvDebug() << "REQUEST conn id:" << connection_id << meta.toStdString();
-		cp::RpcValue shv_path = cp::RpcMessage::shvPath(meta);
+		rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
+		std::string rel_path = cp::RpcMessage::shvPath(meta).toString();
+		std::string abs_path;
+		if(conn)
+			abs_path = rpc::ServerConnection::Subscription::toAbsolutePath(conn->mountPoint(), rel_path);
+		else
+			abs_path = rel_path;
 		std::string path_rest;
-		shv::iotqt::node::ShvNode *nd = m_deviceTree->cd(shv_path.toString(), &path_rest);
+		shv::iotqt::node::ShvNode *nd = m_deviceTree->cd(abs_path, &path_rest);
 		if(nd) {
 			cp::RpcMessage::setShvPath(meta, path_rest);
 			cp::RpcMessage::pushCallerId(meta, connection_id);
 			nd->processRawData(meta, std::move(data));
-#if 0
-			ShvClientNode *client_nd = qobject_cast<ShvClientNode *>(nd);
-			//shvWarning() << nd << client_nd << "shv path:" << shv_path << "rest:" << path_rest;// << meta.toStdString();
-			cp::RpcMessage::setShvPath(meta, path_rest);
-			if(client_nd) {
-				rpc::ServerConnection *conn2 = client_nd->connection();
-				conn2->sendRawData(meta, std::move(data));
-			}
-			else if(nd) {
-				cp::RpcMessage rpc_msg = cp::RpcDriver::composeRpcMessage(std::move(meta), data, cp::Exception::Throw);
-				rpc_msg.setShvPath(path_rest);
-				cp::RpcRequest rq(rpc_msg);
-				cp::RpcResponse resp = cp::RpcResponse::forRequest(rq.metaData());
-				bool response_deffered = false;
-				try {
-					cp::RpcValue result = nd->processRpcRequest(rq);
-					if(result.isValid())
-						resp.setResult(result);
-					else
-						response_deffered = true;
-				}
-				catch (shv::core::Exception &e) {
-					shvError() << e.message();
-					resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodInvocationException, e.message()));
-				}
-				if(!response_deffered) {
-					resp.popCallerId();
-					rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
-					if(conn)
-						conn->sendMessage(resp);
-					else
-						shvError() << "Cannot find connection for ID:" << connection_id;
-				}
-			}
-#endif
 		}
 		else {
-			std::string err_msg = "Device tree path not found: " + shv_path.toString();
+			std::string err_msg = "Device tree path not found: " + abs_path;
 			shvWarning() << err_msg;
 			if(cp::RpcMessage::isRequest(meta)) {
 				//cp::RpcMessage rpc_msg = cp::RpcDriver::composeRpcMessage(std::move(meta), data, !cp::Exception::Throw);
@@ -428,9 +399,20 @@ void BrokerApp::sendNotifyToSubscribers(unsigned sender_connection_id, const shv
 		if(conn && conn->isBrokerConnected()) {
 			const cp::RpcValue shv_path = cp::RpcMessage::shvPath(meta_data);
 			const cp::RpcValue method = cp::RpcMessage::method(meta_data);
-			if(conn->isSubscribed(shv_path.toString(), method.toString())) {
+			int subs_ix = conn->isSubscribed(shv_path.toString(), method.toString());
+			if(subs_ix >= 0) {
 				shvDebug() << "\t broadcasting to connection id:" << id;
-				conn->sendRawData(meta_data, std::string(data));
+				const rpc::ServerConnection::Subscription &subs = conn->subscriptionAt(subs_ix);
+				bool changed;
+				std::string new_path = subs.toRelativePath(shv_path.toString(), changed);
+				if(changed) {
+					shv::chainpack::RpcValue::MetaData md2(meta_data);
+					cp::RpcMessage::setShvPath(md2, new_path);
+					conn->sendRawData(md2, std::string(data));
+				}
+				else {
+					conn->sendRawData(meta_data, std::string(data));
+				}
 			}
 		}
 	}
@@ -448,8 +430,14 @@ void BrokerApp::sendNotifyToSubscribers(unsigned sender_connection_id, const std
 			continue;
 		rpc::ServerConnection *conn = tcpServer()->connectionById(id);
 		if(conn && conn->isBrokerConnected()) {
-			if(conn->isSubscribed(shv_path, method)) {
+			int subs_ix = conn->isSubscribed(shv_path, method);
+			if(subs_ix >= 0) {
 				shvDebug() << "\t broadcasting to connection id:" << id;
+				const rpc::ServerConnection::Subscription &subs = conn->subscriptionAt(subs_ix);
+				bool changed;
+				std::string new_path = subs.toRelativePath(shv_path, changed);
+				if(changed)
+					ntf.setShvPath(new_path);
 				conn->sendMessage(ntf);
 			}
 		}

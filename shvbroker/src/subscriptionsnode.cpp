@@ -68,7 +68,7 @@ shv::iotqt::node::ShvNode::StringList SubscriptionsNode::childNames2(const std::
 		shv::iotqt::node::ShvNode::StringList ret;
 		for (size_t i = 0; i < m_client->subscriptionCount(); ++i) {
 			const rpc::ServerConnection::Subscription &subs = m_client->subscriptionAt(i);
-			ret.push_back(subs.pathPattern + ':' + subs.method);
+			ret.push_back(subs.absolutePath + ':' + subs.method);
 		}
 		return ret;
 	}
@@ -89,7 +89,7 @@ shv::chainpack::RpcValue SubscriptionsNode::call2(const std::string &method, con
 			shv::core::StringView path = lst.at(1);
 			for (size_t i = 0; i < m_client->subscriptionCount(); ++i) {
 				const rpc::ServerConnection::Subscription &subs1 = m_client->subscriptionAt(i);
-				std::string p = subs1.pathPattern + ':' + subs1.method;
+				std::string p = subs1.absolutePath + ':' + subs1.method;
 				if(path == p) {
 					subs = &subs1;
 					break;
@@ -99,7 +99,7 @@ shv::chainpack::RpcValue SubscriptionsNode::call2(const std::string &method, con
 		if(subs == nullptr)
 			SHV_EXCEPTION("Method " + method + " called on invalid path " + shv_path);
 		if(method == METH_PATH)
-			return subs->pathPattern;
+			return subs->absolutePath;
 		if(method == METH_METHOD)
 			return subs->method;
 	}

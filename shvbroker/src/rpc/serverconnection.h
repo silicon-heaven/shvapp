@@ -21,16 +21,20 @@ class ServerConnection : public shv::iotqt::rpc::ServerConnection
 public:
 	struct Subscription
 	{
-		std::string pathPattern;
+		std::string absolutePath;
+		std::string relativePath;
 		std::string method;
 
 		Subscription() {}
-		Subscription(const std::string &p, const std::string &m) : pathPattern(p), method(m) {}
+		Subscription(const std::string &ap, const std::string &rp, const std::string &m) : absolutePath(ap), relativePath(rp), method(m) {}
+
+		std::string toRelativePath(const std::string &abs_path, bool &changed) const;
+		static std::string toAbsolutePath(const std::string &mount_point, const std::string &rel_path);
 
 		bool operator<(const Subscription &o) const;
 		bool operator==(const Subscription &o) const;
 		bool match(const shv::core::StringView &shv_path, const shv::core::StringView &shv_method) const;
-		std::string toString() const {return pathPattern + ':' + method;}
+		std::string toString() const {return absolutePath + ':' + method;}
 	};
 public:
 	ServerConnection(QTcpSocket* socket, QObject *parent = 0);
@@ -41,8 +45,8 @@ public:
 
 	void setIdleWatchDogTimeOut(unsigned sec);
 
-	void createSubscription(const std::string &path, const std::string &method);
-	bool isSubscribed(const std::string &path, const std::string &method) const;
+	void createSubscription(const std::string &rel_path, const std::string &method);
+	int isSubscribed(const std::string &path, const std::string &method) const;
 	//std::vector<std::string> subscriptionKeys() const;
 	size_t subscriptionCount() const {return m_subscriptions.size();}
 	const Subscription& subscriptionAt(size_t ix) const {return m_subscriptions.at(ix);}
