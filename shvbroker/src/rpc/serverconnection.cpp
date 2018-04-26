@@ -121,7 +121,8 @@ shv::chainpack::RpcValue ServerConnection::login(const shv::chainpack::RpcValue 
 
 		cp::RpcValue::Map login_resp;
 		login_resp[cp::Rpc::KEY_CLIENT_ID] = connectionId();
-		//login_resp[cp::Rpc::KEY_MOUT_POINT] = mountPoint();
+		if(!mountPoint().empty())
+			login_resp[cp::Rpc::KEY_MOUT_POINT] = mountPoint();
 		return login_resp;
 	}
 	return cp::RpcValue();
