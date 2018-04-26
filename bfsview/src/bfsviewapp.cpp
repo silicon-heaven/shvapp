@@ -1,6 +1,5 @@
 #include "bfsviewapp.h"
 #include "appclioptions.h"
-#include "sessionprocess.h"
 
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/rpc/tunnelconnection.h>
@@ -17,7 +16,7 @@
 
 namespace cp = shv::chainpack;
 
-static const char PWR_STATUS[] = "pwrStatus";
+static const char BFS1_PWR_STATUS[] = "bfs1/pwrStatus";
 
 static const char METH_SIM_SET[] = "sim_set";
 
@@ -110,7 +109,7 @@ void PwrStatusNode::emitPwrStatusChanged()
 	cp::RpcNotify ntf;
 	ntf.setMethod(cp::Rpc::NTF_VAL_CHANGED);
 	ntf.setParams(m_pwrStatus);
-	ntf.setShvPath(PWR_STATUS);
+	ntf.setShvPath(BFS1_PWR_STATUS);
 	rootNode()->emitSendRpcMesage(ntf);
 }
 
@@ -136,7 +135,7 @@ BfsViewApp::BfsViewApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	AppRootNode *root = new AppRootNode();
 	m_shvTree = new shv::iotqt::node::ShvNodeTree(root, this);
 	m_pwrStatusNode = new PwrStatusNode();
-	m_shvTree->mount(PWR_STATUS, m_pwrStatusNode);
+	m_shvTree->mount(BFS1_PWR_STATUS, m_pwrStatusNode);
 	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, m_rpcConnection, &shv::iotqt::rpc::DeviceConnection::sendMessage);
 
 	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
