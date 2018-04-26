@@ -7,7 +7,7 @@
 #include <shv/core/utils.h>
 #include <shv/coreqt/log.h>
 #include <shv/core/assert.h>
-#include <shv/iotqt/rpc/clientconnection.h>
+#include <shv/iotqt/rpc/deviceconnection.h>
 
 #include <QSettings>
 #include <QJsonDocument>
@@ -48,7 +48,7 @@ ShvBrokerNodeItem *ServerTreeModel::createConnection(const QVariantMap &params)
 {
 	ShvBrokerNodeItem *ret = new ShvBrokerNodeItem(this, params.value("name").toString().toStdString());
 	const std::string broker_name = ret->nodeId();
-	connect(ret->clientConnection(), &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, [broker_name](const shv::chainpack::RpcMessage &msg) {
+	connect(ret->clientConnection(), &shv::iotqt::rpc::DeviceConnection::rpcMessageReceived, [broker_name](const shv::chainpack::RpcMessage &msg) {
 		//shvInfo() << msg.toPrettyString();
 		RpcNotificationsModel *m = TheApp::instance()->rpcNotificationsModel();
 		m->addLogRow(broker_name, msg);

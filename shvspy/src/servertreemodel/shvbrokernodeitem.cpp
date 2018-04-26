@@ -3,6 +3,7 @@
 #include "../appclioptions.h"
 
 #include <shv/iotqt/rpc/clientconnection.h>
+#include <shv/iotqt/rpc/deviceconnection.h>
 
 #include <shv/chainpack/rpcmessage.h>
 #include <shv/core/stringview.h>
@@ -128,10 +129,10 @@ QString ServerNode::connectionErrorString()
 	return ret;
 }
 */
-shv::iotqt::rpc::ClientConnection *ShvBrokerNodeItem::clientConnection()
+shv::iotqt::rpc::DeviceConnection *ShvBrokerNodeItem::clientConnection()
 {
 	if(!m_rpcConnection) {
-		m_rpcConnection = new shv::iotqt::rpc::ClientConnection(shv::iotqt::rpc::ClientConnection::SyncCalls::Disabled, nullptr);
+		m_rpcConnection = new shv::iotqt::rpc::DeviceConnection(nullptr);
 		m_rpcConnection->setCliOptions(TheApp::instance()->cliOptions());
 		m_rpcConnection->setCheckBrokerConnectedInterval(0);
 		connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, [this](bool is_connected) {
