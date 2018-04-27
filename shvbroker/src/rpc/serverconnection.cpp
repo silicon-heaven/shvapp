@@ -18,13 +18,10 @@ namespace rpc {
 ServerConnection::ServerConnection(QTcpSocket *socket, QObject *parent)
 	: Super(socket, parent)
 {
-	connect(socket, &QTcpSocket::disconnected, this, [this]() {
-		shvInfo() << "Socket disconnected, deleting connection:" << connectionId();
-		deleteLater();
-	});
 	connect(this, &ServerConnection::socketConnectedChanged, [this](bool is_connected) {
-		if(is_connected) {
-			m_helloReceived = m_loginReceived = false;
+		if(!is_connected) {
+			shvInfo() << "Socket disconnected, deleting connection:" << connectionId();
+			deleteLater();
 		}
 	});
 }
