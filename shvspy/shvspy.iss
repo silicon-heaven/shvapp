@@ -12,7 +12,7 @@
 
 #define INCLUDE_QT
 
-#define BUILD_DIR "."
+#define BUILD_DIR ".."
 
 [Setup]
 AppName={#APP_NAME}
