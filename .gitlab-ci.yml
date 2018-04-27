@@ -49,6 +49,9 @@ win-build:
       - _inno/
 
 win-deploy:
+  only:
+    - master
+    - windows-build
   tags:
     - windows
   stage:
