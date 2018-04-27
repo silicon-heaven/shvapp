@@ -19,14 +19,14 @@ unix: LIBDIR = $$QF_PROJECT_TOP_BUILDDIR/lib
 
 LIBS += \
 	-L$$LIBDIR \
+	-lnecrolog \
+	-lshvchainpack \
+	-lshvcore \
+	-lshvcoreqt \
+	-lshviotqt \
 
 unix {
 	LIBS += \
- 		-lnecrolog \
- 		-lshvchainpack \
- 		-lshvcore \
- 		-lshvcoreqt \
- 		-lshviotqt \
 # 		-lmbedx509 \
 # 		-lmbedtls \
 # 		-lmbedcrypto \

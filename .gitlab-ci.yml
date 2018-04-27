@@ -37,4 +37,27 @@ linux-deploy:
   environment:
     name: jessie
 
+win-build:
+  tags:
+    - windows
+  stage:
+    build
+  script:
+    - cmd /Q /C build-win.cmd
+  artifacts:
+    paths:
+      - _inno/
+
+win-deploy:
+  only:
+    - master
+    - windows-build
+  tags:
+    - windows
+  stage:
+    deploy
+  script:
+    - cmd /Q /C deploy-win.cmd
+  environment:
+    name: claudius
 
