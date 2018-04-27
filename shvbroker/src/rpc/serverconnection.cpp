@@ -54,17 +54,20 @@ void ServerConnection::setIdleWatchDogTimeOut(unsigned sec)
 	}
 }
 
-std::string ServerConnection::passwordHash(const std::string &user)
+std::string ServerConnection::passwordHash(PasswordHashType type, const std::string &user)
 {
-	if(user == "revitest")
-		return std::string();
-
-	QCryptographicHash hash(QCryptographicHash::Algorithm::Sha1);
 	std::string pass = (user == "iot")? "lub42DUB": user;
-	hash.addData(pass.data(), pass.size());
-	QByteArray sha1 = hash.result().toHex();
-	//shvWarning() << user << pass << sha1;
-	return std::string(sha1.constData(), sha1.length());
+	if(type == PasswordHashType::Plain) {
+		return pass;
+	}
+	if(type == PasswordHashType::Sha1) {
+		QCryptographicHash hash(QCryptographicHash::Algorithm::Sha1);
+		hash.addData(pass.data(), pass.size());
+		QByteArray sha1 = hash.result().toHex();
+		//shvWarning() << user << pass << sha1;
+		return std::string(sha1.constData(), sha1.length());
+	}
+	return std::string();
 }
 
 void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolType protocol_version, shv::chainpack::RpcValue::MetaData &&md, const std::string &data, size_t start_pos, size_t data_len)
@@ -86,43 +89,29 @@ void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolType proto
 	}
 }
 
+bool ServerConnection::checkPassword(const shv::chainpack::RpcValue::Map &login)
+{
+	if(m_user == "revitest")
+		return true;
+	return Super::checkPassword(login);
+}
+
 shv::chainpack::RpcValue ServerConnection::login(const shv::chainpack::RpcValue &auth_params)
 {
-	const cp::RpcValue::Map params = auth_params.toMap();
-	const cp::RpcValue::Map login = params.value("login").toMap();
+	cp::RpcValue ret = Super::login(auth_params);
+	cp::RpcValue::Map login_resp = ret.toMap();
+	if(login_resp.empty())
+		return cp::RpcValue();
 
-	m_user = login.value("user").toString();
-	if(m_user.empty())
-		return false;
+	const shv::chainpack::RpcValue::Map &opts = connectionOptions();
+	shv::chainpack::RpcValue::UInt t = opts.value(cp::Rpc::OPT_IDLE_WD_TIMEOUT).toUInt();
+	setIdleWatchDogTimeOut(t);
+	BrokerApp::instance()->onClientLogin(connectionId());
 
-	std::string password_hash = passwordHash(m_user);
-	shvInfo() << "login - user:" << m_user << "password:" << password_hash;
-	bool password_ok = password_hash.empty();
-	if(!password_ok) {
-		std::string nonce_sha1 = login.value("password").toString();
-		std::string nonce = m_pendingAuthNonce + password_hash;
-		//shvWarning() << m_pendingAuthNonce << "prd" << nonce;
-		QCryptographicHash hash(QCryptographicHash::Algorithm::Sha1);
-		hash.addData(nonce.data(), nonce.length());
-		std::string sha1 = std::string(hash.result().toHex().constData());
-		//shvInfo() << nonce_sha1 << "vs" << sha1;
-		password_ok = (nonce_sha1 == sha1);
-	}
-	if(password_ok) {
-		m_connectionType = params.value("type").toString();
-		m_connectionOptions = params.value("options");
-		const shv::chainpack::RpcValue::Map &opts = m_connectionOptions.toMap();
-		shv::chainpack::RpcValue::UInt t = opts.value(cp::Rpc::OPT_IDLE_WD_TIMEOUT).toUInt();
-		setIdleWatchDogTimeOut(t);
-		BrokerApp::instance()->onClientLogin(connectionId());
-
-		cp::RpcValue::Map login_resp;
-		login_resp[cp::Rpc::KEY_CLIENT_ID] = connectionId();
-		if(!mountPoint().empty())
-			login_resp[cp::Rpc::KEY_MOUT_POINT] = mountPoint();
-		return login_resp;
-	}
-	return cp::RpcValue();
+	//login_resp[cp::Rpc::KEY_CLIENT_ID] = connectionId();
+	if(!mountPoint().empty())
+		login_resp[cp::Rpc::KEY_MOUT_POINT] = mountPoint();
+	return login_resp;
 }
 
 void ServerConnection::createSubscription(const std::string &rel_path, const std::string &method)
