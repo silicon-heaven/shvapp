@@ -73,6 +73,10 @@ Source: {#QT_DIR}\plugins\platforms\qwindows.dll; DestDir: {app}\platforms; Flag
 Source: {#QT_DIR}\plugins\audio\qtaudio_windows.dll; DestDir: {app}\audio; Flags: ignoreversion
 Source: {#QT_DIR}\plugins\imageformats\qsvg.dll; DestDir: {app}\imageformats; Flags: ignoreversion
 
+Source: {#QT_DIR}\bin\libgcc_s_dw2-1.dll; DestDir: {app}; Flags: ignoreversion
+Source: {#QT_DIR}\bin\libwinpthread-1.dll; DestDir: {app}; Flags: ignoreversion
+Source: {#QT_DIR}\bin\libstdc++-6.dll; DestDir: {app}; Flags: ignoreversion
+
 #endif
 
 [Icons]
