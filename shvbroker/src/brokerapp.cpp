@@ -396,7 +396,7 @@ void BrokerApp::sendNotifyToSubscribers(unsigned sender_connection_id, const shv
 		if(id == sender_connection_id)
 			continue;
 		rpc::ServerConnection *conn = tcpServer()->connectionById(id);
-		if(conn && conn->isBrokerConnected()) {
+		if(conn && conn->isConnectedAndLoggedIn()) {
 			const cp::RpcValue shv_path = cp::RpcMessage::shvPath(meta_data);
 			const cp::RpcValue method = cp::RpcMessage::method(meta_data);
 			int subs_ix = conn->isSubscribed(shv_path.toString(), method.toString());
@@ -429,7 +429,7 @@ void BrokerApp::sendNotifyToSubscribers(unsigned sender_connection_id, const std
 		if(id == sender_connection_id)
 			continue;
 		rpc::ServerConnection *conn = tcpServer()->connectionById(id);
-		if(conn && conn->isBrokerConnected()) {
+		if(conn && conn->isConnectedAndLoggedIn()) {
 			int subs_ix = conn->isSubscribed(shv_path, method);
 			if(subs_ix >= 0) {
 				shvDebug() << "\t broadcasting to connection id:" << id;
