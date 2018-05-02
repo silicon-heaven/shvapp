@@ -35,7 +35,7 @@ shv::chainpack::RpcValue ServerConnection::deviceId() const
 void ServerConnection::setIdleWatchDogTimeOut(unsigned sec)
 {
 	if(sec == 0) {
-		shvInfo() << "connection ID:" << connectionId() << "switchong idle watch dog timeout OFF";
+		shvInfo() << "connection ID:" << connectionId() << "switching idle watch dog timeout OFF";
 		if(m_idleWatchDogTimer) {
 			delete m_idleWatchDogTimer;
 			m_idleWatchDogTimer = nullptr;

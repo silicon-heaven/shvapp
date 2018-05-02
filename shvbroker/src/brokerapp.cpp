@@ -228,10 +228,10 @@ void BrokerApp::onClientLogin(int connection_id)
 		SHV_EXCEPTION("Cannot find connection for ID: " + std::to_string(connection_id));
 	const shv::chainpack::RpcValue::Map &opts = conn->connectionOptions();
 
+	shvInfo() << "Client login connection id:" << connection_id << "connection type:" << conn->connectionType();
 	{
 		ShvClientNode *cli_nd = new ShvClientNode(conn);
 		std::string mount_point = std::string(cp::Rpc::DIR_BROKER) + "/clients/" + std::to_string(conn->connectionId()) + "/app";
-		shvInfo() << "Client node:" << cli_nd << "connection id:" << connection_id << "mounting device on path:" << mount_point;
 		shv::iotqt::node::ShvNode *curr_nd = m_deviceTree->cd(mount_point);
 		ShvClientNode *curr_cli_nd = qobject_cast<ShvClientNode*>(curr_nd);
 		if(curr_nd && !curr_cli_nd) {
