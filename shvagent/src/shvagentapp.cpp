@@ -14,9 +14,11 @@
 
 #include <QProcess>
 #include <QTimer>
+#include <QtGlobal>
 
 namespace cp = shv::chainpack;
 
+static const char METH_RUN_CMD[] = "runCmd";
 static const char METH_OPEN_RSH[] = "openRsh";
 
 static std::vector<cp::MetaMethod> meta_methods {
@@ -24,6 +26,7 @@ static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false},
 	{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, false},
+	{METH_RUN_CMD, cp::MetaMethod::Signature::RetParam, false},
 	{METH_OPEN_RSH, cp::MetaMethod::Signature::RetVoid, false},
 };
 
@@ -52,6 +55,11 @@ shv::chainpack::RpcValue AppRootNode::call(const std::string &method, const shv:
 
 shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::RpcRequest &rq)
 {
+	if(rq.method() == METH_RUN_CMD) {
+		ShvAgentApp *app = ShvAgentApp::instance();
+		app->runCmd(rq);
+		return cp::RpcValue();
+	}
 	if(rq.method() == METH_OPEN_RSH) {
 		ShvAgentApp *app = ShvAgentApp::instance();
 		app->openRsh(rq);
@@ -137,7 +145,6 @@ void ShvAgentApp::openRsh(const shv::chainpack::RpcRequest &rq)
 		catch (std::exception &e) {
 			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodInvocationException, e.what()));
 		}
-		shvInfo() << "Process started, sending response:" << resp.toPrettyString();
 		m_rpcConnection->sendMessage(resp);
 	});
 
@@ -147,6 +154,19 @@ void ShvAgentApp::openRsh(const shv::chainpack::RpcRequest &rq)
 	std::string cpon = tun_params.toRpcValue().toCpon();
 	proc->write(cpon.data(), cpon.size());
 	proc->write("\n", 1);
+}
+
+void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq)
+{
+	SessionProcess *proc = new SessionProcess(this);
+	auto rq2 = rq;
+	connect(proc, static_cast<void (SessionProcess::*)(int)>(&SessionProcess::finished), [this, proc, rq2](int) {
+		QByteArray ba = proc->readAllStandardOutput();
+		cp::RpcResponse resp = cp::RpcResponse::forRequest(rq2);
+		resp.setResult(std::string(ba.constData(), ba.size()));
+		m_rpcConnection->sendMessage(resp);
+	});
+	proc->start(QString::fromStdString(rq.params().toString()));
 }
 
 void ShvAgentApp::onBrokerConnectedChanged(bool is_connected)

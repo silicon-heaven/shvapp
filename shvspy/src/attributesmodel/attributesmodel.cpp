@@ -236,7 +236,11 @@ void AttributesModel::loadRow(int method_ix)
 	}
 	else if(mtd.response.result().isValid()) {
 		rv[ColRawResult] = QVariant::fromValue(mtd.response.result());
-		rv[ColResult] = QString::fromStdString(mtd.response.result().toCpon());
+		shv::chainpack::RpcValue result = mtd.response.result();
+		if(result.isString())
+			rv[ColResult] = QString::fromStdString(result.toString());
+		else
+			rv[ColResult] = QString::fromStdString(mtd.response.result().toCpon());
 	}
 	rv[ColBtRun] = mtd.rpcRequestId;
 }

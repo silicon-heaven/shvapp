@@ -16,6 +16,7 @@ SessionProcess::SessionProcess(QObject *parent)
 void SessionProcess::onFinished(int exit_code)
 {
 	shvInfo() << "Process" << program() << "finished with exit code:" << exit_code;
+	deleteLater();
 }
 /*
 void SessionProcess::onReadyReadStandardOutput()
