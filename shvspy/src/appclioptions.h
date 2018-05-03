@@ -10,7 +10,6 @@ class AppCliOptions : public shv::iotqt::rpc::DeviceAppCliOptions
 private:
 	using Super = shv::iotqt::rpc::DeviceAppCliOptions;
 
-	CLIOPTION_GETTER_SETTER2(QString, "protocol.type", p, setP, rotocolType)
 	CLIOPTION_GETTER_SETTER2(QString, "broker.subscribtions", s, setS, ubscriptions)
 public:
 	AppCliOptions(QObject *parent = NULL);
