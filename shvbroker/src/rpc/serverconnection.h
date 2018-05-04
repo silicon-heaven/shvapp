@@ -48,8 +48,10 @@ public:
 	//std::vector<std::string> subscriptionKeys() const;
 	size_t subscriptionCount() const {return m_subscriptions.size();}
 	const Subscription& subscriptionAt(size_t ix) const {return m_subscriptions.at(ix);}
+
+	void sendMessage(const shv::chainpack::RpcMessage &rpc_msg) override;
 private:
-	void onRpcDataReceived(shv::chainpack::Rpc::ProtocolType protocol_version, shv::chainpack::RpcValue::MetaData &&md, const std::string &data, size_t start_pos, size_t data_len) override;
+	void onRpcDataReceived(shv::chainpack::Rpc::ProtocolType protocol_type, shv::chainpack::RpcValue::MetaData &&md, const std::string &data, size_t start_pos, size_t data_len) override;
 	bool checkPassword(const shv::chainpack::RpcValue::Map &login) override;
 	std::string passwordHash(PasswordHashType type, const std::string &user) override;
 	shv::chainpack::RpcValue login(const shv::chainpack::RpcValue &auth_params) override;

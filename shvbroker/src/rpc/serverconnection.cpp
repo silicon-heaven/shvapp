@@ -70,17 +70,32 @@ std::string ServerConnection::passwordHash(PasswordHashType type, const std::str
 	return std::string();
 }
 
-void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolType protocol_version, shv::chainpack::RpcValue::MetaData &&md, const std::string &data, size_t start_pos, size_t data_len)
+static std::string data2cpon(shv::chainpack::Rpc::ProtocolType protocol_type, const shv::chainpack::RpcValue::MetaData &md, const std::string &data, size_t start_pos)
 {
-	logRpcMsg() << RCV_LOG_ARROW << md.toStdString() << shv::chainpack::Utils::toHexElided(data, start_pos, 100);
+	shv::chainpack::RpcValue rpc_val = shv::chainpack::RpcDriver::decodeData(protocol_type, data, start_pos);
+	rpc_val.setMetaData(shv::chainpack::RpcValue::MetaData(md));
+	return rpc_val.toCpon();
+}
+
+void ServerConnection::sendMessage(const shv::chainpack::RpcMessage &rpc_msg)
+{
+	logRpcMsg() << SND_LOG_ARROW << rpc_msg.toCpon();
+	Super::sendMessage(rpc_msg);
+}
+
+void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolType protocol_type, shv::chainpack::RpcValue::MetaData &&md, const std::string &data, size_t start_pos, size_t data_len)
+{
+	logRpcMsg() << RCV_LOG_ARROW
+				<< "protocol_type:" << (int)protocol_type << shv::chainpack::Rpc::ProtocolTypeToString(protocol_type)
+				<< data2cpon(protocol_type, md, data, start_pos);
 	try {
 		if(isInitPhase()) {
-			Super::onRpcDataReceived(protocol_version, std::move(md), data, start_pos, data_len);
+			Super::onRpcDataReceived(protocol_type, std::move(md), data, start_pos, data_len);
 			return;
 		}
 		if(m_idleWatchDogTimer)
 			m_idleWatchDogTimer->start();
-		cp::RpcMessage::setProtocolType(md, protocol_version);
+		cp::RpcMessage::setProtocolType(md, protocol_type);
 		std::string msg_data(data, start_pos, data_len);
 		BrokerApp::instance()->onRpcDataReceived(connectionId(), std::move(md), std::move(msg_data));
 	}
