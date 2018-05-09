@@ -28,7 +28,21 @@ MainWindow::MainWindow(QWidget *parent) :
 	//setWindowTitle(tr("QFreeOpcUa Spy"));
 	setWindowIcon(QIcon(":/shvspy/images/qfopcuaspy-256x256.png"));
 
-	ui->treeServers->setModel(TheApp::instance()->serverTreeModel());
+	ServerTreeModel *tree_model = TheApp::instance()->serverTreeModel();
+	ui->treeServers->setModel(tree_model);
+	connect(tree_model, &ServerTreeModel::dataChanged, [this](const QModelIndex &tl, const QModelIndex &br, const QVector<int> &roles) {
+		/// expand broker node when children loaded
+		Q_UNUSED(roles)
+		if(tl == br) {
+			ServerTreeModel *tree_model = TheApp::instance()->serverTreeModel();
+			ShvBrokerNodeItem *brit = qobject_cast<ShvBrokerNodeItem*>(tree_model->itemFromIndex(tl));
+			if(brit) {
+				if(tree_model->hasChildren(tl)) {
+					ui->treeServers->expand(tl);
+				}
+			}
+		}
+	});
 	connect(ui->treeServers->selectionModel(), &QItemSelectionModel::currentChanged, this, &MainWindow::onShvTreeViewCurrentSelectionChanged);
 
 	ui->tblAttributes->setModel(TheApp::instance()->attributesModel());
