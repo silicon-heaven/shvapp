@@ -28,14 +28,11 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <unistd.h>
+
+int BrokerApp::m_sigTermFd[2];
 #endif
 
 namespace cp = shv::chainpack;
-//#define logOpcuaReceive qfCInfo("OpcuaReceive")
-
-#ifdef Q_OS_UNIX
-int BrokerApp::m_sigTermFd[2];
-#endif
 
 //static constexpr int SQL_RECONNECT_INTERVAL = 3000;
 BrokerApp::BrokerApp(int &argc, char **argv, AppCliOptions *cli_opts)

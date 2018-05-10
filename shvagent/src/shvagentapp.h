@@ -5,6 +5,7 @@
 #include <QCoreApplication>
 
 class AppCliOptions;
+
 namespace shv { namespace chainpack { class RpcMessage; }}
 namespace shv { namespace iotqt { namespace rpc { class DeviceConnection; }}}
 namespace shv { namespace iotqt { namespace node { class ShvNodeTree; }}}
@@ -35,6 +36,8 @@ public:
 	static ShvAgentApp *instance();
 	shv::iotqt::rpc::DeviceConnection *rpcConnection() const {return m_rpcConnection;}
 
+	Q_SIGNAL void aboutToTerminate(int sig);
+
 	void openRsh(const shv::chainpack::RpcRequest &rq);
 	void runCmd(const shv::chainpack::RpcRequest &rq);
 private:
@@ -46,5 +49,9 @@ private:
 	AppCliOptions* m_cliOptions;
 
 	shv::iotqt::node::ShvNodeTree *m_shvTree = nullptr;
+#ifdef Q_OS_UNIX
+	void installUnixSignalHandlers();
+	Q_SLOT void handleUnixSignal();
+#endif
 };
 

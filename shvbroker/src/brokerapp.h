@@ -70,8 +70,8 @@ private:
 	// You can't call Qt functions from Unix signal handlers,
 	// but you can write to socket
 	void installUnixSignalHandlers();
-	static void sigTermHandler(int);
 	Q_SLOT void handleSigTerm();
+	static void sigTermHandler(int);
 
 	static int m_sigTermFd[2];
 	QSocketNotifier *m_snTerm = nullptr;

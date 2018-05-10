@@ -13,8 +13,16 @@
 #include <shv/core/stringview.h>
 
 #include <QProcess>
+#include <QSocketNotifier>
 #include <QTimer>
 #include <QtGlobal>
+
+#ifdef Q_OS_UNIX
+#include <signal.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#endif
 
 namespace cp = shv::chainpack;
 
@@ -68,10 +76,67 @@ shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::Rp
 	return Super::processRpcRequest(rq);
 }
 
+#ifdef Q_OS_UNIX
+namespace {
+int sig_term_socket_ends[2];
+QSocketNotifier *sig_term_socket_notifier = nullptr;
+//struct sigaction* old_handlers[sizeof(handled_signals) / sizeof(int)];
+
+void signal_handler(int sig, siginfo_t *siginfo, void *context)
+{
+	Q_UNUSED(siginfo)
+	Q_UNUSED(context)
+	shvInfo() << "SIG:" << sig;
+	char a = sig;
+	::write(sig_term_socket_ends[0], &a, sizeof(a));
+}
+
+}
+
+void ShvAgentApp::handleUnixSignal()
+{
+	sig_term_socket_notifier->setEnabled(false);
+	char sig;
+	::read(sig_term_socket_ends[1], &sig, sizeof(sig));
+
+	shvInfo() << "SIG" << (int)sig << "catched.";
+	emit aboutToTerminate((int)sig);
+
+	sig_term_socket_notifier->setEnabled(true);
+	shvInfo() << "Terminating application.";
+	quit();
+}
+
+void ShvAgentApp::installUnixSignalHandlers()
+{
+	shvInfo() << "installing Unix signals handlers";
+	{
+		struct sigaction sig_act;
+		memset (&sig_act, '\0', sizeof(sig_act));
+		// Use the sa_sigaction field because the handles has two additional parameters
+		sig_act.sa_sigaction = &signal_handler;
+		// The SA_SIGINFO flag tells sigaction() to use the sa_sigaction field, not sa_handler.
+		sig_act.sa_flags = SA_SIGINFO;
+		const int handled_signals[] = {SIGTERM, SIGINT, SIGHUP, SIGUSR1, SIGUSR2};
+		for(int s : handled_signals)
+			if(sigaction(s, &sig_act, 0) > 0)
+				shvError() << "Couldn't register handler for signal:" << s;
+	}
+	if(::socketpair(AF_UNIX, SOCK_STREAM, 0, sig_term_socket_ends))
+		qFatal("Couldn't create SIG_TERM socketpair");
+	sig_term_socket_notifier = new QSocketNotifier(sig_term_socket_ends[1], QSocketNotifier::Read, this);
+	connect(sig_term_socket_notifier, &QSocketNotifier::activated, this, &ShvAgentApp::handleUnixSignal);
+	shvInfo() << "SIG_TERM handler installed OK";
+}
+#endif
+
 ShvAgentApp::ShvAgentApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
 {
+#ifdef Q_OS_UNIX
+	installUnixSignalHandlers();
+#endif
 	cp::RpcMessage::setMetaTypeExplicit(cli_opts->isMetaTypeExplicit());
 
 	m_rpcConnection = new shv::iotqt::rpc::DeviceConnection(this);

@@ -1,4 +1,5 @@
 #include "sessionprocess.h"
+#include "shvagentapp.h"
 
 #include <shv/coreqt/log.h>
 
@@ -7,7 +8,7 @@
 SessionProcess::SessionProcess(QObject *parent)
 	: QProcess(parent)
 {
-	connect(QCoreApplication::instance(), &QCoreApplication::aboutToQuit, this, &SessionProcess::terminate);
+	connect(ShvAgentApp::instance(), &ShvAgentApp::aboutToTerminate, this, &SessionProcess::terminate);
 	connect(this, QOverload<int>::of(&QProcess::finished), this, &SessionProcess::onFinished);
 	//connect(this, &QProcess::readyReadStandardOutput, this, &SessionProcess::onReadyReadStandardOutput);
 	connect(this, &QProcess::readyReadStandardError, this, &SessionProcess::onReadyReadStandardError);
