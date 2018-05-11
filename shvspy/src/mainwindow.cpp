@@ -30,7 +30,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 	ServerTreeModel *tree_model = TheApp::instance()->serverTreeModel();
 	ui->treeServers->setModel(tree_model);
-	connect(tree_model, &ServerTreeModel::dataChanged, [this](const QModelIndex &tl, const QModelIndex &br, const QVector<int> &roles) {
+	connect(tree_model, &ServerTreeModel::dataChanged, ui->treeServers,[this](const QModelIndex &tl, const QModelIndex &br, const QVector<int> &roles) {
 		/// expand broker node when children loaded
 		Q_UNUSED(roles)
 		if(tl == br) {
@@ -66,6 +66,7 @@ MainWindow::MainWindow(QWidget *parent) :
 MainWindow::~MainWindow()
 {
 	//TheApp::instance()->subscriptionsModel()->clear();
+	//shvWarning() << __FUNCTION__;
 	delete ui;
 }
 
