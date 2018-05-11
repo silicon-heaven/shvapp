@@ -195,26 +195,34 @@ void ShvAgentApp::openRsh(const shv::chainpack::RpcRequest &rq)
 	tun_params[TunnelParamsMT::Key::User] = m_rpcConnection->user();
 	tun_params[TunnelParamsMT::Key::Password] = m_rpcConnection->password();
 	tun_params[TunnelParamsMT::Key::ParentClientId] = m_rpcConnection->brokerClientId();
-	tun_params[TunnelParamsMT::Key::CallerClientIds] = rq.callerIds();
-	//tun_params[TunnelParamsMT::Key::TunnelResponseRequestId] = rq.requestId();
+	tun_params[TunnelParamsMT::Key::RequestId] = rq.requestId();
+	//tun_params[TunnelParamsMT::Key::CallerClientIds] = rq.callerIds();
 	//tun_params[TunnelParamsMT::Key::TunName] = tun_name;
 	//std::string mount_point = ".broker/clients/" + std::to_string(m_rpcConnection->brokerClientId()) + "/rproc/" + name;
 	QString app = QCoreApplication::applicationDirPath() + "/shvrexec";
 	QStringList params;
 	SessionProcess *proc = new SessionProcess(this);
 	//proc->setCurrentReadChannel(QProcess::StandardOutput);
-	auto rq2 = rq;
-	connect(proc, &SessionProcess::readyReadStandardOutput, [this, proc, rq2]() {
+	cp::RpcResponse resp1 = cp::RpcResponse::forRequest(rq);
+	connect(proc, &SessionProcess::readyReadStandardOutput, [this, proc, resp1]() {
 		if(!proc->canReadLine()) {
 			return;
 		}
-		cp::RpcResponse resp = cp::RpcResponse::forRequest(rq2);
+		cp::RpcResponse resp = resp1;
 		try {
 			QByteArray ba = proc->readLine();
 			std::string data(ba.constData(), ba.size());
 			cp::RpcValue::Map m = cp::RpcValue::fromCpon(data).toMap();
-			cp::RpcValue::Map result;
-			result[cp::Rpc::KEY_TUNNEL_HANDLE] = m.value(cp::Rpc::KEY_TUNNEL_HANDLE);
+			shv::iotqt::rpc::TunnelHandle th(m.value(cp::Rpc::KEY_TUNNEL_HANDLE).toIMap());
+			std::string rel_path = th.value(shv::iotqt::rpc::TunnelHandle::MetaType::Key::TunnelRelativePath).toString();
+			std::string mount_point = m_rpcConnection->brokerMountPoint();
+			size_t cnt = shv::core::StringView(mount_point).split('/').size();
+			for (size_t i = 0; i < cnt; ++i) {
+				rel_path = "../" + rel_path;
+			}
+			th[shv::iotqt::rpc::TunnelHandle::MetaType::Key::TunnelRelativePath] = rel_path;
+			cp::RpcValue result = th.toRpcValue();
+			//result[cp::Rpc::KEY_TUNNEL_HANDLE] = m.value(cp::Rpc::KEY_TUNNEL_HANDLE);
 			resp.setResult(result);
 		}
 		catch (std::exception &e) {

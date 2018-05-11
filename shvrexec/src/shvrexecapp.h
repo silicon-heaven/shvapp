@@ -42,13 +42,15 @@ private:
 
 	void onReadyReadProcessStandardOutput();
 	void onReadyReadProcessStandardError();
+
+	void sendProcessOutput(int channel, const QByteArray &data);
 private:
 	shv::iotqt::rpc::TunnelConnection *m_rpcConnection = nullptr;
 	AppCliOptions* m_cliOptions;
 
 	shv::iotqt::node::ShvNodeTree *m_shvTree = nullptr;
 
-	shv::chainpack::RpcValue m_tunnelHandle;
+	//shv::chainpack::RpcValue m_tunnelHandle;
 
 	ChildProcess *m_cmdProc = nullptr;
 };

@@ -22,6 +22,7 @@ ShvClientNode::~ShvClientNode()
 
 void ShvClientNode::processRawData(const shv::chainpack::RpcValue::MetaData &meta, std::string &&data)
 {
+	/*
 	const cp::RpcValue tun_h = shv::chainpack::RpcMessage::tunnelHandle(meta);
 	if(tun_h.isIMap()) {
 		shv::iotqt::rpc::TunnelHandle th(tun_h.toIMap());
@@ -43,6 +44,9 @@ void ShvClientNode::processRawData(const shv::chainpack::RpcValue::MetaData &met
 		rpc::ServerConnection *conn = connection();
 		conn->sendRawData(meta, std::move(data));
 	}
+	*/
+	rpc::ServerConnection *conn = connection();
+	conn->sendRawData(meta, std::move(data));
 }
 
 shv::chainpack::RpcValue ShvClientNode::hasChildren()

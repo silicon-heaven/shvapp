@@ -29,7 +29,7 @@ static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false},
 	{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, false},
-	{cp::Rpc::KEY_TUNNEL_HANDLE, cp::MetaMethod::Signature::RetVoid, false},
+	//{cp::Rpc::KEY_TUNNEL_HANDLE, cp::MetaMethod::Signature::RetVoid, false},
 	{METH_WRITE, cp::MetaMethod::Signature::RetParam, false},
 };
 
@@ -53,9 +53,9 @@ shv::chainpack::RpcValue AppRootNode::call(const std::string &method, const shv:
 	if(method == cp::Rpc::METH_CONNECTION_TYPE) {
 		return ShvRExecApp::instance()->rpcConnection()->connectionType();
 	}
-	if(method == cp::Rpc::KEY_TUNNEL_HANDLE) {
-		return ShvRExecApp::instance()->rpcConnection()->tunnelHandle();
-	}
+	//if(method == cp::Rpc::KEY_TUNNEL_HANDLE) {
+	//	return ShvRExecApp::instance()->rpcConnection()->tunnelHandle();
+	//}
 	if(method == METH_WRITE) {
 		const shv::chainpack::RpcValue::Blob data = params.toBlob();
 		qint64 len = ShvRExecApp::instance()->writeProcessStdin(data.data(), data.size());
@@ -187,11 +187,11 @@ void ShvRExecApp::onBrokerConnectedChanged(bool is_connected)
 			if(state == QProcess::Running) {
 				/// send tunnel handle to agent
 				cp::RpcValue::Map ret;
-				unsigned tun_id = m_rpcConnection->brokerClientId();
-				shv::iotqt::rpc::TunnelHandle th(m_rpcConnection->tunnelParams().callerClientIds(), tun_id);
+				unsigned cli_id = m_rpcConnection->brokerClientId();
+				shv::iotqt::rpc::TunnelHandle th(std::string(cp::Rpc::DIR_BROKER) + "/" + cp::Rpc::DIR_CLIENTS + "/" + std::to_string(cli_id));
 				//rpcConnection()->setTunnelHandle(th.toRpcValue()); we do not need type info if key is called tunnelHandle :)
-				rpcConnection()->setTunnelHandle(th);
-				ret[cp::Rpc::KEY_TUNNEL_HANDLE] = rpcConnection()->tunnelHandle();
+				//rpcConnection()->setTunnelHandle(th);
+				ret[cp::Rpc::KEY_TUNNEL_HANDLE] = th;
 				std::string s = cp::RpcValue(ret).toCpon();
 				shvInfo() << "Process" << m_cmdProc->program() << "started, tunnel handle:" << s;
 				std::cout << s << "\n";
@@ -266,39 +266,29 @@ void ShvRExecApp::onReadyReadProcessStandardOutput()
 {
 	//m_cmdProc->setReadChannel(QProcess::StandardOutput);
 	QByteArray ba = m_cmdProc->readAllStandardOutput();
-	if(!m_rpcConnection->isBrokerConnected()) {
-		shvError() << "Broker is not connected, throwing away process stdout:" << ba;
-		quit();
-	}
-	else {
-		const shv::iotqt::rpc::TunnelParams &pars = m_rpcConnection->tunnelParams();
-		cp::RpcResponse resp;
-		resp.setCallerIds(pars.value(shv::iotqt::rpc::TunnelParams::MetaType::Key::CallerClientIds));
-		resp.setTunnelHandle(m_tunnelHandle);
-		cp::RpcValue::List result;
-		result.push_back(1);
-		result.push_back(cp::RpcValue::Blob(ba.constData(), ba.size()));
-		resp.setResult(result);
-		m_rpcConnection->sendMessage(resp);
-	}
+	sendProcessOutput(1, ba);
 }
 
 void ShvRExecApp::onReadyReadProcessStandardError()
 {
-	//m_cmdProc->setReadChannel(QProcess::StandardError);
 	QByteArray ba = m_cmdProc->readAllStandardError();
+	sendProcessOutput(2, ba);
+}
+
+void ShvRExecApp::sendProcessOutput(int channel, const QByteArray &data)
+{
 	if(!m_rpcConnection->isBrokerConnected()) {
-		shvError() << "Broker is not connected, throwing away process stderr:" << ba;
+		shvError() << "Broker is not connected, throwing away process channel:" << channel << "data:" << data;
 		quit();
 	}
 	else {
 		const shv::iotqt::rpc::TunnelParams &pars = m_rpcConnection->tunnelParams();
 		cp::RpcResponse resp;
+		resp.setRequestId(pars.value(shv::iotqt::rpc::TunnelParams::MetaType::Key::RequestId));
 		resp.setCallerIds(pars.value(shv::iotqt::rpc::TunnelParams::MetaType::Key::CallerClientIds));
-		resp.setTunnelHandle(m_tunnelHandle);
 		cp::RpcValue::List result;
-		result.push_back(2);
-		result.push_back(cp::RpcValue::Blob(ba.constData(), ba.size()));
+		result.push_back(channel);
+		result.push_back(cp::RpcValue::Blob(data.constData(), data.size()));
 		resp.setResult(result);
 		m_rpcConnection->sendMessage(resp);
 	}
