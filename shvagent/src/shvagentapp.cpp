@@ -18,6 +18,12 @@
 #include <QtGlobal>
 
 #ifdef Q_OS_UNIX
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#endif
+
+#ifdef HANDLE_UNIX_SIGNALS
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -76,7 +82,7 @@ shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::Rp
 	return Super::processRpcRequest(rq);
 }
 
-#ifdef Q_OS_UNIX
+#ifdef HANDLE_UNIX_SIGNALS
 namespace {
 int sig_term_socket_ends[2];
 QSocketNotifier *sig_term_socket_notifier = nullptr;
@@ -119,7 +125,7 @@ void ShvAgentApp::installUnixSignalHandlers()
 		sig_act.sa_flags = SA_SIGINFO;
 		const int handled_signals[] = {SIGTERM, SIGINT, SIGHUP, SIGUSR1, SIGUSR2};
 		for(int s : handled_signals)
-			if(sigaction(s, &sig_act, 0) > 0)
+			if	(sigaction(s, &sig_act, 0) > 0)
 				shvError() << "Couldn't register handler for signal:" << s;
 	}
 	if(::socketpair(AF_UNIX, SOCK_STREAM, 0, sig_term_socket_ends))
@@ -134,8 +140,12 @@ ShvAgentApp::ShvAgentApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
 {
-#ifdef Q_OS_UNIX
+#ifdef HANDLE_UNIX_SIGNALS
 	installUnixSignalHandlers();
+#endif
+#ifdef Q_OS_UNIX
+	if(0 != ::setpgid(0, 0))
+		shvError() << "Error set process group ID:" << errno << ::strerror(errno);
 #endif
 	cp::RpcMessage::setMetaTypeExplicit(cli_opts->isMetaTypeExplicit());
 

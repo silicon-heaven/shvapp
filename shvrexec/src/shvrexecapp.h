@@ -4,7 +4,7 @@
 
 #include <QCoreApplication>
 
-class QProcess;
+class ChildProcess;
 class AppCliOptions;
 
 namespace shv { namespace chainpack { class RpcMessage; }}
@@ -50,6 +50,6 @@ private:
 
 	shv::chainpack::RpcValue m_tunnelHandle;
 
-	QProcess *m_cmdProc = nullptr;
+	ChildProcess *m_cmdProc = nullptr;
 };
 

@@ -1,5 +1,6 @@
 #include "shvrexecapp.h"
 #include "appclioptions.h"
+#include "childprocess.h"
 
 #include <shv/iotqt/rpc/tunnelconnection.h>
 #include <shv/iotqt/rpc/tunnelhandle.h>
@@ -12,6 +13,12 @@
 #include <QTimer>
 
 #include <iostream>
+
+#ifdef Q_OS_UNIX
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#endif
 
 namespace cp = shv::chainpack;
 
@@ -96,6 +103,10 @@ ShvRExecApp::ShvRExecApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
 {
+#ifdef Q_OS_UNIX
+	if(0 != ::setpgid(0, 0))
+		shvError() << "Error set process group ID:" << errno << ::strerror(errno);
+#endif
 	cp::RpcMessage::setMetaTypeExplicit(cli_opts->isMetaTypeExplicit());
 
 	m_rpcConnection = new shv::iotqt::rpc::TunnelConnection(this);
@@ -157,17 +168,13 @@ ShvRExecApp *ShvRExecApp::instance()
 
 void ShvRExecApp::onBrokerConnectedChanged(bool is_connected)
 {
-	if(m_cmdProc) {
-		delete m_cmdProc;
-		m_cmdProc = nullptr;
-	}
 	if(is_connected) {
 		QString exec_cmd = m_cliOptions->execCommand();
 		shvInfo() << "Starting process:" << exec_cmd;
 		QStringList sl = exec_cmd.split(' ', QString::SkipEmptyParts);
 		QString program = sl.value(0);
 		QStringList arguments = sl.mid(1);
-		m_cmdProc = new QProcess(this);
+		m_cmdProc = new ChildProcess(this);
 		connect(QCoreApplication::instance(), &QCoreApplication::aboutToQuit, m_cmdProc, &QProcess::terminate);
 		connect(m_cmdProc, &QProcess::readyReadStandardOutput, this, &ShvRExecApp::onReadyReadProcessStandardOutput);
 		connect(m_cmdProc, &QProcess::readyReadStandardError, this, &ShvRExecApp::onReadyReadProcessStandardError);
@@ -188,11 +195,7 @@ void ShvRExecApp::onBrokerConnectedChanged(bool is_connected)
 				std::string s = cp::RpcValue(ret).toCpon();
 				shvInfo() << "Process" << m_cmdProc->program() << "started, tunnel handle:" << s;
 				std::cout << s << "\n";
-				std::cout.flush();
-				/// may be BUG in Qt, maybe in me, but QProcess::readyReadStandardOutput
-				/// is not emited unless I write to std::cerr
-				/// UPDATE: flush helped
-				//std::cerr << "\n";
+				std::cout.flush(); /// necessary sending '\n' is not enough to flush stdout
 			}
 		});
 		connect(m_cmdProc, QOverload<int>::of(&QProcess::finished), this, [this](int exit_code) {
@@ -200,6 +203,10 @@ void ShvRExecApp::onBrokerConnectedChanged(bool is_connected)
 			quit();
 		});
 		m_cmdProc->start(program, arguments);
+	}
+	else {
+		/// once connection to tunnel is lost, tunnel handle becomes invalid, destroy tunnel
+		quit();
 	}
 }
 

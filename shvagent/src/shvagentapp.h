@@ -36,8 +36,6 @@ public:
 	static ShvAgentApp *instance();
 	shv::iotqt::rpc::DeviceConnection *rpcConnection() const {return m_rpcConnection;}
 
-	Q_SIGNAL void aboutToTerminate(int sig);
-
 	void openRsh(const shv::chainpack::RpcRequest &rq);
 	void runCmd(const shv::chainpack::RpcRequest &rq);
 private:
@@ -49,7 +47,9 @@ private:
 	AppCliOptions* m_cliOptions;
 
 	shv::iotqt::node::ShvNodeTree *m_shvTree = nullptr;
-#ifdef Q_OS_UNIX
+#ifdef HANDLE_UNIX_SIGNALS
+	Q_SIGNAL void aboutToTerminate(int sig);
+
 	void installUnixSignalHandlers();
 	Q_SLOT void handleUnixSignal();
 #endif
