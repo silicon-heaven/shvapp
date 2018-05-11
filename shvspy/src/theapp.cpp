@@ -3,7 +3,7 @@
 #include "attributesmodel/attributesmodel.h"
 #include "log/rpcnotificationsmodel.h"
 
-//#include <QSettings>
+#include <shv/coreqt/log.h>
 
 TheApp::TheApp(int &argc, char **argv, AppCliOptions *cli_opts)
 	: Super(argc, argv)
@@ -17,5 +17,6 @@ TheApp::TheApp(int &argc, char **argv, AppCliOptions *cli_opts)
 
 TheApp::~TheApp()
 {
+	//shvWarning() << __FUNCTION__;
 }
 

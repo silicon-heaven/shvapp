@@ -219,14 +219,14 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 			if(method == cp::Rpc::METH_DIR) {
 				resp.setResult(cp::RpcValue::List{
 								   cp::Rpc::METH_DIR,
-								   cp::Rpc::METH_PING,
+								   //cp::Rpc::METH_PING,
 								   cp::Rpc::METH_APP_NAME,
 								   cp::Rpc::METH_CONNECTION_TYPE,
 							   });
 			}
-			else if(method.toString() == cp::Rpc::METH_PING) {
-				resp.setResult(true);
-			}
+			//else if(method.toString() == cp::Rpc::METH_PING) {
+			//	resp.setResult(true);
+			//}
 			else if(method.toString() == cp::Rpc::METH_APP_NAME) {
 				resp.setResult(QCoreApplication::instance()->applicationName().toStdString());
 			}
