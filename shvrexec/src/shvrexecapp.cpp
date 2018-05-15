@@ -3,7 +3,6 @@
 #include "childprocess.h"
 
 #include <shv/iotqt/rpc/tunnelconnection.h>
-#include <shv/iotqt/rpc/tunnelhandle.h>
 #include <shv/iotqt/node/shvnodetree.h>
 
 #include <shv/coreqt/log.h>
@@ -188,12 +187,9 @@ void ShvRExecApp::onBrokerConnectedChanged(bool is_connected)
 				/// send tunnel handle to agent
 				cp::RpcValue::Map ret;
 				unsigned cli_id = m_rpcConnection->brokerClientId();
-				shv::iotqt::rpc::TunnelHandle th(std::string(cp::Rpc::DIR_BROKER) + "/" + cp::Rpc::DIR_CLIENTS + "/" + std::to_string(cli_id));
-				//rpcConnection()->setTunnelHandle(th.toRpcValue()); we do not need type info if key is called tunnelHandle :)
-				//rpcConnection()->setTunnelHandle(th);
-				ret[cp::Rpc::KEY_TUNNEL_HANDLE] = th;
+				ret["clientPath"] = std::string(cp::Rpc::DIR_BROKER) + "/" + cp::Rpc::DIR_CLIENTS + "/" + std::to_string(cli_id);
 				std::string s = cp::RpcValue(ret).toCpon();
-				shvInfo() << "Process" << m_cmdProc->program() << "started, tunnel handle:" << s;
+				shvInfo() << "Process" << m_cmdProc->program() << "started, stdout:" << s;
 				std::cout << s << "\n";
 				std::cout.flush(); /// necessary sending '\n' is not enough to flush stdout
 			}

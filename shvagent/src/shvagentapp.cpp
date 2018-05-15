@@ -213,14 +213,13 @@ void ShvAgentApp::openRsh(const shv::chainpack::RpcRequest &rq)
 			QByteArray ba = proc->readLine();
 			std::string data(ba.constData(), ba.size());
 			cp::RpcValue::Map m = cp::RpcValue::fromCpon(data).toMap();
-			shv::iotqt::rpc::TunnelHandle th(m.value(cp::Rpc::KEY_TUNNEL_HANDLE).toIMap());
-			std::string rel_path = th.value(shv::iotqt::rpc::TunnelHandle::MetaType::Key::TunnelRelativePath).toString();
+			std::string rel_path = m.value("clientPath").toString();
 			std::string mount_point = m_rpcConnection->brokerMountPoint();
 			size_t cnt = shv::core::StringView(mount_point).split('/').size();
 			for (size_t i = 0; i < cnt; ++i) {
 				rel_path = "../" + rel_path;
 			}
-			th[shv::iotqt::rpc::TunnelHandle::MetaType::Key::TunnelRelativePath] = rel_path;
+			shv::iotqt::rpc::TunnelHandle th(rel_path);
 			cp::RpcValue result = th.toRpcValue();
 			//result[cp::Rpc::KEY_TUNNEL_HANDLE] = m.value(cp::Rpc::KEY_TUNNEL_HANDLE);
 			resp.setResult(result);
