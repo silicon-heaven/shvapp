@@ -13,6 +13,42 @@
 #include <termios.h>
 #include <unistd.h>
 
+/* Place terminal referred to by 'fd' in raw mode (noncanonical mode
+   with all input and output processing disabled). Return 0 on success,
+   or -1 on error. If 'prevTermios' is non-NULL, then use the buffer to
+   which it points to return the previous terminal settings. */
+
+int ttySetRaw(int fd, struct termios *prev_termios)
+{
+	struct termios t;
+
+	if (tcgetattr(fd, &t) == -1)
+		return -1;
+
+	if (prev_termios != NULL)
+		*prev_termios = t;
+
+	t.c_lflag &= ~(ICANON | ISIG | IEXTEN | ECHO);
+	/* Noncanonical mode, disable signals, extended
+						   input processing, and echoing */
+
+	t.c_iflag &= ~(BRKINT | ICRNL | IGNBRK | IGNCR | INLCR |
+				   INPCK | ISTRIP | IXON | PARMRK);
+	/* Disable special handling of CR, NL, and BREAK.
+	   No 8th-bit stripping or parity error handling.
+	   Disable START/STOP output flow control. */
+
+	t.c_oflag &= ~OPOST;                /* Disable all output processing */
+
+	t.c_cc[VMIN] = 1;                   /* Character-at-a-time input */
+	t.c_cc[VTIME] = 0;                  /* with blocking */
+
+	if (tcsetattr(fd, TCSAFLUSH, &t) == -1)
+		return -1;
+
+	return 0;
+}
+
 int main(int argc, char *argv[])
 {
 	//for (int i = 0; i < argc; ++i)
@@ -72,6 +108,13 @@ int main(int argc, char *argv[])
 		cli_opts.setPassword(QString::fromStdString(password));
 	}
 	*/
+
+	struct termios tty_orig;
+	if (ttySetRaw(STDIN_FILENO, &tty_orig) == -1) {
+		shvError() << "ttySetRaw error";
+		return EXIT_FAILURE;
+	}
+
 	shvInfo() << "======================================================================================";
 	shvInfo() << "Starting SHV Remote Exec, PID:" << QCoreApplication::applicationPid() << "build:" << __DATE__ << __TIME__;
 #ifdef GIT_COMMIT
@@ -88,6 +131,9 @@ int main(int argc, char *argv[])
 	ret = a.exec();
 	shvInfo() << "main event loop exit code:" << ret;
 	shvInfo() << "bye ...";
+
+	if (tcsetattr(STDIN_FILENO, TCSANOW, &tty_orig) == -1)
+		shvError() << "tcsetattr error";
 
 	return ret;
 }
