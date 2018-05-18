@@ -10,6 +10,7 @@ SUBDIRS += \
     shvbroker \
     shvagent \
     shvrexec \
+    shvrsh \
     revitestdevice \
     bfsview \
 }

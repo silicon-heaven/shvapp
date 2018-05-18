@@ -74,7 +74,7 @@ static std::string data2cpon(shv::chainpack::Rpc::ProtocolType protocol_type, co
 {
 	shv::chainpack::RpcValue rpc_val = shv::chainpack::RpcDriver::decodeData(protocol_type, data, start_pos);
 	rpc_val.setMetaData(shv::chainpack::RpcValue::MetaData(md));
-	return rpc_val.toCpon();
+	return rpc_val.toPrettyString();
 }
 
 void ServerConnection::sendMessage(const shv::chainpack::RpcMessage &rpc_msg)
@@ -86,6 +86,7 @@ void ServerConnection::sendMessage(const shv::chainpack::RpcMessage &rpc_msg)
 void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolType protocol_type, shv::chainpack::RpcValue::MetaData &&md, const std::string &data, size_t start_pos, size_t data_len)
 {
 	logRpcMsg() << RCV_LOG_ARROW
+				<< "client id:" << connectionId()
 				<< "protocol_type:" << (int)protocol_type << shv::chainpack::Rpc::ProtocolTypeToString(protocol_type)
 				<< data2cpon(protocol_type, md, data, start_pos);
 	try {

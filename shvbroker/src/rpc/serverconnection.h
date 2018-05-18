@@ -17,6 +17,7 @@ class ServerConnection : public shv::iotqt::rpc::ServerConnection
 	using Super = shv::iotqt::rpc::ServerConnection;
 
 	SHV_FIELD_IMPL(std::string, m, M, ountPoint)
+	//SHV_FIELD_IMPL(int, c, C, lientId)
 
 public:
 	struct Subscription

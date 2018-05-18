@@ -1,12 +1,13 @@
 #include "shvrexecapp.h"
 #include "appclioptions.h"
-#include "childprocess.h"
+#include "ptyprocess.h"
 
 #include <shv/iotqt/rpc/tunnelconnection.h>
 #include <shv/iotqt/node/shvnodetree.h>
 
 #include <shv/coreqt/log.h>
 #include <shv/chainpack/metamethod.h>
+#include <shv/core/stringview.h>
 
 #include <QProcess>
 #include <QTimer>
@@ -21,6 +22,9 @@
 
 namespace cp = shv::chainpack;
 
+//const char METH_SETWINSZ[] = "setWinSize";
+const char METH_RUNCMD[] = "runCmd";
+const char METH_RUNPTYCMD[] = "runPtyCmd";
 const char METH_WRITE[] = "write";
 
 static std::vector<cp::MetaMethod> meta_methods {
@@ -29,6 +33,9 @@ static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false},
 	{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, false},
 	//{cp::Rpc::KEY_TUNNEL_HANDLE, cp::MetaMethod::Signature::RetVoid, false},
+	//{METH_SETWINSZ, cp::MetaMethod::Signature::RetParam, false},
+	{METH_RUNCMD, cp::MetaMethod::Signature::RetParam, false},
+	{METH_RUNPTYCMD, cp::MetaMethod::Signature::RetParam, false},
 	{METH_WRITE, cp::MetaMethod::Signature::RetParam, false},
 };
 
@@ -55,49 +62,53 @@ shv::chainpack::RpcValue AppRootNode::call(const std::string &method, const shv:
 	//if(method == cp::Rpc::KEY_TUNNEL_HANDLE) {
 	//	return ShvRExecApp::instance()->rpcConnection()->tunnelHandle();
 	//}
+	/*
+	if(method == METH_SETWINSZ) {
+		const shv::chainpack::RpcValue::List &list = params.toList();
+		ShvRExecApp::instance()->setTerminalWindowSize(list.value(0).toInt(), list.value(1).toInt());
+		return true;
+	}
+	*/
 	if(method == METH_WRITE) {
-		const shv::chainpack::RpcValue::Blob data = params.toBlob();
-		qint64 len = ShvRExecApp::instance()->writeProcessStdin(data.data(), data.size());
-		if(len < 0)
-			shvError() << "Error writing process stdin.";
+		int channel = 0;
+		shv::chainpack::RpcValue data;
+		if(params.isList()) {
+			const shv::chainpack::RpcValue::List &lst = params.toList();
+			channel = lst.value(0).toInt();
+			data = lst.value(1);
+		}
+		else {
+			data = params;
+		}
+		if(channel == 0) {
+			const shv::chainpack::RpcValue::Blob &blob = data.toBlob();
+			if(blob.size()) {
+				qint64 len = ShvRExecApp::instance()->writeCmdProcessStdIn(blob.data(), blob.size());
+				if(len < 0)
+					shvError() << "Error writing process stdin.";
+			}
+			else {
+				shvError() << "Invalid data received:" << params.toCpon();
+			}
+		}
 		return cp::RpcValue{};
 	}
 	return Super::call(method, params);
 }
 
-/*
-shv::chainpack::RpcValue AppRootNode::dir(const std::string &shv_path, const shv::chainpack::RpcValue &methods_params)
+shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::RpcRequest &rq)
 {
-	Q_UNUSED(shv_path)
-	cp::RpcValue::List ret = Super::dir(methods_params).toList();
-	ret.push_back(cp::Rpc::METH_APP_NAME);
-	ret.push_back(cp::Rpc::METH_CONNECTION_TYPE);
-	ret.push_back(cp::Rpc::KEY_TUNNEL_HANDLE);
-	ret.push_back(METH_STDIN_WRITE);
-	return ret;
+	if(rq.shvPath().toString().empty()) {
+		if(rq.method() == METH_RUNCMD) {
+			return ShvRExecApp::instance()->runCmd(rq);
+		}
+		if(rq.method() == METH_RUNPTYCMD) {
+			return ShvRExecApp::instance()->runPtyCmd(rq);
+		}
+	}
+	return Super::processRpcRequest(rq);
 }
 
-shv::chainpack::RpcValue AppRootNode::call(const std::string &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
-{
-	if(method == cp::Rpc::METH_APP_NAME) {
-		return QCoreApplication::instance()->applicationName().toStdString();
-	}
-	if(method == cp::Rpc::METH_CONNECTION_TYPE) {
-		return ShvRExecApp::instance()->rpcConnection()->connectionType();
-	}
-	if(method == cp::Rpc::KEY_TUNNEL_HANDLE) {
-		return ShvRExecApp::instance()->rpcConnection()->tunnelHandle();
-	}
-	if(method == METH_STDIN_WRITE) {
-		const shv::chainpack::RpcValue::String &data = params.toString();
-		qint64 len = ShvRExecApp::instance()->writeProcessStdin(data.data(), data.size());
-		if(len < 0)
-			shvError() << "Error writing process stdin.";
-		return cp::RpcValue{};
-	}
-	return Super::call(shv_path, method, params);
-}
-*/
 ShvRExecApp::ShvRExecApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
@@ -165,40 +176,35 @@ ShvRExecApp *ShvRExecApp::instance()
 	return qobject_cast<ShvRExecApp*>(QCoreApplication::instance());
 }
 
+/*
+void ShvRExecApp::setTerminalWindowSize(int w, int h)
+{
+	m_termWidth = w;
+	m_termHeight = h;
+}
+*/
 void ShvRExecApp::onBrokerConnectedChanged(bool is_connected)
 {
 	if(is_connected) {
+		/// send tunnel handle to agent
+		cp::RpcValue::Map ret;
+		//unsigned cli_id = m_rpcConnection->brokerClientId();
+		ret["clientPath"] = m_rpcConnection->brokerMountPoint();
+		std::string s = cp::RpcValue(ret).toCpon();
+		//shvInfo() << "Process" << m_cmdProc->program() << "started, stdout:" << s;
+		std::cout << s << "\n";
+		std::cout.flush(); /// necessary sending '\n' is not enough to flush stdout
+		/*
 		QString exec_cmd = m_cliOptions->execCommand();
-		shvInfo() << "Starting process:" << exec_cmd;
-		QStringList sl = exec_cmd.split(' ', QString::SkipEmptyParts);
-		QString program = sl.value(0);
-		QStringList arguments = sl.mid(1);
-		m_cmdProc = new ChildProcess(this);
-		connect(QCoreApplication::instance(), &QCoreApplication::aboutToQuit, m_cmdProc, &QProcess::terminate);
-		connect(m_cmdProc, &QProcess::readyReadStandardOutput, this, &ShvRExecApp::onReadyReadProcessStandardOutput);
-		connect(m_cmdProc, &QProcess::readyReadStandardError, this, &ShvRExecApp::onReadyReadProcessStandardError);
-		connect(m_cmdProc, &QProcess::errorOccurred, [](QProcess::ProcessError error) {
-			shvError() << "Exec process error:" << error;
-			quit();
-		});
-		connect(m_cmdProc, &QProcess::stateChanged, [this](QProcess::ProcessState state) {
-			shvInfo() << "Exec process new state:" << state;
-			if(state == QProcess::Running) {
-				/// send tunnel handle to agent
-				cp::RpcValue::Map ret;
-				unsigned cli_id = m_rpcConnection->brokerClientId();
-				ret["clientPath"] = std::string(cp::Rpc::DIR_BROKER) + "/" + cp::Rpc::DIR_CLIENTS + "/" + std::to_string(cli_id);
-				std::string s = cp::RpcValue(ret).toCpon();
-				shvInfo() << "Process" << m_cmdProc->program() << "started, stdout:" << s;
-				std::cout << s << "\n";
-				std::cout.flush(); /// necessary sending '\n' is not enough to flush stdout
+		if(!exec_cmd.isEmpty()) {
+			if(m_cliOptions->winSize_isset()) {
+				QString ws = m_cliOptions->winSize();
+				QStringList sl = ws.split('x');
+				setTerminalWindowSize(sl.value(0).toInt(), sl.value(1).toInt());
 			}
-		});
-		connect(m_cmdProc, QOverload<int>::of(&QProcess::finished), this, [this](int exit_code) {
-			shvInfo() << "Process" << m_cmdProc->program() << "finished with exit code:" << exit_code;
-			quit();
-		});
-		m_cmdProc->start(program, arguments);
+			runPtyCmd(exec_cmd.toStdString());
+		}
+		*/
 	}
 	else {
 		/// once connection to tunnel is lost, tunnel handle becomes invalid, destroy tunnel
@@ -245,47 +251,126 @@ void ShvRExecApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 	}
 }
 
-qint64 ShvRExecApp::writeProcessStdin(const char *data, size_t len)
+bool ShvRExecApp::runCmd(const shv::chainpack::RpcRequest &rq)
 {
-	if(!m_cmdProc) {
-		shvError() << "Attempt to write to not existing process.";
-		return -1;
+	if(m_cmdProc || m_ptyCmdProc)
+		SHV_EXCEPTION("Process running already");
+
+	const shv::chainpack::RpcValue::String exec_cmd = rq.params().toString();
+
+	shvInfo() << "Starting process:" << exec_cmd;
+	m_runProcessRequest = rq;
+	m_cmdProc = new QProcess(this);
+	connect(QCoreApplication::instance(), &QCoreApplication::aboutToQuit, m_cmdProc, &QProcess::terminate);
+	connect(m_cmdProc, &QProcess::readyReadStandardOutput, this, &ShvRExecApp::onReadyReadProcessStandardOutput);
+	connect(m_cmdProc, &QProcess::readyReadStandardError, this, &ShvRExecApp::onReadyReadProcessStandardError);
+	connect(m_cmdProc, &QProcess::errorOccurred, [](QProcess::ProcessError error) {
+		shvError() << "Exec process error:" << error;
+		quit();
+	});
+	connect(m_cmdProc, QOverload<int>::of(&QProcess::finished), this, [this](int exit_code) {
+		shvInfo() << "Process" << m_cmdProc->program() << "finished with exit code:" << exit_code;
+		quit();
+	});
+	m_cmdProc->start(QString::fromStdString(exec_cmd));
+	return true;
+}
+
+bool ShvRExecApp::runPtyCmd(const shv::chainpack::RpcRequest &rq)
+{
+	if(m_cmdProc || m_ptyCmdProc)
+		SHV_EXCEPTION("Process running already");
+
+	const shv::chainpack::RpcValue::List lst = rq.params().toList();
+	std::string exec_cmd = lst.value(0).toString();
+	int pty_cols = lst.value(1).toInt();
+	int pty_rows = lst.value(2).toInt();
+
+	shvInfo() << "Starting process:" << exec_cmd;
+	m_runProcessRequest = rq;
+	m_ptyCmdProc = new PtyProcess(this);
+	connect(QCoreApplication::instance(), &QCoreApplication::aboutToQuit, m_ptyCmdProc, &QProcess::terminate);
+	connect(m_ptyCmdProc, &PtyProcess::readyReadMasterPty, this, &ShvRExecApp::onReadyReadMasterPty);
+	connect(m_ptyCmdProc, &QProcess::errorOccurred, [](QProcess::ProcessError error) {
+		shvError() << "Exec process error:" << error;
+		quit();
+	});
+	/*
+	connect(m_ptyCmdProc, &QProcess::stateChanged, [this](QProcess::ProcessState state) {
+		shvInfo() << "Exec process new state:" << state;
+		if(state == QProcess::Running) {
+			/// send tunnel handle to agent
+			cp::RpcValue::Map ret;
+			unsigned cli_id = m_rpcConnection->brokerClientId();
+			ret["clientPath"] = std::string(cp::Rpc::DIR_BROKER) + "/" + cp::Rpc::DIR_CLIENTS + "/" + std::to_string(cli_id);
+			std::string s = cp::RpcValue(ret).toCpon();
+			shvInfo() << "Process" << m_ptyCmdProc->program() << "started, stdout:" << s;
+			std::cout << s << "\n";
+			std::cout.flush(); /// necessary sending '\n' is not enough to flush stdout
+		}
+	});
+	*/
+	connect(m_ptyCmdProc, QOverload<int>::of(&QProcess::finished), this, [this](int exit_code) {
+		shvInfo() << "Process" << m_ptyCmdProc->program() << "finished with exit code:" << exit_code;
+		quit();
+	});
+	m_ptyCmdProc->ptyStart(exec_cmd, pty_cols, pty_rows);
+	return true;
+}
+
+qint64 ShvRExecApp::writeCmdProcessStdIn(const char *data, size_t len)
+{
+	if(m_ptyCmdProc) {
+		qint64 n = m_ptyCmdProc->writePtyMaster(data, len);
+		if(n != (qint64)len) {
+			shvError() << "Write PTY master stdin error, only" << n << "of" << len << "bytes written.";
+		}
+		return n;
 	}
-	qint64 n = m_cmdProc->write(data, len);
-	if(n != (qint64)len) {
-		shvError() << "Write process stdin error, only" << n << "of" << len << "bytes written.";
+	if(m_cmdProc) {
+		qint64 n = m_cmdProc->write(data, len);
+		if(n != (qint64)len) {
+			shvError() << "Write process stdin error, only" << n << "of" << len << "bytes written.";
+		}
+		return n;
 	}
-	return n;
+	shvError() << "Attempt to write to not existing process.";
+	return -1;
 }
 
 void ShvRExecApp::onReadyReadProcessStandardOutput()
 {
 	//m_cmdProc->setReadChannel(QProcess::StandardOutput);
 	QByteArray ba = m_cmdProc->readAllStandardOutput();
-	sendProcessOutput(1, ba);
+	sendProcessOutput(1, ba.constData(), ba.size());
 }
 
 void ShvRExecApp::onReadyReadProcessStandardError()
 {
 	QByteArray ba = m_cmdProc->readAllStandardError();
-	sendProcessOutput(2, ba);
+	sendProcessOutput(2, ba.constData(), ba.size());
 }
 
-void ShvRExecApp::sendProcessOutput(int channel, const QByteArray &data)
+void ShvRExecApp::onReadyReadMasterPty()
+{
+	std::vector<char> data = m_ptyCmdProc->readAllMasterPty();
+	sendProcessOutput(1, data.data(), data.size());
+}
+
+void ShvRExecApp::sendProcessOutput(int channel, const char *data, size_t data_len)
 {
 	if(!m_rpcConnection->isBrokerConnected()) {
 		shvError() << "Broker is not connected, throwing away process channel:" << channel << "data:" << data;
 		quit();
 	}
 	else {
-		const shv::iotqt::rpc::TunnelParams &pars = m_rpcConnection->tunnelParams();
-		cp::RpcResponse resp;
-		resp.setRequestId(pars.value(shv::iotqt::rpc::TunnelParams::MetaType::Key::RequestId));
-		resp.setCallerIds(pars.value(shv::iotqt::rpc::TunnelParams::MetaType::Key::CallerClientIds));
+		//const shv::iotqt::rpc::TunnelParams &pars = m_rpcConnection->tunnelParams();
+		cp::RpcResponse resp = cp::RpcResponse::forRequest(m_runProcessRequest);
 		cp::RpcValue::List result;
 		result.push_back(channel);
-		result.push_back(cp::RpcValue::Blob(data.constData(), data.size()));
+		result.push_back(cp::RpcValue::Blob(data, data_len));
 		resp.setResult(result);
+		shvInfo() << "sending child process output:" << resp.toPrettyString();
 		m_rpcConnection->sendMessage(resp);
 	}
 }

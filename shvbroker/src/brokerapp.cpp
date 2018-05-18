@@ -303,6 +303,7 @@ void BrokerApp::onClientLogin(int connection_id)
 			sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_CONNECTED, cp::RpcValue());
 		}
 	}
+
 	//shvInfo() << m_deviceTree->dumpTree();
 }
 
@@ -349,7 +350,7 @@ void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData
 				shvWarning() << "Got RPC response for not-exists connection, may be it was closed meanwhile. Connection id:" << caller_id;
 		}
 		else {
-			shvError() << "Got RPC response without src connection specified, throwing message away.";
+			shvError() << "Got RPC response without src connection specified, throwing message away." << meta.toStdString();
 		}
 	}
 	else if(cp::RpcMessage::isNotify(meta)) {
@@ -359,7 +360,7 @@ void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData
 			rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
 			if(conn) {
 				if(!conn->mountPoint().empty())
-					full_shv_path = cp::Rpc::joinShvPath(conn->mountPoint(), cp::RpcMessage::shvPath(meta).toString());
+					full_shv_path = shv::core::Utils::joinPath(conn->mountPoint(), cp::RpcMessage::shvPath(meta).toString());
 			}
 		}
 		if(!full_shv_path.empty()) {

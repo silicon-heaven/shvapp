@@ -1,10 +1,12 @@
 #pragma once
 
+#include <shv/chainpack/rpcmessage.h>
 #include <shv/iotqt/node/shvnode.h>
 
 #include <QCoreApplication>
 
-class ChildProcess;
+class PtyProcess;
+class QProcess;
 class AppCliOptions;
 
 namespace shv { namespace chainpack { class RpcMessage; }}
@@ -21,6 +23,7 @@ public:
 	const shv::chainpack::MetaMethod* metaMethod(size_t ix) override;
 
 	shv::chainpack::RpcValue call(const std::string &method, const shv::chainpack::RpcValue &params) override;
+	shv::chainpack::RpcValue processRpcRequest(const shv::chainpack::RpcRequest &rq) override;
 };
 
 class ShvRExecApp : public QCoreApplication
@@ -35,23 +38,34 @@ public:
 	static ShvRExecApp* instance();
 	shv::iotqt::rpc::TunnelConnection *rpcConnection() const {return m_rpcConnection;}
 
-	qint64 writeProcessStdin(const char *data, size_t len);
+	bool runCmd(const shv::chainpack::RpcRequest &rq);
+	bool runPtyCmd(const shv::chainpack::RpcRequest &rq);
+
+	qint64 writeCmdProcessStdIn(const char *data, size_t len);
 private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 
+	// PTTY process
+	void onReadyReadMasterPty();
+	// non  PTTY process
 	void onReadyReadProcessStandardOutput();
 	void onReadyReadProcessStandardError();
 
-	void sendProcessOutput(int channel, const QByteArray &data);
+	//void setTerminalWindowSize(int w, int h);
+
+	void sendProcessOutput(int channel, const char *data, size_t data_len);
 private:
 	shv::iotqt::rpc::TunnelConnection *m_rpcConnection = nullptr;
 	AppCliOptions* m_cliOptions;
 
 	shv::iotqt::node::ShvNodeTree *m_shvTree = nullptr;
 
-	//shv::chainpack::RpcValue m_tunnelHandle;
+	shv::chainpack::RpcRequest m_runProcessRequest;
 
-	ChildProcess *m_cmdProc = nullptr;
+	PtyProcess *m_ptyCmdProc = nullptr;
+	QProcess *m_cmdProc = nullptr;
+	//int m_termWidth = 0;
+	//int m_termHeight = 0;
 };
 

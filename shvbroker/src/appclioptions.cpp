@@ -8,7 +8,7 @@ AppCliOptions::AppCliOptions(QObject *parent)
 	addOption("server.port").setType(QVariant::Int).setNames("--server-port").setComment("Server port").setDefaultValue(3755);
 	addOption("sql.host").setType(QVariant::String).setNames("-s", "--sql-host").setComment("SQL server host");
 	addOption("sql.port").setType(QVariant::Int).setNames("--sql-port").setComment("SQL server port").setDefaultValue(5432);
-	addOption("rpc.metaTypeExplicit").setType(QVariant::Bool).setNames("-mtid", "--rpc-metatype-explicit").setComment(tr("RpcMessage Type ID is included in RpcMessage when set, for more verbose -v rpcmsg log output")).setDefaultValue(false);
+	addOption("rpc.metaTypeExplicit").setType(QVariant::Bool).setNames("--mtid", "--rpc-metatype-explicit").setComment(tr("RpcMessage Type ID is included in RpcMessage when set, for more verbose -v rpcmsg log output")).setDefaultValue(false);
 
 	addOption("broker.fstab").setType(QVariant::String).setNames("--fstab")
 			.setComment("File with deviceID->mountPoint mapping")

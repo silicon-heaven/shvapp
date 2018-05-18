@@ -32,16 +32,13 @@
 
 namespace cp = shv::chainpack;
 
-static const char METH_RUN_CMD[] = "runCmd";
-static const char METH_OPEN_RSH[] = "openRsh";
-
 static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false},
 	{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, false},
-	{METH_RUN_CMD, cp::MetaMethod::Signature::RetParam, false},
-	{METH_OPEN_RSH, cp::MetaMethod::Signature::RetVoid, false},
+	{cp::Rpc::METH_RUN_CMD, cp::MetaMethod::Signature::RetParam, false},
+	{cp::Rpc::METH_OPEN_REXEC, cp::MetaMethod::Signature::RetVoid, false},
 };
 
 size_t AppRootNode::methodCount()
@@ -69,15 +66,17 @@ shv::chainpack::RpcValue AppRootNode::call(const std::string &method, const shv:
 
 shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::RpcRequest &rq)
 {
-	if(rq.method() == METH_RUN_CMD) {
-		ShvAgentApp *app = ShvAgentApp::instance();
-		app->runCmd(rq);
-		return cp::RpcValue();
-	}
-	if(rq.method() == METH_OPEN_RSH) {
-		ShvAgentApp *app = ShvAgentApp::instance();
-		app->openRsh(rq);
-		return cp::RpcValue();
+	if(rq.shvPath().toString().empty()) {
+		if(rq.method() == cp::Rpc::METH_RUN_CMD) {
+			ShvAgentApp *app = ShvAgentApp::instance();
+			app->runCmd(rq);
+			return cp::RpcValue();
+		}
+		if(rq.method() == cp::Rpc::METH_OPEN_REXEC) {
+			ShvAgentApp *app = ShvAgentApp::instance();
+			app->openRexec(rq);
+			return cp::RpcValue();
+		}
 	}
 	return Super::processRpcRequest(rq);
 }
@@ -185,7 +184,7 @@ ShvAgentApp *ShvAgentApp::instance()
 	return qobject_cast<ShvAgentApp *>(QCoreApplication::instance());
 }
 
-void ShvAgentApp::openRsh(const shv::chainpack::RpcRequest &rq)
+void ShvAgentApp::openRexec(const shv::chainpack::RpcRequest &rq)
 {
 	using TunnelParams = shv::iotqt::rpc::TunnelParams;
 	using TunnelParamsMT = shv::iotqt::rpc::TunnelParams::MetaType;
@@ -194,13 +193,11 @@ void ShvAgentApp::openRsh(const shv::chainpack::RpcRequest &rq)
 	tun_params[TunnelParamsMT::Key::Port] = m_rpcConnection->port();
 	tun_params[TunnelParamsMT::Key::User] = m_rpcConnection->user();
 	tun_params[TunnelParamsMT::Key::Password] = m_rpcConnection->password();
-	tun_params[TunnelParamsMT::Key::ParentClientId] = m_rpcConnection->brokerClientId();
-	tun_params[TunnelParamsMT::Key::RequestId] = rq.requestId();
+	//tun_params[TunnelParamsMT::Key::ParentClientId] = m_rpcConnection->brokerClientId();
+	//tun_params[TunnelParamsMT::Key::RequestId] = rq.requestId();
 	//tun_params[TunnelParamsMT::Key::CallerClientIds] = rq.callerIds();
 	//tun_params[TunnelParamsMT::Key::TunName] = tun_name;
 	//std::string mount_point = ".broker/clients/" + std::to_string(m_rpcConnection->brokerClientId()) + "/rproc/" + name;
-	QString app = QCoreApplication::applicationDirPath() + "/shvrexec";
-	QStringList params;
 	SessionProcess *proc = new SessionProcess(this);
 	//proc->setCurrentReadChannel(QProcess::StandardOutput);
 	cp::RpcResponse resp1 = cp::RpcResponse::forRequest(rq);
@@ -223,6 +220,7 @@ void ShvAgentApp::openRsh(const shv::chainpack::RpcRequest &rq)
 			cp::RpcValue result = th.toRpcValue();
 			//result[cp::Rpc::KEY_TUNNEL_HANDLE] = m.value(cp::Rpc::KEY_TUNNEL_HANDLE);
 			resp.setResult(result);
+			shvInfo() << "Got tunnel handle from child process:" << result.toPrettyString();
 		}
 		catch (std::exception &e) {
 			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodInvocationException, e.what()));
@@ -230,7 +228,9 @@ void ShvAgentApp::openRsh(const shv::chainpack::RpcRequest &rq)
 		m_rpcConnection->sendMessage(resp);
 	});
 
-	params << "-e" << "/bin/sh";
+	QString app = QCoreApplication::applicationDirPath() + "/shvrexec";
+	QStringList params;
+	params << "--mtid" << "-v" << "rpcrawmsg";
 	shvInfo() << "starting child process:" << app << params.join(' ');
 	proc->start(app, params);
 	std::string cpon = tun_params.toRpcValue().toCpon();
@@ -253,85 +253,9 @@ void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq)
 
 void ShvAgentApp::onBrokerConnectedChanged(bool is_connected)
 {
-	if(!is_connected)
-		return;
-	try {
-#if 0
-		shvInfo() << "==================================================";
-		shvInfo() << "   Lublicator Testing";
-		shvInfo() << "==================================================";
-		shv::iotqt::rpc::ClientConnection *rpc = m_rpcConnection;
-		if(0) {
-			shvInfo() << "------------ read shv tree";
-			print_children(rpc, "", 0);
-			//shvInfo() << "GOT:" << shv_path;
-		}
-		bool on = 0;
-		bool off = !on;
-		{
-			std::string shv_path = "/test/shv/lublicator2/";
-			shvInfo() << "------------ get STATUS";
-			cp::RpcResponse resp = rpc->callShvMethodSync(shv_path + "status", cp::Rpc::METH_GET);
-			shvInfo() << "\tgot response:" << resp.toCpon();
-			shv::chainpack::RpcValue result = resp.result();
-			shvInfo() << result.toCpon() << lublicatorStatusToString(result.toUInt());
-			on = !(result.toUInt() & (unsigned)LublicatorStatus::PosOn);
-			off = !on;
-		}
-		if(on) {
-			shvInfo() << "------------ switch ON";
-			std::string shv_path = "/test/shv/lublicator2/";
-			cp::RpcResponse resp = rpc->callShvMethodSync(shv_path + "cmdOn", cp::Rpc::METH_SET, true);
-			shvInfo() << "\tgot response:" << resp.toCpon();
-		}
-		if(off) {
-			shvInfo() << "------------ switch OFF";
-			std::string shv_path = "/test/shv/lublicator2/";
-			cp::RpcResponse resp = rpc->callShvMethodSync(shv_path + "cmdOff", cp::Rpc::METH_SET, true);
-			shvInfo() << "\tgot response:" << resp.toCpon();
-		}
-		return;
-		{
-			shvInfo() << "------------ get battery level";
-			std::string shv_path_lubl = "/test/shv/eu/pl/lublin/odpojovace/15/";
-			shvInfo() << shv_path_lubl;
-			for(auto prop : {"status", "batteryLimitLow", "batteryLimitHigh", "batteryLevelSimulation"}) {
-				std::string shv_path = shv_path_lubl + prop;
-				cp::RpcResponse resp = rpc->callShvMethodSync(shv_path, cp::Rpc::METH_GET);
-				shvInfo() << "\tproperty" << prop << ":" << resp.result().toCpon();
-			}
-			for (int val = 200; val < 260; val += 5) {
-				std::string shv_path = shv_path_lubl + "batteryLevelSimulation";
-				cp::RpcValue::Decimal dec_val(val, 1);
-				shvInfo() << "\tcall:" << "set" << dec_val.toString() << "on shv path:" << shv_path;
-				cp::RpcResponse resp = rpc->callShvMethodSync(shv_path, cp::Rpc::METH_SET, dec_val);
-				shvInfo() << "\tgot response:" << resp.toCpon();
-				if(resp.isError())
-					throw shv::core::Exception(resp.error().message());
-				QCoreApplication::processEvents();
-			}
-		}
-#endif
-#if 0
-		{
-			{
-				QString shv_path = shv_path_lubl + "batteryLevelSimulation";
-			}
-			for(auto prop : {"status", "batteryLimitLow", "batteryLimitHigh", "batteryLevelSimulation"}) {
-				QString shv_path = shv_path_lubl + prop;
-				cp::RpcResponse resp = rpc->callShvMethodSync(shv_path, cp::RpcMessage::METHOD_GET);
-				shvInfo() << "\tproperty" << prop << ":" << resp.result().toStdString();
-			}
-			{
-				QString shv_path = shv_path_lubl + "batteryLevelSimulation";
-				rpc->callShvMethodSync(shv_path, cp::RpcMessage::METHOD_SET, cp::RpcValue::Decimal(240, 1));
-			}
-		}
-#endif
-	}
-	catch (shv::core::Exception &e) {
-		shvError() << "Lublicator Testing FAILED:" << e.message();
-	}
+	Q_UNUSED(is_connected)
+	//if(is_connected)
+	//	shvInfo() <<
 }
 
 void ShvAgentApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
@@ -339,6 +263,7 @@ void ShvAgentApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 	shvLogFuncFrame() << msg.toCpon();
 	if(msg.isRequest()) {
 		cp::RpcRequest rq(msg);
+		shvInfo() << "RPC request received:" << rq.toPrettyString();
 		cp::RpcResponse resp = cp::RpcResponse::forRequest(rq.metaData());
 		try {
 			//shvInfo() << "RPC request received:" << rq.toCpon();
@@ -362,11 +287,11 @@ void ShvAgentApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 	}
 	else if(msg.isResponse()) {
 		cp::RpcResponse rp(msg);
-		shvInfo() << "RPC response received:" << rp.toCpon();
+		shvInfo() << "RPC response received:" << rp.toPrettyString();
 	}
 	else if(msg.isNotify()) {
 		cp::RpcNotify nt(msg);
-		shvInfo() << "RPC notify received:" << nt.toCpon();
+		shvInfo() << "RPC notify received:" << nt.toPrettyString();
 		/*
 		if(nt.method() == cp::Rpc::NTF_VAL_CHANGED) {
 			if(nt.shvPath() == "/test/shv/lublicator2/status") {

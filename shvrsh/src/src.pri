@@ -1,12 +1,10 @@
 
 HEADERS += \
     $$PWD/appclioptions.h \
-    $$PWD/shvrexecapp.h \
-    $$PWD/ptyprocess.h
+    $$PWD/shvrshapp.h
 
 SOURCES += \
     $$PWD/main.cpp\
     $$PWD/appclioptions.cpp \
-    $$PWD/ptyprocess.cpp \
-    $$PWD/shvrexecapp.cpp
+    $$PWD/shvrshapp.cpp
 
