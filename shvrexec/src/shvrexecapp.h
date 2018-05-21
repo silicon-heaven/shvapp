@@ -55,6 +55,7 @@ private:
 	//void setTerminalWindowSize(int w, int h);
 
 	void sendProcessOutput(int channel, const char *data, size_t data_len);
+	void closeAndQuit();
 private:
 	shv::iotqt::rpc::TunnelConnection *m_rpcConnection = nullptr;
 	AppCliOptions* m_cliOptions;

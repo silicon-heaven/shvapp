@@ -28,15 +28,17 @@ int ttySetRaw(int fd, struct termios *prev_termios)
 	if (prev_termios != NULL)
 		*prev_termios = t;
 
-	t.c_lflag &= ~(ICANON | ISIG | IEXTEN | ECHO);
-	/* Noncanonical mode, disable signals, extended
-						   input processing, and echoing */
+	/* Noncanonical mode, disable signals, extended input processing, and echoing */
+	t.c_lflag &= ~(ISIG | IEXTEN);
+	t.c_lflag &= ~ECHO;
+	t.c_lflag &= ~ICANON;
 
-	t.c_iflag &= ~(BRKINT | ICRNL | IGNBRK | IGNCR | INLCR |
-				   INPCK | ISTRIP | IXON | PARMRK);
 	/* Disable special handling of CR, NL, and BREAK.
 	   No 8th-bit stripping or parity error handling.
 	   Disable START/STOP output flow control. */
+	//t.c_iflag &= ~(BRKINT | ICRNL | IGNBRK | IGNCR | INLCR | INPCK | ISTRIP | IXON | PARMRK);
+	t.c_iflag &= ~(BRKINT | IGNBRK | INPCK | ISTRIP | IXON | PARMRK);
+	t.c_iflag &= ~(ICRNL | IGNCR | INLCR );
 
 	t.c_oflag &= ~OPOST;                /* Disable all output processing */
 

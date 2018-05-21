@@ -266,11 +266,11 @@ bool ShvRExecApp::runCmd(const shv::chainpack::RpcRequest &rq)
 	connect(m_cmdProc, &QProcess::readyReadStandardError, this, &ShvRExecApp::onReadyReadProcessStandardError);
 	connect(m_cmdProc, &QProcess::errorOccurred, [](QProcess::ProcessError error) {
 		shvError() << "Exec process error:" << error;
-		quit();
+		//this->closeAndQuit();
 	});
 	connect(m_cmdProc, QOverload<int>::of(&QProcess::finished), this, [this](int exit_code) {
 		shvInfo() << "Process" << m_cmdProc->program() << "finished with exit code:" << exit_code;
-		quit();
+		this->closeAndQuit();
 	});
 	m_cmdProc->start(QString::fromStdString(exec_cmd));
 	return true;
@@ -293,7 +293,7 @@ bool ShvRExecApp::runPtyCmd(const shv::chainpack::RpcRequest &rq)
 	connect(m_ptyCmdProc, &PtyProcess::readyReadMasterPty, this, &ShvRExecApp::onReadyReadMasterPty);
 	connect(m_ptyCmdProc, &QProcess::errorOccurred, [](QProcess::ProcessError error) {
 		shvError() << "Exec process error:" << error;
-		quit();
+		//closeAndQuit();
 	});
 	/*
 	connect(m_ptyCmdProc, &QProcess::stateChanged, [this](QProcess::ProcessState state) {
@@ -312,7 +312,7 @@ bool ShvRExecApp::runPtyCmd(const shv::chainpack::RpcRequest &rq)
 	*/
 	connect(m_ptyCmdProc, QOverload<int>::of(&QProcess::finished), this, [this](int exit_code) {
 		shvInfo() << "Process" << m_ptyCmdProc->program() << "finished with exit code:" << exit_code;
-		quit();
+		closeAndQuit();
 	});
 	m_ptyCmdProc->ptyStart(exec_cmd, pty_cols, pty_rows);
 	return true;
@@ -373,5 +373,13 @@ void ShvRExecApp::sendProcessOutput(int channel, const char *data, size_t data_l
 		shvInfo() << "sending child process output:" << resp.toPrettyString();
 		m_rpcConnection->sendMessage(resp);
 	}
+}
+
+void ShvRExecApp::closeAndQuit()
+{
+	/// too late
+	//const char TERMINATED[] = "terminated";
+	//sendProcessOutput(STDERR_FILENO+1, TERMINATED, sizeof(TERMINATED));
+	quit();
 }
 

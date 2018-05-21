@@ -186,17 +186,26 @@ void ShvRshApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 			//shvInfo() << rsp.result().toCpon();
 			const shv::chainpack::RpcValue::List &lst = rsp.result().toList();
 			int channel = lst.value(0).toInt();
-			if(channel == STDOUT_FILENO) {
+			if(channel == STDOUT_FILENO || channel == STDERR_FILENO) {
 				const shv::chainpack::RpcValue::Blob &blob = lst.value(1).toBlob();
-				ssize_t n = ::write(STDOUT_FILENO, blob.data(), blob.size());
+				ssize_t n = ::write(channel, blob.data(), blob.size());
 				if(n < (ssize_t)blob.size())
 					shvError() << "Error write remote data to stdout";
 			}
+			/*
+			else if(channel == STDERR_FILENO+1) {
+				shvInfo() << "Tunnel closed";
+				quit();
+			}
+			*/
 		}
 	}
 	else if(msg.isNotify()) {
 		cp::RpcNotify ntf(msg);
 		shvInfo() << "RPC notify received:" << ntf.toCpon();
+		if(ntf.method() == cp::Rpc::NTF_CONNECTED_CHANGED) {
+			quit();
+		}
 	}
 }
 
@@ -229,6 +238,12 @@ void ShvRshApp::launchRemoteShell()
 	struct winsize ws;
 	if (::ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0)
 		SHV_EXCEPTION("ioctl-TIOCGWINSZ");
+	m_rpcConnection->callShvMethod(cp::Rpc::DIR_BROKER_APP
+				  , cp::Rpc::METH_SUBSCRIBE
+				  , cp::RpcValue::Map{
+					  {cp::Rpc::PAR_PATH, m_tunnelShvPath},
+					  {cp::Rpc::PAR_METHOD, cp::Rpc::NTF_CONNECTED_CHANGED},
+				  });
 	m_tunnelRequestId = m_rpcConnection->callShvMethod(m_tunnelShvPath, "runPtyCmd", cp::RpcValue::List{"/bin/sh", ws.ws_col, ws.ws_row});
 }
 
