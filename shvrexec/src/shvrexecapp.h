@@ -1,7 +1,9 @@
 #pragma once
 
-#include <shv/chainpack/rpcmessage.h>
 #include <shv/iotqt/node/shvnode.h>
+#include <shv/iotqt/rpc/tunnelhandle.h>
+
+#include <shv/chainpack/rpcmessage.h>
 
 #include <QCoreApplication>
 
@@ -38,8 +40,8 @@ public:
 	static ShvRExecApp* instance();
 	shv::iotqt::rpc::TunnelConnection *rpcConnection() const {return m_rpcConnection;}
 
-	bool runCmd(const shv::chainpack::RpcRequest &rq);
-	bool runPtyCmd(const shv::chainpack::RpcRequest &rq);
+	shv::chainpack::RpcValue runCmd(const shv::chainpack::RpcRequest &rq);
+	shv::chainpack::RpcValue runPtyCmd(const shv::chainpack::RpcRequest &rq);
 
 	qint64 writeCmdProcessStdIn(const char *data, size_t len);
 private:
@@ -62,7 +64,8 @@ private:
 
 	shv::iotqt::node::ShvNodeTree *m_shvTree = nullptr;
 
-	shv::chainpack::RpcRequest m_runProcessRequest;
+	shv::iotqt::rpc::TunnelHandle m_writeTunnelHandle;
+	unsigned m_readTunnelRequestId = 0;
 
 	PtyProcess *m_ptyCmdProc = nullptr;
 	QProcess *m_cmdProc = nullptr;

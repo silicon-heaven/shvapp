@@ -38,7 +38,7 @@ static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false},
 	{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, false},
 	{cp::Rpc::METH_RUN_CMD, cp::MetaMethod::Signature::RetParam, false},
-	{cp::Rpc::METH_OPEN_REXEC, cp::MetaMethod::Signature::RetVoid, false},
+	{cp::Rpc::METH_LAUNCH_REXEC, cp::MetaMethod::Signature::RetVoid, false},
 };
 
 size_t AppRootNode::methodCount()
@@ -72,9 +72,9 @@ shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::Rp
 			app->runCmd(rq);
 			return cp::RpcValue();
 		}
-		if(rq.method() == cp::Rpc::METH_OPEN_REXEC) {
+		if(rq.method() == cp::Rpc::METH_LAUNCH_REXEC) {
 			ShvAgentApp *app = ShvAgentApp::instance();
-			app->openRexec(rq);
+			app->launchRexec(rq);
 			return cp::RpcValue();
 		}
 	}
@@ -184,7 +184,7 @@ ShvAgentApp *ShvAgentApp::instance()
 	return qobject_cast<ShvAgentApp *>(QCoreApplication::instance());
 }
 
-void ShvAgentApp::openRexec(const shv::chainpack::RpcRequest &rq)
+void ShvAgentApp::launchRexec(const shv::chainpack::RpcRequest &rq)
 {
 	using TunnelParams = shv::iotqt::rpc::TunnelParams;
 	using TunnelParamsMT = shv::iotqt::rpc::TunnelParams::MetaType;
@@ -210,15 +210,14 @@ void ShvAgentApp::openRexec(const shv::chainpack::RpcRequest &rq)
 			QByteArray ba = proc->readLine();
 			std::string data(ba.constData(), ba.size());
 			cp::RpcValue::Map m = cp::RpcValue::fromCpon(data).toMap();
-			std::string rel_path = m.value("clientPath").toString();
+			std::string rel_path = m.value(cp::Rpc::KEY_MOUT_POINT).toString();
 			std::string mount_point = m_rpcConnection->brokerMountPoint();
 			size_t cnt = shv::core::StringView(mount_point).split('/').size();
 			for (size_t i = 0; i < cnt; ++i) {
 				rel_path = "../" + rel_path;
 			}
-			shv::iotqt::rpc::TunnelHandle th(rel_path);
-			cp::RpcValue result = th.toRpcValue();
-			//result[cp::Rpc::KEY_TUNNEL_HANDLE] = m.value(cp::Rpc::KEY_TUNNEL_HANDLE);
+			m[cp::Rpc::KEY_MOUT_POINT] = rel_path;
+			cp::RpcValue result = m;
 			resp.setResult(result);
 			shvInfo() << "Got tunnel handle from child process:" << result.toPrettyString();
 		}

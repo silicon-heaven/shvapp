@@ -123,7 +123,7 @@ void ShvRshApp::onBrokerConnectedChanged(bool is_connected)
 		std::string tunp = m_cliOptions->tunnelShvPath().toStdString();
 		std::string tunm = m_cliOptions->tunnelMethod().toStdString();
 		if(!tunp.empty()) {
-			m_createTunnelRequestId = m_rpcConnection->callShvMethod(tunp, tunm);
+			m_launchRexecRequestId = m_rpcConnection->callShvMethod(tunp, tunm);
 			shvDebug() << "opening tunnel on path:" << tunp << "method:" << tunm << "request id:" << m_tunnelRequestId;
 		}
 		else {
@@ -163,41 +163,48 @@ void ShvRshApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 		shvInfo() << "RPC response received request id:" << rsp.requestId().toCpon() << rsp.toPrettyString();
 		//shvInfo() << __LINE__ << m_tunnelRequestId << m_tunnelShvPath;
 		//shv::chainpack::RpcValue v = rsp.requestId();
-		if(rsp.requestId() == m_createTunnelRequestId) {
+		if(rsp.requestId() == m_launchRexecRequestId) {
 			if(rsp.isError()) {
 				shvError() << "Open tunnel error:" << rsp.error().toString();
 				quit();
 				return;
 			}
-			cp::RpcValue result = rsp.result();
-			if(result.metaData().metaTypeId() != ir::TunnelHandle::MetaType::ID) {
-				shvError() << "Open tunnel error, TunnelHandle should be received:" << rsp.toCpon();
+			const cp::RpcValue::Map &result = rsp.result().toMap();
+			if(result.empty()) {
+				shvError() << "Launch rexec error, shv path should be received:" << rsp.toCpon();
 				quit();
 				return;
 			}
-			ir::TunnelHandle th(result.toIMap());
-			std::string relative_path = shv::core::Utils::joinPath(m_cliOptions->tunnelShvPath().toStdString(), th.tunnelRelativePath());
+			std::string relative_path = shv::core::Utils::joinPath(m_cliOptions->tunnelShvPath().toStdString(), result.value(cp::Rpc::KEY_MOUT_POINT).toString());
 			m_tunnelShvPath = shv::core::Utils::simplifyPath(relative_path);
 			shvInfo() << "tunnel shv path:" << m_tunnelShvPath;
-			launchRemoteShell();
+			launchRemoteShellProcess();
 		}
 		else if(rsp.requestId() == m_tunnelRequestId) {
 			//shvInfo() << __LINE__;
 			//shvInfo() << rsp.result().toCpon();
-			const shv::chainpack::RpcValue::List &lst = rsp.result().toList();
-			int channel = lst.value(0).toInt();
-			if(channel == STDOUT_FILENO || channel == STDERR_FILENO) {
-				const shv::chainpack::RpcValue::Blob &blob = lst.value(1).toBlob();
-				ssize_t n = ::write(channel, blob.data(), blob.size());
-				if(n < (ssize_t)blob.size())
-					shvError() << "Error write remote data to stdout";
+			shv::chainpack::RpcValue result = rsp.result();
+			if(m_writeTunnelHandle.empty()) {
+				if(result.metaData().metaTypeId() != shv::iotqt::rpc::TunnelHandle::MetaType::ID) {
+					shvError() << "TunnelHandle should be received:" << rsp.toCpon();
+					quit();
+					return;
+				}
+				m_writeTunnelHandle = shv::iotqt::rpc::TunnelHandle(result.toIMap());
 			}
-			/*
-			else if(channel == STDERR_FILENO+1) {
-				shvInfo() << "Tunnel closed";
-				quit();
+			else {
+				const shv::chainpack::RpcValue::List &lst = rsp.result().toList();
+				int channel = lst.value(0).toInt();
+				if(channel == STDOUT_FILENO || channel == STDERR_FILENO) {
+					const shv::chainpack::RpcValue::Blob &blob = lst.value(1).toBlob();
+					ssize_t n = ::write(channel, blob.data(), blob.size());
+					if(n < (ssize_t)blob.size())
+						shvError() << "Error write remote data to stdout";
+				}
+				else {
+					shvError() << "Ignoring invalid channel number data received, channel:" << channel;
+				}
 			}
-			*/
 		}
 	}
 	else if(msg.isNotify()) {
@@ -218,32 +225,33 @@ void ShvRshApp::onReadyReadStdIn()
 void ShvRshApp::writeToTunnel(int channel, const cp::RpcValue &data)
 {
 	//shvInfo() << m_rpcConnection->isBrokerConnected() << m_tunnelShvPath << "GGG";
-	if(!m_rpcConnection->isBrokerConnected() || m_tunnelShvPath.empty()) {
-		shvError() << "Broker is not connected, throwing away data:" << data.toCpon();
+	if(!m_rpcConnection->isBrokerConnected() || m_writeTunnelHandle.empty()) {
+		shvError() << "Tunnel not open, throwing away data:" << data.toCpon();
 		//quit();
 	}
 	else {
-		cp::RpcRequest rq;
-		rq.setRequestId(m_tunnelRequestId);
-		rq.setMethod("write");
-		cp::RpcValue::List params{channel, data};
-		rq.setParams(params);
-		rq.setShvPath(m_tunnelShvPath);
-		m_rpcConnection->sendMessage(rq);
+		cp::RpcResponse resp;
+		resp.setRequestId(m_writeTunnelHandle.requestId());
+		resp.setCallerIds(m_writeTunnelHandle.callerIds());
+		cp::RpcValue::List result{channel, data};
+		resp.setResult(result);
+		m_rpcConnection->sendMessage(resp);
 	}
 }
 
-void ShvRshApp::launchRemoteShell()
+void ShvRshApp::launchRemoteShellProcess()
 {
 	struct winsize ws;
 	if (::ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0)
 		SHV_EXCEPTION("ioctl-TIOCGWINSZ");
-	m_rpcConnection->callShvMethod(cp::Rpc::DIR_BROKER_APP
-				  , cp::Rpc::METH_SUBSCRIBE
-				  , cp::RpcValue::Map{
-					  {cp::Rpc::PAR_PATH, m_tunnelShvPath},
-					  {cp::Rpc::PAR_METHOD, cp::Rpc::NTF_CONNECTED_CHANGED},
-				  });
-	m_tunnelRequestId = m_rpcConnection->callShvMethod(m_tunnelShvPath, "runPtyCmd", cp::RpcValue::List{"/bin/sh", ws.ws_col, ws.ws_row});
+	m_rpcConnection->createSubscription(m_tunnelShvPath, cp::Rpc::NTF_CONNECTED_CHANGED);
+	{
+		cp::RpcRequest rq;
+		rq.setShvPath(m_tunnelShvPath);
+		rq.setMethod("runPtyCmd");
+		rq.setParams(cp::RpcValue::List{"/bin/sh", ws.ws_col, ws.ws_row});
+		rq.setOpenTunnelFlag();
+		m_tunnelRequestId = m_rpcConnection->callMethod(rq);
+	}
 }
 

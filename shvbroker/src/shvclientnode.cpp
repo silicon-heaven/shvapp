@@ -46,7 +46,14 @@ void ShvClientNode::processRawData(const shv::chainpack::RpcValue::MetaData &met
 	}
 	*/
 	rpc::ServerConnection *conn = connection();
-	conn->sendRawData(meta, std::move(data));
+	if(cp::RpcMessage::isOpenTunnelFlag(meta)) {
+		cp::RpcValue::MetaData m2(meta);
+		cp::RpcMessage::pushRevCallerId(m2, conn->connectionId());
+		conn->sendRawData(m2, std::move(data));
+	}
+	else {
+		conn->sendRawData(meta, std::move(data));
+	}
 }
 
 shv::chainpack::RpcValue ShvClientNode::hasChildren()

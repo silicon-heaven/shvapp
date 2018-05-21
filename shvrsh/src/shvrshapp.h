@@ -1,6 +1,7 @@
 #pragma once
 
 #include <shv/iotqt/node/shvnode.h>
+#include <shv/iotqt/rpc/tunnelhandle.h>
 
 #include <QCoreApplication>
 
@@ -40,14 +41,15 @@ private:
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	void onReadyReadStdIn();
 	void writeToTunnel(int channel, const shv::chainpack::RpcValue &data);
-	void launchRemoteShell();
+	void launchRemoteShellProcess();
 private:
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
 	AppCliOptions* m_cliOptions;
 	//std::string m_tunnelOpenMethodShvPath;
 	std::string m_tunnelShvPath;
-	unsigned m_createTunnelRequestId = 0;
+	unsigned m_launchRexecRequestId = 0;
 	unsigned m_tunnelRequestId = 0;
+	shv::iotqt::rpc::TunnelHandle m_writeTunnelHandle;
 
 	shv::iotqt::node::ShvNodeTree *m_shvTree = nullptr;
 };
