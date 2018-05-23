@@ -4,6 +4,7 @@ CONFIG += ordered
 SUBDIRS += \
     3rdparty \
     shvspy \
+    clients \
 
 unix {
 SUBDIRS += \
@@ -11,7 +12,5 @@ SUBDIRS += \
     shvagent \
     shvrexec \
     shvrsh \
-    revitestdevice \
-    bfsview \
 }
 
