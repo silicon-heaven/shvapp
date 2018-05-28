@@ -193,7 +193,7 @@ void BfsViewApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 				return;
 		}
 		catch (shv::core::Exception &e) {
-			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodInvocationException, e.message()));
+			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, e.message()));
 		}
 		if(resp.requestId().toInt() > 0) // RPC calls with requestID == 0 does not expect response
 			m_rpcConnection->sendMessage(resp);

@@ -339,7 +339,7 @@ void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData
 				rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
 				if(conn) {
 					conn->sendError(cp::RpcMessage::requestId(meta), cp::RpcResponse::Error::create(
-										cp::RpcResponse::Error::MethodInvocationException
+										cp::RpcResponse::Error::MethodCallException
 										, err_msg));
 				}
 			}

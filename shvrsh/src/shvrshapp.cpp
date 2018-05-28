@@ -154,7 +154,7 @@ void ShvRshApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 			resp.setResult(nd->processRpcRequest(rq));
 		}
 		catch (shv::core::Exception &e) {
-			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodInvocationException, e.message()));
+			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, e.message()));
 		}
 		m_rpcConnection->sendMessage(resp);
 	}

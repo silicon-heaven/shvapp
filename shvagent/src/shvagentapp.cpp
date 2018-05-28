@@ -37,6 +37,7 @@ static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false},
 	{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, false},
+	{cp::Rpc::METH_HELP, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_RUN_CMD, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_LAUNCH_REXEC, cp::MetaMethod::Signature::RetVoid, false},
 };
@@ -60,6 +61,24 @@ shv::chainpack::RpcValue AppRootNode::call(const std::string &method, const shv:
 	}
 	if(method == cp::Rpc::METH_CONNECTION_TYPE) {
 		return ShvAgentApp::instance()->rpcConnection()->connectionType();
+	}
+	if(method == cp::Rpc::METH_HELP) {
+		std::string meth = params.toString();
+		if(meth == cp::Rpc::METH_RUN_CMD) {
+			return 	"method: " + meth + "\n"
+					"params: cmd_string OR [cmd_string, 1, 2]\n"
+					"\tcmd_string: command with arguments to run\n"
+					"\t1: remote process std_out will be set at this possition in returned list\n"
+					"\t2: remote process std_err will be set at this possition in returned list\n"
+					"Any param can be omited in params sa list, also param order is irrelevant, ie [1,\"ls\"] is valid param list."
+					"return:\n"
+					"\t* process exit_code if params are just cmd_string\n"
+					"\t* list of process exit code and std_out and std_err on same possitions as they are in params list.\n"
+					;
+		}
+		else {
+			return "No help for method: " + meth;
+		}
 	}
 	return Super::call(method, params);
 }
@@ -222,7 +241,7 @@ void ShvAgentApp::launchRexec(const shv::chainpack::RpcRequest &rq)
 			shvInfo() << "Got tunnel handle from child process:" << result.toPrettyString();
 		}
 		catch (std::exception &e) {
-			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodInvocationException, e.what()));
+			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, e.what()));
 		}
 		m_rpcConnection->sendMessage(resp);
 	});
@@ -242,11 +261,59 @@ void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq)
 	SessionProcess *proc = new SessionProcess(this);
 	auto rq2 = rq;
 	connect(proc, static_cast<void (SessionProcess::*)(int)>(&SessionProcess::finished), [this, proc, rq2](int) {
-		QByteArray ba = proc->readAllStandardOutput();
+		cp::RpcValue result;
+		if(rq2.params().isList()) {
+			cp::RpcValue::List lst;
+			for(auto p : rq2.params().toList()) {
+				if(p.isString()) {
+					lst.push_back(proc->exitCode());
+				}
+				else {
+					int i = p.toInt();
+					if(i == STDOUT_FILENO) {
+						QByteArray ba = proc->readAllStandardOutput();
+						lst.push_back(std::string(ba.constData(), ba.size()));
+					}
+					else if(i == STDERR_FILENO) {
+						QByteArray ba = proc->readAllStandardError();
+						lst.push_back(std::string(ba.constData(), ba.size()));
+					}
+					else {
+						shvInfo() << "RunCmd: Invalid request parameter:" << p.toCpon();
+						lst.push_back(nullptr);
+					}
+				}
+			}
+			result = lst;
+		}
+		else {
+			QByteArray ba = proc->readAllStandardOutput();
+			result = std::string(ba.constData(), ba.size());
+		}
 		cp::RpcResponse resp = cp::RpcResponse::forRequest(rq2);
-		resp.setResult(std::string(ba.constData(), ba.size()));
+		resp.setResult(result);
 		m_rpcConnection->sendMessage(resp);
 	});
+	connect(proc, &QProcess::errorOccurred, [this, rq2](QProcess::ProcessError error) {
+		shvInfo() << "RunCmd: Exec process error:" << error;
+		if(error == QProcess::FailedToStart) {
+			cp::RpcResponse resp = cp::RpcResponse::forRequest(rq2);
+			resp.setError(cp::RpcResponse::Error::createMethodCallExceptionError("Failed to start process"));
+			m_rpcConnection->sendMessage(resp);
+		}
+	});
+	std::string cmd;
+	if(rq.params().isList()) {
+		for(auto p : rq.params().toList()) {
+			if(p.isString()) {
+				cmd = p.toString();
+				break;
+			}
+		}
+	}
+	else {
+		cmd = rq.params().toString();
+	}
 	proc->start(QString::fromStdString(rq.params().toString()));
 }
 
@@ -279,7 +346,7 @@ void ShvAgentApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 				return;
 		}
 		catch (shv::core::Exception &e) {
-			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodInvocationException, e.message()));
+			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, e.message()));
 		}
 		if(resp.requestId().toInt() > 0) // RPC calls with requestID == 0 does not expect response
 			m_rpcConnection->sendMessage(resp);

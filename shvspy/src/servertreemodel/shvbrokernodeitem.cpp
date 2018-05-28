@@ -235,7 +235,7 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 			}
 		}
 		catch (shv::core::Exception &e) {
-			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodInvocationException, e.message()));
+			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, e.message()));
 		}
 		m_rpcConnection->sendMessage(resp);
 	}
