@@ -4,7 +4,7 @@ SHV_TOP_SRCDIR = $$PWD/../..
 message ( SHV_TOP_SRCDIR == '$$SHV_TOP_SRCDIR' )
 message ( SHV_TOP_BUILDDIR == '$$SHV_TOP_BUILDDIR' )
 
-QT += core network
+QT += core network widgets svg xml
 QT -= gui
 CONFIG += c++11
 
@@ -41,7 +41,7 @@ INCLUDEPATH += \
 
 
 RESOURCES += \
-        #shvbroker.qrc \
+        bfsview.qrc \
 
 
 TRANSLATIONS += \

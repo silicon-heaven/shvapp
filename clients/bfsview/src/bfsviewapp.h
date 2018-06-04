@@ -2,7 +2,7 @@
 
 #include <shv/iotqt/node/shvnode.h>
 
-#include <QCoreApplication>
+#include <QApplication>
 
 class AppCliOptions;
 namespace shv { namespace chainpack { class RpcMessage; }}
@@ -41,11 +41,11 @@ private:
 	unsigned m_pwrStatus = 0;
 };
 
-class BfsViewApp : public QCoreApplication
+class BfsViewApp : public QApplication
 {
 	Q_OBJECT
 private:
-	using Super = QCoreApplication;
+	using Super = QApplication;
 public:
 	BfsViewApp(int &argc, char **argv, AppCliOptions* cli_opts);
 	~BfsViewApp() Q_DECL_OVERRIDE;

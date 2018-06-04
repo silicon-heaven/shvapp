@@ -1,5 +1,6 @@
 #include "bfsviewapp.h"
 #include "appclioptions.h"
+#include "mainwindow.h"
 
 #include <shv/core/utils.h>
 
@@ -56,6 +57,9 @@ int main(int argc, char *argv[])
 	shvInfo() << "--------------------------------------------------------------------------------------";
 
 	BfsViewApp a(argc, argv, &cli_opts);
+
+	MainWindow w;
+	w.show();
 
 	shvInfo() << "starting main thread event loop";
 	ret = a.exec();
