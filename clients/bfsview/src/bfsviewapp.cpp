@@ -121,12 +121,14 @@ BfsViewApp::BfsViewApp(int &argc, char **argv, AppCliOptions* cli_opts)
 
 	m_rpcConnection = new shv::iotqt::rpc::DeviceConnection(this);
 
+	if(!cli_opts->serverHost_isset())
+		cli_opts->setServerHost("nirvana.elektroline.cz");
 	if(!cli_opts->user_isset())
 		cli_opts->setUser("iot");
 	if(!cli_opts->password_isset())
 		cli_opts->setPassword("lub42DUB");
 	if(!cli_opts->deviceId_isset())
-		cli_opts->setDeviceId("bfsview_test");
+		cli_opts->setDeviceId("bfsview-001");
 	m_rpcConnection->setCliOptions(cli_opts);
 
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &BfsViewApp::onBrokerConnectedChanged);
@@ -148,6 +150,17 @@ BfsViewApp::BfsViewApp(int &argc, char **argv, AppCliOptions* cli_opts)
 		});
 		tm->start(m_cliOptions->pwrStatusPublishInterval() * 1000);
 	}
+
+	connect(this, &BfsViewApp::ompagStatusChanged, [this](int val) {
+		if(rpcConnection()->isBrokerConnected()) {
+			rpcConnection()->callShvMethod("../bfs1", "setOmpag", val == (int)SwitchStatus::On);
+		}
+	});
+	connect(this, &BfsViewApp::bsStatusChanged, [this](int val) {
+		if(rpcConnection()->isBrokerConnected()) {
+			rpcConnection()->callShvMethod("../bfs1", "setConv", val == (int)SwitchStatus::On);
+		}
+	});
 }
 
 BfsViewApp::~BfsViewApp()
@@ -160,15 +173,21 @@ BfsViewApp *BfsViewApp::instance()
 	return qobject_cast<BfsViewApp *>(QCoreApplication::instance());
 }
 
+void BfsViewApp::setPwrStatus(unsigned u)
+{
+	m_pwrStatusNode->setPwrStatus(u);
+}
+/*
+unsigned BfsViewApp::pwrStatus()
+{
+	return m_pwrStatusNode->pwrStatus();
+}
+*/
 void BfsViewApp::onBrokerConnectedChanged(bool is_connected)
 {
-	if(!is_connected)
-		return;
-	try {
-
-	}
-	catch (shv::core::Exception &e) {
-		shvError() << "Lublicator Testing FAILED:" << e.message();
+	if(is_connected) {
+		rpcConnection()->createSubscription("../bfs1", cp::Rpc::NTF_VAL_CHANGED);
+		m_pwrStatusNode->emitPwrStatusChanged();
 	}
 }
 
@@ -203,15 +222,13 @@ void BfsViewApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 		shvInfo() << "RPC response received:" << rp.toCpon();
 	}
 	else if(msg.isNotify()) {
-		cp::RpcNotify nt(msg);
-		shvInfo() << "RPC notify received:" << nt.toCpon();
-		/*
-		if(nt.method() == cp::Rpc::NTF_VAL_CHANGED) {
-			if(nt.shvPath() == "/test/shv/lublicator2/status") {
-				shvInfo() << lublicatorStatusToString(nt.params().toUInt());
+		cp::RpcNotify ntf(msg);
+		shvInfo() << "RPC notify received:" << ntf.toCpon();
+		if(ntf.method() == cp::Rpc::NTF_VAL_CHANGED) {
+			if(ntf.shvPath() == "../bfs1/status") {
+				setBfsStatus(ntf.params().toInt());
 			}
 		}
-		*/
 	}
 }
 /*

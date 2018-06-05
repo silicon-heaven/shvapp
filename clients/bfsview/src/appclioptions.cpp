@@ -3,6 +3,6 @@
 AppCliOptions::AppCliOptions(QObject *parent)
 	: Super(parent)
 {
-	addOption("pwrStatus.publishInterval").setType(QVariant::Int).setNames("-i", "--pwr-status-publish-interval")
+	addOption("pwrStatus.publishInterval").setType(QVariant::Int).setNames("-i", "--pwr-status-publish-interval").setDefaultValue(5)
 			.setComment(tr("How often the pwrStatus value will be sent as notification [sec], disabled when == 0."));
 }

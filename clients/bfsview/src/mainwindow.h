@@ -14,11 +14,6 @@ class MainWindow : public QMainWindow
 {
 	Q_OBJECT
 
-	SHV_PROPERTY_IMPL2(int, o, O, mpagStatus, 0)
-	SHV_PROPERTY_IMPL2(int, b, B, sStatus, 0)
-
-public:
-	enum class SwitchStatus {Unknown = 0, Off, On};
 public:
 	explicit MainWindow(QWidget *parent = 0);
 	~MainWindow();
@@ -28,6 +23,8 @@ private slots:
 	void on_actionBsOn_toggled(bool on);
 
 	void refreshStatus();
+
+	void on_actionPwrStatus_toggled(bool on);
 
 private:
 	QDomElement elementById(const QString &id);

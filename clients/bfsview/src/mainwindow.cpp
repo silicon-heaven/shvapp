@@ -1,9 +1,13 @@
+#include "bfsviewapp.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
 #include <shv/coreqt/log.h>
+#include <shv/iotqt/rpc/deviceconnection.h>
 
 #include <QFile>
+
+#define TEST
 
 MainWindow::MainWindow(QWidget *parent)
 	: QMainWindow(parent)
@@ -11,9 +15,12 @@ MainWindow::MainWindow(QWidget *parent)
 	, m_xDoc("SVG")
 {
 	ui->setupUi(this);
-
-	connect(this, &MainWindow::ompagStatusChanged, this, &MainWindow::refreshStatus);
-	connect(this, &MainWindow::bsStatusChanged, this, &MainWindow::refreshStatus);
+#ifdef TEST
+	connect(BfsViewApp::instance(), &BfsViewApp::ompagStatusChanged, this, &MainWindow::refreshStatus);
+	connect(BfsViewApp::instance(), &BfsViewApp::bsStatusChanged, this, &MainWindow::refreshStatus);
+#endif
+	connect(BfsViewApp::instance(), &BfsViewApp::bfsStatusChanged, this, &MainWindow::refreshStatus);
+	connect(BfsViewApp::instance()->rpcConnection(), &shv::iotqt::rpc::DeviceConnection::brokerConnectedChanged, this, &MainWindow::refreshStatus);
 
 	{
 		QFile file(":/images/bfs1.svg");
@@ -34,19 +41,24 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_actionOmpagOn_toggled(bool on)
 {
-	setOmpagStatus(on? (int)SwitchStatus::On : (int)SwitchStatus::Off);
+	BfsViewApp::instance()->setOmpagStatus(on? (int)BfsViewApp::SwitchStatus::On : (int)BfsViewApp::SwitchStatus::Off);
 }
 
 void MainWindow::on_actionBsOn_toggled(bool on)
 {
-	setBsStatus(on? (int)SwitchStatus::On : (int)SwitchStatus::Off);
+	BfsViewApp::instance()->setBsStatus(on? (int)BfsViewApp::SwitchStatus::On : (int)BfsViewApp::SwitchStatus::Off);
+}
+
+void MainWindow::on_actionPwrStatus_toggled(bool on)
+{
+	BfsViewApp::instance()->setPwrStatus(on? 1: 0);
 }
 
 static QString statusToColor(int status)
 {
-	switch ((MainWindow::SwitchStatus)status) {
-	case MainWindow::SwitchStatus::On: return QStringLiteral("lime");
-	case MainWindow::SwitchStatus::Off: return QStringLiteral("red");
+	switch ((BfsViewApp::SwitchStatus)status) {
+	case BfsViewApp::SwitchStatus::On: return QStringLiteral("lime");
+	case BfsViewApp::SwitchStatus::Off: return QStringLiteral("red");
 	default: return QStringLiteral("gray");
 	}
 }
@@ -114,16 +126,28 @@ void MainWindow::setElementStyleAttribute(const QString &elem_id, const QString 
 
 void MainWindow::refreshStatus()
 {
-	setElementFillColor(QStringLiteral("sw_ompag_rect"), statusToColor(ompagStatus()));
-	setElementVisible(QStringLiteral("sw_ompag_on"), ompagStatus() == (int)SwitchStatus::On);
-	setElementVisible(QStringLiteral("sw_ompag_off"), ompagStatus() <= (int)SwitchStatus::Off);
+	BfsViewApp *app = BfsViewApp::instance();
+#ifdef TEST
+	int ompag_status = app->ompagStatus();
+	int bs_status = app->bsStatus();
+#else
+	unsigned ps = app->bfsStatus();
+	int ompag_status = (ps & ((1 << BfsViewApp::BfsStatus::OmpagOn) | (1 << BfsViewApp::BfsStatus::OmpagOff))) >> BfsViewApp::BfsStatus::OmpagOn;
+	int bs_status = (ps & ((1 << BfsViewApp::BfsStatus::MswOn) | (1 << BfsViewApp::BfsStatus::MswOff))) >> BfsViewApp::BfsStatus::MswOn;
+#endif
+	setElementFillColor(QStringLiteral("sw_ompag_rect"), statusToColor(ompag_status));
+	setElementVisible(QStringLiteral("sw_ompag_on"), ompag_status == (int)BfsViewApp::SwitchStatus::On);
+	setElementVisible(QStringLiteral("sw_ompag_off"), ompag_status == (int)BfsViewApp::SwitchStatus::Off);
 
-	setElementFillColor(QStringLiteral("sw_bs_rect"), statusToColor(bsStatus()));
-	setElementVisible(QStringLiteral("sw_bs_on"), bsStatus() == (int)SwitchStatus::On);
-	setElementVisible(QStringLiteral("sw_bs_off"), bsStatus() <= (int)SwitchStatus::Off);
+	setElementFillColor(QStringLiteral("sw_bs_rect"), statusToColor(bs_status));
+	setElementVisible(QStringLiteral("sw_bs_on"), bs_status == (int)BfsViewApp::SwitchStatus::On);
+	setElementVisible(QStringLiteral("sw_bs_off"), bs_status == (int)BfsViewApp::SwitchStatus::Off);
+
+	setElementFillColor(QStringLiteral("shv_rect_bfs"), app->rpcConnection()->isBrokerConnected()? "white": "salmon");
 
 	QByteArray ba = m_xDoc.toByteArray(0);
 	//shvInfo() << m_xDoc.toString();
 	ui->visuWidget->load(ba);
 }
+
 

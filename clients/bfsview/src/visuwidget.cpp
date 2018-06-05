@@ -24,6 +24,8 @@ void VisuWidget::paintEvent(QPaintEvent *event)
 	QPainter p(this);
 	QSize svg_sz = m_renderer->defaultSize();
 	QRect r = geometry();
+	r.moveTopLeft({0, 0});
+	p.fillRect(r, QColor("#2b4174"));
 	QSize sz = r.size();
 	sz = svg_sz.scaled(sz, Qt::KeepAspectRatio);
 	r.setSize(sz);

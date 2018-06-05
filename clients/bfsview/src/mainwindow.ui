@@ -15,6 +15,21 @@
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayout">
+    <property name="spacing">
+     <number>0</number>
+    </property>
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
     <item>
      <widget class="VisuWidget" name="visuWidget" native="true"/>
     </item>
@@ -39,6 +54,7 @@
    </attribute>
    <addaction name="actionOmpagOn"/>
    <addaction name="actionBsOn"/>
+   <addaction name="actionPwrStatus"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionOmpagOn">
@@ -55,6 +71,14 @@
    </property>
    <property name="text">
     <string>BS ON</string>
+   </property>
+  </action>
+  <action name="actionPwrStatus">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>PWR Status</string>
    </property>
   </action>
  </widget>
