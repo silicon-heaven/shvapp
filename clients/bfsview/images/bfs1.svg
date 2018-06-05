@@ -51,9 +51,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="3.959798"
-     inkscape:cx="541.22356"
-     inkscape:cy="710.62272"
+     inkscape:zoom="1.4"
+     inkscape:cx="607.80167"
+     inkscape:cy="345.06367"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -299,7 +299,7 @@
        sodipodi:nodetypes="cc" />
     <rect
        style="color:#000000;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:5;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
-       id="rect3922"
+       id="shv_rect_error"
        width="324.51151"
        height="77.781746"
        x="334.86301"
@@ -309,9 +309,9 @@
        style="font-size:62.42512512px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none;font-family:Sans"
        x="346.77838"
        y="647.81207"
-       id="text3924"
+       id="shv_txt_error"
        sodipodi:linespacing="125%"><tspan
-         id="txt_error"
+         id="shv_tspan_error"
          sodipodi:role="line"
          x="346.77838"
          y="647.81207">Varovani</tspan></text>
@@ -343,7 +343,7 @@
          id="tspan3859"
          y="911.91174"
          x="93.937492"
-         sodipodi:role="line">napaječ odpojen</tspan></text>
+         sodipodi:role="line">napaječ připojen</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:29.08032417px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
@@ -378,7 +378,7 @@
        x="61.815403"
        height="19.192898"
        width="19.371468"
-       id="shv_rect_Power"
+       id="shv_rect_power"
        style="color:#000000;fill:#00ff00;fill-opacity:1;fill-rule:nonzero;stroke:#ffffff;stroke-width:1;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate" />
     <rect
        style="color:#000000;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:#ffffff;stroke-width:1;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"

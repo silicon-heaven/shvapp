@@ -31,6 +31,10 @@ unix {
                 -Wl,-rpath,\'\$\$ORIGIN/../lib\'
 }
 
+test {
+	DEFINES += TEST
+}
+
 INCLUDEPATH += \
         ../../3rdparty/libshv/3rdparty/necrolog/include \
         ../../3rdparty/libshv/libshvchainpack/include \

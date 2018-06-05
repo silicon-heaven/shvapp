@@ -150,17 +150,6 @@ BfsViewApp::BfsViewApp(int &argc, char **argv, AppCliOptions* cli_opts)
 		});
 		tm->start(m_cliOptions->pwrStatusPublishInterval() * 1000);
 	}
-
-	connect(this, &BfsViewApp::ompagStatusChanged, [this](int val) {
-		if(rpcConnection()->isBrokerConnected()) {
-			rpcConnection()->callShvMethod("../bfs1", "setOmpag", val == (int)SwitchStatus::On);
-		}
-	});
-	connect(this, &BfsViewApp::bsStatusChanged, [this](int val) {
-		if(rpcConnection()->isBrokerConnected()) {
-			rpcConnection()->callShvMethod("../bfs1", "setConv", val == (int)SwitchStatus::On);
-		}
-	});
 }
 
 BfsViewApp::~BfsViewApp()
@@ -175,14 +164,31 @@ BfsViewApp *BfsViewApp::instance()
 
 void BfsViewApp::setPwrStatus(unsigned u)
 {
+	if(pwrStatus() == u)
+		return;
 	m_pwrStatusNode->setPwrStatus(u);
+	emit pwrStatusChanged(u);
 }
-/*
+
 unsigned BfsViewApp::pwrStatus()
 {
 	return m_pwrStatusNode->pwrStatus();
 }
-*/
+
+void BfsViewApp::setOmpag(bool val)
+{
+	if(rpcConnection()->isBrokerConnected()) {
+		rpcConnection()->callShvMethod("../bfs1", "setOmpag", val);
+	}
+}
+
+void BfsViewApp::setConv(bool val)
+{
+	if(rpcConnection()->isBrokerConnected()) {
+		rpcConnection()->callShvMethod("../bfs1", "setConv", val);
+	}
+}
+
 void BfsViewApp::onBrokerConnectedChanged(bool is_connected)
 {
 	if(is_connected) {
@@ -223,12 +229,15 @@ void BfsViewApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 	}
 	else if(msg.isNotify()) {
 		cp::RpcNotify ntf(msg);
+#ifdef TEST
 		shvInfo() << "RPC notify received:" << ntf.toCpon();
+#else
 		if(ntf.method() == cp::Rpc::NTF_VAL_CHANGED) {
 			if(ntf.shvPath() == "../bfs1/status") {
 				setBfsStatus(ntf.params().toInt());
 			}
 		}
+#endif
 	}
 }
 /*

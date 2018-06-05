@@ -47,20 +47,32 @@ class BfsViewApp : public QApplication
 	Q_OBJECT
 
 	SHV_PROPERTY_IMPL2(int, b, B, fsStatus, 0)
-	SHV_PROPERTY_IMPL2(int, o, O, mpagStatus, 0)
-	SHV_PROPERTY_IMPL2(int, b, B, sStatus, 0)
-	//SHV_PROPERTY_BOOL_IMPL2(p, P, wrStatus, false)
-
+#ifdef TEST
+	//SHV_PROPERTY_BOOL_IMPL2(o, O, mpagStatus, 0)
+	//SHV_PROPERTY_BOOL_IMPL2(b, B, sStatus, 0)
+#endif
 private:
 	using Super = QApplication;
 public:
 public:
 	enum class SwitchStatus {Unknown = 0, On, Off};
 	enum BfsStatus {
-		OmpagOn = 5,
-		OmpagOff = 6,
-		MswOn = 11,
-		MswOff = 12,
+		BfsOn = 0,
+		BfsOff,
+		Buffering,
+		Charging,
+		ConvOn,
+		OmpagOn,
+		OmpagOff,
+		Cooling,
+		Error,
+		Warning,
+		ShvDisconnected,
+		MswOn,
+		MswOff,
+		HsswTOn,
+		DoorOpen,
+		FswOn,
 	};
 public:
 	BfsViewApp(int &argc, char **argv, AppCliOptions* cli_opts);
@@ -71,7 +83,11 @@ public:
 	AppCliOptions* cliOptions() {return m_cliOptions;}
 
 	void setPwrStatus(unsigned u);
-	//unsigned pwrStatus();
+	unsigned pwrStatus();
+	Q_SIGNAL void pwrStatusChanged(bool b);
+
+	void setOmpag(bool val);
+	void setConv(bool val);
 private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
