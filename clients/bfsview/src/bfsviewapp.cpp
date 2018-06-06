@@ -177,16 +177,30 @@ unsigned BfsViewApp::pwrStatus()
 
 void BfsViewApp::setOmpag(bool val)
 {
+#ifdef TEST
+	int s = bfsStatus();
+	setBit(s, BfsStatus::OmpagOn, val);
+	setBit(s, BfsStatus::OmpagOff, !val);
+	setBfsStatus(s);
+#else
 	if(rpcConnection()->isBrokerConnected()) {
 		rpcConnection()->callShvMethod("../bfs1", "setOmpag", val);
 	}
+#endif
 }
 
 void BfsViewApp::setConv(bool val)
 {
+#ifdef TEST
+	int s = bfsStatus();
+	setBit(s, BfsViewApp::BfsStatus::MswOn, val);
+	setBit(s, BfsViewApp::BfsStatus::MswOff, !val);
+	setBfsStatus(s);
+#else
 	if(rpcConnection()->isBrokerConnected()) {
 		rpcConnection()->callShvMethod("../bfs1", "setConv", val);
 	}
+#endif
 }
 
 void BfsViewApp::onBrokerConnectedChanged(bool is_connected)

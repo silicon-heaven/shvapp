@@ -47,6 +47,9 @@ INCLUDEPATH += \
 RESOURCES += \
         bfsview.qrc \
 
+win32 {
+RC_ICONS = bfsview.ico
+}
 
 TRANSLATIONS += \
 #        ../eyassrv.pl_PL.ts \

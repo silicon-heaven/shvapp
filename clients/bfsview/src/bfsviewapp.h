@@ -55,7 +55,7 @@ private:
 	using Super = QApplication;
 public:
 public:
-	enum class SwitchStatus {Unknown = 0, On, Off};
+	enum SwitchStatus {Unknown = 0, On, Off};
 	enum BfsStatus {
 		BfsOn = 0,
 		BfsOff,
@@ -88,6 +88,21 @@ public:
 
 	void setOmpag(bool val);
 	void setConv(bool val);
+
+	static inline void setBit(int &val, int bit_no, bool b)
+	{
+		int mask = 1 << bit_no;
+		if(b)
+			val |= mask;
+		else
+			val &= ~mask;
+	}
+
+	static inline bool isBit(int val, int bit_no)
+	{
+		int mask = 1 << bit_no;
+		return val & mask;
+	}
 private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);

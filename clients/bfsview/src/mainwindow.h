@@ -4,7 +4,8 @@
 #include <shv/coreqt/utils.h>
 
 #include <QMainWindow>
-#include <QDomDocument>
+
+class QPoint;
 
 namespace Ui {
 class MainWindow;
@@ -24,19 +25,11 @@ private slots:
 	void on_convOn_toggled(bool on);
 	void on_pwrOn_toggled(bool on);
 
-	void refreshStatus();
+	//void onVisuWidgetContextMenuRequest(const QPoint &pos);
 private:
-	QDomElement elementById(const QString &id);
-	void setElementText(const QString &elem_id, const QString &text);
-	void setElementColor(const QString &id, const QString &c);
-	void setElementFillColor(const QString &id, const QString &c);
-	void setElementVisible(const QString &elem_id, bool on);
-	void setElementStyleAttribute(const QString &elem_id, const QString &key, const QString &val);
-
 	void closeEvent(QCloseEvent *event) override;
 private:
 	Ui::MainWindow *ui;
-	QDomDocument m_xDoc;
 };
 
 #endif // MAINWINDOW_H
