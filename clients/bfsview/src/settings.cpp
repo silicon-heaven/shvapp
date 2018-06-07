@@ -6,7 +6,7 @@ Settings::Settings(QSettings &settings)
 	: m_settings(settings)
 {
 }
-
+/*
 QString Settings::powerSwitchName()
 {
 	return m_settings.value("power/switchName").toString();
@@ -16,7 +16,7 @@ void Settings::setPowerSwitchName(const QString &s)
 {
 	m_settings.setValue("power/switchName", s);
 }
-
+*/
 QString Settings::powerFileName()
 {
 	return m_settings.value("power/fileName").toString();

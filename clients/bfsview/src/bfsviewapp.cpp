@@ -173,7 +173,7 @@ void BfsViewApp::loadSettings()
 {
 	QSettings qsettings;
 	Settings settings(qsettings);
-	m_powerSwitchName = settings.powerSwitchName();
+	//m_powerSwitchName = settings.powerSwitchName();
 	m_powerFileName = settings.powerFileName();
 	int inter = settings.powerFileCheckInterval();
 	if(inter < 30)
@@ -196,8 +196,8 @@ void BfsViewApp::checkPowerSwitchStatusFile()
 		setPwrStatus(0);
 		return;
 	}
-	QDateTime ts;
-	int status = 0;
+	//QDateTime new_ts;
+	int new_status = 0;
 	while(!file.atEnd()) {
 		QByteArray ba = file.readLine().trimmed();
 		if(ba.isEmpty())
@@ -205,19 +205,19 @@ void BfsViewApp::checkPowerSwitchStatusFile()
 		QString line = QString::fromUtf8(ba);
 		shvDebug() << line;
 		QString name = line.section(' ', 0, 0);
-		status = line.section(' ', 1, 1).toInt();
-		shvDebug() << name << status;
-		if(name == m_powerSwitchName) {
-			ts = QDateTime::fromString(line.section(' ', 2, 2), QStringLiteral("yyyy-M-dTHH:mm:ss"));
-			break;
+		int status = line.section(' ', 1, 1).toInt();
+		QDateTime ts = QDateTime::fromString(line.section(' ', 2, 2), QStringLiteral("yyyy-M-dTHH:mm:ss"));
+		shvDebug() << name << status << ts.toString(Qt::ISODate);
+		if(status == 1 && ts.isValid()) {
+			QDateTime curr_ts = QDateTime::currentDateTimeUtc();
+			if(ts.secsTo(curr_ts) < 2*m_powerFileCheckTimer->interval()/1000) {
+				new_status = 1;
+				shvInfo() << "ts:" << ts.toString(Qt::ISODate) << "pwr:" << new_status;
+				break;
+			}
 		}
 	}
-	shvInfo() << "last ts:" << m_lastTS.toString(Qt::ISODate) << "ts:" << ts.toString(Qt::ISODate);
-	if((!m_lastTS.isValid() && ts.isValid()) || m_lastTS.secsTo(ts) > m_powerFileCheckTimer->interval()/1000/2)
-		setPwrStatus(status);
-	else
-		setPwrStatus(0);
-	m_lastTS = ts;
+	setPwrStatus(new_status);
 }
 
 void BfsViewApp::setPwrStatus(unsigned u)
@@ -266,6 +266,15 @@ void BfsViewApp::onBrokerConnectedChanged(bool is_connected)
 	if(is_connected) {
 		rpcConnection()->createSubscription("../bfs1", cp::Rpc::NTF_VAL_CHANGED);
 		m_pwrStatusNode->sendPwrStatusChanged();
+		m_getStatusRpcId = rpcConnection()->callShvMethod("../bfs1/status", cp::Rpc::METH_GET);
+		//shvInfo() << "get status rq id:" << m_getStatusRpcId;
+		/*
+		QTimer::singleShot(0, [this]() {
+			/// wait for PLC to settle up before
+			m_getStatusRpcId = rpcConnection()->callShvMethod("../bfs1/status", cp::Rpc::METH_GET);
+			shvInfo() << "get status rq id:" << m_getStatusRpcId;
+		});
+		*/
 	}
 }
 
@@ -296,8 +305,12 @@ void BfsViewApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 			m_rpcConnection->sendMessage(resp);
 	}
 	else if(msg.isResponse()) {
-		cp::RpcResponse rp(msg);
-		shvInfo() << "RPC response received:" << rp.toCpon();
+		cp::RpcResponse rsp(msg);
+		//shvInfo() << "RPC response received:" << rsp.toCpon();
+		if(rsp.requestId() == m_getStatusRpcId) {
+			setBfsStatus(rsp.result().toInt());
+			m_getStatusRpcId = 0;
+		}
 	}
 	else if(msg.isNotify()) {
 		cp::RpcNotify ntf(msg);

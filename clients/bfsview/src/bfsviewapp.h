@@ -114,11 +114,12 @@ private:
 	shv::iotqt::node::ShvNodeTree *m_shvTree = nullptr;
 	PwrStatusNode *m_pwrStatusNode;
 
-	QString m_powerSwitchName;
+	//QString m_powerSwitchName;
 	QString m_powerFileName;
 	//int m_powerFileCheckInterval;
 	QTimer *m_powerFileCheckTimer = nullptr;
-	QDateTime m_lastTS;
+	//QDateTime m_lastTS;
+	unsigned m_getStatusRpcId = 0;
 
 };
 
