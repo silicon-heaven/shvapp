@@ -1,5 +1,6 @@
 #include "visuwidget.h"
 #include "bfsviewapp.h"
+#include "settingsdialog.h"
 
 #include <shv/coreqt/log.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
@@ -148,6 +149,10 @@ void VisuWidget::contextMenuEvent(QContextMenuEvent *event)
 	else {
 		menu.addAction(tr("Nastavení"), [this]() {
 			shvInfo() << "settings";
+			SettingsDialog dlg(this);
+			if(dlg.exec()) {
+				BfsViewApp::instance()->loadSettings();
+			}
 		});
 		menu.addAction(tr("O Aplikaci"), [this]() {
 			shvInfo() << "about";
@@ -155,9 +160,9 @@ void VisuWidget::contextMenuEvent(QContextMenuEvent *event)
 							   , tr("O Aplikaci")
 							   , tr("<b>BFS View</b><br/>"
 									"<br/>"
-									"ver: 1.0.0<br/>"
+									"ver: %1<br/>"
 									"Elektroline a.s. (2018)"
-									));
+									).arg(QCoreApplication::applicationVersion()));
 		});
 	}
 	if(menu.actions().count())
@@ -290,24 +295,32 @@ void VisuWidget::refreshVisualization()
 
 	setElementFillColor(QStringLiteral("shv_rect_bfsPower"), statusToColor(bfs_status));
 
-	setElementFillColor(QStringLiteral("shv_rect_bfs"), app->rpcConnection()->isBrokerConnected()? "white": "salmon");
-
 	setElementFillColor(QStringLiteral("shv_rect_power"), bitToColor(app->pwrStatus()));
 
-	setElementVisible(QStringLiteral("shv_rect_error"), BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::Warning) || BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::Error));
-	setElementVisible(QStringLiteral("shv_txt_error"), BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::Warning) || BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::Error));
-	setElementFillColor(QStringLiteral("shv_rect_error"),
-						BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::Error)? "#FF0000"
-						: BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::Warning)? "yellow"
-						: "none");
-	setElementFillColor(QStringLiteral("shv_txt_error"),
-						BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::Error)? "white"
-						: BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::Warning)? "black"
-						: "none");
-	setElementText(QStringLiteral("shv_tspan_error"),
-						BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::Error)? "Porucha"
-						: BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::Warning)? "Varování"
-						: QString());
+	shvDebug() << "app->rpcConnection()->isBrokerConnected():" << app->rpcConnection()->isBrokerConnected();
+	if(app->rpcConnection()->isBrokerConnected()) {
+		setElementVisible(QStringLiteral("shv_rect_error"), BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::Warning) || BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::Error));
+		setElementVisible(QStringLiteral("shv_txt_error"), BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::Warning) || BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::Error));
+		setElementFillColor(QStringLiteral("shv_rect_error"),
+							BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::Error)? "#FF0000"
+							: BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::Warning)? "yellow"
+							: "none");
+		setElementFillColor(QStringLiteral("shv_txt_error"),
+							BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::Error)? "white"
+							: BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::Warning)? "black"
+							: "none");
+		setElementText(QStringLiteral("shv_tspan_error"),
+							BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::Error)? "Porucha"
+							: BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::Warning)? "Varování"
+							: QString());
+	}
+	else {
+		setElementVisible(QStringLiteral("shv_rect_error"), true);
+		setElementVisible(QStringLiteral("shv_txt_error"), true);
+		setElementFillColor(QStringLiteral("shv_rect_error"), "lightgray");
+		setElementFillColor(QStringLiteral("shv_txt_error"), "black");
+		setElementText(QStringLiteral("shv_tspan_error"), tr("Připojování"));
+	}
 
 	setElementFillColor(QStringLiteral("shv_rect_buffering"), goodBitToColor(BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::Buffering)));
 	setElementFillColor(QStringLiteral("shv_rect_charging"), goodBitToColor(BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::Charging)));

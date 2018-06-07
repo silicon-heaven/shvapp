@@ -1,5 +1,6 @@
 #include "bfsviewapp.h"
 #include "appclioptions.h"
+#include "settings.h"
 
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/rpc/tunnelconnection.h>
@@ -11,7 +12,8 @@
 
 #include <shv/core/stringview.h>
 
-#include <QProcess>
+//#include <QProcess>
+#include <QSettings>
 #include <QTimer>
 
 namespace cp = shv::chainpack;
@@ -101,16 +103,20 @@ void PwrStatusNode::setPwrStatus(unsigned s)
 	if(s == m_pwrStatus)
 		return;
 	m_pwrStatus = s;
-	emitPwrStatusChanged();
+	sendPwrStatusChanged();
 }
 
-void PwrStatusNode::emitPwrStatusChanged()
+void PwrStatusNode::sendPwrStatusChanged()
 {
+#ifndef TEST
+	if(!BfsViewApp::instance()->rpcConnection()->isBrokerConnected())
+		return;
 	cp::RpcNotify ntf;
 	ntf.setMethod(cp::Rpc::NTF_VAL_CHANGED);
 	ntf.setParams(m_pwrStatus);
 	ntf.setShvPath(BFS1_PWR_STATUS);
 	rootNode()->emitSendRpcMesage(ntf);
+#endif
 }
 
 BfsViewApp::BfsViewApp(int &argc, char **argv, AppCliOptions* cli_opts)
@@ -142,14 +148,15 @@ BfsViewApp::BfsViewApp(int &argc, char **argv, AppCliOptions* cli_opts)
 
 	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
 	if(cli_opts->pwrStatusPublishInterval() > 0) {
-		shvInfo() << "pwrStatus publis interval set to:" << cli_opts->pwrStatusPublishInterval() << "sec.";
+		shvInfo() << "pwrStatus publish interval set to:" << cli_opts->pwrStatusPublishInterval() << "sec.";
 		QTimer *tm = new QTimer(this);
 		connect(tm, &QTimer::timeout, [this]() {
 			if(rpcConnection()->isBrokerConnected())
-				m_pwrStatusNode->emitPwrStatusChanged();
+				m_pwrStatusNode->sendPwrStatusChanged();
 		});
 		tm->start(m_cliOptions->pwrStatusPublishInterval() * 1000);
 	}
+	loadSettings();
 }
 
 BfsViewApp::~BfsViewApp()
@@ -160,6 +167,57 @@ BfsViewApp::~BfsViewApp()
 BfsViewApp *BfsViewApp::instance()
 {
 	return qobject_cast<BfsViewApp *>(QCoreApplication::instance());
+}
+
+void BfsViewApp::loadSettings()
+{
+	QSettings qsettings;
+	Settings settings(qsettings);
+	m_powerSwitchName = settings.powerSwitchName();
+	m_powerFileName = settings.powerFileName();
+	int inter = settings.powerFileCheckInterval();
+	if(inter < 30)
+		inter = 30;
+	if(!m_powerFileCheckTimer) {
+		m_powerFileCheckTimer = new QTimer(this);
+		connect(m_powerFileCheckTimer, &QTimer::timeout, this, &BfsViewApp::checkPowerSwitchStatusFile);
+	}
+	shvInfo() << "Starting powerFileCheckTimer, interval:" << inter << "sec";
+	m_powerFileCheckTimer->start(inter * 1000);
+	checkPowerSwitchStatusFile();
+}
+
+void BfsViewApp::checkPowerSwitchStatusFile()
+{
+	shvDebug() << "Checking pwr staus file:" << m_powerFileName;
+	QFile file(m_powerFileName);
+	if (!file.open(QIODevice::ReadOnly)) {
+		shvError() << "Cannot open file:" << m_powerFileName << "for reading!";
+		setPwrStatus(0);
+		return;
+	}
+	QDateTime ts;
+	int status = 0;
+	while(!file.atEnd()) {
+		QByteArray ba = file.readLine().trimmed();
+		if(ba.isEmpty())
+			continue;
+		QString line = QString::fromUtf8(ba);
+		shvDebug() << line;
+		QString name = line.section(' ', 0, 0);
+		status = line.section(' ', 1, 1).toInt();
+		shvDebug() << name << status;
+		if(name == m_powerSwitchName) {
+			ts = QDateTime::fromString(line.section(' ', 2, 2), QStringLiteral("yyyy-M-dTHH:mm:ss"));
+			break;
+		}
+	}
+	shvInfo() << "last ts:" << m_lastTS.toString(Qt::ISODate) << "ts:" << ts.toString(Qt::ISODate);
+	if((!m_lastTS.isValid() && ts.isValid()) || m_lastTS.secsTo(ts) > m_powerFileCheckTimer->interval()/1000/2)
+		setPwrStatus(status);
+	else
+		setPwrStatus(0);
+	m_lastTS = ts;
 }
 
 void BfsViewApp::setPwrStatus(unsigned u)
@@ -207,7 +265,7 @@ void BfsViewApp::onBrokerConnectedChanged(bool is_connected)
 {
 	if(is_connected) {
 		rpcConnection()->createSubscription("../bfs1", cp::Rpc::NTF_VAL_CHANGED);
-		m_pwrStatusNode->emitPwrStatusChanged();
+		m_pwrStatusNode->sendPwrStatusChanged();
 	}
 }
 

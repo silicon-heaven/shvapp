@@ -4,6 +4,7 @@
 #include <shv/coreqt/utils.h>
 
 #include <QApplication>
+#include <QDateTime>
 
 class AppCliOptions;
 namespace shv { namespace chainpack { class RpcMessage; }}
@@ -32,7 +33,7 @@ public:
 
 	unsigned pwrStatus() const {return m_pwrStatus;}
 	void setPwrStatus(unsigned s);
-	void emitPwrStatusChanged();
+	void sendPwrStatusChanged();
 
 	size_t methodCount() override;
 	const shv::chainpack::MetaMethod* metaMethod(size_t ix) override;
@@ -47,10 +48,6 @@ class BfsViewApp : public QApplication
 	Q_OBJECT
 
 	SHV_PROPERTY_IMPL2(int, b, B, fsStatus, 0)
-#ifdef TEST
-	//SHV_PROPERTY_BOOL_IMPL2(o, O, mpagStatus, 0)
-	//SHV_PROPERTY_BOOL_IMPL2(b, B, sStatus, 0)
-#endif
 private:
 	using Super = QApplication;
 public:
@@ -82,6 +79,8 @@ public:
 	shv::iotqt::rpc::DeviceConnection *rpcConnection() const {return m_rpcConnection;}
 	AppCliOptions* cliOptions() {return m_cliOptions;}
 
+	void loadSettings();
+
 	void setPwrStatus(unsigned u);
 	unsigned pwrStatus();
 	Q_SIGNAL void pwrStatusChanged(bool b);
@@ -107,11 +106,19 @@ private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	//void onRootNodeSendRpcMesage(const shv::chainpack::RpcMessage &msg);
+	void checkPowerSwitchStatusFile();
 private:
 	shv::iotqt::rpc::DeviceConnection *m_rpcConnection = nullptr;
 	AppCliOptions* m_cliOptions;
 
 	shv::iotqt::node::ShvNodeTree *m_shvTree = nullptr;
 	PwrStatusNode *m_pwrStatusNode;
+
+	QString m_powerSwitchName;
+	QString m_powerFileName;
+	//int m_powerFileCheckInterval;
+	QTimer *m_powerFileCheckTimer = nullptr;
+	QDateTime m_lastTS;
+
 };
 

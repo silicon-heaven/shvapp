@@ -43,6 +43,14 @@
          offset="0"
          id="stop3795" />
     </linearGradient>
+    <clipPath
+       id="clipPath16"
+       clipPathUnits="userSpaceOnUse">
+      <path
+         inkscape:connector-curvature="0"
+         id="path18"
+         d="m 0,38.264 93.223,0 L 93.223,0 0,0 0,38.264 z" />
+    </clipPath>
   </defs>
   <sodipodi:namedview
      id="base"
@@ -52,8 +60,8 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="1.4"
-     inkscape:cx="607.80167"
-     inkscape:cy="345.06367"
+     inkscape:cx="747.08738"
+     inkscape:cy="472.92081"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -61,9 +69,9 @@
      fit-margin-left="0"
      fit-margin-right="0"
      fit-margin-bottom="0"
-     inkscape:window-width="3840"
-     inkscape:window-height="2103"
-     inkscape:window-x="2877"
+     inkscape:window-width="2880"
+     inkscape:window-height="1563"
+     inkscape:window-x="-3"
      inkscape:window-y="-3"
      inkscape:window-maximized="1" />
   <metadata
@@ -300,7 +308,7 @@
     <rect
        style="color:#000000;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:5;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
        id="shv_rect_error"
-       width="324.51151"
+       width="440.94006"
        height="77.781746"
        x="334.86301"
        y="586.19757" />
@@ -493,5 +501,96 @@
        d="m 261.97201,92.30776 -45.3726,0 22.6863,-39.293828 z"
        id="path3806"
        inkscape:connector-curvature="0" />
+    <g
+       transform="matrix(0.38853237,0,0,-0.38853237,748.00107,826.98127)"
+       inkscape:label="ELL_logo_2_1"
+       id="g10">
+      <g
+         inkscape:export-ydpi="38.919998"
+         inkscape:export-xdpi="38.919998"
+         inkscape:export-filename="/home/fanda/proj/eyas/eyasdisp/images/eyas.png"
+         transform="matrix(8.3855382,0,0,8.4809872,-100.12664,-122.53502)"
+         id="g12">
+        <g
+           clip-path="url(#clipPath16)"
+           id="g14">
+          <g
+             transform="translate(91.5103,0)"
+             id="g20">
+            <path
+               sodipodi:nodetypes="sssssssss"
+               inkscape:connector-curvature="0"
+               id="path22"
+               style="fill:#1b5c29;fill-opacity:1;fill-rule:nonzero;stroke:none"
+               d="m -65.6,6.1158677 c 0.942,0 1.713,0.769 1.713,1.712 l 0,20.7231323 c 0,0.942 -0.771,1.713 -1.713,1.713 l -20.999,0 c -0.942,0 -1.711,-0.771 -1.711,-1.713 l 0,-20.7231323 c 0,-0.943 0.769,-1.712 1.711,-1.712 z" />
+          </g>
+          <g
+             transform="translate(25.1421,24.6841)"
+             id="g24">
+            <path
+               sodipodi:nodetypes="ccsccscccc"
+               inkscape:connector-curvature="0"
+               id="path26"
+               style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none"
+               d="m -1.6473554,-1.4579339 -12.0459996,-5.24 c -0.35,-0.151 -0.636,-0.583 -0.636,-0.965 l 0,-3.9960001 3.019,-3.451 0,4.806 c 0,0.302 0.227,0.6740001 0.498,0.8130001 l 12.2249996,6.255 -3.012,1.8 z" />
+          </g>
+          <g
+             transform="translate(18.5757,25.1235)"
+             id="g28">
+            <path
+               sodipodi:nodetypes="ccsccscccc"
+               inkscape:connector-curvature="0"
+               id="path30"
+               style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none"
+               d="m -1.6473554,-1.4579339 -8.8369996,-2.675 c -0.371,-0.114 -0.673,-0.52 -0.673,-0.907 l 0,-3.146 2.0129996,-2.3230001 0,3.7670001 c 0,0.298 0.236,0.638 0.514,0.742 l 8.90900003,3.345 -1.87900003,1.209 z" />
+          </g>
+          <g
+             transform="translate(19.6582,27.8301)"
+             id="g32">
+            <path
+               sodipodi:nodetypes="cccccscccc"
+               inkscape:connector-curvature="0"
+               id="path34"
+               style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none"
+               d="m -1.6473554,-1.4579339 -12.3119996,-3.326 c -0.375,-0.1 -0.68,-0.498 -0.68,-0.888 l -10e-4,-2.464 1.519,-1.753 0,3.118 c 0,0.296 0.237,0.611 0.521,0.689 l 12.85399963,3.598 -1.85900003,1.038 z" />
+          </g>
+          <g
+             transform="translate(33.2764,14.9399)"
+             id="g36" />
+          <g
+             transform="translate(45.3965,18.6479)"
+             id="g42" />
+          <g
+             transform="translate(48.2524,14.9399)"
+             id="g46" />
+          <g
+             transform="translate(53.604,21)"
+             id="g50" />
+          <g
+             transform="translate(59.4722,21)"
+             id="g54" />
+          <g
+             transform="translate(64.728,18.144)"
+             id="g58" />
+          <g
+             transform="translate(75.5034,20.3877)"
+             id="g66" />
+          <g
+             transform="translate(82.6792,18.6479)"
+             id="g70" />
+        </g>
+      </g>
+    </g>
+    <text
+       xml:space="preserve"
+       style="font-size:24.97757912px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#1b5c29;fill-opacity:1;stroke:none;font-family:Sans"
+       x="567.3316"
+       y="851.85358"
+       id="text3240"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan3242"
+         x="567.3316"
+         y="851.85358">Elektroline</tspan></text>
   </g>
 </svg>
