@@ -191,8 +191,7 @@ void ShvRExecApp::onBrokerConnectedChanged(bool is_connected)
 	if(is_connected) {
 		/// send tunnel handle to agent
 		cp::RpcValue::Map ret;
-		//unsigned cli_id = m_rpcConnection->brokerClientId();
-		ret[cp::Rpc::KEY_MOUT_POINT] = m_rpcConnection->brokerMountPoint();
+		ret[cp::Rpc::KEY_CLIENT_ID] = m_rpcConnection->brokerClientId();
 		std::string s = cp::RpcValue(ret).toCpon();
 		//shvInfo() << "Process" << m_cmdProc->program() << "started, stdout:" << s;
 		std::cout << s << "\n";

@@ -70,7 +70,7 @@ std::string ServerConnection::passwordHash(PasswordHashType type, const std::str
 	return std::string();
 }
 
-static std::string data2cpon(shv::chainpack::Rpc::ProtocolType protocol_type, const shv::chainpack::RpcValue::MetaData &md, const std::string &data, size_t start_pos)
+std::string ServerConnection::dataToCpon(shv::chainpack::Rpc::ProtocolType protocol_type, const shv::chainpack::RpcValue::MetaData &md, const std::string &data, size_t start_pos)
 {
 	shv::chainpack::RpcValue rpc_val = shv::chainpack::RpcDriver::decodeData(protocol_type, data, start_pos);
 	rpc_val.setMetaData(shv::chainpack::RpcValue::MetaData(md));
@@ -79,8 +79,20 @@ static std::string data2cpon(shv::chainpack::Rpc::ProtocolType protocol_type, co
 
 void ServerConnection::sendMessage(const shv::chainpack::RpcMessage &rpc_msg)
 {
-	logRpcMsg() << SND_LOG_ARROW << rpc_msg.toCpon();
+	logRpcMsg() << SND_LOG_ARROW
+				<< "client id:" << connectionId()
+				<< "protocol_type:" << (int)protocolType() << shv::chainpack::Rpc::ProtocolTypeToString(protocolType())
+				<< rpc_msg.toCpon();
 	Super::sendMessage(rpc_msg);
+}
+
+void ServerConnection::sendRawData(const shv::chainpack::RpcValue::MetaData &meta_data, std::string &&data)
+{
+	logRpcMsg() << SND_LOG_ARROW
+				<< "client id:" << connectionId()
+				<< "protocol_type:" << (int)protocolType() << shv::chainpack::Rpc::ProtocolTypeToString(protocolType())
+				<< dataToCpon(protocolType(), meta_data, data, 0);
+	Super::sendRawData(meta_data, std::move(data));
 }
 
 void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolType protocol_type, shv::chainpack::RpcValue::MetaData &&md, const std::string &data, size_t start_pos, size_t data_len)
@@ -88,7 +100,7 @@ void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolType proto
 	logRpcMsg() << RCV_LOG_ARROW
 				<< "client id:" << connectionId()
 				<< "protocol_type:" << (int)protocol_type << shv::chainpack::Rpc::ProtocolTypeToString(protocol_type)
-				<< data2cpon(protocol_type, md, data, start_pos);
+				<< dataToCpon(protocol_type, md, data, start_pos);
 	try {
 		if(isInitPhase()) {
 			Super::onRpcDataReceived(protocol_type, std::move(md), data, start_pos, data_len);

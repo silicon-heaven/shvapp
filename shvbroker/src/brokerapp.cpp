@@ -7,6 +7,7 @@
 
 #include <shv/iotqt/node/shvnode.h>
 #include <shv/iotqt/node/shvnodetree.h>
+#include <shv/iotqt/rpc/clientconnection.h>
 #include <shv/coreqt/log.h>
 
 #include <shv/core/string.h>
@@ -228,7 +229,7 @@ void BrokerApp::onClientLogin(int connection_id)
 	shvInfo() << "Client login connection id:" << connection_id << "connection type:" << conn->connectionType();
 	{
 		ShvClientNode *cli_nd = new ShvClientNode(conn);
-		std::string mount_point = std::string(cp::Rpc::DIR_BROKER) + "/clients/" + std::to_string(conn->connectionId()) + "/app";
+		std::string mount_point = shv::iotqt::rpc::ClientConnection::brokerClientPath(connection_id);
 		shv::iotqt::node::ShvNode *curr_nd = m_deviceTree->cd(mount_point);
 		ShvClientNode *curr_cli_nd = qobject_cast<ShvClientNode*>(curr_nd);
 		if(curr_nd && !curr_cli_nd) {
@@ -243,15 +244,13 @@ void BrokerApp::onClientLogin(int connection_id)
 		if(!m_deviceTree->mount(mount_point, cli_nd))
 			SHV_EXCEPTION("Cannot mount connection to device tree, connection id: " + std::to_string(connection_id)
 						  + " shv path: " + mount_point);
-		conn->setMountPoint(mount_point);
+		//conn->setMountPoint(mount_point);
 		this->sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_CONNECTED_CHANGED, true);
 		// delete whole client tree, when client is destroyed
 		connect(conn, &rpc::ServerConnection::destroyed, cli_nd->parentNode(), &ShvClientNode::deleteLater);
 		connect(conn, &rpc::ServerConnection::destroyed, this, [this, connection_id, mount_point]() {
 			this->sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_CONNECTED_CHANGED, false);
 		});
-		// abort connection if client tree is deleted
-		//connect(cli_nd->parentNode(), &ShvClientNode::destroyed, conn, &rpc::ServerConnection::abort);
 		conn->setParent(cli_nd);
 	}
 	{
@@ -271,9 +270,7 @@ void BrokerApp::onClientLogin(int connection_id)
 			const shv::chainpack::RpcValue::Map &device = opts.value(cp::Rpc::TYPE_DEVICE).toMap();
 			mount_point = device.value(cp::Rpc::KEY_MOUT_POINT).toString();
 			std::vector<shv::core::StringView> path = shv::core::StringView(mount_point).split('/');
-			//if(path.empty())
-			//	SHV_EXCEPTION("Cannot find mount point for device: " + device_id.toCpon());
-			if(path.empty() || !(path[0] == "test")) {
+			if(path.size() && !(path[0] == "test")) {
 				shvWarning() << "Mount point can be explicitly specified to test/ dir only, dev id:" << device_id.toCpon();
 				mount_point.clear();
 			}
@@ -302,10 +299,10 @@ void BrokerApp::onClientLogin(int connection_id)
 			connect(conn, &rpc::ServerConnection::destroyed, cli_nd, &ShvClientNode::deleteLater);
 			connect(conn, &rpc::ServerConnection::destroyed, this, [this, connection_id, mount_point]() {
 				shvInfo() << "server connection destroyed";
-				this->sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_DISCONNECTED, cp::RpcValue());
+				//this->sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_DISCONNECTED, cp::RpcValue());
 				this->sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_MOUNTED_CHANGED, false);
 			});
-			sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_CONNECTED, cp::RpcValue());
+			//sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_CONNECTED, cp::RpcValue());
 			sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_MOUNTED_CHANGED, true);
 		}
 	}
@@ -350,10 +347,12 @@ void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData
 		cp::RpcValue::UInt caller_id = cp::RpcMessage::popCallerId(meta);
 		if(caller_id > 0) {
 			rpc::ServerConnection *conn = tcpServer()->connectionById(caller_id);
-			if(conn)
+			if(conn) {
 				conn->sendRawData(std::move(meta), std::move(data));
-			else
+			}
+			else {
 				shvWarning() << "Got RPC response for not-exists connection, may be it was closed meanwhile. Connection id:" << caller_id;
+			}
 		}
 		else {
 			shvError() << "Got RPC response without src connection specified, throwing message away." << meta.toStdString();

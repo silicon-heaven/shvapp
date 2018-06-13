@@ -175,7 +175,7 @@ void ShvRshApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 				quit();
 				return;
 			}
-			std::string relative_path = shv::core::Utils::joinPath(m_cliOptions->tunnelShvPath().toStdString(), result.value(cp::Rpc::KEY_MOUT_POINT).toString());
+			std::string relative_path = shv::core::Utils::joinPath(m_cliOptions->tunnelShvPath().toStdString(), result.value(cp::Rpc::KEY_RELATIVE_PATH).toString());
 			m_tunnelShvPath = shv::core::Utils::simplifyPath(relative_path);
 			shvInfo() << "tunnel shv path:" << m_tunnelShvPath;
 			launchRemoteShellProcess();

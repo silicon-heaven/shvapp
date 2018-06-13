@@ -6,6 +6,8 @@
 #include <shv/coreqt/log.h>
 #include <shv/iotqt/rpc/tunnelhandle.h>
 
+#define logRpcMsg() shvCDebug("RpcMsg")
+
 namespace cp = shv::chainpack;
 
 ShvClientNode::ShvClientNode(rpc::ServerConnection *connection, ShvNode *parent)
@@ -22,29 +24,6 @@ ShvClientNode::~ShvClientNode()
 
 void ShvClientNode::processRawData(const shv::chainpack::RpcValue::MetaData &meta, std::string &&data)
 {
-	/*
-	const cp::RpcValue tun_h = shv::chainpack::RpcMessage::tunnelHandle(meta);
-	if(tun_h.isIMap()) {
-		shv::iotqt::rpc::TunnelHandle th(tun_h.toIMap());
-		using THMT = shv::iotqt::rpc::TunnelHandle::MetaType;
-		const cp::RpcValue callers = th.value(THMT::Key::CallerClientIds);
-		if(callers == cp::RpcMessage::callerIds(meta)) {
-			unsigned tunnel_client_id = th.value(THMT::Key::TunnelClientId).toUInt();
-			rpc::ServerConnection *conn = BrokerApp::instance()->clientById(tunnel_client_id);
-			if(conn) {
-				conn->sendRawData(meta, std::move(data));
-			}
-			else {
-				shvError() << "Tunnel:" << th.toRpcValue().toPrettyString() << "doesn't exist.";
-				return;
-			}
-		}
-	}
-	else {
-		rpc::ServerConnection *conn = connection();
-		conn->sendRawData(meta, std::move(data));
-	}
-	*/
 	rpc::ServerConnection *conn = connection();
 	if(cp::RpcMessage::isOpenTunnelFlag(meta)) {
 		cp::RpcValue::MetaData m2(meta);

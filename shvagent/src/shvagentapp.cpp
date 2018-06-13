@@ -212,11 +212,6 @@ void ShvAgentApp::launchRexec(const shv::chainpack::RpcRequest &rq)
 	tun_params[TunnelParamsMT::Key::Port] = m_rpcConnection->port();
 	tun_params[TunnelParamsMT::Key::User] = m_rpcConnection->user();
 	tun_params[TunnelParamsMT::Key::Password] = m_rpcConnection->password();
-	//tun_params[TunnelParamsMT::Key::ParentClientId] = m_rpcConnection->brokerClientId();
-	//tun_params[TunnelParamsMT::Key::RequestId] = rq.requestId();
-	//tun_params[TunnelParamsMT::Key::CallerClientIds] = rq.callerIds();
-	//tun_params[TunnelParamsMT::Key::TunName] = tun_name;
-	//std::string mount_point = ".broker/clients/" + std::to_string(m_rpcConnection->brokerClientId()) + "/rproc/" + name;
 	SessionProcess *proc = new SessionProcess(this);
 	//proc->setCurrentReadChannel(QProcess::StandardOutput);
 	cp::RpcResponse resp1 = cp::RpcResponse::forRequest(rq);
@@ -229,13 +224,15 @@ void ShvAgentApp::launchRexec(const shv::chainpack::RpcRequest &rq)
 			QByteArray ba = proc->readLine();
 			std::string data(ba.constData(), ba.size());
 			cp::RpcValue::Map m = cp::RpcValue::fromCpon(data).toMap();
-			std::string rel_path = m.value(cp::Rpc::KEY_MOUT_POINT).toString();
+			unsigned rexec_client_id = m.value(cp::Rpc::KEY_CLIENT_ID).toUInt();
+			std::string rexec_client_broker_path = shv::iotqt::rpc::ClientConnection::brokerClientPath(rexec_client_id);
 			std::string mount_point = m_rpcConnection->brokerMountPoint();
 			size_t cnt = shv::core::StringView(mount_point).split('/').size();
+			std::string rel_path;
 			for (size_t i = 0; i < cnt; ++i) {
 				rel_path = "../" + rel_path;
 			}
-			m[cp::Rpc::KEY_MOUT_POINT] = rel_path;
+			m[cp::Rpc::KEY_RELATIVE_PATH] = rel_path + rexec_client_broker_path;
 			cp::RpcValue result = m;
 			resp.setResult(result);
 			shvInfo() << "Got tunnel handle from child process:" << result.toPrettyString();
