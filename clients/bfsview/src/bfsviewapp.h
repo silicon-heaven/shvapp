@@ -48,6 +48,7 @@ class BfsViewApp : public QApplication
 	Q_OBJECT
 
 	SHV_PROPERTY_IMPL2(int, b, B, fsStatus, 0)
+	SHV_PROPERTY_BOOL_IMPL2(p, P, lcConnected, false)
 private:
 	using Super = QApplication;
 public:
@@ -107,6 +108,8 @@ private:
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	//void onRootNodeSendRpcMesage(const shv::chainpack::RpcMessage &msg);
 	void checkPowerSwitchStatusFile();
+	void checkPlcConnected();
+	void sendGetStatusRequest();
 private:
 	shv::iotqt::rpc::DeviceConnection *m_rpcConnection = nullptr;
 	AppCliOptions* m_cliOptions;
@@ -118,7 +121,7 @@ private:
 	QString m_powerFileName;
 	//int m_powerFileCheckInterval;
 	QTimer *m_powerFileCheckTimer = nullptr;
-	//QDateTime m_lastTS;
+	QTimer *m_plcConnectedCheckTimer = nullptr;
 	unsigned m_getStatusRpcId = 0;
 
 };

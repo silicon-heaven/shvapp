@@ -70,6 +70,7 @@ MainWindow::MainWindow(QWidget *parent)
 #endif
 	connect(BfsViewApp::instance(), &BfsViewApp::bfsStatusChanged, ui->visuWidget, &VisuWidget::refreshVisualization);
 	connect(BfsViewApp::instance(), &BfsViewApp::pwrStatusChanged, ui->visuWidget, &VisuWidget::refreshVisualization);
+	connect(BfsViewApp::instance(), &BfsViewApp::plcConnectedChanged, ui->visuWidget, &VisuWidget::refreshVisualization);
 	connect(BfsViewApp::instance()->rpcConnection(), &shv::iotqt::rpc::DeviceConnection::brokerConnectedChanged, ui->visuWidget, &VisuWidget::refreshVisualization);
 
 	ui->visuWidget->refreshVisualization();

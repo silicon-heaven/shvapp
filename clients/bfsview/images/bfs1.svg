@@ -59,9 +59,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1.4"
-     inkscape:cx="747.08738"
-     inkscape:cy="472.92081"
+     inkscape:zoom="0.98994949"
+     inkscape:cx="1012.9487"
+     inkscape:cy="379.74913"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -105,7 +105,7 @@
      id="layer1"
      transform="translate(-2.5253755,1.0189164)">
     <rect
-       style="color:#000000;fill:#ffffff;stroke:#111205;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
+       style="color:#000000;fill:#b3b3b3;stroke:#111205;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate;fill-opacity:1"
        id="shv_rect_bfs"
        width="764.68542"
        height="514.16772"
@@ -119,7 +119,7 @@
          height="120.71429"
          width="67.85714"
          id="sw_ompag_rect"
-         style="color:#000000;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:5;marker:none;overflow:visible;enable-background:accumulate" />
+         style="color:#000000;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:2;marker:none;overflow:visible;enable-background:accumulate;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none" />
       <path
          sodipodi:nodetypes="cc"
          inkscape:connector-curvature="0"
@@ -138,7 +138,7 @@
     <g
        id="g3049">
       <rect
-         style="color:#000000;fill:#00ff00;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:5;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
+         style="color:#000000;fill:#00ff00;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:2;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none"
          id="sw_bs_rect"
          width="67.85714"
          height="120.71429"
@@ -180,7 +180,7 @@
          sodipodi:role="line"
          id="tspan3846"
          x="332.61691"
-         y="243.99554">OMPAG</tspan></text>
+         y="243.99554">Trakční odpojovač</tspan></text>
     <text
        sodipodi:linespacing="125%"
        id="text3848"
@@ -191,7 +191,7 @@
          y="88.852692"
          x="334.98019"
          id="tspan3850"
-         sodipodi:role="line">Trakce</tspan></text>
+         sodipodi:role="line">Trolejové vedení</tspan></text>
     <path
        sodipodi:nodetypes="ccc"
        inkscape:connector-curvature="0"
@@ -322,11 +322,11 @@
          id="shv_tspan_error"
          sodipodi:role="line"
          x="346.77838"
-         y="647.81207">Varovani</tspan></text>
+         y="647.81207">Výstraha</tspan></text>
     <rect
-       style="color:#000000;fill:#fff6d5;fill-opacity:1;fill-rule:nonzero;stroke:#ffffff;stroke-width:0.99999988;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
+       style="color:#000000;fill:#fff6d5;fill-opacity:1;fill-rule:nonzero;stroke:#ffffff;stroke-width:1.0279355;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
        id="rect3886"
-       width="293.37015"
+       width="309.99002"
        height="135.09012"
        x="55.050762"
        y="885.89502" />
@@ -340,7 +340,7 @@
          sodipodi:role="line"
          x="93.937492"
          y="945.08118"
-         id="tspan3853">napájení stanice</tspan></text>
+         id="tspan3853">BS v provozu</tspan></text>
     <text
        sodipodi:linespacing="125%"
        id="text3857"
@@ -351,7 +351,7 @@
          id="tspan3859"
          y="911.91174"
          x="93.937492"
-         sodipodi:role="line">napaječ připojen</tspan></text>
+         sodipodi:role="line">stav napaječe MR</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:29.08032417px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
@@ -400,11 +400,11 @@
        x="61.815403"
        height="19.192898"
        width="19.371468"
-       id="shv_rect_buffering"
+       id="shv_rect_charging"
        style="color:#000000;fill:#808080;fill-opacity:1;fill-rule:nonzero;stroke:#ffffff;stroke-width:1;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate" />
     <rect
        style="color:#000000;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:#ffffff;stroke-width:1;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
-       id="shv_rect_charging"
+       id="shv_rect_buffering"
        width="19.371468"
        height="19.192898"
        x="61.815403"
@@ -592,5 +592,12 @@
          id="tspan3242"
          x="567.3316"
          y="851.85358">Elektroline</tspan></text>
+    <rect
+       style="color:#000000;fill:none;stroke:#000000;stroke-width:2.26038551;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
+       id="shv_rect_conv"
+       width="163.19359"
+       height="127.47023"
+       x="137.30328"
+       y="563.96722" />
   </g>
 </svg>

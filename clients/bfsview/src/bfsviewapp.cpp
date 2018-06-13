@@ -26,6 +26,7 @@ static std::vector<cp::MetaMethod> meta_methods_root {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, false},
+	{cp::Rpc::METH_MOUNT_POINT, cp::MetaMethod::Signature::RetVoid, false},
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false},
 	{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, false},
 };
@@ -49,6 +50,9 @@ shv::chainpack::RpcValue AppRootNode::call(const std::string &method, const shv:
 	}
 	if(method == cp::Rpc::METH_DEVICE_ID) {
 		return BfsViewApp::instance()->cliOptions()->deviceId().toStdString();
+	}
+	if(method == cp::Rpc::METH_MOUNT_POINT) {
+		return BfsViewApp::instance()->rpcConnection()->brokerMountPoint();
 	}
 	if(method == cp::Rpc::METH_CONNECTION_TYPE) {
 		return BfsViewApp::instance()->rpcConnection()->connectionType();
@@ -176,8 +180,8 @@ void BfsViewApp::loadSettings()
 	//m_powerSwitchName = settings.powerSwitchName();
 	m_powerFileName = settings.powerFileName();
 	int inter = settings.powerFileCheckInterval();
-	if(inter < 30)
-		inter = 30;
+	if(inter < 1)
+		inter = 1;
 	if(!m_powerFileCheckTimer) {
 		m_powerFileCheckTimer = new QTimer(this);
 		connect(m_powerFileCheckTimer, &QTimer::timeout, this, &BfsViewApp::checkPowerSwitchStatusFile);
@@ -196,7 +200,7 @@ void BfsViewApp::checkPowerSwitchStatusFile()
 		setPwrStatus(0);
 		return;
 	}
-	//QDateTime new_ts;
+	QDateTime curr_ts = QDateTime::currentDateTimeUtc();
 	int new_status = 0;
 	while(!file.atEnd()) {
 		QByteArray ba = file.readLine().trimmed();
@@ -207,17 +211,38 @@ void BfsViewApp::checkPowerSwitchStatusFile()
 		QString name = line.section(' ', 0, 0);
 		int status = line.section(' ', 1, 1).toInt();
 		QDateTime ts = QDateTime::fromString(line.section(' ', 2, 2), QStringLiteral("yyyy-M-dTHH:mm:ss"));
-		shvDebug() << name << status << ts.toString(Qt::ISODate);
+		ts.setTimeSpec(Qt::UTC);
+		shvDebug() << name << status << ts.toString(Qt::ISODate) << curr_ts.toString(Qt::ISODate) << ts.secsTo(curr_ts);
 		if(status == 1 && ts.isValid()) {
-			QDateTime curr_ts = QDateTime::currentDateTimeUtc();
 			if(ts.secsTo(curr_ts) < 2*m_powerFileCheckTimer->interval()/1000) {
 				new_status = 1;
-				shvInfo() << "ts:" << ts.toString(Qt::ISODate) << "pwr:" << new_status;
+				shvDebug() << "ts:" << ts.toString(Qt::ISODate) << "pwr:" << new_status;
 				break;
 			}
 		}
 	}
 	setPwrStatus(new_status);
+}
+
+static constexpr int PLC_CONNECTED_TIMOUT_MSEC = 10*1000;
+
+void BfsViewApp::sendGetStatusRequest()
+{
+	if(!m_plcConnectedCheckTimer) {
+		m_plcConnectedCheckTimer = new QTimer(this);
+		m_plcConnectedCheckTimer->setInterval(PLC_CONNECTED_TIMOUT_MSEC);
+		connect(m_plcConnectedCheckTimer, &QTimer::timeout, this, &BfsViewApp::checkPlcConnected);
+		m_plcConnectedCheckTimer->start();
+	}
+	m_getStatusRpcId = rpcConnection()->callShvMethod("../bfs1/status", cp::Rpc::METH_GET);
+	shvDebug() << "Sending get status request id:" << m_getStatusRpcId;
+}
+
+void BfsViewApp::checkPlcConnected()
+{
+	shvLogFuncFrame();
+	setPlcConnected(m_getStatusRpcId == 0);
+	sendGetStatusRequest();
 }
 
 void BfsViewApp::setPwrStatus(unsigned u)
@@ -266,7 +291,7 @@ void BfsViewApp::onBrokerConnectedChanged(bool is_connected)
 	if(is_connected) {
 		rpcConnection()->createSubscription("../bfs1", cp::Rpc::NTF_VAL_CHANGED);
 		m_pwrStatusNode->sendPwrStatusChanged();
-		m_getStatusRpcId = rpcConnection()->callShvMethod("../bfs1/status", cp::Rpc::METH_GET);
+		sendGetStatusRequest();
 		//shvInfo() << "get status rq id:" << m_getStatusRpcId;
 		/*
 		QTimer::singleShot(0, [this]() {
@@ -308,8 +333,15 @@ void BfsViewApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 		cp::RpcResponse rsp(msg);
 		//shvInfo() << "RPC response received:" << rsp.toCpon();
 		if(rsp.requestId() == m_getStatusRpcId) {
-			setBfsStatus(rsp.result().toInt());
-			m_getStatusRpcId = 0;
+			shvDebug() << "Get status response id:" << m_getStatusRpcId;
+			if(rsp.isError()) {
+				setPlcConnected(false);
+			}
+			else {
+				setBfsStatus(rsp.result().toInt());
+				setPlcConnected(true);
+				m_getStatusRpcId = 0;
+			}
 		}
 	}
 	else if(msg.isNotify()) {

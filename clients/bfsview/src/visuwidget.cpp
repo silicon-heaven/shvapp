@@ -40,13 +40,13 @@ VisuWidget::VisuWidget(QWidget *parent)
 			m_ompagRect = QRectF(x, y, w, h);
 			shvDebug() << "x:" << el.attribute("x") << "ompag:" << r2s(m_ompagRect);
 		}
-		el = elementById("sw_bs_rect");
+		el = elementById("shv_rect_conv");
 		if(!el.isNull()) {
 			double x = el.attribute("x").toDouble();
 			double y = el.attribute("y").toDouble();
 			double h = el.attribute("height").toDouble();
 			double w = el.attribute("width").toDouble();
-			m_mswRect = QRectF(x, y, w, h);
+			m_convRect = QRectF(x, y, w, h);
 		}
 	}
 }
@@ -131,16 +131,16 @@ void VisuWidget::contextMenuEvent(QContextMenuEvent *event)
 			});
 		}
 	}
-	else if(svgRectToWidgetRect(m_mswRect).contains(pos)) {
+	else if(svgRectToWidgetRect(m_convRect).contains(pos)) {
 		int st = mswStatus();
 		if(st == BfsViewApp::SwitchStatus::On) {
-			menu.addAction(tr("Vypnout"), [this]() {
+			menu.addAction(tr("Vypnout BS"), [this]() {
 				shvInfo() << "set conv OFF";
 				BfsViewApp::instance()->setConv(false);
 			});
 		}
 		else if(st == BfsViewApp::SwitchStatus::Off) {
-			menu.addAction(tr("Zapnout"), [this]() {
+			menu.addAction(tr("Zapnout BS"), [this]() {
 				shvInfo() << "set conv ON";
 				BfsViewApp::instance()->setConv(true);
 			});
@@ -171,26 +171,39 @@ void VisuWidget::contextMenuEvent(QContextMenuEvent *event)
 
 static QString statusToColor(int status)
 {
+	if(!BfsViewApp::instance()->isPlcConnected())
+		return QStringLiteral("red");
 	switch ((BfsViewApp::SwitchStatus)status) {
 	case BfsViewApp::SwitchStatus::On: return QStringLiteral("#00FF00");
-	case BfsViewApp::SwitchStatus::Off: return QStringLiteral("#FF0000");
+	case BfsViewApp::SwitchStatus::Off: return QStringLiteral("white");
 	default: return QStringLiteral("gray");
 	}
 }
-
+/*
 static QString bitToColor(bool bit)
 {
+	if(!BfsViewApp::instance()->isPlcConnected())
+		return QStringLiteral("gray");
 	return bit? QStringLiteral("#00FF00"): QStringLiteral("#FF0000");
 }
-
+*/
 static QString goodBitToColor(bool bit)
 {
-	return bit? QStringLiteral("#00FF00"): QStringLiteral("lightgray");
+	if(!BfsViewApp::instance()->isPlcConnected())
+		return QStringLiteral("gray");
+	return bit? QStringLiteral("#00FF00"): QStringLiteral("white");
 }
 
 static QString badBitToColor(bool bit)
 {
-	return bit? QStringLiteral("#FF0000"): QStringLiteral("lightgray");
+	if(!BfsViewApp::instance()->isPlcConnected())
+		return QStringLiteral("gray");
+	return bit? QStringLiteral("#FF0000"): !BfsViewApp::instance()->isPlcConnected()? QStringLiteral("gray"): QStringLiteral("white");
+}
+
+static QString plcNotConnectedBitToColor(bool bit)
+{
+	return bit? QStringLiteral("#FF0000"): QStringLiteral("white");
 }
 
 QDomElement elementById_helper(const QString &id, QDomElement parent)
@@ -282,8 +295,8 @@ void VisuWidget::refreshVisualization()
 	int ompag_status = ompagStatus();
 	int msw_status = mswStatus();
 	int bfs_status = (ps & ((1 << BfsViewApp::BfsStatus::BfsOn) | (1 << BfsViewApp::BfsStatus::BfsOff))) >> BfsViewApp::BfsStatus::BfsOn;
-
-	//shvInfo() << ps << ompag_status << msw_status;
+	//bool is_plc_connected = app->isPlcConnected();
+	shvInfo() << ps << bfs_status;
 
 	setElementFillColor(QStringLiteral("sw_ompag_rect"), statusToColor(ompag_status));
 	setElementVisible(QStringLiteral("sw_ompag_on"), ompag_status == (int)BfsViewApp::SwitchStatus::On);
@@ -293,9 +306,9 @@ void VisuWidget::refreshVisualization()
 	setElementVisible(QStringLiteral("sw_bs_on"), msw_status == (int)BfsViewApp::SwitchStatus::On);
 	setElementVisible(QStringLiteral("sw_bs_off"), msw_status == (int)BfsViewApp::SwitchStatus::Off);
 
-	setElementFillColor(QStringLiteral("shv_rect_bfsPower"), statusToColor(bfs_status));
+	setElementFillColor(QStringLiteral("shv_rect_bfsPower"), goodBitToColor(bfs_status == BfsViewApp::SwitchStatus::On));
 
-	setElementFillColor(QStringLiteral("shv_rect_power"), bitToColor(app->pwrStatus()));
+	setElementFillColor(QStringLiteral("shv_rect_power"), app->pwrStatus()? QStringLiteral("#00FF00"): QStringLiteral("red"));
 
 	shvDebug() << "app->rpcConnection()->isBrokerConnected():" << app->rpcConnection()->isBrokerConnected();
 	if(app->rpcConnection()->isBrokerConnected()) {
@@ -310,8 +323,8 @@ void VisuWidget::refreshVisualization()
 							: BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::Warning)? "black"
 							: "none");
 		setElementText(QStringLiteral("shv_tspan_error"),
-							BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::Error)? "Porucha"
-							: BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::Warning)? "Varování"
+							BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::Error)? tr("Porucha")
+							: BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::Warning)? tr("Výstraha")
 							: QString());
 	}
 	else {
@@ -326,7 +339,10 @@ void VisuWidget::refreshVisualization()
 	setElementFillColor(QStringLiteral("shv_rect_charging"), goodBitToColor(BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::Charging)));
 
 	setElementFillColor(QStringLiteral("shv_rect_cooling"), goodBitToColor(BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::Cooling)));
-	setElementFillColor(QStringLiteral("shv_rect_shvDisconnected"), badBitToColor(BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::ShvDisconnected)));
+	setElementFillColor(QStringLiteral("shv_rect_shvDisconnected"), plcNotConnectedBitToColor(
+							BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::ShvDisconnected)
+							|| !app->isPlcConnected()
+							));
 	setElementFillColor(QStringLiteral("shv_rect_doorOpen"), badBitToColor(BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::DoorOpen)));
 	setElementFillColor(QStringLiteral("shv_rect_fswOn"), badBitToColor(!BfsViewApp::isBit(app->bfsStatus(), BfsViewApp::BfsStatus::FswOn)));
 

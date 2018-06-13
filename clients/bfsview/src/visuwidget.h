@@ -34,7 +34,7 @@ private:
 	QSvgRenderer *m_renderer;
 	QDomDocument m_xDoc;
 	QRectF m_ompagRect;
-	QRectF m_mswRect;
+	QRectF m_convRect;
 };
 
 #endif // VISUWIDGET_H
