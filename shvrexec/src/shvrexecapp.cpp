@@ -105,9 +105,6 @@ shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::Rp
 		if(rq.method() == METH_RUNCMD) {
 			return ShvRExecApp::instance()->runCmd(rq);
 		}
-		if(rq.method() == METH_RUNPTYCMD) {
-			return ShvRExecApp::instance()->runPtyCmd(rq);
-		}
 	}
 	return Super::processRpcRequest(rq);
 }
@@ -227,8 +224,18 @@ void ShvRExecApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 			shv::iotqt::node::ShvNode *nd = m_shvTree->cd(shv_path.toString(), &path_rest);
 			if(!nd)
 				SHV_EXCEPTION("Path not found: " + shv_path.toString());
-			rq.setShvPath(path_rest);
-			resp.setResult(nd->processRpcRequest(rq));
+			shv::chainpack::RpcValue result;
+			if(rq.shvPath().toString().empty() && rq.method() == METH_RUNPTYCMD) {
+				result = ShvRExecApp::instance()->runPtyCmd(rq);
+				resp.setRegisterRevCallerIds();
+			}
+			else {
+				result = nd->processRpcRequest(rq);
+			}
+			if(result.isValid()) {
+				rq.setShvPath(path_rest);
+				resp.setResult(result);
+			}
 		}
 		catch (shv::core::Exception &e) {
 			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, e.message()));
@@ -282,10 +289,6 @@ cp::RpcValue ShvRExecApp::runCmd(const shv::chainpack::RpcRequest &rq)
 	if(m_cmdProc || m_ptyCmdProc)
 		SHV_EXCEPTION("Process running already");
 
-	shv::chainpack::RpcValue rev_caller_ids = rq.revCallerIds();
-	if(!rev_caller_ids.isValid())
-		SHV_EXCEPTION("Cannot open tunnel without request with OpenTunnelFlag set!");
-
 	const shv::chainpack::RpcValue::String exec_cmd = rq.params().toString();
 
 	shvInfo() << "Starting process:" << exec_cmd;
@@ -302,20 +305,15 @@ cp::RpcValue ShvRExecApp::runCmd(const shv::chainpack::RpcRequest &rq)
 		this->closeAndQuit();
 	});
 	m_cmdProc->start(QString::fromStdString(exec_cmd));
-	m_writeTunnelHandle = shv::iotqt::rpc::TunnelHandle(rq.requestId(), rq.callerIds());
+	m_writeTunnelHandle = shv::iotqt::rpc::TunnelHandle(rq.requestId().toUInt(), rq.callerIds());
 	m_readTunnelRequestId = m_rpcConnection->nextRequestId();
-	shv::iotqt::rpc::TunnelHandle th(m_readTunnelRequestId, rev_caller_ids);
-	return th.toRpcValue();
+	return m_readTunnelRequestId;
 }
 
 shv::chainpack::RpcValue ShvRExecApp::runPtyCmd(const shv::chainpack::RpcRequest &rq)
 {
 	if(m_cmdProc || m_ptyCmdProc)
 		SHV_EXCEPTION("Process running already");
-
-	shv::chainpack::RpcValue rev_caller_ids = rq.revCallerIds();
-	if(!rev_caller_ids.isValid())
-		SHV_EXCEPTION("Cannot open tunnel without request with OpenTunnelFlag set!");
 
 	const shv::chainpack::RpcValue::List lst = rq.params().toList();
 	std::string exec_cmd = lst.value(0).toString();
@@ -350,10 +348,9 @@ shv::chainpack::RpcValue ShvRExecApp::runPtyCmd(const shv::chainpack::RpcRequest
 		closeAndQuit();
 	});
 	m_ptyCmdProc->ptyStart(exec_cmd, pty_cols, pty_rows);
-	m_writeTunnelHandle = shv::iotqt::rpc::TunnelHandle(rq.requestId(), rq.callerIds());
+	m_writeTunnelHandle = shv::iotqt::rpc::TunnelHandle(rq.requestId().toUInt(), rq.callerIds());
 	m_readTunnelRequestId = m_rpcConnection->nextRequestId();
-	shv::iotqt::rpc::TunnelHandle th(m_readTunnelRequestId, rev_caller_ids);
-	return th.toRpcValue();
+	return m_readTunnelRequestId;
 }
 
 qint64 ShvRExecApp::writeCmdProcessStdIn(const char *data, size_t len)

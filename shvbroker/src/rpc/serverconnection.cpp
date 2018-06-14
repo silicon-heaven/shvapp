@@ -109,6 +109,8 @@ void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolType proto
 		if(m_idleWatchDogTimer)
 			m_idleWatchDogTimer->start();
 		cp::RpcMessage::setProtocolType(md, protocol_type);
+		if(cp::RpcMessage::isRegisterRevCallerIds(md))
+			cp::RpcMessage::pushRevCallerId(md, connectionId());
 		std::string msg_data(data, start_pos, data_len);
 		BrokerApp::instance()->onRpcDataReceived(connectionId(), std::move(md), std::move(msg_data));
 	}

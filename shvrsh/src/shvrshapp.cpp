@@ -184,16 +184,22 @@ void ShvRshApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 			//shvInfo() << __LINE__;
 			//shvInfo() << rsp.result().toCpon();
 			shv::chainpack::RpcValue result = rsp.result();
-			if(m_writeTunnelHandle.empty()) {
-				if(result.metaData().metaTypeId() != shv::iotqt::rpc::TunnelHandle::MetaType::ID) {
+			if(!m_writeTunnelHandle.isValid()) {
+				shv::chainpack::RpcValue::UInt rev_request_id = result.toUInt();
+				m_writeTunnelHandle = shv::iotqt::rpc::TunnelHandle(rev_request_id, rsp.revCallerIds());
+				if(!m_writeTunnelHandle.isValid()) {
 					shvError() << "TunnelHandle should be received:" << rsp.toCpon();
 					quit();
 					return;
 				}
-				m_writeTunnelHandle = shv::iotqt::rpc::TunnelHandle(result.toIMap());
 			}
 			else {
 				const shv::chainpack::RpcValue::List &lst = rsp.result().toList();
+				if(lst.empty()) {
+					shvError() << "Invalid tunnel message received:" << rsp.toCpon();
+					quit();
+					return;
+				}
 				int channel = lst.value(0).toInt();
 				if(channel == STDOUT_FILENO || channel == STDERR_FILENO) {
 					const shv::chainpack::RpcValue::Blob &blob = lst.value(1).toBlob();
@@ -225,7 +231,7 @@ void ShvRshApp::onReadyReadStdIn()
 void ShvRshApp::writeToTunnel(int channel, const cp::RpcValue &data)
 {
 	//shvInfo() << m_rpcConnection->isBrokerConnected() << m_tunnelShvPath << "GGG";
-	if(!m_rpcConnection->isBrokerConnected() || m_writeTunnelHandle.empty()) {
+	if(!m_rpcConnection->isBrokerConnected() || !m_writeTunnelHandle.isValid()) {
 		shvError() << "Tunnel not open, throwing away data:" << data.toCpon();
 		//quit();
 	}
@@ -250,7 +256,6 @@ void ShvRshApp::launchRemoteShellProcess()
 		rq.setShvPath(m_tunnelShvPath);
 		rq.setMethod("runPtyCmd");
 		rq.setParams(cp::RpcValue::List{"/bin/sh", ws.ws_col, ws.ws_row});
-		rq.setOpenTunnelFlag();
 		m_tunnelRequestId = m_rpcConnection->callMethod(rq);
 	}
 }
