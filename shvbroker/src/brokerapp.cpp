@@ -281,22 +281,27 @@ void BrokerApp::onClientLogin(int connection_id)
 			shvWarning() << "cannot find mount point for device id:" << device_id.toCpon() << "connection id:" << connection_id;
 		}
 		if(!mount_point.empty()) {
-			ShvClientNode *curr_cli_nd = qobject_cast<ShvClientNode*>(m_deviceTree->cd(mount_point));
-			if(curr_cli_nd) {
+			ShvClientNode *cli_nd = qobject_cast<ShvClientNode*>(m_deviceTree->cd(mount_point));
+			if(cli_nd) {
+				/*
 				shvWarning() << "The mount point" << mount_point << "exists already";
-				if(curr_cli_nd->connection()->deviceId() == device_id) {
+				if(cli_nd->connection()->deviceId() == device_id) {
 					shvWarning() << "The same device ID will be remounted:" << device_id.toCpon();
-					delete curr_cli_nd;
+					delete cli_nd;
 				}
+				*/
+				cli_nd->addConnection(conn);
 			}
-			ShvClientNode *cli_nd = new ShvClientNode(conn);
-			if(!m_deviceTree->mount(mount_point, cli_nd))
-				SHV_EXCEPTION("Cannot mount connection to device tree, connection id: " + std::to_string(connection_id));
+			else {
+				cli_nd = new ShvClientNode(conn);
+				if(!m_deviceTree->mount(mount_point, cli_nd))
+					SHV_EXCEPTION("Cannot mount connection to device tree, connection id: " + std::to_string(connection_id));
+			}
 			mount_point = cli_nd->shvPath();
 			shvInfo() << "device id:" << device_id.toCpon() << " mounted on:" << mount_point;
 			/// overwrite client default mount point
 			conn->setMountPoint(mount_point);
-			connect(conn, &rpc::ServerConnection::destroyed, cli_nd, &ShvClientNode::deleteLater);
+			connect(conn, &rpc::ServerConnection::destroyed, [cli_nd, conn]() {cli_nd->removeConnection(conn);});
 			connect(conn, &rpc::ServerConnection::destroyed, this, [this, connection_id, mount_point]() {
 				shvInfo() << "server connection destroyed";
 				//this->sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_DISCONNECTED, cp::RpcValue());

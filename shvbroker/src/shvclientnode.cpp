@@ -10,16 +10,28 @@
 
 namespace cp = shv::chainpack;
 
-ShvClientNode::ShvClientNode(rpc::ServerConnection *connection, ShvNode *parent)
+ShvClientNode::ShvClientNode(rpc::ServerConnection *conn, ShvNode *parent)
 	: Super(parent)
-	, m_connection(connection)
 {
-	shvInfo() << "Creating client node:" << this << "connection:" << connection->connectionId();
+	shvInfo() << "Creating client node:" << this << "connection:" << conn->connectionId();
+	addConnection(conn);
 }
 
 ShvClientNode::~ShvClientNode()
 {
-	shvInfo() << "Destroying client node:" << this << "connection:" << m_connection->connectionId();
+	shvInfo() << "Destroying client node:" << this << "connections:" << [this]() { std::string s; for(auto c : m_connections) s += std::to_string(c->connectionId()) + " "; return s;}();
+}
+
+void ShvClientNode::addConnection(rpc::ServerConnection *conn)
+{
+	m_connections << conn;
+}
+
+void ShvClientNode::removeConnection(rpc::ServerConnection *conn)
+{
+	m_connections.removeOne(conn);
+	if(m_connections.isEmpty())
+		deleteLater();
 }
 
 void ShvClientNode::processRawData(const shv::chainpack::RpcValue::MetaData &meta, std::string &&data)
