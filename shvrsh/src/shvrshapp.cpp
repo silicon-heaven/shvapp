@@ -1,7 +1,7 @@
 #include "shvrshapp.h"
 #include "appclioptions.h"
 
-#include <shv/iotqt/rpc/tunnelconnection.h>
+#include <shv/iotqt/rpc/clientconnection.h>
 #include <shv/iotqt/rpc/tunnelhandle.h>
 #include <shv/iotqt/node/shvnodetree.h>
 
@@ -24,15 +24,11 @@
 namespace cp = shv::chainpack;
 namespace ir = shv::iotqt::rpc;
 
-//const char METH_WRITE[] = "write";
-
 static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false},
 	{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, false},
-	//{cp::Rpc::KEY_TUNNEL_HANDLE, cp::MetaMethod::Signature::RetVoid, false},
-	//{METH_WRITE, cp::MetaMethod::Signature::RetParam, false},
 };
 
 size_t AppRootNode::methodCount()
@@ -55,18 +51,6 @@ shv::chainpack::RpcValue AppRootNode::call(const std::string &method, const shv:
 	if(method == cp::Rpc::METH_CONNECTION_TYPE) {
 		return ShvRshApp::instance()->rpcConnection()->connectionType();
 	}
-	//if(method == cp::Rpc::KEY_TUNNEL_HANDLE) {
-	//	return ShvRExecApp::instance()->rpcConnection()->tunnelHandle();
-	//}
-	/*
-	if(method == METH_WRITE) {
-		const shv::chainpack::RpcValue::Blob data = params.toBlob();
-		qint64 len = ShvRshApp::instance()->writeProcessStdin(data.data(), data.size());
-		if(len < 0)
-			shvError() << "Error writing process stdin.";
-		return cp::RpcValue{};
-	}
-	*/
 	return Super::call(method, params);
 }
 

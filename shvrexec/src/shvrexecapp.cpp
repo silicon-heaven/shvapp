@@ -2,7 +2,7 @@
 #include "appclioptions.h"
 #include "ptyprocess.h"
 
-#include <shv/iotqt/rpc/tunnelconnection.h>
+#include <shv/iotqt/rpc/clientconnection.h>
 #include <shv/iotqt/rpc/tunnelhandle.h>
 #include <shv/iotqt/node/shvnodetree.h>
 
@@ -119,25 +119,25 @@ ShvRExecApp::ShvRExecApp(int &argc, char **argv, AppCliOptions* cli_opts)
 #endif
 	cp::RpcMessage::setMetaTypeExplicit(cli_opts->isMetaTypeExplicit());
 
-	m_rpcConnection = new shv::iotqt::rpc::TunnelConnection(this);
+	m_rpcConnection = new shv::iotqt::rpc::ClientConnection(this);
+	cp::RpcValue::IMap connection_params;
 	{
-		std::string tunnel_params;
-		std::getline(std::cin, tunnel_params);
-		cp::RpcValue v = cp::RpcValue::fromCpon(tunnel_params);
-		m_rpcConnection->setTunnelParams(v.toIMap());
+		std::string s;
+		std::getline(std::cin, s);
+		connection_params = cp::RpcValue::fromCpon(s).toIMap();
 	}
 
 	cli_opts->setHeartbeatInterval(0);
 	cli_opts->setReconnectInterval(0);
 	m_rpcConnection->setCliOptions(cli_opts);
 	{
-		using TunnelParams = shv::iotqt::rpc::TunnelParams;
-		using TunnelParamsMT = shv::iotqt::rpc::TunnelParams::MetaType;
-		const TunnelParams &m = m_rpcConnection->tunnelParams();
-		m_rpcConnection->setHost(m.value(TunnelParamsMT::Key::Host).toString());
-		m_rpcConnection->setPort(m.value(TunnelParamsMT::Key::Port).toInt());
-		m_rpcConnection->setUser(m.value(TunnelParamsMT::Key::User).toString());
-		m_rpcConnection->setPassword(m.value(TunnelParamsMT::Key::Password).toString());
+		//using ConnectionParams = shv::iotqt::rpc::ConnectionParams;
+		using ConnectionParamsMT = shv::iotqt::rpc::ConnectionParams::MetaType;
+		//const TunnelParams &m = m_rpcConnection->tunnelParams();
+		m_rpcConnection->setHost(connection_params.value(ConnectionParamsMT::Key::Host).toString());
+		m_rpcConnection->setPort(connection_params.value(ConnectionParamsMT::Key::Port).toInt());
+		m_rpcConnection->setUser(connection_params.value(ConnectionParamsMT::Key::User).toString());
+		m_rpcConnection->setPassword(connection_params.value(ConnectionParamsMT::Key::Password).toString());
 	}
 
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::socketConnectedChanged, [](bool connected) {

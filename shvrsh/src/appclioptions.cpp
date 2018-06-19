@@ -1,5 +1,7 @@
 #include "appclioptions.h"
 
+#include <shv/chainpack/rpc.h>
+
 AppCliOptions::AppCliOptions(QObject *parent)
 	: Super(parent)
 {

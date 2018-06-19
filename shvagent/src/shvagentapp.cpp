@@ -3,7 +3,6 @@
 #include "sessionprocess.h"
 
 #include <shv/iotqt/rpc/deviceconnection.h>
-#include <shv/iotqt/rpc/tunnelconnection.h>
 #include <shv/iotqt/rpc/tunnelhandle.h>
 #include <shv/iotqt/node/shvnodetree.h>
 #include <shv/iotqt/node/localfsnode.h>
@@ -205,8 +204,8 @@ ShvAgentApp *ShvAgentApp::instance()
 
 void ShvAgentApp::launchRexec(const shv::chainpack::RpcRequest &rq)
 {
-	using TunnelParams = shv::iotqt::rpc::TunnelParams;
-	using TunnelParamsMT = shv::iotqt::rpc::TunnelParams::MetaType;
+	using TunnelParams = shv::iotqt::rpc::ConnectionParams;
+	using TunnelParamsMT = shv::iotqt::rpc::ConnectionParams::MetaType;
 	TunnelParams tun_params;
 	tun_params[TunnelParamsMT::Key::Host] = m_rpcConnection->host();
 	tun_params[TunnelParamsMT::Key::Port] = m_rpcConnection->port();

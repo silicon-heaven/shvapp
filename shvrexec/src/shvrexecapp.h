@@ -12,7 +12,7 @@ class QProcess;
 class AppCliOptions;
 
 namespace shv { namespace chainpack { class RpcMessage; }}
-namespace shv { namespace iotqt { namespace rpc { class TunnelConnection; }}}
+namespace shv { namespace iotqt { namespace rpc { class ClientConnection; }}}
 namespace shv { namespace iotqt { namespace node { class ShvNodeTree; }}}
 
 class AppRootNode : public shv::iotqt::node::ShvRootNode
@@ -38,7 +38,7 @@ public:
 	~ShvRExecApp() Q_DECL_OVERRIDE;
 
 	static ShvRExecApp* instance();
-	shv::iotqt::rpc::TunnelConnection *rpcConnection() const {return m_rpcConnection;}
+	shv::iotqt::rpc::ClientConnection *rpcConnection() const {return m_rpcConnection;}
 
 	shv::chainpack::RpcValue runCmd(const shv::chainpack::RpcRequest &rq);
 	shv::chainpack::RpcValue runPtyCmd(const shv::chainpack::RpcRequest &rq);
@@ -59,7 +59,7 @@ private:
 	void sendProcessOutput(int channel, const char *data, size_t data_len);
 	void closeAndQuit();
 private:
-	shv::iotqt::rpc::TunnelConnection *m_rpcConnection = nullptr;
+	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
 	AppCliOptions* m_cliOptions;
 
 	shv::iotqt::node::ShvNodeTree *m_shvTree = nullptr;

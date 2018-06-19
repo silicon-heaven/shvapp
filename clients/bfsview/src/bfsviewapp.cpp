@@ -3,7 +3,6 @@
 #include "settings.h"
 
 #include <shv/iotqt/rpc/deviceconnection.h>
-#include <shv/iotqt/rpc/tunnelconnection.h>
 #include <shv/iotqt/rpc/tunnelhandle.h>
 #include <shv/iotqt/node/shvnodetree.h>
 #include <shv/iotqt/node/localfsnode.h>
