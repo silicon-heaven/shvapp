@@ -1,14 +1,14 @@
 #pragma once
 
-#include <shv/iotqt/rpc/deviceconnection.h>
+#include <shv/coreqt/utils/clioptions.h>
 
 #include <QSet>
 
-class AppCliOptions : public shv::iotqt::rpc::DeviceAppCliOptions
+class AppCliOptions : public shv::coreqt::utils::ConfigCLIOptions
 {
 	Q_OBJECT
 private:
-	using Super = shv::iotqt::rpc::DeviceAppCliOptions;
+	using Super = shv::coreqt::utils::ConfigCLIOptions;
 
 	CLIOPTION_GETTER_SETTER2(QString, "broker.subscribtions", s, setS, ubscriptions)
 public:

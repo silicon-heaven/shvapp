@@ -7,7 +7,7 @@
 #include <map>
 
 namespace shv { namespace chainpack { class RpcValue; class RpcMessage; } }
-namespace shv { namespace iotqt { namespace rpc { class DeviceConnection; } } }
+namespace shv { namespace iotqt { namespace rpc { class ClientConnection; } } }
 
 class ShvBrokerNodeItem : public ShvNodeItem
 {
@@ -32,18 +32,18 @@ public:
 	QVariantMap serverProperties() const;
 	void setServerProperties(const QVariantMap &props);
 
-	shv::iotqt::rpc::DeviceConnection *clientConnection();
+	shv::iotqt::rpc::ClientConnection *clientConnection();
 
 	unsigned callNodeRpcMethod(const std::string &calling_node_shv_path, const std::string &method, const shv::chainpack::RpcValue &params);
 
 	ShvNodeItem *findNode(const std::string &path, std::string *path_rest = nullptr);
 private:
+	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	void createSubscriptions();
 private:
-	int m_oid = 0;
-	std::string m_serverName;
-	shv::iotqt::rpc::DeviceConnection *m_rpcConnection = nullptr;
+	QVariantMap m_serverPropeties;
+	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
 	OpenStatus m_openStatus = OpenStatus::Disconnected;
 	struct RpcRequestInfo;
 	std::map<unsigned, RpcRequestInfo> m_runningRpcRequests;

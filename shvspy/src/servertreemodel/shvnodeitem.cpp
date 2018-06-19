@@ -99,17 +99,16 @@ void ShvNodeItem::insertChild(int ix, ShvNodeItem *n)
 	m->endInsertRows();
 }
 
-ShvNodeItem *ShvNodeItem::takeChild(int ix)
+void ShvNodeItem::deleteChild(int ix)
 {
 	ShvNodeItem *ret = childAt(ix);
 	if(ret) {
 		ServerTreeModel *m = treeModel();
 		m->beginRemoveRows(m->indexFromItem(this), ix, ix);
-		ret->setParent(nullptr);
 		m_children.remove(ix);
+		delete ret;
 		m->endRemoveRows();
 	}
-	return ret;
 }
 
 void ShvNodeItem::deleteChildren()

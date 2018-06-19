@@ -37,13 +37,14 @@ public:
 
 	ServerTreeModel* treeModel() const;
 	const std::string& nodeId() const {return m_nodeId;}
+	void setNodeId(std::string nid) {m_nodeId = std::move(nid);}
 	ShvBrokerNodeItem* serverNode() const;
 	ShvNodeItem* parentNode() const;
 	ShvNodeItem* childAt(int ix) const;
 	int childCount() const {return m_children.count();}
 	void insertChild(int ix, ShvNodeItem *n);
 	void appendChild(ShvNodeItem *n) {insertChild(m_children.count(), n);}
-	ShvNodeItem* takeChild(int ix);
+	void deleteChild(int ix);
 	void deleteChildren();
 	unsigned modelId() const {return m_treeModelId;}
 

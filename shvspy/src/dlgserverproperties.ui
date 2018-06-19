@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>293</width>
-    <height>340</height>
+    <width>613</width>
+    <height>579</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -83,27 +83,118 @@
        </property>
       </widget>
      </item>
+     <item row="5" column="0">
+      <widget class="QLabel" name="label_6">
+       <property name="text">
+        <string>Connection type</string>
+       </property>
+      </widget>
+     </item>
      <item row="5" column="1">
       <widget class="QComboBox" name="cbxConnectionType">
        <property name="toolTip">
         <string>Connection type</string>
        </property>
-       <item>
-        <property name="text">
-         <string>Connection</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>Device</string>
-        </property>
-       </item>
       </widget>
      </item>
-     <item row="5" column="0">
-      <widget class="QLabel" name="label_6">
+     <item row="6" column="0">
+      <widget class="QLabel" name="label_7">
        <property name="text">
-        <string>Type</string>
+        <string>Protocol type</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="1">
+      <widget class="QComboBox" name="rpc_protocolType">
+       <property name="toolTip">
+        <string>Connection type</string>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="0" colspan="2">
+      <widget class="QGroupBox" name="grpDevice">
+       <property name="title">
+        <string>Device</string>
+       </property>
+       <layout class="QFormLayout" name="formLayout_2">
+        <item row="1" column="0">
+         <widget class="QLabel" name="label_8">
+          <property name="text">
+           <string>Mount point</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QLineEdit" name="device_mountPoint"/>
+        </item>
+        <item row="0" column="0">
+         <widget class="QLabel" name="label_9">
+          <property name="text">
+           <string>Device ID</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QLineEdit" name="device_id"/>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item row="7" column="0">
+      <widget class="QLabel" name="label_10">
+       <property name="text">
+        <string>Reconnect interval</string>
+       </property>
+      </widget>
+     </item>
+     <item row="8" column="0">
+      <widget class="QLabel" name="label_11">
+       <property name="text">
+        <string>Heart beat interval</string>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="1">
+      <widget class="QSpinBox" name="rpc_reconnectInterval">
+       <property name="toolTip">
+        <string>Reconnect to broker if connection lost at least after recoonect-interval seconds. Disabled when set to 0</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
+       <property name="suffix">
+        <string> sec</string>
+       </property>
+       <property name="maximum">
+        <number>999999999</number>
+       </property>
+       <property name="singleStep">
+        <number>10</number>
+       </property>
+       <property name="value">
+        <number>10</number>
+       </property>
+      </widget>
+     </item>
+     <item row="8" column="1">
+      <widget class="QSpinBox" name="rpc_heartbeatInterval">
+       <property name="toolTip">
+        <string>Send heart beat to broker every n sec. Disabled when set to 0.</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
+       <property name="suffix">
+        <string> sec</string>
+       </property>
+       <property name="maximum">
+        <number>999999999</number>
+       </property>
+       <property name="singleStep">
+        <number>10</number>
+       </property>
+       <property name="value">
+        <number>60</number>
        </property>
       </widget>
      </item>
@@ -127,6 +218,12 @@
   <tabstop>edPort</tabstop>
   <tabstop>edUser</tabstop>
   <tabstop>edPassword</tabstop>
+  <tabstop>cbxConnectionType</tabstop>
+  <tabstop>rpc_protocolType</tabstop>
+  <tabstop>rpc_reconnectInterval</tabstop>
+  <tabstop>rpc_heartbeatInterval</tabstop>
+  <tabstop>device_id</tabstop>
+  <tabstop>device_mountPoint</tabstop>
  </tabstops>
  <resources/>
  <connections>

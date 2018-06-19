@@ -81,7 +81,7 @@ void ServerConnection::sendMessage(const shv::chainpack::RpcMessage &rpc_msg)
 {
 	logRpcMsg() << SND_LOG_ARROW
 				<< "client id:" << connectionId()
-				<< "protocol_type:" << (int)protocolType() << shv::chainpack::Rpc::ProtocolTypeToString(protocolType())
+				<< "protocol_type:" << (int)protocolType() << shv::chainpack::Rpc::protocolTypeToString(protocolType())
 				<< rpc_msg.toCpon();
 	Super::sendMessage(rpc_msg);
 }
@@ -90,7 +90,7 @@ void ServerConnection::sendRawData(const shv::chainpack::RpcValue::MetaData &met
 {
 	logRpcMsg() << SND_LOG_ARROW
 				<< "client id:" << connectionId()
-				<< "protocol_type:" << (int)protocolType() << shv::chainpack::Rpc::ProtocolTypeToString(protocolType())
+				<< "protocol_type:" << (int)protocolType() << shv::chainpack::Rpc::protocolTypeToString(protocolType())
 				<< dataToCpon(protocolType(), meta_data, data, 0);
 	Super::sendRawData(meta_data, std::move(data));
 }
@@ -99,7 +99,7 @@ void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolType proto
 {
 	logRpcMsg() << RCV_LOG_ARROW
 				<< "client id:" << connectionId()
-				<< "protocol_type:" << (int)protocol_type << shv::chainpack::Rpc::ProtocolTypeToString(protocol_type)
+				<< "protocol_type:" << (int)protocol_type << shv::chainpack::Rpc::protocolTypeToString(protocol_type)
 				<< dataToCpon(protocol_type, md, data, start_pos);
 	try {
 		if(isInitPhase()) {

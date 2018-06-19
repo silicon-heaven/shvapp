@@ -12,6 +12,7 @@
 #include <QSettings>
 #include <QJsonDocument>
 #include <QJsonParseError>
+//#include <QDebug>
 
 ServerTreeModel::ServerTreeModel(QObject *parent)
 	: Super(parent)
@@ -46,14 +47,15 @@ QModelIndex ServerTreeModel::parent(const QModelIndex &child) const
 
 ShvBrokerNodeItem *ServerTreeModel::createConnection(const QVariantMap &params)
 {
+	//qDebug() << params;
 	ShvBrokerNodeItem *ret = new ShvBrokerNodeItem(this, params.value("name").toString().toStdString());
 	const std::string broker_name = ret->nodeId();
+	ret->setServerProperties(params);
 	connect(ret->clientConnection(), &shv::iotqt::rpc::DeviceConnection::rpcMessageReceived, [broker_name](const shv::chainpack::RpcMessage &msg) {
 		//shvInfo() << msg.toPrettyString();
 		RpcNotificationsModel *m = TheApp::instance()->rpcNotificationsModel();
 		m->addLogRow(broker_name, msg);
 	});
-	ret->setServerProperties(params);
 	ShvNodeRootItem *root = invisibleRootItem();
 	root->appendChild(ret);
 	return ret;

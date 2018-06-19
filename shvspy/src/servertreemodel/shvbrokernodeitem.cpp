@@ -50,7 +50,10 @@ ShvBrokerNodeItem::ShvBrokerNodeItem(ServerTreeModel *m, const std::string &serv
 
 ShvBrokerNodeItem::~ShvBrokerNodeItem()
 {
-	SHV_SAFE_DELETE(m_rpcConnection);
+	if(m_rpcConnection) {
+		disconnect(m_rpcConnection, 0, this, 0);
+		delete m_rpcConnection;
+	}
 }
 
 QVariant ShvBrokerNodeItem::data(int role) const
@@ -80,33 +83,29 @@ QVariant ShvBrokerNodeItem::data(int role) const
 
 QVariantMap ShvBrokerNodeItem::serverProperties() const
 {
-	QVariantMap ret;
-	if(m_rpcConnection) {
-		//ret["oid"] = oid();
-		ret["name"] = QString::fromStdString(nodeId());
-		ret["host"] = QString::fromStdString(m_rpcConnection->host());
-		ret["port"] = m_rpcConnection->port();
-		ret["user"] = QString::fromStdString(m_rpcConnection->user());
-		ret["password"] = QString::fromStdString(m_rpcConnection->password());
-	}
-	return ret;
+	return m_serverPropeties;
 }
 
 void ShvBrokerNodeItem::setServerProperties(const QVariantMap &props)
 {
-	//setOid(props.value("oid").toInt());
-	shv::iotqt::rpc::ClientConnection *cli = clientConnection();
-	//cli->setServerName(props.value("name").toString());
-	cli->setHost(props.value("host").toString().toStdString());
-	cli->setPort(props.value("port").toInt());
-	cli->setUser(props.value("user").toString().toStdString());
-	cli->setPassword(props.value("password").toString().toStdString());
+	if(m_rpcConnection) {
+		delete m_rpcConnection;
+		m_rpcConnection = nullptr;
+	}
+	m_serverPropeties = props;
+	setNodeId(m_serverPropeties.value("name").toString().toStdString());
 }
 
 void ShvBrokerNodeItem::open()
 {
 	close();
-	clientConnection()->open();
+	shv::iotqt::rpc::ClientConnection *cli = clientConnection();
+	//cli->setServerName(props.value("name").toString());
+	cli->setHost(m_serverPropeties.value("host").toString().toStdString());
+	cli->setPort(m_serverPropeties.value("port").toInt());
+	cli->setUser(m_serverPropeties.value("user").toString().toStdString());
+	cli->setPassword(m_serverPropeties.value("password").toString().toStdString());
+	cli->open();
 	m_openStatus = OpenStatus::Connecting;
 	emitDataChanged();
 }
@@ -129,26 +128,70 @@ QString ServerNode::connectionErrorString()
 	return ret;
 }
 */
-shv::iotqt::rpc::DeviceConnection *ShvBrokerNodeItem::clientConnection()
+shv::iotqt::rpc::ClientConnection *ShvBrokerNodeItem::clientConnection()
 {
+
 	if(!m_rpcConnection) {
-		m_rpcConnection = new shv::iotqt::rpc::DeviceConnection(nullptr);
-		m_rpcConnection->setCliOptions(TheApp::instance()->cliOptions());
-		m_rpcConnection->setCheckBrokerConnectedInterval(0);
-		connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, [this](bool is_connected) {
-			m_openStatus = is_connected? OpenStatus::Connected: OpenStatus::Disconnected;
-			emitDataChanged();
-			if(is_connected) {
-				createSubscriptions();
-				loadChildren();
-			}
-			else {
-				deleteChildren();
-			}
-		});
+		QString conn_type = m_serverPropeties.value(cp::Rpc::KEY_CONNECTION_TYPE).toString();
+
+		shv::iotqt::rpc::DeviceAppCliOptions opts;
+		{
+			int proto_type = m_serverPropeties.value("rpc.protocolType").toInt();
+			if(proto_type == (int)cp::Rpc::ProtocolType::JsonRpc)
+				opts.setProtocolType("jsonrpc");
+			else if(proto_type == (int)cp::Rpc::ProtocolType::Cpon)
+				opts.setProtocolType("cpon");
+			else
+				opts.setProtocolType("chainpack");
+		}
+		{
+			QVariant v = m_serverPropeties.value("rpc.reconnectInterval");
+			if(v.isValid())
+				opts.setReconnectInterval(v.toInt());
+		}
+		{
+			QVariant v = m_serverPropeties.value("rpc.heartbeatInterval");
+			if(v.isValid())
+				opts.setHeartbeatInterval(v.toInt());
+		}
+		{
+			QString dev_id = m_serverPropeties.value("device.id").toString();
+			if(!dev_id.isEmpty())
+				opts.setDeviceId(dev_id);
+		}
+		{
+			QString mount_point = m_serverPropeties.value("device.mountPoint").toString();
+			if(!mount_point.isEmpty())
+				opts.setMountPoint(mount_point);
+		}
+
+		if(conn_type == cp::Rpc::TYPE_DEVICE) {
+			auto *c = new shv::iotqt::rpc::DeviceConnection(nullptr);
+			c->setCliOptions(&opts);
+			m_rpcConnection = c;
+		}
+		else {
+			m_rpcConnection = new shv::iotqt::rpc::ClientConnection(nullptr);
+			m_rpcConnection->setCliOptions(&opts);
+		}
+		//m_rpcConnection->setCheckBrokerConnectedInterval(0);
+		connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &ShvBrokerNodeItem::onBrokerConnectedChanged);
 		connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvBrokerNodeItem::onRpcMessageReceived);
 	}
 	return m_rpcConnection;
+}
+
+void ShvBrokerNodeItem::onBrokerConnectedChanged(bool is_connected)
+{
+	m_openStatus = is_connected? OpenStatus::Connected: OpenStatus::Disconnected;
+	emitDataChanged();
+	if(is_connected) {
+		createSubscriptions();
+		loadChildren();
+	}
+	else {
+		deleteChildren();
+	}
 }
 
 ShvNodeItem* ShvBrokerNodeItem::findNode(const std::string &path, std::string *path_rest)

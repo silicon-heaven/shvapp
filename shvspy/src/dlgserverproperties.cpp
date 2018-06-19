@@ -6,11 +6,22 @@
 #include <QSettings>
 #include <QDebug>
 
+namespace cp = shv::chainpack;
+
 DlgServerProperties::DlgServerProperties(QWidget *parent) :
 	Super(parent),
 	ui(new Ui::DlgServerProperties)
 {
 	ui->setupUi(this);
+
+	ui->cbxConnectionType->addItem(tr("Client"), QString::fromUtf8(shv::chainpack::Rpc::TYPE_CLIENT));
+	ui->cbxConnectionType->addItem(tr("Device"), QString::fromUtf8(shv::chainpack::Rpc::TYPE_DEVICE));
+	ui->cbxConnectionType->setCurrentIndex(0);
+
+	ui->rpc_protocolType->addItem(cp::Rpc::protocolTypeToString(cp::Rpc::ProtocolType::ChainPack), (int)cp::Rpc::ProtocolType::ChainPack);
+	ui->rpc_protocolType->addItem(cp::Rpc::protocolTypeToString(cp::Rpc::ProtocolType::Cpon), (int)cp::Rpc::ProtocolType::Cpon);
+	ui->rpc_protocolType->addItem(cp::Rpc::protocolTypeToString(cp::Rpc::ProtocolType::JsonRpc), (int)cp::Rpc::ProtocolType::JsonRpc);
+	ui->rpc_protocolType->setCurrentIndex(0);
 
 	QSettings settings;
 	restoreGeometry(settings.value(QStringLiteral("ui/dlgServerProperties/geometry")).toByteArray());
@@ -29,6 +40,12 @@ QVariantMap DlgServerProperties::serverProperties() const
 	ret["port"] = ui->edPort->value();
 	ret["user"] = ui->edUser->text();
 	ret["password"] = ui->edPassword->text();
+	ret[shv::chainpack::Rpc::KEY_CONNECTION_TYPE] = ui->cbxConnectionType->currentData().toString();
+	ret["rpc.protocolType"] = ui->rpc_protocolType->currentData().toInt();
+	ret["rpc.reconnectInterval"] = ui->rpc_reconnectInterval->value();
+	ret["rpc.heartbeatInterval"] = ui->rpc_heartbeatInterval->value();
+	ret["device.id"] = ui->device_id->text().trimmed();
+	ret["device.mountPoint"] = ui->device_mountPoint->text().trimmed();
 	return ret;
 }
 
@@ -39,6 +56,44 @@ void DlgServerProperties::setServerProperties(const QVariantMap &props)
 	ui->edPort->setValue(props.value("port", shv::chainpack::AbstractRpcConnection::DEFAULT_RPC_BROKER_PORT).toInt());
 	ui->edUser->setText(props.value("user").toString());
 	ui->edPassword->setText(props.value("password").toString());
+	{
+		QVariant v = props.value("rpc.reconnectInterval");
+		if(v.isValid())
+			ui->rpc_reconnectInterval->setValue(v.toInt());
+	}
+	{
+		QVariant v = props.value("rpc.heartbeatInterval");
+		if(v.isValid())
+			ui->rpc_heartbeatInterval->setValue(v.toInt());
+	}
+	{
+		QVariant v = props.value("device.id");
+		if(v.isValid())
+			ui->device_id->setText(v.toString());
+	}
+	{
+		QVariant v = props.value("device.mountPoint");
+		if(v.isValid())
+			ui->device_mountPoint->setText(v.toString());
+	}
+
+	QString conn_type = props.value(shv::chainpack::Rpc::KEY_CONNECTION_TYPE).toString();
+	ui->cbxConnectionType->setCurrentIndex(0);
+	for (int i = 0; i < ui->cbxConnectionType->count(); ++i) {
+		if(ui->cbxConnectionType->itemData(i).toString() == conn_type) {
+			ui->cbxConnectionType->setCurrentIndex(i);
+			break;
+		}
+	}
+
+	int proto_type = props.value("rpc.protocolType").toInt();
+	ui->rpc_protocolType->setCurrentIndex(0);
+	for (int i = 0; i < ui->rpc_protocolType->count(); ++i) {
+		if(ui->rpc_protocolType->itemData(i).toInt() == proto_type) {
+			ui->rpc_protocolType->setCurrentIndex(i);
+			break;
+		}
+	}
 }
 
 void DlgServerProperties::done(int res)

@@ -101,9 +101,8 @@ void MainWindow::on_actRemoveServer_triggered()
 	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
 	ShvBrokerNodeItem *brnd = qobject_cast<ShvBrokerNodeItem*>(nd);
 	if(brnd) {
-		if(QMessageBox::question(this, tr("Question"), tr("Realy drop server deinition for '%1'").arg(nd->objectName())) == QMessageBox::Yes) {
-			nd = TheApp::instance()->serverTreeModel()->invisibleRootItem()->takeChild(ix.row());
-			delete nd;
+		if(QMessageBox::question(this, tr("Question"), tr("Realy drop server definition for '%1'").arg(nd->objectName())) == QMessageBox::Yes) {
+			TheApp::instance()->serverTreeModel()->invisibleRootItem()->deleteChild(ix.row());
 		}
 	}
 }
@@ -154,7 +153,7 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
 	ShvBrokerNodeItem *snd = qobject_cast<ShvBrokerNodeItem*>(nd);
 	QMenu m;
-	QAction *a_reloadNodee = nullptr;
+	QAction *a_reloadNodee = new QAction(tr("Reload"), &m);
 	if(!nd) {
 		m.addAction(ui->actAddServer);
 	}
@@ -163,9 +162,12 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 		m.addAction(ui->actEditServer);
 		m.addAction(ui->actCopyServer);
 		m.addAction(ui->actRemoveServer);
+		if(snd->isOpen()) {
+			m.addSeparator();
+			m.addAction(a_reloadNodee);
+		}
 	}
 	else {
-		a_reloadNodee = new QAction(tr("Reload"), &m);
 		m.addAction(a_reloadNodee);
 	}
 	if(!m.actions().isEmpty()) {
