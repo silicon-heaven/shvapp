@@ -307,6 +307,7 @@ void BrokerApp::onClientLogin(int connection_id)
 				//this->sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_DISCONNECTED, cp::RpcValue());
 				this->sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_MOUNTED_CHANGED, false);
 			});
+			connect(cli_nd, &ShvClientNode::destroyed, cli_nd->parentNode(), &shv::iotqt::node::ShvNode::deleteDanglingPath, static_cast<Qt::ConnectionType>(Qt::UniqueConnection | Qt::QueuedConnection));
 			//sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_CONNECTED, cp::RpcValue());
 			sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_MOUNTED_CHANGED, true);
 		}
