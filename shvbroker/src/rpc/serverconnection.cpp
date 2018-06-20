@@ -91,7 +91,7 @@ void ServerConnection::sendRawData(const shv::chainpack::RpcValue::MetaData &met
 	logRpcMsg() << SND_LOG_ARROW
 				<< "client id:" << connectionId()
 				<< "protocol_type:" << (int)protocolType() << shv::chainpack::Rpc::protocolTypeToString(protocolType())
-				<< dataToCpon(protocolType(), meta_data, data, 0);
+				<< dataToCpon(shv::chainpack::RpcMessage::protocolType(meta_data), meta_data, data, 0);
 	Super::sendRawData(meta_data, std::move(data));
 }
 

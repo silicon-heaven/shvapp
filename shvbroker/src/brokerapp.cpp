@@ -301,7 +301,7 @@ void BrokerApp::onClientLogin(int connection_id)
 			shvInfo() << "device id:" << device_id.toCpon() << " mounted on:" << mount_point;
 			/// overwrite client default mount point
 			conn->setMountPoint(mount_point);
-			connect(conn, &rpc::ServerConnection::destroyed, [cli_nd, conn]() {cli_nd->removeConnection(conn);});
+			connect(conn, &rpc::ServerConnection::destroyed, cli_nd, [cli_nd, conn]() {cli_nd->removeConnection(conn);});
 			connect(conn, &rpc::ServerConnection::destroyed, this, [this, connection_id, mount_point]() {
 				shvInfo() << "server connection destroyed";
 				//this->sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_DISCONNECTED, cp::RpcValue());
