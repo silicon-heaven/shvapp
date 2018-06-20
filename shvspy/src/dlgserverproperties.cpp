@@ -16,6 +16,9 @@ DlgServerProperties::DlgServerProperties(QWidget *parent) :
 
 	ui->cbxConnectionType->addItem(tr("Client"), QString::fromUtf8(shv::chainpack::Rpc::TYPE_CLIENT));
 	ui->cbxConnectionType->addItem(tr("Device"), QString::fromUtf8(shv::chainpack::Rpc::TYPE_DEVICE));
+	connect(ui->cbxConnectionType, QOverload<int>::of(&QComboBox::currentIndexChanged), ui->grpDevice, [this](int ix) {
+		ui->grpDevice->setEnabled(ix == 1);
+	});
 	ui->cbxConnectionType->setCurrentIndex(0);
 
 	ui->rpc_protocolType->addItem(cp::Rpc::protocolTypeToString(cp::Rpc::ProtocolType::ChainPack), (int)cp::Rpc::ProtocolType::ChainPack);
