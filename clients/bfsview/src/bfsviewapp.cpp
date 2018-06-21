@@ -12,6 +12,7 @@
 #include <shv/core/stringview.h>
 
 //#include <QProcess>
+#include <QFileSystemWatcher>
 #include <QSettings>
 #include <QTimer>
 
@@ -178,21 +179,33 @@ void BfsViewApp::loadSettings()
 	Settings settings(qsettings);
 	//m_powerSwitchName = settings.powerSwitchName();
 	m_powerFileName = settings.powerFileName();
+
 	int inter = settings.powerFileCheckInterval();
-	if(inter < 1)
-		inter = 1;
-	if(!m_powerFileCheckTimer) {
-		m_powerFileCheckTimer = new QTimer(this);
-		connect(m_powerFileCheckTimer, &QTimer::timeout, this, &BfsViewApp::checkPowerSwitchStatusFile);
+	if(inter > 0) {
+		if(!m_powerFileCheckTimer) {
+			m_powerFileCheckTimer = new QTimer(this);
+			connect(m_powerFileCheckTimer, &QTimer::timeout, this, &BfsViewApp::checkPowerSwitchStatusFile);
+		}
+		shvInfo() << "Starting powerFileCheckTimer, interval:" << inter << "sec";
+		m_powerFileCheckTimer->start(inter * 1000);
 	}
-	shvInfo() << "Starting powerFileCheckTimer, interval:" << inter << "sec";
-	m_powerFileCheckTimer->start(inter * 1000);
+	else if(m_powerFileCheckTimer) {
+		shvInfo() << "Stopping powerFileCheckTimer";
+		m_powerFileCheckTimer->stop();
+	}
+
+	if(m_powerFileWatcher)
+		delete m_powerFileWatcher;
+	m_powerFileWatcher = new QFileSystemWatcher(this);
+	connect(m_powerFileWatcher, &QFileSystemWatcher::fileChanged, this, &BfsViewApp::checkPowerSwitchStatusFile);
+	m_powerFileWatcher->addPath(m_powerFileName);
+
 	checkPowerSwitchStatusFile();
 }
 
 void BfsViewApp::checkPowerSwitchStatusFile()
 {
-	shvDebug() << "Checking pwr staus file:" << m_powerFileName;
+	shvDebug() << "Checking pwr status file:" << m_powerFileName;
 	QFile file(m_powerFileName);
 	if (!file.open(QIODevice::ReadOnly)) {
 		shvError() << "Cannot open file:" << m_powerFileName << "for reading!";
@@ -213,7 +226,7 @@ void BfsViewApp::checkPowerSwitchStatusFile()
 		ts.setTimeSpec(Qt::UTC);
 		shvDebug() << name << status << ts.toString(Qt::ISODate) << curr_ts.toString(Qt::ISODate) << ts.secsTo(curr_ts);
 		if(status == 1 && ts.isValid()) {
-			if(ts.secsTo(curr_ts) < 2*m_powerFileCheckTimer->interval()/1000) {
+			if(ts.secsTo(curr_ts) < 2) {
 				new_status = 1;
 				shvDebug() << "ts:" << ts.toString(Qt::ISODate) << "pwr:" << new_status;
 				break;
@@ -227,14 +240,11 @@ static constexpr int PLC_CONNECTED_TIMOUT_MSEC = 10*1000;
 
 void BfsViewApp::sendGetStatusRequest()
 {
-	if(!m_plcConnectedCheckTimer) {
-		m_plcConnectedCheckTimer = new QTimer(this);
-		m_plcConnectedCheckTimer->setInterval(PLC_CONNECTED_TIMOUT_MSEC);
-		connect(m_plcConnectedCheckTimer, &QTimer::timeout, this, &BfsViewApp::checkPlcConnected);
-		m_plcConnectedCheckTimer->start();
+	auto *conn = rpcConnection();
+	if(conn->isBrokerConnected()) {
+		m_getStatusRpcId = conn->callShvMethod("../bfs1/status", cp::Rpc::METH_GET);
+		shvDebug() << "Sending get status request id:" << m_getStatusRpcId;
 	}
-	m_getStatusRpcId = rpcConnection()->callShvMethod("../bfs1/status", cp::Rpc::METH_GET);
-	shvDebug() << "Sending get status request id:" << m_getStatusRpcId;
 }
 
 void BfsViewApp::checkPlcConnected()
@@ -299,6 +309,17 @@ void BfsViewApp::onBrokerConnectedChanged(bool is_connected)
 			shvInfo() << "get status rq id:" << m_getStatusRpcId;
 		});
 		*/
+		if(!m_plcConnectedCheckTimer) {
+			m_plcConnectedCheckTimer = new QTimer(this);
+			m_plcConnectedCheckTimer->setInterval(PLC_CONNECTED_TIMOUT_MSEC);
+			connect(m_plcConnectedCheckTimer, &QTimer::timeout, this, &BfsViewApp::checkPlcConnected);
+		}
+		m_plcConnectedCheckTimer->start();
+	}
+	else {
+		if(m_plcConnectedCheckTimer)
+			m_plcConnectedCheckTimer->stop();
+
 	}
 }
 

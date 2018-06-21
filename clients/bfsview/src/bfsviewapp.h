@@ -7,6 +7,8 @@
 #include <QDateTime>
 
 class AppCliOptions;
+class QFileSystemWatcher;
+
 namespace shv { namespace chainpack { class RpcMessage; }}
 namespace shv { namespace iotqt { namespace rpc { class DeviceConnection; }}}
 namespace shv { namespace iotqt { namespace node { class ShvNodeTree; }}}
@@ -119,10 +121,10 @@ private:
 
 	//QString m_powerSwitchName;
 	QString m_powerFileName;
-	//int m_powerFileCheckInterval;
+	QFileSystemWatcher *m_powerFileWatcher = nullptr;
 	QTimer *m_powerFileCheckTimer = nullptr;
 	QTimer *m_plcConnectedCheckTimer = nullptr;
-	unsigned m_getStatusRpcId = 0;
+	unsigned m_getStatusRpcId = std::numeric_limits<unsigned>::max();
 
 };
 
