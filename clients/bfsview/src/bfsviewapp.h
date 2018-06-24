@@ -123,6 +123,13 @@ private:
 	QString m_powerFileName;
 	QFileSystemWatcher *m_powerFileWatcher = nullptr;
 	QTimer *m_powerFileCheckTimer = nullptr;
+	struct TS
+	{
+		QDateTime when;
+		QString timeStampString;
+	};
+	QMap<QString, TS> m_powerSwitchStatus;
+
 	QTimer *m_plcConnectedCheckTimer = nullptr;
 	unsigned m_getStatusRpcId = std::numeric_limits<unsigned>::max();
 

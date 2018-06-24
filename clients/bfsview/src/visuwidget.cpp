@@ -296,7 +296,7 @@ void VisuWidget::refreshVisualization()
 	int msw_status = mswStatus();
 	int bfs_status = (ps & ((1 << BfsViewApp::BfsStatus::BfsOn) | (1 << BfsViewApp::BfsStatus::BfsOff))) >> BfsViewApp::BfsStatus::BfsOn;
 	//bool is_plc_connected = app->isPlcConnected();
-	shvInfo() << ps << bfs_status;
+	//shvInfo() << ps << bfs_status;
 
 	setElementFillColor(QStringLiteral("sw_ompag_rect"), statusToColor(ompag_status));
 	setElementVisible(QStringLiteral("sw_ompag_on"), ompag_status == (int)BfsViewApp::SwitchStatus::On);

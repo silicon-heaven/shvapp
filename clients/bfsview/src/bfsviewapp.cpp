@@ -179,6 +179,7 @@ void BfsViewApp::loadSettings()
 	Settings settings(qsettings);
 	//m_powerSwitchName = settings.powerSwitchName();
 	m_powerFileName = settings.powerFileName();
+	shvInfo() << "powerFileName:" << m_powerFileName;
 
 	int inter = settings.powerFileCheckInterval();
 	if(inter > 0) {
@@ -213,7 +214,7 @@ void BfsViewApp::checkPowerSwitchStatusFile()
 		return;
 	}
 	QDateTime curr_ts = QDateTime::currentDateTimeUtc();
-	int new_status = 0;
+	int new_pwr_on = 0;
 	while(!file.atEnd()) {
 		QByteArray ba = file.readLine().trimmed();
 		if(ba.isEmpty())
@@ -221,19 +222,25 @@ void BfsViewApp::checkPowerSwitchStatusFile()
 		QString line = QString::fromUtf8(ba);
 		shvDebug() << line;
 		QString name = line.section(' ', 0, 0);
-		int status = line.section(' ', 1, 1).toInt();
-		QDateTime ts = QDateTime::fromString(line.section(' ', 2, 2), QStringLiteral("yyyy-M-dTHH:mm:ss"));
-		ts.setTimeSpec(Qt::UTC);
-		shvDebug() << name << status << ts.toString(Qt::ISODate) << curr_ts.toString(Qt::ISODate) << ts.secsTo(curr_ts);
-		if(status == 1 && ts.isValid()) {
-			if(ts.secsTo(curr_ts) < 2) {
-				new_status = 1;
-				shvDebug() << "ts:" << ts.toString(Qt::ISODate) << "pwr:" << new_status;
-				break;
+		int pwr_on = line.section(' ', 1, 1).toInt();
+		QString ts_str = line.section(' ', 2, 2);
+		TS &ts = m_powerSwitchStatus[name];
+		if(ts.timeStampString != ts_str) {
+			bool was_empty = ts.timeStampString.isEmpty();
+			ts.timeStampString = ts_str;
+			ts.when = QDateTime::currentDateTimeUtc();
+			if(was_empty)
+				continue;
+		}
+		shvDebug() << name << pwr_on << ts_str << curr_ts.toString(Qt::ISODate);
+		if(pwr_on == 1 && !ts_str.isEmpty() && ts.when.isValid()) {
+			if(ts.when.secsTo(curr_ts) < 2) {
+				new_pwr_on = 1;
+				shvDebug() << "ON:" << name << ts_str << ts.when.toUTC().toString(Qt::ISODate);
 			}
 		}
 	}
-	setPwrStatus(new_status);
+	setPwrStatus(new_pwr_on);
 }
 
 static constexpr int PLC_CONNECTED_TIMOUT_MSEC = 10*1000;
