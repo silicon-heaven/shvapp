@@ -42,6 +42,7 @@ public:
 	unsigned status() const;
 	bool setStatus(unsigned stat);
 
+	Q_SIGNAL void valueChanged(const std::string &key, const shv::chainpack::RpcValue &val);
 	Q_SIGNAL void propertyValueChanged(const std::string &property_name, const shv::chainpack::RpcValue &new_val);
 
 	size_t methodCount2(const std::string &shv_path = std::string()) override;
@@ -53,7 +54,16 @@ public:
 
 	shv::chainpack::RpcValue call2(const std::string &method, const shv::chainpack::RpcValue &params, const std::string &shv_path = std::string()) override;
 private:
+	shv::chainpack::RpcValue getLog(const shv::chainpack::RpcValue::DateTime &from, const shv::chainpack::RpcValue::DateTime &to);
+	void addLogEntry(const std::string &key, const shv::chainpack::RpcValue &value);
+private:
 	unsigned m_status = 0;
+	struct LogEntry
+	{
+		std::string key;
+		shv::chainpack::RpcValue value;
+	};
+	std::map<shv::chainpack::RpcValue::DateTime, LogEntry> m_log;
 };
 
 

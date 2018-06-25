@@ -43,13 +43,7 @@ enum class Status : unsigned
 Lublicator::Lublicator(ShvNode *parent)
 	: Super(parent)
 {
-	//m_properties[S_STATUS] = cp::RpcValue::UInt(0);
-	//m_properties[S_NAME] = "";
-//	m_properties[S_BATT_HI] = cp::RpcValue::Decimal(245, 1);
-//	m_properties[S_BATT_LOW] = cp::RpcValue::Decimal(232, 1);
-//	m_properties[S_BATT_LEVSIM] = cp::RpcValue::Decimal(240, 1);
-//	m_properties[S_CMD_POS_ON];
-//	m_properties[S_CMD_POS_OFF];
+	connect(this, &Lublicator::valueChanged, this, &Lublicator::addLogEntry);
 }
 
 unsigned Lublicator::status() const
@@ -62,6 +56,7 @@ bool Lublicator::setStatus(unsigned stat)
 	unsigned old_stat = status();
 	if(old_stat != stat) {
 		m_status = stat;
+		emit valueChanged(PROP_STATUS, stat);
 		emit propertyValueChanged(nodeId() + '/' + PROP_STATUS, stat);
 		return true;
 	}
@@ -74,7 +69,7 @@ static std::vector<cp::MetaMethod> meta_methods_device {
 	{Lublicator::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, false},
 	{Lublicator::METH_CMD_ON, cp::MetaMethod::Signature::VoidVoid, false},
 	{Lublicator::METH_CMD_OFF, cp::MetaMethod::Signature::VoidVoid, false},
-	//{Lublicator::METH_GET_LOG, cp::MetaMethod::Signature::RetParam, false},
+	{Lublicator::METH_GET_LOG, cp::MetaMethod::Signature::RetParam, false},
 };
 
 static std::vector<cp::MetaMethod> meta_methods_status {
@@ -138,12 +133,62 @@ shv::chainpack::RpcValue Lublicator::call2(const std::string &method, const shv:
 			setStatus(stat);
 			return true;
 		}
+		if(method == METH_GET_LOG) {
+			const shv::chainpack::RpcValue::Map &m = params.toMap();
+			cp::RpcValue::DateTime from = m.value("from").toDateTime();
+			cp::RpcValue::DateTime to = m.value("to").toDateTime();
+			return getLog(from, to);
+		}
 	}
 	else if(shv_path == "status") {
 		if(method == cp::Rpc::METH_GET) {
 			return status();
 		}
 	}	return Super::call2(method, params, shv_path);
+}
+
+shv::chainpack::RpcValue Lublicator::getLog(const shv::chainpack::RpcValue::DateTime &from, const shv::chainpack::RpcValue::DateTime &to)
+{
+	shv::chainpack::RpcValue::List lines;
+	auto it1 = m_log.cbegin();
+	if(from.isValid())
+		it1 = m_log.lower_bound(from);
+	auto it2 = m_log.cend();
+	if(to.isValid())
+		it2 = m_log.upper_bound(to);
+	for(auto it = it1; it != it2; ++it) {
+		shv::chainpack::RpcValue::List line;
+		line.push_back(it->first);
+		line.push_back(it->second.key);
+		line.push_back(it->second.value);
+		lines.push_back(line);
+	}
+	shv::chainpack::RpcValue ret = lines;
+	cp::RpcValue::Map device;
+	device["id"] = "DS:" + nodeId();
+	cp::RpcValue::MetaData md;
+	md.setValue("device", device); // required
+	md.setValue("logVersion", 1); // required
+	md.setValue("dateTime", cp::RpcValue::DateTime::now());
+	md.setValue("tsFrom", from);
+	md.setValue("tsTo", to);
+	md.setValue("fields", cp::RpcValue::Map{{"timestamp", nullptr}, {"key", nullptr}, {"value", nullptr}});
+	md.setValue("keys", cp::RpcValue::Map{
+					{"status", cp::RpcValue::Map{
+							{"description", "PosOff = 0, PosOn = 1, PosMiddle = 2, PosError = 3, BatteryLow = 4, BatteryHigh = 5, DoorOpenCabinet = 6, DoorOpenMotor = 7, ModeAuto = 8, ModeRemote = 9, ModeService = 10, MainSwitch = 11"},
+						}
+					},
+				});
+	ret.setMetaData(std::move(md));
+	return ret;
+}
+
+void Lublicator::addLogEntry(const std::string &key, const shv::chainpack::RpcValue &value)
+{
+	shv::chainpack::RpcValue::DateTime ts = cp::RpcValue::DateTime::now();
+	LogEntry &le = m_log[ts];
+	le.key = key;
+	le.value = value;
 }
 #if 0
 shv::iotqt::node::ShvNode::StringList Lublicator::childNames(const std::string &shv_path) const
