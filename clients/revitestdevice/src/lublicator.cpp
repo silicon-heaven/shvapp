@@ -172,8 +172,12 @@ shv::chainpack::RpcValue Lublicator::getLog(const shv::chainpack::RpcValue::Date
 	md.setValue("dateTime", cp::RpcValue::DateTime::now());
 	md.setValue("tsFrom", from);
 	md.setValue("tsTo", to);
-	md.setValue("fields", cp::RpcValue::Map{{"timestamp", nullptr}, {"key", nullptr}, {"value", nullptr}});
-	md.setValue("keys", cp::RpcValue::Map{
+	md.setValue("fields", cp::RpcValue::List{
+					cp::RpcValue::Map{{"name", "timestamp"}},
+					cp::RpcValue::Map{{"name", "path"}},
+					cp::RpcValue::Map{{"name", "value"}},
+				});
+	md.setValue("pathInfo", cp::RpcValue::Map{
 					{"status", cp::RpcValue::Map{
 							{"description", "PosOff = 0, PosOn = 1, PosMiddle = 2, PosError = 3, BatteryLow = 4, BatteryHigh = 5, DoorOpenCabinet = 6, DoorOpenMotor = 7, ModeAuto = 8, ModeRemote = 9, ModeService = 10, MainSwitch = 11"},
 						}
