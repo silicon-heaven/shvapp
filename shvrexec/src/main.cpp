@@ -13,11 +13,19 @@
 #include <termios.h>
 #include <unistd.h>
 
+#ifdef Q_OS_LINUX
+#include <signal.h>
+#include <sys/prctl.h>
+#endif
+
+
 int main(int argc, char *argv[])
 {
 	//for (int i = 0; i < argc; ++i)
 	//	std::cerr << i << " " << argv[i] << std::endl;
-
+#ifdef Q_OS_LINUX
+	::prctl(PR_SET_PDEATHSIG, SIGHUP);
+#endif
 	QCoreApplication::setOrganizationName("Elektroline");
 	QCoreApplication::setOrganizationDomain("elektroline.cz");
 	QCoreApplication::setApplicationName("shvrexec");

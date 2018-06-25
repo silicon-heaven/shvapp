@@ -1,6 +1,7 @@
 #include "shvrexecapp.h"
 #include "appclioptions.h"
 #include "ptyprocess.h"
+#include "process.h"
 
 #include <shv/iotqt/rpc/clientconnection.h>
 #include <shv/iotqt/rpc/tunnelhandle.h>
@@ -292,7 +293,7 @@ cp::RpcValue ShvRExecApp::runCmd(const shv::chainpack::RpcRequest &rq)
 	const shv::chainpack::RpcValue::String exec_cmd = rq.params().toString();
 
 	shvInfo() << "Starting process:" << exec_cmd;
-	m_cmdProc = new QProcess(this);
+	m_cmdProc = new Process(this);
 	connect(QCoreApplication::instance(), &QCoreApplication::aboutToQuit, m_cmdProc, &QProcess::terminate);
 	connect(m_cmdProc, &QProcess::readyReadStandardOutput, this, &ShvRExecApp::onReadyReadProcessStandardOutput);
 	connect(m_cmdProc, &QProcess::readyReadStandardError, this, &ShvRExecApp::onReadyReadProcessStandardError);

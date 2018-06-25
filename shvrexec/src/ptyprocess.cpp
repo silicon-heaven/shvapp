@@ -14,6 +14,11 @@
 #include <termios.h>
 #include <sys/ioctl.h>
 
+#ifdef Q_OS_LINUX
+#include <signal.h>
+#include <sys/prctl.h>
+#endif
+
 PtyProcess::PtyProcess(QObject *parent)
 	: Super(parent)
 {
@@ -99,6 +104,11 @@ qint64 PtyProcess::writePtyMaster(const char *data, int len)
 
 void PtyProcess::setupChildProcess()
 {
+#ifdef Q_OS_LINUX
+	::prctl(PR_SET_PDEATHSIG, SIGHUP);
+#else
+#warning "orphan killing is working in Linux only"
+#endif
 	//if(0 != ::setpgid(0, ::getppid()))
 	//	shvError() << "Error set process group ID:" << errno << ::strerror(errno);
 
