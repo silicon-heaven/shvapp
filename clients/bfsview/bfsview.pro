@@ -31,7 +31,7 @@ unix {
                 -Wl,-rpath,\'\$\$ORIGIN/../lib\'
 }
 
-test {
+bfsview-test {
 	DEFINES += TEST
 }
 

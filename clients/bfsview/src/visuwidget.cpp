@@ -31,6 +31,13 @@ VisuWidget::VisuWidget(QWidget *parent)
 			shvError() << "Error parsing SVG file";
 			QCoreApplication::instance()->quit();
 		}
+	}
+}
+
+bool VisuWidget::load(const QByteArray &svg)
+{
+	bool ret = m_renderer->load(svg);
+	if(ret) {
 		QDomElement el = elementById("sw_ompag_rect");
 		if(!el.isNull()) {
 			double x = el.attribute("x").toDouble();
@@ -48,14 +55,8 @@ VisuWidget::VisuWidget(QWidget *parent)
 			double w = el.attribute("width").toDouble();
 			m_convRect = QRectF(x, y, w, h);
 		}
-	}
-}
-
-bool VisuWidget::load(const QByteArray &svg)
-{
-	bool ret = m_renderer->load(svg);
-	if(ret)
 		update();
+	}
 	return ret;
 }
 
@@ -69,19 +70,8 @@ void VisuWidget::paintEvent(QPaintEvent *event)
 	p.fillRect(widget_r, QColor("#2b4174"));
 	widget_r.setSize(svg_sz.scaled(widget_r.size(), Qt::KeepAspectRatio));
 	m_renderer->render(&p, widget_r);
-	/*
-	QRect r2;
-	r2.setX(m_ompagRect.x() * widget_r.width() / svg_sz.width());
-	r2.setY(m_ompagRect.y() * widget_r.height() / svg_sz.height());
-	r2.setWidth(m_ompagRect.width() * widget_r.width() / svg_sz.width());
-	r2.setHeight(m_ompagRect.height() * widget_r.height() / svg_sz.height());
-	shvDebug() << "svg:" << r2s(QRect({0, 0}, svg_sz));
-	shvDebug() << "r:" << r2s(widget_r);
-	shvDebug() << "r_ompag:" << r2s(m_ompagRect);
-	shvDebug() << "r2:" << r2s(r2);
-	p.fillRect(r2, QColor("khaki"));
-	p.fillRect(svgRectToWidgetRect(m_convRect), QColor("salmon"));
-	*/
+	//p.fillRect(svgRectToWidgetRect(m_ompagRect), QColor("khaki"));
+	//p.fillRect(svgRectToWidgetRect(m_convRect), QColor("salmon"));
 }
 
 QRect VisuWidget::svgRectToWidgetRect(const QRectF &svg_rect)

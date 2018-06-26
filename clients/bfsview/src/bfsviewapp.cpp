@@ -225,14 +225,13 @@ void BfsViewApp::checkPowerSwitchStatusFile()
 		int pwr_on = line.section(' ', 1, 1).toInt();
 		QString ts_str = line.section(' ', 2, 2);
 		TS &ts = m_powerSwitchStatus[name];
+		shvDebug() << name << pwr_on << ts_str << "vs" << ts.timeStampString << "curr:" << curr_ts.toString(Qt::ISODate);
 		if(ts.timeStampString != ts_str) {
 			bool was_empty = ts.timeStampString.isEmpty();
 			ts.timeStampString = ts_str;
-			ts.when = QDateTime::currentDateTimeUtc();
-			if(was_empty)
-				continue;
+			if(!was_empty)
+				ts.when = QDateTime::currentDateTimeUtc();
 		}
-		shvDebug() << name << pwr_on << ts_str << curr_ts.toString(Qt::ISODate);
 		if(pwr_on == 1 && !ts_str.isEmpty() && ts.when.isValid()) {
 			if(ts.when.secsTo(curr_ts) < 2) {
 				new_pwr_on = 1;
