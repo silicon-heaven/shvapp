@@ -6,7 +6,7 @@
 #define COMPANY "elektroline"
 #define VERSION "0.1"
 
-#define QT_DIR "C:\Qt\5.8\mingw53_32"
+#define QT_DIR "C:\Qt\5.11.1\mingw53_32"
 #define MINGW_DIR "C:\Qt\Tools\mingw530_32"
 #define PSQL_DIR "C:\app\pgsql32"
 
