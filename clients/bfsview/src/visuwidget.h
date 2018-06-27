@@ -65,7 +65,7 @@ private:
 	VisuWidget *m_visuWidget;
 	std::function<BfsViewApp::SwitchStatus (BfsViewApp*)> m_statusFn;
 	BfsViewApp::SwitchStatus m_requiredSwitchStatus = BfsViewApp::SwitchStatus::Unknown;
-	bool m_toggleBit;
+	bool m_toggleBit = false;
 	QTimer *m_blinkTimer = nullptr;
 };
 

@@ -235,7 +235,8 @@ void BfsViewApp::checkPowerSwitchStatusFile()
 				ts.when = QDateTime::currentDateTimeUtc();
 		}
 		if(pwr_on == 1 && !ts_str.isEmpty() && ts.when.isValid()) {
-			if(ts.when.secsTo(curr_ts) < 2) {
+			// Andrejsek generuje soubor kazdych 30 sekund, 45 je s rezervou
+			if(ts.when.secsTo(curr_ts) < 45) {
 				new_pwr_on = 1;
 				shvDebug() << "ON:" << name << ts_str << ts.when.toUTC().toString(Qt::ISODate);
 			}

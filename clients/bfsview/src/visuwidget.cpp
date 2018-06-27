@@ -111,19 +111,20 @@ void VisuWidget::contextMenuEvent(QContextMenuEvent *event)
 	shvDebug() << pos.x() << pos.y();
 	if(svgRectToWidgetRect(m_ompagRect).contains(pos)) {
 		int st = app->ompagSwitchStatus();
-		if(st == BfsViewApp::SwitchStatus::On) {
+		int rq_st = app->ompagRequiredSwitchStatus();
+		if(st == BfsViewApp::SwitchStatus::On || rq_st != BfsViewApp::SwitchStatus::Unknown) {
 			menu.addAction(tr("Vypnout"), [this]() {
 				shvInfo() << "set ompag OFF";
 				BfsViewApp::instance()->setOmpag(false);
 			});
 		}
-		else if(st == BfsViewApp::SwitchStatus::Off) {
+		if(st == BfsViewApp::SwitchStatus::Off || rq_st != BfsViewApp::SwitchStatus::Unknown) {
 			menu.addAction(tr("Zapnout"), [this]() {
 				shvInfo() << "set ompag ON";
 				BfsViewApp::instance()->setOmpag(true);
 			});
 		}
-#ifdef Q_OS_LINUX
+#ifdef Q_OS_LINUXXXX
 		menu.addAction(tr("Zapnout sim"), [this]() {
 			bool val = true;
 			BfsViewApp *app = BfsViewApp::instance();
@@ -144,13 +145,14 @@ void VisuWidget::contextMenuEvent(QContextMenuEvent *event)
 	}
 	else if(svgRectToWidgetRect(m_convRect).contains(pos)) {
 		int st = app->convSwitchStatus();
-		if(st == BfsViewApp::SwitchStatus::On) {
+		int rq_st = app->convRequiredSwitchStatus();
+		if(st == BfsViewApp::SwitchStatus::On || rq_st != BfsViewApp::SwitchStatus::Unknown) {
 			menu.addAction(tr("Vypnout BS"), [this]() {
 				shvInfo() << "set conv OFF";
 				BfsViewApp::instance()->setConv(false);
 			});
 		}
-		else if(st == BfsViewApp::SwitchStatus::Off) {
+		if(st == BfsViewApp::SwitchStatus::Off || rq_st != BfsViewApp::SwitchStatus::Unknown) {
 			menu.addAction(tr("Zapnout BS"), [this]() {
 				shvInfo() << "set conv ON";
 				BfsViewApp::instance()->setConv(true);
@@ -445,7 +447,7 @@ QString SwitchVisuController::statusToColor(BfsViewApp::SwitchStatus status)
 		BfsViewApp::SwitchStatus status = m_statusFn(app);
 		if(status != m_requiredSwitchStatus) {
 			if(m_toggleBit)
-				return QStringLiteral("red");
+				return QStringLiteral("orangered");
 		}
 	}
 	return ::statusToColor(status);
