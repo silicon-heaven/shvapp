@@ -50,6 +50,8 @@ class BfsViewApp : public QApplication
 	Q_OBJECT
 
 	SHV_PROPERTY_IMPL2(int, b, B, fsStatus, 0)
+	SHV_PROPERTY_IMPL2(int, o, O, mpagRequiredSwitchStatus, 0)
+	SHV_PROPERTY_IMPL2(int, c, C, onvRequiredSwitchStatus, 0)
 	SHV_PROPERTY_BOOL_IMPL2(p, P, lcConnected, false)
 private:
 	using Super = QApplication;
@@ -91,6 +93,9 @@ public:
 	void setOmpag(bool val);
 	void setConv(bool val);
 
+	SwitchStatus ompagSwitchStatus();
+	SwitchStatus convSwitchStatus();
+
 	static inline void setBit(int &val, int bit_no, bool b)
 	{
 		int mask = 1 << bit_no;
@@ -108,7 +113,9 @@ public:
 private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
-	//void onRootNodeSendRpcMesage(const shv::chainpack::RpcMessage &msg);
+
+	void onBfsStatusChanged(int);
+
 	void checkPowerSwitchStatusFile();
 	void checkPlcConnected();
 	void sendGetStatusRequest();

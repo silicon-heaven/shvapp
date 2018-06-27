@@ -86,6 +86,7 @@ MainWindow::~MainWindow()
 	delete ui;
 }
 
+#ifdef TEST
 void MainWindow::on_ompagOn_toggled(bool on)
 {
 	BfsViewApp::instance()->setOmpag(on);
@@ -100,6 +101,7 @@ void MainWindow::on_pwrOn_toggled(bool on)
 {
 	BfsViewApp::instance()->setPwrStatus(on? 1: 0);
 }
+#endif
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {

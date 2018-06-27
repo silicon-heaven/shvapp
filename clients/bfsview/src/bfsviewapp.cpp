@@ -144,6 +144,8 @@ BfsViewApp::BfsViewApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &BfsViewApp::onBrokerConnectedChanged);
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &BfsViewApp::onRpcMessageReceived);
 
+	connect(this, &BfsViewApp::bfsStatusChanged, this, &BfsViewApp::onBfsStatusChanged);
+
 	AppRootNode *root = new AppRootNode();
 	m_shvTree = new shv::iotqt::node::ShvNodeTree(root, this);
 	m_pwrStatusNode = new PwrStatusNode();
@@ -282,6 +284,7 @@ void BfsViewApp::setOmpag(bool val)
 	setBfsStatus(s);
 #else
 	if(rpcConnection()->isBrokerConnected()) {
+		setOmpagRequiredSwitchStatus((int)(val? SwitchStatus::On: SwitchStatus::Off));
 		rpcConnection()->callShvMethod("../bfs1", "setOmpag", val);
 	}
 #endif
@@ -296,9 +299,24 @@ void BfsViewApp::setConv(bool val)
 	setBfsStatus(s);
 #else
 	if(rpcConnection()->isBrokerConnected()) {
+		setConvRequiredSwitchStatus((int)(val? SwitchStatus::On: SwitchStatus::Off));
 		rpcConnection()->callShvMethod("../bfs1", "setConv", val);
 	}
 #endif
+}
+
+BfsViewApp::SwitchStatus BfsViewApp::ompagSwitchStatus()
+{
+	unsigned ps = bfsStatus();
+	int status = (ps & ((1 << BfsStatus::OmpagOn) | (1 << BfsStatus::OmpagOff))) >> BfsStatus::OmpagOn;
+	return (SwitchStatus)status;
+}
+
+BfsViewApp::SwitchStatus BfsViewApp::convSwitchStatus()
+{
+	unsigned ps = bfsStatus();
+	int status = (ps & ((1 << BfsStatus::MswOn) | (1 << BfsStatus::MswOff))) >> BfsStatus::MswOn;
+	return (SwitchStatus)status;
 }
 
 void BfsViewApp::onBrokerConnectedChanged(bool is_connected)
@@ -382,6 +400,14 @@ void BfsViewApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 		}
 #endif
 	}
+}
+
+void BfsViewApp::onBfsStatusChanged(int )
+{
+	if(ompagRequiredSwitchStatus() == ompagSwitchStatus())
+		setOmpagRequiredSwitchStatus(SwitchStatus::Unknown);
+	if(convRequiredSwitchStatus() == convSwitchStatus())
+		setConvRequiredSwitchStatus(SwitchStatus::Unknown);
 }
 /*
 void ShvAgentApp::onRootNodeSendRpcMesage(const shv::chainpack::RpcMessage &msg)

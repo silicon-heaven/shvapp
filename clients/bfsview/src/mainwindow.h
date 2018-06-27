@@ -20,11 +20,12 @@ public:
 	explicit MainWindow(QWidget *parent = 0);
 	~MainWindow();
 
-private slots:
-	void on_ompagOn_toggled(bool on);
-	void on_convOn_toggled(bool on);
-	void on_pwrOn_toggled(bool on);
-
+private:
+#ifdef TEST
+	Q_SLOT void on_ompagOn_toggled(bool on);
+	Q_SLOT void on_convOn_toggled(bool on);
+	Q_SLOT void on_pwrOn_toggled(bool on);
+#endif
 	//void onVisuWidgetContextMenuRequest(const QPoint &pos);
 private:
 	void closeEvent(QCloseEvent *event) override;

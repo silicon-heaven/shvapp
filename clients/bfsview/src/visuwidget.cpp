@@ -11,6 +11,7 @@
 #include <QMessageBox>
 #include <QPainter>
 #include <QSvgRenderer>
+#include <QTimer>
 
 static QString r2s(const QRectF &r)
 {
@@ -21,7 +22,14 @@ VisuWidget::VisuWidget(QWidget *parent)
 	: Super(parent)
 	, m_renderer(new QSvgRenderer(this))
 	, m_xDoc("SVG")
+	, m_ompagVisuController(new SwitchVisuController(QStringLiteral("ctl_ompag"), this, &BfsViewApp::ompagSwitchStatus))
+	, m_convVisuController(new SwitchVisuController(QStringLiteral("ctl_conv"), this, &BfsViewApp::convSwitchStatus))
 {
+	BfsViewApp *app = BfsViewApp::instance();
+	connect(app, &BfsViewApp::bfsStatusChanged, m_ompagVisuController, &SwitchVisuController::updateXml);
+	connect(app, &BfsViewApp::ompagRequiredSwitchStatusChanged, m_ompagVisuController, &SwitchVisuController::onRequiredSwitchStatusChanged);
+	connect(app, &BfsViewApp::bfsStatusChanged, m_convVisuController, &SwitchVisuController::updateXml);
+	connect(app, &BfsViewApp::convRequiredSwitchStatusChanged, m_convVisuController, &SwitchVisuController::onRequiredSwitchStatusChanged);
 	//setContextMenuPolicy(Qt::CustomContextMenu);
 	{
 		QFile file(":/images/bfs1.svg");
@@ -32,6 +40,12 @@ VisuWidget::VisuWidget(QWidget *parent)
 			QCoreApplication::instance()->quit();
 		}
 	}
+}
+
+VisuWidget::~VisuWidget()
+{
+	delete m_ompagVisuController;
+	delete m_convVisuController;
 }
 
 bool VisuWidget::load(const QByteArray &svg)
@@ -86,28 +100,17 @@ QRect VisuWidget::svgRectToWidgetRect(const QRectF &svg_rect)
 	return ret;
 }
 
-int VisuWidget::ompagStatus()
-{
-	unsigned ps = BfsViewApp::instance()->bfsStatus();
-	int status = (ps & ((1 << BfsViewApp::BfsStatus::OmpagOn) | (1 << BfsViewApp::BfsStatus::OmpagOff))) >> BfsViewApp::BfsStatus::OmpagOn;
-	return status;
-}
-
-int VisuWidget::mswStatus()
-{
-	unsigned ps = BfsViewApp::instance()->bfsStatus();
-	int status = (ps & ((1 << BfsViewApp::BfsStatus::MswOn) | (1 << BfsViewApp::BfsStatus::MswOff))) >> BfsViewApp::BfsStatus::MswOn;
-	return status;
-}
-
 void VisuWidget::contextMenuEvent(QContextMenuEvent *event)
 {
 	const QPoint pos = event->pos();
 	QMenu menu(this);
+
+	BfsViewApp *app = BfsViewApp::instance();
+
 	//connect(&menu, &QMenu::destroyed, []() { shvInfo() << "RIP"; });
 	shvDebug() << pos.x() << pos.y();
 	if(svgRectToWidgetRect(m_ompagRect).contains(pos)) {
-		int st = ompagStatus();
+		int st = app->ompagSwitchStatus();
 		if(st == BfsViewApp::SwitchStatus::On) {
 			menu.addAction(tr("Vypnout"), [this]() {
 				shvInfo() << "set ompag OFF";
@@ -120,9 +123,27 @@ void VisuWidget::contextMenuEvent(QContextMenuEvent *event)
 				BfsViewApp::instance()->setOmpag(true);
 			});
 		}
+#ifdef Q_OS_LINUX
+		menu.addAction(tr("Zapnout sim"), [this]() {
+			bool val = true;
+			BfsViewApp *app = BfsViewApp::instance();
+			int s = app->bfsStatus();
+			BfsViewApp::setBit(s, BfsViewApp::BfsStatus::OmpagOn, val);
+			BfsViewApp::setBit(s, BfsViewApp::BfsStatus::OmpagOff, !val);
+			app->setBfsStatus(s);
+		});
+		menu.addAction(tr("Vypnout sim"), [this]() {
+			bool val = false;
+			BfsViewApp *app = BfsViewApp::instance();
+			int s = app->bfsStatus();
+			BfsViewApp::setBit(s, BfsViewApp::BfsStatus::OmpagOn, val);
+			BfsViewApp::setBit(s, BfsViewApp::BfsStatus::OmpagOff, !val);
+			app->setBfsStatus(s);
+		});
+#endif
 	}
 	else if(svgRectToWidgetRect(m_convRect).contains(pos)) {
-		int st = mswStatus();
+		int st = app->convSwitchStatus();
 		if(st == BfsViewApp::SwitchStatus::On) {
 			menu.addAction(tr("Vypnout BS"), [this]() {
 				shvInfo() << "set conv OFF";
@@ -196,7 +217,7 @@ static QString plcNotConnectedBitToColor(bool bit)
 	return bit? QStringLiteral("#FF0000"): QStringLiteral("white");
 }
 
-QDomElement elementById_helper(const QString &id, QDomElement parent)
+static QDomElement elementById_helper(const QString &id, QDomElement parent)
 {
 	for(QDomElement el = parent.firstChildElement(); !el.isNull(); el = el.nextSiblingElement()) {
 		//shvInfo() << parent.tagName() << el.tagName() << el.attribute("id") << "vs" << id;
@@ -218,6 +239,30 @@ QDomElement VisuWidget::elementById(const QString &id)
 	return el;
 }
 
+static QDomElement elementByShvName_helper(const QDomElement &parent_el, const QString &shv_name)
+{
+	for(QDomElement el = parent_el.firstChildElement(); !el.isNull(); el = el.nextSiblingElement()) {
+		//shvInfo() << parent.tagName() << el.tagName() << el.attribute("id") << "vs" << id;
+		if(el.attribute(QStringLiteral("shvName")) == shv_name) {
+			return el;
+		}
+		QDomElement el1 = elementByShvName_helper(el, shv_name);
+		if(!el1.isNull()) {
+			return el1;
+		}
+	}
+	return QDomElement();
+}
+
+QDomElement VisuWidget::elementByShvName(const QDomElement &parent_el, const QString &shv_name)
+{
+	QDomElement ret = elementByShvName_helper(parent_el, shv_name);
+	if(ret.isNull()) {
+		shvError() << "Element shvName:" << shv_name << "does not exist";
+	}
+	return ret;
+}
+
 void VisuWidget::setElementText(const QString &elem_id, const QString &text)
 {
 	QDomElement el = elementById(elem_id);
@@ -235,7 +280,12 @@ void VisuWidget::setElementText(const QString &elem_id, const QString &text)
 
 void VisuWidget::setElementFillColor(const QString &id, const QString &c)
 {
-	setElementStyleAttribute(id, QStringLiteral("fill"), c);
+	setElementFillColor(elementById(id), c);
+}
+
+void VisuWidget::setElementFillColor(QDomElement el, const QString &c)
+{
+	setElementStyleAttribute(el, QStringLiteral("fill"), c);
 }
 
 void VisuWidget::setElementColor(const QString &id, const QString &c)
@@ -243,20 +293,28 @@ void VisuWidget::setElementColor(const QString &id, const QString &c)
 	setElementStyleAttribute(id, QStringLiteral("color"), c);
 }
 
-void VisuWidget::setElementVisible(const QString &elem_id, bool on)
+void VisuWidget::setElementVisible(QDomElement el, bool on)
 {
-	//setElementStyleAttribute(id, QStringLiteral("display"), on? QString(): QStringLiteral("none"));
-	QDomElement el = elementById(elem_id);
 	if(el.isNull())
 		return;
-
 	static const auto VISIBILITY = QStringLiteral("visibility");
 	el.setAttribute(VISIBILITY, on? QStringLiteral("visible"): QStringLiteral("hidden"));
 }
 
-void VisuWidget::setElementStyleAttribute(const QString &elem_id, const QString &key, const QString &val)
+void VisuWidget::setElementVisible(const QString &elem_id, bool on)
 {
+	//setElementStyleAttribute(id, QStringLiteral("display"), on? QString(): QStringLiteral("none"));
 	QDomElement el = elementById(elem_id);
+	setElementVisible(el, on);
+}
+
+void VisuWidget::setElementStyleAttribute(const QString &id, const QString &key, const QString &val)
+{
+	setElementStyleAttribute(elementById(id), key, val);
+}
+
+void VisuWidget::setElementStyleAttribute(QDomElement el, const QString &key, const QString &val)
+{
 	if(el.isNull())
 		return;
 
@@ -279,22 +337,15 @@ void VisuWidget::setElementStyleAttribute(const QString &elem_id, const QString 
 
 void VisuWidget::refreshVisualization()
 {
+	shvLogFuncFrame();
 	BfsViewApp *app = BfsViewApp::instance();
 
 	unsigned ps = app->bfsStatus();
-	int ompag_status = ompagStatus();
-	int msw_status = mswStatus();
 	int bfs_status = (ps & ((1 << BfsViewApp::BfsStatus::BfsOn) | (1 << BfsViewApp::BfsStatus::BfsOff))) >> BfsViewApp::BfsStatus::BfsOn;
-	//bool is_plc_connected = app->isPlcConnected();
 	//shvInfo() << ps << bfs_status;
 
-	setElementFillColor(QStringLiteral("sw_ompag_rect"), statusToColor(ompag_status));
-	setElementVisible(QStringLiteral("sw_ompag_on"), ompag_status == (int)BfsViewApp::SwitchStatus::On);
-	setElementVisible(QStringLiteral("sw_ompag_off"), ompag_status == (int)BfsViewApp::SwitchStatus::Off);
-
-	setElementFillColor(QStringLiteral("sw_bs_rect"), statusToColor(msw_status));
-	setElementVisible(QStringLiteral("sw_bs_on"), msw_status == (int)BfsViewApp::SwitchStatus::On);
-	setElementVisible(QStringLiteral("sw_bs_off"), msw_status == (int)BfsViewApp::SwitchStatus::Off);
+	m_ompagVisuController->updateXml();
+	m_convVisuController->updateXml();
 
 	setElementFillColor(QStringLiteral("shv_rect_bfsPower"), goodBitToColor(bfs_status == BfsViewApp::SwitchStatus::On));
 
@@ -341,3 +392,61 @@ void VisuWidget::refreshVisualization()
 	load(ba);
 }
 
+
+SwitchVisuController::SwitchVisuController(const QString &xml_id, VisuWidget *vw, std::function<BfsViewApp::SwitchStatus (BfsViewApp*)> sfn)
+	: m_xmlId(xml_id)
+	, m_visuWidget(vw)
+	, m_statusFn(sfn)
+{
+
+}
+
+void SwitchVisuController::updateXml()
+{
+	BfsViewApp *app = BfsViewApp::instance();
+	BfsViewApp::SwitchStatus status = m_statusFn(app);
+	//if(status == m_requiredSwitchStatus) {
+	//	m_requiredSwitchStatus = BfsViewApp::SwitchStatus::Unknown;
+	//}
+	QDomElement el_ctl = m_visuWidget->elementById(m_xmlId);
+	//shvInfo() << "status ->" << status << statusToColor(status);
+	m_visuWidget->setElementFillColor(m_visuWidget->elementByShvName(el_ctl, QStringLiteral("sw_rect")), statusToColor(status));
+	m_visuWidget->setElementVisible(m_visuWidget->elementByShvName(el_ctl, QStringLiteral("sw_on")), status == (int)BfsViewApp::SwitchStatus::On);
+	m_visuWidget->setElementVisible(m_visuWidget->elementByShvName(el_ctl, QStringLiteral("sw_off")), status == (int)BfsViewApp::SwitchStatus::Off);
+}
+
+void SwitchVisuController::onRequiredSwitchStatusChanged(int st)
+{
+	BfsViewApp *app = BfsViewApp::instance();
+	BfsViewApp::SwitchStatus status = m_statusFn(app);
+	m_requiredSwitchStatus = (BfsViewApp::SwitchStatus)st;
+	if(m_requiredSwitchStatus == status) {
+		if(m_blinkTimer)
+			m_blinkTimer->stop();
+		m_visuWidget->refreshVisualization();
+	}
+	else {
+		//m_requiredStatus = st;
+		if(!m_blinkTimer) {
+			m_blinkTimer = new QTimer(this);
+			connect(m_blinkTimer, &QTimer::timeout, [this]() {
+				m_toggleBit = !m_toggleBit;
+				m_visuWidget->refreshVisualization();
+			});
+		}
+		m_blinkTimer->start(500);
+	}
+}
+
+QString SwitchVisuController::statusToColor(BfsViewApp::SwitchStatus status)
+{
+	if(m_requiredSwitchStatus != BfsViewApp::SwitchStatus::Unknown) {
+		BfsViewApp *app = BfsViewApp::instance();
+		BfsViewApp::SwitchStatus status = m_statusFn(app);
+		if(status != m_requiredSwitchStatus) {
+			if(m_toggleBit)
+				return QStringLiteral("red");
+		}
+	}
+	return ::statusToColor(status);
+}

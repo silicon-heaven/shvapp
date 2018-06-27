@@ -112,20 +112,22 @@
        x="55.050762"
        y="360.93353" />
     <g
-       id="g3044">
+       id="ctl_ompag">
       <rect
          y="182.07639"
          x="207.27168"
          height="120.71429"
          width="67.85714"
          id="sw_ompag_rect"
-         style="color:#000000;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:2;marker:none;overflow:visible;enable-background:accumulate;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none" />
+         style="color:#000000;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:2;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker:none;overflow:visible;enable-background:accumulate"
+         shvName="sw_rect" />
       <path
          sodipodi:nodetypes="cc"
          inkscape:connector-curvature="0"
          id="sw_ompag_off"
          d="m 265.15618,204.60751 -25.70106,84.63866"
-         style="fill:none;stroke:#1858fd;stroke-width:5;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+         style="fill:none;stroke:#1858fd;stroke-width:5;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+         shvName="sw_off" />
       <path
          inkscape:transform-center-y="-44.165209"
          inkscape:transform-center-x="-4.461607"
@@ -133,23 +135,26 @@
          d="m 247.30555,201.03073 -7.8623,88.10466"
          id="sw_ompag_on"
          inkscape:connector-curvature="0"
-         sodipodi:nodetypes="cc" />
+         sodipodi:nodetypes="cc"
+         shvName="sw_on" />
     </g>
     <g
-       id="g3049">
+       id="ctl_conv">
       <rect
-         style="color:#000000;fill:#00ff00;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:2;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none"
+         style="color:#000000;fill:#00ff00;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:2;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
          id="sw_bs_rect"
          width="67.85714"
          height="120.71429"
          x="207.14285"
-         y="408.9241" />
+         y="408.9241"
+         shvName="sw_rect" />
       <path
          sodipodi:nodetypes="cc"
          style="fill:none;stroke:#1858fd;stroke-width:5;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
          d="m 247.15227,427.50498 -7.82597,88.5889"
          id="sw_bs_on"
-         inkscape:connector-curvature="0" />
+         inkscape:connector-curvature="0"
+         shvName="sw_on" />
       <path
          inkscape:transform-center-y="-42.100873"
          inkscape:transform-center-x="-13.831999"
@@ -157,7 +162,8 @@
          id="sw_bs_off"
          d="m 266.29485,431.44051 -27.01856,84.73038"
          style="fill:none;stroke:#1858fd;stroke-width:5;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
-         sodipodi:nodetypes="cc" />
+         sodipodi:nodetypes="cc"
+         shvName="sw_off" />
     </g>
     <path
        style="fill:none;stroke:#1858fd;stroke-width:5;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
