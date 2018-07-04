@@ -29,6 +29,9 @@ PtyProcess::PtyProcess(QObject *parent)
 
 PtyProcess::~PtyProcess()
 {
+	//if(m_masterPtyNotifier)
+	//	delete m_masterPtyNotifier;
+
 	if(m_masterPtyFd > -1)
 		::close(m_masterPtyFd);
 }
@@ -69,8 +72,8 @@ void PtyProcess::openPty()
 		throw std::runtime_error(err);
 	}
 	*/
-	QSocketNotifier *master_pty_notifier = new QSocketNotifier(m_masterPtyFd, QSocketNotifier::Read, this);
-	connect(master_pty_notifier, &QSocketNotifier::activated, this, &PtyProcess::readyReadMasterPty);
+	m_masterPtyNotifier = new QSocketNotifier(m_masterPtyFd, QSocketNotifier::Read, this);
+	connect(m_masterPtyNotifier, &QSocketNotifier::activated, this, &PtyProcess::readyReadMasterPty);
 
 }
 

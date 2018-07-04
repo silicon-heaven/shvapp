@@ -6,6 +6,8 @@
 #error Only POSIX platform supported
 #endif
 
+class QSocketNotifier;
+
 class PtyProcess : public QProcess
 {
 	Q_OBJECT
@@ -34,5 +36,7 @@ private:
 	//int m_sendSlavePtyFd[2];
 	int m_ptyCols = 0;
 	int m_ptyRows = 0;
+
+	QSocketNotifier *m_masterPtyNotifier = nullptr;
 };
 

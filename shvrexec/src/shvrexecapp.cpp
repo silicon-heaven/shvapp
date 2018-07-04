@@ -61,9 +61,6 @@ shv::chainpack::RpcValue AppRootNode::call(const std::string &method, const shv:
 	if(method == cp::Rpc::METH_CONNECTION_TYPE) {
 		return ShvRExecApp::instance()->rpcConnection()->connectionType();
 	}
-	//if(method == cp::Rpc::KEY_TUNNEL_HANDLE) {
-	//	return ShvRExecApp::instance()->rpcConnection()->tunnelHandle();
-	//}
 	/*
 	if(method == METH_SETWINSZ) {
 		const shv::chainpack::RpcValue::List &list = params.toList();
@@ -71,43 +68,7 @@ shv::chainpack::RpcValue AppRootNode::call(const std::string &method, const shv:
 		return true;
 	}
 	*/
-	/*
-	if(method == METH_WRITE) {
-		int channel = 0;
-		shv::chainpack::RpcValue data;
-		if(params.isList()) {
-			const shv::chainpack::RpcValue::List &lst = params.toList();
-			channel = lst.value(0).toInt();
-			data = lst.value(1);
-		}
-		else {
-			data = params;
-		}
-		if(channel == 0) {
-			const shv::chainpack::RpcValue::Blob &blob = data.toBlob();
-			if(blob.size()) {
-				qint64 len = ShvRExecApp::instance()->writeCmdProcessStdIn(blob.data(), blob.size());
-				if(len < 0)
-					shvError() << "Error writing process stdin.";
-			}
-			else {
-				shvError() << "Invalid data received:" << params.toCpon();
-			}
-		}
-		return cp::RpcValue{};
-	}
-	*/
 	return Super::call(method, params);
-}
-
-shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::RpcRequest &rq)
-{
-	if(rq.shvPath().toString().empty()) {
-		if(rq.method() == METH_RUNCMD) {
-			return ShvRExecApp::instance()->runCmd(rq);
-		}
-	}
-	return Super::processRpcRequest(rq);
 }
 
 ShvRExecApp::ShvRExecApp(int &argc, char **argv, AppCliOptions* cli_opts)
@@ -139,6 +100,7 @@ ShvRExecApp::ShvRExecApp(int &argc, char **argv, AppCliOptions* cli_opts)
 		m_rpcConnection->setPort(connection_params.value(ConnectionParamsMT::Key::Port).toInt());
 		m_rpcConnection->setUser(connection_params.value(ConnectionParamsMT::Key::User).toString());
 		m_rpcConnection->setPassword(connection_params.value(ConnectionParamsMT::Key::Password).toString());
+		m_onConnectedCall = connection_params.value(ConnectionParamsMT::Key::OnConnectedCall);
 	}
 
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::socketConnectedChanged, [](bool connected) {
@@ -152,18 +114,12 @@ ShvRExecApp::ShvRExecApp(int &argc, char **argv, AppCliOptions* cli_opts)
 
 	AppRootNode *root = new AppRootNode();
 	m_shvTree = new shv::iotqt::node::ShvNodeTree(root, this);
-	/*
-	m_shvTree->mkdir("sys");
-	QString sys_fs_root_dir = cli_opts->sysFsRootDir();
-	if(!sys_fs_root_dir.isEmpty() && QDir(sys_fs_root_dir).exists()) {
-		const char *SYS_FS = "sys/fs";
-		shvInfo() << "Exporting" << sys_fs_root_dir << "as" << SYS_FS << "node";
-		shv::iotqt::node::LocalFSNode *fsn = new shv::iotqt::node::LocalFSNode(sys_fs_root_dir);
-		m_shvTree->mount(SYS_FS, fsn);
-	}
-	*/
 
 	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
+
+	//connect(this, &ShvRExecApp::aboutToQuit, []() {
+	//	shvInfo() << "about to quit";
+	//});
 }
 
 ShvRExecApp::~ShvRExecApp()
@@ -187,6 +143,7 @@ void ShvRExecApp::setTerminalWindowSize(int w, int h)
 void ShvRExecApp::onBrokerConnectedChanged(bool is_connected)
 {
 	if(is_connected) {
+#if 0
 		/// send tunnel handle to agent
 		cp::RpcValue::Map ret;
 		ret[cp::Rpc::KEY_CLIENT_ID] = m_rpcConnection->brokerClientId();
@@ -194,6 +151,20 @@ void ShvRExecApp::onBrokerConnectedChanged(bool is_connected)
 		//shvInfo() << "Process" << m_cmdProc->program() << "started, stdout:" << s;
 		std::cout << s << "\n";
 		std::cout.flush(); /// necessary sending '\n' is not enough to flush stdout
+#endif
+		if(m_onConnectedCall.isMap()) {
+			const shv::chainpack::RpcValue::Map &call_p = m_onConnectedCall.toMap();
+			const shv::chainpack::RpcValue::String &method = call_p.value(cp::Rpc::JSONRPC_METHOD).toString();
+			const shv::chainpack::RpcValue &params = call_p.value(cp::Rpc::JSONRPC_PARAMS);
+			unsigned rqid = call_p.value(cp::Rpc::JSONRPC_REQUEST_ID).toUInt();
+			shv::chainpack::RpcValue cids = call_p.value(cp::Rpc::JSONRPC_CALLER_ID);
+			cp::RpcRequest rq;
+			rq.setMethod(method);
+			rq.setParams(params);
+			rq.setRequestId(rqid);
+			rq.setCallerIds(cids);
+			onRpcMessageReceived(rq);
+		}
 		/*
 		QString exec_cmd = m_cliOptions->execCommand();
 		if(!exec_cmd.isEmpty()) {
@@ -226,9 +197,9 @@ void ShvRExecApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 			if(!nd)
 				SHV_EXCEPTION("Path not found: " + shv_path.toString());
 			shv::chainpack::RpcValue result;
-			if(rq.shvPath().toString().empty() && rq.method() == METH_RUNPTYCMD) {
-				result = ShvRExecApp::instance()->runPtyCmd(rq);
-				resp.setRegisterRevCallerIds();
+			if(rq.shvPath().toString().empty() && (rq.method() == METH_RUNPTYCMD || rq.method() == METH_RUNCMD)) {
+				openTunnel(rq.method().toString(), rq.params(), rq.requestId().toUInt(), rq.callerIds());
+				return;
 			}
 			else {
 				result = nd->processRpcRequest(rq);
@@ -285,12 +256,38 @@ void ShvRExecApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 	}
 }
 
-cp::RpcValue ShvRExecApp::runCmd(const shv::chainpack::RpcRequest &rq)
+void ShvRExecApp::openTunnel(const std::string &method, const shv::chainpack::RpcValue &params, unsigned request_id, const shv::chainpack::RpcValue &cids)
+{
+	cp::RpcResponse resp;
+	try {
+		resp.setCallerIds(cids);
+		resp.setRequestId(request_id);
+		if(method == METH_RUNPTYCMD) {
+			runPtyCmd(params);
+		}
+		else if(method == METH_RUNCMD) {
+			runCmd(params);
+		}
+		else {
+			SHV_EXCEPTION("Invalid method name: " + method);
+		}
+		m_writeTunnelHandle = shv::iotqt::rpc::TunnelHandle(request_id, cids);
+		m_readTunnelRequestId = m_rpcConnection->nextRequestId();
+		resp.setResult(m_readTunnelRequestId);
+		resp.setRegisterRevCallerIds();
+	}
+	catch (shv::core::Exception &e) {
+		resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, e.message()));
+	}
+	m_rpcConnection->sendMessage(resp);
+}
+
+void ShvRExecApp::runCmd(const shv::chainpack::RpcValue &params)
 {
 	if(m_cmdProc || m_ptyCmdProc)
 		SHV_EXCEPTION("Process running already");
 
-	const shv::chainpack::RpcValue::String exec_cmd = rq.params().toString();
+	const shv::chainpack::RpcValue::String exec_cmd = params.toString();
 
 	shvInfo() << "Starting process:" << exec_cmd;
 	m_cmdProc = new Process(this);
@@ -306,17 +303,14 @@ cp::RpcValue ShvRExecApp::runCmd(const shv::chainpack::RpcRequest &rq)
 		this->closeAndQuit();
 	});
 	m_cmdProc->start(QString::fromStdString(exec_cmd));
-	m_writeTunnelHandle = shv::iotqt::rpc::TunnelHandle(rq.requestId().toUInt(), rq.callerIds());
-	m_readTunnelRequestId = m_rpcConnection->nextRequestId();
-	return m_readTunnelRequestId;
 }
 
-shv::chainpack::RpcValue ShvRExecApp::runPtyCmd(const shv::chainpack::RpcRequest &rq)
+void ShvRExecApp::runPtyCmd(const shv::chainpack::RpcValue &params)
 {
 	if(m_cmdProc || m_ptyCmdProc)
 		SHV_EXCEPTION("Process running already");
 
-	const shv::chainpack::RpcValue::List lst = rq.params().toList();
+	const shv::chainpack::RpcValue::List lst = params.toList();
 	std::string exec_cmd = lst.value(0).toString();
 	int pty_cols = lst.value(1).toInt();
 	int pty_rows = lst.value(2).toInt();
@@ -346,12 +340,10 @@ shv::chainpack::RpcValue ShvRExecApp::runPtyCmd(const shv::chainpack::RpcRequest
 	*/
 	connect(m_ptyCmdProc, QOverload<int>::of(&QProcess::finished), this, [this](int exit_code) {
 		shvInfo() << "Process" << m_ptyCmdProc->program() << "finished with exit code:" << exit_code;
+		m_ptyCmdProc->disconnect();
 		closeAndQuit();
 	});
 	m_ptyCmdProc->ptyStart(exec_cmd, pty_cols, pty_rows);
-	m_writeTunnelHandle = shv::iotqt::rpc::TunnelHandle(rq.requestId().toUInt(), rq.callerIds());
-	m_readTunnelRequestId = m_rpcConnection->nextRequestId();
-	return m_readTunnelRequestId;
 }
 
 qint64 ShvRExecApp::writeCmdProcessStdIn(const char *data, size_t len)
@@ -415,9 +407,16 @@ void ShvRExecApp::sendProcessOutput(int channel, const char *data, size_t data_l
 
 void ShvRExecApp::closeAndQuit()
 {
-	/// too late
-	//const char TERMINATED[] = "terminated";
-	//sendProcessOutput(STDERR_FILENO+1, TERMINATED, sizeof(TERMINATED));
-	quit();
+	//shvInfo() << "closeAndQuit()";
+	if(m_rpcConnection->isBrokerConnected() && m_writeTunnelHandle.isValid()) {
+		cp::RpcResponse resp;
+		resp.setRequestId(m_writeTunnelHandle.requestId());
+		resp.setCallerIds(m_writeTunnelHandle.callerIds());
+		cp::RpcValue result = nullptr;
+		resp.setResult(result);
+		shvInfo() << "closing tunnel:" << resp.toPrettyString();
+		m_rpcConnection->sendMessage(resp);
+	}
+	QTimer::singleShot(10, this, &ShvRExecApp::quit);
 }
 

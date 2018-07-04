@@ -38,7 +38,7 @@ static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, false},
 	{cp::Rpc::METH_HELP, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_RUN_CMD, cp::MetaMethod::Signature::RetParam, false},
-	{cp::Rpc::METH_LAUNCH_REXEC, cp::MetaMethod::Signature::RetVoid, false},
+	{cp::Rpc::METH_LAUNCH_REXEC, cp::MetaMethod::Signature::RetParam, false},
 };
 
 size_t AppRootNode::methodCount()
@@ -206,12 +206,20 @@ void ShvAgentApp::launchRexec(const shv::chainpack::RpcRequest &rq)
 {
 	using ConnectionParams = shv::iotqt::rpc::ConnectionParams;
 	using ConnectionParamsMT = shv::iotqt::rpc::ConnectionParams::MetaType;
-	ConnectionParams tun_params;
-	tun_params[ConnectionParamsMT::Key::Host] = m_rpcConnection->host();
-	tun_params[ConnectionParamsMT::Key::Port] = m_rpcConnection->port();
-	tun_params[ConnectionParamsMT::Key::User] = m_rpcConnection->user();
-	tun_params[ConnectionParamsMT::Key::Password] = m_rpcConnection->password();
+	ConnectionParams conn_params;
+	conn_params[ConnectionParamsMT::Key::Host] = m_rpcConnection->host();
+	conn_params[ConnectionParamsMT::Key::Port] = m_rpcConnection->port();
+	conn_params[ConnectionParamsMT::Key::User] = m_rpcConnection->user();
+	conn_params[ConnectionParamsMT::Key::Password] = m_rpcConnection->password();
+	cp::RpcValue::Map on_connected = rq.params().toMap();
+	if(!on_connected.empty()) {
+		on_connected[cp::Rpc::JSONRPC_REQUEST_ID] = rq.requestId();
+		on_connected[cp::Rpc::JSONRPC_CALLER_ID] = rq.callerIds();
+		conn_params[ConnectionParamsMT::Key::OnConnectedCall] = on_connected;
+	}
+
 	SessionProcess *proc = new SessionProcess(this);
+#if 0
 	//proc->setCurrentReadChannel(QProcess::StandardOutput);
 	cp::RpcResponse resp1 = cp::RpcResponse::forRequest(rq);
 	connect(proc, &SessionProcess::readyReadStandardOutput, [this, proc, resp1]() {
@@ -241,13 +249,13 @@ void ShvAgentApp::launchRexec(const shv::chainpack::RpcRequest &rq)
 		}
 		m_rpcConnection->sendMessage(resp);
 	});
-
+#endif
 	QString app = QCoreApplication::applicationDirPath() + "/shvrexec";
 	QStringList params;
-	params << "--mtid" << "-v" << "rpcrawmsg";
+	//params << "--mtid" << "-v" << "rpcrawmsg";
 	shvInfo() << "starting child process:" << app << params.join(' ');
 	proc->start(app, params);
-	std::string cpon = tun_params.toRpcValue().toCpon();
+	std::string cpon = conn_params.toRpcValue().toCpon();
 	proc->write(cpon.data(), cpon.size());
 	proc->write("\n", 1);
 }
