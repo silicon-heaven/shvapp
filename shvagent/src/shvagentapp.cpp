@@ -204,13 +204,13 @@ ShvAgentApp *ShvAgentApp::instance()
 
 void ShvAgentApp::launchRexec(const shv::chainpack::RpcRequest &rq)
 {
-	using TunnelParams = shv::iotqt::rpc::ConnectionParams;
-	using TunnelParamsMT = shv::iotqt::rpc::ConnectionParams::MetaType;
-	TunnelParams tun_params;
-	tun_params[TunnelParamsMT::Key::Host] = m_rpcConnection->host();
-	tun_params[TunnelParamsMT::Key::Port] = m_rpcConnection->port();
-	tun_params[TunnelParamsMT::Key::User] = m_rpcConnection->user();
-	tun_params[TunnelParamsMT::Key::Password] = m_rpcConnection->password();
+	using ConnectionParams = shv::iotqt::rpc::ConnectionParams;
+	using ConnectionParamsMT = shv::iotqt::rpc::ConnectionParams::MetaType;
+	ConnectionParams tun_params;
+	tun_params[ConnectionParamsMT::Key::Host] = m_rpcConnection->host();
+	tun_params[ConnectionParamsMT::Key::Port] = m_rpcConnection->port();
+	tun_params[ConnectionParamsMT::Key::User] = m_rpcConnection->user();
+	tun_params[ConnectionParamsMT::Key::Password] = m_rpcConnection->password();
 	SessionProcess *proc = new SessionProcess(this);
 	//proc->setCurrentReadChannel(QProcess::StandardOutput);
 	cp::RpcResponse resp1 = cp::RpcResponse::forRequest(rq);
