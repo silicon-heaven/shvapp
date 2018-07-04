@@ -400,7 +400,7 @@ void ShvRExecApp::sendProcessOutput(int channel, const char *data, size_t data_l
 		result.push_back(channel);
 		result.push_back(cp::RpcValue::Blob(data, data_len));
 		resp.setResult(result);
-		shvInfo() << "sending child process output:" << resp.toPrettyString();
+		shvDebug() << "sending child process output:" << resp.toPrettyString();
 		m_rpcConnection->sendMessage(resp);
 	}
 }

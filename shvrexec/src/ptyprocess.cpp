@@ -39,6 +39,7 @@ PtyProcess::~PtyProcess()
 void PtyProcess::openPty()
 {
 	m_masterPtyFd = ::posix_openpt(O_RDWR | O_NOCTTY | O_NONBLOCK); /* Open pty master */
+	shvInfo() << "master PTY fd:" << m_masterPtyFd;
 	if (m_masterPtyFd == -1)
 		throw std::runtime_error(strerror(errno));
 	/* Grant access to slave pty */
@@ -63,6 +64,8 @@ void PtyProcess::openPty()
 		throw std::runtime_error(err);
 	}
 	m_slavePtyName = p;
+	shvInfo() << "slave PTY name:" << m_slavePtyName;
+
 	/*
 	/// create pipe to send slave pty fd back to parent process
 	if (::pipe(m_sendSlavePtyFd) == -1) {
@@ -118,8 +121,8 @@ void PtyProcess::setupChildProcess()
 	if (::setsid() == -1)  /* Start a new session */
 		throw std::runtime_error("setsid(): " + std::string(::strerror(errno)));
 
-	::close(m_masterPtyFd); /* Not needed in child */
 	int slave_fd = ::open(m_slavePtyName.data(), O_RDWR | O_NONBLOCK); /* Becomes controlling tty */
+	shvInfo() << "slave PTY fd:" << slave_fd;
 	if (slave_fd == -1)
 		throw std::runtime_error("open(\"" + m_slavePtyName + "\"): " + std::string(::strerror(errno)));
 #ifdef TIOCSCTTY
@@ -127,6 +130,7 @@ void PtyProcess::setupChildProcess()
 	if (ioctl(slave_fd, TIOCSCTTY, 0) == -1)
 		throw std::runtime_error("ioctl(slave_fd, TIOCSCTTY, 0): " + std::string(::strerror(errno)));
 #endif
+	::close(m_masterPtyFd); /* Not needed in child */
 	/*
 	if (slave_termios != NULL) // Set slave tty attributes
 		if (tcsetattr(slave_fd, TCSANOW, slave_termios) == -1)
