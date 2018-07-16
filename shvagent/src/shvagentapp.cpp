@@ -318,7 +318,7 @@ void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq)
 	else {
 		cmd = rq.params().toString();
 	}
-	proc->start(QString::fromStdString(rq.params().toString()));
+	proc->start(QString::fromStdString(cmd));
 }
 
 void ShvAgentApp::onBrokerConnectedChanged(bool is_connected)
