@@ -1,5 +1,7 @@
 #include "lublicator.h"
 
+#include <shv/iotqt/node//shvnodetree.h>
+
 #include <shv/chainpack/rpcmessage.h>
 #include <shv/chainpack/metamethod.h>
 #include <shv/core/string.h>
@@ -7,8 +9,14 @@
 #include <shv/core/exception.h>
 
 #include <shv/coreqt/log.h>
+#include <shv/coreqt/exception.h>
 
-#include <shv/iotqt/node//shvnodetree.h>
+#include <QDir>
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QSqlError>
+#include <QStandardPaths>
+#include <QVariant>
 
 namespace cp = shv::chainpack;
 namespace iot = shv::iotqt;
@@ -40,10 +48,34 @@ enum class Status : unsigned
 //static const std::string ODPOJOVACE_PATH = "/shv/eu/pl/lublin/odpojovace/";
 }
 
-Lublicator::Lublicator(ShvNode *parent)
+Lublicator::Lublicator(const std::string &node_id, ShvNode *parent)
 	: Super(parent)
 {
+	setNodeId(node_id);
+	QString sql_dir = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
+	sql_dir += "/log/revitest";
+	QDir().mkpath(sql_dir);
+	QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", sqlConnectionName());
+	QString db_name = sqlConnectionName() + ".log";
+	db.setDatabaseName(sql_dir + '/' + db_name);
+	if(!db.open()) {
+		shvError() << "Cannot open log SQLITE database file:" << db.databaseName();
+	}
+	else {
+		shvInfo() << "Opening log SQLITE database file:" << db.databaseName() << "... OK";
+	}
+	QSqlQuery q = logQuery();
+	if(!q.exec("SELECT * from shvlog LIMIT 1")) {
+		shvInfo() << "DATABASE init - creating tables";
+		q.exec("DROP TABLE shvlog");
+		bool ok = q.exec("CREATE TABLE shvlog (id INTEGER PRIMARY KEY autoincrement, ts DATETIME, path TEXT, val TEXT)");
+		if(!ok)
+			shvError() << db_name << "Cannot create database shvlog";
+	}
+
 	connect(this, &Lublicator::valueChanged, this, &Lublicator::addLogEntry);
+
+	addLogEntry(PROP_STATUS, status());
 }
 
 unsigned Lublicator::status() const
@@ -111,7 +143,8 @@ shv::chainpack::RpcValue Lublicator::call2(const std::string &method, const shv:
 			return status();
 		}
 		if(method == METH_DEVICE_ID) {
-			return parentNode()->nodeId();
+			//shvError() << "device id:" << nodeId();
+			return nodeId();
 		}
 		if(method == METH_CMD_ON) {
 			unsigned stat = status();
@@ -150,17 +183,26 @@ shv::chainpack::RpcValue Lublicator::call2(const std::string &method, const shv:
 shv::chainpack::RpcValue Lublicator::getLog(const shv::chainpack::RpcValue::DateTime &from, const shv::chainpack::RpcValue::DateTime &to)
 {
 	shv::chainpack::RpcValue::List lines;
-	auto it1 = m_log.cbegin();
+	QString qs = "SELECT ts, path, val FROM shvlog";
+	QString where;
 	if(from.isValid())
-		it1 = m_log.lower_bound(from);
-	auto it2 = m_log.cend();
-	if(to.isValid())
-		it2 = m_log.upper_bound(to);
-	for(auto it = it1; it != it2; ++it) {
+		where += "ts >= '" + QString::fromStdString(from.toUtcString()) + "'";
+	if(to.isValid()) {
+		if(!where.isEmpty())
+			where += " AND ";
+		where += "ts <= '" + QString::fromStdString(to.toUtcString()) + "'";
+	}
+	if(!where.isEmpty())
+		qs += " " + where;
+	QSqlQuery q = logQuery();
+	if(!q.exec(qs))
+		SHV_EXCEPTION(("SQL error: " + qs).toStdString());
+
+	while(q.next()) {
 		shv::chainpack::RpcValue::List line;
-		line.push_back(it->first);
-		line.push_back(it->second.key);
-		line.push_back(it->second.value);
+		line.push_back(q.value(0).toDateTime().toString(Qt::ISODateWithMs).toStdString());
+		line.push_back(q.value(1).toString().toStdString());
+		line.push_back(shv::chainpack::RpcValue::fromCpon(q.value(2).toString().toStdString()));
 		lines.push_back(line);
 	}
 	shv::chainpack::RpcValue ret = lines;
@@ -177,10 +219,30 @@ shv::chainpack::RpcValue Lublicator::getLog(const shv::chainpack::RpcValue::Date
 					cp::RpcValue::Map{{"name", "path"}},
 					cp::RpcValue::Map{{"name", "value"}},
 				});
+	md.setValue("types", cp::RpcValue::Map{
+					{"Status", cp::RpcValue::Map{
+						 {"type", "BitField"},
+						 {"fields", cp::RpcValue::List{
+							  cp::RpcValue::Map{{"name", "PosOff"}, {"value", 0}},
+							  cp::RpcValue::Map{{"name", "PosOn"}, {"value", 1}},
+							  cp::RpcValue::Map{{"name", "PosMiddle"}, {"value", 2}},
+							  cp::RpcValue::Map{{"name", "PosError"}, {"value", 3}},
+							  cp::RpcValue::Map{{"name", "BatteryLow"}, {"value", 4}},
+							  cp::RpcValue::Map{{"name", "BatteryHigh"}, {"value", 5}},
+							  cp::RpcValue::Map{{"name", "DoorOpenCabinet"}, {"value", 6}},
+							  cp::RpcValue::Map{{"name", "DoorOpenMotor"}, {"value", 7}},
+							  cp::RpcValue::Map{{"name", "ModeAuto"}, {"value", 8}},
+							  cp::RpcValue::Map{{"name", "ModeRemote"}, {"value", 9}},
+							  cp::RpcValue::Map{{"name", "ModeService"}, {"value", 10}},
+							  cp::RpcValue::Map{{"name", "MainSwitch"}, {"value", 11}},
+						  }
+						 },
+						 {"description", "PosOff = 0, PosOn = 1, PosMiddle = 2, PosError= 3, BatteryLow = 4, BatteryHigh = 5, DoorOpenCabinet = 6, DoorOpenMotor = 7, ModeAuto= 8, ModeRemote = 9, ModeService = 10, MainSwitch = 11, ErrorRtc = 12"},
+					 }
+					},
+				});
 	md.setValue("pathInfo", cp::RpcValue::Map{
-					{"status", cp::RpcValue::Map{
-							{"description", "PosOff = 0, PosOn = 1, PosMiddle = 2, PosError = 3, BatteryLow = 4, BatteryHigh = 5, DoorOpenCabinet = 6, DoorOpenMotor = 7, ModeAuto = 8, ModeRemote = 9, ModeService = 10, MainSwitch = 11"},
-						}
+					{"status", cp::RpcValue::Map{ {"type", "Status"} }
 					},
 				});
 	ret.setMetaData(std::move(md));
@@ -189,11 +251,38 @@ shv::chainpack::RpcValue Lublicator::getLog(const shv::chainpack::RpcValue::Date
 
 void Lublicator::addLogEntry(const std::string &key, const shv::chainpack::RpcValue &value)
 {
-	shv::chainpack::RpcValue::DateTime ts = cp::RpcValue::DateTime::now();
-	LogEntry &le = m_log[ts];
+	//shv::chainpack::RpcValue::DateTime ts = cp::RpcValue::DateTime::now();
+	/*
+	LogEntry le;
+	le.ts = ts;
 	le.key = key;
 	le.value = value;
+	*/
+	QSqlQuery q = logQuery();
+	if(q.prepare("INSERT INTO shvlog (ts, path, val) VALUES (:ts, :path, :val)")) {
+		q.bindValue(":ts", QVariant::fromValue(QDateTime::currentDateTimeUtc()));
+		q.bindValue(":path", QVariant::fromValue(QString::fromStdString(key)));
+		q.bindValue(":val", QVariant::fromValue(QString::fromStdString(value.toCpon())));
+		if(!q.exec()) {
+			shvError() << "Error exec append log";
+		}
+	}
+	else {
+		shvError() << "Error prepare append log query" << q.lastError().driverText() << q.lastError().databaseText();
+	}
 }
+
+QSqlQuery Lublicator::logQuery()
+{
+	QSqlDatabase db = QSqlDatabase::database(sqlConnectionName());
+	return QSqlQuery(db);
+}
+
+QString Lublicator::sqlConnectionName()
+{
+	return QStringLiteral("lublicator-%1").arg(QString::fromStdString(nodeId()));
+}
+
 #if 0
 shv::iotqt::node::ShvNode::StringList Lublicator::childNames(const std::string &shv_path) const
 {

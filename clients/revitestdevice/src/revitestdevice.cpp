@@ -113,8 +113,7 @@ void RevitestDevice::createDevices()
 	m_devices = new shv::iotqt::node::ShvNodeTree(this);
 	static constexpr size_t LUB_CNT = 27;
 	for (size_t i = 0; i < LUB_CNT; ++i) {
-		auto *nd = new Lublicator(m_devices->root());
-		nd->setNodeId(std::to_string(i+1));
+		auto *nd = new Lublicator(std::to_string(i+1), m_devices->root());
 		connect(nd, &Lublicator::propertyValueChanged, this, &RevitestDevice::onLublicatorPropertyValueChanged);
 	}
 }

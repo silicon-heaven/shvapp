@@ -7,6 +7,8 @@
 #include <QObject>
 #include <QMap>
 
+class QSqlQuery;
+
 namespace shv { namespace chainpack { class RpcMessage; }}
 
 class Lublicator : public shv::iotqt::node::ShvTreeNode
@@ -37,7 +39,7 @@ public:
 	static const char *METH_CMD_OFF;
 	static const char *METH_GET_LOG;
 
-	explicit Lublicator(shv::iotqt::node::ShvNode *parent = nullptr);
+	explicit Lublicator(const std::string &node_id, shv::iotqt::node::ShvNode *parent = nullptr);
 
 	unsigned status() const;
 	bool setStatus(unsigned stat);
@@ -56,14 +58,18 @@ public:
 private:
 	shv::chainpack::RpcValue getLog(const shv::chainpack::RpcValue::DateTime &from, const shv::chainpack::RpcValue::DateTime &to);
 	void addLogEntry(const std::string &key, const shv::chainpack::RpcValue &value);
+	QSqlQuery logQuery();
+	QString sqlConnectionName();
 private:
 	unsigned m_status = 0;
+	/*
 	struct LogEntry
 	{
+		//shv::chainpack::RpcValue::DateTime ts;
 		std::string key;
 		shv::chainpack::RpcValue value;
 	};
-	std::map<shv::chainpack::RpcValue::DateTime, LogEntry> m_log;
+	*/
 };
 
 
