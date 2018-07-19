@@ -185,18 +185,23 @@ shv::chainpack::RpcValue Lublicator::getLog(const shv::chainpack::RpcValue::Date
 	shv::chainpack::RpcValue::List lines;
 	QString qs = "SELECT ts, path, val FROM shvlog";
 	QString where;
-	if(from.isValid())
-		where += "ts >= '" + QString::fromStdString(from.toUtcString()) + "'";
+	auto format_sql = [](const cp::RpcValue::DateTime &dt) -> QString  {
+		using DT = cp::RpcValue::DateTime;
+		return QString::fromStdString(dt.toIsoString(DT::MsecPolicy::Always, DT::IncludeTimeZone));
+	};
+	if(from.isValid()) {
+		where += "ts >= '" + format_sql(from) + "'";
+	}
 	if(to.isValid()) {
 		if(!where.isEmpty())
 			where += " AND ";
-		where += "ts <= '" + QString::fromStdString(to.toUtcString()) + "'";
+		where += "ts <= '" + format_sql(to) + "'";
 	}
 	if(!where.isEmpty())
-		qs += " " + where;
+		qs += " WHERE " + where;
 	QSqlQuery q = logQuery();
 	if(!q.exec(qs))
-		SHV_EXCEPTION(("SQL error: " + qs).toStdString());
+		SHV_EXCEPTION(("SQL error: " + qs + q.lastError().driverText() + q.lastError().databaseText()).toStdString());
 
 	while(q.next()) {
 		shv::chainpack::RpcValue::List line;
@@ -282,92 +287,4 @@ QString Lublicator::sqlConnectionName()
 {
 	return QStringLiteral("lublicator-%1").arg(QString::fromStdString(nodeId()));
 }
-
-#if 0
-shv::iotqt::node::ShvNode::StringList Lublicator::childNames(const std::string &shv_path) const
-{
-	Q_UNUSED(shv_path)
-	static ShvNode::StringList keys;
-	if(keys.empty()) for(const auto &imap: m_properties)
-		keys.push_back(imap.first);
-	return keys;
-}
-
-shv::chainpack::RpcValue::List Lublicator::propertyMethods(const shv::iotqt::node::ShvNode::String &prop_name) const
-{
-	//shvWarning() << prop_name;
-	if(prop_name.empty()) {
-		return cp::RpcValue::List{cp::Rpc::METH_DIR, cp::Rpc::METH_LS, M_CMD_POS_ON, M_CMD_POS_OFF, "getLog"};
-	}
-	else if(prop_name == "status") {
-		return cp::RpcValue::List{cp::Rpc::METH_DIR, cp::Rpc::METH_GET};
-	}
-	return cp::RpcValue::List();
-}
-
-shv::chainpack::RpcValue Lublicator::propertyValue(const std::string &property_name) const
-{
-	//if(property_name == S_NAME)
-	//	return objectName().toStdString();
-	auto it = m_properties.find(property_name);
-	if(it == m_properties.end())
-		return cp::RpcValue();
-	return it->second;
-}
-
-bool Lublicator::setPropertyValue(const shv::iotqt::node::ShvNode::String &prop_name, const shv::chainpack::RpcValue &val)
-{
-	Q_UNUSED(prop_name)
-	Q_UNUSED(val)
-	/*
-	if(property_name == S_STATUS)
-		return false;
-	if(property_name == S_NAME)
-		return false;
-	if(property_name == S_CMD_POS_ON) {
-		unsigned stat = status();
-		stat &= ~(unsigned)Status::PosOff;
-		stat |= (unsigned)Status::PosMiddle;
-		setStatus(stat);
-		stat &= ~(unsigned)Status::PosMiddle;
-		stat |= (unsigned)Status::PosOn;
-		setStatus(stat);
-		return true;
-	}
-	if(property_name == S_CMD_POS_OFF) {
-		unsigned stat = status();
-		stat &= ~(unsigned)Status::PosOn;
-		stat |= (unsigned)Status::PosMiddle;
-		setStatus(stat);
-		stat &= ~(unsigned)Status::PosMiddle;
-		stat |= (unsigned)Status::PosOff;
-		setStatus(stat);
-		return true;
-	}
-	if(property_name == S_BATT_LEVSIM) {
-		//shvWarning() << "new bat lev:" << val.toCpon() << val.toDecimal().mantisa();
-		m_properties[S_BATT_LEVSIM] = val;
-	}
-	auto it = m_properties.find(property_name);
-	if(it == m_properties.end())
-		return false;
-	it->second = val;
-	{
-		unsigned stat = status();
-		int batt_hi = m_properties.at(S_BATT_HI).toDecimal().mantisa();
-		int batt_lo = m_properties.at(S_BATT_LOW).toDecimal().mantisa();
-		int batt_lev = m_properties.at(S_BATT_LEVSIM).toDouble() * 10;
-		stat &= ~(unsigned)Status::BatteryHigh;
-		stat &= ~(unsigned)Status::BatteryLow;
-		if(batt_lev > batt_hi)
-			stat |= (unsigned)Status::BatteryHigh;
-		else if(batt_lev < batt_lo)
-			stat |= (unsigned)Status::BatteryLow;
-		setStatus(stat);
-	}
-	*/
-	return true;
-}
-#endif
-
 
