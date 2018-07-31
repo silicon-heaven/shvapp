@@ -10,6 +10,7 @@
 #include <shv/chainpack/metamethod.h>
 
 #include <shv/core/stringview.h>
+#include <shv/core/assert.h>
 
 //#include <QProcess>
 #include <QFileSystemWatcher>
@@ -77,6 +78,15 @@ static std::vector<cp::MetaMethod> meta_methods_pwrstatus {
 	{METH_SIM_SET, cp::MetaMethod::Signature::VoidParam, false},
 };
 
+PwrStatusNode::PwrStatusNode(shv::iotqt::node::ShvNode *parent)
+ : Super(parent)
+{
+	m_sendPwrStatusDeferredTimer = new QTimer(this);
+	m_sendPwrStatusDeferredTimer->setSingleShot(true);
+	m_sendPwrStatusDeferredTimer->setInterval(50);
+	connect(m_sendPwrStatusDeferredTimer, &QTimer::timeout, this, &PwrStatusNode::sendPwrStatusChangedDeferred);
+}
+
 size_t PwrStatusNode::methodCount()
 {
 	return meta_methods_pwrstatus.size();
@@ -92,17 +102,17 @@ const shv::chainpack::MetaMethod *PwrStatusNode::metaMethod(size_t ix)
 shv::chainpack::RpcValue PwrStatusNode::call(const std::string &method, const shv::chainpack::RpcValue &params)
 {
 	if(method == cp::Rpc::METH_GET) {
-		return pwrStatus();
+		return (unsigned)pwrStatus();
 	}
 	if(method == METH_SIM_SET) {
 		unsigned s = params.toUInt();
-		setPwrStatus(s);
+		setPwrStatus((PwrStatus)s);
 		return true;
 	}
 	return Super::call(method, params);
 }
 
-void PwrStatusNode::setPwrStatus(unsigned s)
+void PwrStatusNode::setPwrStatus(PwrStatus s)
 {
 	if(s == m_pwrStatus)
 		return;
@@ -112,12 +122,22 @@ void PwrStatusNode::setPwrStatus(unsigned s)
 
 void PwrStatusNode::sendPwrStatusChanged()
 {
+	// there can be status UNKNOWN drops in pwrStatus
+	// due to race condition in pwr status file reading
+	// send pwrStatus only if it will not changer for 50 msec
+	// to address this problem
+	m_pwrStatusToSendDeferred = m_pwrStatus;
+	m_sendPwrStatusDeferredTimer->start();
+}
+
+void PwrStatusNode::sendPwrStatusChangedDeferred()
+{
 #ifndef TEST
 	if(!BfsViewApp::instance()->rpcConnection()->isBrokerConnected())
 		return;
 	cp::RpcNotify ntf;
 	ntf.setMethod(cp::Rpc::NTF_VAL_CHANGED);
-	ntf.setParams(m_pwrStatus);
+	ntf.setParams((unsigned)m_pwrStatusToSendDeferred);
 	ntf.setShvPath(BFS1_PWR_STATUS);
 	rootNode()->emitSendRpcMesage(ntf);
 #endif
@@ -212,37 +232,54 @@ void BfsViewApp::checkPowerSwitchStatusFile()
 	QFile file(m_powerFileName);
 	if (!file.open(QIODevice::ReadOnly)) {
 		shvError() << "Cannot open file:" << m_powerFileName << "for reading!";
-		setPwrStatus(0);
+		setPwrStatus(PwrStatus::Unknown);
 		return;
 	}
 	QDateTime curr_ts = QDateTime::currentDateTimeUtc();
-	int new_pwr_on = 0;
+	PwrStatus overall_pwr_status = PwrStatus::Unknown;
 	while(!file.atEnd()) {
 		QByteArray ba = file.readLine().trimmed();
 		if(ba.isEmpty())
 			continue;
+
 		QString line = QString::fromUtf8(ba);
+		QStringList fields = line.split(' ');
 		shvDebug() << line;
-		QString name = line.section(' ', 0, 0);
-		int pwr_on = line.section(' ', 1, 1).toInt();
-		QString ts_str = line.section(' ', 2, 2);
+		QString name = fields.value(0);
+		bool ok;
+		int pwr_on = fields.value(1).toInt(&ok);
+		QString ts_str = fields.value(2);
+		if(name.isEmpty() || !ok || ts_str.isEmpty()) {
+			shvWarning() << "possible race condition, invalid pwr file line format:" << line;
+			overall_pwr_status = PwrStatus::Unknown;
+			break;
+		}
+
 		TS &ts = m_powerSwitchStatus[name];
-		shvDebug() << name << pwr_on << ts_str << "vs" << ts.timeStampString << "curr:" << curr_ts.toString(Qt::ISODate);
+		shvDebug() << name << pwr_on << ts_str << "vs" << ts.timeStampString << "curr:" << curr_ts.toString(Qt::ISODateWithMs);
 		if(ts.timeStampString != ts_str) {
-			bool was_empty = ts.timeStampString.isEmpty();
+			ts.when = QDateTime::currentDateTimeUtc();
 			ts.timeStampString = ts_str;
-			if(!was_empty)
-				ts.when = QDateTime::currentDateTimeUtc();
 		}
-		if(pwr_on == 1 && !ts_str.isEmpty() && ts.when.isValid()) {
+		SHV_ASSERT(ts.when.isValid(), "when should be valid", continue);
+		int status_age = ts.when.secsTo(curr_ts);
+		if(status_age < 45) {
 			// Andrejsek generuje soubor kazdych 30 sekund, 45 je s rezervou
-			if(ts.when.secsTo(curr_ts) < 45) {
-				new_pwr_on = 1;
-				shvDebug() << "ON:" << name << ts_str << ts.when.toUTC().toString(Qt::ISODate);
+			if(pwr_on) {
+				// if any line indicates SWITCH_ON, overal pwr status is ON
+				overall_pwr_status = PwrStatus::On;
+				break;
 			}
+			overall_pwr_status = PwrStatus::Off;
 		}
+		else {
+			shvWarning() << "line not updated, we cannot deduce pwr status:" << line;
+			overall_pwr_status = PwrStatus::Unknown;
+			break;
+		}
+		//shvDebug() << "ON:" << name << ts_str << ts.when.toUTC().toString(Qt::ISODateWithMs);
 	}
-	setPwrStatus(new_pwr_on);
+	setPwrStatus(overall_pwr_status);
 }
 
 static constexpr int PLC_CONNECTED_TIMOUT_MSEC = 10*1000;
@@ -263,7 +300,7 @@ void BfsViewApp::checkPlcConnected()
 	sendGetStatusRequest();
 }
 
-void BfsViewApp::setPwrStatus(unsigned u)
+void BfsViewApp::setPwrStatus(PwrStatus u)
 {
 	if(pwrStatus() == u)
 		return;
@@ -271,7 +308,7 @@ void BfsViewApp::setPwrStatus(unsigned u)
 	emit pwrStatusChanged(u);
 }
 
-unsigned BfsViewApp::pwrStatus()
+BfsViewApp::PwrStatus BfsViewApp::pwrStatus()
 {
 	return m_pwrStatusNode->pwrStatus();
 }
@@ -285,7 +322,7 @@ void BfsViewApp::setOmpag(bool val)
 	setBfsStatus(s);
 #else
 	if(rpcConnection()->isBrokerConnected()) {
-		setOmpagRequiredSwitchStatus((int)(val? SwitchStatus::On: SwitchStatus::Off));
+		setOmpagRequiredSwitchStatus(val? SwitchStatus::On: SwitchStatus::Off);
 		rpcConnection()->callShvMethod("../bfs1", "setOmpag", val);
 	}
 #endif
@@ -300,7 +337,7 @@ void BfsViewApp::setConv(bool val)
 	setBfsStatus(s);
 #else
 	if(rpcConnection()->isBrokerConnected()) {
-		setConvRequiredSwitchStatus((int)(val? SwitchStatus::On: SwitchStatus::Off));
+		setConvRequiredSwitchStatus(val? SwitchStatus::On: SwitchStatus::Off);
 		rpcConnection()->callShvMethod("../bfs1", "setConv", val);
 	}
 #endif
@@ -309,14 +346,14 @@ void BfsViewApp::setConv(bool val)
 BfsViewApp::SwitchStatus BfsViewApp::ompagSwitchStatus()
 {
 	unsigned ps = bfsStatus();
-	int status = (ps & ((1 << BfsStatus::OmpagOn) | (1 << BfsStatus::OmpagOff))) >> BfsStatus::OmpagOn;
+	int status = (ps & ((1 << (int)BfsStatus::OmpagOn) | (1 << (int)BfsStatus::OmpagOff))) >> (int)BfsStatus::OmpagOn;
 	return (SwitchStatus)status;
 }
 
 BfsViewApp::SwitchStatus BfsViewApp::convSwitchStatus()
 {
 	unsigned ps = bfsStatus();
-	int status = (ps & ((1 << BfsStatus::MswOn) | (1 << BfsStatus::MswOff))) >> BfsStatus::MswOn;
+	int status = (ps & ((1 << (int)BfsStatus::MswOn) | (1 << (int)BfsStatus::MswOff))) >> (int)BfsStatus::MswOn;
 	return (SwitchStatus)status;
 }
 

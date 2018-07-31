@@ -57,7 +57,7 @@ public:
 
 	void updateXml();
 
-	void onRequiredSwitchStatusChanged(int st);
+	void onRequiredSwitchStatusChanged(BfsViewApp::SwitchStatus st);
 private:
 	QString statusToColor(BfsViewApp::SwitchStatus status);
 private:

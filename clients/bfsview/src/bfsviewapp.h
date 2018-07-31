@@ -31,10 +31,12 @@ class PwrStatusNode : public shv::iotqt::node::ShvNode
 {
 	using Super = shv::iotqt::node::ShvNode;
 public:
-	explicit PwrStatusNode(shv::iotqt::node::ShvNode *parent = nullptr) : Super(parent) {}
+	enum class PwrStatus : unsigned {Off = 0, On, Unknown, };
 
-	unsigned pwrStatus() const {return m_pwrStatus;}
-	void setPwrStatus(unsigned s);
+	explicit PwrStatusNode(shv::iotqt::node::ShvNode *parent = nullptr);
+
+	PwrStatus pwrStatus() const {return m_pwrStatus;}
+	void setPwrStatus(PwrStatus s);
 	void sendPwrStatusChanged();
 
 	size_t methodCount() override;
@@ -42,23 +44,22 @@ public:
 
 	shv::chainpack::RpcValue call(const std::string &method, const shv::chainpack::RpcValue &params) override;
 private:
-	unsigned m_pwrStatus = 0;
+	void sendPwrStatusChangedDeferred();
+private:
+	PwrStatus m_pwrStatus = PwrStatus::Unknown;
+	QTimer *m_sendPwrStatusDeferredTimer = nullptr;
+	PwrStatus m_pwrStatusToSendDeferred = PwrStatus::Unknown;
 };
 
 class BfsViewApp : public QApplication
 {
 	Q_OBJECT
-
-	SHV_PROPERTY_IMPL2(int, b, B, fsStatus, 0)
-	SHV_PROPERTY_IMPL2(int, o, O, mpagRequiredSwitchStatus, 0)
-	SHV_PROPERTY_IMPL2(int, c, C, onvRequiredSwitchStatus, 0)
-	SHV_PROPERTY_BOOL_IMPL2(p, P, lcConnected, false)
 private:
 	using Super = QApplication;
+
 public:
-public:
-	enum SwitchStatus {Unknown = 0, On, Off};
-	enum BfsStatus {
+	enum class SwitchStatus : int {Unknown = 0, On, Off};
+	enum class BfsStatus : int {
 		BfsOn = 0,
 		BfsOff,
 		Buffering,
@@ -76,6 +77,12 @@ public:
 		DoorOpen,
 		FswOn,
 	};
+	using PwrStatus = PwrStatusNode::PwrStatus;
+
+	SHV_PROPERTY_IMPL2(int, b, B, fsStatus, 0)
+	SHV_PROPERTY_IMPL2(SwitchStatus, o, O, mpagRequiredSwitchStatus, SwitchStatus::Unknown)
+	SHV_PROPERTY_IMPL2(SwitchStatus, c, C, onvRequiredSwitchStatus, SwitchStatus::Unknown)
+	SHV_PROPERTY_BOOL_IMPL2(p, P, lcConnected, false)
 public:
 	BfsViewApp(int &argc, char **argv, AppCliOptions* cli_opts);
 	~BfsViewApp() Q_DECL_OVERRIDE;
@@ -86,9 +93,9 @@ public:
 
 	void loadSettings();
 
-	void setPwrStatus(unsigned u);
-	unsigned pwrStatus();
-	Q_SIGNAL void pwrStatusChanged(bool b);
+	void setPwrStatus(PwrStatus u);
+	PwrStatus pwrStatus();
+	Q_SIGNAL void pwrStatusChanged(PwrStatus s);
 
 	void setOmpag(bool val);
 	void setConv(bool val);
@@ -105,9 +112,9 @@ public:
 			val &= ~mask;
 	}
 
-	static inline bool isBit(int val, int bit_no)
+	static inline bool isBit(int val, BfsStatus bit_no)
 	{
-		int mask = 1 << bit_no;
+		int mask = 1 << (int)bit_no;
 		return val & mask;
 	}
 private:
