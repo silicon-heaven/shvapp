@@ -259,20 +259,27 @@ void BfsViewApp::checkPowerSwitchStatusFile()
 			continue;
 
 		QString line = QString::fromUtf8(ba);
-		QStringList fields = line.split(' ');
+		QStringList fields = line.split(' ', QString::SkipEmptyParts);
 		shvDebug() << line;
 		QString name = fields.value(0);
 		bool ok;
-		int pwr_on = fields.value(1).toInt(&ok);
+		int pwr_val = fields.value(1).toInt(&ok);
 		QString ts_str = fields.value(2);
-		if(name.isEmpty() || !ok || ts_str.isEmpty()) {
+		if(fields.length() != 3) {
 			shvWarning() << "possible race condition, invalid pwr file line format:" << line;
 			overall_pwr_status = PwrStatus::Unknown;
 			break;
 		}
 
+		PwrStatus pwr_status = ok? ((pwr_val == 1)? PwrStatus::On: PwrStatus::Off): PwrStatus::Unknown;
+		if(pwr_status == PwrStatus::Unknown) {
+			// ignore 'X' status
+			// line like: Bory-40 X 2018-6-4T12:01:12
+			continue;
+		}
+
 		TS &ts = m_powerSwitchStatus[name];
-		shvDebug() << name << pwr_on << ts_str << "vs" << ts.timeStampString << "curr:" << curr_ts.toString(Qt::ISODateWithMs);
+		//shvDebug() << name << pwr_status << ts_str << "vs" << ts.timeStampString << "curr:" << curr_ts.toString(Qt::ISODateWithMs);
 		if(ts.timeStampString != ts_str) {
 			ts.when = QDateTime::currentDateTimeUtc();
 			ts.timeStampString = ts_str;
@@ -282,14 +289,9 @@ void BfsViewApp::checkPowerSwitchStatusFile()
 		static constexpr int LIMIT_SEC = 45;
 		if(status_age < LIMIT_SEC) {
 			// Andrejsek generuje soubor kazdych 30 sekund, 45 je s rezervou
-			if(pwr_on) {
-				// if any line indicates SWITCH_ON, overal pwr status is ON
-				overall_pwr_status = PwrStatus::On;
-			}
-			else {
-				if(overall_pwr_status == PwrStatus::Unknown)
-					overall_pwr_status = PwrStatus::Off;
-			}
+			if((pwr_status == PwrStatus::On)
+					|| (pwr_status == PwrStatus::Off && overall_pwr_status == PwrStatus::Unknown))
+				overall_pwr_status = pwr_status;
 		}
 		else {
 			shvWarning() << "line not updated for more than" << LIMIT_SEC << "sec, we cannot deduce pwr status:" << line;
