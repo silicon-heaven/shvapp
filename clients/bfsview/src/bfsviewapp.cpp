@@ -279,17 +279,20 @@ void BfsViewApp::checkPowerSwitchStatusFile()
 		}
 		SHV_ASSERT(ts.when.isValid(), "when should be valid", continue);
 		int status_age = ts.when.secsTo(curr_ts);
-		if(status_age < 45) {
+		static constexpr int LIMIT_SEC = 45;
+		if(status_age < LIMIT_SEC) {
 			// Andrejsek generuje soubor kazdych 30 sekund, 45 je s rezervou
 			if(pwr_on) {
 				// if any line indicates SWITCH_ON, overal pwr status is ON
 				overall_pwr_status = PwrStatus::On;
-				break;
 			}
-			overall_pwr_status = PwrStatus::Off;
+			else {
+				if(overall_pwr_status == PwrStatus::Unknown)
+					overall_pwr_status = PwrStatus::Off;
+			}
 		}
 		else {
-			shvWarning() << "line not updated, we cannot deduce pwr status:" << line;
+			shvWarning() << "line not updated for more than" << LIMIT_SEC << "sec, we cannot deduce pwr status:" << line;
 			overall_pwr_status = PwrStatus::Unknown;
 			break;
 		}
