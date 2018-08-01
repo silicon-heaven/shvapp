@@ -17,19 +17,23 @@
 #include <QSettings>
 #include <QTimer>
 
+#include <fstream>
+
 namespace cp = shv::chainpack;
 
 static const char BFS1_PWR_STATUS[] = "bfs1/pwrStatus";
 
 static const char METH_SIM_SET[] = "sim_set";
+static const char METH_APP_LOG[] = "appLog";
 
 static std::vector<cp::MetaMethod> meta_methods_root {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false},
-	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, false},
-	{cp::Rpc::METH_MOUNT_POINT, cp::MetaMethod::Signature::RetVoid, false},
-	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false},
-	{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, false},
+	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, !cp::MetaMethod::IsSignal},
+	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, !cp::MetaMethod::IsSignal},
+	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, !cp::MetaMethod::IsSignal},
+	{cp::Rpc::METH_MOUNT_POINT, cp::MetaMethod::Signature::RetVoid, !cp::MetaMethod::IsSignal},
+	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, !cp::MetaMethod::IsSignal},
+	{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, !cp::MetaMethod::IsSignal},
+	{METH_APP_LOG, cp::MetaMethod::Signature::RetVoid, !cp::MetaMethod::IsSignal},
 };
 
 size_t AppRootNode::methodCount()
@@ -57,6 +61,18 @@ shv::chainpack::RpcValue AppRootNode::call(const std::string &method, const shv:
 	}
 	if(method == cp::Rpc::METH_CONNECTION_TYPE) {
 		return BfsViewApp::instance()->rpcConnection()->connectionType();
+	}
+	if(method == METH_APP_LOG) {
+		// read entire file into string
+		std::ifstream is{BfsViewApp::logFilePath(), std::ios::binary | std::ios::ate};
+		if(is) {
+			auto size = is.tellg();
+			std::string str(size, '\0'); // construct string to stream size
+			is.seekg(0);
+			is.read(&str[0], size);
+			return str;
+		}
+		return std::string();
 	}
 	return Super::call(method, params);
 }
@@ -304,6 +320,7 @@ void BfsViewApp::setPwrStatus(PwrStatus u)
 {
 	if(pwrStatus() == u)
 		return;
+	shvInfo() << "PWR status changed to:" << (unsigned)u << switchStatusToString(u);
 	m_pwrStatusNode->setPwrStatus(u);
 	emit pwrStatusChanged(u);
 }
@@ -355,6 +372,21 @@ BfsViewApp::SwitchStatus BfsViewApp::convSwitchStatus()
 	unsigned ps = bfsStatus();
 	int status = (ps & ((1 << (int)BfsStatus::MswOn) | (1 << (int)BfsStatus::MswOff))) >> (int)BfsStatus::MswOn;
 	return (SwitchStatus)status;
+}
+
+const std::string &BfsViewApp::logFilePath()
+{
+	static std::string log_file_path = QDir::tempPath().toStdString() + "/bfsview.log";
+	return log_file_path;
+}
+
+QString BfsViewApp::switchStatusToString(BfsViewApp::SwitchStatus status)
+{
+	switch (status) {
+	case BfsViewApp::SwitchStatus::On: return QStringLiteral("On");
+	case BfsViewApp::SwitchStatus::Off: return QStringLiteral("Off");
+	default: return QStringLiteral("Unknown");
+	}
 }
 
 void BfsViewApp::onBrokerConnectedChanged(bool is_connected)

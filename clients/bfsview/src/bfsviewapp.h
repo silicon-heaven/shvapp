@@ -31,7 +31,7 @@ class PwrStatusNode : public shv::iotqt::node::ShvNode
 {
 	using Super = shv::iotqt::node::ShvNode;
 public:
-	enum class PwrStatus : unsigned {Off = 0, On, Unknown, };
+	enum class PwrStatus : unsigned {Unknown = 0, On, Off};
 
 	explicit PwrStatusNode(shv::iotqt::node::ShvNode *parent = nullptr);
 
@@ -58,7 +58,6 @@ private:
 	using Super = QApplication;
 
 public:
-	enum class SwitchStatus : int {Unknown = 0, On, Off};
 	enum class BfsStatus : int {
 		BfsOn = 0,
 		BfsOff,
@@ -78,6 +77,7 @@ public:
 		FswOn,
 	};
 	using PwrStatus = PwrStatusNode::PwrStatus;
+	using SwitchStatus = PwrStatus;
 
 	SHV_PROPERTY_IMPL2(int, b, B, fsStatus, 0)
 	SHV_PROPERTY_IMPL2(SwitchStatus, o, O, mpagRequiredSwitchStatus, SwitchStatus::Unknown)
@@ -117,6 +117,10 @@ public:
 		int mask = 1 << (int)bit_no;
 		return val & mask;
 	}
+
+	static const std::string& logFilePath();
+
+	static QString switchStatusToString(BfsViewApp::SwitchStatus status);
 private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
