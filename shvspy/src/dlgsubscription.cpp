@@ -6,12 +6,6 @@
 #include <QCompleter>
 #include <QStringListModel>
 
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-
 namespace cp = shv::chainpack;
 
 DlgSubscription::DlgSubscription(QWidget *parent) :
