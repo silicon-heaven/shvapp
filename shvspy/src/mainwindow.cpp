@@ -9,6 +9,7 @@
 //#include "dlgdumpnode.h"
 #include "dlgserverproperties.h"
 #include "dlgsubscriptionparameters.h"
+#include "dlgsubscription.h"
 
 //#include <qfopcua/client.h>
 
@@ -154,6 +155,7 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 	ShvBrokerNodeItem *snd = qobject_cast<ShvBrokerNodeItem*>(nd);
 	QMenu m;
 	QAction *a_reloadNodee = new QAction(tr("Reload"), &m);
+	QAction *a_subscribeNodee = new QAction(tr("Subscibe"), &m);
 	if(!nd) {
 		m.addAction(ui->actAddServer);
 	}
@@ -169,6 +171,7 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 	}
 	else {
 		m.addAction(a_reloadNodee);
+		m.addAction(a_subscribeNodee);
 	}
 	if(!m.actions().isEmpty()) {
 		QAction *a = m.exec(ui->treeServers->viewport()->mapToGlobal(pos));
@@ -177,6 +180,13 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 				if(nd)
 					nd->reload();
+			}
+			if(a == a_subscribeNodee) {
+				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
+				if(nd) {
+					DlgSubscription dlg(this, TheApp::instance()->serverTreeModel(), ui->treeServers);
+					dlg.exec();
+				}
 			}
 		}
 	}

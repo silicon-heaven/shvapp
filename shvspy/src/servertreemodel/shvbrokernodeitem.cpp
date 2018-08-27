@@ -131,7 +131,7 @@ QString ServerNode::connectionErrorString()
 shv::iotqt::rpc::ClientConnection *ShvBrokerNodeItem::clientConnection()
 {
 
-	if(!m_rpcConnection) {
+    if(!m_rpcConnection) {
 		QString conn_type = m_serverPropeties.value(cp::Rpc::KEY_CONNECTION_TYPE).toString();
 
 		shv::iotqt::rpc::DeviceAppCliOptions opts;
@@ -177,7 +177,7 @@ shv::iotqt::rpc::ClientConnection *ShvBrokerNodeItem::clientConnection()
 		//m_rpcConnection->setCheckBrokerConnectedInterval(0);
 		connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &ShvBrokerNodeItem::onBrokerConnectedChanged);
 		connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvBrokerNodeItem::onRpcMessageReceived);
-	}
+    }
 	return m_rpcConnection;
 }
 
@@ -221,6 +221,13 @@ ShvNodeItem* ShvBrokerNodeItem::findNode(const std::string &path, std::string *p
 	return ret;
 }
 
+unsigned ShvBrokerNodeItem::callCreateSubscription(const std::string &shv_path, std::string method){
+	shv::iotqt::rpc::ClientConnection *cc = clientConnection();
+	unsigned rqid = cc->createSubscription(shv_path, method);
+	m_runningRpcRequests[rqid].shvPath = shv_path;
+	return rqid;
+}
+
 unsigned ShvBrokerNodeItem::callNodeRpcMethod(const std::string &calling_node_shv_path, const std::string &method, const cp::RpcValue &params)
 {
 	shv::iotqt::rpc::ClientConnection *cc = clientConnection();
@@ -234,9 +241,10 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 	if(msg.isResponse()) {
 		cp::RpcResponse resp(msg);
 		unsigned rqid = resp.requestId().toUInt();
+        shvInfo() << rqid;
 		auto it = m_runningRpcRequests.find(rqid);
 		if(it == m_runningRpcRequests.end()) {
-			//shvWarning() << "unexpected request id:" << rqid;
+            shvWarning() << "unexpected request id:" << rqid;
 			// can be load attributes request
 			return;
 		}
@@ -244,9 +252,11 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 		ShvNodeItem *nd = findNode(path);
 		if(nd) {
 			nd->processRpcMessage(msg);
+			emit receiveRpcResponse(rqid, 0);
 		}
 		else {
 			shvError() << "cannot find node on path:" << path;
+			emit receiveRpcResponse(rqid, 1);
 		}
 		m_runningRpcRequests.erase(it);
 	}
