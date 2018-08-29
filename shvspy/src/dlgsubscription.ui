@@ -17,33 +17,33 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
-      <widget class="QLabel" name="path">
+      <widget class="QLabel" name="pathLabel">
        <property name="text">
         <string>&amp;Path</string>
        </property>
        <property name="buddy">
-        <cstring>addSubscriptionLine</cstring>
+        <cstring>subscriptionPathLineEdit</cstring>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="addSubscriptionLine"/>
+      <widget class="QLineEdit" name="subscriptionPathLineEdit"/>
      </item>
      <item>
-      <widget class="QLabel" name="method">
+      <widget class="QLabel" name="methodLabel">
        <property name="text">
         <string>&amp;Method</string>
        </property>
        <property name="buddy">
-        <cstring>lineMethod</cstring>
+        <cstring>subscriptionMethodLineEdit</cstring>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="lineMethod"/>
+      <widget class="QLineEdit" name="subscriptionMethodLineEdit"/>
      </item>
      <item>
-      <widget class="QToolButton" name="addSubscription">
+      <widget class="QPushButton" name="addSubsriptionButton">
        <property name="text">
         <string>Add</string>
        </property>
@@ -52,7 +52,7 @@
     </layout>
    </item>
    <item>
-    <widget class="QTableWidget" name="tableWidget"/>
+    <widget class="QTableWidget" name="subsriptionTableWidget"/>
    </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -70,23 +70,34 @@
       </spacer>
      </item>
      <item>
-      <widget class="QLabel" name="returnText">
-       <property name="text">
-        <string/>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QToolButton" name="delSubscription">
+      <widget class="QToolButton" name="deleteSubscriptionButton">
        <property name="text">
         <string>Delete</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QToolButton" name="doneSubscription">
-       <property name="text">
-        <string>Done</string>
+      <widget class="QDialogButtonBox" name="buttonBox">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="focusPolicy">
+        <enum>Qt::ClickFocus</enum>
+       </property>
+       <property name="contextMenuPolicy">
+        <enum>Qt::NoContextMenu</enum>
+       </property>
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="standardButtons">
+        <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+       </property>
+       <property name="centerButtons">
+        <bool>false</bool>
        </property>
       </widget>
      </item>
@@ -95,12 +106,9 @@
   </layout>
  </widget>
  <tabstops>
-  <tabstop>addSubscriptionLine</tabstop>
-  <tabstop>lineMethod</tabstop>
-  <tabstop>addSubscription</tabstop>
-  <tabstop>tableWidget</tabstop>
-  <tabstop>delSubscription</tabstop>
-  <tabstop>doneSubscription</tabstop>
+  <tabstop>subscriptionPathLineEdit</tabstop>
+  <tabstop>subscriptionMethodLineEdit</tabstop>
+  <tabstop>subsriptionTableWidget</tabstop>
  </tabstops>
  <resources/>
  <connections/>

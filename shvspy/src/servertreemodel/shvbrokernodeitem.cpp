@@ -86,6 +86,11 @@ QVariantMap ShvBrokerNodeItem::serverProperties() const
 	return m_serverPropeties;
 }
 
+void ShvBrokerNodeItem::setServerSubscriptionProperties(const QVariantMap &props)
+{
+	m_serverPropeties = props;
+}
+
 void ShvBrokerNodeItem::setServerProperties(const QVariantMap &props)
 {
 	if(m_rpcConnection) {
@@ -252,11 +257,9 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 		ShvNodeItem *nd = findNode(path);
 		if(nd) {
 			nd->processRpcMessage(msg);
-			emit receiveRpcResponse(rqid, 0);
 		}
 		else {
 			shvError() << "cannot find node on path:" << path;
-			emit receiveRpcResponse(rqid, 1);
 		}
 		m_runningRpcRequests.erase(it);
 	}
@@ -296,26 +299,14 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 
 void ShvBrokerNodeItem::createSubscriptions()
 {
-	std::string subscriptions = TheApp::instance()->cliOptions()->subscriptions().toStdString();
-	std::vector<shv::core::StringView> slst = shv::core::StringView(subscriptions).split(',');
-	for(const shv::core::StringView &sv1 : slst) {
-		std::vector<shv::core::StringView> slst2 = sv1.split(':', shv::core::StringView::KeepEmptyParts);
-		if(slst2.size() != 3) {
-			shvError() << "Invalid subscription:" << sv1.toString();
-			continue;
-		}
-		std::string broker_name = slst2[0].toString();
-		if(broker_name == nodeId()) {
-			std::string path = slst2[1].toString();
-			std::string method = slst2[2].toString();
-			shvInfo() << "Create subscription:" << broker_name << "creating subscription" << path << ":" << method;
-			shv::iotqt::rpc::ClientConnection *cc = clientConnection();
-			cc->callShvMethod(cp::Rpc::DIR_BROKER_APP
-						  , cp::Rpc::METH_SUBSCRIBE
-						  , cp::RpcValue::Map{
-							  {cp::Rpc::PAR_PATH, path},
-							  {cp::Rpc::PAR_METHOD, method},
-						  });
+	QVariantMap proprs = serverProperties();
+	QVariant v = proprs.value("subscriptions");
+	if(v.isValid()) {
+		QVariantList subs = v.toList();
+		for (int i = 0; i < subs.size(); i++) {
+			QStringList subscription = subs.at(i).toStringList();
+			shvInfo() << "Create subscription:" << nodeId() << "creating subscription" << subscription.at(0) << ":" << subscription.at(1);
+			callCreateSubscription(subscription.at(0).toStdString(), subscription.at(1).toStdString());
 		}
 	}
 }

@@ -2,61 +2,57 @@
 #include "ui_dlgsubscription.h"
 
 #include <QSettings>
-#include <QDebug>
-#include <QCompleter>
-#include <QStringListModel>
+#include <QStringList>
+
+#include <shv/coreqt/log.h>
 
 namespace cp = shv::chainpack;
 
-DlgSubscription::DlgSubscription(QWidget *parent) :
-	QDialog(parent),
-	ui(new Ui::DlgSubscription)
+DlgSubscription::DlgSubscription(QWidget *parent, ServerTreeModel *model, ServerTreeView *view)
+	: QDialog(parent)
+	, ui(new Ui::DlgSubscription)
+	, m_srvTreeModel(model)
 {
 	ui->setupUi(this);
-}
 
-DlgSubscription::DlgSubscription(QWidget *parent, ServerTreeModel *model, ServerTreeView *view) :
-	QDialog(parent),
-	ui(new Ui::DlgSubscription){
-	ui->setupUi(this);
-	m_view = view;
-	m_model = model;
+	ShvNodeItem *shv_nd_item;
+	shv_nd_item = model->itemFromIndex(view->currentIndex());
 
-	m_nd = model->itemFromIndex(view->currentIndex());
-	m_snd = m_nd->serverNode();
-	ui->addSubscriptionLine->setText(m_nd->shvPath().data());
-	m_view->expand(m_model->indexFromItem(m_nd));
+	m_shvServerNode = shv_nd_item->serverNode();
 
-	ui->tableWidget->setRowCount(0);
-	ui->tableWidget->setColumnCount(2);
+	ui->subscriptionPathLineEdit->setText(shv_nd_item->shvPath().data());
+
+	ui->subsriptionTableWidget->setRowCount(0);
+	ui->subsriptionTableWidget->setColumnCount(2);
 	QStringList header;
 	header << "Path" << "Method" << "";
-	ui->tableWidget->setHorizontalHeaderLabels(header);
-	ui->tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
-	ui->tableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
-	ui->tableWidget->verticalHeader()->setVisible(false);
+	ui->subsriptionTableWidget->setHorizontalHeaderLabels(header);
+	ui->subsriptionTableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
+	ui->subsriptionTableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
+	ui->subsriptionTableWidget->verticalHeader()->setVisible(false);
 
-	QSettings settings(m_nd->serverNode()->nodeId().data());
-	int size = settings.beginReadArray("Subscriptions");
-	for (int i = 0; i < size; i++) {
-		settings.setArrayIndex(i);
-		Subscription sub;
-		sub.path = settings.value("path").toString();
-		sub.method = settings.value("method").toString();
-		qDebug() << "LOAD" << sub.path << sub.method;
-		subscriptions.insert(0, sub);
-		ui->tableWidget->insertRow(i);
-		ui->tableWidget->setRowHeight(i, ui->tableWidget->fontInfo().pointSize());
-		ui->tableWidget->setItem(i, 0, new QTableWidgetItem(sub.path));
-		ui->tableWidget->setItem(i, 1, new QTableWidgetItem(sub.method));
+	if(m_shvServerNode) {
+		m_ServerProps = m_shvServerNode->serverProperties();
+		QVariant v = m_ServerProps.value("subscriptions");
+		if(v.isValid()) {
+			m_subscriptionList = v.toList();
+			for (int i = 0; i < m_subscriptionList.size(); i++) {
+				QStringList subscription = m_subscriptionList.at(i).toStringList();
+
+				shvInfo() << "LOAD" << subscription.at(0) << subscription.at(1);
+				ui->subsriptionTableWidget->insertRow(i);
+				ui->subsriptionTableWidget->setRowHeight(i, ui->subsriptionTableWidget->fontInfo().pointSize());
+				ui->subsriptionTableWidget->setItem(i, 0, new QTableWidgetItem(subscription.at(0)));
+				ui->subsriptionTableWidget->setItem(i, 1, new QTableWidgetItem(subscription.at(1)));
+			}
+		}
 	}
-	settings.endArray();
+	ui->subsriptionTableWidget->resizeColumnsToContents();
 
-	connect(ui->addSubscriptionLine, &QLineEdit::cursorPositionChanged, this, &DlgSubscription::lineChanged);
-
-	connect(ui->addSubscription, &QToolButton::clicked, this, &DlgSubscription::addSubscription);
-	connect(ui->delSubscription, &QToolButton::clicked, this, &DlgSubscription::delSubscription);
-	connect(ui->doneSubscription, &QToolButton::clicked, this, &DlgSubscription::doneSubscription);
+	connect(ui->addSubsriptionButton,	&QToolButton::clicked, this, &DlgSubscription::onSubscriptionAddButtonClicked);
+	connect(ui->deleteSubscriptionButton, &QToolButton::clicked, this, &DlgSubscription::onSubscriptionDeleteButtonClicked);
+	connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &DlgSubscription::onDialogOkButtonClicked);
+	connect(ui->buttonBox, &QDialogButtonBox::rejected, [this](void){ close(); });
 }
 
 DlgSubscription::~DlgSubscription()
@@ -64,84 +60,44 @@ DlgSubscription::~DlgSubscription()
 	delete ui;
 }
 
-void DlgSubscription::doneSubscription(){
-	QSettings settings(m_nd->serverNode()->nodeId().data());
-	settings.beginWriteArray("Subscriptions");
-	for (int i = 0; i < subscriptions.size(); ++i) {
-		settings.setArrayIndex(i);
-		settings.setValue("path", subscriptions.at(i).path);
-		settings.setValue("method", subscriptions.at(i).method);
-	}
-	settings.endArray();
+void DlgSubscription::onDialogOkButtonClicked()
+{
+	QSettings settings;
+	settings.setValue(QStringLiteral("ui/dlgSubscription/geometry"), saveGeometry());
+	m_shvServerNode->setServerSubscriptionProperties(m_ServerProps);
+	m_srvTreeModel->saveSettings(settings);
 	close();
 }
 
-void DlgSubscription::delSubscription(){
-	ui->returnText->setText("");
-	QModelIndexList selection = ui->tableWidget->selectionModel()->selectedRows();
+void DlgSubscription::onSubscriptionDeleteButtonClicked()
+{
+	QModelIndexList selection = ui->subsriptionTableWidget->selectionModel()->selectedRows();
 	if (selection.size() > 0){
 		QModelIndex index = selection.at(0);
-		ui->tableWidget->removeRow(index.row());
-		subscriptions.removeAt(index.row());
-		ui->returnText->setText("Subscription was removed.");
+		ui->subsriptionTableWidget->removeRow(index.row());
+		m_subscriptionList.removeAt(index.row());
 	}
 }
 
-void DlgSubscription::addSubscription(){
-	m_rqid = m_snd->callCreateSubscription(ui->addSubscriptionLine->text().toStdString(), ui->lineMethod->text().toStdString());
-	connect(m_snd, &ShvBrokerNodeItem::receiveRpcResponse, [this](const unsigned &id, const unsigned &rv){
-		if (m_rqid != id) {
-			return;
-		}
-		if (rv == 0){
-			ui->returnText->setText("Subscription was added.");
-			ui->tableWidget->insertRow(0);
-			ui->tableWidget->setRowHeight(0, ui->tableWidget->fontInfo().pointSize());
-			ui->tableWidget->setItem(0, 0, new QTableWidgetItem(ui->addSubscriptionLine->text()));
-			ui->tableWidget->setItem(0, 1, new QTableWidgetItem(ui->lineMethod->text()));
-			Subscription sub;
-			sub.path = ui->addSubscriptionLine->text();
-			sub.method = ui->lineMethod->text();
-			subscriptions.insert(0, sub);
-			qDebug() << "ADD" << sub.path << sub.method;
-		} else {
-			ui->returnText->setText("Cannot find path.");
-		}
-	});
-}
+void DlgSubscription::onSubscriptionAddButtonClicked()
+{
+	m_shvServerNode->callCreateSubscription(ui->subscriptionPathLineEdit->text().toStdString(), ui->subscriptionMethodLineEdit->text().toStdString());
+	ui->subsriptionTableWidget->insertRow(0);
+	ui->subsriptionTableWidget->setRowHeight(0, ui->subsriptionTableWidget->fontInfo().pointSize());
+	ui->subsriptionTableWidget->setItem(0, 0, new QTableWidgetItem(ui->subscriptionPathLineEdit->text()));
+	ui->subsriptionTableWidget->setItem(0, 1, new QTableWidgetItem(ui->subscriptionMethodLineEdit->text()));
 
-void DlgSubscription::lineChanged(unsigned int oldPos, unsigned int newPos){
-	ui->returnText->setText("");
-	m_view->expand(m_model->indexFromItem(m_nd));
-	if (m_nd->serverNode() == m_nd){
-		showChildrenPopup();
-		return;
-	}
-	if (m_nd->parentNode()->shvPath().length() == newPos) return;
-	if (m_nd->shvPath().length() > newPos){
-		ui->addSubscriptionLine->setText(m_nd->parentNode()->shvPath().data());
-		m_view->collapse(m_model->indexFromItem(m_nd));
-		m_nd = m_nd->parentNode();
-		if (m_nd->nodeId() != m_nd->serverNode()->nodeId())
-			m_view->collapse(m_model->indexFromItem(m_nd));
-	}
-	if ((oldPos+1) == newPos){
-		if (m_nd->shvPath().length() != newPos)
-			showChildrenPopup();
-	}
-}
+	QStringList subscription;
+	subscription << ui->subscriptionPathLineEdit->text() << ui->subscriptionMethodLineEdit->text();
 
-void DlgSubscription::showChildrenPopup(){
-	QComboBox * combo = new QComboBox(ui->addSubscriptionLine);
-
-	for (int i = 0; i < m_nd->childCount(); i++)
-		combo->addItem(m_nd->childAt(i)->nodeId().data(), i);
-	combo->showPopup();
-	connect(combo, QOverload<const QString &>::of(&QComboBox::activated),
-			[=](const QString &text){
-		int i = combo->currentIndex();
-		m_nd = m_nd->childAt(i);
-		ui->addSubscriptionLine->setText(m_nd->shvPath().data());
-		m_view->expand(m_model->indexFromItem(m_nd));
-	});
+	m_ServerProps = m_shvServerNode->serverProperties();
+	m_subscriptionList.insert(0, subscription);
+	shvInfo() << m_subscriptionList.size();
+	if (!m_ServerProps.contains("subscriptions")){
+		m_ServerProps.insert("subscriptions", m_subscriptionList);
+	} else {
+		m_ServerProps["subscriptions"] = m_subscriptionList;
+	}
+	shvInfo() << "ADD" << subscription.at(0) << subscription.at(1);
+	ui->subsriptionTableWidget->resizeColumnsToContents();
 }

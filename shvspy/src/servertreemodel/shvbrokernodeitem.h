@@ -31,6 +31,7 @@ public:
 
 	QVariantMap serverProperties() const;
 	void setServerProperties(const QVariantMap &props);
+	void setServerSubscriptionProperties(const QVariantMap &props);
 
 	shv::iotqt::rpc::ClientConnection *clientConnection();
 
@@ -50,10 +51,6 @@ private:
 	OpenStatus m_openStatus = OpenStatus::Disconnected;
 	struct RpcRequestInfo;
 	std::map<unsigned, RpcRequestInfo> m_runningRpcRequests;
-
-signals:
-	void receiveRpcResponse(unsigned rid, unsigned rs);
-
 
 };
 

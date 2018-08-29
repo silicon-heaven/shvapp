@@ -9,7 +9,6 @@
 #include "servertreeview.h"
 
 #include <QDialog>
-#include <QComboBox>
 
 namespace Ui {
 class DlgSubscription;
@@ -20,32 +19,22 @@ class DlgSubscription : public QDialog
 	Q_OBJECT
 
 public:
-	explicit DlgSubscription(QWidget *parent = nullptr);
 	DlgSubscription(QWidget *parent = nullptr, ServerTreeModel *model = nullptr, ServerTreeView *view = nullptr);
 	~DlgSubscription();
 
 private:
 	Ui::DlgSubscription *ui;
-	void addSubscription();
-	void delSubscription();
-	void doneSubscription();
-	void showChildrenPopup();
-	QList<QPair<QString, QString> > m_subscription;
-	ShvNodeItem *m_nd;
-	ServerTreeModel *m_model;
-	ServerTreeView *m_view;
-	ShvBrokerNodeItem *m_snd;
 
-	unsigned m_rqid;
+	ShvBrokerNodeItem *m_shvServerNode;
+	ServerTreeModel *m_srvTreeModel;
+	QVariantMap m_ServerProps;
 
-	struct Subscription {
-		QString path;
-		QString method;
-	};
-	QList<Subscription> subscriptions;
+	QList<QVariant> m_subscriptionList;
 
 private slots:
-	void lineChanged(unsigned int oldPos, unsigned int newPos);
+	void onDialogOkButtonClicked();
+	void onSubscriptionAddButtonClicked();
+	void onSubscriptionDeleteButtonClicked();
 };
 
 #endif // DLGSUBSCRIPTION_H
