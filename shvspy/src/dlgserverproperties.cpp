@@ -1,10 +1,10 @@
 #include "dlgserverproperties.h"
 #include "ui_dlgserverproperties.h"
+#include "dlgsubscriptions.h"
 
 #include <shv/chainpack/abstractrpcconnection.h>
 
 #include <QSettings>
-#include "dlgsubscription.h"
 
 namespace cp = shv::chainpack;
 
@@ -19,8 +19,6 @@ DlgServerProperties::DlgServerProperties(QWidget *parent) :
 	connect(ui->cbxConnectionType, QOverload<int>::of(&QComboBox::currentIndexChanged), ui->grpDevice, [this](int ix) {
 		ui->grpDevice->setEnabled(ix == 1);
 	});
-
-	connect(ui->subscriptionDialogButton, &QPushButton::clicked, this, &DlgServerProperties::on_subscriptionsEditButton_clicked);
 
 	ui->cbxConnectionType->setCurrentIndex(0);
 
@@ -39,12 +37,12 @@ DlgServerProperties::~DlgServerProperties()
 	delete ui;
 }
 
-void DlgServerProperties::on_subscriptionsEditButton_clicked()
+void DlgServerProperties::on_subscriptionDialogButton_clicked()
 {
-	DlgSubscription dlg_subs(this);
-	dlg_subs.setServerProperties(m_serverProps);
+	DlgSubscriptions dlg_subs(this);
+	dlg_subs.setSubscriptionsList(m_subscriptions);
 	if(dlg_subs.exec()) {
-		m_serverProps = dlg_subs.getServerProperties();
+		m_subscriptions = dlg_subs.subscriptions();
 	}
 }
 
@@ -62,13 +60,13 @@ QVariantMap DlgServerProperties::serverProperties() const
 	ret["rpc.heartbeatInterval"] = ui->rpc_heartbeatInterval->value();
 	ret["device.id"] = ui->device_id->text().trimmed();
 	ret["device.mountPoint"] = ui->device_mountPoint->text().trimmed();
-	ret["subscriptions"] = m_serverProps["subscriptions"];
+	ret["subscriptions"] = m_subscriptions;
 	return ret;
 }
 
 void DlgServerProperties::setServerProperties(const QVariantMap &props)
 {
-	m_serverProps = props;
+	m_subscriptions = props.value(QStringLiteral("subscriptions")).toList();
 
 	ui->edName->setText(props.value("name").toString());
 	ui->edHost->setText(props.value("host").toString());

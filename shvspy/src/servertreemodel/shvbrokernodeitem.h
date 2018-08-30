@@ -31,7 +31,7 @@ public:
 
 	QVariantMap serverProperties() const;
 	void setServerProperties(const QVariantMap &props);
-	void setServerSubscriptionProperties(const QVariantMap &props);
+	void setSubscriptionList(const QVariantList &props);
 
 	shv::iotqt::rpc::ClientConnection *clientConnection();
 

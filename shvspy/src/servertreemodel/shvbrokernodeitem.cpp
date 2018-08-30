@@ -86,9 +86,14 @@ QVariantMap ShvBrokerNodeItem::serverProperties() const
 	return m_serverPropeties;
 }
 
-void ShvBrokerNodeItem::setServerSubscriptionProperties(const QVariantMap &props)
+void ShvBrokerNodeItem::setSubscriptionList(const QVariantList &subs)
 {
-	m_serverPropeties = props;
+	for (int i = 0; i < subs.size(); i++) {
+		QVariantMap subscription = subs.at(i).toMap();
+		shvInfo() << "Create subscription:" << nodeId() << "creating subscription" << subscription.value(QStringLiteral("path")).toString() << ":" << subscription.value(QStringLiteral("method")).toString();
+		callCreateSubscription(subscription.value(QStringLiteral("path")).toString().toStdString(), subscription.value(QStringLiteral("method")).toString().toStdString());
+	}
+	m_serverPropeties["subscriptions"] = subs;
 }
 
 void ShvBrokerNodeItem::setServerProperties(const QVariantMap &props)
@@ -230,7 +235,7 @@ unsigned ShvBrokerNodeItem::callCreateSubscription(const std::string &shv_path, 
 {
 	shv::iotqt::rpc::ClientConnection *cc = clientConnection();
 	unsigned rqid = cc->createSubscription(shv_path, method);
-	m_runningRpcRequests[rqid].shvPath = shv_path;
+	m_runningRpcRequests[rqid].shvPath = "";
 	return rqid;
 }
 
@@ -247,10 +252,9 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 	if(msg.isResponse()) {
 		cp::RpcResponse resp(msg);
 		unsigned rqid = resp.requestId().toUInt();
-        shvInfo() << rqid;
 		auto it = m_runningRpcRequests.find(rqid);
 		if(it == m_runningRpcRequests.end()) {
-            shvWarning() << "unexpected request id:" << rqid;
+			shvWarning() << "unexpected request id:" << rqid;
 			// can be load attributes request
 			return;
 		}
@@ -307,7 +311,7 @@ void ShvBrokerNodeItem::createSubscriptions()
 		for (int i = 0; i < subs.size(); i++) {
 			QVariantMap subscription = subs.at(i).toMap();
 			shvInfo() << "Create subscription:" << nodeId() << "creating subscription" << subscription["path"].toString() << ":" << subscription["method"].toString();
-			callCreateSubscription(subscription["path"].toString().toStdString(), subscription["method"].toString().toStdString());
+			callCreateSubscription(subscription.value(QStringLiteral("path")).toString().toStdString(), subscription.value(QStringLiteral("method")).toString().toStdString());
 		}
 	}
 }

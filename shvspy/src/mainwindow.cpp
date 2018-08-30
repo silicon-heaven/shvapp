@@ -9,7 +9,7 @@
 //#include "dlgdumpnode.h"
 #include "dlgserverproperties.h"
 #include "dlgsubscriptionparameters.h"
-#include "dlgsubscription.h"
+#include "dlgsubscriptions.h"
 
 //#include <qfopcua/client.h>
 
@@ -154,8 +154,8 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
 	ShvBrokerNodeItem *snd = qobject_cast<ShvBrokerNodeItem*>(nd);
 	QMenu m;
-	QAction *a_reloadNodee = new QAction(tr("Reload"), &m);
-	QAction *a_subscribeNodee = new QAction(tr("Subscribe"), &m);
+	QAction *a_reloadNode = new QAction(tr("Reload"), &m);
+	QAction *a_subscribeNode = new QAction(tr("Subscribe"), &m);
 	if(!nd) {
 		m.addAction(ui->actAddServer);
 	}
@@ -166,30 +166,30 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 		m.addAction(ui->actRemoveServer);
 		if(snd->isOpen()) {
 			m.addSeparator();
-			m.addAction(a_reloadNodee);
+			m.addAction(a_reloadNode);
 		}
 	}
 	else {
-		m.addAction(a_reloadNodee);
-		m.addAction(a_subscribeNodee);
+		m.addAction(a_reloadNode);
+		m.addAction(a_subscribeNode);
 	}
 	if(!m.actions().isEmpty()) {
 		QAction *a = m.exec(ui->treeServers->viewport()->mapToGlobal(pos));
 		if(a) {
-			if(a == a_reloadNodee) {
+			if(a == a_reloadNode) {
 				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 				if(nd)
 					nd->reload();
 			}
-			if(a == a_subscribeNodee) {
+			if(a == a_subscribeNode) {
 				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 				if(nd) {
-					DlgSubscription dlg(this);
-					dlg.setServerProperties(nd->serverNode()->serverProperties());
-					dlg.setShvServerNode(nd->serverNode());
+					DlgSubscriptions dlg(this);
+					QVariantMap props = nd->serverNode()->serverProperties();
+					dlg.setSubscriptionsList(props.value(QStringLiteral("subscriptions")).toList());
 					dlg.setShvPath(nd->shvPath());
 					if (dlg.exec()){
-						nd->serverNode()->setServerSubscriptionProperties(dlg.getServerProperties());
+						nd->serverNode()->setSubscriptionList(dlg.subscriptions());
 					}
 				}
 			}

@@ -21,12 +21,13 @@ public:
 	void setServerProperties(const QVariantMap &props);
 
 	void done(int res) Q_DECL_OVERRIDE;
+
+public slots:
+	void on_subscriptionDialogButton_clicked();
+
 private:
 	Ui::DlgServerProperties *ui;
-	QVariantMap m_serverProps;
-
-public:
-	void on_subscriptionsEditButton_clicked();
+	QVariantList m_subscriptions;
 };
 
 #endif // DLGSERVERPROPERTIES_H
