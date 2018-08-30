@@ -1,5 +1,5 @@
 #include "dlgsubscriptions.h"
-#include "ui_dlgsubscription.h"
+#include "ui_dlgsubscriptions.h"
 
 #include <shv/coreqt/log.h>
 

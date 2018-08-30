@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>DlgSubscription</class>
- <widget class="QDialog" name="DlgSubscription">
+ <class>DlgSubscriptions</class>
+ <widget class="QDialog" name="DlgSubscriptions">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -52,7 +52,7 @@
     </layout>
    </item>
    <item>
-    <widget class="QTableWidget" name="subsriptionTableWidget"/>
+    <widget class="QTableWidget" name="subsriptionsTableWidget"/>
    </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -108,14 +108,14 @@
  <tabstops>
   <tabstop>subscriptionPathLineEdit</tabstop>
   <tabstop>subscriptionMethodLineEdit</tabstop>
-  <tabstop>subsriptionTableWidget</tabstop>
+  <tabstop>subsriptionsTableWidget</tabstop>
  </tabstops>
  <resources/>
  <connections>
   <connection>
    <sender>buttonBox</sender>
    <signal>accepted()</signal>
-   <receiver>DlgSubscription</receiver>
+   <receiver>DlgSubscriptions</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -131,7 +131,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
-   <receiver>DlgSubscription</receiver>
+   <receiver>DlgSubscriptions</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
