@@ -30,7 +30,7 @@ public:
 private slots:
 	void subscriptionAddButton();
 	void subscriptionDeleteButton();
-	void subscriptionEdit(int row, int column);
+	void on_buttonBox_accepted();
 
 private:
 	Ui::DlgSubscriptions *ui;

@@ -235,7 +235,6 @@ unsigned ShvBrokerNodeItem::callCreateSubscription(const std::string &shv_path, 
 {
 	shv::iotqt::rpc::ClientConnection *cc = clientConnection();
 	unsigned rqid = cc->createSubscription(shv_path, method);
-	m_runningRpcRequests[rqid].shvPath = "";
 	return rqid;
 }
 
@@ -254,7 +253,7 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 		unsigned rqid = resp.requestId().toUInt();
 		auto it = m_runningRpcRequests.find(rqid);
 		if(it == m_runningRpcRequests.end()) {
-			shvWarning() << "unexpected request id:" << rqid;
+			//shvWarning() << "unexpected request id:" << rqid;
 			// can be load attributes request
 			return;
 		}
