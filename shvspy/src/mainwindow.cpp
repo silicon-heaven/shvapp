@@ -155,7 +155,7 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 	ShvBrokerNodeItem *snd = qobject_cast<ShvBrokerNodeItem*>(nd);
 	QMenu m;
 	QAction *a_reloadNodee = new QAction(tr("Reload"), &m);
-	QAction *a_subscribeNodee = new QAction(tr("Subscibe"), &m);
+	QAction *a_subscribeNodee = new QAction(tr("Subscribe"), &m);
 	if(!nd) {
 		m.addAction(ui->actAddServer);
 	}
@@ -184,8 +184,13 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 			if(a == a_subscribeNodee) {
 				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 				if(nd) {
-					DlgSubscription dlg(this, TheApp::instance()->serverTreeModel(), ui->treeServers);
-					dlg.exec();
+					DlgSubscription dlg(this);
+					dlg.setServerProperties(nd->serverNode()->serverProperties());
+					dlg.setShvServerNode(nd->serverNode());
+					dlg.setShvPath(nd->shvPath());
+					if (dlg.exec()){
+						nd->serverNode()->setServerSubscriptionProperties(dlg.getServerProperties());
+					}
 				}
 			}
 		}
@@ -235,6 +240,8 @@ void MainWindow::showOpcUaError(const QString &what)
 	QMessageBox::critical(this, tr("Opc UA Error"), what);
 }
 */
+
+
 void MainWindow::editServer(ShvBrokerNodeItem *srv, bool copy_server)
 {
 	shvLogFuncFrame() << srv;

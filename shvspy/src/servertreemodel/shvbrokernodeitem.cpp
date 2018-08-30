@@ -226,7 +226,8 @@ ShvNodeItem* ShvBrokerNodeItem::findNode(const std::string &path, std::string *p
 	return ret;
 }
 
-unsigned ShvBrokerNodeItem::callCreateSubscription(const std::string &shv_path, std::string method){
+unsigned ShvBrokerNodeItem::callCreateSubscription(const std::string &shv_path, std::string method)
+{
 	shv::iotqt::rpc::ClientConnection *cc = clientConnection();
 	unsigned rqid = cc->createSubscription(shv_path, method);
 	m_runningRpcRequests[rqid].shvPath = shv_path;
@@ -304,9 +305,9 @@ void ShvBrokerNodeItem::createSubscriptions()
 	if(v.isValid()) {
 		QVariantList subs = v.toList();
 		for (int i = 0; i < subs.size(); i++) {
-			QStringList subscription = subs.at(i).toStringList();
-			shvInfo() << "Create subscription:" << nodeId() << "creating subscription" << subscription.at(0) << ":" << subscription.at(1);
-			callCreateSubscription(subscription.at(0).toStdString(), subscription.at(1).toStdString());
+			QVariantMap subscription = subs.at(i).toMap();
+			shvInfo() << "Create subscription:" << nodeId() << "creating subscription" << subscription["path"].toString() << ":" << subscription["method"].toString();
+			callCreateSubscription(subscription["path"].toString().toStdString(), subscription["method"].toString().toStdString());
 		}
 	}
 }

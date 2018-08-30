@@ -19,22 +19,25 @@ class DlgSubscription : public QDialog
 	Q_OBJECT
 
 public:
-	DlgSubscription(QWidget *parent = nullptr, ServerTreeModel *model = nullptr, ServerTreeView *view = nullptr);
+	explicit DlgSubscription(QWidget *parent = 0);
 	~DlgSubscription();
 
+	void setServerProperties(const QVariantMap &props);
+	QVariantMap getServerProperties();
+	void setShvServerNode(ShvBrokerNodeItem * shv_broker);
+	void setShvPath(std::string path);
 private:
 	Ui::DlgSubscription *ui;
 
 	ShvBrokerNodeItem *m_shvServerNode;
 	ServerTreeModel *m_srvTreeModel;
-	QVariantMap m_ServerProps;
+	QVariantMap m_serverProps;
 
-	QList<QVariant> m_subscriptionList;
+	QVariantList m_subscriptionList;
 
 private slots:
-	void onDialogOkButtonClicked();
-	void onSubscriptionAddButtonClicked();
-	void onSubscriptionDeleteButtonClicked();
+	void on_subscriptionAddButton_clicked();
+	void on_subscriptionDeleteButton_clicked();
 };
 
 #endif // DLGSUBSCRIPTION_H
