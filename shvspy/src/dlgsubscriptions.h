@@ -24,12 +24,12 @@ public:
 	~DlgSubscriptions();
 
 	void setSubscriptionsList(const QVariantList &props);
-	QVariantList subscriptions();
+	QVariantList subscriptionsList();
 	void setShvPath(std::string path);
 
 private slots:
-	void subscriptionAddButton();
-	void subscriptionDeleteButton();
+	void onAddSubscription();
+	void onDeleteSubscription();
 	void on_buttonBox_accepted();
 
 private:

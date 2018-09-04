@@ -42,7 +42,7 @@ void DlgServerProperties::on_subscriptionDialogButton_clicked()
 	DlgSubscriptions dlg_subs(this);
 	dlg_subs.setSubscriptionsList(m_subscriptions);
 	if(dlg_subs.exec()) {
-		m_subscriptions = dlg_subs.subscriptions();
+		m_subscriptions = dlg_subs.subscriptionsList();
 	}
 }
 

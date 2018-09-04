@@ -189,7 +189,7 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 					dlg.setSubscriptionsList(props.value(QStringLiteral("subscriptions")).toList());
 					dlg.setShvPath(nd->shvPath());
 					if (dlg.exec()){
-						nd->serverNode()->setSubscriptionList(dlg.subscriptions());
+						nd->serverNode()->setSubscriptionList(dlg.subscriptionsList());
 					}
 				}
 			}

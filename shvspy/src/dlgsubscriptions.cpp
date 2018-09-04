@@ -23,8 +23,8 @@ DlgSubscriptions::DlgSubscriptions(QWidget *parent)
 	ui->subsriptionsTableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
 	ui->subsriptionsTableWidget->verticalHeader()->setVisible(false);
 
-	connect(ui->addSubsriptionButton,	&QToolButton::clicked, this, &DlgSubscriptions::subscriptionAddButton);
-	connect(ui->deleteSubscriptionButton, &QToolButton::clicked, this, &DlgSubscriptions::subscriptionDeleteButton);
+	connect(ui->addSubsriptionButton,	&QToolButton::clicked, this, &DlgSubscriptions::onAddSubscription);
+	connect(ui->deleteSubscriptionButton, &QToolButton::clicked, this, &DlgSubscriptions::onDeleteSubscription);
 }
 
 DlgSubscriptions::~DlgSubscriptions()
@@ -53,12 +53,12 @@ void DlgSubscriptions::setSubscriptionsList(const QVariantList &subs)
 	ui->subsriptionsTableWidget->resizeColumnsToContents();
 }
 
-QVariantList DlgSubscriptions::subscriptions()
+QVariantList DlgSubscriptions::subscriptionsList()
 {
 	return m_subscriptionList;
 }
 
-void DlgSubscriptions::subscriptionDeleteButton()
+void DlgSubscriptions::onDeleteSubscription()
 {
 	QModelIndexList selection = ui->subsriptionsTableWidget->selectionModel()->selectedRows();
 	if (selection.size() > 0){
@@ -67,7 +67,7 @@ void DlgSubscriptions::subscriptionDeleteButton()
 	}
 }
 
-void DlgSubscriptions::subscriptionAddButton()
+void DlgSubscriptions::onAddSubscription()
 {
 	ui->subsriptionsTableWidget->insertRow(0);
 	ui->subsriptionsTableWidget->setRowHeight(0, ui->subsriptionsTableWidget->fontInfo().pointSize());
