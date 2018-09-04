@@ -2,6 +2,7 @@
 #define DLGSERVERPROPERTIES_H
 
 #include <QDialog>
+#include <QVariantMap>
 
 namespace Ui {
 class DlgServerProperties;
@@ -20,8 +21,13 @@ public:
 	void setServerProperties(const QVariantMap &props);
 
 	void done(int res) Q_DECL_OVERRIDE;
+
+public slots:
+	void on_subscriptionDialogButton_clicked();
+
 private:
 	Ui::DlgServerProperties *ui;
+	QVariantList m_subscriptions;
 };
 
 #endif // DLGSERVERPROPERTIES_H

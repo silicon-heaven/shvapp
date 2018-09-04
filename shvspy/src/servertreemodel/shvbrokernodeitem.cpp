@@ -86,6 +86,16 @@ QVariantMap ShvBrokerNodeItem::serverProperties() const
 	return m_serverPropeties;
 }
 
+void ShvBrokerNodeItem::setSubscriptionList(const QVariantList &subs)
+{
+	for (int i = 0; i < subs.size(); i++) {
+		QVariantMap subscription = subs.at(i).toMap();
+		shvInfo() << "Create subscription:" << nodeId() << "creating subscription" << subscription.value(QStringLiteral("path")).toString() << ":" << subscription.value(QStringLiteral("method")).toString();
+		callCreateSubscription(subscription.value(QStringLiteral("path")).toString().toStdString(), subscription.value(QStringLiteral("method")).toString().toStdString());
+	}
+	m_serverPropeties["subscriptions"] = subs;
+}
+
 void ShvBrokerNodeItem::setServerProperties(const QVariantMap &props)
 {
 	if(m_rpcConnection) {
@@ -131,7 +141,7 @@ QString ServerNode::connectionErrorString()
 shv::iotqt::rpc::ClientConnection *ShvBrokerNodeItem::clientConnection()
 {
 
-	if(!m_rpcConnection) {
+    if(!m_rpcConnection) {
 		QString conn_type = m_serverPropeties.value(cp::Rpc::KEY_CONNECTION_TYPE).toString();
 
 		shv::iotqt::rpc::DeviceAppCliOptions opts;
@@ -177,7 +187,7 @@ shv::iotqt::rpc::ClientConnection *ShvBrokerNodeItem::clientConnection()
 		//m_rpcConnection->setCheckBrokerConnectedInterval(0);
 		connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &ShvBrokerNodeItem::onBrokerConnectedChanged);
 		connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvBrokerNodeItem::onRpcMessageReceived);
-	}
+    }
 	return m_rpcConnection;
 }
 
@@ -219,6 +229,13 @@ ShvNodeItem* ShvBrokerNodeItem::findNode(const std::string &path, std::string *p
 		}
 	}
 	return ret;
+}
+
+unsigned ShvBrokerNodeItem::callCreateSubscription(const std::string &shv_path, std::string method)
+{
+	shv::iotqt::rpc::ClientConnection *cc = clientConnection();
+	unsigned rqid = cc->createSubscription(shv_path, method);
+	return rqid;
 }
 
 unsigned ShvBrokerNodeItem::callNodeRpcMethod(const std::string &calling_node_shv_path, const std::string &method, const cp::RpcValue &params)
@@ -286,26 +303,14 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 
 void ShvBrokerNodeItem::createSubscriptions()
 {
-	std::string subscriptions = TheApp::instance()->cliOptions()->subscriptions().toStdString();
-	std::vector<shv::core::StringView> slst = shv::core::StringView(subscriptions).split(',');
-	for(const shv::core::StringView &sv1 : slst) {
-		std::vector<shv::core::StringView> slst2 = sv1.split(':', shv::core::StringView::KeepEmptyParts);
-		if(slst2.size() != 3) {
-			shvError() << "Invalid subscription:" << sv1.toString();
-			continue;
-		}
-		std::string broker_name = slst2[0].toString();
-		if(broker_name == nodeId()) {
-			std::string path = slst2[1].toString();
-			std::string method = slst2[2].toString();
-			shvInfo() << "Create subscription:" << broker_name << "creating subscription" << path << ":" << method;
-			shv::iotqt::rpc::ClientConnection *cc = clientConnection();
-			cc->callShvMethod(cp::Rpc::DIR_BROKER_APP
-						  , cp::Rpc::METH_SUBSCRIBE
-						  , cp::RpcValue::Map{
-							  {cp::Rpc::PAR_PATH, path},
-							  {cp::Rpc::PAR_METHOD, method},
-						  });
+	QVariantMap proprs = serverProperties();
+	QVariant v = proprs.value("subscriptions");
+	if(v.isValid()) {
+		QVariantList subs = v.toList();
+		for (int i = 0; i < subs.size(); i++) {
+			QVariantMap subscription = subs.at(i).toMap();
+			shvInfo() << "Create subscription:" << nodeId() << "creating subscription" << subscription["path"].toString() << ":" << subscription["method"].toString();
+			callCreateSubscription(subscription.value(QStringLiteral("path")).toString().toStdString(), subscription.value(QStringLiteral("method")).toString().toStdString());
 		}
 	}
 }

@@ -1,10 +1,10 @@
 #include "dlgserverproperties.h"
 #include "ui_dlgserverproperties.h"
+#include "dlgsubscriptions.h"
 
 #include <shv/chainpack/abstractrpcconnection.h>
 
 #include <QSettings>
-#include <QDebug>
 
 namespace cp = shv::chainpack;
 
@@ -19,6 +19,7 @@ DlgServerProperties::DlgServerProperties(QWidget *parent) :
 	connect(ui->cbxConnectionType, QOverload<int>::of(&QComboBox::currentIndexChanged), ui->grpDevice, [this](int ix) {
 		ui->grpDevice->setEnabled(ix == 1);
 	});
+
 	ui->cbxConnectionType->setCurrentIndex(0);
 
 	ui->rpc_protocolType->addItem(cp::Rpc::protocolTypeToString(cp::Rpc::ProtocolType::ChainPack), (int)cp::Rpc::ProtocolType::ChainPack);
@@ -28,11 +29,21 @@ DlgServerProperties::DlgServerProperties(QWidget *parent) :
 
 	QSettings settings;
 	restoreGeometry(settings.value(QStringLiteral("ui/dlgServerProperties/geometry")).toByteArray());
+
 }
 
 DlgServerProperties::~DlgServerProperties()
 {
 	delete ui;
+}
+
+void DlgServerProperties::on_subscriptionDialogButton_clicked()
+{
+	DlgSubscriptions dlg_subs(this);
+	dlg_subs.setSubscriptionsList(m_subscriptions);
+	if(dlg_subs.exec()) {
+		m_subscriptions = dlg_subs.subscriptionsList();
+	}
 }
 
 QVariantMap DlgServerProperties::serverProperties() const
@@ -49,11 +60,14 @@ QVariantMap DlgServerProperties::serverProperties() const
 	ret["rpc.heartbeatInterval"] = ui->rpc_heartbeatInterval->value();
 	ret["device.id"] = ui->device_id->text().trimmed();
 	ret["device.mountPoint"] = ui->device_mountPoint->text().trimmed();
+	ret["subscriptions"] = m_subscriptions;
 	return ret;
 }
 
 void DlgServerProperties::setServerProperties(const QVariantMap &props)
 {
+	m_subscriptions = props.value(QStringLiteral("subscriptions")).toList();
+
 	ui->edName->setText(props.value("name").toString());
 	ui->edHost->setText(props.value("host").toString());
 	ui->edPort->setValue(props.value("port", shv::chainpack::AbstractRpcConnection::DEFAULT_RPC_BROKER_PORT).toInt());

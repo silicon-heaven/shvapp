@@ -31,10 +31,14 @@ public:
 
 	QVariantMap serverProperties() const;
 	void setServerProperties(const QVariantMap &props);
+	void setSubscriptionList(const QVariantList &props);
 
 	shv::iotqt::rpc::ClientConnection *clientConnection();
 
 	unsigned callNodeRpcMethod(const std::string &calling_node_shv_path, const std::string &method, const shv::chainpack::RpcValue &params);
+
+	unsigned callCreateSubscription(const std::string &shv_path, std::string method);
+
 
 	ShvNodeItem *findNode(const std::string &path, std::string *path_rest = nullptr);
 private:
@@ -47,5 +51,6 @@ private:
 	OpenStatus m_openStatus = OpenStatus::Disconnected;
 	struct RpcRequestInfo;
 	std::map<unsigned, RpcRequestInfo> m_runningRpcRequests;
+
 };
 
