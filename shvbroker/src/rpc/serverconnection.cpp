@@ -56,7 +56,15 @@ void ServerConnection::setIdleWatchDogTimeOut(unsigned sec)
 
 std::string ServerConnection::passwordHash(PasswordHashType type, const std::string &user)
 {
-	std::string pass = (user == "iot")? "lub42DUB": user;
+	const std::map<std::string, std::string> passwds {
+		{"iot", "lub42DUB"},
+		{"elviz", "brch3900PRD"},
+	};
+	std::string pass;
+	auto it = passwds.find(user);
+	if(it != passwds.end()) {
+		pass = it->second;
+	}
 	if(type == PasswordHashType::Plain) {
 		return pass;
 	}
