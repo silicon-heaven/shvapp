@@ -12,5 +12,6 @@ public:
 	~AppCliOptions() Q_DECL_OVERRIDE {}
 
 	CLIOPTION_GETTER_SETTER2(int, "pwrStatus.publishInterval", p, setP, wrStatusPublishInterval)
+	CLIOPTION_GETTER_SETTER2(bool, "pwrStatus.simulate", is, set, PwrStatusSimulate)
 };
 

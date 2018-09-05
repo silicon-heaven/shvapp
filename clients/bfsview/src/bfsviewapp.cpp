@@ -105,7 +105,10 @@ PwrStatusNode::PwrStatusNode(shv::iotqt::node::ShvNode *parent)
 
 size_t PwrStatusNode::methodCount()
 {
-	return meta_methods_pwrstatus.size();
+	if(BfsViewApp::instance()->cliOptions()->isPwrStatusSimulate())
+		return meta_methods_pwrstatus.size() - 1;
+	else
+		return meta_methods_pwrstatus.size();
 }
 
 const shv::chainpack::MetaMethod *PwrStatusNode::metaMethod(size_t ix)
@@ -122,7 +125,7 @@ shv::chainpack::RpcValue PwrStatusNode::call(const std::string &method, const sh
 	}
 	if(method == METH_SIM_SET) {
 		unsigned s = params.toUInt();
-		setPwrStatus((PwrStatus)s);
+		BfsViewApp::instance()->setPwrStatus((PwrStatus)s);
 		return true;
 	}
 	return Super::call(method, params);
@@ -130,6 +133,7 @@ shv::chainpack::RpcValue PwrStatusNode::call(const std::string &method, const sh
 
 void PwrStatusNode::setPwrStatus(PwrStatus s)
 {
+	//shvInfo() << "set pwr status to:" << (int)s;
 	if(s == m_pwrStatus)
 		return;
 	m_pwrStatus = s;
@@ -244,6 +248,8 @@ void BfsViewApp::loadSettings()
 
 void BfsViewApp::checkPowerSwitchStatusFile()
 {
+	if(cliOptions()->isPwrStatusSimulate())
+		return;
 	shvDebug() << "Checking pwr status file:" << m_powerFileName;
 	QFile file(m_powerFileName);
 	if (!file.open(QIODevice::ReadOnly)) {
