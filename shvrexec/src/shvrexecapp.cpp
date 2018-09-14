@@ -121,6 +121,7 @@ ShvRExecApp::ShvRExecApp(int &argc, char **argv, AppCliOptions* cli_opts)
 
 	AppRootNode *root = new AppRootNode();
 	m_shvTree = new shv::iotqt::node::ShvNodeTree(root, this);
+	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
 
 	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
 
@@ -195,31 +196,15 @@ void ShvRExecApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 	shvLogFuncFrame() << msg.toCpon();
 	if(msg.isRequest()) {
 		cp::RpcRequest rq(msg);
-		cp::RpcResponse resp = cp::RpcResponse::forRequest(rq.metaData());
-		try {
-			//shvInfo() << "RPC request received:" << rq.toCpon();
-			const cp::RpcValue shv_path = rq.shvPath();
-			std::string path_rest;
-			shv::iotqt::node::ShvNode *nd = m_shvTree->cd(shv_path.toString(), &path_rest);
-			if(!nd)
-				SHV_EXCEPTION("Path not found: " + shv_path.toString());
-			shv::chainpack::RpcValue result;
-			if(rq.shvPath().toString().empty() && (rq.method() == METH_RUNPTYCMD || rq.method() == METH_RUNCMD)) {
-				openTunnel(rq.method().toString(), rq.params(), rq.requestId().toUInt(), rq.callerIds());
-				return;
-			}
-			else {
-				result = nd->processRpcRequest(rq);
-			}
-			if(result.isValid()) {
-				rq.setShvPath(path_rest);
-				resp.setResult(result);
-			}
+		//shvInfo() << "RPC request received:" << rq.toCpon();
+		const cp::RpcValue shv_path = rq.shvPath();
+		if(rq.shvPath().toString().empty() && (rq.method() == METH_RUNPTYCMD || rq.method() == METH_RUNCMD)) {
+			openTunnel(rq.method().toString(), rq.params(), rq.requestId().toInt(), rq.callerIds());
+			return;
 		}
-		catch (shv::core::Exception &e) {
-			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, e.message()));
+		else {
+			m_shvTree->root()->handleRpcRequest(rq);
 		}
-		m_rpcConnection->sendMessage(resp);
 	}
 	else if(msg.isResponse()) {
 		cp::RpcResponse rp(msg);

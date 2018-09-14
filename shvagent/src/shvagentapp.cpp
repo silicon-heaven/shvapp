@@ -186,7 +186,7 @@ ShvAgentApp::ShvAgentApp(int &argc, char **argv, AppCliOptions* cli_opts)
 
 	AppRootNode *root = new AppRootNode();
 	m_shvTree = new shv::iotqt::node::ShvNodeTree(root, this);
-	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, this, &ShvAgentApp::onRootNodeSendRpcMesage);
+	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
 	m_shvTree->mkdir("sys/rproc");
 	QString sys_fs_root_dir = cli_opts->sysFsRootDir();
 	if(!sys_fs_root_dir.isEmpty() && QDir(sys_fs_root_dir).exists()) {
@@ -259,10 +259,11 @@ void ShvAgentApp::launchRexec(const shv::chainpack::RpcRequest &rq)
 #endif
 	QString app = QCoreApplication::applicationDirPath() + "/shvrexec";
 	QStringList params;
-	//params << "--mtid" << "-v" << "rpcrawmsg";
+	params << "--mtid" << "-v" << "rpcrawmsg";
 	shvInfo() << "starting child process:" << app << params.join(' ');
 	proc->start(app, params);
 	std::string cpon = conn_params.toRpcValue().toCpon();
+	//shvInfo() << "cpon:" << cpon;
 	proc->write(cpon.data(), cpon.size());
 	proc->write("\n", 1);
 }
@@ -362,8 +363,4 @@ void ShvAgentApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 	}
 }
 
-void ShvAgentApp::onRootNodeSendRpcMesage(const shv::chainpack::RpcMessage &msg)
-{
-	m_rpcConnection->sendMessage(msg);
-}
 

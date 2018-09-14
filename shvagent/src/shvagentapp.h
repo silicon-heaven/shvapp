@@ -41,7 +41,6 @@ public:
 private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
-	void onRootNodeSendRpcMesage(const shv::chainpack::RpcMessage &msg);
 private:
 	shv::iotqt::rpc::DeviceConnection *m_rpcConnection = nullptr;
 	AppCliOptions* m_cliOptions;

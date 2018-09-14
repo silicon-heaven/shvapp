@@ -66,7 +66,7 @@ private:
 	shv::iotqt::node::ShvNodeTree *m_shvTree = nullptr;
 
 	shv::iotqt::rpc::TunnelHandle m_writeTunnelHandle;
-	unsigned m_readTunnelRequestId = 0;
+	int m_readTunnelRequestId = 0;
 
 	shv::chainpack::RpcValue m_onConnectedCall;
 	PtyProcess *m_ptyCmdProc = nullptr;

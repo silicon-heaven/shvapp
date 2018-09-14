@@ -27,6 +27,7 @@ int ttySetRaw(int fd, struct termios *prev_termios)
 
 	if (prev_termios != NULL)
 		*prev_termios = t;
+	//return 0;
 
 	/* Noncanonical mode, disable signals, extended input processing, and echoing */
 	t.c_lflag &= ~(ISIG | IEXTEN);
