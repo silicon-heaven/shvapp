@@ -34,16 +34,18 @@ void ShvClientNode::removeConnection(rpc::ServerConnection *conn)
 		deleteLater();
 }
 
-void ShvClientNode::processRawData(const shv::chainpack::RpcValue::MetaData &meta, std::string &&data)
+void ShvClientNode::handleRawRpcRequest(shv::chainpack::RpcValue::MetaData &&meta, std::string &&data)
 {
 	rpc::ServerConnection *conn = connection();
-	conn->sendRawData(meta, std::move(data));
+	if(conn)
+		conn->sendRawData(std::move(meta), std::move(data));
 }
 
-shv::chainpack::RpcValue ShvClientNode::hasChildren()
+shv::chainpack::RpcValue ShvClientNode::hasChildren(const StringViewList &shv_path)
 {
-	//shvWarning() << "ShvClientNode::hasChildren path:" << shv_path << "ret:" << true;
-	return nullptr;
+	Q_UNUSED(shv_path)
+	//shvWarning() << "ShvClientNode::hasChildren path:" << StringView::join(shv_path, '/');// << "ret:" << nullptr;
+	return true;
 }
 
 

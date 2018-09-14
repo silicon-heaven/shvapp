@@ -13,7 +13,7 @@ class TcpServer : public shv::iotqt::rpc::TcpServer
 public:
 	TcpServer(QObject *parent = 0);
 
-	ServerConnection* connectionById(unsigned connection_id);
+	ServerConnection* connectionById(int connection_id);
 protected:
 	shv::iotqt::rpc::ServerConnection* createServerConnection(QTcpSocket *socket, QObject *parent) override;
 };

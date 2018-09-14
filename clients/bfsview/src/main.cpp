@@ -104,6 +104,7 @@ int main(int argc, char *argv[])
 	shvInfo() << "======================================================================================";
 	shvInfo() << "Log tresholds:" << NecroLog::tresholdsLogInfo();
 	shvInfo() << "Log file:" << BfsViewApp::logFilePath();
+	shvInfo() << "PWR status simulation:" << cli_opts.isPwrStatusSimulate();
 	shvInfo() << "--------------------------------------------------------------------------------------";
 
 	BfsViewApp a(argc, argv, &cli_opts);

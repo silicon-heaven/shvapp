@@ -31,27 +31,34 @@ static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, false},
 };
 
-size_t AppRootNode::methodCount()
+size_t AppRootNode::methodCount(const StringViewList &shv_path)
 {
-	return meta_methods.size();
+	if(shv_path.empty())
+		return meta_methods.size();
+	return 0;
 }
 
-const cp::MetaMethod *AppRootNode::metaMethod(size_t ix)
+const cp::MetaMethod *AppRootNode::metaMethod(const StringViewList &shv_path, size_t ix)
 {
-	if(meta_methods.size() <= ix)
-		SHV_EXCEPTION("Invalid method index: " + std::to_string(ix) + " of: " + std::to_string(meta_methods.size()));
-	return &(meta_methods[ix]);
+	if(shv_path.empty()) {
+		if(meta_methods.size() <= ix)
+			SHV_EXCEPTION("Invalid method index: " + std::to_string(ix) + " of: " + std::to_string(meta_methods.size()));
+		return &(meta_methods[ix]);
+	}
+	return nullptr;
 }
 
-shv::chainpack::RpcValue AppRootNode::call(const std::string &method, const shv::chainpack::RpcValue &params)
+shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
 {
-	if(method == cp::Rpc::METH_APP_NAME) {
-		return QCoreApplication::instance()->applicationName().toStdString();
+	if(shv_path.empty()) {
+		if(method == cp::Rpc::METH_APP_NAME) {
+			return QCoreApplication::instance()->applicationName().toStdString();
+		}
+		if(method == cp::Rpc::METH_CONNECTION_TYPE) {
+			return ShvRshApp::instance()->rpcConnection()->connectionType();
+		}
 	}
-	if(method == cp::Rpc::METH_CONNECTION_TYPE) {
-		return ShvRshApp::instance()->rpcConnection()->connectionType();
-	}
-	return Super::call(method, params);
+	return Super::callMethod(shv_path, method, params);
 }
 
 ShvRshApp::ShvRshApp(int &argc, char **argv, AppCliOptions* cli_opts)
@@ -169,7 +176,7 @@ void ShvRshApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 				}
 				int channel = lst.value(0).toInt();
 				if(channel == STDOUT_FILENO || channel == STDERR_FILENO) {
-					const shv::chainpack::RpcValue::Blob &blob = lst.value(1).toBlob();
+					const shv::chainpack::RpcValue::String &blob = lst.value(1).toString();
 					ssize_t written = 0;
 					do {
 						ssize_t n = ::write(channel, blob.data() + written, blob.size() - written);
@@ -202,7 +209,7 @@ void ShvRshApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 void ShvRshApp::onReadyReadStdIn()
 {
 	std::vector<char> data = shv::core::Utils::readAllFd(STDIN_FILENO);
-	writeToTunnel(0, cp::RpcValue::Blob(data.data(), data.size()));
+	writeToTunnel(0, cp::RpcValue::String(data.data(), data.size()));
 }
 
 void ShvRshApp::writeToTunnel(int channel, const cp::RpcValue &data)

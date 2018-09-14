@@ -14,8 +14,8 @@ class DlgServerProperties : public QDialog
 private:
 	typedef QDialog Super;
 public:
-	explicit DlgServerProperties(QWidget *parent = 0);
-	~DlgServerProperties();
+	explicit DlgServerProperties(QWidget *parent = nullptr);
+	~DlgServerProperties() Q_DECL_OVERRIDE;
 
 	QVariantMap serverProperties() const;
 	void setServerProperties(const QVariantMap &props);

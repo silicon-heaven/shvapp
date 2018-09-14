@@ -316,41 +316,38 @@ void BrokerApp::onClientLogin(int connection_id)
 	//shvInfo() << m_deviceTree->dumpTree();
 }
 
-void BrokerApp::onRpcDataReceived(unsigned connection_id, cp::RpcValue::MetaData &&meta, std::string &&data)
+void BrokerApp::onRpcDataReceived(int connection_id, cp::RpcValue::MetaData &&meta, std::string &&data)
 {
 	if(cp::RpcMessage::isRequest(meta)) {
 		shvDebug() << "REQUEST conn id:" << connection_id << meta.toStdString();
 		rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
-		std::string rel_path = cp::RpcMessage::shvPath(meta).toString();
-		std::string abs_path;
-		if(conn)
-			abs_path = rpc::ServerConnection::Subscription::toAbsolutePath(conn->mountPoint(), rel_path);
-		else
-			abs_path = rel_path;
-		std::string path_rest;
-		shv::iotqt::node::ShvNode *nd = m_deviceTree->cd(abs_path, &path_rest);
-		if(nd) {
-			cp::RpcMessage::setShvPath(meta, path_rest);
-			cp::RpcMessage::pushCallerId(meta, connection_id);
-			nd->processRawData(meta, std::move(data));
+		std::string shv_path = cp::RpcMessage::shvPath(meta).toString();
+		if(conn) {
+			shv_path = rpc::ServerConnection::Subscription::toAbsolutePath(conn->mountPoint(), shv_path);
+			cp::RpcMessage::setShvPath(meta, shv_path);
+		}
+		cp::RpcMessage::pushCallerId(meta, connection_id);
+		if(m_deviceTree->root()) {
+			m_deviceTree->root()->handleRawRpcRequest(std::move(meta), std::move(data));
 		}
 		else {
-			std::string err_msg = "Device tree path not found: " + abs_path;
+			std::string err_msg = "Device tree root node is NULL";
 			shvWarning() << err_msg;
 			if(cp::RpcMessage::isRequest(meta)) {
-				//cp::RpcMessage rpc_msg = cp::RpcDriver::composeRpcMessage(std::move(meta), data, !cp::Exception::Throw);
 				rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
 				if(conn) {
-					conn->sendError(cp::RpcMessage::requestId(meta), cp::RpcResponse::Error::create(
-										cp::RpcResponse::Error::MethodCallException
-										, err_msg));
+					shv::chainpack::RpcResponse rsp = cp::RpcResponse::forRequest(meta);
+					rsp.setError(cp::RpcResponse::Error::create(
+									 cp::RpcResponse::Error::MethodCallException
+									 , err_msg));
+					conn->sendMessage(rsp);
 				}
 			}
 		}
 	}
 	else if(cp::RpcMessage::isResponse(meta)) {
 		shvDebug() << "RESPONSE conn id:" << connection_id << meta.toStdString();
-		cp::RpcValue::UInt caller_id = cp::RpcMessage::popCallerId(meta);
+		cp::RpcValue::Int caller_id = cp::RpcMessage::popCallerId(meta);
 		if(caller_id > 0) {
 			rpc::ServerConnection *conn = tcpServer()->connectionById(caller_id);
 			if(conn) {
@@ -385,8 +382,6 @@ void BrokerApp::onRootNodeSendRpcMesage(const shv::chainpack::RpcMessage &msg)
 {
 	if(msg.isResponse()) {
 		cp::RpcResponse resp(msg);
-		if(resp.requestId().toUInt() == 0) // RPC calls with requestID == 0 does not expect response
-			return;
 		shv::chainpack::RpcValue::UInt connection_id = resp.popCallerId();
 		rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
 		if(conn)

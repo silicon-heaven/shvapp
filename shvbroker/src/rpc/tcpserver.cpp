@@ -9,7 +9,7 @@ TcpServer::TcpServer(QObject *parent)
 
 }
 
-ServerConnection *TcpServer::connectionById(unsigned connection_id)
+ServerConnection *TcpServer::connectionById(int connection_id)
 {
 	return qobject_cast<rpc::ServerConnection *>(Super::connectionById(connection_id));
 }

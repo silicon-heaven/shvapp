@@ -105,10 +105,14 @@ PwrStatusNode::PwrStatusNode(shv::iotqt::node::ShvNode *parent)
 
 size_t PwrStatusNode::methodCount()
 {
-	if(BfsViewApp::instance()->cliOptions()->isPwrStatusSimulate())
-		return meta_methods_pwrstatus.size() - 1;
-	else
+	if(BfsViewApp::instance()->cliOptions()->isPwrStatusSimulate()) {
+		//shvInfo() << "PwrStatusNode::methodCount sim:" << (meta_methods_pwrstatus.size() - 1);
 		return meta_methods_pwrstatus.size();
+	}
+	else {
+		//shvInfo() << "PwrStatusNode::methodCount:" << meta_methods_pwrstatus.size();
+		return meta_methods_pwrstatus.size() - 1;
+	}
 }
 
 const shv::chainpack::MetaMethod *PwrStatusNode::metaMethod(size_t ix)

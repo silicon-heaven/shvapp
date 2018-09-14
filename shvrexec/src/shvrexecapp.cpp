@@ -41,34 +41,41 @@ static std::vector<cp::MetaMethod> meta_methods {
 	//{METH_WRITE, cp::MetaMethod::Signature::RetParam, false},
 };
 
-size_t AppRootNode::methodCount()
+size_t AppRootNode::methodCount(const StringViewList &shv_path)
 {
-	return meta_methods.size();
+	if(shv_path.empty())
+		return meta_methods.size();
+	return 0;
 }
 
-const cp::MetaMethod *AppRootNode::metaMethod(size_t ix)
+const cp::MetaMethod *AppRootNode::metaMethod(const StringViewList &shv_path, size_t ix)
 {
-	if(meta_methods.size() <= ix)
-		SHV_EXCEPTION("Invalid method index: " + std::to_string(ix) + " of: " + std::to_string(meta_methods.size()));
-	return &(meta_methods[ix]);
+	if(shv_path.empty()) {
+		if(meta_methods.size() <= ix)
+			SHV_EXCEPTION("Invalid method index: " + std::to_string(ix) + " of: " + std::to_string(meta_methods.size()));
+		return &(meta_methods[ix]);
+	}
+	return nullptr;
 }
 
-shv::chainpack::RpcValue AppRootNode::call(const std::string &method, const shv::chainpack::RpcValue &params)
+shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
 {
-	if(method == cp::Rpc::METH_APP_NAME) {
-		return QCoreApplication::instance()->applicationName().toStdString();
+	if(shv_path.empty()) {
+		if(method == cp::Rpc::METH_APP_NAME) {
+			return QCoreApplication::instance()->applicationName().toStdString();
+		}
+		if(method == cp::Rpc::METH_CONNECTION_TYPE) {
+			return ShvRExecApp::instance()->rpcConnection()->connectionType();
+		}
+		/*
+		if(method == METH_SETWINSZ) {
+			const shv::chainpack::RpcValue::List &list = params.toList();
+			ShvRExecApp::instance()->setTerminalWindowSize(list.value(0).toInt(), list.value(1).toInt());
+			return true;
+		}
+		*/
 	}
-	if(method == cp::Rpc::METH_CONNECTION_TYPE) {
-		return ShvRExecApp::instance()->rpcConnection()->connectionType();
-	}
-	/*
-	if(method == METH_SETWINSZ) {
-		const shv::chainpack::RpcValue::List &list = params.toList();
-		ShvRExecApp::instance()->setTerminalWindowSize(list.value(0).toInt(), list.value(1).toInt());
-		return true;
-	}
-	*/
-	return Super::call(method, params);
+	return Super::callMethod(shv_path, method, params);
 }
 
 ShvRExecApp::ShvRExecApp(int &argc, char **argv, AppCliOptions* cli_opts)
@@ -156,7 +163,7 @@ void ShvRExecApp::onBrokerConnectedChanged(bool is_connected)
 			const shv::chainpack::RpcValue::Map &call_p = m_onConnectedCall.toMap();
 			const shv::chainpack::RpcValue::String &method = call_p.value(cp::Rpc::JSONRPC_METHOD).toString();
 			const shv::chainpack::RpcValue &params = call_p.value(cp::Rpc::JSONRPC_PARAMS);
-			unsigned rqid = call_p.value(cp::Rpc::JSONRPC_REQUEST_ID).toUInt();
+			int rqid = call_p.value(cp::Rpc::JSONRPC_REQUEST_ID).toInt();
 			shv::chainpack::RpcValue cids = call_p.value(cp::Rpc::JSONRPC_CALLER_ID);
 			cp::RpcRequest rq;
 			rq.setMethod(method);
@@ -230,7 +237,7 @@ void ShvRExecApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 				data = result;
 			}
 			if(channel == 0) {
-				const shv::chainpack::RpcValue::Blob &blob = data.toBlob();
+				const shv::chainpack::RpcValue::String &blob = data.toString();
 				if(blob.size()) {
 					qint64 len = ShvRExecApp::instance()->writeCmdProcessStdIn(blob.data(), blob.size());
 					if(len < 0)
@@ -256,7 +263,7 @@ void ShvRExecApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 	}
 }
 
-void ShvRExecApp::openTunnel(const std::string &method, const shv::chainpack::RpcValue &params, unsigned request_id, const shv::chainpack::RpcValue &cids)
+void ShvRExecApp::openTunnel(const std::string &method, const shv::chainpack::RpcValue &params, int request_id, const shv::chainpack::RpcValue &cids)
 {
 	cp::RpcResponse resp;
 	try {
@@ -398,7 +405,7 @@ void ShvRExecApp::sendProcessOutput(int channel, const char *data, size_t data_l
 		resp.setCallerIds(m_writeTunnelHandle.callerIds());
 		cp::RpcValue::List result;
 		result.push_back(channel);
-		result.push_back(cp::RpcValue::Blob(data, data_len));
+		result.push_back(cp::RpcValue::String(data, data_len));
 		resp.setResult(result);
 		shvDebug() << "sending child process output:" << resp.toPrettyString();
 		m_rpcConnection->sendMessage(resp);

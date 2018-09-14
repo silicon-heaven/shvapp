@@ -1,23 +1,23 @@
 #pragma once
 
-#include <shv/iotqt/node/shvtreenode.h>
+#include <shv/iotqt/node/shvnode.h>
 
 namespace rpc { class ServerConnection; }
 
-class SubscriptionsNode : public shv::iotqt::node::ShvTreeNode
+class SubscriptionsNode : public shv::iotqt::node::ShvNode
 {
 	Q_OBJECT
 
-	using Super = shv::iotqt::node::ShvTreeNode;
+	using Super = shv::iotqt::node::ShvNode;
 public:
 	SubscriptionsNode(rpc::ServerConnection *conn);
 
-	virtual size_t methodCount2(const std::string &shv_path = std::string());
-	virtual const shv::chainpack::MetaMethod* metaMethod2(size_t ix, const std::string &shv_path = std::string());
+	size_t methodCount(const StringViewList &shv_path) override;
+	const shv::chainpack::MetaMethod* metaMethod(const StringViewList &shv_path, size_t ix) override;
 
-	virtual StringList childNames2(const std::string &shv_path = std::string());
+	StringList childNames(const StringViewList &shv_path) override;
 
-	virtual shv::chainpack::RpcValue call2(const std::string &method, const shv::chainpack::RpcValue &params, const std::string &shv_path = std::string());
+	shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params) override;
 private:
 	rpc::ServerConnection *m_client;
 };
