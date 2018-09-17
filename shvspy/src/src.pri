@@ -9,7 +9,8 @@ HEADERS += \
     $$PWD/appclioptions.h \
     $$PWD/servertreemodel/shvnodeitem.h \
     $$PWD/servertreemodel/shvbrokernodeitem.h \
-    $$PWD/dlgsubscriptions.h
+    $$PWD/dlgsubscriptions.h \
+    $$PWD/resultview.h
 
 SOURCES += \
 	$$PWD/main.cpp\
@@ -23,12 +24,14 @@ SOURCES += \
     $$PWD/appclioptions.cpp \
     $$PWD/servertreemodel/shvnodeitem.cpp \
     $$PWD/servertreemodel/shvbrokernodeitem.cpp \
-    $$PWD/dlgsubscriptions.cpp
+    $$PWD/dlgsubscriptions.cpp \
+    $$PWD/resultview.cpp
 
 FORMS += \
 	$$PWD/mainwindow.ui \
 	$$PWD/dlgserverproperties.ui \
     $$PWD/dlgsubscriptionparameters.ui \
-    $$PWD/dlgsubscriptions.ui
+    $$PWD/dlgsubscriptions.ui \
+    $$PWD/resultview.ui
 
 include ( $$PWD/log/log.pri )
