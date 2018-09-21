@@ -8,14 +8,14 @@ class ResultView;
 
 class ResultView : public QDialog
 {
-    Q_OBJECT
+	Q_OBJECT
 
 public:
-    explicit ResultView(QWidget *parent = 0);
-    ~ResultView();
+	explicit ResultView(QWidget *parent = 0);
+	~ResultView();
 
-    void setText(const QString &s);
+	void setText(const QString &s);
 
 private:
-    Ui::ResultView *ui;
+	Ui::ResultView *ui;
 };

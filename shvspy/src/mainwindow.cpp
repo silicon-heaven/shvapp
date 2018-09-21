@@ -55,19 +55,19 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui->tblAttributes->setModel(TheApp::instance()->attributesModel());
 	ui->tblAttributes->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
 	ui->tblAttributes->verticalHeader()->setDefaultSectionSize(fontMetrics().height() * 1.3);
-    ui->tblAttributes->setContextMenuPolicy(Qt::CustomContextMenu);
+	ui->tblAttributes->setContextMenuPolicy(Qt::CustomContextMenu);
 
 
-    connect(ui->tblAttributes, &QTableView::customContextMenuRequested, this, &MainWindow::attributesTableContexMenu);
+	connect(ui->tblAttributes, &QTableView::customContextMenuRequested, this, &MainWindow::attributesTableContexMenu);
 
 	connect(ui->tblAttributes, &QTableView::activated, [this](const QModelIndex &ix) {
 		if(ix.column() == AttributesModel::ColBtRun)
 			TheApp::instance()->attributesModel()->callMethod(ix.row());
 	});
-    connect(ui->tblAttributes, &QTableView::doubleClicked, [this](const QModelIndex &ix) {
-        if (ix.column() == AttributesModel::ColResult) {
-            displayResult(ix);
-        }
+	connect(ui->tblAttributes, &QTableView::doubleClicked, [this](const QModelIndex &ix) {
+		if (ix.column() == AttributesModel::ColResult) {
+			displayResult(ix);
+		}
 	});
 
 
@@ -223,28 +223,28 @@ void MainWindow::openNode(const QModelIndex &ix)
 			bnd->close();
 		else
 			bnd->open();
-    }
+	}
 }
 
 void MainWindow::displayResult(const QModelIndex &ix)
 {
-    QApplication::setOverrideCursor(Qt::WaitCursor);
-    std::string result = ix.data(Qt::DisplayRole).toString().toStdString();
-    std::string formatted;
+	QApplication::setOverrideCursor(Qt::WaitCursor);
+	std::string result = ix.data(Qt::DisplayRole).toString().toStdString();
+	std::string formatted;
 
-    std::istringstream pin(result);
-    shv::chainpack::AbstractStreamReader *prd = new shv::chainpack::CponReader(pin);
+	std::istringstream pin(result);
+	shv::chainpack::AbstractStreamReader *prd = new shv::chainpack::CponReader(pin);
 
-    std::ostringstream pout;
-    shv::chainpack::CponWriterOptions opts;
-    opts.setIndent("    ");
-    opts.setTranslateIds(true);
-    shv::chainpack::AbstractStreamWriter *pwr = new shv::chainpack::CponWriter(pout, opts);
+	std::ostringstream pout;
+	shv::chainpack::CponWriterOptions opts;
+	opts.setIndent("    ");
+	opts.setTranslateIds(true);
+	shv::chainpack::AbstractStreamWriter *pwr = new shv::chainpack::CponWriter(pout, opts);
 
 	try {
-        shv::chainpack::RpcValue val = prd->read();
-        pwr->write(val);
-        formatted = pout.str();
+		shv::chainpack::RpcValue val = prd->read();
+		pwr->write(val);
+		formatted = pout.str();
 	}
 	catch (std::exception &e) {
 		formatted = e.what();
@@ -253,22 +253,22 @@ void MainWindow::displayResult(const QModelIndex &ix)
 	delete prd;
 	delete pwr;
 
-    ResultView view(this);
-    view.setText(QString::fromStdString(formatted));
-    QApplication::restoreOverrideCursor();
-    view.exec();
+	ResultView view(this);
+	view.setText(QString::fromStdString(formatted));
+	QApplication::restoreOverrideCursor();
+	view.exec();
 }
 
 void MainWindow::attributesTableContexMenu(const QPoint &point)
 {
-    QModelIndex index = ui->tblAttributes->indexAt(point);
-    if (index.isValid() && index.column() == AttributesModel::ColResult) {
-        QMenu *menu = new QMenu(this);
-        menu->addAction(tr("View result"));
-        if (menu->exec(ui->tblAttributes->viewport()->mapToGlobal(point))) {
-            displayResult(index);
-        }
-    }
+	QModelIndex index = ui->tblAttributes->indexAt(point);
+	if (index.isValid() && index.column() == AttributesModel::ColResult) {
+		QMenu *menu = new QMenu(this);
+		menu->addAction(tr("View result"));
+		if (menu->exec(ui->tblAttributes->viewport()->mapToGlobal(point))) {
+			displayResult(index);
+		}
+	}
 }
 
 void MainWindow::onShvTreeViewCurrentSelectionChanged(const QModelIndex &curr_ix, const QModelIndex &prev_ix)

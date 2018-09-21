@@ -1,19 +1,19 @@
 #include "resultview.h"
 #include "ui_resultview.h"
 
-ResultView::ResultView(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::ResultView)
+ResultView::ResultView(QWidget *parent)
+	: QDialog(parent)
+	, ui(new Ui::ResultView)
 {
-    ui->setupUi(this);
+	ui->setupUi(this);
 }
 
 ResultView::~ResultView()
 {
-    delete ui;
+	delete ui;
 }
 
 void ResultView::setText(const QString &s)
 {
-    ui->textBrowser->setPlainText(s);
+	ui->textBrowser->setPlainText(s);
 }

@@ -30,8 +30,8 @@ SOURCES += \
 FORMS += \
 	$$PWD/mainwindow.ui \
 	$$PWD/dlgserverproperties.ui \
-    $$PWD/dlgsubscriptionparameters.ui \
-    $$PWD/dlgsubscriptions.ui \
-    $$PWD/resultview.ui
+	$$PWD/dlgsubscriptionparameters.ui \
+	$$PWD/dlgsubscriptions.ui \
+	$$PWD/resultview.ui
 
 include ( $$PWD/log/log.pri )
