@@ -233,25 +233,22 @@ void MainWindow::displayResult(const QModelIndex &ix)
 	std::string formatted;
 
 	std::istringstream pin(result);
-	shv::chainpack::AbstractStreamReader *prd = new shv::chainpack::CponReader(pin);
+	shv::chainpack::CponReader prd(pin);
 
 	std::ostringstream pout;
 	shv::chainpack::CponWriterOptions opts;
 	opts.setIndent("    ");
 	opts.setTranslateIds(true);
-	shv::chainpack::AbstractStreamWriter *pwr = new shv::chainpack::CponWriter(pout, opts);
+	shv::chainpack::CponWriter pwr(pout, opts);
 
 	try {
-		shv::chainpack::RpcValue val = prd->read();
-		pwr->write(val);
+		shv::chainpack::RpcValue val = prd.read();
+		pwr.write(val);
 		formatted = pout.str();
 	}
 	catch (std::exception &e) {
 		formatted = e.what();
 	}
-
-	delete prd;
-	delete pwr;
 
 	ResultView view(this);
 	view.setText(QString::fromStdString(formatted));
