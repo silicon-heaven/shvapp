@@ -10,6 +10,12 @@
 #include "dlgserverproperties.h"
 #include "dlgsubscriptionparameters.h"
 #include "dlgsubscriptions.h"
+#include "resultview.h"
+
+#include <shv/chainpack/chainpackreader.h>
+#include <shv/chainpack/chainpackwriter.h>
+#include <shv/chainpack/cponreader.h>
+#include <shv/chainpack/cponwriter.h>
 
 //#include <qfopcua/client.h>
 
@@ -49,11 +55,21 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui->tblAttributes->setModel(TheApp::instance()->attributesModel());
 	ui->tblAttributes->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
 	ui->tblAttributes->verticalHeader()->setDefaultSectionSize(fontMetrics().height() * 1.3);
+	ui->tblAttributes->setContextMenuPolicy(Qt::CustomContextMenu);
+
+
+	connect(ui->tblAttributes, &QTableView::customContextMenuRequested, this, &MainWindow::attributesTableContexMenu);
 
 	connect(ui->tblAttributes, &QTableView::activated, [this](const QModelIndex &ix) {
 		if(ix.column() == AttributesModel::ColBtRun)
 			TheApp::instance()->attributesModel()->callMethod(ix.row());
 	});
+	connect(ui->tblAttributes, &QTableView::doubleClicked, [this](const QModelIndex &ix) {
+		if (ix.column() == AttributesModel::ColResult) {
+			displayResult(ix);
+		}
+	});
+
 
 	ui->notificationsLogWidget->setLogTableModel(TheApp::instance()->rpcNotificationsModel());
 
@@ -207,6 +223,48 @@ void MainWindow::openNode(const QModelIndex &ix)
 			bnd->close();
 		else
 			bnd->open();
+	}
+}
+
+void MainWindow::displayResult(const QModelIndex &ix)
+{
+	QApplication::setOverrideCursor(Qt::WaitCursor);
+	std::string result = ix.data(Qt::DisplayRole).toString().toStdString();
+	std::string formatted;
+
+	std::istringstream pin(result);
+	shv::chainpack::CponReader prd(pin);
+
+	std::ostringstream pout;
+	shv::chainpack::CponWriterOptions opts;
+	opts.setIndent("    ");
+	opts.setTranslateIds(true);
+	shv::chainpack::CponWriter pwr(pout, opts);
+
+	try {
+		shv::chainpack::RpcValue val = prd.read();
+		pwr.write(val);
+		formatted = pout.str();
+	}
+	catch (std::exception &e) {
+		formatted = e.what();
+	}
+
+	ResultView view(this);
+	view.setText(QString::fromStdString(formatted));
+	QApplication::restoreOverrideCursor();
+	view.exec();
+}
+
+void MainWindow::attributesTableContexMenu(const QPoint &point)
+{
+	QModelIndex index = ui->tblAttributes->indexAt(point);
+	if (index.isValid() && index.column() == AttributesModel::ColResult) {
+		QMenu *menu = new QMenu(this);
+		menu->addAction(tr("View result"));
+		if (menu->exec(ui->tblAttributes->viewport()->mapToGlobal(point))) {
+			displayResult(index);
+		}
 	}
 }
 
