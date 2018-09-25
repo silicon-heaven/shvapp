@@ -4,7 +4,7 @@ CONFIG += ordered
 SUBDIRS += \
     3rdparty \
     shvspy \
-#    clients \
+    clients \
 
 unix {
 SUBDIRS += \
