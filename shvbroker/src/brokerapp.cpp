@@ -214,7 +214,7 @@ std::string BrokerApp::mountPointForDevice(const shv::chainpack::RpcValue &devic
 			m_fstab = cp::RpcValue::Map();
 		shvInfo() << "fstab:" << m_fstab.toPrettyString("  ");
 	}
-	const std::string dev_id = device_id.toStdString();
+	const std::string dev_id = device_id.toString();
 	std::string mount_point = m_fstab.toMap().value(dev_id).toString();
 	return mount_point;
 }

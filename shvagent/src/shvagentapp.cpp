@@ -187,7 +187,7 @@ ShvAgentApp::ShvAgentApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	AppRootNode *root = new AppRootNode();
 	m_shvTree = new shv::iotqt::node::ShvNodeTree(root, this);
 	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
-	m_shvTree->mkdir("sys/rproc");
+	//m_shvTree->mkdir("sys/rproc");
 	QString sys_fs_root_dir = cli_opts->sysFsRootDir();
 	if(!sys_fs_root_dir.isEmpty() && QDir(sys_fs_root_dir).exists()) {
 		const char *SYS_FS = "sys/fs";

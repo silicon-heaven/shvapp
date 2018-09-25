@@ -127,7 +127,7 @@ const shv::chainpack::MetaMethod *Lublicator::metaMethod(const StringViewList &s
 	return nullptr;
 }
 
-shv::chainpack::RpcValue Lublicator::hasChildren(const StringViewList &shv_path)
+bool Lublicator::hasChildren(const StringViewList &shv_path)
 {
 	return shv_path.empty();
 }

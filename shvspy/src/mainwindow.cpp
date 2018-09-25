@@ -21,10 +21,14 @@
 
 #include <shv/coreqt/log.h>
 
+#include <shv/iotqt/rpc/rpc.h>
+
 #include <QSettings>
 #include <QMessageBox>
 #include <QItemSelectionModel>
 #include <QInputDialog>
+
+namespace cp = shv::chainpack;
 
 MainWindow::MainWindow(QWidget *parent) :
 	QMainWindow(parent),
@@ -60,7 +64,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 	connect(ui->tblAttributes, &QTableView::customContextMenuRequested, this, &MainWindow::attributesTableContexMenu);
 
-	connect(ui->tblAttributes, &QTableView::activated, [this](const QModelIndex &ix) {
+	connect(ui->tblAttributes, &QTableView::activated, [](const QModelIndex &ix) {
 		if(ix.column() == AttributesModel::ColBtRun)
 			TheApp::instance()->attributesModel()->callMethod(ix.row());
 	});
@@ -228,22 +232,21 @@ void MainWindow::openNode(const QModelIndex &ix)
 
 void MainWindow::displayResult(const QModelIndex &ix)
 {
-	QApplication::setOverrideCursor(Qt::WaitCursor);
-	std::string result = ix.data(Qt::DisplayRole).toString().toStdString();
+	//QApplication::setOverrideCursor(Qt::WaitCursor);
+	QVariant v = ix.data(AttributesModel::RawResultRole);
+	cp::RpcValue rv = qvariant_cast<cp::RpcValue>(v);
+
 	std::string formatted;
 
-	std::istringstream pin(result);
-	shv::chainpack::CponReader prd(pin);
-
-	std::ostringstream pout;
-	shv::chainpack::CponWriterOptions opts;
-	opts.setIndent("    ");
-	opts.setTranslateIds(true);
-	shv::chainpack::CponWriter pwr(pout, opts);
-
-	try {
-		shv::chainpack::RpcValue val = prd.read();
-		pwr.write(val);
+	if(rv.isString()) {
+		formatted = rv.toString();
+	}
+	else try {
+		std::ostringstream pout;
+		shv::chainpack::CponWriterOptions opts;
+		opts.setIndent("\t");
+		opts.setTranslateIds(true);
+		{ shv::chainpack::CponWriter pwr(pout, opts); pwr.write(rv); }
 		formatted = pout.str();
 	}
 	catch (std::exception &e) {
@@ -252,7 +255,7 @@ void MainWindow::displayResult(const QModelIndex &ix)
 
 	ResultView view(this);
 	view.setText(QString::fromStdString(formatted));
-	QApplication::restoreOverrideCursor();
+	//QApplication::restoreOverrideCursor();
 	view.exec();
 }
 
@@ -260,9 +263,9 @@ void MainWindow::attributesTableContexMenu(const QPoint &point)
 {
 	QModelIndex index = ui->tblAttributes->indexAt(point);
 	if (index.isValid() && index.column() == AttributesModel::ColResult) {
-		QMenu *menu = new QMenu(this);
-		menu->addAction(tr("View result"));
-		if (menu->exec(ui->tblAttributes->viewport()->mapToGlobal(point))) {
+		QMenu menu(this);
+		menu.addAction(tr("View result"));
+		if (menu.exec(ui->tblAttributes->viewport()->mapToGlobal(point))) {
 			displayResult(index);
 		}
 	}

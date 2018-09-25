@@ -94,8 +94,8 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 			return tr("Call remote method");
 		}
 		else if(ix.column() == ColResult) {
-			cp::RpcValue rv = qvariant_cast<cp::RpcValue>(m_rows.value(ix.row()).value(ColRawResult));
 			/*
+			cp::RpcValue rv = qvariant_cast<cp::RpcValue>(m_rows.value(ix.row()).value(ColRawResult));
 			if(rv.isBlob()) {
 				const shv::chainpack::RpcValue::Blob &bb = rv.toBlob();
 				return QString::fromUtf8(bb.data(), bb.size());
@@ -113,7 +113,9 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 		else {
 			return data(ix, Qt::DisplayRole);
 		}
-		break;
+	}
+	case RawResultRole: {
+		return m_rows.value(ix.row()).value(ColRawResult);
 	}
 	default:
 		break;

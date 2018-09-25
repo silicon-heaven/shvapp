@@ -41,7 +41,7 @@ void ShvClientNode::handleRawRpcRequest(shv::chainpack::RpcValue::MetaData &&met
 		conn->sendRawData(std::move(meta), std::move(data));
 }
 
-shv::chainpack::RpcValue ShvClientNode::hasChildren(const StringViewList &shv_path)
+bool ShvClientNode::hasChildren(const StringViewList &shv_path)
 {
 	Q_UNUSED(shv_path)
 	//shvWarning() << "ShvClientNode::hasChildren path:" << StringView::join(shv_path, '/');// << "ret:" << nullptr;

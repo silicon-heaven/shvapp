@@ -156,7 +156,7 @@ void ShvNodeItem::processRpcMessage(const shv::chainpack::RpcMessage &msg)
 			const shv::chainpack::RpcValue::List lst = resp.result().toList();
 			for(const cp::RpcValue &dir_entry : lst) {
 				const cp::RpcValue::List &long_dir_entry = dir_entry.toList();
-				std::string ndid = long_dir_entry.empty()? dir_entry.toStdString(): long_dir_entry.value(0).toStdString();
+				std::string ndid = long_dir_entry.empty()? dir_entry.toString(): long_dir_entry.value(0).toString();
 				ShvNodeItem *nd = new ShvNodeItem(m, ndid);
 				if(!long_dir_entry.empty()) {
 					cp::RpcValue has_children = long_dir_entry.value(1);
