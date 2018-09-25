@@ -109,34 +109,38 @@ static std::vector<cp::MetaMethod> meta_methods_status {
 	{cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, false},
 };
 
-size_t Lublicator::methodCount2(const std::string &shv_path)
+size_t Lublicator::methodCount(const StringViewList &shv_path)
 {
 	if(shv_path.empty())
 		return meta_methods_device.size();
-	return meta_methods_status.size();
+	if(shv_path.size() == 1)
+		return meta_methods_status.size();
+	return 0;
 }
 
-const shv::chainpack::MetaMethod *Lublicator::metaMethod2(size_t ix, const std::string &shv_path)
+const shv::chainpack::MetaMethod *Lublicator::metaMethod(const StringViewList &shv_path, size_t ix)
 {
 	if(shv_path.empty())
 		return &(meta_methods_device.at(ix));
-	return &(meta_methods_status.at(ix));
+	if(shv_path.size() == 1)
+		return &(meta_methods_status.at(ix));
+	return nullptr;
 }
 
-shv::chainpack::RpcValue Lublicator::hasChildren2(const std::string &shv_path)
+shv::chainpack::RpcValue Lublicator::hasChildren(const StringViewList &shv_path)
 {
 	return shv_path.empty();
 }
 
-shv::iotqt::node::ShvNode::StringList Lublicator::childNames2(const std::string &shv_path)
+shv::iotqt::node::ShvNode::StringList Lublicator::childNames(const StringViewList &shv_path)
 {
-	shvLogFuncFrame() << shvPath() << "for:" << shv_path;
+	//shvLogFuncFrame() << shvPath() << "for:" << shv_path;
 	if(shv_path.empty())
 		return shv::iotqt::node::ShvNode::StringList{PROP_STATUS};
 	return shv::iotqt::node::ShvNode::StringList{};
 }
 
-shv::chainpack::RpcValue Lublicator::call2(const std::string &method, const shv::chainpack::RpcValue &params, const std::string &shv_path)
+shv::chainpack::RpcValue Lublicator::callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
 {
 	if(shv_path.empty()) {
 		if(method == cp::Rpc::METH_GET) {
@@ -173,11 +177,12 @@ shv::chainpack::RpcValue Lublicator::call2(const std::string &method, const shv:
 			return getLog(from, to);
 		}
 	}
-	else if(shv_path == "status") {
+	else if(shv_path[0] == "status") {
 		if(method == cp::Rpc::METH_GET) {
 			return status();
 		}
-	}	return Super::call2(method, params, shv_path);
+	}
+	return Super::callMethod(shv_path, method, params);
 }
 
 shv::chainpack::RpcValue Lublicator::getLog(const shv::chainpack::RpcValue::DateTime &from, const shv::chainpack::RpcValue::DateTime &to)
