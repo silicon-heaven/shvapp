@@ -81,7 +81,7 @@
      <x>0</x>
      <y>0</y>
      <width>754</width>
-     <height>27</height>
+     <height>19</height>
     </rect>
    </property>
   </widget>
@@ -244,6 +244,17 @@
    </property>
    <property name="toolTip">
     <string>Copy server</string>
+   </property>
+  </action>
+  <action name="actionQuit">
+   <property name="text">
+    <string>Quit</string>
+   </property>
+   <property name="toolTip">
+    <string>Quit ShvSpy</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Q</string>
    </property>
   </action>
  </widget>

@@ -193,6 +193,22 @@ void AttributesModel::callMethod(int method_ix)
 	emitRowChanged(method_ix);
 }
 
+QString AttributesModel::path() const
+{
+	if (m_shvTreeNodeItem.isNull()) {
+		return QString();
+	}
+	return QString::fromStdString(m_shvTreeNodeItem->shvPath());
+}
+
+QString AttributesModel::method(int row)
+{
+	if (m_shvTreeNodeItem.isNull()) {
+		return QString();
+	}
+	return QString::fromStdString(m_shvTreeNodeItem->methods()[row].method);
+}
+
 void AttributesModel::onMethodsLoaded()
 {
 	loadRows();

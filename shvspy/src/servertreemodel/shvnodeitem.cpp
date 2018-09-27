@@ -5,6 +5,7 @@
 #include <shv/iotqt/rpc/clientconnection.h>
 #include <shv/chainpack/cponreader.h>
 #include <shv/chainpack/cponwriter.h>
+#include <src/theapp.h>
 
 #include <shv/core/assert.h>
 
@@ -247,6 +248,13 @@ unsigned ShvNodeItem::callMethod(int method_ix)
 	ShvMetaMethod &mtd = m_methods[method_ix];
 	if(mtd.method.empty() || mtd.isNotify)
 		return 0;
+	if (mtd.params.isValid()) {
+		TheApp::instance()->addLastUsedParam(
+					QString::fromStdString(shvPath()),
+					QString::fromStdString(mtd.method),
+					QString::fromStdString(mtd.params.toCpon())
+					);
+	}
 	mtd.response = cp::RpcResponse();
 	ShvBrokerNodeItem *srv_nd = serverNode();
 	mtd.rpcRequestId = srv_nd->callNodeRpcMethod(shvPath(), mtd.method, mtd.params);
