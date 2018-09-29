@@ -9,12 +9,12 @@
 
 #include <shv/chainpack/rpcvalue.h>
 
-QMap<shv::chainpack::RpcValue::Type, InputParametersDialog::Switcher> InputParametersDialog::m_typeMap {
-	{ shv::chainpack::RpcValue::Type::String, &InputParametersDialog::switchToString },
-	{ shv::chainpack::RpcValue::Type::Int, &InputParametersDialog::switchToInt },
-	{ shv::chainpack::RpcValue::Type::Double, &InputParametersDialog::switchToDouble },
-	{ shv::chainpack::RpcValue::Type::Bool, &InputParametersDialog::switchToBool },
-	{ shv::chainpack::RpcValue::Type::DateTime, &InputParametersDialog::switchToDateTime }
+QVector<shv::chainpack::RpcValue::Type> InputParametersDialog::m_supportedTypes {
+	shv::chainpack::RpcValue::Type::String,
+	shv::chainpack::RpcValue::Type::Int,
+	shv::chainpack::RpcValue::Type::Double,
+	shv::chainpack::RpcValue::Type::Bool,
+	shv::chainpack::RpcValue::Type::DateTime,
 };
 
 InputParametersDialog::InputParametersDialog(const QString &path, const QString &method, const shv::chainpack::RpcValue &params, QWidget *parent)
@@ -83,21 +83,22 @@ void InputParametersDialog::newParameter(const shv::chainpack::RpcValue &param)
 
 	QComboBox *combo = new QComboBox(this);
 	ui->parameterTable->setCellWidget(row, 0, combo);
-	for (shv::chainpack::RpcValue::Type t : m_typeMap.keys()) {
+	for (shv::chainpack::RpcValue::Type t : m_supportedTypes) {
 		combo->addItem(shv::chainpack::RpcValue::typeToName(t), (int)t);
 	}
-	m_cellValues << []() { return shv::chainpack::RpcValue(); };
+	m_cellValueGetters << ValueGetter();
+	m_cellValueSetters << ValueSetter();
 	ui->parameterTable->setVerticalHeaderItem(row, new QTableWidgetItem("  "));
 
 	if (param.isValid()) {
 		shv::chainpack::RpcValue::Type t = param.type();
-		int index = m_typeMap.keys().indexOf(t);
+		int index = m_supportedTypes.indexOf(t);
 		combo->setCurrentIndex(index);
-		ValueSetter set_value = switchByType(t, row);
-		set_value(param);
+		switchByType(t, row);
+		m_cellValueSetters[index](param);
 	}
 	else {
-		int index = m_typeMap.keys().indexOf(shv::chainpack::RpcValue::Type::String);
+		int index = m_supportedTypes.indexOf(shv::chainpack::RpcValue::Type::String);
 		combo->setCurrentIndex(index);
 		switchToString(row);
 	}
@@ -116,7 +117,7 @@ void InputParametersDialog::onCurrentCellChanged(int row, int col)
 void InputParametersDialog::removeParameter()
 {
 	ui->parameterTable->removeRow(ui->parameterTable->currentRow());
-	m_cellValues.removeAt(ui->parameterTable->currentRow());
+	m_cellValueGetters.removeAt(ui->parameterTable->currentRow());
 }
 
 bool InputParametersDialog::tryParseParams(const shv::chainpack::RpcValue &params)
@@ -125,10 +126,9 @@ bool InputParametersDialog::tryParseParams(const shv::chainpack::RpcValue &param
 		return false;
 	}
 	shv::chainpack::RpcValue::List param_list = params.toList();
-	QList<shv::chainpack::RpcValue::Type> types = m_typeMap.keys();
 
 	for (const shv::chainpack::RpcValue &param : param_list) {
-		if (!types.contains(param.type())) {
+		if (!m_supportedTypes.contains(param.type())) {
 			return false;
 		}
 	}
@@ -138,57 +138,57 @@ bool InputParametersDialog::tryParseParams(const shv::chainpack::RpcValue &param
 	return true;
 }
 
-InputParametersDialog::ValueSetter InputParametersDialog::switchToBool(int row)
+void InputParametersDialog::switchToBool(int row)
 {
 	QCheckBox *checkbox = new QCheckBox(this);
 	ui->parameterTable->setCellWidget(row, 1, checkbox);
-	m_cellValues[row] = [checkbox]() {
+	m_cellValueGetters[row] = [checkbox]() {
 		return shv::chainpack::RpcValue(checkbox->isChecked() ? true : false);
 	};
-	return [checkbox](const shv::chainpack::RpcValue &param) {
+	m_cellValueSetters[row] = [checkbox](const shv::chainpack::RpcValue &param) {
 		checkbox->setChecked(param.toBool());
 	};
 }
 
-InputParametersDialog::ValueSetter InputParametersDialog::switchToInt(int row)
+void InputParametersDialog::switchToInt(int row)
 {
 	QLineEdit *line_edit = new QLineEdit(this);
 	ui->parameterTable->setCellWidget(row, 1, line_edit);
 	line_edit->setValidator(new QIntValidator);
-	m_cellValues[row] = [line_edit]() {
+	m_cellValueGetters[row] = [line_edit]() {
 		return shv::chainpack::RpcValue(line_edit->text().toInt());
 	};
-	return [line_edit](const shv::chainpack::RpcValue &param) {
+	m_cellValueSetters[row] = [line_edit](const shv::chainpack::RpcValue &param) {
 		line_edit->setText(QString::number(param.toInt()));
 	};
 }
 
-InputParametersDialog::ValueSetter InputParametersDialog::switchToString(int row)
+void InputParametersDialog::switchToString(int row)
 {
 	QLineEdit *line_edit = new QLineEdit(this);
 	ui->parameterTable->setCellWidget(row, 1, line_edit);
-	m_cellValues[row] = [line_edit]() {
+	m_cellValueGetters[row] = [line_edit]() {
 		return  shv::chainpack::RpcValue(line_edit->text().toStdString());
 	};
-	return [line_edit](const shv::chainpack::RpcValue &param) {
+	m_cellValueSetters[row] = [line_edit](const shv::chainpack::RpcValue &param) {
 		line_edit->setText(QString::fromStdString(param.toString()));
 	};
 }
 
-InputParametersDialog::ValueSetter InputParametersDialog::switchToDouble(int row)
+void InputParametersDialog::switchToDouble(int row)
 {
 	QLineEdit *line_edit = new QLineEdit(this);
 	ui->parameterTable->setCellWidget(row, 1, line_edit);
 	line_edit->setValidator(new QDoubleValidator);
-	m_cellValues[row] = [line_edit]() {
+	m_cellValueGetters[row] = [line_edit]() {
 		return shv::chainpack::RpcValue(line_edit->text().toDouble());
 	};
-	return [line_edit](const shv::chainpack::RpcValue &param) {
+	m_cellValueSetters[row] = [line_edit](const shv::chainpack::RpcValue &param) {
 		line_edit->setText(QString::number(param.toDouble()));
 	};
 }
 
-InputParametersDialog::ValueSetter InputParametersDialog::switchToDateTime(int row)
+void InputParametersDialog::switchToDateTime(int row)
 {
 	QWidget *datetime_widget = new QWidget(this);
 	QDateTimeEdit *edit = new QDateTimeEdit(datetime_widget);
@@ -203,21 +203,34 @@ InputParametersDialog::ValueSetter InputParametersDialog::switchToDateTime(int r
 	edit->setDisplayFormat("dd.MM.yyyy HH:mm:ss");
 	edit->setCalendarPopup(true);
 	ui->parameterTable->setCellWidget(row, 1, datetime_widget);
-	m_cellValues[row] = [edit]() {
+	m_cellValueGetters[row] = [edit]() {
 		return shv::chainpack::RpcValue::DateTime::fromMSecsSinceEpoch(edit->dateTime().toMSecsSinceEpoch());
 	};
 	connect(today, &QPushButton::clicked, [edit]() {
 		edit->setDateTime(QDateTime::currentDateTime());
 	});
-	return [edit](const shv::chainpack::RpcValue &param) {
+	m_cellValueSetters[row] = [edit](const shv::chainpack::RpcValue &param) {
 		edit->setDateTime(QDateTime::fromMSecsSinceEpoch(param.toDateTime().msecsSinceEpoch()));
 	};
 }
 
-InputParametersDialog::ValueSetter InputParametersDialog::switchByType(const shv::chainpack::RpcValue::Type &type, int row)
+void InputParametersDialog::switchByType(const shv::chainpack::RpcValue::Type &type, int row)
 {
-	Switcher switcher = m_typeMap[type];
-	return (this->*switcher)(row);
+	if (type == shv::chainpack::RpcValue::Type::Int) {
+		switchToInt(row);
+	}
+	else if (type == shv::chainpack::RpcValue::Type::Bool) {
+		switchToBool(row);
+	}
+	else if (type == shv::chainpack::RpcValue::Type::String) {
+		switchToString(row);
+	}
+	else if (type == shv::chainpack::RpcValue::Type::Double) {
+		switchToDouble(row);
+	}
+	else if (type == shv::chainpack::RpcValue::Type::DateTime) {
+		switchToDateTime(row);
+	}
 }
 
 void InputParametersDialog::clearParams()
@@ -320,7 +333,7 @@ shv::chainpack::RpcValue InputParametersDialog::paramValue() const
 	}
 	shv::chainpack::RpcValue::List list;
 	for (int i = 0; i < ui->parameterTable->rowCount(); ++i) {
-		list.push_back(m_cellValues[i]());
+		list.push_back(m_cellValueGetters[i]());
 	}
 	return list;
 }

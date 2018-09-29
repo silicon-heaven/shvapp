@@ -24,8 +24,8 @@ public:
 	shv::chainpack::RpcValue value() const;
 
 private:
+	using ValueGetter = std::function<shv::chainpack::RpcValue()>;
 	using ValueSetter = std::function<void(const shv::chainpack::RpcValue &param)>;
-	using Switcher = ValueSetter (InputParametersDialog::*)(int);
 
 	void newParameter();
 	void newParameter(const shv::chainpack::RpcValue &param);
@@ -33,13 +33,13 @@ private:
 	void removeParameter();
 	bool tryParseParams(const shv::chainpack::RpcValue &params);
 
-	ValueSetter switchToBool(int row);
-	ValueSetter switchToInt(int row);
-	ValueSetter switchToString(int row);
-	ValueSetter switchToDouble(int row);
-	ValueSetter switchToDateTime(int row);
+	void switchToBool(int row);
+	void switchToInt(int row);
+	void switchToString(int row);
+	void switchToDouble(int row);
+	void switchToDateTime(int row);
 
-	ValueSetter switchByType(const shv::chainpack::RpcValue::Type &type, int row);
+	void switchByType(const shv::chainpack::RpcValue::Type &type, int row);
 
 	void clearParams();
 	void clear();
@@ -51,8 +51,9 @@ private:
 	shv::chainpack::RpcValue paramValue() const;
 
 	Ui::InputParametersDialog *ui;
-	QList<std::function<shv::chainpack::RpcValue()>> m_cellValues;
-	static QMap<shv::chainpack::RpcValue::Type, Switcher> m_typeMap;
+	QVector<ValueGetter> m_cellValueGetters;
+	QVector<ValueSetter> m_cellValueSetters;
+	static QVector<shv::chainpack::RpcValue::Type> m_supportedTypes;
 	QTimer m_syntaxCheckTimer;
 	QString m_path;
 	QString m_method;

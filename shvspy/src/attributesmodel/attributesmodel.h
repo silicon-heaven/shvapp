@@ -32,7 +32,7 @@ public:
 	void callMethod(int row);
 
 	QString path() const;
-	QString method(int row);
+	QString method(int row) const;
 
 private:
 	//void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);

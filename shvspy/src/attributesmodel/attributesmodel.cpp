@@ -201,7 +201,7 @@ QString AttributesModel::path() const
 	return QString::fromStdString(m_shvTreeNodeItem->shvPath());
 }
 
-QString AttributesModel::method(int row)
+QString AttributesModel::method(int row) const
 {
 	if (m_shvTreeNodeItem.isNull()) {
 		return QString();
