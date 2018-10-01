@@ -4,11 +4,13 @@
 #include <shv/core/utils/crypt.h>
 
 #include <QApplication>
+#include <QDateTime>
 
 class ServerTreeModel;
 class AttributesModel;
 class RpcNotificationsModel;
 class AppCliOptions;
+class QSettings;
 
 class TheApp : public QApplication
 {
@@ -16,6 +18,13 @@ class TheApp : public QApplication
 private:
 	typedef QApplication Super;
 public:
+	class CallParam {
+	public:
+		QDateTime time;
+		QString param;
+	};
+
+	using ParamMap = QMap<QString, QMap<QString, QVector<CallParam>>>;
 	TheApp(int &argc, char **argv, AppCliOptions* cli_opts);
 	~TheApp() Q_DECL_OVERRIDE;
 
@@ -26,12 +35,19 @@ public:
 	AttributesModel* attributesModel() {return m_attributesModel;}
 	RpcNotificationsModel* rpcNotificationsModel() {return m_rpcNotificationsModel;}
 	const shv::core::utils::Crypt& crypt() {return m_crypt;}
+	void addLastUsedParam(const QString &shv_path, const QString &method, const QString &cpon);
+	const ParamMap &lastUsedParams() const;
+
+	void loadSettings(QSettings &settings);
+	void saveSettings(QSettings &settings);
+
 private:
 	ServerTreeModel *m_serverTreeModel = nullptr;
 	AttributesModel *m_attributesModel = nullptr;
 	RpcNotificationsModel *m_rpcNotificationsModel = nullptr;
 	AppCliOptions* m_cliOptions = nullptr;
 	shv::core::utils::Crypt m_crypt;
+	ParamMap m_lastUsedParams;
 };
 
 #endif // THEAPP_H

@@ -10,6 +10,7 @@
 #include "dlgserverproperties.h"
 #include "dlgsubscriptionparameters.h"
 #include "dlgsubscriptions.h"
+#include "inputparametersdialog.h"
 #include "resultview.h"
 
 #include <shv/chainpack/chainpackreader.h>
@@ -36,6 +37,8 @@ MainWindow::MainWindow(QWidget *parent) :
 {
 	ui->setupUi(this);
 
+	addAction(ui->actionQuit);
+	connect(ui->actionQuit, &QAction::triggered, TheApp::instance(), &TheApp::quit);
 	//setWindowTitle(tr("QFreeOpcUa Spy"));
 	setWindowIcon(QIcon(":/shvspy/images/qfopcuaspy-256x256.png"));
 
@@ -72,6 +75,9 @@ MainWindow::MainWindow(QWidget *parent) :
 		if (ix.column() == AttributesModel::ColResult) {
 			displayResult(ix);
 		}
+		else if (ix.column() == AttributesModel::ColParams) {
+			inputParameters(ix);
+		}
 	});
 
 
@@ -81,7 +87,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	QSettings settings;
 	restoreGeometry(settings.value(QStringLiteral("ui/mainWindow/geometry")).toByteArray());
 	restoreState(settings.value(QStringLiteral("ui/mainWindow/state")).toByteArray());
-	TheApp::instance()->serverTreeModel()->loadSettings(settings);
+	TheApp::instance()->loadSettings(settings);
 }
 
 MainWindow::~MainWindow()
@@ -259,6 +265,29 @@ void MainWindow::displayResult(const QModelIndex &ix)
 	view.exec();
 }
 
+void MainWindow::inputParameters(const QModelIndex &ix)
+{
+	QString params = ix.data(Qt::DisplayRole).toString();
+	cp::RpcValue rv;
+	if (!params.isEmpty()) {
+		std::string err;
+		rv = shv::chainpack::RpcValue::fromCpon(params.toStdString(), &err);
+	}
+
+	QString path = TheApp::instance()->attributesModel()->path();
+	QString method = TheApp::instance()->attributesModel()->method(ix.row());
+	InputParametersDialog dlg(path, method, rv, this);
+	if (dlg.exec() == QDialog::Accepted) {
+		shv::chainpack::RpcValue val = dlg.value();
+		if (val.isValid()) {
+			ui->tblAttributes->model()->setData(ix, QString::fromStdString(dlg.value().toCpon()), Qt::EditRole);
+		}
+		else {
+			ui->tblAttributes->model()->setData(ix, QString(), Qt::EditRole);
+		}
+	}
+}
+
 void MainWindow::attributesTableContexMenu(const QPoint &point)
 {
 	QModelIndex index = ui->tblAttributes->indexAt(point);
@@ -267,6 +296,13 @@ void MainWindow::attributesTableContexMenu(const QPoint &point)
 		menu.addAction(tr("View result"));
 		if (menu.exec(ui->tblAttributes->viewport()->mapToGlobal(point))) {
 			displayResult(index);
+		}
+	}
+	else if (index.isValid() && index.column() == AttributesModel::ColParams) {
+		QMenu menu(this);
+		menu.addAction(tr("Input parameters"));
+		if (menu.exec(ui->tblAttributes->viewport()->mapToGlobal(point))) {
+			inputParameters(index);
 		}
 	}
 }
@@ -326,7 +362,7 @@ void MainWindow::closeEvent(QCloseEvent *ev)
 	QSettings settings;
 	settings.setValue(QStringLiteral("ui/mainWindow/state"), saveState());
 	settings.setValue(QStringLiteral("ui/mainWindow/geometry"), saveGeometry());
-	TheApp::instance()->serverTreeModel()->saveSettings(settings);
+	TheApp::instance()->saveSettings(settings);
 	Super::closeEvent(ev);
 }
 
