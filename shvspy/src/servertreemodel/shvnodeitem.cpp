@@ -5,6 +5,7 @@
 #include <shv/iotqt/rpc/clientconnection.h>
 #include <shv/chainpack/cponreader.h>
 #include <shv/chainpack/cponwriter.h>
+#include <src/theapp.h>
 
 #include <shv/core/assert.h>
 
@@ -156,7 +157,7 @@ void ShvNodeItem::processRpcMessage(const shv::chainpack::RpcMessage &msg)
 			const shv::chainpack::RpcValue::List lst = resp.result().toList();
 			for(const cp::RpcValue &dir_entry : lst) {
 				const cp::RpcValue::List &long_dir_entry = dir_entry.toList();
-				std::string ndid = long_dir_entry.empty()? dir_entry.toStdString(): long_dir_entry.value(0).toStdString();
+				std::string ndid = long_dir_entry.empty()? dir_entry.toString(): long_dir_entry.value(0).toString();
 				ShvNodeItem *nd = new ShvNodeItem(m, ndid);
 				if(!long_dir_entry.empty()) {
 					cp::RpcValue has_children = long_dir_entry.value(1);
@@ -247,6 +248,13 @@ unsigned ShvNodeItem::callMethod(int method_ix)
 	ShvMetaMethod &mtd = m_methods[method_ix];
 	if(mtd.method.empty() || mtd.isNotify)
 		return 0;
+	if (mtd.params.isValid()) {
+		TheApp::instance()->addLastUsedParam(
+					QString::fromStdString(shvPath()),
+					QString::fromStdString(mtd.method),
+					QString::fromStdString(mtd.params.toCpon())
+					);
+	}
 	mtd.response = cp::RpcResponse();
 	ShvBrokerNodeItem *srv_nd = serverNode();
 	mtd.rpcRequestId = srv_nd->callNodeRpcMethod(shvPath(), mtd.method, mtd.params);

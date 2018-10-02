@@ -41,45 +41,52 @@ static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_LAUNCH_REXEC, cp::MetaMethod::Signature::RetParam, false},
 };
 
-size_t AppRootNode::methodCount()
+size_t AppRootNode::methodCount(const StringViewList &shv_path)
 {
-	return meta_methods.size();
+	if(shv_path.empty())
+		return meta_methods.size();
+	return 0;
 }
 
-const shv::chainpack::MetaMethod *AppRootNode::metaMethod(size_t ix)
+const shv::chainpack::MetaMethod *AppRootNode::metaMethod(const StringViewList &shv_path, size_t ix)
 {
-	if(meta_methods.size() <= ix)
-		SHV_EXCEPTION("Invalid method index: " + std::to_string(ix) + " of: " + std::to_string(meta_methods.size()));
-	return &(meta_methods[ix]);
+	if(shv_path.empty()) {
+		if(meta_methods.size() <= ix)
+			SHV_EXCEPTION("Invalid method index: " + std::to_string(ix) + " of: " + std::to_string(meta_methods.size()));
+		return &(meta_methods[ix]);
+	}
+	return nullptr;
 }
 
-shv::chainpack::RpcValue AppRootNode::call(const std::string &method, const shv::chainpack::RpcValue &params)
+shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
 {
-	if(method == cp::Rpc::METH_APP_NAME) {
-		return QCoreApplication::instance()->applicationName().toStdString();
-	}
-	if(method == cp::Rpc::METH_CONNECTION_TYPE) {
-		return ShvAgentApp::instance()->rpcConnection()->connectionType();
-	}
-	if(method == cp::Rpc::METH_HELP) {
-		std::string meth = params.toString();
-		if(meth == cp::Rpc::METH_RUN_CMD) {
-			return 	"method: " + meth + "\n"
-					"params: cmd_string OR [cmd_string, 1, 2]\n"
-					"\tcmd_string: command with arguments to run\n"
-					"\t1: remote process std_out will be set at this possition in returned list\n"
-					"\t2: remote process std_err will be set at this possition in returned list\n"
-					"Any param can be omited in params sa list, also param order is irrelevant, ie [1,\"ls\"] is valid param list."
-					"return:\n"
-					"\t* process exit_code if params are just cmd_string\n"
-					"\t* list of process exit code and std_out and std_err on same possitions as they are in params list.\n"
-					;
+	if(shv_path.empty()) {
+		if(method == cp::Rpc::METH_APP_NAME) {
+			return QCoreApplication::instance()->applicationName().toStdString();
 		}
-		else {
-			return "No help for method: " + meth;
+		if(method == cp::Rpc::METH_CONNECTION_TYPE) {
+			return ShvAgentApp::instance()->rpcConnection()->connectionType();
+		}
+		if(method == cp::Rpc::METH_HELP) {
+			std::string meth = params.toString();
+			if(meth == cp::Rpc::METH_RUN_CMD) {
+				return 	"method: " + meth + "\n"
+						"params: cmd_string OR [cmd_string, 1, 2]\n"
+						"\tcmd_string: command with arguments to run\n"
+						"\t1: remote process std_out will be set at this possition in returned list\n"
+						"\t2: remote process std_err will be set at this possition in returned list\n"
+						"Any param can be omited in params sa list, also param order is irrelevant, ie [1,\"ls\"] is valid param list."
+						"return:\n"
+						"\t* process exit_code if params are just cmd_string\n"
+						"\t* list of process exit code and std_out and std_err on same possitions as they are in params list.\n"
+						;
+			}
+			else {
+				return "No help for method: " + meth;
+			}
 		}
 	}
-	return Super::call(method, params);
+	return Super::callMethod(shv_path, method, params);
 }
 
 shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::RpcRequest &rq)
@@ -179,8 +186,8 @@ ShvAgentApp::ShvAgentApp(int &argc, char **argv, AppCliOptions* cli_opts)
 
 	AppRootNode *root = new AppRootNode();
 	m_shvTree = new shv::iotqt::node::ShvNodeTree(root, this);
-	//connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, this, &ShvAgentApp::onRootNodeSendRpcMesage);
-	m_shvTree->mkdir("sys/rproc");
+	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
+	//m_shvTree->mkdir("sys/rproc");
 	QString sys_fs_root_dir = cli_opts->sysFsRootDir();
 	if(!sys_fs_root_dir.isEmpty() && QDir(sys_fs_root_dir).exists()) {
 		const char *SYS_FS = "sys/fs";
@@ -252,10 +259,11 @@ void ShvAgentApp::launchRexec(const shv::chainpack::RpcRequest &rq)
 #endif
 	QString app = QCoreApplication::applicationDirPath() + "/shvrexec";
 	QStringList params;
-	//params << "--mtid" << "-v" << "rpcrawmsg";
+	params << "--mtid" << "-v" << "rpcrawmsg";
 	shvInfo() << "starting child process:" << app << params.join(' ');
 	proc->start(app, params);
 	std::string cpon = conn_params.toRpcValue().toCpon();
+	//shvInfo() << "cpon:" << cpon;
 	proc->write(cpon.data(), cpon.size());
 	proc->write("\n", 1);
 }
@@ -334,26 +342,9 @@ void ShvAgentApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 	if(msg.isRequest()) {
 		cp::RpcRequest rq(msg);
 		shvInfo() << "RPC request received:" << rq.toPrettyString();
-		cp::RpcResponse resp = cp::RpcResponse::forRequest(rq.metaData());
-		try {
-			//shvInfo() << "RPC request received:" << rq.toCpon();
-			const cp::RpcValue shv_path = rq.shvPath();
-			std::string path_rest;
-			shv::iotqt::node::ShvNode *nd = m_shvTree->cd(shv_path.toString(), &path_rest);
-			if(!nd)
-				SHV_EXCEPTION("Path not found: " + shv_path.toString());
-			rq.setShvPath(path_rest);
-			shv::chainpack::RpcValue result = nd->processRpcRequest(rq);
-			if(result.isValid())
-				resp.setResult(result);
-			else
-				return;
+		if(m_shvTree->root()) {
+			m_shvTree->root()->handleRpcRequest(rq);
 		}
-		catch (shv::core::Exception &e) {
-			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, e.message()));
-		}
-		if(resp.requestId().toInt() > 0) // RPC calls with requestID == 0 does not expect response
-			m_rpcConnection->sendMessage(resp);
 	}
 	else if(msg.isResponse()) {
 		cp::RpcResponse rp(msg);
@@ -371,16 +362,5 @@ void ShvAgentApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 		*/
 	}
 }
-/*
-void ShvAgentApp::onRootNodeSendRpcMesage(const shv::chainpack::RpcMessage &msg)
-{
-	if(msg.isResponse()) {
-		cp::RpcResponse resp(msg);
-		if(resp.requestId().toUInt() == 0) // RPC calls with requestID == 0 does not expect response
-			return;
-		m_rpcConnection->sendMessage(resp);
-		return;
-	}
-	shvError() << "Send message not implemented.";// << msg.toCpon();
-}
-*/
+
+

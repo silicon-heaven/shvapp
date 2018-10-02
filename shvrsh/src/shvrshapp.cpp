@@ -31,27 +31,34 @@ static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, false},
 };
 
-size_t AppRootNode::methodCount()
+size_t AppRootNode::methodCount(const StringViewList &shv_path)
 {
-	return meta_methods.size();
+	if(shv_path.empty())
+		return meta_methods.size();
+	return 0;
 }
 
-const cp::MetaMethod *AppRootNode::metaMethod(size_t ix)
+const cp::MetaMethod *AppRootNode::metaMethod(const StringViewList &shv_path, size_t ix)
 {
-	if(meta_methods.size() <= ix)
-		SHV_EXCEPTION("Invalid method index: " + std::to_string(ix) + " of: " + std::to_string(meta_methods.size()));
-	return &(meta_methods[ix]);
+	if(shv_path.empty()) {
+		if(meta_methods.size() <= ix)
+			SHV_EXCEPTION("Invalid method index: " + std::to_string(ix) + " of: " + std::to_string(meta_methods.size()));
+		return &(meta_methods[ix]);
+	}
+	return nullptr;
 }
 
-shv::chainpack::RpcValue AppRootNode::call(const std::string &method, const shv::chainpack::RpcValue &params)
+shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
 {
-	if(method == cp::Rpc::METH_APP_NAME) {
-		return QCoreApplication::instance()->applicationName().toStdString();
+	if(shv_path.empty()) {
+		if(method == cp::Rpc::METH_APP_NAME) {
+			return QCoreApplication::instance()->applicationName().toStdString();
+		}
+		if(method == cp::Rpc::METH_CONNECTION_TYPE) {
+			return ShvRshApp::instance()->rpcConnection()->connectionType();
+		}
 	}
-	if(method == cp::Rpc::METH_CONNECTION_TYPE) {
-		return ShvRshApp::instance()->rpcConnection()->connectionType();
-	}
-	return Super::call(method, params);
+	return Super::callMethod(shv_path, method, params);
 }
 
 ShvRshApp::ShvRshApp(int &argc, char **argv, AppCliOptions* cli_opts)
@@ -82,6 +89,7 @@ ShvRshApp::ShvRshApp(int &argc, char **argv, AppCliOptions* cli_opts)
 
 	AppRootNode *root = new AppRootNode();
 	m_shvTree = new shv::iotqt::node::ShvNodeTree(root, this);
+	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
 
 	fcntl(0, F_SETFL, fcntl(0, F_GETFL) | O_NONBLOCK);
 	QSocketNotifier *stdin_notifier = new QSocketNotifier(STDIN_FILENO, QSocketNotifier::Read, this);
@@ -117,21 +125,10 @@ void ShvRshApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 	shvLogFuncFrame() << msg.toCpon();
 	if(msg.isRequest()) {
 		cp::RpcRequest rq(msg);
-		cp::RpcResponse resp = cp::RpcResponse::forRequest(rq.metaData());
-		try {
-			//shvInfo() << "RPC request received:" << rq.toCpon();
-			const cp::RpcValue shv_path = rq.shvPath();
-			std::string path_rest;
-			shv::iotqt::node::ShvNode *nd = m_shvTree->cd(shv_path.toString(), &path_rest);
-			if(!nd)
-				SHV_EXCEPTION("Path not found: " + shv_path.toString());
-			rq.setShvPath(path_rest);
-			resp.setResult(nd->processRpcRequest(rq));
+		//shvInfo() << "RPC request received:" << rq.toPrettyString();
+		if(m_shvTree->root()) {
+			m_shvTree->root()->handleRpcRequest(rq);
 		}
-		catch (shv::core::Exception &e) {
-			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, e.message()));
-		}
-		m_rpcConnection->sendMessage(resp);
 	}
 	else if(msg.isResponse()) {
 		cp::RpcResponse rsp(msg);
@@ -169,7 +166,7 @@ void ShvRshApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 				}
 				int channel = lst.value(0).toInt();
 				if(channel == STDOUT_FILENO || channel == STDERR_FILENO) {
-					const shv::chainpack::RpcValue::Blob &blob = lst.value(1).toBlob();
+					const shv::chainpack::RpcValue::String &blob = lst.value(1).toString();
 					ssize_t written = 0;
 					do {
 						ssize_t n = ::write(channel, blob.data() + written, blob.size() - written);
@@ -202,7 +199,7 @@ void ShvRshApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 void ShvRshApp::onReadyReadStdIn()
 {
 	std::vector<char> data = shv::core::Utils::readAllFd(STDIN_FILENO);
-	writeToTunnel(0, cp::RpcValue::Blob(data.data(), data.size()));
+	writeToTunnel(0, cp::RpcValue::String(data.data(), data.size()));
 }
 
 void ShvRshApp::writeToTunnel(int channel, const cp::RpcValue &data)

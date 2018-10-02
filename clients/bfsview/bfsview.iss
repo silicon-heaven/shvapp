@@ -33,7 +33,7 @@ SetupIconFile=.\{#APP_NAME_LOWER}.ico
 Compression=lzma
 SolidCompression=yes
 ChangesAssociations = yes
-SignTool=defaultSignTool
+;SignTool=defaultSignTool
 
 [Registry]
 Root: HKCR; Subkey: "{#APP_NAME}";                     ValueData: "Program {#APP_NAME}";   Flags: uninsdeletekey;   ValueType: string;  ValueName: ""

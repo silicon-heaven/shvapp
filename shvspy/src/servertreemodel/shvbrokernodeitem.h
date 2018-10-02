@@ -35,9 +35,9 @@ public:
 
 	shv::iotqt::rpc::ClientConnection *clientConnection();
 
-	unsigned callNodeRpcMethod(const std::string &calling_node_shv_path, const std::string &method, const shv::chainpack::RpcValue &params);
+	int callNodeRpcMethod(const std::string &calling_node_shv_path, const std::string &method, const shv::chainpack::RpcValue &params);
 
-	unsigned callCreateSubscription(const std::string &shv_path, std::string method);
+	int callCreateSubscription(const std::string &shv_path, std::string method);
 
 
 	ShvNodeItem *findNode(const std::string &path, std::string *path_rest = nullptr);
@@ -50,7 +50,7 @@ private:
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
 	OpenStatus m_openStatus = OpenStatus::Disconnected;
 	struct RpcRequestInfo;
-	std::map<unsigned, RpcRequestInfo> m_runningRpcRequests;
+	std::map<int, RpcRequestInfo> m_runningRpcRequests;
 
 };
 

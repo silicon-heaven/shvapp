@@ -37,34 +37,37 @@ SubscriptionsNode::SubscriptionsNode(rpc::ServerConnection *conn)
 {
 }
 
-size_t SubscriptionsNode::methodCount2(const std::string &shv_path)
+size_t SubscriptionsNode::methodCount(const StringViewList &shv_path)
 {
-	if(shv_path.empty() || shv_path == ND_BY_ID || shv_path == ND_BY_PATH)
+	if(shv_path.empty() || shv_path[0] == ND_BY_ID || shv_path[0] == ND_BY_PATH)
 		return meta_methods1.size();
 	return meta_methods2.size();
 }
 
-const shv::chainpack::MetaMethod *SubscriptionsNode::metaMethod2(size_t ix, const std::string &shv_path)
+const shv::chainpack::MetaMethod *SubscriptionsNode::metaMethod(const StringViewList &shv_path, size_t ix)
 {
-	const std::vector<cp::MetaMethod> &mms = (shv_path.empty() || shv_path == ND_BY_ID || shv_path == ND_BY_PATH)? meta_methods1: meta_methods2;
+	const std::vector<cp::MetaMethod> &mms =
+			(shv_path.empty() || shv_path[0] == ND_BY_ID || shv_path[0] == ND_BY_PATH)
+			?  meta_methods1
+			 : meta_methods2;
 	if(mms.size() <= ix)
 		SHV_EXCEPTION("Invalid method index: " + std::to_string(ix) + " of: " + std::to_string(meta_methods1.size()));
 	return &(mms[ix]);
 }
 
-shv::iotqt::node::ShvNode::StringList SubscriptionsNode::childNames2(const std::string &shv_path)
+shv::iotqt::node::ShvNode::StringList SubscriptionsNode::childNames(const StringViewList &shv_path)
 {
-	shvLogFuncFrame() << shv_path;
+	//shvLogFuncFrame() << shv_path;
 	if(shv_path.empty())
 		return shv::iotqt::node::ShvNode::StringList{ND_BY_ID, ND_BY_PATH};
-	if(shv_path == ND_BY_ID) {
+	if(shv_path[0] == ND_BY_ID) {
 		shv::iotqt::node::ShvNode::StringList ret;
 		for (size_t i = 0; i < m_client->subscriptionCount(); ++i) {
 			ret.push_back(std::to_string(i));
 		}
 		return ret;
 	}
-	if(shv_path == ND_BY_PATH) {
+	if(shv_path[0] == ND_BY_PATH) {
 		shv::iotqt::node::ShvNode::StringList ret;
 		for (size_t i = 0; i < m_client->subscriptionCount(); ++i) {
 			const rpc::ServerConnection::Subscription &subs = m_client->subscriptionAt(i);
@@ -77,33 +80,34 @@ shv::iotqt::node::ShvNode::StringList SubscriptionsNode::childNames2(const std::
 	return shv::iotqt::node::ShvNode::StringList{};
 }
 
-shv::chainpack::RpcValue SubscriptionsNode::call2(const std::string &method, const shv::chainpack::RpcValue &params, const std::string &shv_path)
+shv::chainpack::RpcValue SubscriptionsNode::callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
 {
-	if(method == METH_PATH || method == METH_METHOD) {
-		std::vector<shv::core::StringView> lst = shv::core::StringView(shv_path).split('/');
-		const rpc::ServerConnection::Subscription *subs = nullptr;
-		if(lst.at(0) == ND_BY_ID) {
-			subs = &m_client->subscriptionAt(std::stoul(lst.at(1).toString()));
-		}
-		else if(lst.at(0) == ND_BY_PATH) {
-			shv::core::StringView path = lst.at(1);
-			for (size_t i = 0; i < m_client->subscriptionCount(); ++i) {
-				const rpc::ServerConnection::Subscription &subs1 = m_client->subscriptionAt(i);
-				std::string p = subs1.absolutePath + ':' + subs1.method;
-				if(path == p) {
-					subs = &subs1;
-					break;
+	if(shv_path.size() == 2) {
+		if(method == METH_PATH || method == METH_METHOD) {
+			const rpc::ServerConnection::Subscription *subs = nullptr;
+			if(shv_path.at(0) == ND_BY_ID) {
+				subs = &m_client->subscriptionAt(std::stoul(shv_path.at(1).toString()));
+			}
+			else if(shv_path.at(0) == ND_BY_PATH) {
+				shv::core::StringView path = shv_path.at(1);
+				for (size_t i = 0; i < m_client->subscriptionCount(); ++i) {
+					const rpc::ServerConnection::Subscription &subs1 = m_client->subscriptionAt(i);
+					std::string p = subs1.absolutePath + ':' + subs1.method;
+					if(path == p) {
+						subs = &subs1;
+						break;
+					}
 				}
 			}
+			if(subs == nullptr)
+				SHV_EXCEPTION("Method " + method + " called on invalid path " + StringView::join(shv_path, '/'));
+			if(method == METH_PATH)
+				return subs->absolutePath;
+			if(method == METH_METHOD)
+				return subs->method;
 		}
-		if(subs == nullptr)
-			SHV_EXCEPTION("Method " + method + " called on invalid path " + shv_path);
-		if(method == METH_PATH)
-			return subs->absolutePath;
-		if(method == METH_METHOD)
-			return subs->method;
 	}
-	return Super::call2(method, params, shv_path);
+	return Super::callMethod(shv_path, method, params);
 }
 
 /*

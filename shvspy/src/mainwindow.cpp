@@ -10,15 +10,26 @@
 #include "dlgserverproperties.h"
 #include "dlgsubscriptionparameters.h"
 #include "dlgsubscriptions.h"
+#include "inputparametersdialog.h"
+#include "resultview.h"
+
+#include <shv/chainpack/chainpackreader.h>
+#include <shv/chainpack/chainpackwriter.h>
+#include <shv/chainpack/cponreader.h>
+#include <shv/chainpack/cponwriter.h>
 
 //#include <qfopcua/client.h>
 
 #include <shv/coreqt/log.h>
 
+#include <shv/iotqt/rpc/rpc.h>
+
 #include <QSettings>
 #include <QMessageBox>
 #include <QItemSelectionModel>
 #include <QInputDialog>
+
+namespace cp = shv::chainpack;
 
 MainWindow::MainWindow(QWidget *parent) :
 	QMainWindow(parent),
@@ -26,6 +37,8 @@ MainWindow::MainWindow(QWidget *parent) :
 {
 	ui->setupUi(this);
 
+	addAction(ui->actionQuit);
+	connect(ui->actionQuit, &QAction::triggered, TheApp::instance(), &TheApp::quit);
 	//setWindowTitle(tr("QFreeOpcUa Spy"));
 	setWindowIcon(QIcon(":/shvspy/images/qfopcuaspy-256x256.png"));
 
@@ -49,11 +62,24 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui->tblAttributes->setModel(TheApp::instance()->attributesModel());
 	ui->tblAttributes->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
 	ui->tblAttributes->verticalHeader()->setDefaultSectionSize(fontMetrics().height() * 1.3);
+	ui->tblAttributes->setContextMenuPolicy(Qt::CustomContextMenu);
 
-	connect(ui->tblAttributes, &QTableView::activated, [this](const QModelIndex &ix) {
+
+	connect(ui->tblAttributes, &QTableView::customContextMenuRequested, this, &MainWindow::attributesTableContexMenu);
+
+	connect(ui->tblAttributes, &QTableView::activated, [](const QModelIndex &ix) {
 		if(ix.column() == AttributesModel::ColBtRun)
 			TheApp::instance()->attributesModel()->callMethod(ix.row());
 	});
+	connect(ui->tblAttributes, &QTableView::doubleClicked, [this](const QModelIndex &ix) {
+		if (ix.column() == AttributesModel::ColResult) {
+			displayResult(ix);
+		}
+		else if (ix.column() == AttributesModel::ColParams) {
+			inputParameters(ix);
+		}
+	});
+
 
 	ui->notificationsLogWidget->setLogTableModel(TheApp::instance()->rpcNotificationsModel());
 
@@ -61,7 +87,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	QSettings settings;
 	restoreGeometry(settings.value(QStringLiteral("ui/mainWindow/geometry")).toByteArray());
 	restoreState(settings.value(QStringLiteral("ui/mainWindow/state")).toByteArray());
-	TheApp::instance()->serverTreeModel()->loadSettings(settings);
+	TheApp::instance()->loadSettings(settings);
 }
 
 MainWindow::~MainWindow()
@@ -210,6 +236,77 @@ void MainWindow::openNode(const QModelIndex &ix)
 	}
 }
 
+void MainWindow::displayResult(const QModelIndex &ix)
+{
+	//QApplication::setOverrideCursor(Qt::WaitCursor);
+	QVariant v = ix.data(AttributesModel::RawResultRole);
+	cp::RpcValue rv = qvariant_cast<cp::RpcValue>(v);
+
+	std::string formatted;
+
+	if(rv.isString()) {
+		formatted = rv.toString();
+	}
+	else try {
+		std::ostringstream pout;
+		shv::chainpack::CponWriterOptions opts;
+		opts.setIndent("\t");
+		opts.setTranslateIds(true);
+		{ shv::chainpack::CponWriter pwr(pout, opts); pwr.write(rv); }
+		formatted = pout.str();
+	}
+	catch (std::exception &e) {
+		formatted = e.what();
+	}
+
+	ResultView view(this);
+	view.setText(QString::fromStdString(formatted));
+	//QApplication::restoreOverrideCursor();
+	view.exec();
+}
+
+void MainWindow::inputParameters(const QModelIndex &ix)
+{
+	QString params = ix.data(Qt::DisplayRole).toString();
+	cp::RpcValue rv;
+	if (!params.isEmpty()) {
+		std::string err;
+		rv = shv::chainpack::RpcValue::fromCpon(params.toStdString(), &err);
+	}
+
+	QString path = TheApp::instance()->attributesModel()->path();
+	QString method = TheApp::instance()->attributesModel()->method(ix.row());
+	InputParametersDialog dlg(path, method, rv, this);
+	if (dlg.exec() == QDialog::Accepted) {
+		shv::chainpack::RpcValue val = dlg.value();
+		if (val.isValid()) {
+			ui->tblAttributes->model()->setData(ix, QString::fromStdString(dlg.value().toCpon()), Qt::EditRole);
+		}
+		else {
+			ui->tblAttributes->model()->setData(ix, QString(), Qt::EditRole);
+		}
+	}
+}
+
+void MainWindow::attributesTableContexMenu(const QPoint &point)
+{
+	QModelIndex index = ui->tblAttributes->indexAt(point);
+	if (index.isValid() && index.column() == AttributesModel::ColResult) {
+		QMenu menu(this);
+		menu.addAction(tr("View result"));
+		if (menu.exec(ui->tblAttributes->viewport()->mapToGlobal(point))) {
+			displayResult(index);
+		}
+	}
+	else if (index.isValid() && index.column() == AttributesModel::ColParams) {
+		QMenu menu(this);
+		menu.addAction(tr("Input parameters"));
+		if (menu.exec(ui->tblAttributes->viewport()->mapToGlobal(point))) {
+			inputParameters(index);
+		}
+	}
+}
+
 void MainWindow::onShvTreeViewCurrentSelectionChanged(const QModelIndex &curr_ix, const QModelIndex &prev_ix)
 {
 	Q_UNUSED(prev_ix)
@@ -265,7 +362,7 @@ void MainWindow::closeEvent(QCloseEvent *ev)
 	QSettings settings;
 	settings.setValue(QStringLiteral("ui/mainWindow/state"), saveState());
 	settings.setValue(QStringLiteral("ui/mainWindow/geometry"), saveGeometry());
-	TheApp::instance()->serverTreeModel()->saveSettings(settings);
+	TheApp::instance()->saveSettings(settings);
 	Super::closeEvent(ev);
 }
 

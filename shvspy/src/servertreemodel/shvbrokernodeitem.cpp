@@ -187,7 +187,7 @@ shv::iotqt::rpc::ClientConnection *ShvBrokerNodeItem::clientConnection()
 		//m_rpcConnection->setCheckBrokerConnectedInterval(0);
 		connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &ShvBrokerNodeItem::onBrokerConnectedChanged);
 		connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvBrokerNodeItem::onRpcMessageReceived);
-    }
+	}
 	return m_rpcConnection;
 }
 
@@ -231,17 +231,17 @@ ShvNodeItem* ShvBrokerNodeItem::findNode(const std::string &path, std::string *p
 	return ret;
 }
 
-unsigned ShvBrokerNodeItem::callCreateSubscription(const std::string &shv_path, std::string method)
+int ShvBrokerNodeItem::callCreateSubscription(const std::string &shv_path, std::string method)
 {
 	shv::iotqt::rpc::ClientConnection *cc = clientConnection();
-	unsigned rqid = cc->createSubscription(shv_path, method);
+	int rqid = cc->createSubscription(shv_path, method);
 	return rqid;
 }
 
-unsigned ShvBrokerNodeItem::callNodeRpcMethod(const std::string &calling_node_shv_path, const std::string &method, const cp::RpcValue &params)
+int ShvBrokerNodeItem::callNodeRpcMethod(const std::string &calling_node_shv_path, const std::string &method, const cp::RpcValue &params)
 {
 	shv::iotqt::rpc::ClientConnection *cc = clientConnection();
-	unsigned rqid = cc->callShvMethod(calling_node_shv_path, method, params);
+	int rqid = cc->callShvMethod(calling_node_shv_path, method, params);
 	m_runningRpcRequests[rqid].shvPath = calling_node_shv_path;
 	return rqid;
 }
@@ -250,7 +250,7 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 {
 	if(msg.isResponse()) {
 		cp::RpcResponse resp(msg);
-		unsigned rqid = resp.requestId().toUInt();
+		int rqid = resp.requestId().toInt();
 		auto it = m_runningRpcRequests.find(rqid);
 		if(it == m_runningRpcRequests.end()) {
 			//shvWarning() << "unexpected request id:" << rqid;

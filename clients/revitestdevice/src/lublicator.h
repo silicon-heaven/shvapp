@@ -1,6 +1,6 @@
 #pragma once
 
-#include <shv/iotqt/node//shvtreenode.h>
+#include <shv/iotqt/node//shvnode.h>
 #include <shv/chainpack/rpcvalue.h>
 #include <shv/coreqt/utils.h>
 
@@ -11,11 +11,11 @@ class QSqlQuery;
 
 namespace shv { namespace chainpack { class RpcMessage; }}
 
-class Lublicator : public shv::iotqt::node::ShvTreeNode
+class Lublicator : public shv::iotqt::node::ShvNode
 {
 	Q_OBJECT
 private:
-	using Super = shv::iotqt::node::ShvTreeNode;
+	using Super = shv::iotqt::node::ShvNode;
 public:
 	enum class Status : unsigned
 	{
@@ -47,14 +47,14 @@ public:
 	Q_SIGNAL void valueChanged(const std::string &key, const shv::chainpack::RpcValue &val);
 	Q_SIGNAL void propertyValueChanged(const std::string &property_name, const shv::chainpack::RpcValue &new_val);
 
-	size_t methodCount2(const std::string &shv_path = std::string()) override;
-	const shv::chainpack::MetaMethod* metaMethod2(size_t ix, const std::string &shv_path = std::string()) override;
+	size_t methodCount(const StringViewList &shv_path) override;
+	const shv::chainpack::MetaMethod* metaMethod(const StringViewList &shv_path, size_t ix) override;
 
-	shv::chainpack::RpcValue hasChildren2(const std::string &shv_path) override;
-	StringList childNames2(const std::string &shv_path = std::string()) override;
+	shv::chainpack::RpcValue hasChildren(const StringViewList &shv_path) override;
+	StringList childNames(const StringViewList &shv_path) override;
 	//shv::chainpack::RpcValue lsAttributes(const std::string &node_id, unsigned attributes, const std::string &shv_path) override;
 
-	shv::chainpack::RpcValue call2(const std::string &method, const shv::chainpack::RpcValue &params, const std::string &shv_path = std::string()) override;
+	shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params) override;
 private:
 	shv::chainpack::RpcValue getLog(const shv::chainpack::RpcValue::DateTime &from, const shv::chainpack::RpcValue::DateTime &to);
 	void addLogEntry(const std::string &key, const shv::chainpack::RpcValue &value);

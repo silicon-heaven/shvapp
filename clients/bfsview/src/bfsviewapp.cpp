@@ -36,45 +36,51 @@ static std::vector<cp::MetaMethod> meta_methods_root {
 	{METH_APP_LOG, cp::MetaMethod::Signature::RetVoid, !cp::MetaMethod::IsSignal},
 };
 
-size_t AppRootNode::methodCount()
+size_t AppRootNode::methodCount(const StringViewList &shv_path)
 {
-	return meta_methods_root.size();
+	if(shv_path.empty())
+		return meta_methods_root.size();
+	return 0;
 }
 
-const shv::chainpack::MetaMethod *AppRootNode::metaMethod(size_t ix)
+const shv::chainpack::MetaMethod *AppRootNode::metaMethod(const StringViewList &shv_path, size_t ix)
 {
+	if(!shv_path.empty())
+		return nullptr;
 	if(meta_methods_root.size() <= ix)
 		SHV_EXCEPTION("Invalid method index: " + std::to_string(ix) + " of: " + std::to_string(meta_methods_root.size()));
 	return &(meta_methods_root[ix]);
 }
 
-shv::chainpack::RpcValue AppRootNode::call(const std::string &method, const shv::chainpack::RpcValue &params)
+shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
 {
-	if(method == cp::Rpc::METH_APP_NAME) {
-		return QCoreApplication::instance()->applicationName().toStdString();
-	}
-	if(method == cp::Rpc::METH_DEVICE_ID) {
-		return BfsViewApp::instance()->cliOptions()->deviceId().toStdString();
-	}
-	if(method == cp::Rpc::METH_MOUNT_POINT) {
-		return BfsViewApp::instance()->rpcConnection()->brokerMountPoint();
-	}
-	if(method == cp::Rpc::METH_CONNECTION_TYPE) {
-		return BfsViewApp::instance()->rpcConnection()->connectionType();
-	}
-	if(method == METH_APP_LOG) {
-		// read entire file into string
-		std::ifstream is{BfsViewApp::logFilePath(), std::ios::binary | std::ios::ate};
-		if(is) {
-			auto size = is.tellg();
-			std::string str(size, '\0'); // construct string to stream size
-			is.seekg(0);
-			is.read(&str[0], size);
-			return str;
+	if(shv_path.empty()) {
+		if(method == cp::Rpc::METH_APP_NAME) {
+			return QCoreApplication::instance()->applicationName().toStdString();
 		}
-		return std::string();
+		if(method == cp::Rpc::METH_DEVICE_ID) {
+			return BfsViewApp::instance()->cliOptions()->deviceId().toStdString();
+		}
+		if(method == cp::Rpc::METH_MOUNT_POINT) {
+			return BfsViewApp::instance()->rpcConnection()->brokerMountPoint();
+		}
+		if(method == cp::Rpc::METH_CONNECTION_TYPE) {
+			return BfsViewApp::instance()->rpcConnection()->connectionType();
+		}
+		if(method == METH_APP_LOG) {
+			// read entire file into string
+			std::ifstream is{BfsViewApp::logFilePath(), std::ios::binary | std::ios::ate};
+			if(is) {
+				auto size = is.tellg();
+				std::string str(size, '\0'); // construct string to stream size
+				is.seekg(0);
+				is.read(&str[0], size);
+				return str;
+			}
+			return std::string();
+		}
 	}
-	return Super::call(method, params);
+	return Super::callMethod(shv_path, method, params);
 }
 /*
 shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::RpcRequest &rq)
@@ -103,32 +109,42 @@ PwrStatusNode::PwrStatusNode(shv::iotqt::node::ShvNode *parent)
 	connect(m_sendPwrStatusDeferredTimer, &QTimer::timeout, this, &PwrStatusNode::sendPwrStatusChangedDeferred);
 }
 
-size_t PwrStatusNode::methodCount()
+size_t PwrStatusNode::methodCount(const StringViewList &shv_path)
 {
-	if(BfsViewApp::instance()->cliOptions()->isPwrStatusSimulate())
-		return meta_methods_pwrstatus.size() - 1;
-	else
+	if(!shv_path.empty())
+		return 0;
+	if(BfsViewApp::instance()->cliOptions()->isPwrStatusSimulate()) {
+		//shvInfo() << "PwrStatusNode::methodCount sim:" << (meta_methods_pwrstatus.size() - 1);
 		return meta_methods_pwrstatus.size();
+	}
+	else {
+		//shvInfo() << "PwrStatusNode::methodCount:" << meta_methods_pwrstatus.size();
+		return meta_methods_pwrstatus.size() - 1;
+	}
 }
 
-const shv::chainpack::MetaMethod *PwrStatusNode::metaMethod(size_t ix)
+const shv::chainpack::MetaMethod *PwrStatusNode::metaMethod(const StringViewList &shv_path, size_t ix)
 {
+	if(!shv_path.empty())
+		return nullptr;
 	if(meta_methods_pwrstatus.size() <= ix)
 		SHV_EXCEPTION("Invalid method index: " + std::to_string(ix) + " of: " + std::to_string(meta_methods_pwrstatus.size()));
 	return &(meta_methods_pwrstatus[ix]);
 }
 
-shv::chainpack::RpcValue PwrStatusNode::call(const std::string &method, const shv::chainpack::RpcValue &params)
+shv::chainpack::RpcValue PwrStatusNode::callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
 {
-	if(method == cp::Rpc::METH_GET) {
-		return (unsigned)pwrStatus();
+	if(shv_path.empty()) {
+		if(method == cp::Rpc::METH_GET) {
+			return (unsigned)pwrStatus();
+		}
+		if(method == METH_SIM_SET) {
+			unsigned s = params.toUInt();
+			BfsViewApp::instance()->setPwrStatus((PwrStatus)s);
+			return true;
+		}
 	}
-	if(method == METH_SIM_SET) {
-		unsigned s = params.toUInt();
-		BfsViewApp::instance()->setPwrStatus((PwrStatus)s);
-		return true;
-	}
-	return Super::call(method, params);
+	return Super::callMethod(shv_path, method, params);
 }
 
 void PwrStatusNode::setPwrStatus(PwrStatus s)

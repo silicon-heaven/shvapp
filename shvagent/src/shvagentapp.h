@@ -16,10 +16,10 @@ class AppRootNode : public shv::iotqt::node::ShvRootNode
 public:
 	explicit AppRootNode(QObject *parent = nullptr) : Super(parent) {}
 
-	size_t methodCount() override;
-	const shv::chainpack::MetaMethod* metaMethod(size_t ix) override;
+	size_t methodCount(const StringViewList &shv_path) override;
+	const shv::chainpack::MetaMethod* metaMethod(const StringViewList &shv_path, size_t ix) override;
 
-	shv::chainpack::RpcValue call(const std::string &method, const shv::chainpack::RpcValue &params) override;
+	shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params) override;
 
 	shv::chainpack::RpcValue processRpcRequest(const shv::chainpack::RpcRequest &rq) override;
 };
@@ -41,7 +41,6 @@ public:
 private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
-	//void onRootNodeSendRpcMesage(const shv::chainpack::RpcMessage &msg);
 private:
 	shv::iotqt::rpc::DeviceConnection *m_rpcConnection = nullptr;
 	AppCliOptions* m_cliOptions;

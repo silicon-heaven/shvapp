@@ -94,6 +94,7 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 			return tr("Call remote method");
 		}
 		else if(ix.column() == ColResult) {
+			/*
 			cp::RpcValue rv = qvariant_cast<cp::RpcValue>(m_rows.value(ix.row()).value(ColRawResult));
 			if(rv.isBlob()) {
 				const shv::chainpack::RpcValue::Blob &bb = rv.toBlob();
@@ -102,6 +103,8 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 			else {
 				return data(ix, Qt::DisplayRole);
 			}
+			*/
+			return data(ix, Qt::DisplayRole);
 		}
 		else if(ix.column() == ColIsNotify) {
 			bool is_notify = m_rows.value(ix.row()).value(ColIsNotify).toBool();
@@ -110,7 +113,9 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 		else {
 			return data(ix, Qt::DisplayRole);
 		}
-		break;
+	}
+	case RawResultRole: {
+		return m_rows.value(ix.row()).value(ColRawResult);
 	}
 	default:
 		break;
@@ -186,6 +191,22 @@ void AttributesModel::callMethod(int method_ix)
 	unsigned rqid = m_shvTreeNodeItem->callMethod(method_ix);
 	m_rows[method_ix][ColBtRun] = rqid;
 	emitRowChanged(method_ix);
+}
+
+QString AttributesModel::path() const
+{
+	if (m_shvTreeNodeItem.isNull()) {
+		return QString();
+	}
+	return QString::fromStdString(m_shvTreeNodeItem->shvPath());
+}
+
+QString AttributesModel::method(int row) const
+{
+	if (m_shvTreeNodeItem.isNull()) {
+		return QString();
+	}
+	return QString::fromStdString(m_shvTreeNodeItem->methods()[row].method);
 }
 
 void AttributesModel::onMethodsLoaded()

@@ -18,8 +18,8 @@ public:
 	void addConnection(rpc::ServerConnection *conn);
 	void removeConnection(rpc::ServerConnection *conn);
 
-	void processRawData(const shv::chainpack::RpcValue::MetaData &meta, std::string &&data) override;
-	shv::chainpack::RpcValue hasChildren() override;
+	void handleRawRpcRequest(shv::chainpack::RpcValue::MetaData &&meta, std::string &&data) override;
+	shv::chainpack::RpcValue hasChildren(const StringViewList &shv_path) override;
 private:
 	QList<rpc::ServerConnection *> m_connections;
 };

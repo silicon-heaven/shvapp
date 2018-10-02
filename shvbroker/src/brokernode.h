@@ -1,23 +1,24 @@
 #pragma once
 
-#include <shv/iotqt/node/shvtreenode.h>
+#include <shv/iotqt/node/shvnode.h>
+#include <shv/chainpack/rpcvalue.h>
 
-namespace shv { namespace chainpack { class RpcValue; class RpcRequest;/*class RpcMessage; */ }}
+//namespace shv { namespace chainpack { class RpcRequest;/*class RpcMessage; */ }}
 
-class BrokerNode : public shv::iotqt::node::ShvTreeNode
+class BrokerNode : public shv::iotqt::node::ShvNode
 {
 	Q_OBJECT
 
-	using Super = shv::iotqt::node::ShvTreeNode;
+	using Super = shv::iotqt::node::ShvNode;
 public:
 	BrokerNode(shv::iotqt::node::ShvNode *parent = nullptr);
 
+	//void processRawRpcRequest(shv::chainpack::RpcValue::MetaData &&meta, const std::string &data) override;
 	shv::chainpack::RpcValue processRpcRequest(const shv::chainpack::RpcRequest &rq) override;
+	shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params) override;
 
-	shv::chainpack::RpcValue call2(const std::string &method, const shv::chainpack::RpcValue &params, const std::string &shv_path = std::string()) override;
+	StringList childNames(const StringViewList &shv_path) override;
 
-	StringList childNames2(const std::string &shv_path) override;
-
-	size_t methodCount2(const std::string &shv_path = std::string()) override;
-	const shv::chainpack::MetaMethod* metaMethod2(size_t ix, const std::string &shv_path = std::string()) override;
+	size_t methodCount(const StringViewList &shv_path) override;
+	const shv::chainpack::MetaMethod* metaMethod(const StringViewList &shv_path, size_t ix) override;
 };

@@ -16,6 +16,7 @@ private:
 	typedef QAbstractTableModel Super;
 public:
 	enum Columns {ColMethodName = 0, ColSignature, ColIsNotify, ColParams, ColResult, ColBtRun, ColRawResult, ColCnt};
+	enum Roles {RawResultRole = Qt::UserRole };
 public:
 	AttributesModel(QObject *parent = nullptr);
 	~AttributesModel() Q_DECL_OVERRIDE;
@@ -29,6 +30,10 @@ public:
 
 	void load(ShvNodeItem *nd);
 	void callMethod(int row);
+
+	QString path() const;
+	QString method(int row) const;
+
 private:
 	//void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	void onMethodsLoaded();
