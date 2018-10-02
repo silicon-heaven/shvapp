@@ -12,6 +12,9 @@
 
 namespace cp = shv::chainpack;
 
+static int TAB_INDEX_PARAMETER_MAP = 0;
+static int TAB_INDEX_PARAMETER_LIST = 1;
+static int TAB_INDEX_CPON = 2;
 QVector<cp::RpcValue::Type> InputParametersDialog::m_supportedTypes {
 	cp::RpcValue::Type::String,
 	cp::RpcValue::Type::Int,
@@ -28,22 +31,34 @@ InputParametersDialog::InputParametersDialog(const QString &path, const QString 
 	, m_path(path)
 	, m_method(method)
 	, m_usedParamsWidget(nullptr)
+	, m_currentTabIndex(0)
+	, m_cponEdited(false)
 {
 	ui->setupUi(this);
 
-	ui->removeButton->setEnabled(false);
-	ui->parsingLabel->hide();
+	ui->removeListButton->setEnabled(false);
+	ui->parsingListLabel->hide();
+
+	ui->removeMapButton->setEnabled(false);
+	ui->parsingMapLabel->hide();
 
 	connect(ui->tabWidget, &QTabWidget::currentChanged, this, &InputParametersDialog::onCurrentTabChanged);
-	connect(ui->addButton, &QPushButton::clicked, this, QOverload<>::of(&InputParametersDialog::newParameter));
-	connect(ui->removeButton, &QPushButton::clicked, this, &InputParametersDialog::removeParameter);
+	connect(ui->addListButton, &QPushButton::clicked, this, QOverload<>::of(&InputParametersDialog::newListParameter));
+	connect(ui->addMapButton, &QPushButton::clicked, this, QOverload<>::of(&InputParametersDialog::newMapParameter));
+	connect(ui->removeListButton, &QPushButton::clicked, this, &InputParametersDialog::removeListParameter);
+	connect(ui->removeMapButton, &QPushButton::clicked, this, &InputParametersDialog::removeMapParameter);
 	connect(ui->lastUsedButton, &QPushButton::clicked, this, &InputParametersDialog::loadLastUsed);
 	connect(ui->clearButton, &QPushButton::clicked, this, &InputParametersDialog::clear);
-	connect(ui->parameterTable, &QTableWidget::currentCellChanged, this, &InputParametersDialog::onCurrentCellChanged);
+	connect(ui->parameterListTable, &QTableWidget::currentCellChanged, this, &InputParametersDialog::onListCurrentCellChanged);
+	connect(ui->parameterMapTable, &QTableWidget::currentCellChanged, this, &InputParametersDialog::onMapCurrentCellChanged);
 	connect(ui->rawCponEdit, &QPlainTextEdit::textChanged, &m_syntaxCheckTimer, QOverload<>::of(&QTimer::start));
+	connect(ui->rawCponEdit, &QPlainTextEdit::textChanged, [this]() {
+		m_cponEdited = true;
+	});
+
 	if (params.isValid()) {
-		if (!tryParseParams(params)) {
-			ui->tabWidget->setCurrentIndex(1);
+		if (!tryParseMapParams(params) && !tryParseListParams(params)) {
+			ui->tabWidget->setCurrentIndex(TAB_INDEX_CPON);
 			ui->rawCponEdit->setPlainText(QString::fromStdString(params.toPrettyString("    ")));
 		}
 	}
@@ -59,10 +74,13 @@ InputParametersDialog::~InputParametersDialog()
 
 cp::RpcValue InputParametersDialog::value() const
 {
-	if (ui->tabWidget->currentIndex() == 0) {
-		return paramValue();
+	if (ui->tabWidget->currentIndex() == TAB_INDEX_PARAMETER_MAP) {
+		return mapParamValue();
 	}
-	else {
+	if (ui->tabWidget->currentIndex() == TAB_INDEX_PARAMETER_LIST) {
+		return listParamValue();
+	}
+	else if (ui->tabWidget->currentIndex() == TAB_INDEX_CPON) {
 		std::string cpon = ui->rawCponEdit->toPlainText().toStdString();
 		if (cpon.size()) {
 			std::string err;
@@ -71,60 +89,112 @@ cp::RpcValue InputParametersDialog::value() const
 				return val;
 			}
 		}
-		return cp::RpcValue();
 	}
+	return cp::RpcValue();
 }
 
-void InputParametersDialog::newParameter()
+void InputParametersDialog::newListParameter()
 {
-	newParameter(cp::RpcValue());
+	newListParameter(cp::RpcValue());
 }
 
-void InputParametersDialog::newParameter(const cp::RpcValue &param)
+void InputParametersDialog::newMapParameter()
 {
-	int row = ui->parameterTable->rowCount();
-	ui->parameterTable->setRowCount(row + 1);
+	newMapParameter("", cp::RpcValue());
+}
 
+void InputParametersDialog::newMapParameter(const QString &key, const cp::RpcValue &param)
+{
+	int row = ui->parameterMapTable->rowCount();
+	ui->parameterMapTable->setRowCount(row + 1);
+
+	ui->parameterMapTable->setItem(row, 0, new QTableWidgetItem(key));
 	QComboBox *combo = new QComboBox(this);
-	ui->parameterTable->setCellWidget(row, 0, combo);
+	ui->parameterMapTable->setCellWidget(row, 1, combo);
 	for (cp::RpcValue::Type t : m_supportedTypes) {
 		combo->addItem(cp::RpcValue::typeToName(t), (int)t);
 	}
-	m_cellValueGetters << ValueGetter();
-	m_cellValueSetters << ValueSetter();
-	ui->parameterTable->setVerticalHeaderItem(row, new QTableWidgetItem("  "));
+	m_mapValueGetters << ValueGetter();
+	m_mapValueSetters << ValueSetter();
+	ui->parameterMapTable->setVerticalHeaderItem(row, new QTableWidgetItem("  "));
 
 	if (param.isValid()) {
 		cp::RpcValue::Type t = param.type();
 		int index = m_supportedTypes.indexOf(t);
 		combo->setCurrentIndex(index);
-		switchByType(t, row);
-		m_cellValueSetters[row](param);
+		switchByType(t, ui->parameterMapTable, row, 2, m_mapValueGetters, m_mapValueSetters);
+		m_mapValueSetters[row](param);
 	}
 	else {
 		int index = m_supportedTypes.indexOf(cp::RpcValue::Type::String);
 		combo->setCurrentIndex(index);
-		switchToString(row);
+		switchToString(ui->parameterMapTable, row, 2, m_mapValueGetters, m_mapValueSetters);
 	}
 	connect(combo, QOverload<int>::of(&QComboBox::currentIndexChanged), [this, combo, row](int index) {
 		cp::RpcValue::Type t = (cp::RpcValue::Type)combo->itemData(index).toInt();
-		switchByType(t, row);
+		switchByType(t, ui->parameterMapTable, row, 2, m_mapValueGetters, m_mapValueSetters);
 	});
 }
 
-void InputParametersDialog::onCurrentCellChanged(int row, int col)
+void InputParametersDialog::newListParameter(const cp::RpcValue &param)
+{
+	int row = ui->parameterListTable->rowCount();
+	ui->parameterListTable->setRowCount(row + 1);
+
+	QComboBox *combo = new QComboBox(this);
+	ui->parameterListTable->setCellWidget(row, 0, combo);
+	for (cp::RpcValue::Type t : m_supportedTypes) {
+		combo->addItem(cp::RpcValue::typeToName(t), (int)t);
+	}
+	m_listValueGetters << ValueGetter();
+	m_listValueSetters << ValueSetter();
+	ui->parameterListTable->setVerticalHeaderItem(row, new QTableWidgetItem("  "));
+
+	if (param.isValid()) {
+		cp::RpcValue::Type t = param.type();
+		int index = m_supportedTypes.indexOf(t);
+		combo->setCurrentIndex(index);
+		switchByType(t, ui->parameterListTable, row, 1, m_listValueGetters, m_listValueSetters);
+		m_listValueSetters[row](param);
+	}
+	else {
+		int index = m_supportedTypes.indexOf(cp::RpcValue::Type::String);
+		combo->setCurrentIndex(index);
+		switchToString(ui->parameterListTable, row, 1, m_listValueGetters, m_listValueSetters);
+	}
+	connect(combo, QOverload<int>::of(&QComboBox::currentIndexChanged), [this, combo, row](int index) {
+		cp::RpcValue::Type t = (cp::RpcValue::Type)combo->itemData(index).toInt();
+		switchByType(t, ui->parameterListTable, row, 1, m_listValueGetters, m_listValueSetters);
+	});
+}
+
+void InputParametersDialog::onListCurrentCellChanged(int row, int col)
 {
 	Q_UNUSED(col);
-	ui->removeButton->setEnabled(row != -1);
+	ui->removeListButton->setEnabled(row != -1);
 }
 
-void InputParametersDialog::removeParameter()
+void InputParametersDialog::onMapCurrentCellChanged(int row, int col)
 {
-	ui->parameterTable->removeRow(ui->parameterTable->currentRow());
-	m_cellValueGetters.removeAt(ui->parameterTable->currentRow());
+	Q_UNUSED(col);
+	ui->removeMapButton->setEnabled(row != -1);
 }
 
-bool InputParametersDialog::tryParseParams(const cp::RpcValue &params)
+void InputParametersDialog::removeListParameter()
+{
+	ui->parameterListTable->removeRow(ui->parameterListTable->currentRow());
+	m_listValueGetters.removeAt(ui->parameterListTable->currentRow());
+	m_listValueSetters.removeAt(ui->parameterListTable->currentRow());
+}
+
+void InputParametersDialog::removeMapParameter()
+{
+	ui->parameterMapTable->removeRow(ui->parameterMapTable->currentRow());
+	m_mapValueGetters.removeAt(ui->parameterMapTable->currentRow());
+	m_mapValueSetters.removeAt(ui->parameterMapTable->currentRow());
+}
+
+bool InputParametersDialog::tryParseListParams(const cp::RpcValue &params)
 {
 	if (!params.isList()) {
 		return false;
@@ -137,77 +207,95 @@ bool InputParametersDialog::tryParseParams(const cp::RpcValue &params)
 		}
 	}
 	for (const cp::RpcValue &param : param_list) {
-		newParameter(param);
+		newListParameter(param);
 	}
 	return true;
 }
 
-void InputParametersDialog::switchToBool(int row)
+bool InputParametersDialog::tryParseMapParams(const cp::RpcValue &params)
+{
+	if (!params.isMap()) {
+		return false;
+	}
+	cp::RpcValue::Map param_map = params.toMap();
+
+	for (auto param_pair : param_map) {
+		if (!m_supportedTypes.contains(param_pair.second.type())) {
+			return false;
+		}
+	}
+	for (auto param_pair : param_map) {
+		newMapParameter(QString::fromStdString(param_pair.first), param_pair.second);
+	}
+	return true;
+}
+
+void InputParametersDialog::switchToBool(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
 {
 	QCheckBox *checkbox = new QCheckBox(this);
-	ui->parameterTable->setCellWidget(row, 1, checkbox);
-	m_cellValueGetters[row] = [checkbox]() {
+	table->setCellWidget(row, col, checkbox);
+	getters[row] = [checkbox]() {
 		return cp::RpcValue(checkbox->isChecked() ? true : false);
 	};
-	m_cellValueSetters[row] = [checkbox](const cp::RpcValue &param) {
+	setters[row] = [checkbox](const cp::RpcValue &param) {
 		checkbox->setChecked(param.toBool());
 	};
 }
 
-void InputParametersDialog::switchToInt(int row)
+void InputParametersDialog::switchToInt(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
 {
 	QLineEdit *line_edit = new QLineEdit(this);
-	ui->parameterTable->setCellWidget(row, 1, line_edit);
+	table->setCellWidget(row, col, line_edit);
 	line_edit->setValidator(new QIntValidator(line_edit));
-	m_cellValueGetters[row] = [line_edit]() {
+	getters[row] = [line_edit]() {
 		return cp::RpcValue(line_edit->text().toInt());
 	};
-	m_cellValueSetters[row] = [line_edit](const cp::RpcValue &param) {
+	setters[row] = [line_edit](const cp::RpcValue &param) {
 		line_edit->setText(QString::number(param.toInt()));
 	};
 }
 
-void InputParametersDialog::switchToUInt(int row)
+void InputParametersDialog::switchToUInt(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
 {
 	QLineEdit *line_edit = new QLineEdit(this);
-	ui->parameterTable->setCellWidget(row, 1, line_edit);
+	table->setCellWidget(row, col, line_edit);
 	line_edit->setValidator(new QIntValidator(0, std::numeric_limits<int>::max(), line_edit));
-	m_cellValueGetters[row] = [line_edit]() {
+	getters[row] = [line_edit]() {
 		return cp::RpcValue(line_edit->text().toUInt());
 	};
-	m_cellValueSetters[row] = [line_edit](const cp::RpcValue &param) {
+	setters[row] = [line_edit](const cp::RpcValue &param) {
 		line_edit->setText(QString::number(param.toUInt()));
 	};
 }
 
-void InputParametersDialog::switchToString(int row)
+void InputParametersDialog::switchToString(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
 {
 	QLineEdit *line_edit = new QLineEdit(this);
-	ui->parameterTable->setCellWidget(row, 1, line_edit);
-	m_cellValueGetters[row] = [line_edit]() {
+	table->setCellWidget(row, col, line_edit);
+	getters[row] = [line_edit]() {
 		return  cp::RpcValue(line_edit->text().toStdString());
 	};
-	m_cellValueSetters[row] = [line_edit](const cp::RpcValue &param) {
+	setters[row] = [line_edit](const cp::RpcValue &param) {
 		line_edit->setText(QString::fromStdString(param.toString()));
 	};
 }
 
-void InputParametersDialog::switchToDouble(int row)
+void InputParametersDialog::switchToDouble(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
 {
 	QLineEdit *line_edit = new QLineEdit(this);
-	ui->parameterTable->setCellWidget(row, 1, line_edit);
+	table->setCellWidget(row, col, line_edit);
 	QDoubleValidator *v = new QDoubleValidator(line_edit);
 	v->setLocale(QLocale::C);
 	line_edit->setValidator(v);
-	m_cellValueGetters[row] = [line_edit]() {
+	getters[row] = [line_edit]() {
 		return cp::RpcValue(line_edit->text().toDouble());
 	};
-	m_cellValueSetters[row] = [line_edit](const cp::RpcValue &param) {
+	setters[row] = [line_edit](const cp::RpcValue &param) {
 		line_edit->setText(QString::number(param.toDouble()));
 	};
 }
 
-void InputParametersDialog::switchToDateTime(int row)
+void InputParametersDialog::switchToDateTime(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
 {
 	QWidget *datetime_widget = new QWidget(this);
 	QDateTimeEdit *edit = new QDateTimeEdit(datetime_widget);
@@ -221,93 +309,157 @@ void InputParametersDialog::switchToDateTime(int row)
 	datetime_widget->setLayout(layout);
 	edit->setDisplayFormat("dd.MM.yyyy HH:mm:ss");
 	edit->setCalendarPopup(true);
-	ui->parameterTable->setCellWidget(row, 1, datetime_widget);
-	m_cellValueGetters[row] = [edit]() {
-		return cp::RpcValue::DateTime::fromMSecsSinceEpoch(edit->dateTime().toMSecsSinceEpoch());
-	};
+	table->setCellWidget(row, col, datetime_widget);
 	connect(today, &QPushButton::clicked, [edit]() {
 		edit->setDateTime(QDateTime::currentDateTime());
 	});
-	m_cellValueSetters[row] = [edit](const cp::RpcValue &param) {
+	getters[row] = [edit]() {
+		return cp::RpcValue::DateTime::fromMSecsSinceEpoch(edit->dateTime().toMSecsSinceEpoch());
+	};
+	setters[row] = [edit](const cp::RpcValue &param) {
 		edit->setDateTime(QDateTime::fromMSecsSinceEpoch(param.toDateTime().msecsSinceEpoch()));
 	};
 }
 
-void InputParametersDialog::switchByType(const cp::RpcValue::Type &type, int row)
+void InputParametersDialog::switchByType(const cp::RpcValue::Type &type, QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
 {
-	switch(type) {
+	switch (type) {
 	case cp::RpcValue::Type::Int:
-		switchToInt(row);
+		switchToInt(table, row, col, getters, setters);
 		break;
 	case cp::RpcValue::Type::UInt:
-		switchToUInt(row);
+		switchToUInt(table, row, col, getters, setters);
 		break;
 	case cp::RpcValue::Type::Bool:
-		switchToBool(row);
+		switchToBool(table, row, col, getters, setters);
 		break;
 	case cp::RpcValue::Type::String:
-		switchToString(row);
+		switchToString(table, row, col, getters, setters);
 		break;
 	case cp::RpcValue::Type::Double:
-		switchToDouble(row);
+		switchToDouble(table, row, col, getters, setters);
 		break;
 	case cp::RpcValue::Type::DateTime:
-		switchToDateTime(row);
+		switchToDateTime(table, row, col, getters, setters);
 		break;
 	default:
 		break;
 	}
 }
 
-void InputParametersDialog::clearParams()
+void InputParametersDialog::clearParamList()
 {
-	ui->parameterTable->reset();
-	ui->parameterTable->clearContents();
-	ui->parameterTable->setRowCount(0);
-	ui->removeButton->setEnabled(false);
-	ui->addButton->setEnabled(true);
-	ui->parsingLabel->hide();
-	ui->parameterTable->show();
+	ui->parameterListTable->reset();
+	ui->parameterListTable->clearContents();
+	ui->parameterListTable->setRowCount(0);
+	ui->removeListButton->setEnabled(false);
+	ui->addListButton->setEnabled(true);
+	ui->parsingListLabel->hide();
+	ui->parameterListTable->show();
+}
+
+void InputParametersDialog::clearParamMap()
+{
+	ui->parameterMapTable->reset();
+	ui->parameterMapTable->clearContents();
+	ui->parameterMapTable->setRowCount(0);
+	ui->removeMapButton->setEnabled(false);
+	ui->addMapButton->setEnabled(true);
+	ui->parsingMapLabel->hide();
+	ui->parameterMapTable->show();
 }
 
 void InputParametersDialog::clear()
 {
-	clearParams();
+	clearParamMap();
+	clearParamList();
 	ui->rawCponEdit->clear();
 }
 
 void InputParametersDialog::onCurrentTabChanged(int index)
 {
-	if (index == 1) {
-		if (!ui->parameterTable->isHidden()) {
-			cp::RpcValue value = paramValue();
-			if (value.isValid()) {
-				ui->rawCponEdit->setPlainText(QString::fromStdString(value.toPrettyString("    ")));
+	if (index == TAB_INDEX_CPON) {
+		cp::RpcValue value;
+		if (m_currentTabIndex == TAB_INDEX_PARAMETER_LIST) {
+			if (!ui->parameterListTable->isHidden()) {
+				value = listParamValue();
+				if (value.isValid()) {
+					ui->rawCponEdit->setPlainText(QString::fromStdString(value.toPrettyString("    ")));
+				}
+				else {
+					ui->rawCponEdit->setPlainText(QString());
+				}
+				m_cponEdited = false;
 			}
-			else {
-				ui->rawCponEdit->setPlainText(QString());
-			}
-		}
-	}
-	else {
-		clearParams();
-		std::string cpon = ui->rawCponEdit->toPlainText().toStdString();
-		if (cpon.size() == 0) {
-			return;
 		}
 		else {
-			std::string err;
-			cp::RpcValue val = cp::RpcValue::fromCpon(cpon, &err);
-			if (err.size() == 0) {
-				if (tryParseParams(val)) {
-					return;
+			if (!ui->parameterMapTable->isHidden()) {
+				value = mapParamValue();
+				if (value.isValid()) {
+					ui->rawCponEdit->setPlainText(QString::fromStdString(value.toPrettyString("    ")));
 				}
+				else {
+					ui->rawCponEdit->setPlainText(QString());
+				}
+				m_cponEdited = false;
 			}
 		}
-		ui->addButton->setEnabled(false);
-		ui->parameterTable->hide();
-		ui->parsingLabel->show();
 	}
+	else if (index == TAB_INDEX_PARAMETER_LIST) {
+		if (m_currentTabIndex != TAB_INDEX_PARAMETER_MAP || !ui->parameterMapTable->isHidden() || m_cponEdited) {
+			clearParamList();
+			bool parsed = false;
+			if (m_currentTabIndex == TAB_INDEX_CPON) {
+				std::string cpon = ui->rawCponEdit->toPlainText().toStdString();
+				if (cpon.size() == 0) {
+					parsed = true;
+				}
+				else {
+					std::string err;
+					cp::RpcValue val = cp::RpcValue::fromCpon(cpon, &err);
+					if (err.size() == 0) {
+						parsed = tryParseListParams(val);
+					}
+				}
+			}
+			else if (!ui->parameterMapTable->isHidden() && ui->parameterMapTable->rowCount() == 0) {
+				parsed = true;
+			}
+			if (!parsed) {
+				ui->addListButton->setEnabled(false);
+				ui->parameterListTable->hide();
+				ui->parsingListLabel->show();
+			}
+		}
+	}
+	else if (index == TAB_INDEX_PARAMETER_MAP) {
+		if (m_currentTabIndex != TAB_INDEX_PARAMETER_LIST || !ui->parameterListTable->isHidden() || m_cponEdited) {
+			clearParamMap();
+			bool parsed = false;
+			if (m_currentTabIndex == TAB_INDEX_CPON) {
+				std::string cpon = ui->rawCponEdit->toPlainText().toStdString();
+				if (cpon.size() == 0) {
+					parsed= true;
+				}
+				else {
+					std::string err;
+					cp::RpcValue val = cp::RpcValue::fromCpon(cpon, &err);
+					if (err.size() == 0) {
+						parsed = tryParseMapParams(val);
+					}
+				}
+			}
+			else if (!ui->parameterListTable->isHidden() && ui->parameterListTable->rowCount() == 0) {
+				parsed = true;
+			}
+			if (!parsed) {
+				ui->addMapButton->setEnabled(false);
+				ui->parameterMapTable->hide();
+				ui->parsingMapLabel->show();
+			}
+		}
+	}
+	m_currentTabIndex = index;
 }
 
 void InputParametersDialog::checkSyntax()
@@ -345,22 +497,37 @@ void InputParametersDialog::loadParams(const QString &s)
 	clear();
 	cp::RpcValue params = cp::RpcValue::fromCpon(s.toStdString());
 	if (params.isValid()) {
-		ui->tabWidget->setCurrentIndex(0);
-		if (!tryParseParams(params)) {
-			ui->tabWidget->setCurrentIndex(1);
-			ui->rawCponEdit->setPlainText(QString::fromStdString(params.toPrettyString("    ")));
+		ui->tabWidget->setCurrentIndex(TAB_INDEX_PARAMETER_MAP);
+		if (!tryParseMapParams(params)) {
+			ui->tabWidget->setCurrentIndex(TAB_INDEX_PARAMETER_LIST);
+			if (!tryParseListParams(params)) {
+				ui->tabWidget->setCurrentIndex(TAB_INDEX_CPON);
+				ui->rawCponEdit->setPlainText(QString::fromStdString(params.toPrettyString("    ")));
+			}
 		}
 	}
 }
 
-cp::RpcValue InputParametersDialog::paramValue() const
+cp::RpcValue InputParametersDialog::listParamValue() const
 {
-	if (ui->parameterTable->rowCount() == 0) {
+	if (ui->parameterListTable->rowCount() == 0) {
 		return cp::RpcValue();
 	}
 	cp::RpcValue::List list;
-	for (int i = 0; i < ui->parameterTable->rowCount(); ++i) {
-		list.push_back(m_cellValueGetters[i]());
+	for (int i = 0; i < ui->parameterListTable->rowCount(); ++i) {
+		list.push_back(m_listValueGetters[i]());
 	}
 	return list;
+}
+
+cp::RpcValue InputParametersDialog::mapParamValue() const
+{
+	if (ui->parameterMapTable->rowCount() == 0) {
+		return cp::RpcValue();
+	}
+	cp::RpcValue::Map map;
+	for (int i = 0; i < ui->parameterMapTable->rowCount(); ++i) {
+		map[ui->parameterMapTable->item(i, 0)->text().toStdString()] = m_mapValueGetters[i]();
+	}
+	return map;
 }
