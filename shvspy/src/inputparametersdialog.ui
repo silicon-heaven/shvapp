@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>459</width>
+    <width>622</width>
     <height>300</height>
    </rect>
   </property>
@@ -32,9 +32,6 @@
             <widget class="QTableWidget" name="parameterTable">
              <attribute name="horizontalHeaderStretchLastSection">
               <bool>true</bool>
-             </attribute>
-             <attribute name="verticalHeaderDefaultSectionSize">
-              <number>20</number>
              </attribute>
              <column>
               <property name="text">
