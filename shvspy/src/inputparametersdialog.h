@@ -35,6 +35,7 @@ private:
 
 	void switchToBool(int row);
 	void switchToInt(int row);
+	void switchToUInt(int row);
 	void switchToString(int row);
 	void switchToDouble(int row);
 	void switchToDateTime(int row);
