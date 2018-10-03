@@ -23,8 +23,8 @@ DlgSubscriptions::DlgSubscriptions(QWidget *parent)
 	ui->subsriptionsTableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
 	ui->subsriptionsTableWidget->verticalHeader()->setVisible(false);
 
-	connect(ui->addSubsriptionButton,	&QToolButton::clicked, this, &DlgSubscriptions::onAddSubscription);
-	connect(ui->deleteSubscriptionButton, &QToolButton::clicked, this, &DlgSubscriptions::onDeleteSubscription);
+	connect(ui->addSubsriptionButton,	&QPushButton::clicked, this, &DlgSubscriptions::onAddSubscription);
+	connect(ui->deleteSubscriptionButton, &QPushButton::clicked, this, &DlgSubscriptions::onDeleteSubscription);
 }
 
 DlgSubscriptions::~DlgSubscriptions()

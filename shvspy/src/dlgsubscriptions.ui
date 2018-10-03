@@ -57,7 +57,7 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_2">
      <item>
-      <widget class="QToolButton" name="deleteSubscriptionButton">
+      <widget class="QPushButton" name="deleteSubscriptionButton">
        <property name="text">
         <string>Delete</string>
        </property>
