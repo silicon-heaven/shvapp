@@ -26,27 +26,12 @@ const char *Lublicator::METH_DEVICE_ID = "deviceId";
 const char *Lublicator::METH_CMD_ON = "cmdOn";
 const char *Lublicator::METH_CMD_OFF = "cmdOff";
 const char *Lublicator::METH_GET_LOG = "getLog";
-
-namespace {
-
-enum class Status : unsigned
-{
-	PosOff      = 1 << 0,
-	PosOn       = 1 << 1,
-	PosMiddle   = 1 << 2,
-	PosError    = 1 << 3,
-	BatteryLow  = 1 << 4,
-	BatteryHigh = 1 << 5,
-	DoorOpenCabinet = 1 << 6,
-	DoorOpenMotor = 1 << 7,
-	ModeAuto    = 1 << 8,
-	ModeRemote  = 1 << 9,
-	ModeService = 1 << 10,
-	MainSwitch  = 1 << 11
-};
-
-//static const std::string ODPOJOVACE_PATH = "/shv/eu/pl/lublin/odpojovace/";
-}
+const char METH_BATTERY_VOLTAGE[] = "batteryVoltage";
+const char METH_SIM_SET_BATTERY_VOLTAGE[] = "sim_setBatteryVoltage";
+const char METH_BATTERY_LOW_TRESHOLD[] = "batteryLowTreshold";
+const char METH_SET_BATTERY_LOW_TRESHOLD[] = "setBatteryLowTreshold";
+const char METH_BATTERY_HIGH_TRESHOLD[] = "batteryHighTreshold";
+const char METH_SET_BATTERY_HIGH_TRESHOLD[] = "setBatteryHighTreshold";
 
 Lublicator::Lublicator(const std::string &node_id, ShvNode *parent)
 	: Super(parent)
@@ -102,6 +87,12 @@ static std::vector<cp::MetaMethod> meta_methods_device {
 	{Lublicator::METH_CMD_ON, cp::MetaMethod::Signature::VoidVoid, false},
 	{Lublicator::METH_CMD_OFF, cp::MetaMethod::Signature::VoidVoid, false},
 	{Lublicator::METH_GET_LOG, cp::MetaMethod::Signature::RetParam, false},
+	{METH_BATTERY_LOW_TRESHOLD, cp::MetaMethod::Signature::RetVoid, false},
+	{METH_SET_BATTERY_LOW_TRESHOLD, cp::MetaMethod::Signature::VoidParam, false},
+	{METH_BATTERY_HIGH_TRESHOLD, cp::MetaMethod::Signature::RetVoid, false},
+	{METH_SET_BATTERY_HIGH_TRESHOLD, cp::MetaMethod::Signature::VoidParam, false},
+	{METH_BATTERY_VOLTAGE, cp::MetaMethod::Signature::RetVoid, false},
+	{METH_SIM_SET_BATTERY_VOLTAGE, cp::MetaMethod::Signature::VoidParam, false},
 };
 
 static std::vector<cp::MetaMethod> meta_methods_status {
@@ -152,20 +143,24 @@ shv::chainpack::RpcValue Lublicator::callMethod(const StringViewList &shv_path, 
 		}
 		if(method == METH_CMD_ON) {
 			unsigned stat = status();
+			stat &= ~(unsigned)Status::PosInternalOff;
 			stat &= ~(unsigned)Status::PosOff;
 			stat |= (unsigned)Status::PosMiddle;
 			setStatus(stat);
 			stat &= ~(unsigned)Status::PosMiddle;
+			stat |= (unsigned)Status::PosInternalOn;
 			stat |= (unsigned)Status::PosOn;
 			setStatus(stat);
 			return true;
 		}
 		if(method == METH_CMD_OFF) {
 			unsigned stat = status();
+			stat &= ~(unsigned)Status::PosInternalOn;
 			stat &= ~(unsigned)Status::PosOn;
 			stat |= (unsigned)Status::PosMiddle;
 			setStatus(stat);
 			stat &= ~(unsigned)Status::PosMiddle;
+			stat &= ~(unsigned)Status::PosInternalOff;
 			stat |= (unsigned)Status::PosOff;
 			setStatus(stat);
 			return true;
@@ -175,6 +170,30 @@ shv::chainpack::RpcValue Lublicator::callMethod(const StringViewList &shv_path, 
 			cp::RpcValue::DateTime from = m.value("from").toDateTime();
 			cp::RpcValue::DateTime to = m.value("to").toDateTime();
 			return getLog(from, to);
+		}
+		if(method == METH_BATTERY_VOLTAGE) {
+			return m_batteryVoltage;
+		}
+		if(method == METH_SIM_SET_BATTERY_VOLTAGE) {
+			unsigned d = params.toUInt();
+			m_batteryVoltage = d;
+			checkBatteryTresholds();
+		}
+		if(method == METH_BATTERY_LOW_TRESHOLD) {
+			return m_batteryLowTreshold;
+		}
+		if(method == METH_SET_BATTERY_LOW_TRESHOLD) {
+			unsigned d = params.toUInt();
+			m_batteryLowTreshold = d;
+			checkBatteryTresholds();
+		}
+		if(method == METH_BATTERY_HIGH_TRESHOLD) {
+			return m_batteryHighTreshold;
+		}
+		if(method == METH_SET_BATTERY_HIGH_TRESHOLD) {
+			unsigned d = params.toUInt();
+			m_batteryHighTreshold = d;
+			checkBatteryTresholds();
 		}
 	}
 	else if(shv_path[0] == "status") {
@@ -291,5 +310,19 @@ QSqlQuery Lublicator::logQuery()
 QString Lublicator::sqlConnectionName()
 {
 	return QStringLiteral("lublicator-%1").arg(QString::fromStdString(nodeId()));
+}
+
+void Lublicator::checkBatteryTresholds()
+{
+	unsigned s = status();
+	if(m_batteryVoltage >= m_batteryHighTreshold)
+		s |= (unsigned)Status::BatteryHigh;
+	else
+		s &= ~((unsigned)Status::BatteryHigh);
+	if(m_batteryVoltage <= m_batteryLowTreshold)
+		s |= (unsigned)Status::BatteryLow;
+	else
+		s &= ~((unsigned)Status::BatteryLow);
+	setStatus(s);
 }
 
