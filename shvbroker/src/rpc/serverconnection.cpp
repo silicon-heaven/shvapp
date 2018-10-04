@@ -59,6 +59,7 @@ std::string ServerConnection::passwordHash(PasswordHashType type, const std::str
 	const std::map<std::string, std::string> passwds {
 		{"iot", "lub42DUB"},
 		{"elviz", "brch3900PRD"},
+		{"revitest", "lautrhovno271828"},
 	};
 	std::string pass;
 	auto it = passwds.find(user);
@@ -129,8 +130,6 @@ void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolType proto
 
 bool ServerConnection::checkPassword(const shv::chainpack::RpcValue::Map &login)
 {
-	if(m_user == "revitest")
-		return true;
 	return Super::checkPassword(login);
 }
 
