@@ -36,6 +36,7 @@ static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false},
 	{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, false},
+	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, !cp::MetaMethod::IsSignal},
 	{cp::Rpc::METH_HELP, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_RUN_CMD, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_LAUNCH_REXEC, cp::MetaMethod::Signature::RetParam, false},
@@ -92,6 +93,10 @@ shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path,
 shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::RpcRequest &rq)
 {
 	if(rq.shvPath().toString().empty()) {
+		if(rq.method() == cp::Rpc::METH_DEVICE_ID) {
+			ShvAgentApp *app = ShvAgentApp::instance();
+			return app->cliOptions()->deviceId().toStdString();
+		}
 		if(rq.method() == cp::Rpc::METH_RUN_CMD) {
 			ShvAgentApp *app = ShvAgentApp::instance();
 			app->runCmd(rq);

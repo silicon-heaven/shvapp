@@ -36,6 +36,8 @@ public:
 	static ShvAgentApp *instance();
 	shv::iotqt::rpc::DeviceConnection *rpcConnection() const {return m_rpcConnection;}
 
+	AppCliOptions* cliOptions() {return m_cliOptions;}
+
 	void launchRexec(const shv::chainpack::RpcRequest &rq);
 	void runCmd(const shv::chainpack::RpcRequest &rq);
 private:
