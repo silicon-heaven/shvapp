@@ -178,6 +178,7 @@ shv::chainpack::RpcValue Lublicator::callMethod(const StringViewList &shv_path, 
 			unsigned d = params.toUInt();
 			m_batteryVoltage = d;
 			checkBatteryTresholds();
+			return true;
 		}
 		if(method == METH_BATTERY_LOW_TRESHOLD) {
 			return m_batteryLowTreshold;
@@ -186,6 +187,7 @@ shv::chainpack::RpcValue Lublicator::callMethod(const StringViewList &shv_path, 
 			unsigned d = params.toUInt();
 			m_batteryLowTreshold = d;
 			checkBatteryTresholds();
+			return true;
 		}
 		if(method == METH_BATTERY_HIGH_TRESHOLD) {
 			return m_batteryHighTreshold;
@@ -194,6 +196,7 @@ shv::chainpack::RpcValue Lublicator::callMethod(const StringViewList &shv_path, 
 			unsigned d = params.toUInt();
 			m_batteryHighTreshold = d;
 			checkBatteryTresholds();
+			return true;
 		}
 	}
 	else if(shv_path[0] == "status") {
@@ -280,13 +283,6 @@ shv::chainpack::RpcValue Lublicator::getLog(const shv::chainpack::RpcValue::Date
 
 void Lublicator::addLogEntry(const std::string &key, const shv::chainpack::RpcValue &value)
 {
-	//shv::chainpack::RpcValue::DateTime ts = cp::RpcValue::DateTime::now();
-	/*
-	LogEntry le;
-	le.ts = ts;
-	le.key = key;
-	le.value = value;
-	*/
 	QSqlQuery q = logQuery();
 	if(q.prepare("INSERT INTO shvlog (ts, path, val) VALUES (:ts, :path, :val)")) {
 		q.bindValue(":ts", QVariant::fromValue(QDateTime::currentDateTimeUtc()));
