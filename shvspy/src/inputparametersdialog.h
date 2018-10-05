@@ -11,6 +11,7 @@ namespace Ui {
 class InputParametersDialog;
 }
 
+class QTableWidget;
 class LastUsedParamsWidget;
 
 class InputParametersDialog : public QDialog
@@ -27,36 +28,47 @@ private:
 	using ValueGetter = std::function<shv::chainpack::RpcValue()>;
 	using ValueSetter = std::function<void(const shv::chainpack::RpcValue &param)>;
 
-	void newParameter();
-	void newParameter(const shv::chainpack::RpcValue &param);
-	void onCurrentCellChanged(int row, int col);
-	void removeParameter();
-	bool tryParseParams(const shv::chainpack::RpcValue &params);
+	void newListParameter();
+	void newListParameter(const shv::chainpack::RpcValue &param);
+	void newMapParameter();
+	void newMapParameter(const QString &key, const shv::chainpack::RpcValue &param);
+	void onListCurrentCellChanged(int row, int col);
+	void onMapCurrentCellChanged(int row, int col);
+	void removeListParameter();
+	void removeMapParameter();
+	bool tryParseListParams(const shv::chainpack::RpcValue &params);
+	bool tryParseMapParams(const shv::chainpack::RpcValue &params);
 
-	void switchToBool(int row);
-	void switchToInt(int row);
-	void switchToUInt(int row);
-	void switchToString(int row);
-	void switchToDouble(int row);
-	void switchToDateTime(int row);
+	void switchToBool(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters);
+	void switchToInt(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters);
+	void switchToUInt(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters);
+	void switchToString(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters);
+	void switchToDouble(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters);
+	void switchToDateTime(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters);
 
-	void switchByType(const shv::chainpack::RpcValue::Type &type, int row);
+	void switchByType(const shv::chainpack::RpcValue::Type &type, QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters);
 
-	void clearParams();
+	void clearParamList();
+	void clearParamMap();
 	void clear();
 	void onCurrentTabChanged(int index);
 	void checkSyntax();
 	void loadLastUsed();
 	void loadParams(const QString &s);
 
-	shv::chainpack::RpcValue paramValue() const;
+	shv::chainpack::RpcValue listParamValue() const;
+	shv::chainpack::RpcValue mapParamValue() const;
 
 	Ui::InputParametersDialog *ui;
-	QVector<ValueGetter> m_cellValueGetters;
-	QVector<ValueSetter> m_cellValueSetters;
+	QVector<ValueGetter> m_listValueGetters;
+	QVector<ValueSetter> m_listValueSetters;
+	QVector<ValueGetter> m_mapValueGetters;
+	QVector<ValueSetter> m_mapValueSetters;
 	static QVector<shv::chainpack::RpcValue::Type> m_supportedTypes;
 	QTimer m_syntaxCheckTimer;
 	QString m_path;
 	QString m_method;
 	LastUsedParamsWidget *m_usedParamsWidget;
+	int m_currentTabIndex;
+	bool m_cponEdited;
 };
