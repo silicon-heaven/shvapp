@@ -37,7 +37,7 @@ public:
 	void createSubscription(int client_id, const std::string &path, const std::string &method);
 
 	rpc::TcpServer* tcpServer();
-	rpc::ServerConnection* clientById(unsigned client_id);
+	rpc::ServerConnection* clientById(int client_id);
 
 	Q_SIGNAL void sqlServerConnected();
 private:
@@ -53,8 +53,10 @@ private:
 
 	void onRootNodeSendRpcMesage(const shv::chainpack::RpcMessage &msg);
 
-	void sendNotifyToSubscribers(unsigned sender_connection_id, const std::string &shv_path, const std::string &method, const shv::chainpack::RpcValue &params);
-	void sendNotifyToSubscribers(unsigned sender_connection_id, const shv::chainpack::RpcValue::MetaData &meta_data, const std::string &data);
+	void sendNotifyToSubscribers(int sender_connection_id, const std::string &shv_path, const std::string &method, const shv::chainpack::RpcValue &params);
+	void sendNotifyToSubscribers(int sender_connection_id, const shv::chainpack::RpcValue::MetaData &meta_data, const std::string &data);
+
+	static std::string brokerClientPath(int client_id);
 private:
 	AppCliOptions *m_cliOptions;
 	rpc::TcpServer *m_tcpServer = nullptr;

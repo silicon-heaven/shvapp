@@ -2,6 +2,7 @@
 
 #include "../brokerapp.h"
 
+#include <shv/chainpack/cponwriter.h>
 #include <shv/coreqt/log.h>
 #include <shv/core/stringview.h>
 
@@ -30,6 +31,11 @@ shv::chainpack::RpcValue ServerConnection::deviceId() const
 {
 	const shv::chainpack::RpcValue::Map &device = connectionOptions().value(cp::Rpc::TYPE_DEVICE).toMap();
 	return device.value(cp::Rpc::KEY_DEVICE_ID);
+}
+
+void ServerConnection::addMountPoint(const std::string &mp)
+{
+	m_mountPoints.push_back(mp);
 }
 
 void ServerConnection::setIdleWatchDogTimeOut(unsigned sec)
@@ -83,7 +89,14 @@ std::string ServerConnection::dataToCpon(shv::chainpack::Rpc::ProtocolType proto
 {
 	shv::chainpack::RpcValue rpc_val = shv::chainpack::RpcDriver::decodeData(protocol_type, data, start_pos);
 	rpc_val.setMetaData(shv::chainpack::RpcValue::MetaData(md));
-	return rpc_val.toPrettyString();
+	std::ostringstream out;
+	{
+		cp::CponWriterOptions opts;
+		opts.setTranslateIds(BrokerApp::instance()->cliOptions()->isMetaTypeExplicit());
+		cp::CponWriter wr(out, opts);
+		wr << rpc_val;
+	}
+	return out.str();
 }
 
 void ServerConnection::sendMessage(const shv::chainpack::RpcMessage &rpc_msg)
@@ -136,9 +149,9 @@ bool ServerConnection::checkPassword(const shv::chainpack::RpcValue::Map &login)
 shv::chainpack::RpcValue ServerConnection::login(const shv::chainpack::RpcValue &auth_params)
 {
 	cp::RpcValue ret = Super::login(auth_params);
-	cp::RpcValue::Map login_resp = ret.toMap();
-	if(login_resp.empty())
+	if(!ret.isValid())
 		return cp::RpcValue();
+	//cp::RpcValue::Map login_resp = ret.toMap();
 
 	const shv::chainpack::RpcValue::Map &opts = connectionOptions();
 	shv::chainpack::RpcValue::UInt t = opts.value(cp::Rpc::OPT_IDLE_WD_TIMEOUT).toUInt();
@@ -146,14 +159,22 @@ shv::chainpack::RpcValue ServerConnection::login(const shv::chainpack::RpcValue 
 	BrokerApp::instance()->onClientLogin(connectionId());
 
 	//login_resp[cp::Rpc::KEY_CLIENT_ID] = connectionId();
-	if(!mountPoint().empty())
-		login_resp[cp::Rpc::KEY_MOUT_POINT] = mountPoint();
-	return login_resp;
+	//if(!mountPoint().empty())
+	//	login_resp[cp::Rpc::KEY_MOUT_POINT] = mountPoint();
+	return ret;
 }
 
 void ServerConnection::createSubscription(const std::string &rel_path, const std::string &method)
 {
-	std::string abs_path = Subscription::toAbsolutePath(mountPoint(), rel_path);
+	std::string abs_path = rel_path;
+	if(Subscription::isRelativePath(abs_path)) {
+		const std::vector<std::string> &mps = mountPoints();
+		if(mps.empty())
+			SHV_EXCEPTION("Cannot subscribe relative path on unmounted device.");
+		if(mps.size() > 1)
+			SHV_EXCEPTION("Cannot subscribe relative path on device mounted to more than single node.");
+		abs_path = Subscription::toAbsolutePath(mps[0], rel_path);
+	}
 	Subscription su(abs_path, rel_path, method);
 	auto it = std::find(m_subscriptions.begin(), m_subscriptions.end(), su);
 	if(it == m_subscriptions.end()) {
@@ -189,11 +210,18 @@ std::string ServerConnection::Subscription::toRelativePath(const std::string &ab
 	return ret;
 }
 
+static const std::string DDOT("../");
+
+bool ServerConnection::Subscription::isRelativePath(const std::string &path)
+{
+	shv::core::StringView p(path);
+	return p.startsWith(DDOT);
+}
+
 std::string ServerConnection::Subscription::toAbsolutePath(const std::string &mount_point, const std::string &rel_path)
 {
 	shv::core::StringView p(rel_path);
 	size_t ddot_cnt = 0;
-	static const std::string DDOT("../");
 	while(p.startsWith(DDOT)) {
 		ddot_cnt++;
 		p = p.mid(DDOT.size());

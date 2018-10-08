@@ -16,7 +16,7 @@ class ServerConnection : public shv::iotqt::rpc::ServerConnection
 
 	using Super = shv::iotqt::rpc::ServerConnection;
 
-	SHV_FIELD_IMPL(std::string, m, M, ountPoint)
+	//SHV_FIELD_IMPL(std::string, m, M, ountPoint)
 public:
 	struct Subscription
 	{
@@ -27,6 +27,7 @@ public:
 		Subscription() {}
 		Subscription(const std::string &ap, const std::string &rp, const std::string &m) : absolutePath(ap), relativePath(rp), method(m) {}
 
+		static bool isRelativePath(const std::string &path);
 		std::string toRelativePath(const std::string &abs_path, bool &changed) const;
 		static std::string toAbsolutePath(const std::string &mount_point, const std::string &rel_path);
 
@@ -39,6 +40,9 @@ public:
 	ServerConnection(QTcpSocket* socket, QObject *parent = nullptr);
 
 	shv::chainpack::RpcValue deviceId() const;
+
+	void addMountPoint(const std::string &mp);
+	const std::vector<std::string>& mountPoints() const {return m_mountPoints;}
 
 	void setIdleWatchDogTimeOut(unsigned sec);
 
@@ -69,6 +73,7 @@ private:
 		}
 	};
 	*/
+	std::vector<std::string> m_mountPoints;
 	std::vector<Subscription> m_subscriptions;
 };
 
