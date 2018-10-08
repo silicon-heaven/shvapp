@@ -244,13 +244,13 @@ void BrokerApp::onClientLogin(int connection_id)
 		if(!m_deviceTree->mount(mount_point, cli_nd))
 			SHV_EXCEPTION("Cannot mount connection to device tree, connection id: " + std::to_string(connection_id)
 						  + " shv path: " + mount_point);
-		//conn->setMountPoint(mount_point);
-		this->sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_CONNECTED_CHANGED, true);
 		// delete whole client tree, when client is destroyed
 		connect(conn, &rpc::ServerConnection::destroyed, cli_nd->parentNode(), &ShvClientNode::deleteLater);
-		connect(conn, &rpc::ServerConnection::destroyed, this, [this, connection_id, mount_point]() {
-			this->sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_CONNECTED_CHANGED, false);
-		});
+		/// do not send NTF_CONNECTED_CHANGED, exposing client ID maight be dangerous
+		//this->sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_CONNECTED_CHANGED, true);
+		//connect(conn, &rpc::ServerConnection::destroyed, this, [this, connection_id, mount_point]() {
+		//	this->sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_CONNECTED_CHANGED, false);
+		//});
 		conn->setParent(cli_nd);
 	}
 	{
@@ -301,7 +301,6 @@ void BrokerApp::onClientLogin(int connection_id)
 			shvInfo() << "device id:" << device_id.toCpon() << " mounted on:" << mount_point;
 			/// overwrite client default mount point
 			conn->setMountPoint(mount_point);
-			connect(conn, &rpc::ServerConnection::destroyed, cli_nd, [cli_nd, conn]() {cli_nd->removeConnection(conn);});
 			connect(conn, &rpc::ServerConnection::destroyed, this, [this, connection_id, mount_point]() {
 				shvInfo() << "server connection destroyed";
 				//this->sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_DISCONNECTED, cp::RpcValue());

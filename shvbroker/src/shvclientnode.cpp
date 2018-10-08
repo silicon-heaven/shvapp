@@ -25,12 +25,13 @@ ShvClientNode::~ShvClientNode()
 void ShvClientNode::addConnection(rpc::ServerConnection *conn)
 {
 	m_connections << conn;
+	connect(conn, &rpc::ServerConnection::destroyed, [this](QObject *obj) {removeConnection(qobject_cast<rpc::ServerConnection *>(obj));});
 }
 
 void ShvClientNode::removeConnection(rpc::ServerConnection *conn)
 {
 	m_connections.removeOne(conn);
-	if(m_connections.isEmpty())
+	if(m_connections.isEmpty() && ownChildren().isEmpty())
 		deleteLater();
 }
 

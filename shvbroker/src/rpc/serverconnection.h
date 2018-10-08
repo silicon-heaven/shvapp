@@ -36,7 +36,7 @@ public:
 		std::string toString() const {return absolutePath + ':' + method;}
 	};
 public:
-	ServerConnection(QTcpSocket* socket, QObject *parent = 0);
+	ServerConnection(QTcpSocket* socket, QObject *parent = nullptr);
 
 	shv::chainpack::RpcValue deviceId() const;
 
