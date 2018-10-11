@@ -15,6 +15,7 @@
 #include <QSocketNotifier>
 #include <QTimer>
 #include <QtGlobal>
+#include <QFileInfo>
 
 #ifdef Q_OS_UNIX
 #include <unistd.h>
@@ -201,6 +202,12 @@ ShvAgentApp::ShvAgentApp(int &argc, char **argv, AppCliOptions* cli_opts)
 		m_shvTree->mount(SYS_FS, fsn);
 	}
 
+	if(cliOptions()->connStatusUpdateInterval() > 0) {
+		QTimer *tm = new QTimer(this);
+		connect(tm, &QTimer::timeout, this, &ShvAgentApp::updateConnStatusFile);
+		tm->start(cliOptions()->connStatusUpdateInterval() * 1000);
+	}
+
 	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
 }
 
@@ -336,9 +343,7 @@ void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq)
 
 void ShvAgentApp::onBrokerConnectedChanged(bool is_connected)
 {
-	Q_UNUSED(is_connected)
-	//if(is_connected)
-	//	shvInfo() <<
+	m_isBrokerConnected = is_connected;
 }
 
 void ShvAgentApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
@@ -365,6 +370,25 @@ void ShvAgentApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 			}
 		}
 		*/
+	}
+}
+
+void ShvAgentApp::updateConnStatusFile()
+{
+	QString fn = cliOptions()->connStatusFile();
+	if(fn.isEmpty())
+		return;
+	QFile f(fn);
+	QDir dir = QFileInfo(f).dir();
+	if(!dir.mkpath(dir.absolutePath())) {
+		shvError() << "Cannot create directory:" << dir.absolutePath();
+		return;
+	}
+	if(f.open(QFile::WriteOnly)) {
+		f.write(m_isBrokerConnected? "1": "0", 1);
+	}
+	else {
+		shvError() << "Cannot write to connection statu file:" << fn;
 	}
 }
 

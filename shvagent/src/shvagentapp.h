@@ -5,6 +5,7 @@
 #include <QCoreApplication>
 
 class AppCliOptions;
+class QTimer;
 
 namespace shv { namespace chainpack { class RpcMessage; }}
 namespace shv { namespace iotqt { namespace rpc { class DeviceConnection; }}}
@@ -43,11 +44,14 @@ public:
 private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
+	void updateConnStatusFile();
 private:
 	shv::iotqt::rpc::DeviceConnection *m_rpcConnection = nullptr;
 	AppCliOptions* m_cliOptions;
 
 	shv::iotqt::node::ShvNodeTree *m_shvTree = nullptr;
+	//QTimer *m_conStatusFileUpdateTimer = nullptr;
+	bool m_isBrokerConnected = false;
 #ifdef HANDLE_UNIX_SIGNALS
 	Q_SIGNAL void aboutToTerminate(int sig);
 
