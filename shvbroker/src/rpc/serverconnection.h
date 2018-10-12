@@ -38,6 +38,7 @@ public:
 	};
 public:
 	ServerConnection(QTcpSocket* socket, QObject *parent = nullptr);
+	~ServerConnection() override;
 
 	shv::chainpack::RpcValue deviceId() const;
 

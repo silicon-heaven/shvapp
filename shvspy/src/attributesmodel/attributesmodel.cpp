@@ -279,6 +279,7 @@ void AttributesModel::loadRows()
 		}
 	}
 	emit layoutChanged();
+	emit reloaded();
 }
 
 /*

@@ -34,6 +34,7 @@ public:
 	QString path() const;
 	QString method(int row) const;
 
+	Q_SIGNAL void reloaded();
 private:
 	//void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	void onMethodsLoaded();

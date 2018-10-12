@@ -27,6 +27,11 @@ ServerConnection::ServerConnection(QTcpSocket *socket, QObject *parent)
 	});
 }
 
+ServerConnection::~ServerConnection()
+{
+	//rpc::ServerConnectionshvWarning() << "destroying" << this;
+}
+
 shv::chainpack::RpcValue ServerConnection::deviceId() const
 {
 	const shv::chainpack::RpcValue::Map &device = connectionOptions().value(cp::Rpc::TYPE_DEVICE).toMap();

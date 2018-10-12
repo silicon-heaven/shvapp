@@ -64,6 +64,9 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui->tblAttributes->verticalHeader()->setDefaultSectionSize(fontMetrics().height() * 1.3);
 	ui->tblAttributes->setContextMenuPolicy(Qt::CustomContextMenu);
 
+	connect(TheApp::instance()->attributesModel(), &AttributesModel::reloaded, [this] () {
+		ui->tblAttributes->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
+	});
 
 	connect(ui->tblAttributes, &QTableView::customContextMenuRequested, this, &MainWindow::attributesTableContexMenu);
 
