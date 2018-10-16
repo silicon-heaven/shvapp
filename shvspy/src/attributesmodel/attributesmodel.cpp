@@ -94,8 +94,13 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 			return tr("Call remote method");
 		}
 		else if(ix.column() == ColResult) {
-			cp::RpcValue rv = qvariant_cast<cp::RpcValue>(m_rows.value(ix.row()).value(ColRawResult));
-			return QString::fromStdString(rv.toPrettyString("  "));
+			if(m_rows.value(ix.row()).value(ColIsError).toBool()) {
+				return data(ix, Qt::DisplayRole);
+			}
+			else {
+				cp::RpcValue rv = qvariant_cast<cp::RpcValue>(m_rows.value(ix.row()).value(ColRawResult));
+				return QString::fromStdString(rv.toPrettyString("  "));
+			}
 			/*
 			if(rv.isBlob()) {
 				const shv::chainpack::RpcValue::Blob &bb = rv.toBlob();
@@ -253,8 +258,10 @@ void AttributesModel::loadRow(int method_ix)
 		rv[ColParams] = QString::fromStdString(mtd.params.toCpon());
 	}
 	if(mtd.response.isError()) {
-		rv[ColRawResult] = QVariant::fromValue(cp::RpcValue());
+		//rv[ColRawResult] = QVariant::fromValue(shv::chainpack::RpcValue(mtd.response.error()));
+		rv[ColRawResult] = QVariant();
 		rv[ColResult] = QString::fromStdString(mtd.response.error().toString());
+		rv[ColIsError] = true;
 	}
 	else if(mtd.response.result().isValid()) {
 		rv[ColRawResult] = QVariant::fromValue(mtd.response.result());
@@ -263,6 +270,7 @@ void AttributesModel::loadRow(int method_ix)
 			rv[ColResult] = QString::fromStdString(result.toString());
 		else
 			rv[ColResult] = QString::fromStdString(mtd.response.result().toCpon());
+		rv[ColIsError] = false;
 	}
 	rv[ColBtRun] = mtd.rpcRequestId;
 }
