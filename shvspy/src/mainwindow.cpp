@@ -28,6 +28,7 @@
 #include <QMessageBox>
 #include <QItemSelectionModel>
 #include <QInputDialog>
+#include <QScrollBar>
 
 namespace cp = shv::chainpack;
 
@@ -67,9 +68,12 @@ MainWindow::MainWindow(QWidget *parent) :
 	connect(TheApp::instance()->attributesModel(), &AttributesModel::reloaded, [this] () {
 		QHeaderView *hh = ui->tblAttributes->horizontalHeader();
 		hh->resizeSections(QHeaderView::ResizeToContents);
-		int max_w = fontMetrics().height() * 100;
-		if(hh->sectionSize(AttributesModel::ColResult) > max_w)
-			hh->resizeSection(AttributesModel::ColResult, max_w);
+		int sum_w = 0;
+		for (int i = 0; i < hh->count(); ++i)
+			sum_w += hh->sectionSize(i);
+		int ww = ui->tblAttributes->geometry().size().width();
+		if(sum_w > ww)
+			hh->resizeSection(AttributesModel::ColResult, hh->sectionSize(AttributesModel::ColResult) - (sum_w - ww));
 	});
 
 	connect(ui->tblAttributes, &QTableView::customContextMenuRequested, this, &MainWindow::attributesTableContexMenu);
