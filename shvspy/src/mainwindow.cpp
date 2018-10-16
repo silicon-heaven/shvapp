@@ -40,7 +40,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	addAction(ui->actionQuit);
 	connect(ui->actionQuit, &QAction::triggered, TheApp::instance(), &TheApp::quit);
 	//setWindowTitle(tr("QFreeOpcUa Spy"));
-	setWindowIcon(QIcon(":/shvspy/images/qfopcuaspy-256x256.png"));
+	setWindowIcon(QIcon(":/shvspy/images/shvspy"));
 
 	ServerTreeModel *tree_model = TheApp::instance()->serverTreeModel();
 	ui->treeServers->setModel(tree_model);
@@ -65,7 +65,11 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui->tblAttributes->setContextMenuPolicy(Qt::CustomContextMenu);
 
 	connect(TheApp::instance()->attributesModel(), &AttributesModel::reloaded, [this] () {
-		ui->tblAttributes->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
+		QHeaderView *hh = ui->tblAttributes->horizontalHeader();
+		hh->resizeSections(QHeaderView::ResizeToContents);
+		int max_w = fontMetrics().height() * 100;
+		if(hh->sectionSize(AttributesModel::ColResult) > max_w)
+			hh->resizeSection(AttributesModel::ColResult, max_w);
 	});
 
 	connect(ui->tblAttributes, &QTableView::customContextMenuRequested, this, &MainWindow::attributesTableContexMenu);
@@ -86,7 +90,6 @@ MainWindow::MainWindow(QWidget *parent) :
 
 	ui->notificationsLogWidget->setLogTableModel(TheApp::instance()->rpcNotificationsModel());
 
-	//ui->tblSubscriptions->setModel(TheApp::instance()->subscriptionsModel());
 	QSettings settings;
 	restoreGeometry(settings.value(QStringLiteral("ui/mainWindow/geometry")).toByteArray());
 	restoreState(settings.value(QStringLiteral("ui/mainWindow/state")).toByteArray());
@@ -95,8 +98,6 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow()
 {
-	//TheApp::instance()->subscriptionsModel()->clear();
-	//shvWarning() << __FUNCTION__;
 	delete ui;
 }
 
@@ -136,47 +137,7 @@ void MainWindow::on_actRemoveServer_triggered()
 		}
 	}
 }
-/*
-void MainWindow::on_actSubscribeNodeValue_triggered()
-{
-	QModelIndex ix = ui->treeServers->currentIndex();
-	ShvNodeItem *nd = dynamic_cast<ShvNodeItem*>(TheApp::instance()->serverTreeModel()->itemFromIndex(ix));
-	ServerNode *snd = dynamic_cast<ServerNode*>(nd);
-	if(nd && !snd) {
-		qfopcua::SubscriptionParameters params;
-		{
-			DlgSubscriptionParameters dlg(this);
-			dlg.setSubscriptionParameters(params);
-			if(dlg.exec()) {
-				params = dlg.subscriptionParameters();
-			}
-			else {
-				return;
-			}
-		}
-		snd = nd->serverNode();
-		qfopcua::Subscription *subs = snd->clientConnection()->createSubscription(params);
-		if(subs) {
-			connect(subs, &qfopcua::Subscription::dataChanged, this, &MainWindow::onSubscribedDataChanged);
-			qfopcua::Subscription::MonitoredItemId hnd = subs->subscribeDataChange(nd->nodeId());
-			shvInfo() << "created subscription:" << subs << "subscribed data change handle:" << hnd << "node:" << nd->nodeId().toString();
-			TheApp::instance()->subscriptionsModel()->addItem(subs, hnd);
-		}
-	}
-}
 
-void MainWindow::on_actDumpNode_triggered()
-{
-	QModelIndex ix = ui->treeServers->currentIndex();
-	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
-	ShvBrokerNodeItem *snd = qobject_cast<ShvBrokerNodeItem*>(nd);
-	if(nd && !snd) {
-		DlgDumpNode dlg(nd, this);
-		dlg.generateText();
-		dlg.exec();
-	}
-}
-*/
 void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 {
 	QModelIndex ix = ui->treeServers->indexAt(pos);
@@ -228,14 +189,14 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 
 void MainWindow::openNode(const QModelIndex &ix)
 {
-	//shvInfo() << QF_FUNC_NAME;
 	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
 	ShvBrokerNodeItem *bnd = qobject_cast<ShvBrokerNodeItem*>(nd);
+	shvInfo() << (int)bnd->openStatus();
 	if(bnd) {
-		if(bnd->isOpen())
-			bnd->close();
-		else
+		if(bnd->openStatus() == ShvBrokerNodeItem::OpenStatus::Disconnected)
 			bnd->open();
+		else
+			bnd->close();
 	}
 }
 
@@ -326,21 +287,6 @@ void MainWindow::onShvTreeViewCurrentSelectionChanged(const QModelIndex &curr_ix
 		}
 	}
 }
-/*
-void MainWindow::onSubscribedDataChanged(const qfopcua::DataValue &data_value, int att_id, const qfopcua::NodeId &node_id, qfopcua::Subscription::MonitoredItemId handle, qfopcua::Subscription::Id subscription_id)
-{
-	shvLogFuncFrame();
-	qfDebug().noquote() << "DATA val:" << data_value.value() << data_value.toString() << "attr:" << qfopcua::AttributeId::toString(qfopcua::AttributeId::fromInt(att_id)) << "node:" << node_id.toString() << "handle:" << handle << "subscriber id:" << subscription_id;
-}
-*/
-/*
-void MainWindow::showOpcUaError(const QString &what)
-{
-	//qfWarning() << what;
-	QMessageBox::critical(this, tr("Opc UA Error"), what);
-}
-*/
-
 
 void MainWindow::editServer(ShvBrokerNodeItem *srv, bool copy_server)
 {

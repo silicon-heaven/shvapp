@@ -1,15 +1,16 @@
 #include "revitestdevice.h"
 #include "lublicator.h"
+#include "historynode.h"
+
+#include <shv/iotqt/utils/fileshvjournal.h>
+#include <shv/iotqt/node//shvnodetree.h>
+#include <shv/coreqt/log.h>
 
 #include <shv/chainpack/rpcmessage.h>
 #include <shv/chainpack/metamethod.h>
 #include <shv/core/string.h>
 #include <shv/core/stringview.h>
 #include <shv/core/exception.h>
-
-#include <shv/coreqt/log.h>
-
-#include <shv/iotqt/node//shvnodetree.h>
 
 namespace cp = shv::chainpack;
 namespace iot = shv::iotqt;
@@ -99,21 +100,16 @@ RevitestDevice::RevitestDevice(QObject *parent)
 	: QObject(parent)
 {
 	shvLogFuncFrame();
+	m_shvTree = new shv::iotqt::node::ShvNodeTree(this);
+	new HistoryNode(m_shvTree->root());
 	createDevices();
-	/*
-	for (size_t i = 0; i < LUB_CNT; ++i) {
-		m_lublicators[i].setObjectName(QString::number(i+1));
-		connect(&m_lublicators[i], &Lublicator::propertyValueChanged, this, &Revitest::onLublicatorPropertyValueChanged);
-	}
-	*/
 }
 
 void RevitestDevice::createDevices()
 {
-	m_devices = new shv::iotqt::node::ShvNodeTree(this);
 	static constexpr size_t LUB_CNT = 27;
 	for (size_t i = 0; i < LUB_CNT; ++i) {
-		auto *nd = new Lublicator(std::to_string(i+1), m_devices->root());
+		auto *nd = new Lublicator(std::to_string(i+1), m_shvTree->root());
 		connect(nd, &Lublicator::propertyValueChanged, this, &RevitestDevice::onLublicatorPropertyValueChanged);
 	}
 }
@@ -123,26 +119,10 @@ void RevitestDevice::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 	shvLogFuncFrame() << msg.toCpon();
 	if(msg.isRequest()) {
 		cp::RpcRequest rq(msg);
-		cp::RpcResponse resp = cp::RpcResponse::forRequest(rq.metaData());
-		try {
-			//shvInfo() << "RPC request received:" << rq.toCpon();
-			const cp::RpcValue shv_path = rq.shvPath();
-			std::string path_rest;
-			shv::iotqt::node::ShvNode *nd = m_devices->cd(shv_path.toString(), &path_rest);
-			if(!nd)
-				SHV_EXCEPTION("Path not found: " + shv_path.toString());
-			rq.setShvPath(path_rest);
-			shv::chainpack::RpcValue result = nd->processRpcRequest(rq);
-			if(result.isValid())
-				resp.setResult(result);
-			else
-				return;
+		shvInfo() << "RPC request received:" << rq.toPrettyString();
+		if(m_shvTree->root()) {
+			m_shvTree->root()->handleRpcRequest(rq);
 		}
-		catch (shv::core::Exception &e) {
-			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, e.message()));
-		}
-		if(resp.requestId().toInt() > 0) // RPC calls with requestID == 0 does not expect response
-			emit sendRpcMessage(resp);
 	}
 	else if(msg.isResponse()) {
 		cp::RpcResponse rp(msg);
@@ -151,6 +131,17 @@ void RevitestDevice::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 	else if(msg.isNotify()) {
 		cp::RpcNotify nt(msg);
 		shvInfo() << "RPC notify received:" << nt.toCpon();
+	}
+}
+
+void RevitestDevice::getSnapshot(std::vector<shv::iotqt::utils::ShvJournalEntry> &snapshot)
+{
+	for(const auto &id : m_shvTree->root()->childNames()) {
+		shv::iotqt::node::ShvNode *nd = m_shvTree->root()->childNode(id);
+		shv::iotqt::utils::ShvJournalEntry e;
+		e.path = id + "/status";
+		e.value = nd->callMethod(shv::iotqt::node::ShvNode::StringViewList{shv::iotqt::node::ShvNode::StringView("status")}, cp::Rpc::METH_GET, cp::RpcValue());
+		snapshot.emplace_back(std::move(e));
 	}
 }
 

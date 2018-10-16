@@ -20,6 +20,6 @@
 		<file>images/delete.svg</file>
 		<file>images/fit-width.svg</file>
 
-		<file>images/shvspy-256x256.png</file>
+		<file>images/shvspy.svg</file>
 	</qresource>
 </RCC>

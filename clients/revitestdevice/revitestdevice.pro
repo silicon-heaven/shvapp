@@ -4,7 +4,7 @@ SHV_TOP_SRCDIR = $$PWD/../..
 message ( SHV_TOP_SRCDIR == '$$SHV_TOP_SRCDIR' )
 message ( SHV_TOP_BUILDDIR == '$$SHV_TOP_BUILDDIR' )
 
-QT += core network sql
+QT += core network
 QT -= gui
 CONFIG += c++11
 

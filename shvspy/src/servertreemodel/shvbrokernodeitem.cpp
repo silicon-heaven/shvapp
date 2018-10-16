@@ -128,6 +128,7 @@ void ShvBrokerNodeItem::close()
 		m_rpcConnection->close();
 	m_openStatus = OpenStatus::Disconnected;
 	deleteChildren();
+	emitDataChanged();
 }
 /*
 QString ServerNode::connectionErrorString()

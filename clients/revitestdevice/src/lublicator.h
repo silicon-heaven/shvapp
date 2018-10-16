@@ -59,24 +59,14 @@ public:
 
 	shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params) override;
 private:
-	shv::chainpack::RpcValue getLog(const shv::chainpack::RpcValue::DateTime &from, const shv::chainpack::RpcValue::DateTime &to);
+	shv::chainpack::RpcValue getLog(const shv::chainpack::RpcValue &params);
 	void addLogEntry(const std::string &key, const shv::chainpack::RpcValue &value);
-	QSqlQuery logQuery();
-	QString sqlConnectionName();
 	void checkBatteryTresholds();
 private:
 	unsigned m_status = 0;
 	unsigned m_batteryVoltage = 24;
 	unsigned m_batteryLowTreshold = 20;
 	unsigned m_batteryHighTreshold = 28;
-	/*
-	struct LogEntry
-	{
-		//shv::chainpack::RpcValue::DateTime ts;
-		std::string key;
-		shv::chainpack::RpcValue value;
-	};
-	*/
 };
 
 
