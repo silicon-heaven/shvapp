@@ -86,9 +86,9 @@ MainWindow::MainWindow(QWidget *parent) :
 		if (ix.column() == AttributesModel::ColResult) {
 			displayResult(ix);
 		}
-		else if (ix.column() == AttributesModel::ColParams) {
-			inputParameters(ix);
-		}
+//		else if (ix.column() == AttributesModel::ColParams) {
+//			inputParameters(ix);
+//		}
 	});
 
 
