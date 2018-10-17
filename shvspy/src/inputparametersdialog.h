@@ -11,6 +11,7 @@ namespace Ui {
 class InputParametersDialog;
 }
 
+class QComboBox;
 class QTableWidget;
 class LastUsedParamsWidget;
 
@@ -28,14 +29,17 @@ private:
 	using ValueGetter = std::function<shv::chainpack::RpcValue()>;
 	using ValueSetter = std::function<void(const shv::chainpack::RpcValue &param)>;
 
+	void newSingleParameter(const shv::chainpack::RpcValue &param);
 	void newListParameter();
 	void newListParameter(const shv::chainpack::RpcValue &param);
 	void newMapParameter();
 	void newMapParameter(const QString &key, const shv::chainpack::RpcValue &param);
 	void onListCurrentCellChanged(int row, int col);
 	void onMapCurrentCellChanged(int row, int col);
+	void onSingleTypeChanged(int type);
 	void removeListParameter();
 	void removeMapParameter();
+	bool tryParseSingleParam(const shv::chainpack::RpcValue &params);
 	bool tryParseListParams(const shv::chainpack::RpcValue &params);
 	bool tryParseMapParams(const shv::chainpack::RpcValue &params);
 
@@ -48,6 +52,12 @@ private:
 
 	void switchByType(const shv::chainpack::RpcValue::Type &type, QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters);
 
+	void switchToCpon();
+	void switchToMap();
+	void switchToList();
+	void switchToSingle();
+
+	void clearSingleParam();
 	void clearParamList();
 	void clearParamMap();
 	void clear();
@@ -56,10 +66,14 @@ private:
 	void loadLastUsed();
 	void loadParams(const QString &s);
 
+	shv::chainpack::RpcValue singleParamValue() const;
 	shv::chainpack::RpcValue listParamValue() const;
 	shv::chainpack::RpcValue mapParamValue() const;
 
 	Ui::InputParametersDialog *ui;
+	QComboBox *m_singleTypeCombo;
+	QVector<ValueGetter> m_singleValueGetters;
+	QVector<ValueSetter> m_singleValueSetters;
 	QVector<ValueGetter> m_listValueGetters;
 	QVector<ValueSetter> m_listValueSetters;
 	QVector<ValueGetter> m_mapValueGetters;
