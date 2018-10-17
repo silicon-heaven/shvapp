@@ -137,7 +137,9 @@ void RevitestDevice::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 void RevitestDevice::getSnapshot(std::vector<shv::iotqt::utils::ShvJournalEntry> &snapshot)
 {
 	for(const auto &id : m_shvTree->root()->childNames()) {
-		shv::iotqt::node::ShvNode *nd = m_shvTree->root()->childNode(id);
+		Lublicator *nd = qobject_cast<Lublicator*>(m_shvTree->root()->childNode(id));
+		if(!nd)
+			continue;
 		shv::iotqt::utils::ShvJournalEntry e;
 		e.path = id + "/status";
 		e.value = nd->callMethod(shv::iotqt::node::ShvNode::StringViewList{shv::iotqt::node::ShvNode::StringView("status")}, cp::Rpc::METH_GET, cp::RpcValue());
