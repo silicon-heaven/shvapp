@@ -4,6 +4,7 @@
 #include <shv/core/utils.h>
 
 #include <shv/coreqt/log.h>
+#include <shv/iotqt/utils/fileshvjournal.h>
 
 #include <QTextStream>
 #include <QTranslator>
@@ -59,9 +60,13 @@ int main(int argc, char *argv[])
 	shvInfo() << "======================================================================================";
 	shvInfo() << "Log tresholds:" << NecroLog::tresholdsLogInfo();
 	//shvInfo() << NecroLog::instantiationInfo();
-	shvInfo() << "--------------------------------------------------------------------------------------";
 
 	RevitestApp a(argc, argv, &cli_opts);
+
+	shvInfo() << "Shv journal dir:" << a.shvJournal()->journalDir();
+	shvInfo() << "Shv journal file size limit:" << a.shvJournal()->fileSizeLimit();
+	shvInfo() << "Shv journal dir size limit:" << a.shvJournal()->dirSizeLimit();
+	shvInfo() << "--------------------------------------------------------------------------------------";
 
 	shvInfo() << "starting main thread event loop";
 	ret = a.exec();
