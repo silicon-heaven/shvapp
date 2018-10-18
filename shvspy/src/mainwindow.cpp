@@ -195,7 +195,6 @@ void MainWindow::openNode(const QModelIndex &ix)
 {
 	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
 	ShvBrokerNodeItem *bnd = qobject_cast<ShvBrokerNodeItem*>(nd);
-	shvInfo() << (int)bnd->openStatus();
 	if(bnd) {
 		if(bnd->openStatus() == ShvBrokerNodeItem::OpenStatus::Disconnected)
 			bnd->open();
