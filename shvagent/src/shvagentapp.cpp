@@ -97,11 +97,9 @@ shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::Rp
 		if(rq.method() == cp::Rpc::METH_DEVICE_ID) {
 			ShvAgentApp *app = ShvAgentApp::instance();
 			cp::RpcValue::Map opts = app->rpcConnection()->connectionOptions().toMap();;
-			cp::RpcValue::Map dev = opts[cp::Rpc::TYPE_DEVICE].toMap();
-			shvInfo() << dev[cp::Rpc::KEY_DEVICE_ID].toString();
-			return dev[cp::Rpc::KEY_DEVICE_ID].toString();
-//			shvInfo() << app->cliOptions()->deviceId();
-//			return app->cliOptions()->deviceId().toStdString();
+			cp::RpcValue::Map dev = opts.value(cp::Rpc::TYPE_DEVICE).toMap();
+			//shvInfo() << dev[cp::Rpc::KEY_DEVICE_ID].toString();
+			return dev.value(cp::Rpc::KEY_DEVICE_ID).toString();
 		}
 		if(rq.method() == cp::Rpc::METH_RUN_CMD) {
 			ShvAgentApp *app = ShvAgentApp::instance();
