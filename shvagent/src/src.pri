@@ -12,6 +12,3 @@ SOURCES += \
 
 #include ($$PWD/rpc/rpc.pri)
 
-
-
-
