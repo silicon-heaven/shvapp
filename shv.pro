@@ -12,5 +12,6 @@ SUBDIRS += \
     shvagent \
     shvrexec \
     shvrsh \
+    shvfileprovider
 }
 
