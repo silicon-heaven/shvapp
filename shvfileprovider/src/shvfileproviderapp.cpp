@@ -1,9 +1,7 @@
 #include "shvfileproviderapp.h"
 #include "appclioptions.h"
-#include "sessionprocess.h"
 
 #include <shv/iotqt/rpc/deviceconnection.h>
-#include <shv/iotqt/rpc/tunnelhandle.h>
 #include <shv/iotqt/node/shvnodetree.h>
 #include <shv/iotqt/node/localfsnode.h>
 #include <shv/coreqt/log.h>
@@ -11,7 +9,6 @@
 
 #include <shv/core/stringview.h>
 
-#include <QProcess>
 #include <QSocketNotifier>
 #include <QTimer>
 #include <QtGlobal>
@@ -21,13 +18,6 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
-#endif
-
-#ifdef HANDLE_UNIX_SIGNALS
-#include <signal.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <unistd.h>
 #endif
 
 namespace cp = shv::chainpack;
@@ -113,13 +103,13 @@ ShvFileProviderApp::ShvFileProviderApp(int &argc, char **argv, AppCliOptions* cl
 	AppRootNode *root = new AppRootNode();
 	m_shvTree = new shv::iotqt::node::ShvNodeTree(root, this);
 	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
-	//m_shvTree->mkdir("sys/rproc");
-	QString sys_fs_root_dir = cli_opts->sysFsRootDir();
-	if(!sys_fs_root_dir.isEmpty() && QDir(sys_fs_root_dir).exists()) {
-		const char *SYS_FS = "sys/fs";
-		shvInfo() << "Exporting" << sys_fs_root_dir << "as" << SYS_FS << "node";
-		shv::iotqt::node::LocalFSNode *fsn = new shv::iotqt::node::LocalFSNode(sys_fs_root_dir);
-		m_shvTree->mount(SYS_FS, fsn);
+
+	QString brclab_fs_root_dir = cli_opts->sysFsRootDir();
+	if(!brclab_fs_root_dir.isEmpty() && QDir(brclab_fs_root_dir).exists()) {
+		const char *BRCLAB_FS = "brclab/fs";
+		shvInfo() << "Exporting" << brclab_fs_root_dir << "as" << BRCLAB_FS << "node";
+		shv::iotqt::node::LocalFSNode *fsn = new shv::iotqt::node::LocalFSNode(brclab_fs_root_dir);
+		m_shvTree->mount(BRCLAB_FS, fsn);
 	}
 
 	if(cliOptions()->connStatusUpdateInterval() > 0) {
