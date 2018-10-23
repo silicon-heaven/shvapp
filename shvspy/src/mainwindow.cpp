@@ -10,7 +10,7 @@
 #include "dlgserverproperties.h"
 #include "dlgsubscriptionparameters.h"
 #include "dlgsubscriptions.h"
-#include "inputparametersdialog.h"
+#include "methodparametersdialog.h"
 #include "resultview.h"
 
 #include <shv/chainpack/chainpackreader.h>
@@ -29,6 +29,8 @@
 #include <QItemSelectionModel>
 #include <QInputDialog>
 #include <QScrollBar>
+
+#include <fstream>
 
 namespace cp = shv::chainpack;
 
@@ -213,6 +215,14 @@ void MainWindow::displayResult(const QModelIndex &ix)
 
 	if(rv.isString()) {
 		formatted = rv.toString();
+		/*
+		static constexpr int MAX_TT_SIZE = 1024;
+		std::string tts = rv.toPrettyString("  ");
+		if(tts.size() > MAX_TT_SIZE)
+			tts = tts.substr(0, MAX_TT_SIZE) + " < ... " + std::to_string(tts.size() - MAX_TT_SIZE) + " more bytes >";
+		*/
+		//std::ofstream os("/tmp/string.bin", std::ostream::binary);
+		//os << formatted;
 	}
 	else try {
 		std::ostringstream pout;
@@ -232,7 +242,7 @@ void MainWindow::displayResult(const QModelIndex &ix)
 	view.exec();
 }
 
-void MainWindow::inputParameters(const QModelIndex &ix)
+void MainWindow::editMethodParameters(const QModelIndex &ix)
 {
 	QString params = ix.data(Qt::DisplayRole).toString();
 	cp::RpcValue rv;
@@ -243,7 +253,7 @@ void MainWindow::inputParameters(const QModelIndex &ix)
 
 	QString path = TheApp::instance()->attributesModel()->path();
 	QString method = TheApp::instance()->attributesModel()->method(ix.row());
-	InputParametersDialog dlg(path, method, rv, this);
+	MethodParametersDialog dlg(path, method, rv, this);
 	if (dlg.exec() == QDialog::Accepted) {
 		shv::chainpack::RpcValue val = dlg.value();
 		if (val.isValid()) {
@@ -267,9 +277,9 @@ void MainWindow::attributesTableContexMenu(const QPoint &point)
 	}
 	else if (index.isValid() && index.column() == AttributesModel::ColParams) {
 		QMenu menu(this);
-		menu.addAction(tr("Input parameters"));
+		menu.addAction(tr("Parameters editor"));
 		if (menu.exec(ui->tblAttributes->viewport()->mapToGlobal(point))) {
-			inputParameters(index);
+			editMethodParameters(index);
 		}
 	}
 }

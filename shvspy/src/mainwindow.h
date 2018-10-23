@@ -34,7 +34,7 @@ protected:
 	void editServer(ShvBrokerNodeItem *srv, bool copy_server);
 	void openNode(const QModelIndex &ix);
 	void displayResult(const QModelIndex &ix);
-	void inputParameters(const QModelIndex &ix);
+	void editMethodParameters(const QModelIndex &ix);
 	void attributesTableContexMenu(const QPoint &point);
 
 	void closeEvent(QCloseEvent *ev) Q_DECL_OVERRIDE;

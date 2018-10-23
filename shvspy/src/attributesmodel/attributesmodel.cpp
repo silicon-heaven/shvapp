@@ -59,8 +59,21 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 		case ColMethodName:
 		case ColSignature:
 		case ColParams:
-		case ColResult:
 			return m_rows.value(ix.row()).value(ix.column());
+		case ColResult:
+			if(m_rows.value(ix.row()).value(ColIsError).toBool()) {
+				return m_rows.value(ix.row()).value(ix.column());
+			}
+			else {
+				cp::RpcValue rv = qvariant_cast<cp::RpcValue>(m_rows.value(ix.row()).value(ColRawResult));
+
+				static constexpr int MAX_TT_SIZE = 1024;
+				std::string tts = rv.toPrettyString("  ");
+				if(tts.size() > MAX_TT_SIZE)
+					tts = tts.substr(0, MAX_TT_SIZE) + " < ... " + std::to_string(tts.size() - MAX_TT_SIZE) + " more bytes >";
+
+				return QString::fromStdString(tts);
+			}
 		case ColIsNotify:
 			return m_rows.value(ix.row()).value(ix.column()).toBool()? "Y": QVariant();
 		default:
@@ -94,23 +107,7 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 			return tr("Call remote method");
 		}
 		else if(ix.column() == ColResult) {
-			if(m_rows.value(ix.row()).value(ColIsError).toBool()) {
-				return data(ix, Qt::DisplayRole);
-			}
-			else {
-				cp::RpcValue rv = qvariant_cast<cp::RpcValue>(m_rows.value(ix.row()).value(ColRawResult));
-				return QString::fromStdString(rv.toPrettyString("  "));
-			}
-			/*
-			if(rv.isBlob()) {
-				const shv::chainpack::RpcValue::Blob &bb = rv.toBlob();
-				return QString::fromUtf8(bb.data(), bb.size());
-			}
-			else {
-				return data(ix, Qt::DisplayRole);
-			}
-			*/
-			//return data(ix, Qt::DisplayRole);
+			return data(ix, Qt::DisplayRole);
 		}
 		else if(ix.column() == ColIsNotify) {
 			bool is_notify = m_rows.value(ix.row()).value(ColIsNotify).toBool();
@@ -134,22 +131,18 @@ bool AttributesModel::setData(const QModelIndex &ix, const QVariant &val, int ro
 	shvLogFuncFrame() << val.toString() << val.typeName() << "role:" << role;
 	if(role == Qt::EditRole) {
 		if(ix.column() == ColParams) {
-			std::string cpon = val.toString().toStdString();
-			cp::RpcValue params;
-			if(!cpon.empty()) {
-				try {
-					std::istringstream is(cpon);
-					cp::CponReader rd(is);
-					rd >> params;
-					if(!m_shvTreeNodeItem.isNull()) {
-						m_shvTreeNodeItem->setMethodParams(ix.row(), params);
-						loadRow(ix.row());
-						return true;
-					}
+			if(!m_shvTreeNodeItem.isNull()) {
+				cp::RpcValue params;
+				std::string cpon = val.toString().toStdString();
+				if(!cpon.empty()) {
+					std::string err;
+					params = cp::RpcValue::fromCpon(cpon, &err);
+					if(!err.empty())
+						shvWarning() << "Invalid method param:" << cpon;
 				}
-				catch (cp::CponReader::ParseException &e) {
-					shvError() << "error parsing params:" << e.what();
-				}
+				m_shvTreeNodeItem->setMethodParams(ix.row(), params);
+				loadRow(ix.row());
+				return true;
 			}
 		}
 	}

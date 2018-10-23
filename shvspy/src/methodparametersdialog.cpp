@@ -1,4 +1,4 @@
-#include "inputparametersdialog.h"
+#include "methodparametersdialog.h"
 #include "lastusedparamswidget.h"
 #include "ui_inputparametersdialog.h"
 
@@ -9,6 +9,7 @@
 #include <QComboBox>
 #include <QDateTimeEdit>
 #include <QLineEdit>
+#include <QSettings>
 
 namespace cp = shv::chainpack;
 
@@ -17,7 +18,7 @@ static int TAB_INDEX_PARAMETER_MAP = 1;
 static int TAB_INDEX_PARAMETER_LIST = 2;
 static int TAB_INDEX_CPON = 3;
 
-QVector<cp::RpcValue::Type> InputParametersDialog::m_supportedTypes {
+QVector<cp::RpcValue::Type> MethodParametersDialog::m_supportedTypes {
 	cp::RpcValue::Type::String,
 	cp::RpcValue::Type::Int,
 	cp::RpcValue::Type::UInt,
@@ -26,7 +27,7 @@ QVector<cp::RpcValue::Type> InputParametersDialog::m_supportedTypes {
 	cp::RpcValue::Type::DateTime,
 };
 
-InputParametersDialog::InputParametersDialog(const QString &path, const QString &method, const cp::RpcValue &params, QWidget *parent)
+MethodParametersDialog::MethodParametersDialog(const QString &path, const QString &method, const cp::RpcValue &params, QWidget *parent)
 	: QDialog(parent)
 	, ui(new Ui::InputParametersDialog)
 	, m_syntaxCheckTimer(this)
@@ -39,6 +40,7 @@ InputParametersDialog::InputParametersDialog(const QString &path, const QString 
 	ui->setupUi(this);
 
 	ui->parsingSingleLabel->hide();
+	ui->singleParameterTable->hide();
 
 	ui->removeListButton->setEnabled(false);
 	ui->parsingListLabel->hide();
@@ -46,15 +48,15 @@ InputParametersDialog::InputParametersDialog(const QString &path, const QString 
 	ui->removeMapButton->setEnabled(false);
 	ui->parsingMapLabel->hide();
 
-	connect(ui->tabWidget, &QTabWidget::currentChanged, this, &InputParametersDialog::onCurrentTabChanged);
-	connect(ui->addListButton, &QPushButton::clicked, this, QOverload<>::of(&InputParametersDialog::newListParameter));
-	connect(ui->addMapButton, &QPushButton::clicked, this, QOverload<>::of(&InputParametersDialog::newMapParameter));
-	connect(ui->removeListButton, &QPushButton::clicked, this, &InputParametersDialog::removeListParameter);
-	connect(ui->removeMapButton, &QPushButton::clicked, this, &InputParametersDialog::removeMapParameter);
-	connect(ui->lastUsedButton, &QPushButton::clicked, this, &InputParametersDialog::loadLastUsed);
-	connect(ui->clearButton, &QPushButton::clicked, this, &InputParametersDialog::clear);
-	connect(ui->parameterListTable, &QTableWidget::currentCellChanged, this, &InputParametersDialog::onListCurrentCellChanged);
-	connect(ui->parameterMapTable, &QTableWidget::currentCellChanged, this, &InputParametersDialog::onMapCurrentCellChanged);
+	connect(ui->tabWidget, &QTabWidget::currentChanged, this, &MethodParametersDialog::onCurrentTabChanged);
+	connect(ui->addListButton, &QPushButton::clicked, this, QOverload<>::of(&MethodParametersDialog::newListParameter));
+	connect(ui->addMapButton, &QPushButton::clicked, this, QOverload<>::of(&MethodParametersDialog::newMapParameter));
+	connect(ui->removeListButton, &QPushButton::clicked, this, &MethodParametersDialog::removeListParameter);
+	connect(ui->removeMapButton, &QPushButton::clicked, this, &MethodParametersDialog::removeMapParameter);
+	connect(ui->lastUsedButton, &QPushButton::clicked, this, &MethodParametersDialog::loadLastUsed);
+	connect(ui->clearButton, &QPushButton::clicked, this, &MethodParametersDialog::clear);
+	connect(ui->parameterListTable, &QTableWidget::currentCellChanged, this, &MethodParametersDialog::onListCurrentCellChanged);
+	connect(ui->parameterMapTable, &QTableWidget::currentCellChanged, this, &MethodParametersDialog::onMapCurrentCellChanged);
 	connect(ui->rawCponEdit, &QPlainTextEdit::textChanged, &m_syntaxCheckTimer, QOverload<>::of(&QTimer::start));
 	connect(ui->rawCponEdit, &QPlainTextEdit::textChanged, [this]() {
 		m_cponEdited = true;
@@ -70,27 +72,37 @@ InputParametersDialog::InputParametersDialog(const QString &path, const QString 
 	m_singleValueGetters << ValueGetter();
 	m_singleValueSetters << ValueSetter();
 
-	connect(m_singleTypeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &InputParametersDialog::onSingleTypeChanged);
+	connect(m_singleTypeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MethodParametersDialog::onSingleTypeChanged);
 
-	newSingleParameter(cp::RpcValue());
-
-	if (params.isValid()) {
-		if (!tryParseSingleParam(params) && !tryParseMapParams(params) && !tryParseListParams(params)) {
-			ui->tabWidget->setCurrentIndex(TAB_INDEX_CPON);
-			ui->rawCponEdit->setPlainText(QString::fromStdString(params.toPrettyString("    ")));
-		}
+	if (tryParseSingleParam(params)) {
+		ui->tabWidget->setCurrentIndex(TAB_INDEX_SINGLE_PARAMETER);
+	}
+	else if (tryParseListParams(params)) {
+		ui->tabWidget->setCurrentIndex(TAB_INDEX_PARAMETER_LIST);
+	}
+	else if (tryParseMapParams(params)) {
+		ui->tabWidget->setCurrentIndex(TAB_INDEX_PARAMETER_MAP);
+	}
+	else {
+		ui->tabWidget->setCurrentIndex(TAB_INDEX_CPON);
+		ui->rawCponEdit->setPlainText(QString::fromStdString(params.isValid()? params.toPrettyString("  "): std::string()));
 	}
 	m_syntaxCheckTimer.setInterval(500);
 	m_syntaxCheckTimer.setSingleShot(true);
-	connect(&m_syntaxCheckTimer, &QTimer::timeout, this, &InputParametersDialog::checkSyntax);
+	connect(&m_syntaxCheckTimer, &QTimer::timeout, this, &MethodParametersDialog::checkSyntax);
+
+	QSettings settings;
+	restoreGeometry(settings.value(QStringLiteral("ui/MethodParametersDialog/geometry")).toByteArray());
 }
 
-InputParametersDialog::~InputParametersDialog()
+MethodParametersDialog::~MethodParametersDialog()
 {
+	QSettings settings;
+	settings.setValue(QStringLiteral("ui/MethodParametersDialog/geometry"), saveGeometry());
 	delete ui;
 }
 
-cp::RpcValue InputParametersDialog::value() const
+cp::RpcValue MethodParametersDialog::value() const
 {
 	if (ui->tabWidget->currentIndex() == TAB_INDEX_SINGLE_PARAMETER) {
 		return singleParamValue();
@@ -114,9 +126,9 @@ cp::RpcValue InputParametersDialog::value() const
 	return cp::RpcValue();
 }
 
-void InputParametersDialog::newSingleParameter(const shv::chainpack::RpcValue &param)
+void MethodParametersDialog::newSingleParameter(const shv::chainpack::RpcValue &param)
 {
-	disconnect(m_singleTypeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &InputParametersDialog::onSingleTypeChanged);
+	disconnect(m_singleTypeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MethodParametersDialog::onSingleTypeChanged);
 	if (param.isValid()) {
 		cp::RpcValue::Type t = param.type();
 		int index = m_supportedTypes.indexOf(t);
@@ -129,20 +141,20 @@ void InputParametersDialog::newSingleParameter(const shv::chainpack::RpcValue &p
 		m_singleTypeCombo->setCurrentIndex(index);
 		switchToString(ui->singleParameterTable, 0, 1, m_singleValueGetters, m_singleValueSetters);
 	}
-	connect(m_singleTypeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &InputParametersDialog::onSingleTypeChanged);
+	connect(m_singleTypeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MethodParametersDialog::onSingleTypeChanged);
 }
 
-void InputParametersDialog::newListParameter()
+void MethodParametersDialog::newListParameter()
 {
 	newListParameter(cp::RpcValue());
 }
 
-void InputParametersDialog::newMapParameter()
+void MethodParametersDialog::newMapParameter()
 {
 	newMapParameter("", cp::RpcValue());
 }
 
-void InputParametersDialog::newMapParameter(const QString &key, const cp::RpcValue &param)
+void MethodParametersDialog::newMapParameter(const QString &key, const cp::RpcValue &param)
 {
 	int row = ui->parameterMapTable->rowCount();
 	ui->parameterMapTable->setRowCount(row + 1);
@@ -175,7 +187,7 @@ void InputParametersDialog::newMapParameter(const QString &key, const cp::RpcVal
 	});
 }
 
-void InputParametersDialog::newListParameter(const cp::RpcValue &param)
+void MethodParametersDialog::newListParameter(const cp::RpcValue &param)
 {
 	int row = ui->parameterListTable->rowCount();
 	ui->parameterListTable->setRowCount(row + 1);
@@ -207,25 +219,25 @@ void InputParametersDialog::newListParameter(const cp::RpcValue &param)
 	});
 }
 
-void InputParametersDialog::onListCurrentCellChanged(int row, int col)
+void MethodParametersDialog::onListCurrentCellChanged(int row, int col)
 {
 	Q_UNUSED(col);
 	ui->removeListButton->setEnabled(row != -1);
 }
 
-void InputParametersDialog::onMapCurrentCellChanged(int row, int col)
+void MethodParametersDialog::onMapCurrentCellChanged(int row, int col)
 {
 	Q_UNUSED(col);
 	ui->removeMapButton->setEnabled(row != -1);
 }
 
-void InputParametersDialog::onSingleTypeChanged(int type)
+void MethodParametersDialog::onSingleTypeChanged(int type)
 {
 	cp::RpcValue::Type t = (cp::RpcValue::Type)m_singleTypeCombo->itemData(type).toInt();
 	switchByType(t, ui->singleParameterTable, 0, 1, m_singleValueGetters, m_singleValueSetters);
 }
 
-void InputParametersDialog::removeListParameter()
+void MethodParametersDialog::removeListParameter()
 {
 	int row = ui->parameterListTable->currentRow();
 	ui->parameterListTable->removeRow(row);
@@ -233,7 +245,7 @@ void InputParametersDialog::removeListParameter()
 	m_listValueSetters.removeAt(row);
 }
 
-void InputParametersDialog::removeMapParameter()
+void MethodParametersDialog::removeMapParameter()
 {
 	int row = ui->parameterMapTable->currentRow();
 	ui->parameterMapTable->removeRow(row);
@@ -241,7 +253,7 @@ void InputParametersDialog::removeMapParameter()
 	m_mapValueSetters.removeAt(row);
 }
 
-bool InputParametersDialog::tryParseSingleParam(const cp::RpcValue &params)
+bool MethodParametersDialog::tryParseSingleParam(const cp::RpcValue &params)
 {
 	if (!m_supportedTypes.contains(params.type())) {
 		return false;
@@ -250,7 +262,7 @@ bool InputParametersDialog::tryParseSingleParam(const cp::RpcValue &params)
 	return true;
 }
 
-bool InputParametersDialog::tryParseListParams(const cp::RpcValue &params)
+bool MethodParametersDialog::tryParseListParams(const cp::RpcValue &params)
 {
 	if (!params.isList()) {
 		return false;
@@ -268,7 +280,7 @@ bool InputParametersDialog::tryParseListParams(const cp::RpcValue &params)
 	return true;
 }
 
-bool InputParametersDialog::tryParseMapParams(const cp::RpcValue &params)
+bool MethodParametersDialog::tryParseMapParams(const cp::RpcValue &params)
 {
 	if (!params.isMap()) {
 		return false;
@@ -286,7 +298,7 @@ bool InputParametersDialog::tryParseMapParams(const cp::RpcValue &params)
 	return true;
 }
 
-void InputParametersDialog::switchToBool(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
+void MethodParametersDialog::switchToBool(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
 {
 	QCheckBox *checkbox = new QCheckBox(this);
 	table->setCellWidget(row, col, checkbox);
@@ -298,7 +310,7 @@ void InputParametersDialog::switchToBool(QTableWidget *table, int row, int col, 
 	};
 }
 
-void InputParametersDialog::switchToInt(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
+void MethodParametersDialog::switchToInt(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
 {
 	QLineEdit *line_edit = new QLineEdit(this);
 	table->setCellWidget(row, col, line_edit);
@@ -311,7 +323,7 @@ void InputParametersDialog::switchToInt(QTableWidget *table, int row, int col, Q
 	};
 }
 
-void InputParametersDialog::switchToUInt(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
+void MethodParametersDialog::switchToUInt(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
 {
 	QLineEdit *line_edit = new QLineEdit(this);
 	table->setCellWidget(row, col, line_edit);
@@ -324,7 +336,7 @@ void InputParametersDialog::switchToUInt(QTableWidget *table, int row, int col, 
 	};
 }
 
-void InputParametersDialog::switchToString(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
+void MethodParametersDialog::switchToString(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
 {
 	QLineEdit *line_edit = new QLineEdit(this);
 	table->setCellWidget(row, col, line_edit);
@@ -336,7 +348,7 @@ void InputParametersDialog::switchToString(QTableWidget *table, int row, int col
 	};
 }
 
-void InputParametersDialog::switchToDouble(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
+void MethodParametersDialog::switchToDouble(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
 {
 	QLineEdit *line_edit = new QLineEdit(this);
 	table->setCellWidget(row, col, line_edit);
@@ -351,7 +363,7 @@ void InputParametersDialog::switchToDouble(QTableWidget *table, int row, int col
 	};
 }
 
-void InputParametersDialog::switchToDateTime(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
+void MethodParametersDialog::switchToDateTime(QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
 {
 	QWidget *datetime_widget = new QWidget(this);
 	QDateTimeEdit *edit = new QDateTimeEdit(datetime_widget);
@@ -377,7 +389,7 @@ void InputParametersDialog::switchToDateTime(QTableWidget *table, int row, int c
 	};
 }
 
-void InputParametersDialog::switchByType(const cp::RpcValue::Type &type, QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
+void MethodParametersDialog::switchByType(const cp::RpcValue::Type &type, QTableWidget *table, int row, int col, QVector<ValueGetter> &getters, QVector<ValueSetter> &setters)
 {
 	switch (type) {
 	case cp::RpcValue::Type::Int:
@@ -403,7 +415,7 @@ void InputParametersDialog::switchByType(const cp::RpcValue::Type &type, QTableW
 	}
 }
 
-void InputParametersDialog::switchToCpon()
+void MethodParametersDialog::switchToCpon()
 {
 	cp::RpcValue value;
 	if (m_currentTabIndex == TAB_INDEX_PARAMETER_LIST) {
@@ -444,7 +456,7 @@ void InputParametersDialog::switchToCpon()
 	}
 }
 
-void InputParametersDialog::switchToMap()
+void MethodParametersDialog::switchToMap()
 {
 	if (m_currentTabIndex == TAB_INDEX_CPON || m_cponEdited ||
 		(m_currentTabIndex == TAB_INDEX_PARAMETER_LIST && !ui->parameterListTable->isHidden()) ||
@@ -484,7 +496,7 @@ void InputParametersDialog::switchToMap()
 	}
 }
 
-void InputParametersDialog::switchToList()
+void MethodParametersDialog::switchToList()
 {
 	if (m_currentTabIndex == TAB_INDEX_CPON || m_cponEdited ||
 		(m_currentTabIndex == TAB_INDEX_PARAMETER_MAP && !ui->parameterMapTable->isHidden()) ||
@@ -524,7 +536,7 @@ void InputParametersDialog::switchToList()
 	}
 }
 
-void InputParametersDialog::switchToSingle()
+void MethodParametersDialog::switchToSingle()
 {
 	if (m_currentTabIndex == TAB_INDEX_CPON || m_cponEdited ||
 		(m_currentTabIndex == TAB_INDEX_PARAMETER_MAP && !ui->parameterMapTable->isHidden()) ||
@@ -536,7 +548,7 @@ void InputParametersDialog::switchToSingle()
 			(m_currentTabIndex == TAB_INDEX_PARAMETER_LIST && ui->parameterListTable->isHidden() && m_cponEdited)) {
 			std::string cpon = ui->rawCponEdit->toPlainText().toStdString();
 			if (cpon.size() == 0) {
-				parsed = true;
+				parsed = false;
 			}
 			else {
 				std::string err;
@@ -564,15 +576,15 @@ void InputParametersDialog::switchToSingle()
 	}
 }
 
-void InputParametersDialog::clearSingleParam()
+void MethodParametersDialog::clearSingleParam()
 {
 	ui->parsingSingleLabel->hide();
 	ui->singleParameterTable->show();
 
-	newSingleParameter(cp::RpcValue());
+	//newSingleParameter(cp::RpcValue());
 }
 
-void InputParametersDialog::clearParamList()
+void MethodParametersDialog::clearParamList()
 {
 	ui->parameterListTable->reset();
 	ui->parameterListTable->clearContents();
@@ -583,7 +595,7 @@ void InputParametersDialog::clearParamList()
 	ui->parameterListTable->show();
 }
 
-void InputParametersDialog::clearParamMap()
+void MethodParametersDialog::clearParamMap()
 {
 	ui->parameterMapTable->reset();
 	ui->parameterMapTable->clearContents();
@@ -594,7 +606,7 @@ void InputParametersDialog::clearParamMap()
 	ui->parameterMapTable->show();
 }
 
-void InputParametersDialog::clear()
+void MethodParametersDialog::clear()
 {
 	clearSingleParam();
 	clearParamMap();
@@ -602,7 +614,7 @@ void InputParametersDialog::clear()
 	ui->rawCponEdit->clear();
 }
 
-void InputParametersDialog::onCurrentTabChanged(int index)
+void MethodParametersDialog::onCurrentTabChanged(int index)
 {
 	if (index == TAB_INDEX_CPON) {
 		switchToCpon();
@@ -619,7 +631,7 @@ void InputParametersDialog::onCurrentTabChanged(int index)
 	m_currentTabIndex = index;
 }
 
-void InputParametersDialog::checkSyntax()
+void MethodParametersDialog::checkSyntax()
 {
 	std::string cpon = ui->rawCponEdit->toPlainText().toStdString();
 	if (cpon.size()) {
@@ -637,19 +649,19 @@ void InputParametersDialog::checkSyntax()
 	ui->rawCponEdit->setPalette(pal);
 }
 
-void InputParametersDialog::loadLastUsed()
+void MethodParametersDialog::loadLastUsed()
 {
 	if (!m_usedParamsWidget) {
 		m_usedParamsWidget = new LastUsedParamsWidget(m_path, m_method, this);
 		m_usedParamsWidget->setWindowFlags(Qt::Popup | Qt::Dialog);
-		connect(m_usedParamsWidget, &LastUsedParamsWidget::paramSelected, this, &InputParametersDialog::loadParams);
+		connect(m_usedParamsWidget, &LastUsedParamsWidget::paramSelected, this, &MethodParametersDialog::loadParams);
 
 	}
 	m_usedParamsWidget->move(mapToGlobal(ui->lastUsedButton->geometry().bottomRight()));
 	m_usedParamsWidget->show();
 }
 
-void InputParametersDialog::loadParams(const QString &s)
+void MethodParametersDialog::loadParams(const QString &s)
 {
 	clear();
 	cp::RpcValue params = cp::RpcValue::fromCpon(s.toStdString());
@@ -668,7 +680,7 @@ void InputParametersDialog::loadParams(const QString &s)
 	}
 }
 
-cp::RpcValue InputParametersDialog::singleParamValue() const
+cp::RpcValue MethodParametersDialog::singleParamValue() const
 {
 	if (!ui->parsingSingleLabel->isHidden()) {
 		return cp::RpcValue();
@@ -681,7 +693,7 @@ cp::RpcValue InputParametersDialog::singleParamValue() const
 	return val;
 }
 
-cp::RpcValue InputParametersDialog::listParamValue() const
+cp::RpcValue MethodParametersDialog::listParamValue() const
 {
 	if (ui->parameterListTable->rowCount() == 0) {
 		return cp::RpcValue();
@@ -693,7 +705,7 @@ cp::RpcValue InputParametersDialog::listParamValue() const
 	return list;
 }
 
-cp::RpcValue InputParametersDialog::mapParamValue() const
+cp::RpcValue MethodParametersDialog::mapParamValue() const
 {
 	if (ui->parameterMapTable->rowCount() == 0) {
 		return cp::RpcValue();

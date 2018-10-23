@@ -15,13 +15,13 @@ class QComboBox;
 class QTableWidget;
 class LastUsedParamsWidget;
 
-class InputParametersDialog : public QDialog
+class MethodParametersDialog : public QDialog
 {
 	Q_OBJECT
 
 public:
-	explicit InputParametersDialog(const QString &path, const QString &method, const shv::chainpack::RpcValue &params, QWidget *parent = 0);
-	~InputParametersDialog();
+	explicit MethodParametersDialog(const QString &path, const QString &method, const shv::chainpack::RpcValue &params, QWidget *parent = nullptr);
+	~MethodParametersDialog();
 
 	shv::chainpack::RpcValue value() const;
 

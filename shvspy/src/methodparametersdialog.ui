@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>InputParametersDialog</class>
- <widget class="QDialog" name="InputParametersDialog">
+ <class>MethodParametersDialog</class>
+ <widget class="QDialog" name="MethodParametersDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
     <width>622</width>
-    <height>365</height>
+    <height>378</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,7 +17,7 @@
    <item>
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
-      <number>0</number>
+      <number>3</number>
      </property>
      <widget class="QWidget" name="singleParameterWidget">
       <attribute name="title">
@@ -276,7 +276,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>accepted()</signal>
-   <receiver>InputParametersDialog</receiver>
+   <receiver>MethodParametersDialog</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -292,7 +292,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
-   <receiver>InputParametersDialog</receiver>
+   <receiver>MethodParametersDialog</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
