@@ -1,6 +1,6 @@
 #include "methodparametersdialog.h"
 #include "lastusedparamswidget.h"
-#include "ui_inputparametersdialog.h"
+#include "ui_methodparametersdialog.h"
 
 #include <shv/chainpack/rpcvalue.h>
 #include <shv/coreqt/log.h>
@@ -29,7 +29,7 @@ QVector<cp::RpcValue::Type> MethodParametersDialog::m_supportedTypes {
 
 MethodParametersDialog::MethodParametersDialog(const QString &path, const QString &method, const cp::RpcValue &params, QWidget *parent)
 	: QDialog(parent)
-	, ui(new Ui::InputParametersDialog)
+	, ui(new Ui::MethodParametersDialog)
 	, m_syntaxCheckTimer(this)
 	, m_path(path)
 	, m_method(method)

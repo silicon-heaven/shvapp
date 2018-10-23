@@ -8,7 +8,7 @@
 #include <shv/chainpack/rpcvalue.h>
 
 namespace Ui {
-class InputParametersDialog;
+class MethodParametersDialog;
 }
 
 class QComboBox;
@@ -70,7 +70,7 @@ private:
 	shv::chainpack::RpcValue listParamValue() const;
 	shv::chainpack::RpcValue mapParamValue() const;
 
-	Ui::InputParametersDialog *ui;
+	Ui::MethodParametersDialog *ui;
 	QComboBox *m_singleTypeCombo;
 	QVector<ValueGetter> m_singleValueGetters;
 	QVector<ValueSetter> m_singleValueSetters;
