@@ -4,7 +4,7 @@
 #define APP_NAME "BfsView"
 #define APP_NAME_LOWER "bfsview"
 #define COMPANY "elektroline"
-#define VERSION "1.2.2"
+#define VERSION "1.2.3"
 
 #define QT_DIR "C:\Qt\5.11.1\mingw53_32"
 #define MINGW_DIR "C:\Qt\Tools\mingw530_32"
