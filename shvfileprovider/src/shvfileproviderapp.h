@@ -36,6 +36,7 @@ public:
 
 	static ShvFileProviderApp *instance();
 	shv::iotqt::rpc::DeviceConnection *rpcConnection() const {return m_rpcConnection;}
+	shv::chainpack::RpcValue getSites();
 
 	AppCliOptions* cliOptions() {return m_cliOptions;}
 private:
