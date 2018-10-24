@@ -97,7 +97,7 @@ std::string ServerConnection::dataToCpon(shv::chainpack::Rpc::ProtocolType proto
 		rpc_val = shv::chainpack::RpcDriver::decodeData(protocol_type, data, start_pos);
 	}
 	else {
-		rpc_val = "< " + std::to_string(data.size() - start_pos) + " bytes of data >";
+		rpc_val = " ... " + std::to_string(data.size() - start_pos) + " bytes of data ... ";
 	}
 	rpc_val.setMetaData(shv::chainpack::RpcValue::MetaData(md));
 	std::ostringstream out;
