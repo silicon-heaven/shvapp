@@ -1,4 +1,4 @@
-isEmpty(QF_PROJECT_TOP_BUILDDIR) {
+ isEmpty(QF_PROJECT_TOP_BUILDDIR) {
         QF_PROJECT_TOP_BUILDDIR = $$OUT_PWD/..
 }
 else {
@@ -47,4 +47,4 @@ INCLUDEPATH += \
 include (src/src.pri)
 
 DISTFILES += \
-    src/src.pri
+    sites/sites.json

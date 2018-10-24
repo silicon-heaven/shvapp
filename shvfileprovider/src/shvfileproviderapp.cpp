@@ -1,5 +1,6 @@
 #include "shvfileproviderapp.h"
 #include "appclioptions.h"
+#include "sitesnode.h"
 
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/node/shvnodetree.h>
@@ -102,6 +103,8 @@ ShvFileProviderApp::ShvFileProviderApp(int &argc, char **argv, AppCliOptions* cl
 
 	AppRootNode *root = new AppRootNode();
 	m_shvTree = new shv::iotqt::node::ShvNodeTree(root, this);
+	new SitesNode(m_shvTree->root());
+
 	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
 
 	QString brclab_fs_root_dir = cli_opts->sysFsRootDir();
@@ -129,6 +132,11 @@ ShvFileProviderApp::~ShvFileProviderApp()
 ShvFileProviderApp *ShvFileProviderApp::instance()
 {
 	return qobject_cast<ShvFileProviderApp *>(QCoreApplication::instance());
+}
+
+shv::chainpack::RpcValue ShvFileProviderApp::getSites()
+{
+	return shv::chainpack::RpcValue::String("sites ...");
 }
 
 void ShvFileProviderApp::onBrokerConnectedChanged(bool is_connected)
