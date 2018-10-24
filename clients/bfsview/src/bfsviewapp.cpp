@@ -338,7 +338,7 @@ void BfsViewApp::sendGetStatusRequest()
 
 void BfsViewApp::checkPlcConnected()
 {
-	shvLogFuncFrame();
+	shvLogFuncFrame() << (m_getStatusRpcId == 0);
 	setPlcConnected(m_getStatusRpcId == 0);
 	sendGetStatusRequest();
 }
@@ -480,6 +480,7 @@ void BfsViewApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 			}
 			else {
 				setBfsStatus(rsp.result().toInt());
+				shvDebug() << "\tBfs status:" << bfsStatus();
 				setPlcConnected(true);
 				m_getStatusRpcId = 0;
 			}

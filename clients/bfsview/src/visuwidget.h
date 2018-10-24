@@ -26,6 +26,7 @@ public:
 protected:
 	void paintEvent(QPaintEvent *event) override;
 	void contextMenuEvent(QContextMenuEvent *event) override;
+	void mouseMoveEvent(QMouseEvent *event) override;
 private:
 	QDomElement elementById(const QString &id);
 	QDomElement elementByShvName(const QDomElement &parent_el, const QString &shv_name);
@@ -44,6 +45,8 @@ private:
 	QDomDocument m_xDoc;
 	QRectF m_ompagRect;
 	QRectF m_convRect;
+	bool m_mouseInOmpagRect = false;
+	bool m_mouseInConvRect = false;
 
 	SwitchVisuController *m_ompagVisuController;
 	SwitchVisuController *m_convVisuController;
