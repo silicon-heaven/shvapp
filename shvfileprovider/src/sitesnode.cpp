@@ -9,10 +9,12 @@
 namespace cp = shv::chainpack;
 namespace iot = shv::iotqt;
 
+static const char M_READ[] = "read";
+
 static std::vector<cp::MetaMethod> meta_methods_sites {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false},
-	{cp::Rpc::METH_GET_SITES, cp::MetaMethod::Signature::RetParam, false},
+	{M_READ, cp::MetaMethod::Signature::RetParam, false},
 };
 
 SitesNode::SitesNode(shv::iotqt::node::ShvNode *parent)
@@ -33,7 +35,7 @@ const shv::chainpack::MetaMethod *SitesNode::metaMethod(const StringViewList &sh
 shv::chainpack::RpcValue SitesNode::callMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
 {
 	if(shv_path.empty()) {
-		if(method == cp::Rpc::METH_GET_SITES) {
+		if(method == M_READ) {
 			return ShvFileProviderApp::instance()->getSites();
 		}
 	}

@@ -97,6 +97,18 @@ ShvFileProviderApp::ShvFileProviderApp(int &argc, char **argv, AppCliOptions* cl
 	}
 
 	m_rpcConnection->setCliOptions(cli_opts);
+	m_networkManager = new QNetworkAccessManager(this);
+
+	connect(m_networkManager, &QNetworkAccessManager::finished, [=](QNetworkReply *reply) {
+		if (reply->error()) {
+			shvInfo() << "Download sites.json error:" << reply->errorString();
+		}
+		else{
+			m_sites = reply->readAll().toStdString();
+			shvInfo() << "Downloaded sites.json";
+		}
+		reply->deleteLater();
+	});
 
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &ShvFileProviderApp::onBrokerConnectedChanged);
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvFileProviderApp::onRpcMessageReceived);
@@ -136,7 +148,15 @@ ShvFileProviderApp *ShvFileProviderApp::instance()
 
 shv::chainpack::RpcValue ShvFileProviderApp::getSites()
 {
-	return shv::chainpack::RpcValue::String("sites ...");
+	QEventLoop *loop = new QEventLoop(this);
+	connect(m_networkManager, &QNetworkAccessManager::finished, loop, &QEventLoop::quit);
+
+	m_networkManager->get(QNetworkRequest(QUrl(m_cliOptions->sitesUrl())));
+
+	loop->exec();
+	loop->deleteLater();
+
+	return shv::chainpack::RpcValue::String(m_sites);
 }
 
 void ShvFileProviderApp::onBrokerConnectedChanged(bool is_connected)

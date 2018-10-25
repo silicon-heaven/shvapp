@@ -3,6 +3,8 @@
 #include <shv/iotqt/node/shvnode.h>
 
 #include <QCoreApplication>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
 
 class AppCliOptions;
 class QTimer;
@@ -49,6 +51,7 @@ private:
 
 	shv::iotqt::node::ShvNodeTree *m_shvTree = nullptr;
 	bool m_isBrokerConnected = false;
-
+	std::string m_sites;
+	QNetworkAccessManager *m_networkManager = nullptr;
 };
 
