@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>ResultView</class>
- <widget class="QDialog" name="ResultView">
+ <class>TextEditDialog</class>
+ <widget class="QDialog" name="TextEditDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -30,7 +30,7 @@
     <number>5</number>
    </property>
    <item>
-    <widget class="QTextBrowser" name="textBrowser"/>
+    <widget class="QPlainTextEdit" name="plainTextEdit"/>
    </item>
    <item>
     <widget class="QDialogButtonBox" name="buttonBox">
@@ -38,7 +38,7 @@
       <enum>Qt::Horizontal</enum>
      </property>
      <property name="standardButtons">
-      <set>QDialogButtonBox::Close</set>
+      <set>QDialogButtonBox::Close|QDialogButtonBox::Save</set>
      </property>
     </widget>
    </item>
@@ -49,7 +49,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>accepted()</signal>
-   <receiver>ResultView</receiver>
+   <receiver>TextEditDialog</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -65,7 +65,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
-   <receiver>ResultView</receiver>
+   <receiver>TextEditDialog</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">

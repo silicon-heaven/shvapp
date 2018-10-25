@@ -74,7 +74,7 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 
 				return QString::fromStdString(tts);
 			}
-		case ColIsNotify:
+		case ColFlags:
 			return m_rows.value(ix.row()).value(ix.column()).toBool()? "Y": QVariant();
 		default:
 			break;
@@ -92,7 +92,7 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 	}
 	case Qt::DecorationRole: {
 		if(ix.column() == ColBtRun) {
-			bool is_notify = m_rows.value(ix.row()).value(ColIsNotify).toBool();
+			bool is_notify = m_rows.value(ix.row()).value(ColFlags).toBool();
 			if(!is_notify) {
 				static QIcon ico_run = QIcon(QStringLiteral(":/shvspy/images/run"));
 				static QIcon ico_reload = QIcon(QStringLiteral(":/shvspy/images/reload"));
@@ -109,8 +109,8 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 		else if(ix.column() == ColResult) {
 			return data(ix, Qt::DisplayRole);
 		}
-		else if(ix.column() == ColIsNotify) {
-			bool is_notify = m_rows.value(ix.row()).value(ColIsNotify).toBool();
+		else if(ix.column() == ColFlags) {
+			bool is_notify = m_rows.value(ix.row()).value(ColFlags).toBool();
 			return is_notify? tr("Method is notify signal"): QVariant();
 		}
 		else {
@@ -158,12 +158,18 @@ QVariant AttributesModel::headerData(int section, Qt::Orientation o, int role) c
 				ret = tr("Method");
 			else if(section == ColSignature)
 				ret = tr("Signature");
-			else if(section == ColIsNotify)
-				ret = tr("Ntf");
+			else if(section == ColFlags)
+				ret = tr("Flags");
+			else if(section == ColAccessLevel)
+				ret = tr("AL");
 			else if(section == ColParams)
 				ret = tr("Params");
 			else if(section == ColResult)
 				ret = tr("Result");
+		}
+		else if(role == Qt::ToolTipRole) {
+			if(section == ColAccessLevel)
+				ret = tr("Acess Level");
 		}
 	}
 	return ret;
@@ -246,7 +252,8 @@ void AttributesModel::loadRow(int method_ix)
 	RowVals &rv = m_rows[method_ix];
 	rv[ColMethodName] = QString::fromStdString(mtd.method);
 	rv[ColSignature] = QString::fromStdString(mtd.signatureStr());
-	rv[ColIsNotify] = mtd.isNotify;
+	rv[ColFlags] = QString::fromStdString(mtd.flagsStr());
+	rv[ColAccessLevel] = QString::fromStdString(mtd.accessLevelStr());
 	if(mtd.params.isValid()) {
 		rv[ColParams] = QString::fromStdString(mtd.params.toCpon());
 	}

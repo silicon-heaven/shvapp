@@ -15,7 +15,7 @@ class AttributesModel : public QAbstractTableModel
 private:
 	typedef QAbstractTableModel Super;
 public:
-	enum Columns {ColMethodName = 0, ColSignature, ColIsNotify, ColParams, ColResult, ColBtRun, ColRawResult, ColIsError, ColCnt};
+	enum Columns {ColMethodName = 0, ColSignature, ColFlags, ColAccessLevel, ColParams, ColResult, ColBtRun, ColRawResult, ColIsError, ColCnt};
 	enum Roles {RawResultRole = Qt::UserRole };
 public:
 	AttributesModel(QObject *parent = nullptr);

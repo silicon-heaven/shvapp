@@ -4,7 +4,8 @@ HEADERS += \
     $$PWD/brokerapp.h \
     $$PWD/brokernode.h \
     $$PWD/shvclientnode.h \
-    $$PWD/subscriptionsnode.h
+    $$PWD/subscriptionsnode.h \
+    $$PWD/fstabnode.h
 
 SOURCES += \
     $$PWD/main.cpp\
@@ -12,7 +13,8 @@ SOURCES += \
     $$PWD/brokerapp.cpp \
     $$PWD/brokernode.cpp \
     $$PWD/shvclientnode.cpp \
-    $$PWD/subscriptionsnode.cpp
+    $$PWD/subscriptionsnode.cpp \
+    $$PWD/fstabnode.cpp
 
 include ($$PWD/sql/sql.pri)
 include ($$PWD/rpc/rpc.pri)

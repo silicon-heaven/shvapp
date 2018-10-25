@@ -11,7 +11,7 @@
 #include "dlgsubscriptionparameters.h"
 #include "dlgsubscriptions.h"
 #include "methodparametersdialog.h"
-#include "resultview.h"
+#include "texteditdialog.h"
 
 #include <shv/chainpack/chainpackreader.h>
 #include <shv/chainpack/chainpackwriter.h>
@@ -78,7 +78,7 @@ MainWindow::MainWindow(QWidget *parent) :
 			hh->resizeSection(AttributesModel::ColResult, hh->sectionSize(AttributesModel::ColResult) - (sum_w - ww));
 	});
 
-	connect(ui->tblAttributes, &QTableView::customContextMenuRequested, this, &MainWindow::attributesTableContexMenu);
+	connect(ui->tblAttributes, &QTableView::customContextMenuRequested, this, &MainWindow::onAttributesTableContexMenu);
 
 	connect(ui->tblAttributes, &QTableView::activated, [](const QModelIndex &ix) {
 		if(ix.column() == AttributesModel::ColBtRun)
@@ -236,7 +236,8 @@ void MainWindow::displayResult(const QModelIndex &ix)
 		formatted = e.what();
 	}
 
-	ResultView view(this);
+	TextEditDialog view(this);
+	view.setReadOnly(true);
 	view.setText(QString::fromStdString(formatted));
 	//QApplication::restoreOverrideCursor();
 	view.exec();
@@ -244,7 +245,7 @@ void MainWindow::displayResult(const QModelIndex &ix)
 
 void MainWindow::editMethodParameters(const QModelIndex &ix)
 {
-	QString params = ix.data(Qt::DisplayRole).toString();
+	QString params = ix.data(Qt::EditRole).toString();
 	cp::RpcValue rv;
 	if (!params.isEmpty()) {
 		std::string err;
@@ -265,7 +266,29 @@ void MainWindow::editMethodParameters(const QModelIndex &ix)
 	}
 }
 
-void MainWindow::attributesTableContexMenu(const QPoint &point)
+void MainWindow::editStringParameter(const QModelIndex &ix)
+{
+	QString params = ix.data(Qt::EditRole).toString();
+	QString str;
+	cp::RpcValue rv;
+	if (!params.isEmpty()) {
+		std::string err;
+		rv = shv::chainpack::RpcValue::fromCpon(params.toStdString(), &err);
+		if(err.empty()) {
+			str = QString::fromStdString(rv.toString());
+		}
+	}
+	TextEditDialog dlg(this);
+	dlg.setReadOnly(false);
+	dlg.setText(str);
+	if(dlg.exec()) {
+		str = dlg.text();
+		cp::RpcValue rv(str.toStdString());
+		ui->tblAttributes->model()->setData(ix, QString::fromStdString(rv.toCpon()), Qt::EditRole);
+	}
+}
+
+void MainWindow::onAttributesTableContexMenu(const QPoint &point)
 {
 	QModelIndex index = ui->tblAttributes->indexAt(point);
 	if (index.isValid() && index.column() == AttributesModel::ColResult) {
@@ -277,9 +300,14 @@ void MainWindow::attributesTableContexMenu(const QPoint &point)
 	}
 	else if (index.isValid() && index.column() == AttributesModel::ColParams) {
 		QMenu menu(this);
-		menu.addAction(tr("Parameters editor"));
-		if (menu.exec(ui->tblAttributes->viewport()->mapToGlobal(point))) {
+		QAction *a_par_ed = menu.addAction(tr("Parameters editor"));
+		QAction *a_str_ed = menu.addAction(tr("String parameter editor"));
+		QAction *a = menu.exec(ui->tblAttributes->viewport()->mapToGlobal(point));
+		if (a == a_par_ed) {
 			editMethodParameters(index);
+		}
+		else if (a == a_str_ed) {
+			editStringParameter(index);
 		}
 	}
 }

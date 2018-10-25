@@ -27,13 +27,13 @@ static const char METH_SIM_SET[] = "sim_set";
 static const char METH_APP_LOG[] = "appLog";
 
 static std::vector<cp::MetaMethod> meta_methods_root {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, !cp::MetaMethod::IsSignal},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, !cp::MetaMethod::IsSignal},
-	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, !cp::MetaMethod::IsSignal},
-	{cp::Rpc::METH_MOUNT_POINT, cp::MetaMethod::Signature::RetVoid, !cp::MetaMethod::IsSignal},
-	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, !cp::MetaMethod::IsSignal},
-	{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, !cp::MetaMethod::IsSignal},
-	{METH_APP_LOG, cp::MetaMethod::Signature::RetVoid, !cp::MetaMethod::IsSignal},
+	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0},
+	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0},
+	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, 0},
+	{cp::Rpc::METH_MOUNT_POINT, cp::MetaMethod::Signature::RetVoid, 0},
+	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, 0},
+	{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, 0},
+	{METH_APP_LOG, cp::MetaMethod::Signature::RetVoid, 0},
 };
 
 size_t AppRootNode::methodCount(const StringViewList &shv_path)

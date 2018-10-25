@@ -2,6 +2,7 @@
 #include "shvclientnode.h"
 #include "brokernode.h"
 #include "subscriptionsnode.h"
+#include "fstabnode.h"
 #include "rpc/tcpserver.h"
 #include "rpc/serverconnection.h"
 
@@ -18,6 +19,7 @@
 #include <shv/chainpack/cponreader.h>
 #include <shv/chainpack/rpcmessage.h>
 
+#include <QFile>
 #include <QSocketNotifier>
 #include <QTimer>
 
@@ -49,7 +51,7 @@ BrokerApp::BrokerApp(int &argc, char **argv, AppCliOptions *cli_opts)
 
 	cp::RpcMessage::setMetaTypeExplicit(cli_opts->isMetaTypeExplicit());
 
-	connect(this, &BrokerApp::sqlServerConnected, this, &BrokerApp::onSqlServerConnected);
+	//connect(this, &BrokerApp::sqlServerConnected, this, &BrokerApp::onSqlServerConnected);
 	/*
 	m_sqlConnectionWatchDog = new QTimer(this);
 	connect(m_sqlConnectionWatchDog, SIGNAL(timeout()), this, SLOT(reconnectSqlServer()));
@@ -59,6 +61,7 @@ BrokerApp::BrokerApp(int &argc, char **argv, AppCliOptions *cli_opts)
 	connect(m_deviceTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, this, &BrokerApp::onRootNodeSendRpcMesage);
 	BrokerNode *bn = new BrokerNode();
 	m_deviceTree->mount(cp::Rpc::DIR_BROKER_APP, bn);
+	m_deviceTree->mount(cp::Rpc::DIR_BROKER + std::string("/etc/fstab"), new FSTabNode());
 	//m_deviceTree->mkdir("test");
 
 	QTimer::singleShot(0, this, &BrokerApp::lazyInit);
@@ -163,7 +166,6 @@ void TheApp::reconnectSqlServer()
 		emit sqlServerConnected();
 	}
 }
-*/
 void BrokerApp::onSqlServerError(const QString &err_mesg)
 {
 	Q_UNUSED(err_mesg)
@@ -177,6 +179,7 @@ void BrokerApp::onSqlServerConnected()
 	//connect(this, &TheApp::opcValueWillBeSet, m_sqlConnector, &sql::SqlConnector::saveDepotModelJournal, Qt::UniqueConnection);
 	//m_depotModel->setValue(QStringList() << QStringLiteral("server") << QStringLiteral("startTime"), QVariant::fromValue(QDateTime::currentDateTime()), !shv::core::Exception::Throw);
 }
+*/
 
 void BrokerApp::startTcpServer()
 {
@@ -193,22 +196,54 @@ void BrokerApp::lazyInit()
 	startTcpServer();
 }
 
+std::string BrokerApp::fstabCpon()
+{
+	QString fn = m_cliOptions->fstab();
+	shvDebug() << "fstab file:" << fn;
+	if(!fn.isEmpty()) {
+		QFile f(fn);
+		if (!f.open(QFile::ReadOnly)) {
+			throw std::runtime_error("Cannot open fstab file " + fn.toStdString() + " for reading");
+		}
+		else {
+			QByteArray ba = f.readAll();
+			return std::string(ba.constData(), ba.size());
+		}
+	}
+	throw std::runtime_error("fstab file not defined.");
+}
+
+void BrokerApp::saveFstabCpon(const std::string &cpon)
+{
+	QString fn = m_cliOptions->fstab();
+	if(fn.isEmpty())
+		throw std::runtime_error("fstab file not defined.");
+	QFile f(fn);
+	if (!f.open(QFile::WriteOnly)) {
+		throw std::runtime_error("Cannot open fstab file " + fn.toStdString() + " for writing");
+	}
+	else {
+		cp::RpcValue rv = cp::RpcValue::fromCpon(cpon);
+		if(rv.isMap()) {
+			f.write(cpon.data(), cpon.size());
+			m_fstab = cp::RpcValue();
+		}
+		else {
+			throw std::runtime_error("fstab file should be valid Cpon Map.");
+		}
+	}
+}
+
 std::string BrokerApp::mountPointForDevice(const shv::chainpack::RpcValue &device_id)
 {
 	if(!m_fstab.isValid()) {
-		std::string fn = m_cliOptions->fstab().toStdString();
-		if(!fn.empty()) {
-			std::ifstream is(fn, std::ios::binary);
-			if (!is.is_open()) {
-				shvError() << "Cannot open fstab file" << fn << "for reading";
+		try {
+			std::string fstab_cpon = fstabCpon();
+			if(!fstab_cpon.empty()) {
+				m_fstab = cp::RpcValue::fromCpon(fstab_cpon);
 			}
-			else {
-				cp::CponReader rd(is);
-				std::string err;
-				rd.read(m_fstab, err);
-				if(!err.empty())
-					shvError() << "Error parsing fstab file:" << err;
-			}
+		} catch (std::runtime_error &e) {
+			shvError() << "Error parsing fstab file:" << e.what();
 		}
 		if(!m_fstab.isValid())
 			m_fstab = cp::RpcValue::Map();

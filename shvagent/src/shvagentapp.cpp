@@ -37,7 +37,7 @@ static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false},
 	{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, false},
-	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, !cp::MetaMethod::IsSignal},
+	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, 0},
 	{cp::Rpc::METH_HELP, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_RUN_CMD, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_LAUNCH_REXEC, cp::MetaMethod::Signature::RetParam, false},

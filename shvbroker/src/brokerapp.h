@@ -39,15 +39,18 @@ public:
 	rpc::TcpServer* tcpServer();
 	rpc::ServerConnection* clientById(int client_id);
 
-	Q_SIGNAL void sqlServerConnected();
+	//Q_SIGNAL void sqlServerConnected();
+	std::string fstabCpon();
+	void saveFstabCpon(const std::string &cpon);
+	//void reloadFstab();
 private:
 	void lazyInit();
 
 	QString serverProfile(); // unified access via Globals::serverProfile()
 	void startTcpServer();
 	//Q_SLOT void reconnectSqlServer();
-	Q_SLOT void onSqlServerError(const QString &err_mesg);
-	Q_SLOT void onSqlServerConnected();
+	//Q_SLOT void onSqlServerError(const QString &err_mesg);
+	//Q_SLOT void onSqlServerConnected();
 	//Q_SLOT void reloadServices();
 	std::string mountPointForDevice(const shv::chainpack::RpcValue &device_id);
 
