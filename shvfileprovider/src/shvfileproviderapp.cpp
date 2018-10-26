@@ -99,17 +99,7 @@ ShvFileProviderApp::ShvFileProviderApp(int &argc, char **argv, AppCliOptions* cl
 	m_rpcConnection->setCliOptions(cli_opts);
 	m_networkManager = new QNetworkAccessManager(this);
 
-	connect(m_networkManager, &QNetworkAccessManager::finished, [=](QNetworkReply *reply) {
-		if (reply->error()) {
-			shvInfo() << "Download sites.json error:" << reply->errorString();
-		}
-		else{
-			m_sites = reply->readAll().toStdString();
-			shvInfo() << "Downloaded sites.json";
-		}
-		reply->deleteLater();
-	});
-
+	connect(m_networkManager, &QNetworkAccessManager::finished, this, &ShvFileProviderApp::onNetworkManagerFinished);
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &ShvFileProviderApp::onBrokerConnectedChanged);
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvFileProviderApp::onRpcMessageReceived);
 
@@ -148,13 +138,17 @@ ShvFileProviderApp *ShvFileProviderApp::instance()
 
 shv::chainpack::RpcValue ShvFileProviderApp::getSites()
 {
-	QEventLoop *loop = new QEventLoop(this);
-	connect(m_networkManager, &QNetworkAccessManager::finished, loop, &QEventLoop::quit);
+	QFileInfo fi(m_cliOptions->localSitesFile());
 
-	m_networkManager->get(QNetworkRequest(QUrl(m_cliOptions->sitesUrl())));
+	if (((!fi.exists()) || (fi.lastModified().secsTo(QDateTime::currentDateTime()) > 3600))){
+		QEventLoop *loop = new QEventLoop(this);
+		connect(m_networkManager, &QNetworkAccessManager::finished, loop, &QEventLoop::quit);
+		m_networkManager->get(QNetworkRequest(QUrl(m_cliOptions->remoteSitesUrl())));
 
-	loop->exec();
-	loop->deleteLater();
+		loop->exec();
+		saveSitesToFile();
+		loop->deleteLater();
+	}
 
 	return shv::chainpack::RpcValue::String(m_sites);
 }
@@ -181,14 +175,19 @@ void ShvFileProviderApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &
 	else if(msg.isNotify()) {
 		cp::RpcNotify nt(msg);
 		shvInfo() << "RPC notify received:" << nt.toPrettyString();
-		/*
-		if(nt.method() == cp::Rpc::NTF_VAL_CHANGED) {
-			if(nt.shvPath() == "/test/shv/lublicator2/status") {
-				shvInfo() << lublicatorStatusToString(nt.params().toUInt());
-			}
-		}
-		*/
 	}
+}
+
+void ShvFileProviderApp::onNetworkManagerFinished(QNetworkReply *reply)
+{
+	if (reply->error()) {
+		shvInfo() << "Download sites.json error:" << reply->errorString();
+	}
+	else{
+		m_sites = reply->readAll().toStdString();
+		shvInfo() << "Downloaded sites.json";
+	}
+	reply->deleteLater();
 }
 
 void ShvFileProviderApp::updateConnStatusFile()
@@ -207,6 +206,26 @@ void ShvFileProviderApp::updateConnStatusFile()
 	}
 	else {
 		shvError() << "Cannot write to connection statu file:" << fn;
+	}
+}
+
+void ShvFileProviderApp::saveSitesToFile()
+{
+	QFile f(m_cliOptions->localSitesFile());
+	QDir dir = QFileInfo(f).dir();
+
+	if (!dir.exists()){
+		if(!dir.mkpath(dir.absolutePath())) {
+			shvError() << "Cannot create directory:" << dir.absolutePath();
+			return;
+		}
+	}
+
+	if(f.open(QFile::WriteOnly)) {
+		f.write(m_sites.c_str());
+	}
+	else {
+		shvError() << "Cannot write to sites file:" << m_cliOptions->localSitesFile();
 	}
 }
 

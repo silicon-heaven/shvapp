@@ -13,7 +13,8 @@ public:
 
 	CLIOPTION_GETTER_SETTER2(QString, "sysfs.rootDir", s, setS, ysFsRootDir)
 	CLIOPTION_GETTER_SETTER2(QString, "app.connStatusFile", c, setC, onnStatusFile)
-	CLIOPTION_GETTER_SETTER2(QString, "app.sitesUrl", s, setS, itesUrl)
+	CLIOPTION_GETTER_SETTER2(QString, "app.remoteSitesUrl", r, setR, emoteSitesUrl)
+	CLIOPTION_GETTER_SETTER2(QString, "app.localSitesFile", l, setL, ocalSitesFile)
 	CLIOPTION_GETTER_SETTER2(int, "app.connStatusUpdateInterval", c, setC, onnStatusUpdateInterval)
 
 };
