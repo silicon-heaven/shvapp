@@ -1,5 +1,5 @@
-#include "brokerapp.h"
 #include "fstabnode.h"
+#include "brokerapp.h"
 
 #include <shv/chainpack/metamethod.h>
 #include <shv/chainpack/rpc.h>
@@ -7,8 +7,8 @@
 namespace cp = shv::chainpack;
 
 //static const char M_SIZE[] = "size";
-static const char M_READ[] = "read";
-static const char M_WRITE[] = "write";
+static const char M_READ[] = "readCpon";
+static const char M_WRITE[] = "writeCpon";
 //static const char M_RELOAD[] = "serverReload";
 
 static std::vector<cp::MetaMethod> meta_methods {

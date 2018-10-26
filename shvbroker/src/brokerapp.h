@@ -59,7 +59,8 @@ private:
 	void sendNotifyToSubscribers(int sender_connection_id, const std::string &shv_path, const std::string &method, const shv::chainpack::RpcValue &params);
 	void sendNotifyToSubscribers(int sender_connection_id, const shv::chainpack::RpcValue::MetaData &meta_data, const std::string &data);
 
-	static std::string brokerClientPath(int client_id);
+	static std::string brokerClientDirPath(int client_id);
+	static std::string brokerClientAppPath(int client_id);
 private:
 	AppCliOptions *m_cliOptions;
 	rpc::TcpServer *m_tcpServer = nullptr;

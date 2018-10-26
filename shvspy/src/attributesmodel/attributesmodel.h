@@ -1,8 +1,10 @@
 #pragma once
 
-#include <QAbstractTableModel>
+#include <shv/chainpack/rpcvalue.h>
 
+#include <QAbstractTableModel>
 #include <QPointer>
+
 
 class ShvNodeItem;
 //class ShvMetaMethod;
@@ -45,6 +47,6 @@ private:
 	void callGet();
 private:
 	QPointer<ShvNodeItem> m_shvTreeNodeItem;
-	using RowVals = QVector<QVariant>;
-	QVector<RowVals> m_rows;
+	using RowVals = shv::chainpack::RpcValue::List;
+	std::vector<RowVals> m_rows;
 };

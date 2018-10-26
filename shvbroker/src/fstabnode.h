@@ -6,7 +6,6 @@
 class FSTabNode : public shv::iotqt::node::MethodsTableNode
 {
 	Q_OBJECT
-
 	using Super = shv::iotqt::node::MethodsTableNode;
 public:
 	FSTabNode(shv::iotqt::node::ShvNode *parent = nullptr);

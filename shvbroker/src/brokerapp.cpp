@@ -3,6 +3,7 @@
 #include "brokernode.h"
 #include "subscriptionsnode.h"
 #include "fstabnode.h"
+#include "clientdirnode.h"
 #include "rpc/tcpserver.h"
 #include "rpc/serverconnection.h"
 
@@ -263,37 +264,51 @@ void BrokerApp::onClientLogin(int connection_id)
 
 	shvInfo() << "Client login connection id:" << connection_id << "connection type:" << conn->connectionType();
 	{
-		ShvClientNode *cli_nd = new ShvClientNode(conn);
-		std::string mount_point = brokerClientPath(connection_id);
-		shv::iotqt::node::ShvNode *curr_nd = m_deviceTree->cd(mount_point);
-		ShvClientNode *curr_cli_nd = qobject_cast<ShvClientNode*>(curr_nd);
-		if(curr_nd && !curr_cli_nd) {
-			shvError() << "node on" << mount_point << "is not SHV client, this should never happen!";
-			delete curr_nd;
+		std::string dir_mount_point = brokerClientDirPath(connection_id);
+		{
+			shv::iotqt::node::ShvNode *dir = m_deviceTree->cd(dir_mount_point);
+			if(dir) {
+				shvError() << "Client dir" << dir_mount_point << "exists already and will be deleted, this should never happen!";
+				dir->setParentNode(nullptr);
+				delete dir;
+			}
 		}
+		shv::iotqt::node::ShvNode *clients_nd = m_deviceTree->mkdir(std::string(cp::Rpc::DIR_BROKER) + "/clients/");
+		if(!clients_nd)
+			SHV_EXCEPTION("Cannot create parent for ClientDirNode id: " + std::to_string(connection_id));
+		ClientDirNode *client_dir_node = new ClientDirNode(connection_id, clients_nd);
+		shvWarning() << "path1:" << client_dir_node->shvPath();
+		ShvClientNode *client_app_node = new ShvClientNode(conn, client_dir_node);
+		client_app_node->setNodeId("app");
+		shvWarning() << "path2:" << client_app_node->shvPath();
+		/*
+		std::string app_mount_point = brokerClientAppPath(connection_id);
+		shv::iotqt::node::ShvNode *curr_nd = m_deviceTree->cd(app_mount_point);
+		ShvClientNode *curr_cli_nd = qobject_cast<ShvClientNode*>(curr_nd);
 		if(curr_cli_nd) {
-			shvWarning() << "The SHV client on" << mount_point << "exists already, this should never happen!";
+			shvWarning() << "The SHV client on" << app_mount_point << "exists already, this should never happen!";
 			curr_cli_nd->connection()->abort();
 			delete curr_cli_nd;
 		}
-		if(!m_deviceTree->mount(mount_point, cli_nd))
+		if(!m_deviceTree->mount(app_mount_point, cli_nd))
 			SHV_EXCEPTION("Cannot mount connection to device tree, connection id: " + std::to_string(connection_id)
-						  + " shv path: " + mount_point);
+						  + " shv path: " + app_mount_point);
+		*/
 		// delete whole client tree, when client is destroyed
-		connect(conn, &rpc::ServerConnection::destroyed, cli_nd->parentNode(), &ShvClientNode::deleteLater);
+		connect(conn, &rpc::ServerConnection::destroyed, client_app_node->parentNode(), &ShvClientNode::deleteLater);
 		/// do not send NTF_CONNECTED_CHANGED, exposing client ID maight be dangerous
 		//this->sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_CONNECTED_CHANGED, true);
 		//connect(conn, &rpc::ServerConnection::destroyed, this, [this, connection_id, mount_point]() {
 		//	this->sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_CONNECTED_CHANGED, false);
 		//});
-		conn->setParent(cli_nd);
-	}
-	{
-		std::string mount_point = std::string(cp::Rpc::DIR_BROKER) + "/clients/" + std::to_string(conn->connectionId()) + "/subscriptions";
-		SubscriptionsNode *nd = new SubscriptionsNode(conn);
-		if(!m_deviceTree->mount(mount_point, nd))
-			SHV_EXCEPTION("Cannot mount connection subscription list to device tree, connection id: " + std::to_string(connection_id)
-						  + " shv path: " + mount_point);
+		conn->setParent(client_app_node);
+		{
+			std::string mount_point = client_dir_node->shvPath() + "/subscriptions";
+			SubscriptionsNode *nd = new SubscriptionsNode(conn);
+			if(!m_deviceTree->mount(mount_point, nd))
+				SHV_EXCEPTION("Cannot mount connection subscription list to device tree, connection id: " + std::to_string(connection_id)
+							  + " shv path: " + mount_point);
+		}
 	}
 
 	if(conn->connectionType() == cp::Rpc::TYPE_DEVICE) {
@@ -461,9 +476,14 @@ void BrokerApp::sendNotifyToSubscribers(int sender_connection_id, const shv::cha
 	}
 }
 
-std::string BrokerApp::brokerClientPath(int client_id)
+std::string BrokerApp::brokerClientDirPath(int client_id)
 {
-	return std::string(cp::Rpc::DIR_BROKER) + "/clients/" + std::to_string(client_id) + "/app";
+	return std::string(cp::Rpc::DIR_BROKER) + "/clients/" + std::to_string(client_id);
+}
+
+std::string BrokerApp::brokerClientAppPath(int client_id)
+{
+	return brokerClientDirPath(client_id) + "/app";
 }
 
 void BrokerApp::sendNotifyToSubscribers(int sender_connection_id, const std::string &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)

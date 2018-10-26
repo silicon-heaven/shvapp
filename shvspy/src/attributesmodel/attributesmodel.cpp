@@ -52,20 +52,41 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 	const QVector<ShvMetaMethod> &mms = m_shvTreeNodeItem->methods();
 	if(ix.row() < 0 || ix.row() >= mms.count())
 		return QVariant();
+	if(ix.column() < 0 || ix.column() >= ColCnt)
+		return QVariant();
 
 	switch (role) {
 	case Qt::DisplayRole: {
 		switch (ix.column()) {
 		case ColMethodName:
 		case ColSignature:
-		case ColParams:
-			return m_rows.value(ix.row()).value(ix.column());
-		case ColResult:
-			if(m_rows.value(ix.row()).value(ColIsError).toBool()) {
-				return m_rows.value(ix.row()).value(ix.column());
+		case ColParams: {
+			//QVariant v = m_rows.value(ix.row()).value(ix.column());
+			cp::RpcValue rv = m_rows[ix.row()][ix.column()];
+//			shvDebug() << m_rows.value(ix.row()).value(ColMethodName).toString()
+//					<< "ppp1" << v.toString()
+//					   << "is valid:" << v.isValid()
+//					   << "is null:" << v.isNull();
+//			shvDebug() << "ppp2" << rv.toCpon()
+//					   << "is valid:" << rv.isValid()
+//					   << "is null:" << rv.isNull();
+			return rv.isValid()? QString::fromStdString(rv.toCpon()): QVariant();
+		}
+		case ColResult: {
+			cp::RpcValue rv = m_rows[ix.row()][ColResult];
+			if(m_rows[ix.row()][ColIsError].toBool()) {
+				return QString::fromStdString(rv.toCpon());
 			}
 			else {
-				cp::RpcValue rv = qvariant_cast<cp::RpcValue>(m_rows.value(ix.row()).value(ColRawResult));
+//				shvDebug() << m_rows.value(ix.row()).value(ColMethodName).toString()
+//						<< "r1" << v.toString()
+//						   << "is valid:" << v.isValid()
+//						   << "is null:" << v.isNull();
+//				shvDebug() << "r2" << rv.toCpon()
+//						   << "is valid:" << rv.isValid()
+//						   << "is null:" << rv.isNull();
+				if(!rv.isValid())
+					return QVariant();
 
 				static constexpr int MAX_TT_SIZE = 1024;
 				std::string tts = rv.toPrettyString("  ");
@@ -74,8 +95,9 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 
 				return QString::fromStdString(tts);
 			}
+		}
 		case ColFlags:
-			return m_rows.value(ix.row()).value(ix.column()).toBool()? "Y": QVariant();
+			return m_rows[ix.row()][ix.column()].toBool()? "Y": QVariant();
 		default:
 			break;
 		}
@@ -83,8 +105,10 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 	}
 	case Qt::EditRole: {
 		switch (ix.column()) {
-		case ColParams:
-			return m_rows.value(ix.row()).value(ix.column());
+		case ColParams: {
+			cp::RpcValue rv = m_rows[ix.row()][ix.column()];
+			return rv.isValid()? QString::fromStdString(rv.toCpon()): QVariant();
+		}
 		default:
 			break;
 		}
@@ -92,11 +116,11 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 	}
 	case Qt::DecorationRole: {
 		if(ix.column() == ColBtRun) {
-			bool is_notify = m_rows.value(ix.row()).value(ColFlags).toBool();
+			bool is_notify = m_rows[ix.row()][ColFlags].toBool();
 			if(!is_notify) {
 				static QIcon ico_run = QIcon(QStringLiteral(":/shvspy/images/run"));
 				static QIcon ico_reload = QIcon(QStringLiteral(":/shvspy/images/reload"));
-				auto v = m_rows.value(ix.row()).value(ColBtRun);
+				auto v = m_rows[ix.row()][ColBtRun];
 				return (v.toUInt() > 0)? ico_reload: ico_run;
 			}
 		}
@@ -110,7 +134,7 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 			return data(ix, Qt::DisplayRole);
 		}
 		else if(ix.column() == ColFlags) {
-			bool is_notify = m_rows.value(ix.row()).value(ColFlags).toBool();
+			bool is_notify = m_rows[ix.row()][ColFlags].toBool();
 			return is_notify? tr("Method is notify signal"): QVariant();
 		}
 		else {
@@ -118,7 +142,8 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 		}
 	}
 	case RawResultRole: {
-		return m_rows.value(ix.row()).value(ColRawResult);
+		cp::RpcValue rv = m_rows[ix.row()][ColRawResult];
+		return QVariant::fromValue(rv);
 	}
 	default:
 		break;
@@ -235,9 +260,9 @@ void AttributesModel::emitRowChanged(int row_ix)
 
 void AttributesModel::callGet()
 {
-	for (int i = 0; i < m_rows.count(); ++i) {
-		QString mn = m_rows[i].value(ColMethodName).toString();
-		if(mn == QLatin1String(cp::Rpc::METH_GET)) {
+	for (unsigned i = 0; i < m_rows.size(); ++i) {
+		std::string mn = m_rows[i][ColMethodName].toString();
+		if(mn == cp::Rpc::METH_GET) {
 			callMethod(i);
 		}
 	}
@@ -245,31 +270,29 @@ void AttributesModel::callGet()
 
 void AttributesModel::loadRow(int method_ix)
 {
-	if(method_ix < 0 || method_ix >= m_rows.count() || m_shvTreeNodeItem.isNull())
+	if(method_ix < 0 || method_ix >= m_rows.size() || m_shvTreeNodeItem.isNull())
 		return;
 	const QVector<ShvMetaMethod> &mm = m_shvTreeNodeItem->methods();
 	const ShvMetaMethod & mtd = mm[method_ix];
 	RowVals &rv = m_rows[method_ix];
-	rv[ColMethodName] = QString::fromStdString(mtd.method);
-	rv[ColSignature] = QString::fromStdString(mtd.signatureStr());
-	rv[ColFlags] = QString::fromStdString(mtd.flagsStr());
-	rv[ColAccessLevel] = QString::fromStdString(mtd.accessLevelStr());
+	shvDebug() << "load row:" << mtd.method;
+	rv[ColMethodName] = mtd.method;
+	rv[ColSignature] = mtd.signatureStr();
+	rv[ColFlags] = mtd.flagsStr();
+	rv[ColAccessLevel] = mtd.accessLevelStr();
 	if(mtd.params.isValid()) {
-		rv[ColParams] = QString::fromStdString(mtd.params.toCpon());
+		rv[ColParams] = mtd.params.toCpon();
 	}
+	shvDebug() << "\t response:" << mtd.response.toCpon() << "is valid:" << mtd.response.isValid();
 	if(mtd.response.isError()) {
-		//rv[ColRawResult] = QVariant::fromValue(shv::chainpack::RpcValue(mtd.response.error()));
-		rv[ColRawResult] = QVariant();
-		rv[ColResult] = QString::fromStdString(mtd.response.error().toString());
+		rv[ColRawResult] = cp::RpcValue();
+		rv[ColResult] = mtd.response.error().toString();
 		rv[ColIsError] = true;
 	}
-	else if(mtd.response.result().isValid()) {
-		rv[ColRawResult] = QVariant::fromValue(mtd.response.result());
+	else {
 		shv::chainpack::RpcValue result = mtd.response.result();
-		if(result.isString())
-			rv[ColResult] = QString::fromStdString(result.toString());
-		else
-			rv[ColResult] = QString::fromStdString(mtd.response.result().toCpon());
+		rv[ColRawResult] = result;
+		rv[ColResult] = result;
 		rv[ColIsError] = false;
 	}
 	rv[ColBtRun] = mtd.rpcRequestId;
@@ -283,8 +306,8 @@ void AttributesModel::loadRows()
 		for (int i = 0; i < mm.count(); ++i) {
 			RowVals rv;
 			rv.resize(ColCnt);
-			m_rows.insert(m_rows.count(), rv);
-			loadRow(m_rows.count() - 1);
+			m_rows.push_back(rv);
+			loadRow(m_rows.size() - 1);
 		}
 	}
 	emit layoutChanged();
