@@ -14,7 +14,7 @@ static const char M_READ[] = "read";
 static std::vector<cp::MetaMethod> meta_methods_sites {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false},
-	{M_READ, cp::MetaMethod::Signature::RetParam, false},
+	{M_READ, cp::MetaMethod::Signature::RetParam, false}
 };
 
 SitesNode::SitesNode(shv::iotqt::node::ShvNode *parent)
