@@ -2,6 +2,8 @@
 
 #include <QDialog>
 
+namespace shv { namespace chainpack { class RpcValue; }}
+
 namespace Ui {
 class TextEditDialog;
 }
@@ -19,6 +21,15 @@ public:
 	QString text() const;
 
 	void setReadOnly(bool ro);
+	void setValidateCpon(bool b);
+private slots:
+	void on_btCompactCpon_clicked();
+	void on_btFormatCpon_clicked();
+private:
+	void validateContentDeferred();
+	shv::chainpack::RpcValue validateContent();
 private:
 	Ui::TextEditDialog *ui;
+	bool m_isValidateContent = false;
+	QTimer *m_validateTimer = nullptr;
 };

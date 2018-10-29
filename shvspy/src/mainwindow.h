@@ -36,6 +36,7 @@ protected:
 	void displayResult(const QModelIndex &ix);
 	void editMethodParameters(const QModelIndex &ix);
 	void editStringParameter(const QModelIndex &ix);
+	void editCponParameters(const QModelIndex &ix);
 
 	void onAttributesTableContexMenu(const QPoint &point);
 

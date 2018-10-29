@@ -96,9 +96,9 @@ MainWindow::MainWindow(QWidget *parent) :
 		if (ix.column() == AttributesModel::ColResult) {
 			displayResult(ix);
 		}
-//		else if (ix.column() == AttributesModel::ColParams) {
-//			inputParameters(ix);
-//		}
+		else if (ix.column() == AttributesModel::ColParams) {
+			editCponParameters(ix);
+		}
 	});
 
 
@@ -283,6 +283,30 @@ void MainWindow::editStringParameter(const QModelIndex &ix)
 	}
 }
 
+void MainWindow::editCponParameters(const QModelIndex &ix)
+{
+	QVariant v = ix.data(Qt::EditRole);
+	QString str;
+	cp::RpcValue rv = qvariant_cast<cp::RpcValue>(v);
+	if(rv.isValid())
+		str = QString::fromStdString(rv.toCpon());
+	TextEditDialog dlg(this);
+	dlg.setReadOnly(false);
+	dlg.setValidateCpon(true);
+	dlg.setText(str);
+	if(dlg.exec()) {
+		str = dlg.text();
+		std::string err;
+		cp::RpcValue rv = cp::RpcValue::fromCpon(str.toStdString(), &err);
+		if(err.empty()) {
+			ui->tblAttributes->model()->setData(ix, QVariant::fromValue(rv), Qt::EditRole);
+		}
+		else {
+			QMessageBox::warning(this, tr("Error"), tr("Malformed Cpon: ") + QString::fromStdString(err));
+		}
+	}
+}
+
 void MainWindow::onAttributesTableContexMenu(const QPoint &point)
 {
 	QModelIndex index = ui->tblAttributes->indexAt(point);
@@ -297,12 +321,16 @@ void MainWindow::onAttributesTableContexMenu(const QPoint &point)
 		QMenu menu(this);
 		QAction *a_par_ed = menu.addAction(tr("Parameters editor"));
 		QAction *a_str_ed = menu.addAction(tr("String parameter editor"));
+		QAction *a_cpon_ed = menu.addAction(tr("Cpon parameters editor"));
 		QAction *a = menu.exec(ui->tblAttributes->viewport()->mapToGlobal(point));
 		if (a == a_par_ed) {
 			editMethodParameters(index);
 		}
 		else if (a == a_str_ed) {
 			editStringParameter(index);
+		}
+		else if (a == a_cpon_ed) {
+			editCponParameters(index);
 		}
 	}
 }
