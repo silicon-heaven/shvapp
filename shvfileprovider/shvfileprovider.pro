@@ -46,5 +46,4 @@ INCLUDEPATH += \
 
 include (src/src.pri)
 
-DISTFILES += \
-    sites/sites.json
+DISTFILES +=
