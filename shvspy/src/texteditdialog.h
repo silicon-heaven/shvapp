@@ -21,15 +21,26 @@ public:
 	QString text() const;
 
 	void setReadOnly(bool ro);
-	void setValidateCpon(bool b);
+protected:
+	Ui::TextEditDialog *ui;
+};
+
+class CponEditDialog : public TextEditDialog
+{
+	Q_OBJECT
+
+	using Super = TextEditDialog;
+public:
+	explicit CponEditDialog(QWidget *parent = nullptr);
+
+	void setValidateContent(bool b);
 private slots:
-	void on_btCompactCpon_clicked();
-	void on_btFormatCpon_clicked();
+	void onBtCompactCponClicked();
+	void onBtFormatCponClicked();
 private:
 	void validateContentDeferred();
 	shv::chainpack::RpcValue validateContent();
 private:
-	Ui::TextEditDialog *ui;
 	bool m_isValidateContent = false;
 	QTimer *m_validateTimer = nullptr;
 };

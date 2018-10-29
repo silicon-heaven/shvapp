@@ -9,19 +9,23 @@
 
 namespace cp = shv::chainpack;
 
+//=========================================================
+// TextEditDialog
+//=========================================================
 TextEditDialog::TextEditDialog(QWidget *parent)
 	: Super(parent)
 	, ui(new Ui::TextEditDialog)
 {
 	ui->setupUi(this);
 	ui->lblError->hide();
-	ui->frmCponTools->hide();
+	ui->btFormatCpon->hide();
+	ui->btCompactCpon->hide();
 	setReadOnly(false);
-
-	connect(ui->plainTextEdit, &QPlainTextEdit::textChanged, this, &TextEditDialog::validateContentDeferred);
 
 	QSettings settings;
 	restoreGeometry(settings.value(QStringLiteral("ui/ResultView/geometry")).toByteArray());
+
+	ui->plainTextEdit->setFocus();
 }
 
 TextEditDialog::~TextEditDialog()
@@ -47,13 +51,26 @@ void TextEditDialog::setReadOnly(bool ro)
 	ui->btSave->setVisible(!ro);
 }
 
-void TextEditDialog::setValidateCpon(bool b)
+//=========================================================
+// CponEditDialog
+//=========================================================
+CponEditDialog::CponEditDialog(QWidget *parent)
+	: Super(parent)
 {
-	m_isValidateContent = b;
-	ui->frmCponTools->setVisible(b);
+	ui->btFormatCpon->show();
+	ui->btCompactCpon->show();
+
+	connect(ui->plainTextEdit, &QPlainTextEdit::textChanged, this, &CponEditDialog::validateContentDeferred);
+	connect(ui->btCompactCpon, &QPushButton::clicked, this, &CponEditDialog::onBtCompactCponClicked);
+	connect(ui->btFormatCpon, &QPushButton::clicked, this, &CponEditDialog::onBtFormatCponClicked);
 }
 
-void TextEditDialog::validateContentDeferred()
+void CponEditDialog::setValidateContent(bool b)
+{
+	m_isValidateContent = b;
+}
+
+void CponEditDialog::validateContentDeferred()
 {
 	if(!m_isValidateContent)
 		return;
@@ -61,15 +78,13 @@ void TextEditDialog::validateContentDeferred()
 		m_validateTimer = new QTimer(this);
 		m_validateTimer->setSingleShot(true);
 		m_validateTimer->setInterval(1000);
-		connect(m_validateTimer, &QTimer::timeout, this, &TextEditDialog::validateContent);
+		connect(m_validateTimer, &QTimer::timeout, this, &CponEditDialog::validateContent);
 	}
 	m_validateTimer->start();
 }
 
-cp::RpcValue TextEditDialog::validateContent()
+cp::RpcValue CponEditDialog::validateContent()
 {
-	if(!m_isValidateContent)
-		return cp::RpcValue();
 	QString txt = text().trimmed();
 	std::string err;
 	cp::RpcValue rv = cp::RpcValue::fromCpon(txt.toStdString(), &err);
@@ -84,7 +99,7 @@ cp::RpcValue TextEditDialog::validateContent()
 	}
 }
 
-void TextEditDialog::on_btCompactCpon_clicked()
+void CponEditDialog::onBtCompactCponClicked()
 {
 	shv::chainpack::RpcValue rv = validateContent();
 	if(rv.isValid()) {
@@ -93,7 +108,7 @@ void TextEditDialog::on_btCompactCpon_clicked()
 	}
 }
 
-void TextEditDialog::on_btFormatCpon_clicked()
+void CponEditDialog::onBtFormatCponClicked()
 {
 	shv::chainpack::RpcValue rv = validateContent();
 	if(rv.isValid()) {

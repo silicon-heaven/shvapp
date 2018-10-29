@@ -95,7 +95,7 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 		case ColResult:
 		case ColParams: {
 			cp::RpcValue rv = m_rows[ix.row()][ix.column()];
-			return QVariant::fromValue(rv);
+			return rv.isValid()? QString::fromStdString(rv.toCpon()): QVariant();
 		}
 		default:
 			break;
@@ -141,7 +141,14 @@ bool AttributesModel::setData(const QModelIndex &ix, const QVariant &val, int ro
 	if(role == Qt::EditRole) {
 		if(ix.column() == ColParams) {
 			if(!m_shvTreeNodeItem.isNull()) {
-				cp::RpcValue params = qvariant_cast<cp::RpcValue>(val);
+				std::string cpon = val.toString().toStdString();
+				cp::RpcValue params;
+				if(!cpon.empty()) {
+					std::string err;
+					params = cp::RpcValue::fromCpon(cpon, &err);
+					if(!err.empty())
+						shvError() << "cannot set invalid cpon data";
+				}
 				m_shvTreeNodeItem->setMethodParams(ix.row(), params);
 				loadRow(ix.row());
 				return true;

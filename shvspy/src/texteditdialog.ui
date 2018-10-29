@@ -30,7 +30,7 @@
     <number>5</number>
    </property>
    <item>
-    <widget class="QFrame" name="frmCponTools">
+    <widget class="QFrame" name="frmTools">
      <layout class="QHBoxLayout" name="horizontalLayout">
       <property name="spacing">
        <number>5</number>

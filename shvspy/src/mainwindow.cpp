@@ -92,14 +92,14 @@ MainWindow::MainWindow(QWidget *parent) :
 		if(ix.column() == AttributesModel::ColBtRun)
 			TheApp::instance()->attributesModel()->callMethod(ix.row());
 	});
-	connect(ui->tblAttributes, &QTableView::doubleClicked, [this](const QModelIndex &ix) {
+	connect(ui->tblAttributes, &QTableView::doubleClicked, this, [this](const QModelIndex &ix) {
 		if (ix.column() == AttributesModel::ColResult) {
 			displayResult(ix);
 		}
 		else if (ix.column() == AttributesModel::ColParams) {
 			editCponParameters(ix);
 		}
-	});
+	}, Qt::QueuedConnection);
 
 
 	ui->notificationsLogWidget->setLogTableModel(TheApp::instance()->rpcNotificationsModel());
@@ -216,37 +216,12 @@ void MainWindow::openNode(const QModelIndex &ix)
 void MainWindow::displayResult(const QModelIndex &ix)
 {
 	//QApplication::setOverrideCursor(Qt::WaitCursor);
-	QVariant v = ix.data(Qt::EditRole);
-	cp::RpcValue rv = qvariant_cast<cp::RpcValue>(v);
-
-	std::string formatted;
-
-	if(rv.isString()) {
-		formatted = rv.toString();
-		/*
-		static constexpr int MAX_TT_SIZE = 1024;
-		std::string tts = rv.toPrettyString("  ");
-		if(tts.size() > MAX_TT_SIZE)
-			tts = tts.substr(0, MAX_TT_SIZE) + " < ... " + std::to_string(tts.size() - MAX_TT_SIZE) + " more bytes >";
-		*/
-		//std::ofstream os("/tmp/string.bin", std::ostream::binary);
-		//os << formatted;
-	}
-	else try {
-		std::ostringstream pout;
-		shv::chainpack::CponWriterOptions opts;
-		opts.setIndent("\t");
-		opts.setTranslateIds(true);
-		{ shv::chainpack::CponWriter pwr(pout, opts); pwr.write(rv); }
-		formatted = pout.str();
-	}
-	catch (std::exception &e) {
-		formatted = e.what();
-	}
-
-	TextEditDialog view(this);
+	QString cpon = ix.data(Qt::EditRole).toString();
+	CponEditDialog view(this);
+	view.setWindowIconText(tr("Result"));
 	view.setReadOnly(true);
-	view.setText(QString::fromStdString(formatted));
+	view.setValidateContent(false);
+	view.setText(cpon);
 	//QApplication::restoreOverrideCursor();
 	view.exec();
 }
@@ -259,51 +234,38 @@ void MainWindow::editMethodParameters(const QModelIndex &ix)
 	QString path = TheApp::instance()->attributesModel()->path();
 	QString method = TheApp::instance()->attributesModel()->method(ix.row());
 	MethodParametersDialog dlg(path, method, rv, this);
+	dlg.setWindowIconText(tr("Parameters"));
 	if (dlg.exec() == QDialog::Accepted) {
-		shv::chainpack::RpcValue val = dlg.value();
-		ui->tblAttributes->model()->setData(ix, QVariant::fromValue(val), Qt::EditRole);
+		std::string cpon = dlg.value().toCpon();
+		ui->tblAttributes->model()->setData(ix, QString::fromStdString(cpon), Qt::EditRole);
 	}
 }
 
 void MainWindow::editStringParameter(const QModelIndex &ix)
 {
 	QVariant v = ix.data(Qt::EditRole);
-	QString str;
-	cp::RpcValue rv = qvariant_cast<cp::RpcValue>(v);
-	if (rv.isString()) {
-		str = QString::fromStdString(rv.toString());
-	}
+	QString cpon = v.toString();
 	TextEditDialog dlg(this);
+	dlg.setWindowIconText(tr("Parameters"));
 	dlg.setReadOnly(false);
-	dlg.setText(str);
+	dlg.setText(cpon);
 	if(dlg.exec()) {
-		str = dlg.text();
-		cp::RpcValue rv(str.toStdString());
-		ui->tblAttributes->model()->setData(ix, QVariant::fromValue(rv), Qt::EditRole);
+		cpon = dlg.text();
+		ui->tblAttributes->model()->setData(ix, cpon, Qt::EditRole);
 	}
 }
 
 void MainWindow::editCponParameters(const QModelIndex &ix)
 {
 	QVariant v = ix.data(Qt::EditRole);
-	QString str;
-	cp::RpcValue rv = qvariant_cast<cp::RpcValue>(v);
-	if(rv.isValid())
-		str = QString::fromStdString(rv.toCpon());
-	TextEditDialog dlg(this);
+	QString cpon = v.toString();
+	CponEditDialog dlg(this);
 	dlg.setReadOnly(false);
-	dlg.setValidateCpon(true);
-	dlg.setText(str);
+	dlg.setValidateContent(true);
+	dlg.setText(cpon);
 	if(dlg.exec()) {
-		str = dlg.text();
-		std::string err;
-		cp::RpcValue rv = cp::RpcValue::fromCpon(str.toStdString(), &err);
-		if(err.empty()) {
-			ui->tblAttributes->model()->setData(ix, QVariant::fromValue(rv), Qt::EditRole);
-		}
-		else {
-			QMessageBox::warning(this, tr("Error"), tr("Malformed Cpon: ") + QString::fromStdString(err));
-		}
+		cpon = dlg.text();
+		ui->tblAttributes->model()->setData(ix, cpon, Qt::EditRole);
 	}
 }
 
