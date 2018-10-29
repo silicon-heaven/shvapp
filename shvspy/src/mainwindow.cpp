@@ -216,7 +216,7 @@ void MainWindow::openNode(const QModelIndex &ix)
 void MainWindow::displayResult(const QModelIndex &ix)
 {
 	//QApplication::setOverrideCursor(Qt::WaitCursor);
-	QVariant v = ix.data(AttributesModel::RawResultRole);
+	QVariant v = ix.data(Qt::EditRole);
 	cp::RpcValue rv = qvariant_cast<cp::RpcValue>(v);
 
 	std::string formatted;
@@ -253,38 +253,25 @@ void MainWindow::displayResult(const QModelIndex &ix)
 
 void MainWindow::editMethodParameters(const QModelIndex &ix)
 {
-	QString params = ix.data(Qt::EditRole).toString();
-	cp::RpcValue rv;
-	if (!params.isEmpty()) {
-		std::string err;
-		rv = shv::chainpack::RpcValue::fromCpon(params.toStdString(), &err);
-	}
+	QVariant v = ix.data(Qt::EditRole);
+	cp::RpcValue rv = qvariant_cast<cp::RpcValue>(v);
 
 	QString path = TheApp::instance()->attributesModel()->path();
 	QString method = TheApp::instance()->attributesModel()->method(ix.row());
 	MethodParametersDialog dlg(path, method, rv, this);
 	if (dlg.exec() == QDialog::Accepted) {
 		shv::chainpack::RpcValue val = dlg.value();
-		if (val.isValid()) {
-			ui->tblAttributes->model()->setData(ix, QString::fromStdString(dlg.value().toCpon()), Qt::EditRole);
-		}
-		else {
-			ui->tblAttributes->model()->setData(ix, QString(), Qt::EditRole);
-		}
+		ui->tblAttributes->model()->setData(ix, QVariant::fromValue(val), Qt::EditRole);
 	}
 }
 
 void MainWindow::editStringParameter(const QModelIndex &ix)
 {
-	QString params = ix.data(Qt::EditRole).toString();
+	QVariant v = ix.data(Qt::EditRole);
 	QString str;
-	cp::RpcValue rv;
-	if (!params.isEmpty()) {
-		std::string err;
-		rv = shv::chainpack::RpcValue::fromCpon(params.toStdString(), &err);
-		if(err.empty()) {
-			str = QString::fromStdString(rv.toString());
-		}
+	cp::RpcValue rv = qvariant_cast<cp::RpcValue>(v);
+	if (rv.isString()) {
+		str = QString::fromStdString(rv.toString());
 	}
 	TextEditDialog dlg(this);
 	dlg.setReadOnly(false);
@@ -292,7 +279,7 @@ void MainWindow::editStringParameter(const QModelIndex &ix)
 	if(dlg.exec()) {
 		str = dlg.text();
 		cp::RpcValue rv(str.toStdString());
-		ui->tblAttributes->model()->setData(ix, QString::fromStdString(rv.toCpon()), Qt::EditRole);
+		ui->tblAttributes->model()->setData(ix, QVariant::fromValue(rv), Qt::EditRole);
 	}
 }
 

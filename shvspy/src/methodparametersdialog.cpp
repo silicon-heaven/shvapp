@@ -37,6 +37,7 @@ MethodParametersDialog::MethodParametersDialog(const QString &path, const QStrin
 	, m_currentTabIndex(0)
 	, m_cponEdited(false)
 {
+	shvLogFuncFrame() << "method:" << method << "params:" << params.toCpon();
 	ui->setupUi(this);
 
 	ui->parsingSingleLabel->hide();

@@ -16,7 +16,7 @@ static std::vector<cp::MetaMethod> meta_methods_history {
 };
 
 HistoryNode::HistoryNode(shv::iotqt::node::ShvNode *parent)
-	: Super("history", parent)
+	: Super(".history", parent)
 {
 }
 

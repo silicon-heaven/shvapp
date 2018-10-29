@@ -101,6 +101,7 @@ RevitestDevice::RevitestDevice(QObject *parent)
 {
 	shvLogFuncFrame();
 	m_shvTree = new shv::iotqt::node::ShvNodeTree(this);
+	m_shvTree->root()->setSortedChildren(false);
 	new HistoryNode(m_shvTree->root());
 	createDevices();
 }

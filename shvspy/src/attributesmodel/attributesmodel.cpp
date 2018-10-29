@@ -63,28 +63,15 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 		case ColParams: {
 			//QVariant v = m_rows.value(ix.row()).value(ix.column());
 			cp::RpcValue rv = m_rows[ix.row()][ix.column()];
-//			shvDebug() << m_rows.value(ix.row()).value(ColMethodName).toString()
-//					<< "ppp1" << v.toString()
-//					   << "is valid:" << v.isValid()
-//					   << "is null:" << v.isNull();
-//			shvDebug() << "ppp2" << rv.toCpon()
-//					   << "is valid:" << rv.isValid()
-//					   << "is null:" << rv.isNull();
 			return rv.isValid()? QString::fromStdString(rv.toCpon()): QVariant();
 		}
 		case ColResult: {
-			cp::RpcValue rv = m_rows[ix.row()][ColResult];
-			if(m_rows[ix.row()][ColIsError].toBool()) {
-				return QString::fromStdString(rv.toCpon());
+			if(m_rows[ix.row()][ColError].isIMap()) {
+				cp::RpcResponse::Error err(m_rows[ix.row()][ColError].toIMap());
+				return QString::fromStdString(err.message());
 			}
 			else {
-//				shvDebug() << m_rows.value(ix.row()).value(ColMethodName).toString()
-//						<< "r1" << v.toString()
-//						   << "is valid:" << v.isValid()
-//						   << "is null:" << v.isNull();
-//				shvDebug() << "r2" << rv.toCpon()
-//						   << "is valid:" << rv.isValid()
-//						   << "is null:" << rv.isNull();
+				cp::RpcValue rv = m_rows[ix.row()][ColResult];
 				if(!rv.isValid())
 					return QVariant();
 
@@ -97,7 +84,7 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 			}
 		}
 		case ColFlags:
-			return m_rows[ix.row()][ix.column()].toBool()? "Y": QVariant();
+			return QString::fromStdString(m_rows[ix.row()][ix.column()].toString());
 		default:
 			break;
 		}
@@ -105,9 +92,10 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 	}
 	case Qt::EditRole: {
 		switch (ix.column()) {
+		case ColResult:
 		case ColParams: {
 			cp::RpcValue rv = m_rows[ix.row()][ix.column()];
-			return rv.isValid()? QString::fromStdString(rv.toCpon()): QVariant();
+			return QVariant::fromValue(rv);
 		}
 		default:
 			break;
@@ -134,16 +122,12 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 			return data(ix, Qt::DisplayRole);
 		}
 		else if(ix.column() == ColFlags) {
-			bool is_notify = m_rows[ix.row()][ColFlags].toBool();
+			bool is_notify = m_rows[ix.row()][ColFlags].toUInt() & cp::MetaMethod::Flag::IsSignal;
 			return is_notify? tr("Method is notify signal"): QVariant();
 		}
 		else {
 			return data(ix, Qt::DisplayRole);
 		}
-	}
-	case RawResultRole: {
-		cp::RpcValue rv = m_rows[ix.row()][ColRawResult];
-		return QVariant::fromValue(rv);
 	}
 	default:
 		break;
@@ -157,14 +141,7 @@ bool AttributesModel::setData(const QModelIndex &ix, const QVariant &val, int ro
 	if(role == Qt::EditRole) {
 		if(ix.column() == ColParams) {
 			if(!m_shvTreeNodeItem.isNull()) {
-				cp::RpcValue params;
-				std::string cpon = val.toString().toStdString();
-				if(!cpon.empty()) {
-					std::string err;
-					params = cp::RpcValue::fromCpon(cpon, &err);
-					if(!err.empty())
-						shvWarning() << "Invalid method param:" << cpon;
-				}
+				cp::RpcValue params = qvariant_cast<cp::RpcValue>(val);
 				m_shvTreeNodeItem->setMethodParams(ix.row(), params);
 				loadRow(ix.row());
 				return true;
@@ -270,30 +247,26 @@ void AttributesModel::callGet()
 
 void AttributesModel::loadRow(int method_ix)
 {
-	if(method_ix < 0 || method_ix >= m_rows.size() || m_shvTreeNodeItem.isNull())
+	if(method_ix < 0 || method_ix >= (int)m_rows.size() || m_shvTreeNodeItem.isNull())
 		return;
 	const QVector<ShvMetaMethod> &mm = m_shvTreeNodeItem->methods();
 	const ShvMetaMethod & mtd = mm[method_ix];
 	RowVals &rv = m_rows[method_ix];
-	shvDebug() << "load row:" << mtd.method;
+	shvDebug() << "load row:" << mtd.method << "flags:" << mtd.flags << mtd.flagsStr();
 	rv[ColMethodName] = mtd.method;
 	rv[ColSignature] = mtd.signatureStr();
 	rv[ColFlags] = mtd.flagsStr();
 	rv[ColAccessLevel] = mtd.accessLevelStr();
 	if(mtd.params.isValid()) {
-		rv[ColParams] = mtd.params.toCpon();
+		rv[ColParams] = mtd.params;
 	}
 	shvDebug() << "\t response:" << mtd.response.toCpon() << "is valid:" << mtd.response.isValid();
 	if(mtd.response.isError()) {
-		rv[ColRawResult] = cp::RpcValue();
-		rv[ColResult] = mtd.response.error().toString();
-		rv[ColIsError] = true;
+		rv[ColResult] = mtd.response.error();
 	}
 	else {
 		shv::chainpack::RpcValue result = mtd.response.result();
-		rv[ColRawResult] = result;
 		rv[ColResult] = result;
-		rv[ColIsError] = false;
 	}
 	rv[ColBtRun] = mtd.rpcRequestId;
 }
