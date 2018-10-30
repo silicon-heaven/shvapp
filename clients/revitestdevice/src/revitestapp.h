@@ -18,7 +18,10 @@ public:
 	RevitestApp(int &argc, char **argv, AppCliOptions* cli_opts);
 	~RevitestApp() Q_DECL_OVERRIDE;
 
+	static constexpr size_t LUB_CNT = 27;
 	static RevitestApp *instance();
+
+	AppCliOptions* cliOptions() {return m_cliOptions;}
 
 	shv::iotqt::utils::FileShvJournal *shvJournal() {return m_shvJournal;}
 private:

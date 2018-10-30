@@ -1,5 +1,6 @@
 #include "lublicator.h"
 #include "revitestapp.h"
+#include "appclioptions.h"
 
 #include <shv/iotqt/node/shvnodetree.h>
 #include <shv/iotqt/utils/fileshvjournal.h>
@@ -15,12 +16,14 @@
 
 #include <QDir>
 #include <QStandardPaths>
+#include <QTimer>
 #include <QVariant>
 
 namespace cp = shv::chainpack;
 namespace iot = shv::iotqt;
 
 const char *Lublicator::PROP_STATUS = "status";
+const char *Lublicator::PROP_BATTERY_VOLTAGE = "batteryVoltage";
 const char *Lublicator::METH_DEVICE_ID = "deviceId";
 const char *Lublicator::METH_CMD_ON = "cmdOn";
 const char *Lublicator::METH_CMD_OFF = "cmdOff";
@@ -37,28 +40,23 @@ Lublicator::Lublicator(const std::string &node_id, ShvNode *parent)
 	: Super(parent)
 {
 	setNodeId(node_id);
-	/*
-	QString sql_dir = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
-	sql_dir += "/log/revitest";
-	QDir().mkpath(sql_dir);
-	QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", sqlConnectionName());
-	QString db_name = sqlConnectionName() + ".log";
-	db.setDatabaseName(sql_dir + '/' + db_name);
-	if(!db.open()) {
-		shvError() << "Cannot open log SQLITE database file:" << db.databaseName();
+
+	if(RevitestApp::instance()->cliOptions()->isSimBattVoltageDrift()) {
+		QTimer *bat_voltage_sim = new QTimer(this);
+		int node_no = std::stoi(node_id);
+		connect(bat_voltage_sim, &QTimer::timeout, this, [this, node_no]() {
+			m_battSimCnt++;
+			if((m_battSimCnt % (int)RevitestApp::LUB_CNT) + 1 == node_no) {
+				//shvWarning() << node_no << "bv:" << ((m_battSimCnt % (int)RevitestApp::LUB_CNT) + 1);
+				unsigned bv = m_batteryVoltage;
+				if(++bv > 30)
+					bv = 18;
+				sim_setBateryVoltage(bv);
+			}
+		});
+		bat_voltage_sim->start(1000);
 	}
-	else {
-		shvInfo() << "Opening log SQLITE database file:" << db.databaseName() << "... OK";
-	}
-	QSqlQuery q = logQuery();
-	if(!q.exec("SELECT * from shvlog LIMIT 1")) {
-		shvInfo() << "DATABASE init - creating tables";
-		q.exec("DROP TABLE shvlog");
-		bool ok = q.exec("CREATE TABLE shvlog (id INTEGER PRIMARY KEY autoincrement, ts DATETIME, path TEXT, val TEXT)");
-		if(!ok)
-			shvError() << db_name << "Cannot create database shvlog";
-	}
-	*/
+
 	connect(this, &Lublicator::valueChanged, this, &Lublicator::addLogEntry);
 }
 
@@ -186,8 +184,7 @@ shv::chainpack::RpcValue Lublicator::callMethod(const StringViewList &shv_path, 
 		}
 		if(method == METH_SIM_SET_BATTERY_VOLTAGE) {
 			unsigned d = params.toUInt();
-			m_batteryVoltage = d;
-			checkBatteryTresholds();
+			sim_setBateryVoltage(d);
 			return true;
 		}
 		if(method == METH_BATTERY_LOW_TRESHOLD) {
@@ -250,5 +247,14 @@ void Lublicator::checkBatteryTresholds()
 	else
 		s &= ~((unsigned)Status::BatteryLow);
 	setStatus(s);
+}
+
+void Lublicator::sim_setBateryVoltage(unsigned v)
+{
+	if(m_batteryVoltage == v)
+		return;
+	m_batteryVoltage = v;
+	emit valueChanged(PROP_BATTERY_VOLTAGE, v);
+	checkBatteryTresholds();
 }
 
