@@ -34,7 +34,7 @@ MethodParametersDialog::MethodParametersDialog(const QString &path, const QStrin
 	, m_path(path)
 	, m_method(method)
 	, m_usedParamsWidget(nullptr)
-	, m_currentTabIndex(0)
+	, m_currentTabIndex(TAB_INDEX_CPON)
 	, m_cponEdited(false)
 {
 	shvLogFuncFrame() << "method:" << method << "params:" << params.toCpon();
@@ -549,7 +549,7 @@ void MethodParametersDialog::switchToSingle()
 			(m_currentTabIndex == TAB_INDEX_PARAMETER_LIST && ui->parameterListTable->isHidden() && m_cponEdited)) {
 			std::string cpon = ui->rawCponEdit->toPlainText().toStdString();
 			if (cpon.size() == 0) {
-				parsed = false;
+				parsed = true;
 			}
 			else {
 				std::string err;
@@ -582,7 +582,7 @@ void MethodParametersDialog::clearSingleParam()
 	ui->parsingSingleLabel->hide();
 	ui->singleParameterTable->show();
 
-	//newSingleParameter(cp::RpcValue());
+	newSingleParameter(cp::RpcValue());
 }
 
 void MethodParametersDialog::clearParamList()
