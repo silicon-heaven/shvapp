@@ -431,7 +431,7 @@ void MethodParametersDialog::switchToCpon()
 			m_cponEdited = false;
 		}
 	}
-	else if (m_currentTabIndex == TAB_INDEX_PARAMETER_MAP) {
+	else if (m_currentTabIndex == TAB_INDEX_PARAMETER_LIST) {
 		if (!ui->parameterMapTable->isHidden()) {
 			value = mapParamValue();
 			if (value.isValid()) {
