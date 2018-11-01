@@ -216,25 +216,35 @@ void MainWindow::openNode(const QModelIndex &ix)
 void MainWindow::displayResult(const QModelIndex &ix)
 {
 	//QApplication::setOverrideCursor(Qt::WaitCursor);
-	QString cpon = ix.data(Qt::EditRole).toString();
-	CponEditDialog view(this);
-	view.setWindowIconText(tr("Result"));
-	view.setReadOnly(true);
-	view.setValidateContent(false);
-	view.setText(cpon);
-	//QApplication::restoreOverrideCursor();
-	view.exec();
+	QVariant v = ix.data(AttributesModel::RpcValueRole);
+	cp::RpcValue rv = qvariant_cast<cp::RpcValue>(v);
+	if(rv.isString()) {
+		TextEditDialog view(this);
+		view.setWindowIconText(tr("Result"));
+		view.setReadOnly(true);
+		view.setText(QString::fromStdString(rv.toString()));
+		view.exec();
+	}
+	else {
+		CponEditDialog view(this);
+		view.setWindowIconText(tr("Result"));
+		view.setReadOnly(true);
+		view.setValidateContent(false);
+		QString cpon = QString::fromStdString(rv.toCpon("  "));
+		view.setText(cpon);
+		view.exec();
+	}
 }
 
 void MainWindow::editMethodParameters(const QModelIndex &ix)
 {
-	QVariant v = ix.data(Qt::EditRole);
+	QVariant v = ix.data(AttributesModel::RpcValueRole);
 	cp::RpcValue rv = qvariant_cast<cp::RpcValue>(v);
 
 	QString path = TheApp::instance()->attributesModel()->path();
 	QString method = TheApp::instance()->attributesModel()->method(ix.row());
 	MethodParametersDialog dlg(path, method, rv, this);
-	dlg.setWindowIconText(tr("Parameters"));
+	dlg.setWindowTitle(tr("Parameters"));
 	if (dlg.exec() == QDialog::Accepted) {
 		std::string cpon = dlg.value().toCpon();
 		ui->tblAttributes->model()->setData(ix, QString::fromStdString(cpon), Qt::EditRole);
@@ -243,23 +253,29 @@ void MainWindow::editMethodParameters(const QModelIndex &ix)
 
 void MainWindow::editStringParameter(const QModelIndex &ix)
 {
-	QVariant v = ix.data(Qt::EditRole);
-	QString cpon = v.toString();
-	TextEditDialog dlg(this);
-	dlg.setWindowIconText(tr("Parameters"));
-	dlg.setReadOnly(false);
-	dlg.setText(cpon);
-	if(dlg.exec()) {
-		cpon = dlg.text();
-		ui->tblAttributes->model()->setData(ix, cpon, Qt::EditRole);
+	QVariant v = ix.data(AttributesModel::RpcValueRole);
+	cp::RpcValue rv = qvariant_cast<cp::RpcValue>(v);
+	if(rv.isString()) {
+		QString cpon = QString::fromStdString(rv.toString());
+		TextEditDialog dlg(this);
+		dlg.setWindowTitle(tr("Parameters"));
+		dlg.setReadOnly(false);
+		dlg.setText(cpon);
+		if(dlg.exec()) {
+			rv = cp::RpcValue(dlg.text().toStdString());
+			cpon =  QString::fromStdString(rv.toCpon());
+			ui->tblAttributes->model()->setData(ix, cpon, Qt::EditRole);
+		}
 	}
 }
 
 void MainWindow::editCponParameters(const QModelIndex &ix)
 {
-	QVariant v = ix.data(Qt::EditRole);
-	QString cpon = v.toString();
+	QVariant v = ix.data(AttributesModel::RpcValueRole);
+	cp::RpcValue rv = qvariant_cast<cp::RpcValue>(v);
+	QString cpon = rv.isValid()? QString::fromStdString(rv.toCpon("  ")): QString();
 	CponEditDialog dlg(this);
+	dlg.setWindowTitle(tr("Parameters"));
 	dlg.setReadOnly(false);
 	dlg.setValidateContent(true);
 	dlg.setText(cpon);

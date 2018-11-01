@@ -18,7 +18,7 @@ private:
 	typedef QAbstractTableModel Super;
 public:
 	enum Columns {ColMethodName = 0, ColSignature, ColFlags, ColAccessLevel, ColParams, ColResult, ColBtRun, ColError, ColCnt};
-	//enum Roles {RawResultRole = Qt::UserRole };
+	enum Roles {RpcValueRole = Qt::UserRole };
 public:
 	AttributesModel(QObject *parent = nullptr);
 	~AttributesModel() Q_DECL_OVERRIDE;

@@ -102,6 +102,18 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 		}
 		break;
 	}
+	case RpcValueRole: {
+		switch (ix.column()) {
+		case ColResult:
+		case ColParams: {
+			cp::RpcValue rv = m_rows[ix.row()][ix.column()];
+			return QVariant::fromValue(rv);
+		}
+		default:
+			break;
+		}
+		break;
+	}
 	case Qt::DecorationRole: {
 		if(ix.column() == ColBtRun) {
 			bool is_notify = m_rows[ix.row()][ColFlags].toBool();
