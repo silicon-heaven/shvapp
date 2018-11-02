@@ -76,7 +76,7 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 					return QVariant();
 
 				static constexpr int MAX_TT_SIZE = 1024;
-				std::string tts = rv.toPrettyString("  ");
+				std::string tts = rv.toCpon();
 				if(tts.size() > MAX_TT_SIZE)
 					tts = tts.substr(0, MAX_TT_SIZE) + " < ... " + std::to_string(tts.size() - MAX_TT_SIZE) + " more bytes >";
 
@@ -245,6 +245,7 @@ void AttributesModel::onRpcMethodCallFinished(int method_ix)
 {
 	loadRow(method_ix);
 	emitRowChanged(method_ix);
+	emit methodCallResultChanged(method_ix);
 }
 
 void AttributesModel::emitRowChanged(int row_ix)

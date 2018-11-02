@@ -2,7 +2,7 @@
 #include "shvclientnode.h"
 #include "brokernode.h"
 #include "subscriptionsnode.h"
-#include "fstabnode.h"
+#include "brokerconfigfilenode.h"
 #include "clientdirnode.h"
 #include "rpc/tcpserver.h"
 #include "rpc/serverconnection.h"
@@ -62,8 +62,7 @@ BrokerApp::BrokerApp(int &argc, char **argv, AppCliOptions *cli_opts)
 	connect(m_deviceTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, this, &BrokerApp::onRootNodeSendRpcMesage);
 	BrokerNode *bn = new BrokerNode();
 	m_deviceTree->mount(cp::Rpc::DIR_BROKER_APP, bn);
-	m_deviceTree->mount(cp::Rpc::DIR_BROKER + std::string("/etc/fstab"), new FSTabNode());
-	//m_deviceTree->mkdir("test");
+	m_deviceTree->mount(std::string(cp::Rpc::DIR_BROKER) + "/etc/acl", new EtcAclNode());
 
 	QTimer::singleShot(0, this, &BrokerApp::lazyInit);
 }
@@ -90,6 +89,14 @@ rpc::TcpServer *BrokerApp::tcpServer()
 rpc::ServerConnection *BrokerApp::clientById(int client_id)
 {
 	return tcpServer()->connectionById(client_id);
+}
+
+void BrokerApp::invalidateConfigCache()
+{
+	m_fstab = cp::RpcValue();
+	m_users = cp::RpcValue();
+	m_grants = cp::RpcValue();
+	m_paths = cp::RpcValue();
 }
 
 #ifdef Q_OS_UNIX
@@ -197,59 +204,104 @@ void BrokerApp::lazyInit()
 	startTcpServer();
 }
 
-std::string BrokerApp::fstabCpon()
+shv::chainpack::RpcValue BrokerApp::fstabConfig()
 {
-	QString fn = m_cliOptions->fstab();
-	shvDebug() << "fstab file:" << fn;
-	if(!fn.isEmpty()) {
-		QFile f(fn);
-		if (!f.open(QFile::ReadOnly)) {
-			throw std::runtime_error("Cannot open fstab file " + fn.toStdString() + " for reading");
-		}
-		else {
-			QByteArray ba = f.readAll();
-			return std::string(ba.constData(), ba.size());
-		}
-	}
-	throw std::runtime_error("fstab file not defined.");
+	return aclConfig("fstab", !shv::core::Exception::Throw);
 }
 
-void BrokerApp::saveFstabCpon(const std::string &cpon)
+shv::chainpack::RpcValue BrokerApp::aclConfig(const std::string &config_name, bool throw_exc)
 {
-	QString fn = m_cliOptions->fstab();
-	if(fn.isEmpty())
-		throw std::runtime_error("fstab file not defined.");
-	QFile f(fn);
-	if (!f.open(QFile::WriteOnly)) {
-		throw std::runtime_error("Cannot open fstab file " + fn.toStdString() + " for writing");
+	shv::chainpack::RpcValue *val = nullptr;
+	if(config_name == "fstab")
+		val = &m_fstab;
+	else if(config_name == "users")
+		val = &m_users;
+	else if(config_name == "users")
+		val = &m_grants;
+	else if(config_name == "users")
+		val = &m_paths;
+	if(val) {
+		if(!val->isValid())
+			*val = loadAclConfig(config_name, throw_exc);
+		if(!val->isValid())
+			*val = cp::RpcValue::Map{}; /// will not be loaded next time
+		return *val;
 	}
 	else {
-		cp::RpcValue rv = cp::RpcValue::fromCpon(cpon);
-		if(rv.isMap()) {
-			f.write(cpon.data(), cpon.size());
-			m_fstab = cp::RpcValue();
+		if(throw_exc)
+			throw std::runtime_error("Cannot load config: " + config_name);
+		else
+			return cp::RpcValue();
+	}
+}
+
+shv::chainpack::RpcValue BrokerApp::loadAclConfig(const std::string &config_name, bool throw_exc)
+{
+	QString fn = QString::fromStdString(config_name).trimmed();
+	fn = cliOptions()->value("etc.acl." + fn).toString();
+	if(fn.isEmpty()) {
+		if(throw_exc)
+			throw std::runtime_error("Invalid config name: " + config_name);
+		else
+			return cp::RpcValue();
+	}
+	if(!fn.startsWith('/'))
+		fn = cliOptions()->configDir() + '/' + fn;
+	shvDebug() << "broker config file:" << fn;
+	QFile f(fn);
+	if (!f.open(QFile::ReadOnly)) {
+		if(throw_exc)
+			throw std::runtime_error("Cannot open config file " + fn.toStdString() + " for reading");
+		else
+			return cp::RpcValue();
+	}
+	else {
+		QByteArray ba = f.readAll();
+		std::string cpon(ba.constData(), ba.size());
+		std::string err;
+		shv::chainpack::RpcValue rv = cp::RpcValue::fromCpon(cpon, throw_exc? nullptr: &err);
+		invalidateConfigCache();
+		return rv;
+	}
+}
+
+bool BrokerApp::saveAclConfig(const std::string &config_name, const shv::chainpack::RpcValue &config, bool throw_exc)
+{
+	QString fn = QString::fromStdString(config_name).trimmed();
+	fn = cliOptions()->value("etc.acl." + fn).toString();
+	if(fn.isEmpty()) {
+		if(throw_exc)
+			throw std::runtime_error("config file name is empty.");
+		else
+			return false;
+	}
+	if(!fn.startsWith('/'))
+		fn = cliOptions()->configDir() + '/' + fn;
+
+	if(config.isMap()) {
+		QFile f(fn);
+		if (!f.open(QFile::WriteOnly)) {
+			if(throw_exc)
+				throw std::runtime_error("Cannot open config file " + fn.toStdString() + " for writing");
+			else
+				return false;
 		}
-		else {
-			throw std::runtime_error("fstab file should be valid Cpon Map.");
-		}
+		std::string cpon = config.toCpon("  ");
+		f.write(cpon.data(), cpon.size());
+		invalidateConfigCache();
+		return true;
+	}
+	else {
+		if(throw_exc)
+			throw std::runtime_error("Cannot save invalid config to file " + fn.toStdString());
+		else
+			return false;
 	}
 }
 
 std::string BrokerApp::mountPointForDevice(const shv::chainpack::RpcValue &device_id)
 {
-	if(!m_fstab.isValid()) {
-		try {
-			std::string fstab_cpon = fstabCpon();
-			if(!fstab_cpon.empty()) {
-				m_fstab = cp::RpcValue::fromCpon(fstab_cpon);
-			}
-		} catch (std::runtime_error &e) {
-			shvError() << "Error parsing fstab file:" << e.what();
-		}
-		if(!m_fstab.isValid())
-			m_fstab = cp::RpcValue::Map();
-		shvInfo() << "fstab:" << m_fstab.toPrettyString("  ");
-	}
+	shv::chainpack::RpcValue fstab = fstabConfig();
 	const std::string dev_id = device_id.toString();
 	std::string mount_point = m_fstab.toMap().value(dev_id).toString();
 	return mount_point;
@@ -277,10 +329,10 @@ void BrokerApp::onClientLogin(int connection_id)
 		if(!clients_nd)
 			SHV_EXCEPTION("Cannot create parent for ClientDirNode id: " + std::to_string(connection_id));
 		ClientDirNode *client_dir_node = new ClientDirNode(connection_id, clients_nd);
-		shvWarning() << "path1:" << client_dir_node->shvPath();
+		//shvWarning() << "path1:" << client_dir_node->shvPath();
 		ShvClientNode *client_app_node = new ShvClientNode(conn, client_dir_node);
 		client_app_node->setNodeId("app");
-		shvWarning() << "path2:" << client_app_node->shvPath();
+		//shvWarning() << "path2:" << client_app_node->shvPath();
 		/*
 		std::string app_mount_point = brokerClientAppPath(connection_id);
 		shv::iotqt::node::ShvNode *curr_nd = m_deviceTree->cd(app_mount_point);

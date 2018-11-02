@@ -49,8 +49,8 @@ shv::iotqt::node::ShvNode::StringList BrokerNode::childNames(const StringViewLis
 static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::MetaMethod::AccessLevel::Read},
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::AccessLevel::Read},
-	{cp::Rpc::METH_PING, cp::MetaMethod::Signature::VoidVoid, cp::MetaMethod::AccessLevel::Host},
-	{cp::Rpc::METH_ECHO, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::AccessLevel::Host},
+	{cp::Rpc::METH_PING, cp::MetaMethod::Signature::VoidVoid, cp::MetaMethod::AccessLevel::Browse},
+	{cp::Rpc::METH_ECHO, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::AccessLevel::Browse},
 	{cp::Rpc::METH_SUBSCRIBE, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::AccessLevel::Read},
 	{M_RESTART, cp::MetaMethod::Signature::VoidVoid, 0, cp::MetaMethod::AccessLevel::Service},
 };

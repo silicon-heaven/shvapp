@@ -39,19 +39,20 @@ public:
 	rpc::TcpServer* tcpServer();
 	rpc::ServerConnection* clientById(int client_id);
 
-	//Q_SIGNAL void sqlServerConnected();
-	std::string fstabCpon();
-	void saveFstabCpon(const std::string &cpon);
-	//void reloadFstab();
+	void invalidateConfigCache();
+
+	shv::chainpack::RpcValue fstabConfig();
+
+	shv::chainpack::RpcValue aclConfig(const std::string &config_name, bool throw_exc);
+	shv::chainpack::RpcValue loadAclConfig(const std::string &config_name, bool throw_exc);
+	bool saveAclConfig(const std::string &config_name, const shv::chainpack::RpcValue &config, bool throw_exc);
+
 private:
 	void lazyInit();
 
 	QString serverProfile(); // unified access via Globals::serverProfile()
 	void startTcpServer();
-	//Q_SLOT void reconnectSqlServer();
-	//Q_SLOT void onSqlServerError(const QString &err_mesg);
-	//Q_SLOT void onSqlServerConnected();
-	//Q_SLOT void reloadServices();
+
 	std::string mountPointForDevice(const shv::chainpack::RpcValue &device_id);
 
 	void onRootNodeSendRpcMesage(const shv::chainpack::RpcMessage &msg);
@@ -66,6 +67,9 @@ private:
 	rpc::TcpServer *m_tcpServer = nullptr;
 	shv::iotqt::node::ShvNodeTree *m_deviceTree = nullptr;
 	shv::chainpack::RpcValue m_fstab;
+	shv::chainpack::RpcValue m_users;
+	shv::chainpack::RpcValue m_grants;
+	shv::chainpack::RpcValue m_paths;
 	/*
 	sql::SqlConnector *m_sqlConnector = nullptr;
 	QTimer *m_sqlConnectionWatchDog;

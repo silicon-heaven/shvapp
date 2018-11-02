@@ -39,10 +39,12 @@ std::string ShvMetaMethod::flagsStr() const
 std::string ShvMetaMethod::accessLevelStr() const
 {
 	std::string ret;
-	if(accessLevel <= cp::MetaMethod::AccessLevel::Host)
-		ret = "Unknown";
+	if(accessLevel <= cp::MetaMethod::AccessLevel::Browse)
+		ret = "None";
+	else if(accessLevel == cp::MetaMethod::AccessLevel::Browse)
+		ret = "Browse";
 	else if(accessLevel < cp::MetaMethod::AccessLevel::Read)
-		ret = "Unknown+";
+		ret = "Browse+";
 	else if(accessLevel == cp::MetaMethod::AccessLevel::Read)
 		ret = "Read";
 	else if(accessLevel < cp::MetaMethod::AccessLevel::Write)

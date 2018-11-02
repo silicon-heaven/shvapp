@@ -19,6 +19,9 @@ public:
 	CLIOPTION_GETTER_SETTER2(QString, "sql.host", s, setS, qlHost)
 	CLIOPTION_GETTER_SETTER2(int, "sql.port", s, setS, qlPort)
 	CLIOPTION_GETTER_SETTER2(bool, "rpc.metaTypeExplicit", is, set, MetaTypeExplicit)
-	CLIOPTION_GETTER_SETTER2(QString, "broker.fstab", f, setF, stab)
+	CLIOPTION_GETTER_SETTER2(QString, "etc.acl.fstab", f, setF, stabFile)
+	CLIOPTION_GETTER_SETTER2(QString, "etc.acl.users", u, setU, sersFile)
+	CLIOPTION_GETTER_SETTER2(QString, "etc.acl.grants", g, setG, rantsFile)
+	CLIOPTION_GETTER_SETTER2(QString, "etc.acl.paths", p, setP, athsFile)
 };
 

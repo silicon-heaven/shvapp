@@ -67,25 +67,11 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui->tblAttributes->verticalHeader()->setDefaultSectionSize(fontMetrics().height() * 1.3);
 	ui->tblAttributes->setContextMenuPolicy(Qt::CustomContextMenu);
 
-	connect(TheApp::instance()->attributesModel(), &AttributesModel::reloaded, [this] () {
-		QHeaderView *hh = ui->tblAttributes->horizontalHeader();
-		hh->resizeSections(QHeaderView::ResizeToContents);
-		int sum_section_w = 0;
-		for (int i = 0; i < hh->count(); ++i)
-			sum_section_w += hh->sectionSize(i);
-		int widget_w = ui->tblAttributes->geometry().size().width();
-		if(sum_section_w - widget_w > 0) {
-			int w_params = hh->sectionSize(AttributesModel::ColParams);
-			int w_result = hh->sectionSize(AttributesModel::ColResult);
-			int w_section_rest = sum_section_w - w_params - w_result;
-			int w_params2 = w_params * (widget_w - w_section_rest) / (w_params + w_result);
-			int w_result2 = w_result * (widget_w - w_section_rest) / (w_params + w_result);
-			//shvDebug() << "widget:" << widget_w << "com col w:" << sum_section_w << "params section size:" << w_params << "result section size:" << w_result;
-			hh->resizeSection(AttributesModel::ColParams, w_params2);
-			hh->resizeSection(AttributesModel::ColResult, w_result2);
-		}
+	connect(TheApp::instance()->attributesModel(), &AttributesModel::reloaded, this, &MainWindow::resizeAttributesViewSectionsToFit);
+	connect(TheApp::instance()->attributesModel(), &AttributesModel::methodCallResultChanged, this, [this](int method_ix) {
+		Q_UNUSED(method_ix)
+		this->resizeAttributesViewSectionsToFit();
 	});
-
 	connect(ui->tblAttributes, &QTableView::customContextMenuRequested, this, &MainWindow::onAttributesTableContexMenu);
 
 	connect(ui->tblAttributes, &QTableView::activated, [](const QModelIndex &ix) {
@@ -113,6 +99,26 @@ MainWindow::MainWindow(QWidget *parent) :
 MainWindow::~MainWindow()
 {
 	delete ui;
+}
+
+void MainWindow::resizeAttributesViewSectionsToFit()
+{
+	QHeaderView *hh = ui->tblAttributes->horizontalHeader();
+	hh->resizeSections(QHeaderView::ResizeToContents);
+	int sum_section_w = 0;
+	for (int i = 0; i < hh->count(); ++i)
+		sum_section_w += hh->sectionSize(i);
+	int widget_w = ui->tblAttributes->geometry().size().width();
+	if(sum_section_w - widget_w > 0) {
+		int w_params = hh->sectionSize(AttributesModel::ColParams);
+		int w_result = hh->sectionSize(AttributesModel::ColResult);
+		int w_section_rest = sum_section_w - w_params - w_result;
+		int w_params2 = w_params * (widget_w - w_section_rest) / (w_params + w_result);
+		int w_result2 = w_result * (widget_w - w_section_rest) / (w_params + w_result);
+		//shvDebug() << "widget:" << widget_w << "com col w:" << sum_section_w << "params section size:" << w_params << "result section size:" << w_result;
+		hh->resizeSection(AttributesModel::ColParams, w_params2);
+		hh->resizeSection(AttributesModel::ColResult, w_result2);
+	}
 }
 
 void MainWindow::on_actAddServer_triggered()

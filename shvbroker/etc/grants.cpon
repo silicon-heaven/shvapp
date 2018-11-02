@@ -1,0 +1,7 @@
+{
+	"observer": {"grants": ["monitor"]},
+	"iot": {},
+	"monitor": {},
+	"poland": {},
+	"admin": {},
+}

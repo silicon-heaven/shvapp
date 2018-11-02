@@ -1,0 +1,29 @@
+{
+	"levels": {
+		"Guest": 0,
+		"Read": 10,
+		"Write": 20,
+		"Command": 30,
+		"Config": 40,
+		"Service": 50,
+		"Admin": 60,
+	},
+	"paths": {
+		"admin": [
+			{"path": "", "level": "Admin"},
+		],
+		"monitor": [
+			{"path": "shv", "level": "Read"},
+		],
+		"poland": [
+			{"path": "shv/pol", "level": "Read"},
+		],
+		"iot": [
+			{"path": "shv", "level": 1},
+		],
+		"observer": [
+			{"path": "shv/pol/lub/discon", "level": "Command"},
+			{"path": "shv/pol/ols/sig/switch", "level": "Command"},
+		],
+	}
+}

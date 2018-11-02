@@ -1,0 +1,22 @@
+{
+	"fanda": {
+		"password":"998886fed1af5c356cff427eca4aa7bb53ee4d6c",
+		"hashType":"sha1",
+		"grants":["admin"]
+	},
+	"iot": {
+		"password":"8884a26b82a69838092fd4fc824bbfde56719e02",
+		"hashType":"sha1",
+		"grants":["iot"]
+	},
+	"revitest": {
+		"password":"99f76f19bfc9bd2331df02c72c65627b77d0888e",
+		"hashType":"sha1",
+		"grants":["observer"]
+	},
+	"elviz": {
+		"password":"3fae43e926dc7b2b1e0fed398c32c149e0954d26",
+		"hashType":"sha1",
+		"grants":["elviz"]
+	},
+}

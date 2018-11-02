@@ -37,6 +37,7 @@ public:
 	QString method(int row) const;
 
 	Q_SIGNAL void reloaded();
+	Q_SIGNAL void methodCallResultChanged(int method_ix);
 private:
 	//void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	void onMethodsLoaded();
