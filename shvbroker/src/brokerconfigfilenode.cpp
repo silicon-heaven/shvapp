@@ -16,7 +16,7 @@ EtcAclNode::EtcAclNode(shv::iotqt::node::ShvNode *parent)
 }
 
 //static const char M_SIZE[] = "size";
-static const char M_RELOAD[] = "reload";
+static const char M_LOAD[] = "load";
 static const char M_COMMIT[] = "commitChanges";
 //static const char M_RELOAD[] = "serverReload";
 
@@ -31,7 +31,7 @@ static std::vector<cp::MetaMethod> meta_methods {
 static std::vector<cp::MetaMethod> meta_methods_root {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::MetaMethod::AccessLevel::Browse},
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::MetaMethod::AccessLevel::Browse},
-	{M_RELOAD, cp::MetaMethod::Signature::RetVoid, 0, cp::MetaMethod::AccessLevel::Config},
+	{M_LOAD, cp::MetaMethod::Signature::RetVoid, 0, cp::MetaMethod::AccessLevel::Config},
 	{M_COMMIT, cp::MetaMethod::Signature::RetVoid, 0, cp::MetaMethod::AccessLevel::None, "user_admin"},
 };
 
@@ -129,13 +129,12 @@ BrokerConfigFileNode::BrokerConfigFileNode(const std::string &config_name, shv::
 shv::chainpack::RpcValue BrokerConfigFileNode::callMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
 {
 	if(shv_path.empty()) {
-		if(method == M_RELOAD) {
-			BrokerApp::instance()->invalidateConfigCache();
+		if(method == M_LOAD) {
 			m_config = BrokerApp::instance()->aclConfig(nodeId(), shv::core::Exception::Throw);
 			return m_config;
 		}
 		if(method == M_COMMIT) {
-			return BrokerApp::instance()->saveAclConfig(nodeId(), m_config, shv::core::Exception::Throw);
+			return BrokerApp::instance()->setAclConfig(nodeId(), m_config, shv::core::Exception::Throw);
 		}
 	}
 	if(method == cp::Rpc::METH_GET) {
@@ -151,5 +150,5 @@ shv::chainpack::RpcValue BrokerConfigFileNode::callMethod(const shv::iotqt::node
 
 shv::chainpack::RpcValue BrokerConfigFileNode::loadConfig()
 {
-	return BrokerApp::instance()->loadAclConfig(nodeId(), !shv::core::Exception::Throw);
+	return BrokerApp::instance()->aclConfig(nodeId(), !shv::core::Exception::Throw);
 }

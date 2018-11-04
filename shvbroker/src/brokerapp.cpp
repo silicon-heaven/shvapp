@@ -91,50 +91,62 @@ rpc::ServerConnection *BrokerApp::clientById(int client_id)
 	return tcpServer()->connectionById(client_id);
 }
 
-void BrokerApp::invalidateConfigCache()
+void BrokerApp::reloadConfig()
 {
-	m_fstab = cp::RpcValue();
-	m_users = cp::RpcValue();
-	m_grants = cp::RpcValue();
-	m_paths = cp::RpcValue();
+	shvInfo() << "Reloading config";
+	reloadAcl();
+	remountDevices();
+}
+
+void BrokerApp::reloadAcl()
+{
+	m_usersConfig = cp::RpcValue();
+	m_grantsConfig = cp::RpcValue();
+	m_pathsConfig = cp::RpcValue();
+	clearAclConfigCache();
 }
 
 #ifdef Q_OS_UNIX
 void BrokerApp::installUnixSignalHandlers()
 {
 	shvInfo() << "installing Unix signals handlers";
-	{
-		struct sigaction term;
+	for(int sig_num : {SIGTERM, SIGHUP}) {
+		struct sigaction sa;
 
-		term.sa_handler = BrokerApp::sigTermHandler;
-		sigemptyset(&term.sa_mask);
-		term.sa_flags |= SA_RESTART;
+		sa.sa_handler = BrokerApp::nativeSigHandler;
+		sigemptyset(&sa.sa_mask);
+		sa.sa_flags |= SA_RESTART;
 
-		if(sigaction(SIGTERM, &term, 0) > 0)
-			qFatal("Couldn't register SIG_TERM handler");
+		if(sigaction(sig_num, &sa, 0) > 0)
+			qFatal("Couldn't register posix signal handler");
 	}
 	if(::socketpair(AF_UNIX, SOCK_STREAM, 0, m_sigTermFd))
 		qFatal("Couldn't create SIG_TERM socketpair");
 	m_snTerm = new QSocketNotifier(m_sigTermFd[1], QSocketNotifier::Read, this);
-	connect(m_snTerm, &QSocketNotifier::activated, this, &BrokerApp::handleSigTerm);
+	connect(m_snTerm, &QSocketNotifier::activated, this, &BrokerApp::handlePosixSignals);
 	shvInfo() << "SIG_TERM handler installed OK";
 }
 
-void BrokerApp::sigTermHandler(int)
+void BrokerApp::nativeSigHandler(int sig_number)
 {
-	shvInfo() << "SIG TERM";
-	char a = 1;
+	shvInfo() << "SIG:" << sig_number;
+	unsigned char a = sig_number;
 	::write(m_sigTermFd[0], &a, sizeof(a));
 }
 
-void BrokerApp::handleSigTerm()
+void BrokerApp::handlePosixSignals()
 {
 	m_snTerm->setEnabled(false);
-	char tmp;
-	::read(m_sigTermFd[1], &tmp, sizeof(tmp));
+	unsigned char sig_num;
+	::read(m_sigTermFd[1], &sig_num, sizeof(sig_num));
 
-	shvInfo() << "SIG TERM catched, stopping server.";
-	QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+	shvInfo() << "SIG" << sig_num << "catched.";
+	if(sig_num == SIGTERM) {
+		QMetaObject::invokeMethod(this, &BrokerApp::quit, Qt::QueuedConnection);
+	}
+	else if(sig_num == SIGHUP) {
+		QMetaObject::invokeMethod(this, &BrokerApp::reloadConfig, Qt::QueuedConnection);
+	}
 
 	m_snTerm->setEnabled(true);
 }
@@ -211,27 +223,70 @@ shv::chainpack::RpcValue BrokerApp::fstabConfig()
 
 shv::chainpack::RpcValue BrokerApp::aclConfig(const std::string &config_name, bool throw_exc)
 {
-	shv::chainpack::RpcValue *val = nullptr;
-	if(config_name == "fstab")
-		val = &m_fstab;
-	else if(config_name == "users")
-		val = &m_users;
-	else if(config_name == "users")
-		val = &m_grants;
-	else if(config_name == "users")
-		val = &m_paths;
-	if(val) {
-		if(!val->isValid())
-			*val = loadAclConfig(config_name, throw_exc);
-		if(!val->isValid())
-			*val = cp::RpcValue::Map{}; /// will not be loaded next time
-		return *val;
+	shv::chainpack::RpcValue *config_val = aclConfigVariable(config_name, throw_exc);
+	if(config_val) {
+		if(!config_val->isValid())
+			*config_val = loadAclConfig(config_name, throw_exc);
+		if(!config_val->isValid())
+			*config_val = cp::RpcValue::Map{}; /// will not be loaded next time
+		return *config_val;
 	}
 	else {
 		if(throw_exc)
-			throw std::runtime_error("Cannot load config: " + config_name);
+			throw std::runtime_error("Config " + config_name + " does not exist.");
 		else
 			return cp::RpcValue();
+	}
+}
+
+bool BrokerApp::setAclConfig(const std::string &config_name, const shv::chainpack::RpcValue &config, bool throw_exc)
+{
+	shv::chainpack::RpcValue *config_val = aclConfigVariable(config_name, throw_exc);
+	if(config_val) {
+		if(saveAclConfig(config_name, config, throw_exc)) {
+			*config_val = config;
+			clearAclConfigCache();
+			return true;
+		}
+		return false;
+	}
+	else {
+		if(throw_exc)
+			throw std::runtime_error("Config " + config_name + " does not exist.");
+		else
+			return false;
+	}
+}
+
+void BrokerApp::remountDevices()
+{
+	shvInfo() << "Remounting devices by dropping their connection";
+	m_fstabConfig = cp::RpcValue();
+	for(int conn_id : tcpServer()->connectionIds()) {
+		shvInfo() << "Dropping connection ID:" << conn_id;
+		tcpServer()->connectionById(conn_id)->close();
+	}
+}
+
+shv::chainpack::RpcValue *BrokerApp::aclConfigVariable(const std::string &config_name, bool throw_exc)
+{
+	shv::chainpack::RpcValue *config_val = nullptr;
+	if(config_name == "fstab")
+		config_val = &m_fstabConfig;
+	else if(config_name == "users")
+		config_val = &m_usersConfig;
+	else if(config_name == "users")
+		config_val = &m_grantsConfig;
+	else if(config_name == "users")
+		config_val = &m_pathsConfig;
+	if(config_val) {
+		return config_val;
+	}
+	else {
+		if(throw_exc)
+			throw std::runtime_error("Config " + config_name + " does not exist.");
+		else
+			return nullptr;
 	}
 }
 
@@ -241,13 +296,12 @@ shv::chainpack::RpcValue BrokerApp::loadAclConfig(const std::string &config_name
 	fn = cliOptions()->value("etc.acl." + fn).toString();
 	if(fn.isEmpty()) {
 		if(throw_exc)
-			throw std::runtime_error("Invalid config name: " + config_name);
+			throw std::runtime_error("config file name is empty.");
 		else
 			return cp::RpcValue();
 	}
 	if(!fn.startsWith('/'))
 		fn = cliOptions()->configDir() + '/' + fn;
-	shvDebug() << "broker config file:" << fn;
 	QFile f(fn);
 	if (!f.open(QFile::ReadOnly)) {
 		if(throw_exc)
@@ -255,14 +309,11 @@ shv::chainpack::RpcValue BrokerApp::loadAclConfig(const std::string &config_name
 		else
 			return cp::RpcValue();
 	}
-	else {
-		QByteArray ba = f.readAll();
-		std::string cpon(ba.constData(), ba.size());
-		std::string err;
-		shv::chainpack::RpcValue rv = cp::RpcValue::fromCpon(cpon, throw_exc? nullptr: &err);
-		invalidateConfigCache();
-		return rv;
-	}
+	QByteArray ba = f.readAll();
+	std::string cpon(ba.constData(), ba.size());
+	std::string err;
+	shv::chainpack::RpcValue rv = cp::RpcValue::fromCpon(cpon, throw_exc? nullptr: &err);
+	return rv;
 }
 
 bool BrokerApp::saveAclConfig(const std::string &config_name, const shv::chainpack::RpcValue &config, bool throw_exc)
@@ -288,22 +339,19 @@ bool BrokerApp::saveAclConfig(const std::string &config_name, const shv::chainpa
 		}
 		std::string cpon = config.toCpon("  ");
 		f.write(cpon.data(), cpon.size());
-		invalidateConfigCache();
 		return true;
 	}
-	else {
-		if(throw_exc)
-			throw std::runtime_error("Cannot save invalid config to file " + fn.toStdString());
-		else
-			return false;
-	}
+	if(throw_exc)
+		throw std::runtime_error("Cannot save invalid config to file " + fn.toStdString());
+	else
+		return false;
 }
 
 std::string BrokerApp::mountPointForDevice(const shv::chainpack::RpcValue &device_id)
 {
 	shv::chainpack::RpcValue fstab = fstabConfig();
 	const std::string dev_id = device_id.toString();
-	std::string mount_point = m_fstab.toMap().value(dev_id).toString();
+	std::string mount_point = m_fstabConfig.toMap().value(dev_id).toString();
 	return mount_point;
 }
 

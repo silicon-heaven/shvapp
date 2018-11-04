@@ -39,14 +39,20 @@ public:
 	rpc::TcpServer* tcpServer();
 	rpc::ServerConnection* clientById(int client_id);
 
-	void invalidateConfigCache();
+	void reloadConfig();
+	void clearAclConfigCache() {}
+
 
 	shv::chainpack::RpcValue fstabConfig();
 
 	shv::chainpack::RpcValue aclConfig(const std::string &config_name, bool throw_exc);
+	bool setAclConfig(const std::string &config_name, const shv::chainpack::RpcValue &config, bool throw_exc);
+protected:
+	void remountDevices();
+	void reloadAcl();
+	shv::chainpack::RpcValue* aclConfigVariable(const std::string &config_name, bool throw_exc);
 	shv::chainpack::RpcValue loadAclConfig(const std::string &config_name, bool throw_exc);
 	bool saveAclConfig(const std::string &config_name, const shv::chainpack::RpcValue &config, bool throw_exc);
-
 private:
 	void lazyInit();
 
@@ -66,10 +72,10 @@ private:
 	AppCliOptions *m_cliOptions;
 	rpc::TcpServer *m_tcpServer = nullptr;
 	shv::iotqt::node::ShvNodeTree *m_deviceTree = nullptr;
-	shv::chainpack::RpcValue m_fstab;
-	shv::chainpack::RpcValue m_users;
-	shv::chainpack::RpcValue m_grants;
-	shv::chainpack::RpcValue m_paths;
+	shv::chainpack::RpcValue m_fstabConfig;
+	shv::chainpack::RpcValue m_usersConfig;
+	shv::chainpack::RpcValue m_grantsConfig;
+	shv::chainpack::RpcValue m_pathsConfig;
 	/*
 	sql::SqlConnector *m_sqlConnector = nullptr;
 	QTimer *m_sqlConnectionWatchDog;
@@ -80,8 +86,8 @@ private:
 	// You can't call Qt functions from Unix signal handlers,
 	// but you can write to socket
 	void installUnixSignalHandlers();
-	Q_SLOT void handleSigTerm();
-	static void sigTermHandler(int);
+	Q_SLOT void handlePosixSignals();
+	static void nativeSigHandler(int sig_number);
 
 	static int m_sigTermFd[2];
 	QSocketNotifier *m_snTerm = nullptr;
