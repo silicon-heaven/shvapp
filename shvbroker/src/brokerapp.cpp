@@ -112,10 +112,11 @@ void BrokerApp::handlePosixSignals()
 
 	shvInfo() << "SIG" << sig_num << "catched.";
 	if(sig_num == SIGTERM) {
-		QMetaObject::invokeMethod(this, &BrokerApp::quit, Qt::QueuedConnection);
+		QTimer::singleShot(0, this, &BrokerApp::quit);
 	}
 	else if(sig_num == SIGHUP) {
-		QMetaObject::invokeMethod(this, &BrokerApp::reloadConfig, Qt::QueuedConnection);
+		//QMetaObject::invokeMethod(this, &BrokerApp::reloadConfig, Qt::QueuedConnection); since Qt 5.10
+		QTimer::singleShot(0, this, &BrokerApp::reloadConfig);
 	}
 
 	m_snTerm->setEnabled(true);
