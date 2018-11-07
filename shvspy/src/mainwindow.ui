@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>754</width>
-    <height>548</height>
+    <width>1414</width>
+    <height>948</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -80,7 +80,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>754</width>
+     <width>1414</width>
      <height>32</height>
     </rect>
    </property>
@@ -165,6 +165,24 @@
      <property name="bottomMargin">
       <number>1</number>
      </property>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_2">
+       <item>
+        <widget class="QLabel" name="label_2">
+         <property name="text">
+          <string>Shv path</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="edAttributesShvPath">
+         <property name="readOnly">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
      <item>
       <widget class="QTableView" name="tblAttributes">
        <property name="editTriggers">

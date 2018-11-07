@@ -1,13 +1,27 @@
 #pragma once
 
+#ifdef USE_SHV_PATHS_GRANTS_CACHE
+#include <string>
+
+inline unsigned qHash(const std::string &s) noexcept //Q_DECL_NOEXCEPT_EXPR(noexcept(qHash(s)))
+{
+	std::hash<std::string> hash_fn;
+	return hash_fn(s);
+}
+#include <QCache>
+#endif
+
 #include "appclioptions.h"
 
 #include <shv/iotqt/node/shvnode.h>
 
 #include <shv/chainpack/rpcvalue.h>
+#include <shv/chainpack/rpc.h>
 
 #include <QCoreApplication>
 #include <QDateTime>
+
+#include <set>
 
 class QSocketNotifier;
 
@@ -40,10 +54,15 @@ public:
 	rpc::ServerConnection* clientById(int client_id);
 
 	void reloadConfig();
-	void clearAclConfigCache() {}
+	void clearAccessGrantCache();
 
+	//shv::chainpack::RpcValue userConfig(const std::string &user_name);
+	//shv::chainpack::RpcValue grantConfig(const std::string &user_name);
 
-	shv::chainpack::RpcValue fstabConfig();
+	shv::chainpack::RpcValue fstabConfig() { return aclConfig("fstab", !shv::core::Exception::Throw); }
+	shv::chainpack::RpcValue usersConfig() { return aclConfig("users", !shv::core::Exception::Throw); }
+	shv::chainpack::RpcValue grantsConfig() { return aclConfig("grants", !shv::core::Exception::Throw); }
+	shv::chainpack::RpcValue pathsConfig() { return aclConfig("paths", !shv::core::Exception::Throw); }
 
 	shv::chainpack::RpcValue aclConfig(const std::string &config_name, bool throw_exc);
 	bool setAclConfig(const std::string &config_name, const shv::chainpack::RpcValue &config, bool throw_exc);
@@ -61,6 +80,8 @@ private:
 
 	std::string mountPointForDevice(const shv::chainpack::RpcValue &device_id);
 
+	shv::chainpack::Rpc::AccessGrant accessGrantForShvPath(const std::string &user_name, const std::string &shv_path);
+
 	void onRootNodeSendRpcMesage(const shv::chainpack::RpcMessage &msg);
 
 	void sendNotifyToSubscribers(int sender_connection_id, const std::string &shv_path, const std::string &method, const shv::chainpack::RpcValue &params);
@@ -68,6 +89,8 @@ private:
 
 	static std::string brokerClientDirPath(int client_id);
 	static std::string brokerClientAppPath(int client_id);
+
+	const std::set<std::string>& userFlattenGrants(const std::string &user_name);
 private:
 	AppCliOptions *m_cliOptions;
 	rpc::TcpServer *m_tcpServer = nullptr;
@@ -76,6 +99,15 @@ private:
 	shv::chainpack::RpcValue m_usersConfig;
 	shv::chainpack::RpcValue m_grantsConfig;
 	shv::chainpack::RpcValue m_pathsConfig;
+	std::map<std::string, std::vector<std::string>> m_flattenUserGrants;
+
+#ifdef USE_SHV_PATHS_GRANTS_CACHE
+	using PathGrantCache = QCache<std::string, shv::chainpack::Rpc::AccessGrant>;
+	using UserPathGrantCache = QCache<std::string, PathGrantCache>;
+	UserPathGrantCache m_userPathGrantCache;
+#endif
+	std::map<std::string, std::set<std::string>> m_userFlattenGrantsCache;
+	//std::map<std::string, std::set<std::string>> m_definedGrantsCache;
 	/*
 	sql::SqlConnector *m_sqlConnector = nullptr;
 	QTimer *m_sqlConnectionWatchDog;

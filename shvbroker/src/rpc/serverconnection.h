@@ -56,6 +56,9 @@ public:
 	void sendMessage(const shv::chainpack::RpcMessage &rpc_msg) override;
 	void sendRawData(const shv::chainpack::RpcValue::MetaData &meta_data, std::string &&data) override;
 	static std::string dataToCpon(shv::chainpack::Rpc::ProtocolType protocol_type, const shv::chainpack::RpcValue::MetaData &md, const std::string &data, size_t start_pos);
+
+	//shv::chainpack::Rpc::AccessGrant accessGrantForShvPath(const std::string &shv_path);
+	//void clearAccessGrantCache() {m_accessGrantCache.clear();}
 private:
 	void onRpcDataReceived(shv::chainpack::Rpc::ProtocolType protocol_type, shv::chainpack::RpcValue::MetaData &&md, const std::string &data, size_t start_pos, size_t data_len) override;
 	bool checkPassword(const shv::chainpack::RpcValue::Map &login) override;

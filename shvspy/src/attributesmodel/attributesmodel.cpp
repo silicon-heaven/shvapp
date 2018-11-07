@@ -181,16 +181,16 @@ QVariant AttributesModel::headerData(int section, Qt::Orientation o, int role) c
 				ret = tr("Signature");
 			else if(section == ColFlags)
 				ret = tr("Flags");
-			else if(section == ColAccessLevel)
-				ret = tr("AL");
+			else if(section == ColAccessGrant)
+				ret = tr("ACG");
 			else if(section == ColParams)
 				ret = tr("Params");
 			else if(section == ColResult)
 				ret = tr("Result");
 		}
 		else if(role == Qt::ToolTipRole) {
-			if(section == ColAccessLevel)
-				ret = tr("Acess Level");
+			if(section == ColAccessGrant)
+				ret = tr("Acess Grant");
 		}
 	}
 	return ret;
@@ -276,7 +276,7 @@ void AttributesModel::loadRow(int method_ix)
 	rv[ColMethodName] = mtd.method;
 	rv[ColSignature] = mtd.signatureStr();
 	rv[ColFlags] = mtd.flagsStr();
-	rv[ColAccessLevel] = mtd.accessLevelStr();
+	rv[ColAccessGrant] = mtd.accessGrant;
 	if(mtd.params.isValid()) {
 		rv[ColParams] = mtd.params;
 	}

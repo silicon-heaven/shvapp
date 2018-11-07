@@ -33,6 +33,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#define logAclD() nCDebug("Acl")
+
 int BrokerApp::m_sigTermFd[2];
 #endif
 
@@ -72,38 +74,6 @@ BrokerApp::~BrokerApp()
 	shvInfo() << "Destroying SHV BROKER application object";
 	//QF_SAFE_DELETE(m_tcpServer);
 	//QF_SAFE_DELETE(m_sqlConnector);
-}
-
-QString BrokerApp::versionString() const
-{
-	return QCoreApplication::applicationVersion();
-}
-
-rpc::TcpServer *BrokerApp::tcpServer()
-{
-	if(!m_tcpServer)
-		SHV_EXCEPTION("TCP server is NULL!");
-	return m_tcpServer;
-}
-
-rpc::ServerConnection *BrokerApp::clientById(int client_id)
-{
-	return tcpServer()->connectionById(client_id);
-}
-
-void BrokerApp::reloadConfig()
-{
-	shvInfo() << "Reloading config";
-	reloadAcl();
-	remountDevices();
-}
-
-void BrokerApp::reloadAcl()
-{
-	m_usersConfig = cp::RpcValue();
-	m_grantsConfig = cp::RpcValue();
-	m_pathsConfig = cp::RpcValue();
-	clearAclConfigCache();
 }
 
 #ifdef Q_OS_UNIX
@@ -151,6 +121,46 @@ void BrokerApp::handlePosixSignals()
 	m_snTerm->setEnabled(true);
 }
 #endif
+
+QString BrokerApp::versionString() const
+{
+	return QCoreApplication::applicationVersion();
+}
+
+rpc::TcpServer *BrokerApp::tcpServer()
+{
+	if(!m_tcpServer)
+		SHV_EXCEPTION("TCP server is NULL!");
+	return m_tcpServer;
+}
+
+rpc::ServerConnection *BrokerApp::clientById(int client_id)
+{
+	return tcpServer()->connectionById(client_id);
+}
+
+void BrokerApp::reloadConfig()
+{
+	shvInfo() << "Reloading config";
+	reloadAcl();
+	remountDevices();
+}
+
+void BrokerApp::clearAccessGrantCache()
+{
+	m_userFlattenGrantsCache.clear();
+#ifdef USE_SHV_PATHS_GRANTS_CACHE
+	m_userPathGrantCache.clear();
+#endif
+}
+
+void BrokerApp::reloadAcl()
+{
+	m_usersConfig = cp::RpcValue();
+	m_grantsConfig = cp::RpcValue();
+	m_pathsConfig = cp::RpcValue();
+	clearAccessGrantCache();
+}
 
 /*
 sql::SqlConnector *TheApp::sqlConnector()
@@ -216,26 +226,26 @@ void BrokerApp::lazyInit()
 	startTcpServer();
 }
 
-shv::chainpack::RpcValue BrokerApp::fstabConfig()
-{
-	return aclConfig("fstab", !shv::core::Exception::Throw);
-}
-
 shv::chainpack::RpcValue BrokerApp::aclConfig(const std::string &config_name, bool throw_exc)
 {
 	shv::chainpack::RpcValue *config_val = aclConfigVariable(config_name, throw_exc);
 	if(config_val) {
-		if(!config_val->isValid())
+		if(!config_val->isValid()) {
 			*config_val = loadAclConfig(config_name, throw_exc);
+			shvInfo() << "ACL config:" << config_name << "loaded:\n" << config_val->toCpon("\t");
+		}
 		if(!config_val->isValid())
 			*config_val = cp::RpcValue::Map{}; /// will not be loaded next time
 		return *config_val;
 	}
 	else {
-		if(throw_exc)
+		if(throw_exc) {
 			throw std::runtime_error("Config " + config_name + " does not exist.");
-		else
+		}
+		else {
+			//shvError().nospace() << "Config '" << config_name << "' does not exist.";
 			return cp::RpcValue();
+		}
 	}
 }
 
@@ -245,7 +255,7 @@ bool BrokerApp::setAclConfig(const std::string &config_name, const shv::chainpac
 	if(config_val) {
 		if(saveAclConfig(config_name, config, throw_exc)) {
 			*config_val = config;
-			clearAclConfigCache();
+			clearAccessGrantCache();
 			return true;
 		}
 		return false;
@@ -263,8 +273,11 @@ void BrokerApp::remountDevices()
 	shvInfo() << "Remounting devices by dropping their connection";
 	m_fstabConfig = cp::RpcValue();
 	for(int conn_id : tcpServer()->connectionIds()) {
-		shvInfo() << "Dropping connection ID:" << conn_id;
-		tcpServer()->connectionById(conn_id)->close();
+		rpc::ServerConnection *conn = tcpServer()->connectionById(conn_id);
+		if(conn && !conn->mountPoints().empty()) {
+			shvInfo() << "Dropping connection ID:" << conn_id << "mounts:" << shv::core::String::join(conn->mountPoints(), ' ');
+			conn->close();
+		}
 	}
 }
 
@@ -275,9 +288,9 @@ shv::chainpack::RpcValue *BrokerApp::aclConfigVariable(const std::string &config
 		config_val = &m_fstabConfig;
 	else if(config_name == "users")
 		config_val = &m_usersConfig;
-	else if(config_name == "users")
+	else if(config_name == "grants")
 		config_val = &m_grantsConfig;
-	else if(config_name == "users")
+	else if(config_name == "paths")
 		config_val = &m_pathsConfig;
 	if(config_val) {
 		return config_val;
@@ -353,6 +366,98 @@ std::string BrokerApp::mountPointForDevice(const shv::chainpack::RpcValue &devic
 	const std::string dev_id = device_id.toString();
 	std::string mount_point = m_fstabConfig.toMap().value(dev_id).toString();
 	return mount_point;
+}
+
+static std::set<std::string> flatten_grant(const std::string &grant_name, const cp::RpcValue::Map &defined_grants)
+{
+	std::set<std::string> ret;
+	cp::RpcValue gdef = defined_grants.value(grant_name);
+	if(gdef.isValid()) {
+		ret.insert(grant_name);
+		const shv::chainpack::RpcValue::Map &gdefm = gdef.toMap();
+		cp::RpcValue gg = gdefm.value("grants");
+		for(auto g : gg.toList()) {
+			const std::string &child_grant_name = g.toString();
+			if(ret.count(child_grant_name)) {
+				shvWarning() << "Cyclic reference in grants detected for grant name:" << child_grant_name;
+			}
+			else {
+				std::set<std::string> gg = flatten_grant(child_grant_name, defined_grants);
+				ret.insert(gg.begin(), gg.end());
+			}
+		}
+	}
+	return ret;
+}
+
+const std::set<std::string> &BrokerApp::userFlattenGrants(const std::string &user_name)
+{
+	if(m_userFlattenGrantsCache.count(user_name))
+		return m_userFlattenGrantsCache.at(user_name);
+	cp::RpcValue user_def = usersConfig().toMap().value(user_name);
+	if(!user_def.isMap()) {
+		static std::set<std::string> empty;
+		return empty;
+	}
+	std::set<std::string> ret;
+	for(auto gv : user_def.toMap().value("grants").toList()) {
+		const std::string &gn = gv.toString();
+		std::set<std::string> gg = flatten_grant(gn, grantsConfig().toMap());
+		ret.insert(gg.begin(), gg.end());
+	}
+	m_userFlattenGrantsCache[user_name] = ret;
+	return m_userFlattenGrantsCache.at(user_name);
+}
+
+cp::Rpc::AccessGrant BrokerApp::accessGrantForShvPath(const std::string &user_name, const std::string &shv_path)
+{
+	logAclD() << "accessGrantForShvPath user:" << user_name << "shv path:" << shv_path;
+#ifdef USE_SHV_PATHS_GRANTS_CACHE
+	PathGrantCache *user_path_grants = m_userPathGrantCache.object(user_name);
+	if(user_path_grants) {
+		cp::Rpc::AccessGrant *pg = user_path_grants->object(shv_path);
+		if(pg) {
+			logAclD() << "\t cache hit:" << pg->grant << "weight:" << pg->weight;
+			return *pg;
+		}
+	}
+#endif
+	cp::Rpc::AccessGrant ret;
+	//shv::chainpack::RpcValue user = usersConfig().toMap().value(user_name);
+	for(const std::string &grant : userFlattenGrants(user_name)) {
+		logAclD() << "cheking grant:" << grant;
+		cp::RpcValue grant_paths = pathsConfig().toMap().value(grant);
+		for(const auto &kv : grant_paths.toMap()) {
+			const std::string &p = kv.first;
+			logAclD().nospace() << "\t cheking if path: '" << shv_path << "' starts with granted path: '" << p;
+			//logAclD().nospace() << "\t cheking if path: '" << shv_path << "' starts with granted path: '" << p << "' ,result:" << shv::core::String::startsWith(shv_path, p);
+			do {
+				if(!shv::core::String::startsWith(shv_path, p))
+					break;
+				if(p.size() > 0 && p.size() < shv_path.size() && shv_path[p.size()] != '/')
+					break;
+				std::string gn = kv.second.toMap().value("grant").toString();
+				cp::RpcValue grant_def = grantsConfig().toMap().value(gn);
+				int weight = grant_def.toMap().value("weight").toInt();
+				logAclD() << "\t\t match, granted:" << gn << "weight:" << weight;
+				if(weight > ret.weight) {
+					logAclD() << "\t\t\t greatest weight!";
+					ret = cp::Rpc::AccessGrant(gn, weight);
+				}
+			} while(false);
+		}
+	}
+#ifdef USE_SHV_PATHS_GRANTS_CACHE
+	if(!user_path_grants) {
+		user_path_grants = new PathGrantCache();
+		if(!m_userPathGrantCache.insert(user_name, user_path_grants))
+			shvError() << "m_userPathGrantCache::insert() error";
+	}
+	if(user_path_grants)
+		user_path_grants->insert(shv_path, new cp::Rpc::AccessGrant(ret));
+#endif
+	logAclD() << "\t resolved:" << ret.grant << "weight:" << ret.weight;
+	return ret;
 }
 
 void BrokerApp::onClientLogin(int connection_id)
@@ -469,35 +574,43 @@ void BrokerApp::onRpcDataReceived(int connection_id, cp::RpcValue::MetaData &&me
 {
 	if(cp::RpcMessage::isRequest(meta)) {
 		shvDebug() << "REQUEST conn id:" << connection_id << meta.toStdString();
-		rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
-		std::string shv_path = cp::RpcMessage::shvPath(meta).toString();
-		if(conn) {
-			if(rpc::ServerConnection::Subscription::isRelativePath(shv_path)) {
-				const std::vector<std::string> &mps = conn->mountPoints();
-				if(mps.empty())
-					SHV_EXCEPTION("Cannot call method on relative path for unmounted device.");
-				if(mps.size() > 1)
-					SHV_EXCEPTION("Cannot call method on relative path for device mounted to more than single node.");
-				shv_path = rpc::ServerConnection::Subscription::toAbsolutePath(mps[0], shv_path);
-			}
-			cp::RpcMessage::setShvPath(meta, shv_path);
-		}
-		cp::RpcMessage::pushCallerId(meta, connection_id);
-		if(m_deviceTree->root()) {
-			m_deviceTree->root()->handleRawRpcRequest(std::move(meta), std::move(data));
-		}
-		else {
-			std::string err_msg = "Device tree root node is NULL";
-			shvWarning() << err_msg;
-			if(cp::RpcMessage::isRequest(meta)) {
-				rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
-				if(conn) {
-					shv::chainpack::RpcResponse rsp = cp::RpcResponse::forRequest(meta);
-					rsp.setError(cp::RpcResponse::Error::create(
-									 cp::RpcResponse::Error::MethodCallException
-									 , err_msg));
-					conn->sendMessage(rsp);
+		try {
+			rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
+			std::string shv_path = cp::RpcMessage::shvPath(meta).toString();
+			if(conn) {
+				if(rpc::ServerConnection::Subscription::isRelativePath(shv_path)) {
+					const std::vector<std::string> &mps = conn->mountPoints();
+					if(mps.empty())
+						SHV_EXCEPTION("Cannot call method on relative path for unmounted device.");
+					if(mps.size() > 1)
+						SHV_EXCEPTION("Cannot call method on relative path for device mounted to more than single node.");
+					shv_path = rpc::ServerConnection::Subscription::toAbsolutePath(mps[0], shv_path);
+					cp::RpcMessage::setShvPath(meta, shv_path);
 				}
+				cp::Rpc::AccessGrant acg = accessGrantForShvPath(conn->userName(), shv_path);
+				if(!acg.isValid())
+					SHV_EXCEPTION("Acces to shv path '" + shv_path + "' not granted for user " + conn->userName());
+				cp::RpcMessage::setAccessGrant(meta, acg.grant);
+				cp::RpcMessage::pushCallerId(meta, connection_id);
+				if(m_deviceTree->root()) {
+					m_deviceTree->root()->handleRawRpcRequest(std::move(meta), std::move(data));
+				}
+				else {
+					SHV_EXCEPTION("Device tree root node is NULL");
+				}
+			}
+			else {
+				SHV_EXCEPTION("Connection ID: " + std::to_string(connection_id) + " doesn't exist.");
+			}
+		}
+		catch (std::exception &e) {
+			rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
+			if(conn) {
+				shv::chainpack::RpcResponse rsp = cp::RpcResponse::forRequest(meta);
+				rsp.setError(cp::RpcResponse::Error::create(
+								 cp::RpcResponse::Error::MethodCallException
+								 , e.what()));
+				conn->sendMessage(rsp);
 			}
 		}
 	}

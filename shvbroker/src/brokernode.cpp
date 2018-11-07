@@ -13,6 +13,7 @@
 
 namespace cp = shv::chainpack;
 
+static const char M_RELOAD_CONFIG[] = "reloadConfig";
 static const char M_RESTART[] = "restart";
 
 BrokerNode::BrokerNode(shv::iotqt::node::ShvNode *parent)
@@ -47,12 +48,13 @@ shv::iotqt::node::ShvNode::StringList BrokerNode::childNames(const StringViewLis
 }
 
 static std::vector<cp::MetaMethod> meta_methods {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::MetaMethod::AccessLevel::Read},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::AccessLevel::Read},
-	{cp::Rpc::METH_PING, cp::MetaMethod::Signature::VoidVoid, cp::MetaMethod::AccessLevel::Browse},
-	{cp::Rpc::METH_ECHO, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::AccessLevel::Browse},
-	{cp::Rpc::METH_SUBSCRIBE, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::AccessLevel::Read},
-	{M_RESTART, cp::MetaMethod::Signature::VoidVoid, 0, cp::MetaMethod::AccessLevel::Service},
+	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
+	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
+	{cp::Rpc::METH_PING, cp::MetaMethod::Signature::VoidVoid},
+	{cp::Rpc::METH_ECHO, cp::MetaMethod::Signature::RetParam},
+	{cp::Rpc::METH_SUBSCRIBE, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
+	{M_RELOAD_CONFIG, cp::MetaMethod::Signature::VoidVoid, 0, cp::Rpc::GRANT_SERVICE},
+	{M_RESTART, cp::MetaMethod::Signature::VoidVoid, 0, cp::Rpc::GRANT_SERVICE},
 };
 
 size_t BrokerNode::methodCount(const StringViewList &shv_path)
@@ -77,6 +79,10 @@ shv::chainpack::RpcValue BrokerNode::callMethod(const StringViewList &shv_path, 
 		}
 		if(method == cp::Rpc::METH_ECHO) {
 			return params.isValid()? params: nullptr;
+		}
+		if(method == M_RELOAD_CONFIG) {
+			BrokerApp::instance()->reloadConfig();
+			return true;
 		}
 		if(method == M_RESTART) {
 			shvInfo() << "Server restart requested via RPC.";

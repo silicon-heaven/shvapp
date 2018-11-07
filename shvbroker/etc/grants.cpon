@@ -1,7 +1,18 @@
 {
+	"bws": {"weight": 0},
+	"rd": {"weight": 10},
+	"wr": {"weight": 20},
+	"cmd": {"weight": 30},
+	"cfg": {"weight": 40},
+	"srv": {"weight": 50},
+	"dev": {"weight": 60},
+	"su": {"weight": 70},
+
+	"admin": {"grants": ["su"]},
 	"observer": {"grants": ["monitor"]},
-	"iot": {},
-	"monitor": {},
+	"client": {"grants": ["broker-ping"]},
+	"device": {"grants": ["client"]},
+	"monitor": {"grants": ["client"]},
 	"poland": {},
-	"admin": {},
+	"broker-ping": {},
 }

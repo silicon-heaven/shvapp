@@ -328,9 +328,11 @@ void MainWindow::onShvTreeViewCurrentSelectionChanged(const QModelIndex &curr_ix
 		AttributesModel *m = TheApp::instance()->attributesModel();
 		if(bnd) {
 			// hide attributes for server nodes
+			ui->edAttributesShvPath->setText(QString());
 			m->load(nullptr);
 		}
 		else {
+			ui->edAttributesShvPath->setText(QString::fromStdString(nd->shvPath()));
 			m->load(nd);
 		}
 	}

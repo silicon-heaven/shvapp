@@ -67,25 +67,30 @@ void ServerConnection::setIdleWatchDogTimeOut(unsigned sec)
 
 std::string ServerConnection::passwordHash(PasswordHashType type, const std::string &user)
 {
+	/*
 	const std::map<std::string, std::string> passwds {
 		{"iot", "lub42DUB"},
 		{"elviz", "brch3900PRD"},
 		{"revitest", "lautrhovno271828"},
 	};
-	std::string pass;
-	auto it = passwds.find(user);
-	if(it != passwds.end()) {
-		pass = it->second;
-	}
-	if(type == PasswordHashType::Plain) {
+	*/
+	BrokerApp *app = BrokerApp::instance();
+	const shv::chainpack::RpcValue::Map &user_def = app->usersConfig().toMap().value(user).toMap();
+	std::string pass = user_def.value("password").toString();
+	std::string pass_hash = user_def.value("passwordHashType").toString();
+	if(type == PasswordHashType::Plain && pass_hash == "plain") {
 		return pass;
 	}
-	if(type == PasswordHashType::Sha1) {
+	if(type == PasswordHashType::Sha1 && pass_hash == "sha1") {
+		return pass;
+	}
+	if(type == PasswordHashType::Sha1 && pass_hash == "plain") {
 		QCryptographicHash hash(QCryptographicHash::Algorithm::Sha1);
 		hash.addData(pass.data(), pass.size());
 		QByteArray sha1 = hash.result().toHex();
 		//shvWarning() << user << pass << sha1;
 		return std::string(sha1.constData(), sha1.length());
+		return pass;
 	}
 	return std::string();
 }
@@ -279,5 +284,17 @@ bool ServerConnection::Subscription::match(const shv::core::StringView &shv_path
 	}
 	return false;
 }
-
+/*
+shv::chainpack::Rpc::AccessGrant ServerConnection::accessGrantForShvPath(const std::string &shv_path)
+{
+	shv::chainpack::Rpc::AccessGrant *pag = m_accessGrantCache.object(shv_path);
+	if(!pag) {
+		BrokerApp *app = BrokerApp::instance();
+		shv::chainpack::Rpc::AccessGrant ag = app->accessGrantForShvPath(m_user, shv_path);
+		m_accessGrantCache.insert(shv_path, new cp::Rpc::AccessGrant(ag));
+		return ag;
+	}
+	return *pag;
+}
+*/
 } // namespace rpc

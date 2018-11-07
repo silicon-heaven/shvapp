@@ -35,7 +35,7 @@ std::string ShvMetaMethod::flagsStr() const
 		ret += "SIG";
 	return ret;
 }
-
+/*
 std::string ShvMetaMethod::accessLevelStr() const
 {
 	std::string ret;
@@ -71,7 +71,7 @@ std::string ShvMetaMethod::accessLevelStr() const
 		ret = "Admin+";
 	return ret;
 }
-
+*/
 bool ShvMetaMethod::isSignal() const
 {
 	return flags & cp::MetaMethod::Flag::IsSignal;
@@ -231,7 +231,7 @@ void ShvNodeItem::processRpcMessage(const shv::chainpack::RpcMessage &msg)
 				mm.method = lst.value(0).toString();
 				mm.signature = (cp::MetaMethod::Signature) lst.value(1).toUInt();
 				mm.flags = lst.value(2).toUInt();
-				mm.accessLevel = lst.value(3).toInt();
+				mm.accessGrant = lst.value(3).toString();
 				m_methods.push_back(mm);
 			}
 			emit methodsLoaded();

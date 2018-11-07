@@ -11,10 +11,10 @@ static const char M_MOUNT_POINTS[] = "mountPoints";
 static const char M_DROP_CLIENT[] = "dropClient";
 
 static std::vector<cp::MetaMethod> meta_methods {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::MetaMethod::AccessLevel::Read},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::MetaMethod::AccessLevel::Read},
-	{M_MOUNT_POINTS, cp::MetaMethod::Signature::RetVoid, 0, cp::MetaMethod::AccessLevel::Service},
-	{M_DROP_CLIENT, cp::MetaMethod::Signature::VoidVoid, 0, cp::MetaMethod::AccessLevel::Admin},
+	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
+	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
+	{M_MOUNT_POINTS, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_SERVICE},
+	{M_DROP_CLIENT, cp::MetaMethod::Signature::VoidVoid, 0, cp::Rpc::GRANT_SERVICE},
 };
 
 ClientDirNode::ClientDirNode(int client_id, shv::iotqt::node::ShvNode *parent)

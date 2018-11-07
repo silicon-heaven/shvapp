@@ -16,23 +16,28 @@ EtcAclNode::EtcAclNode(shv::iotqt::node::ShvNode *parent)
 }
 
 //static const char M_SIZE[] = "size";
-static const char M_LOAD[] = "load";
+static const char M_LOAD[] = "loadFile";
+static const char M_SAVE[] = "saveFile";
 static const char M_COMMIT[] = "commitChanges";
 //static const char M_RELOAD[] = "serverReload";
 
 static std::vector<cp::MetaMethod> meta_methods {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::MetaMethod::AccessLevel::Browse},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::MetaMethod::AccessLevel::Browse},
-	{cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, 0, cp::MetaMethod::AccessLevel::Read},
-	{cp::Rpc::METH_SET, cp::MetaMethod::Signature::RetVoid, 0, cp::MetaMethod::AccessLevel::Config},
+	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam},
+	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam},
+	{cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_READ},
+	{cp::Rpc::METH_SET, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_CONFIG},
 	//{M_WRITE, cp::MetaMethod::Signature::RetParam, 0, cp::MetaMethod::AccessLevel::Service},
 };
 
+enum AclAccessLevel {AclUserView = cp::MetaMethod::AccessLevel::Service, AclUserAdmin = cp::MetaMethod::AccessLevel::Admin};
+
 static std::vector<cp::MetaMethod> meta_methods_root {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::MetaMethod::AccessLevel::Browse},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::MetaMethod::AccessLevel::Browse},
-	{M_LOAD, cp::MetaMethod::Signature::RetVoid, 0, cp::MetaMethod::AccessLevel::Config},
-	{M_COMMIT, cp::MetaMethod::Signature::RetVoid, 0, cp::MetaMethod::AccessLevel::None, "user_admin"},
+	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam},
+	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam},
+	//{cp::Rpc::METH_ACCESS_LEVELS, cp::MetaMethod::Signature::RetVoid},
+	{M_LOAD, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_SERVICE},
+	{M_SAVE, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_ADMIN},
+	{M_COMMIT, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_ADMIN},
 };
 
 RpcValueMapNode::RpcValueMapNode(const std::string &node_id, shv::iotqt::node::ShvNode *parent)
@@ -133,8 +138,14 @@ shv::chainpack::RpcValue BrokerConfigFileNode::callMethod(const shv::iotqt::node
 			m_config = BrokerApp::instance()->aclConfig(nodeId(), shv::core::Exception::Throw);
 			return m_config;
 		}
+		if(method == M_SAVE) {
+			m_config = cp::RpcValue::fromCpon(params.toString());
+			BrokerApp::instance()->setAclConfig(nodeId(), m_config, shv::core::Exception::Throw);
+			return true;
+		}
 		if(method == M_COMMIT) {
-			return BrokerApp::instance()->setAclConfig(nodeId(), m_config, shv::core::Exception::Throw);
+			BrokerApp::instance()->setAclConfig(nodeId(), m_config, shv::core::Exception::Throw);
+			return true;
 		}
 	}
 	if(method == cp::Rpc::METH_GET) {
