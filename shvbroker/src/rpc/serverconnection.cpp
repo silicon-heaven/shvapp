@@ -246,7 +246,7 @@ std::string ServerConnection::Subscription::toAbsolutePath(const std::string &mo
 	//	p = p.mid(1);
 	std::string abs_path;
 	if(ddot_cnt > 0 && !mount_point.empty()) {
-		std::vector<shv::core::StringView> mpl = shv::core::StringView(mount_point).split('/');
+		std::vector<shv::core::StringView> mpl = shv::iotqt::node::ShvNode::splitPath(mount_point);
 		if(mpl.size() >= ddot_cnt) {
 			mpl.resize(mpl.size() - ddot_cnt);
 			abs_path = shv::core::StringView::join(mpl, "/") + '/' + p.toString();

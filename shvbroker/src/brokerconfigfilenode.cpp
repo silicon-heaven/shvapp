@@ -3,16 +3,21 @@
 
 #include <shv/chainpack/metamethod.h>
 #include <shv/chainpack/rpc.h>
+#include <shv/core/string.h>
+#include <shv/core/log.h>
 
 namespace cp = shv::chainpack;
 
+//========================================================
+// EtcAclNode
+//========================================================
 EtcAclNode::EtcAclNode(shv::iotqt::node::ShvNode *parent)
 	: Super("acl", parent)
 {
 	new BrokerConfigFileNode("fstab", this);
 	new BrokerConfigFileNode("users", this);
 	new BrokerConfigFileNode("grants", this);
-	new BrokerConfigFileNode("paths", this);
+	new AclPathsConfigFileNode(this);
 }
 
 //static const char M_SIZE[] = "size";
@@ -139,7 +144,7 @@ shv::chainpack::RpcValue BrokerConfigFileNode::callMethod(const shv::iotqt::node
 			return m_config;
 		}
 		if(method == M_SAVE) {
-			m_config = cp::RpcValue::fromCpon(params.toString());
+			m_config = params;
 			BrokerApp::instance()->setAclConfig(nodeId(), m_config, shv::core::Exception::Throw);
 			return true;
 		}
@@ -163,3 +168,70 @@ shv::chainpack::RpcValue BrokerConfigFileNode::loadConfig()
 {
 	return BrokerApp::instance()->aclConfig(nodeId(), !shv::core::Exception::Throw);
 }
+
+//========================================================
+// AclPathsConfigFileNode
+//========================================================
+
+shv::iotqt::node::ShvNode::StringList AclPathsConfigFileNode::childNames(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
+{
+	if(shv_path.size() == 1) {
+		std::vector<std::string> keys = config().at(shv_path[0].toString()).toMap().keys();
+		for (size_t i = 0; i < keys.size(); ++i)
+			keys[i] = '"' + keys[i] + '"';
+		return keys;
+
+	}
+	else {
+		return Super::childNames(shv_path);
+	}
+}
+
+shv::chainpack::RpcValue AclPathsConfigFileNode::valueOnPath(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
+{
+	shvInfo() << "valueOnPath:" << shv::iotqt::node::ShvNode::StringView::join(shv_path, '/');
+	shv::chainpack::RpcValue v = config();
+	for (size_t i = 0; i < shv_path.size(); ++i) {
+		shv::iotqt::node::ShvNode::StringView dir = shv_path[i];
+		if(i == 1)
+			dir = dir.mid(1, dir.length() - 2);
+		const shv::chainpack::RpcValue::Map &m = v.toMap();
+		std::string key = dir.toString();
+		v = m.value(key);
+		shvInfo() << "\t i:" << i << "key:" << key << "val:" << v.toCpon();
+		if(!v.isValid())
+			SHV_EXCEPTION("Invalid path: " + shv::core::StringView::join(shv_path, '/'));
+	}
+	return v;
+}
+/*
+shv::iotqt::node::ShvNode::StringViewList AclPathsConfigFileNode::rewriteShvPath(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
+{
+	std::string p = shv::core::String::join(shv_path, '/');
+	StringList chlds = Super::childNames(shv::core::StringViewList{});
+	// sort from longest to shortest
+	std::sort(chlds.begin(), chlds.end(), [](const std::string &a, const std::string & b) {
+		return a.size() > b.size();
+	});
+	for(const std::string &child_name : chlds) {
+		if(shv::core::String::startsWith(p, child_name)) {
+			std::string rest = p.substr(child_name.size());
+			if(rest.size()  > 0) {
+				if(rest[0] == '/')
+					rest = rest.substr(1);
+				else
+					continue;
+			}
+			if(rest.size()) {
+				shv::core::StringViewList lst = shv::core::StringView{rest}.split('/');
+				lst.insert(lst.begin(), shv::core::StringView{child_name});
+				return lst;
+			}
+			else {
+				return shv::core::StringViewList{child_name};
+			}
+		}
+	}
+	return shv_path;
+}
+*/

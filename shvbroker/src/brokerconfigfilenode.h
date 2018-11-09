@@ -26,7 +26,7 @@ public:
 protected:
 	virtual shv::chainpack::RpcValue loadConfig() = 0;
 	const shv::chainpack::RpcValue &config();
-	shv::chainpack::RpcValue valueOnPath(const StringViewList &shv_path);
+	virtual shv::chainpack::RpcValue valueOnPath(const StringViewList &shv_path);
 	void setValueOnPath(const StringViewList &shv_path, const shv::chainpack::RpcValue &val);
 	bool isDir(const StringViewList &shv_path);
 protected:
@@ -44,6 +44,25 @@ public:
 	shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params) override;
 protected:
 	shv::chainpack::RpcValue loadConfig() override;
+};
+
+class AclPathsConfigFileNode : public BrokerConfigFileNode
+{
+	using Super = BrokerConfigFileNode;
+public:
+	AclPathsConfigFileNode(shv::iotqt::node::ShvNode *parent = nullptr)
+		: Super("paths", parent) {}
+	//~BrokerConfigFileNode() override;
+
+	//size_t methodCount(const StringViewList &shv_path) override  {return Super::methodCount(rewriteShvPath(shv_path));}
+	//const shv::chainpack::MetaMethod* metaMethod(const StringViewList &shv_path, size_t ix) override {return Super::metaMethod(rewriteShvPath(shv_path), ix);}
+
+	StringList childNames(const ShvNode::StringViewList &shv_path) override;
+	//shv::chainpack::RpcValue hasChildren(const StringViewList &shv_path) override {return Super::hasChildren(rewriteShvPath(shv_path));}
+protected:
+	shv::chainpack::RpcValue valueOnPath(const StringViewList &shv_path) override;
+private:
+	//StringViewList rewriteShvPath(const StringViewList &shv_path);
 };
 
 #endif

@@ -332,6 +332,8 @@ shv::chainpack::RpcValue BrokerApp::loadAclConfig(const std::string &config_name
 
 bool BrokerApp::saveAclConfig(const std::string &config_name, const shv::chainpack::RpcValue &config, bool throw_exc)
 {
+	logAclD() << "saveAclConfig" << config_name << "config type:" << config.typeToName(config.type());
+	//logAclD() << "config:" << config.toCpon();
 	QString fn = QString::fromStdString(config_name).trimmed();
 	fn = cliOptions()->value("etc.acl." + fn).toString();
 	if(fn.isEmpty()) {
@@ -355,10 +357,12 @@ bool BrokerApp::saveAclConfig(const std::string &config_name, const shv::chainpa
 		f.write(cpon.data(), cpon.size());
 		return true;
 	}
-	if(throw_exc)
-		throw std::runtime_error("Cannot save invalid config to file " + fn.toStdString());
-	else
-		return false;
+	else {
+		if(throw_exc)
+			throw std::runtime_error("Config must be RpcValue::Map type, config name: " + config_name);
+		else
+			return false;
+	}
 }
 
 std::string BrokerApp::mountPointForDevice(const shv::chainpack::RpcValue &device_id)
@@ -525,7 +529,7 @@ void BrokerApp::onClientLogin(int connection_id)
 		if(mount_point.empty()) {
 			const shv::chainpack::RpcValue::Map &device = opts.value(cp::Rpc::TYPE_DEVICE).toMap();
 			mount_point = device.value(cp::Rpc::KEY_MOUT_POINT).toString();
-			std::vector<shv::core::StringView> path = shv::core::StringView(mount_point).split('/');
+			std::vector<shv::core::StringView> path = shv::iotqt::node::ShvNode::splitPath(mount_point);
 			if(path.size() && !(path[0] == "test")) {
 				shvWarning() << "Mount point can be explicitly specified to test/ dir only, dev id:" << device_id.toCpon();
 				mount_point.clear();

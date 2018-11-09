@@ -261,17 +261,15 @@ void MainWindow::editStringParameter(const QModelIndex &ix)
 {
 	QVariant v = ix.data(AttributesModel::RpcValueRole);
 	cp::RpcValue rv = qvariant_cast<cp::RpcValue>(v);
-	if(rv.isString()) {
-		QString cpon = QString::fromStdString(rv.toString());
-		TextEditDialog dlg(this);
-		dlg.setWindowTitle(tr("Parameters"));
-		dlg.setReadOnly(false);
-		dlg.setText(cpon);
-		if(dlg.exec()) {
-			rv = cp::RpcValue(dlg.text().toStdString());
-			cpon =  QString::fromStdString(rv.toCpon());
-			ui->tblAttributes->model()->setData(ix, cpon, Qt::EditRole);
-		}
+	QString cpon = QString::fromStdString(rv.toString());
+	TextEditDialog dlg(this);
+	dlg.setWindowTitle(tr("Parameters"));
+	dlg.setReadOnly(false);
+	dlg.setText(cpon);
+	if(dlg.exec()) {
+		rv = cp::RpcValue(dlg.text().toStdString());
+		cpon =  QString::fromStdString(rv.toCpon());
+		ui->tblAttributes->model()->setData(ix, cpon, Qt::EditRole);
 	}
 }
 
