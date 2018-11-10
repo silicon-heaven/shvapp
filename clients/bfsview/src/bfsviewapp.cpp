@@ -32,7 +32,7 @@ static std::vector<cp::MetaMethod> meta_methods_root {
 	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, 0},
 	{cp::Rpc::METH_MOUNT_POINT, cp::MetaMethod::Signature::RetVoid, 0},
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, 0},
-	{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, 0},
+	//{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, 0},
 	{METH_APP_LOG, cp::MetaMethod::Signature::RetVoid, 0},
 };
 
@@ -64,9 +64,9 @@ shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path,
 		//if(method == cp::Rpc::METH_MOUNT_POINT) {
 		//	return BfsViewApp::instance()->rpcConnection()->brokerMountPoint();
 		//}
-		if(method == cp::Rpc::METH_CONNECTION_TYPE) {
-			return BfsViewApp::instance()->rpcConnection()->connectionType();
-		}
+		//if(method == cp::Rpc::METH_CONNECTION_TYPE) {
+		//	return BfsViewApp::instance()->rpcConnection()->connectionType();
+		//}
 		if(method == METH_APP_LOG) {
 			// read entire file into string
 			std::ifstream is{BfsViewApp::logFilePath(), std::ios::binary | std::ios::ate};

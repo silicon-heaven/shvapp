@@ -22,4 +22,5 @@ AppCliOptions::AppCliOptions(QObject *parent)
 	addOption("etc.acl.paths").setType(QVariant::String).setNames("--paths")
 			.setComment("File with shv node paths access rights definition, if it is relative path, {config-dir} is prepended.")
 			.setDefaultValue("paths.cpon");
+	addOption("slaveConnections").setType(QVariant::Map).setComment("Can be used from config file only.");
 }

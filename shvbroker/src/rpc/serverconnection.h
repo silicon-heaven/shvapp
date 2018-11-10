@@ -40,6 +40,8 @@ public:
 	ServerConnection(QTcpSocket* socket, QObject *parent = nullptr);
 	~ServerConnection() override;
 
+	const shv::chainpack::RpcValue::Map& deviceOptions() const;
+	const shv::chainpack::RpcValue::Map& brokerOptions() const;
 	shv::chainpack::RpcValue deviceId() const;
 
 	void addMountPoint(const std::string &mp);

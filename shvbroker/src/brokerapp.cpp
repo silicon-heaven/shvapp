@@ -3,7 +3,7 @@
 #include "brokernode.h"
 #include "subscriptionsnode.h"
 #include "brokerconfigfilenode.h"
-#include "clientdirnode.h"
+#include "clientconnectionnode.h"
 #include "rpc/tcpserver.h"
 #include "rpc/serverconnection.h"
 
@@ -19,6 +19,7 @@
 #include <shv/chainpack/chainpackwriter.h>
 #include <shv/chainpack/cponreader.h>
 #include <shv/chainpack/rpcmessage.h>
+#include <shv/chainpack/metamethod.h>
 
 #include <QFile>
 #include <QSocketNotifier>
@@ -39,6 +40,22 @@ int BrokerApp::m_sigTermFd[2];
 #endif
 
 namespace cp = shv::chainpack;
+
+class ClientsNode : public shv::iotqt::node::MethodsTableNode
+{
+	using Super = shv::iotqt::node::MethodsTableNode;
+public:
+	ClientsNode(shv::iotqt::node::ShvNode *parent = nullptr)
+		: Super("clients" , parent)
+	{
+		m_methods = &m_metaMethods;
+	}
+private:
+	std::vector<cp::MetaMethod> m_metaMethods {
+		{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam},
+		{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_CONFIG},
+	};
+};
 
 //static constexpr int SQL_RECONNECT_INTERVAL = 3000;
 BrokerApp::BrokerApp(int &argc, char **argv, AppCliOptions *cli_opts)
@@ -64,6 +81,7 @@ BrokerApp::BrokerApp(int &argc, char **argv, AppCliOptions *cli_opts)
 	connect(m_deviceTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, this, &BrokerApp::onRootNodeSendRpcMesage);
 	BrokerNode *bn = new BrokerNode();
 	m_deviceTree->mount(cp::Rpc::DIR_BROKER_APP, bn);
+	m_deviceTree->mount(std::string(cp::Rpc::DIR_BROKER) + "/clients", new ClientsNode());
 	m_deviceTree->mount(std::string(cp::Rpc::DIR_BROKER) + "/etc/acl", new EtcAclNode());
 
 	QTimer::singleShot(0, this, &BrokerApp::lazyInit);
@@ -470,9 +488,9 @@ void BrokerApp::onClientLogin(int connection_id)
 	rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
 	if(!conn)
 		SHV_EXCEPTION("Cannot find connection for ID: " + std::to_string(connection_id));
-	const shv::chainpack::RpcValue::Map &opts = conn->connectionOptions();
+	//const shv::chainpack::RpcValue::Map &opts = conn->connectionOptions();
 
-	shvInfo() << "Client login connection id:" << connection_id << "connection type:" << conn->connectionType();
+	shvInfo() << "Client login connection id:" << connection_id;// << "connection type:" << conn->connectionType();
 	{
 		std::string dir_mount_point = brokerClientDirPath(connection_id);
 		{
@@ -486,7 +504,7 @@ void BrokerApp::onClientLogin(int connection_id)
 		shv::iotqt::node::ShvNode *clients_nd = m_deviceTree->mkdir(std::string(cp::Rpc::DIR_BROKER) + "/clients/");
 		if(!clients_nd)
 			SHV_EXCEPTION("Cannot create parent for ClientDirNode id: " + std::to_string(connection_id));
-		ClientDirNode *client_dir_node = new ClientDirNode(connection_id, clients_nd);
+		ClientConnectionNode *client_dir_node = new ClientConnectionNode(connection_id, clients_nd);
 		//shvWarning() << "path1:" << client_dir_node->shvPath();
 		ShvClientNode *client_app_node = new ShvClientNode(conn, client_dir_node);
 		client_app_node->setNodeId("app");
@@ -521,14 +539,14 @@ void BrokerApp::onClientLogin(int connection_id)
 		}
 	}
 
-	if(conn->connectionType() == cp::Rpc::TYPE_DEVICE) {
+	if(!conn->deviceOptions().empty()) {
+		const shv::chainpack::RpcValue::Map &device_opts = conn->deviceOptions();
 		std::string mount_point;
 		shv::chainpack::RpcValue device_id = conn->deviceId();
 		if(device_id.isValid())
 			mount_point = mountPointForDevice(device_id);
 		if(mount_point.empty()) {
-			const shv::chainpack::RpcValue::Map &device = opts.value(cp::Rpc::TYPE_DEVICE).toMap();
-			mount_point = device.value(cp::Rpc::KEY_MOUT_POINT).toString();
+			mount_point = device_opts.value(cp::Rpc::KEY_MOUT_POINT).toString();
 			std::vector<shv::core::StringView> path = shv::iotqt::node::ShvNode::splitPath(mount_point);
 			if(path.size() && !(path[0] == "test")) {
 				shvWarning() << "Mount point can be explicitly specified to test/ dir only, dev id:" << device_id.toCpon();
@@ -570,6 +588,8 @@ void BrokerApp::onClientLogin(int connection_id)
 			//sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_CONNECTED, cp::RpcValue());
 			sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_MOUNTED_CHANGED, true);
 		}
+	}
+	if(!conn->brokerOptions().empty()) {
 	}
 
 	//shvInfo() << m_deviceTree->dumpTree();

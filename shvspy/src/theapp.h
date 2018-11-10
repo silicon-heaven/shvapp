@@ -9,6 +9,7 @@
 class ServerTreeModel;
 class AttributesModel;
 class RpcNotificationsModel;
+class ErrorLogModel;
 class AppCliOptions;
 class QSettings;
 
@@ -34,6 +35,7 @@ public:
 	ServerTreeModel* serverTreeModel() {return m_serverTreeModel;}
 	AttributesModel* attributesModel() {return m_attributesModel;}
 	RpcNotificationsModel* rpcNotificationsModel() {return m_rpcNotificationsModel;}
+	ErrorLogModel* errorLogModel() {return m_errorLogModel;}
 	const shv::core::utils::Crypt& crypt() {return m_crypt;}
 	void addLastUsedParam(const QString &shv_path, const QString &method, const QString &cpon);
 	const ParamMap &lastUsedParams() const;
@@ -45,6 +47,7 @@ private:
 	ServerTreeModel *m_serverTreeModel = nullptr;
 	AttributesModel *m_attributesModel = nullptr;
 	RpcNotificationsModel *m_rpcNotificationsModel = nullptr;
+	ErrorLogModel *m_errorLogModel = nullptr;
 	AppCliOptions* m_cliOptions = nullptr;
 	shv::core::utils::Crypt m_crypt;
 	ParamMap m_lastUsedParams;

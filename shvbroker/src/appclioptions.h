@@ -14,7 +14,7 @@ public:
 	~AppCliOptions() Q_DECL_OVERRIDE {}
 
 	CLIOPTION_GETTER_SETTER(QString, l, setL, ocale)
-	//CLIOPTION_GETTER_SETTER(QString, p, setP, rofile)
+	CLIOPTION_GETTER_SETTER(QVariantMap, s, setS, laveConnections)
 	CLIOPTION_GETTER_SETTER2(int, "server.port", s, setS, erverPort)
 	CLIOPTION_GETTER_SETTER2(QString, "sql.host", s, setS, qlHost)
 	CLIOPTION_GETTER_SETTER2(int, "sql.port", s, setS, qlPort)

@@ -1,4 +1,4 @@
-#include "clientdirnode.h"
+#include "clientconnectionnode.h"
 #include "brokerapp.h"
 #include "rpc/serverconnection.h"
 
@@ -11,19 +11,19 @@ static const char M_MOUNT_POINTS[] = "mountPoints";
 static const char M_DROP_CLIENT[] = "dropClient";
 
 static std::vector<cp::MetaMethod> meta_methods {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
+	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam},
+	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_SERVICE},
 	{M_MOUNT_POINTS, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_SERVICE},
 	{M_DROP_CLIENT, cp::MetaMethod::Signature::VoidVoid, 0, cp::Rpc::GRANT_SERVICE},
 };
 
-ClientDirNode::ClientDirNode(int client_id, shv::iotqt::node::ShvNode *parent)
+ClientConnectionNode::ClientConnectionNode(int client_id, shv::iotqt::node::ShvNode *parent)
 	: Super(std::to_string(client_id), meta_methods, parent)
 	, m_clientId(client_id)
 {
 }
 
-shv::chainpack::RpcValue ClientDirNode::callMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
+shv::chainpack::RpcValue ClientConnectionNode::callMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
 {
 	if(shv_path.empty()) {
 		if(method == M_MOUNT_POINTS) {

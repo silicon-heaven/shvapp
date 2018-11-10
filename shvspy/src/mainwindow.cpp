@@ -5,6 +5,7 @@
 #include "servertreemodel/servertreemodel.h"
 #include "servertreemodel/shvbrokernodeitem.h"
 #include "log/rpcnotificationsmodel.h"
+#include "log/errorlogmodel.h"
 
 //#include "dlgdumpnode.h"
 #include "dlgserverproperties.h"
@@ -44,6 +45,11 @@ MainWindow::MainWindow(QWidget *parent) :
 	connect(ui->actionQuit, &QAction::triggered, TheApp::instance(), &TheApp::quit);
 	//setWindowTitle(tr("QFreeOpcUa Spy"));
 	setWindowIcon(QIcon(":/shvspy/images/shvspy"));
+
+	ui->menu_View->addAction(ui->dockServers->toggleViewAction());
+	ui->menu_View->addAction(ui->dockAttributes->toggleViewAction());
+	ui->menu_View->addAction(ui->dockNotifications->toggleViewAction());
+	ui->menu_View->addAction(ui->dockErrors->toggleViewAction());
 
 	ServerTreeModel *tree_model = TheApp::instance()->serverTreeModel();
 	ui->treeServers->setModel(tree_model);
@@ -89,6 +95,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 
 	ui->notificationsLogWidget->setLogTableModel(TheApp::instance()->rpcNotificationsModel());
+	ui->errorLogWidget->setLogTableModel(TheApp::instance()->errorLogModel());
 
 	QSettings settings;
 	restoreGeometry(settings.value(QStringLiteral("ui/mainWindow/geometry")).toByteArray());

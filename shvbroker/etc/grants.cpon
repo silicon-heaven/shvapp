@@ -9,10 +9,9 @@
 	"su": {"weight": 70},
 
 	"admin": {"grants": ["su"]},
-	"observer": {"grants": ["monitor"]},
+	"observer": {"grants": ["client"]},
 	"client": {"grants": ["broker-ping"]},
 	"device": {"grants": ["client"]},
-	"monitor": {"grants": ["client"]},
 	"poland": {},
 	"broker-ping": {},
 }

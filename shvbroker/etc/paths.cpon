@@ -2,8 +2,8 @@
 		"admin": {
 			"": {"grant": "su"},
 		},
-		"monitor": {
-			"shv": {"grant": "rd"},
+		"client": {
+			"": {"grant": "bws"},
 		},
 		"broker-ping": {
 			".broker/app": {"grant": "bws"},

@@ -3,9 +3,9 @@
 
 #include <shv/iotqt/node/shvnode.h>
 
-class EtcAclNode : public shv::iotqt::node::ShvNode
+class EtcAclNode : public shv::iotqt::node::MethodsTableNode
 {
-	using Super = shv::iotqt::node::ShvNode;
+	using Super = shv::iotqt::node::MethodsTableNode;
 public:
 	EtcAclNode(shv::iotqt::node::ShvNode *parent = nullptr);
 	//~EtcAclNode() override;

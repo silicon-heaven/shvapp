@@ -28,7 +28,7 @@ static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false},
-	{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, false},
+	//{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, false},
 };
 
 size_t AppRootNode::methodCount(const StringViewList &shv_path)
@@ -54,9 +54,9 @@ shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path,
 		if(method == cp::Rpc::METH_APP_NAME) {
 			return QCoreApplication::instance()->applicationName().toStdString();
 		}
-		if(method == cp::Rpc::METH_CONNECTION_TYPE) {
-			return ShvRshApp::instance()->rpcConnection()->connectionType();
-		}
+		//if(method == cp::Rpc::METH_CONNECTION_TYPE) {
+		//	return ShvRshApp::instance()->rpcConnection()->connectionType();
+		//}
 	}
 	return Super::callMethod(shv_path, method, params);
 }

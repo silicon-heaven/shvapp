@@ -85,6 +85,8 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 		}
 		case ColFlags:
 			return QString::fromStdString(m_rows[ix.row()][ix.column()].toString());
+		case ColAccessGrant:
+			return QString::fromStdString(m_rows[ix.row()][ix.column()].toString());
 		default:
 			break;
 		}

@@ -32,10 +32,19 @@ ServerConnection::~ServerConnection()
 	//rpc::ServerConnectionshvWarning() << "destroying" << this;
 }
 
+const shv::chainpack::RpcValue::Map& ServerConnection::deviceOptions() const
+{
+	return connectionOptions().value(cp::Rpc::KEY_DEVICE).toMap();
+}
+
+const shv::chainpack::RpcValue::Map& ServerConnection::brokerOptions() const
+{
+	return connectionOptions().value(cp::Rpc::KEY_BROKER).toMap();
+}
+
 shv::chainpack::RpcValue ServerConnection::deviceId() const
 {
-	const shv::chainpack::RpcValue::Map &device = connectionOptions().value(cp::Rpc::TYPE_DEVICE).toMap();
-	return device.value(cp::Rpc::KEY_DEVICE_ID);
+	return deviceOptions().value(cp::Rpc::KEY_DEVICE_ID);
 }
 
 void ServerConnection::addMountPoint(const std::string &mp)

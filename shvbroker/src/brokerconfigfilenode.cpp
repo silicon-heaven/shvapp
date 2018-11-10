@@ -11,8 +11,13 @@ namespace cp = shv::chainpack;
 //========================================================
 // EtcAclNode
 //========================================================
+static std::vector<cp::MetaMethod> meta_methods_acl {
+	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_CONFIG},
+	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_CONFIG},
+};
+
 EtcAclNode::EtcAclNode(shv::iotqt::node::ShvNode *parent)
-	: Super("acl", parent)
+	: Super("acl", meta_methods_acl, parent)
 {
 	new BrokerConfigFileNode("fstab", this);
 	new BrokerConfigFileNode("users", this);
@@ -27,19 +32,18 @@ static const char M_COMMIT[] = "commitChanges";
 //static const char M_RELOAD[] = "serverReload";
 
 static std::vector<cp::MetaMethod> meta_methods {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam},
-	{cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_READ},
-	{cp::Rpc::METH_SET, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_CONFIG},
+	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_CONFIG},
+	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_CONFIG},
+	{cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_CONFIG},
+	{cp::Rpc::METH_SET, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_DEVEL},
 	//{M_WRITE, cp::MetaMethod::Signature::RetParam, 0, cp::MetaMethod::AccessLevel::Service},
 };
 
 enum AclAccessLevel {AclUserView = cp::MetaMethod::AccessLevel::Service, AclUserAdmin = cp::MetaMethod::AccessLevel::Admin};
 
 static std::vector<cp::MetaMethod> meta_methods_root {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam},
-	//{cp::Rpc::METH_ACCESS_LEVELS, cp::MetaMethod::Signature::RetVoid},
+	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_CONFIG},
+	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_CONFIG},
 	{M_LOAD, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_SERVICE},
 	{M_SAVE, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_ADMIN},
 	{M_COMMIT, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_ADMIN},
