@@ -20,6 +20,7 @@
 #include <shv/chainpack/cponreader.h>
 #include <shv/chainpack/rpcmessage.h>
 #include <shv/chainpack/metamethod.h>
+#include <shv/chainpack/cponwriter.h>
 
 #include <QFile>
 #include <QSocketNotifier>
@@ -324,27 +325,28 @@ shv::chainpack::RpcValue *BrokerApp::aclConfigVariable(const std::string &config
 
 shv::chainpack::RpcValue BrokerApp::loadAclConfig(const std::string &config_name, bool throw_exc)
 {
-	QString fn = QString::fromStdString(config_name).trimmed();
+	std::string fn = config_name;
 	fn = cliOptions()->value("etc.acl." + fn).toString();
-	if(fn.isEmpty()) {
+	if(fn.empty()) {
 		if(throw_exc)
 			throw std::runtime_error("config file name is empty.");
 		else
 			return cp::RpcValue();
 	}
-	if(!fn.startsWith('/'))
+	if(fn[0] != '/')
 		fn = cliOptions()->configDir() + '/' + fn;
-	QFile f(fn);
-	if (!f.open(QFile::ReadOnly)) {
+	std::ifstream fis(fn);
+	QFile f(QString::fromStdString(fn));
+	if (!fis.good()) {
 		if(throw_exc)
-			throw std::runtime_error("Cannot open config file " + fn.toStdString() + " for reading");
+			throw std::runtime_error("Cannot open config file " + fn + " for reading");
 		else
 			return cp::RpcValue();
 	}
-	QByteArray ba = f.readAll();
-	std::string cpon(ba.constData(), ba.size());
+	shv::chainpack::CponReader rd(fis);
+	shv::chainpack::RpcValue rv;
 	std::string err;
-	shv::chainpack::RpcValue rv = cp::RpcValue::fromCpon(cpon, throw_exc? nullptr: &err);
+	rd.read(rv, throw_exc? nullptr: &err);
 	return rv;
 }
 
@@ -352,27 +354,29 @@ bool BrokerApp::saveAclConfig(const std::string &config_name, const shv::chainpa
 {
 	logAclD() << "saveAclConfig" << config_name << "config type:" << config.typeToName(config.type());
 	//logAclD() << "config:" << config.toCpon();
-	QString fn = QString::fromStdString(config_name).trimmed();
+	std::string fn = config_name;
 	fn = cliOptions()->value("etc.acl." + fn).toString();
-	if(fn.isEmpty()) {
+	if(fn.empty()) {
 		if(throw_exc)
 			throw std::runtime_error("config file name is empty.");
 		else
 			return false;
 	}
-	if(!fn.startsWith('/'))
+	if(fn[0] != '/')
 		fn = cliOptions()->configDir() + '/' + fn;
 
 	if(config.isMap()) {
-		QFile f(fn);
-		if (!f.open(QFile::WriteOnly)) {
+		std::ofstream fos(fn, std::ios::binary | std::ios::trunc);
+		if (!fos) {
 			if(throw_exc)
-				throw std::runtime_error("Cannot open config file " + fn.toStdString() + " for writing");
+				throw std::runtime_error("Cannot open config file " + fn + " for writing");
 			else
 				return false;
 		}
-		std::string cpon = config.toCpon("  ");
-		f.write(cpon.data(), cpon.size());
+		shv::chainpack::CponWriterOptions opts;
+		opts.setIndent("  ");
+		shv::chainpack::CponWriter wr(fos, opts);
+		wr << config;
 		return true;
 	}
 	else {
