@@ -103,12 +103,12 @@ ShvFileProviderApp::ShvFileProviderApp(int &argc, char **argv, AppCliOptions* cl
 
 	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
 
-	QString brclab_fs_root_dir = cli_opts->sysFsRootDir();
-	if(!brclab_fs_root_dir.isEmpty() && QDir(brclab_fs_root_dir).exists()) {
-		const char *BRCLAB_FS = "brclab/fs";
-		shvInfo() << "Exporting" << brclab_fs_root_dir << "as" << BRCLAB_FS << "node";
-		shv::iotqt::node::LocalFSNode *fsn = new shv::iotqt::node::LocalFSNode(brclab_fs_root_dir);
-		m_shvTree->mount(BRCLAB_FS, fsn);
+	QString root_dir = cli_opts->sysFsRootDir();
+	if(!root_dir.isEmpty() && QDir(root_dir).exists()) {
+		const char *FS = "fs";
+		shvInfo() << "Exporting" << root_dir << "as" << FS << "node";
+		shv::iotqt::node::LocalFSNode *fsn = new shv::iotqt::node::LocalFSNode(root_dir);
+		m_shvTree->mount(FS, fsn);
 	}
 
 	if(cliOptions()->connStatusUpdateInterval() > 0) {
