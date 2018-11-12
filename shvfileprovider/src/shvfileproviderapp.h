@@ -38,7 +38,6 @@ public:
 
 	static ShvFileProviderApp *instance();
 	shv::iotqt::rpc::DeviceConnection *rpcConnection() const {return m_rpcConnection;}
-	shv::chainpack::RpcValue getSites();
 
 	AppCliOptions* cliOptions() {return m_cliOptions;}
 private:
@@ -46,14 +45,10 @@ private:
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	void onNetworkManagerFinished(QNetworkReply *reply);
 	void updateConnStatusFile();
-private:
-	void saveSitesToFile();
 	shv::iotqt::rpc::DeviceConnection *m_rpcConnection = nullptr;
 	AppCliOptions* m_cliOptions;
 
 	shv::iotqt::node::ShvNodeTree *m_shvTree = nullptr;
 	bool m_isBrokerConnected = false;
-	std::string m_sites;
-	QNetworkAccessManager *m_networkManager = nullptr;
 };
 
