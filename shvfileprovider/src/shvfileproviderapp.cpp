@@ -1,6 +1,5 @@
 #include "shvfileproviderapp.h"
 #include "appclioptions.h"
-#include "sitesnode.h"
 
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/node/shvnodetree.h>
@@ -13,7 +12,6 @@
 #include <QSocketNotifier>
 #include <QTimer>
 #include <QtGlobal>
-#include <QFileInfo>
 
 #ifdef Q_OS_UNIX
 #include <unistd.h>
@@ -70,7 +68,6 @@ shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::Rp
 			ShvFileProviderApp *app = ShvFileProviderApp::instance();
 			cp::RpcValue::Map opts = app->rpcConnection()->connectionOptions().toMap();;
 			cp::RpcValue::Map dev = opts.value(cp::Rpc::TYPE_DEVICE).toMap();
-			//shvInfo() << dev[cp::Rpc::KEY_DEVICE_ID].toString();
 			return dev.value(cp::Rpc::KEY_DEVICE_ID).toString();
 		}
 	}
@@ -97,15 +94,12 @@ ShvFileProviderApp::ShvFileProviderApp(int &argc, char **argv, AppCliOptions* cl
 	}
 
 	m_rpcConnection->setCliOptions(cli_opts);
-	m_networkManager = new QNetworkAccessManager(this);
 
-	connect(m_networkManager, &QNetworkAccessManager::finished, this, &ShvFileProviderApp::onNetworkManagerFinished);
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &ShvFileProviderApp::onBrokerConnectedChanged);
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvFileProviderApp::onRpcMessageReceived);
 
 	AppRootNode *root = new AppRootNode();
 	m_shvTree = new shv::iotqt::node::ShvNodeTree(root, this);
-	new SitesNode(m_shvTree->root());
 
 	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
 
@@ -136,23 +130,6 @@ ShvFileProviderApp *ShvFileProviderApp::instance()
 	return qobject_cast<ShvFileProviderApp *>(QCoreApplication::instance());
 }
 
-shv::chainpack::RpcValue ShvFileProviderApp::getSites()
-{
-	QFileInfo fi(m_cliOptions->localSitesFile());
-
-	if (((!fi.exists()) || (fi.lastModified().secsTo(QDateTime::currentDateTime()) > 3600))){
-		QEventLoop *loop = new QEventLoop(this);
-		connect(m_networkManager, &QNetworkAccessManager::finished, loop, &QEventLoop::quit);
-		m_networkManager->get(QNetworkRequest(QUrl(m_cliOptions->remoteSitesUrl())));
-
-		loop->exec();
-		saveSitesToFile();
-		loop->deleteLater();
-	}
-
-	return shv::chainpack::RpcValue::String(m_sites);
-}
-
 void ShvFileProviderApp::onBrokerConnectedChanged(bool is_connected)
 {
 	m_isBrokerConnected = is_connected;
@@ -178,18 +155,6 @@ void ShvFileProviderApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &
 	}
 }
 
-void ShvFileProviderApp::onNetworkManagerFinished(QNetworkReply *reply)
-{
-	if (reply->error()) {
-		shvInfo() << "Download sites.json error:" << reply->errorString();
-	}
-	else{
-		m_sites = reply->readAll().toStdString();
-		shvInfo() << "Downloaded sites.json";
-	}
-	reply->deleteLater();
-}
-
 void ShvFileProviderApp::updateConnStatusFile()
 {
 	QString fn = cliOptions()->connStatusFile();
@@ -208,25 +173,4 @@ void ShvFileProviderApp::updateConnStatusFile()
 		shvError() << "Cannot write to connection statu file:" << fn;
 	}
 }
-
-void ShvFileProviderApp::saveSitesToFile()
-{
-	QFile f(m_cliOptions->localSitesFile());
-	QDir dir = QFileInfo(f).dir();
-
-	if (!dir.exists()){
-		if(!dir.mkpath(dir.absolutePath())) {
-			shvError() << "Cannot create directory:" << dir.absolutePath();
-			return;
-		}
-	}
-
-	if(f.open(QFile::WriteOnly)) {
-		f.write(m_sites.c_str());
-	}
-	else {
-		shvError() << "Cannot write to sites file:" << m_cliOptions->localSitesFile();
-	}
-}
-
 
