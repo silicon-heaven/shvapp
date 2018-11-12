@@ -1,9 +1,11 @@
 #include "shvbrokernodeitem.h"
 #include "../theapp.h"
 #include "../appclioptions.h"
+#include "../log/errorlogmodel.h"
 
 #include <shv/iotqt/rpc/clientconnection.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
+#include <shv/iotqt/node/shvnode.h>
 
 #include <shv/chainpack/rpcmessage.h>
 #include <shv/core/stringview.h>
@@ -51,7 +53,7 @@ ShvBrokerNodeItem::ShvBrokerNodeItem(ServerTreeModel *m, const std::string &serv
 ShvBrokerNodeItem::~ShvBrokerNodeItem()
 {
 	if(m_rpcConnection) {
-		disconnect(m_rpcConnection, 0, this, 0);
+		disconnect(m_rpcConnection, nullptr, this, nullptr);
 		delete m_rpcConnection;
 	}
 }
@@ -142,8 +144,8 @@ QString ServerNode::connectionErrorString()
 shv::iotqt::rpc::ClientConnection *ShvBrokerNodeItem::clientConnection()
 {
 
-    if(!m_rpcConnection) {
-		QString conn_type = m_serverPropeties.value(cp::Rpc::KEY_CONNECTION_TYPE).toString();
+	if(!m_rpcConnection) {
+		QString conn_type = m_serverPropeties.value("connectionType").toString();
 
 		shv::iotqt::rpc::DeviceAppCliOptions opts;
 		{
@@ -176,7 +178,7 @@ shv::iotqt::rpc::ClientConnection *ShvBrokerNodeItem::clientConnection()
 				opts.setMountPoint(mount_point);
 		}
 
-		if(conn_type == cp::Rpc::TYPE_DEVICE) {
+		if(conn_type == "device") {
 			auto *c = new shv::iotqt::rpc::DeviceConnection(nullptr);
 			c->setCliOptions(&opts);
 			m_rpcConnection = c;
@@ -208,8 +210,7 @@ void ShvBrokerNodeItem::onBrokerConnectedChanged(bool is_connected)
 ShvNodeItem* ShvBrokerNodeItem::findNode(const std::string &path, std::string *path_rest)
 {
 	ShvNodeItem *ret = this;
-	shv::core::StringView sv(path);
-	std::vector<shv::core::StringView> id_list = sv.split('/');
+	shv::core::StringViewList id_list = shv::iotqt::node::ShvNode::splitPath(path);
 
 	for(const shv::core::StringView &node_id : id_list) {
 		int i;
@@ -251,6 +252,10 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 {
 	if(msg.isResponse()) {
 		cp::RpcResponse resp(msg);
+		if(resp.isError())
+			TheApp::instance()->errorLogModel()->addLogRow(NecroLog::Level::Error
+														   , resp.error().message()
+														   , cp::RpcResponse::Error::errorCodeToString(resp.error().code()));
 		int rqid = resp.requestId().toInt();
 		auto it = m_runningRpcRequests.find(rqid);
 		if(it == m_runningRpcRequests.end()) {
@@ -282,7 +287,7 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 								   cp::Rpc::METH_DIR,
 								   //cp::Rpc::METH_PING,
 								   cp::Rpc::METH_APP_NAME,
-								   cp::Rpc::METH_CONNECTION_TYPE,
+								   //cp::Rpc::METH_CONNECTION_TYPE,
 							   });
 			}
 			//else if(method.toString() == cp::Rpc::METH_PING) {
@@ -291,9 +296,9 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 			else if(method.toString() == cp::Rpc::METH_APP_NAME) {
 				resp.setResult(QCoreApplication::instance()->applicationName().toStdString());
 			}
-			else if(method.toString() == cp::Rpc::METH_CONNECTION_TYPE) {
-				resp.setResult(m_rpcConnection->connectionType());
-			}
+			//else if(method.toString() == cp::Rpc::METH_CONNECTION_TYPE) {
+			//	resp.setResult(m_rpcConnection->connectionType());
+			//}
 		}
 		catch (shv::core::Exception &e) {
 			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, e.message()));

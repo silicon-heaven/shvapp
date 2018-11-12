@@ -1,6 +1,7 @@
 #include "revitestdevice.h"
 #include "lublicator.h"
 #include "historynode.h"
+#include "revitestapp.h"
 
 #include <shv/iotqt/utils/fileshvjournal.h>
 #include <shv/iotqt/node//shvnodetree.h>
@@ -101,14 +102,14 @@ RevitestDevice::RevitestDevice(QObject *parent)
 {
 	shvLogFuncFrame();
 	m_shvTree = new shv::iotqt::node::ShvNodeTree(this);
+	m_shvTree->root()->setSortedChildren(false);
 	new HistoryNode(m_shvTree->root());
 	createDevices();
 }
 
 void RevitestDevice::createDevices()
 {
-	static constexpr size_t LUB_CNT = 27;
-	for (size_t i = 0; i < LUB_CNT; ++i) {
+	for (size_t i = 0; i < RevitestApp::LUB_CNT; ++i) {
 		auto *nd = new Lublicator(std::to_string(i+1), m_shvTree->root());
 		connect(nd, &Lublicator::propertyValueChanged, this, &RevitestDevice::onLublicatorPropertyValueChanged);
 	}
@@ -140,10 +141,18 @@ void RevitestDevice::getSnapshot(std::vector<shv::iotqt::utils::ShvJournalEntry>
 		Lublicator *nd = qobject_cast<Lublicator*>(m_shvTree->root()->childNode(id));
 		if(!nd)
 			continue;
-		shv::iotqt::utils::ShvJournalEntry e;
-		e.path = id + "/status";
-		e.value = nd->callMethod(shv::iotqt::node::ShvNode::StringViewList{shv::iotqt::node::ShvNode::StringView("status")}, cp::Rpc::METH_GET, cp::RpcValue());
-		snapshot.emplace_back(std::move(e));
+		{
+			shv::iotqt::utils::ShvJournalEntry e;
+			e.path = id + '/' + Lublicator::PROP_STATUS;
+			e.value = nd->callMethod(shv::iotqt::node::ShvNode::StringViewList{shv::iotqt::node::ShvNode::StringView(Lublicator::PROP_STATUS)}, cp::Rpc::METH_GET, cp::RpcValue());
+			snapshot.emplace_back(std::move(e));
+		}
+		{
+			shv::iotqt::utils::ShvJournalEntry e;
+			e.path = id + '/' + Lublicator::PROP_BATTERY_VOLTAGE;
+			e.value = nd->callMethod(shv::iotqt::node::ShvNode::StringViewList{}, Lublicator::PROP_BATTERY_VOLTAGE, cp::RpcValue());
+			snapshot.emplace_back(std::move(e));
+		}
 	}
 }
 

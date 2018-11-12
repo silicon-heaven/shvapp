@@ -9,7 +9,12 @@
 #include <shv/core/stringview.h>
 #include <shv/core/log.h>
 
+#include <QTimer>
+
 namespace cp = shv::chainpack;
+
+static const char M_RELOAD_CONFIG[] = "reloadConfig";
+static const char M_RESTART[] = "restart";
 
 BrokerNode::BrokerNode(shv::iotqt::node::ShvNode *parent)
 	: Super(parent)
@@ -36,19 +41,6 @@ shv::chainpack::RpcValue BrokerNode::processRpcRequest(const shv::chainpack::Rpc
 	return Super::processRpcRequest(rq);
 }
 
-shv::chainpack::RpcValue BrokerNode::callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
-{
-	if(shv_path.empty()) {
-		if(method == cp::Rpc::METH_PING) {
-			return true;
-		}
-		if(method == cp::Rpc::METH_ECHO) {
-			return params.isValid()? params: nullptr;
-		}
-	}
-	return Super::callMethod(shv_path, method, params);
-}
-
 shv::iotqt::node::ShvNode::StringList BrokerNode::childNames(const StringViewList &shv_path)
 {
 	Q_UNUSED(shv_path)
@@ -56,11 +48,13 @@ shv::iotqt::node::ShvNode::StringList BrokerNode::childNames(const StringViewLis
 }
 
 static std::vector<cp::MetaMethod> meta_methods {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false},
-	{cp::Rpc::METH_PING, cp::MetaMethod::Signature::VoidVoid, false},
-	{cp::Rpc::METH_ECHO, cp::MetaMethod::Signature::RetParam, false},
-	{cp::Rpc::METH_SUBSCRIBE, cp::MetaMethod::Signature::RetParam, false},
+	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
+	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
+	{cp::Rpc::METH_PING, cp::MetaMethod::Signature::VoidVoid},
+	{cp::Rpc::METH_ECHO, cp::MetaMethod::Signature::RetParam},
+	{cp::Rpc::METH_SUBSCRIBE, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
+	{M_RELOAD_CONFIG, cp::MetaMethod::Signature::VoidVoid, 0, cp::Rpc::GRANT_SERVICE},
+	{M_RESTART, cp::MetaMethod::Signature::VoidVoid, 0, cp::Rpc::GRANT_SERVICE},
 };
 
 size_t BrokerNode::methodCount(const StringViewList &shv_path)
@@ -76,13 +70,25 @@ const cp::MetaMethod *BrokerNode::metaMethod(const StringViewList &shv_path, siz
 		SHV_EXCEPTION("Invalid method index: " + std::to_string(ix) + " of: " + std::to_string(meta_methods.size()));
 	return &(meta_methods[ix]);
 }
-/*
-shv::chainpack::RpcValue BrokerNode::dir(const std::string &shv_path, const shv::chainpack::RpcValue &methods_params)
-{
-	Q_UNUSED(methods_params)
-	Q_UNUSED(shv_path)
-	static cp::RpcValue::List ret{cp::Rpc::METH_DIR, cp::Rpc::METH_PING, cp::Rpc::METH_ECHO, cp::Rpc::METH_SUBSCRIBE};
-	return ret;
-}
-*/
 
+shv::chainpack::RpcValue BrokerNode::callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
+{
+	if(shv_path.empty()) {
+		if(method == cp::Rpc::METH_PING) {
+			return true;
+		}
+		if(method == cp::Rpc::METH_ECHO) {
+			return params.isValid()? params: nullptr;
+		}
+		if(method == M_RELOAD_CONFIG) {
+			BrokerApp::instance()->reloadConfig();
+			return true;
+		}
+		if(method == M_RESTART) {
+			shvInfo() << "Server restart requested via RPC.";
+			QTimer::singleShot(500, BrokerApp::instance(), &BrokerApp::quit);
+			return true;
+		}
+	}
+	return Super::callMethod(shv_path, method, params);
+}

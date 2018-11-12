@@ -5,13 +5,14 @@
 #include "servertreemodel/servertreemodel.h"
 #include "servertreemodel/shvbrokernodeitem.h"
 #include "log/rpcnotificationsmodel.h"
+#include "log/errorlogmodel.h"
 
 //#include "dlgdumpnode.h"
 #include "dlgserverproperties.h"
 #include "dlgsubscriptionparameters.h"
 #include "dlgsubscriptions.h"
-#include "inputparametersdialog.h"
-#include "resultview.h"
+#include "methodparametersdialog.h"
+#include "texteditdialog.h"
 
 #include <shv/chainpack/chainpackreader.h>
 #include <shv/chainpack/chainpackwriter.h>
@@ -30,6 +31,8 @@
 #include <QInputDialog>
 #include <QScrollBar>
 
+#include <fstream>
+
 namespace cp = shv::chainpack;
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -42,6 +45,11 @@ MainWindow::MainWindow(QWidget *parent) :
 	connect(ui->actionQuit, &QAction::triggered, TheApp::instance(), &TheApp::quit);
 	//setWindowTitle(tr("QFreeOpcUa Spy"));
 	setWindowIcon(QIcon(":/shvspy/images/shvspy"));
+
+	ui->menu_View->addAction(ui->dockServers->toggleViewAction());
+	ui->menu_View->addAction(ui->dockAttributes->toggleViewAction());
+	ui->menu_View->addAction(ui->dockNotifications->toggleViewAction());
+	ui->menu_View->addAction(ui->dockErrors->toggleViewAction());
 
 	ServerTreeModel *tree_model = TheApp::instance()->serverTreeModel();
 	ui->treeServers->setModel(tree_model);
@@ -65,34 +73,29 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui->tblAttributes->verticalHeader()->setDefaultSectionSize(fontMetrics().height() * 1.3);
 	ui->tblAttributes->setContextMenuPolicy(Qt::CustomContextMenu);
 
-	connect(TheApp::instance()->attributesModel(), &AttributesModel::reloaded, [this] () {
-		QHeaderView *hh = ui->tblAttributes->horizontalHeader();
-		hh->resizeSections(QHeaderView::ResizeToContents);
-		int sum_w = 0;
-		for (int i = 0; i < hh->count(); ++i)
-			sum_w += hh->sectionSize(i);
-		int ww = ui->tblAttributes->geometry().size().width();
-		if(sum_w > ww)
-			hh->resizeSection(AttributesModel::ColResult, hh->sectionSize(AttributesModel::ColResult) - (sum_w - ww));
+	connect(TheApp::instance()->attributesModel(), &AttributesModel::reloaded, this, &MainWindow::resizeAttributesViewSectionsToFit);
+	connect(TheApp::instance()->attributesModel(), &AttributesModel::methodCallResultChanged, this, [this](int method_ix) {
+		Q_UNUSED(method_ix)
+		this->resizeAttributesViewSectionsToFit();
 	});
-
-	connect(ui->tblAttributes, &QTableView::customContextMenuRequested, this, &MainWindow::attributesTableContexMenu);
+	connect(ui->tblAttributes, &QTableView::customContextMenuRequested, this, &MainWindow::onAttributesTableContexMenu);
 
 	connect(ui->tblAttributes, &QTableView::activated, [](const QModelIndex &ix) {
 		if(ix.column() == AttributesModel::ColBtRun)
 			TheApp::instance()->attributesModel()->callMethod(ix.row());
 	});
-	connect(ui->tblAttributes, &QTableView::doubleClicked, [this](const QModelIndex &ix) {
+	connect(ui->tblAttributes, &QTableView::doubleClicked, this, [this](const QModelIndex &ix) {
 		if (ix.column() == AttributesModel::ColResult) {
 			displayResult(ix);
 		}
-//		else if (ix.column() == AttributesModel::ColParams) {
-//			inputParameters(ix);
-//		}
-	});
+		else if (ix.column() == AttributesModel::ColParams) {
+			editCponParameters(ix);
+		}
+	}, Qt::QueuedConnection);
 
 
 	ui->notificationsLogWidget->setLogTableModel(TheApp::instance()->rpcNotificationsModel());
+	ui->errorLogWidget->setLogTableModel(TheApp::instance()->errorLogModel());
 
 	QSettings settings;
 	restoreGeometry(settings.value(QStringLiteral("ui/mainWindow/geometry")).toByteArray());
@@ -103,6 +106,26 @@ MainWindow::MainWindow(QWidget *parent) :
 MainWindow::~MainWindow()
 {
 	delete ui;
+}
+
+void MainWindow::resizeAttributesViewSectionsToFit()
+{
+	QHeaderView *hh = ui->tblAttributes->horizontalHeader();
+	hh->resizeSections(QHeaderView::ResizeToContents);
+	int sum_section_w = 0;
+	for (int i = 0; i < hh->count(); ++i)
+		sum_section_w += hh->sectionSize(i);
+	int widget_w = ui->tblAttributes->geometry().size().width();
+	if(sum_section_w - widget_w > 0) {
+		int w_params = hh->sectionSize(AttributesModel::ColParams);
+		int w_result = hh->sectionSize(AttributesModel::ColResult);
+		int w_section_rest = sum_section_w - w_params - w_result;
+		int w_params2 = w_params * (widget_w - w_section_rest) / (w_params + w_result);
+		int w_result2 = w_result * (widget_w - w_section_rest) / (w_params + w_result);
+		//shvDebug() << "widget:" << widget_w << "com col w:" << sum_section_w << "params section size:" << w_params << "result section size:" << w_result;
+		hh->resizeSection(AttributesModel::ColParams, w_params2);
+		hh->resizeSection(AttributesModel::ColResult, w_result2);
+	}
 }
 
 void MainWindow::on_actAddServer_triggered()
@@ -206,56 +229,74 @@ void MainWindow::openNode(const QModelIndex &ix)
 void MainWindow::displayResult(const QModelIndex &ix)
 {
 	//QApplication::setOverrideCursor(Qt::WaitCursor);
-	QVariant v = ix.data(AttributesModel::RawResultRole);
+	QVariant v = ix.data(AttributesModel::RpcValueRole);
 	cp::RpcValue rv = qvariant_cast<cp::RpcValue>(v);
-
-	std::string formatted;
-
 	if(rv.isString()) {
-		formatted = rv.toString();
+		TextEditDialog view(this);
+		view.setWindowIconText(tr("Result"));
+		view.setReadOnly(true);
+		view.setText(QString::fromStdString(rv.toString()));
+		view.exec();
 	}
-	else try {
-		std::ostringstream pout;
-		shv::chainpack::CponWriterOptions opts;
-		opts.setIndent("\t");
-		opts.setTranslateIds(true);
-		{ shv::chainpack::CponWriter pwr(pout, opts); pwr.write(rv); }
-		formatted = pout.str();
+	else {
+		CponEditDialog view(this);
+		view.setWindowIconText(tr("Result"));
+		view.setReadOnly(true);
+		view.setValidateContent(false);
+		QString cpon = QString::fromStdString(rv.toCpon("  "));
+		view.setText(cpon);
+		view.exec();
 	}
-	catch (std::exception &e) {
-		formatted = e.what();
-	}
-
-	ResultView view(this);
-	view.setText(QString::fromStdString(formatted));
-	//QApplication::restoreOverrideCursor();
-	view.exec();
 }
 
-void MainWindow::inputParameters(const QModelIndex &ix)
+void MainWindow::editMethodParameters(const QModelIndex &ix)
 {
-	QString params = ix.data(Qt::DisplayRole).toString();
-	cp::RpcValue rv;
-	if (!params.isEmpty()) {
-		std::string err;
-		rv = shv::chainpack::RpcValue::fromCpon(params.toStdString(), &err);
-	}
+	QVariant v = ix.data(AttributesModel::RpcValueRole);
+	cp::RpcValue rv = qvariant_cast<cp::RpcValue>(v);
 
 	QString path = TheApp::instance()->attributesModel()->path();
 	QString method = TheApp::instance()->attributesModel()->method(ix.row());
-	InputParametersDialog dlg(path, method, rv, this);
+	MethodParametersDialog dlg(path, method, rv, this);
+	dlg.setWindowTitle(tr("Parameters"));
 	if (dlg.exec() == QDialog::Accepted) {
-		shv::chainpack::RpcValue val = dlg.value();
-		if (val.isValid()) {
-			ui->tblAttributes->model()->setData(ix, QString::fromStdString(dlg.value().toCpon()), Qt::EditRole);
-		}
-		else {
-			ui->tblAttributes->model()->setData(ix, QString(), Qt::EditRole);
-		}
+		std::string cpon = dlg.value().toCpon();
+		ui->tblAttributes->model()->setData(ix, QString::fromStdString(cpon), Qt::EditRole);
 	}
 }
 
-void MainWindow::attributesTableContexMenu(const QPoint &point)
+void MainWindow::editStringParameter(const QModelIndex &ix)
+{
+	QVariant v = ix.data(AttributesModel::RpcValueRole);
+	cp::RpcValue rv = qvariant_cast<cp::RpcValue>(v);
+	QString cpon = QString::fromStdString(rv.toString());
+	TextEditDialog dlg(this);
+	dlg.setWindowTitle(tr("Parameters"));
+	dlg.setReadOnly(false);
+	dlg.setText(cpon);
+	if(dlg.exec()) {
+		rv = cp::RpcValue(dlg.text().toStdString());
+		cpon =  QString::fromStdString(rv.toCpon());
+		ui->tblAttributes->model()->setData(ix, cpon, Qt::EditRole);
+	}
+}
+
+void MainWindow::editCponParameters(const QModelIndex &ix)
+{
+	QVariant v = ix.data(AttributesModel::RpcValueRole);
+	cp::RpcValue rv = qvariant_cast<cp::RpcValue>(v);
+	QString cpon = rv.isValid()? QString::fromStdString(rv.toCpon("  ")): QString();
+	CponEditDialog dlg(this);
+	dlg.setWindowTitle(tr("Parameters"));
+	dlg.setReadOnly(false);
+	dlg.setValidateContent(true);
+	dlg.setText(cpon);
+	if(dlg.exec()) {
+		cpon = dlg.text();
+		ui->tblAttributes->model()->setData(ix, cpon, Qt::EditRole);
+	}
+}
+
+void MainWindow::onAttributesTableContexMenu(const QPoint &point)
 {
 	QModelIndex index = ui->tblAttributes->indexAt(point);
 	if (index.isValid() && index.column() == AttributesModel::ColResult) {
@@ -267,9 +308,18 @@ void MainWindow::attributesTableContexMenu(const QPoint &point)
 	}
 	else if (index.isValid() && index.column() == AttributesModel::ColParams) {
 		QMenu menu(this);
-		menu.addAction(tr("Input parameters"));
-		if (menu.exec(ui->tblAttributes->viewport()->mapToGlobal(point))) {
-			inputParameters(index);
+		QAction *a_par_ed = menu.addAction(tr("Parameters editor"));
+		QAction *a_str_ed = menu.addAction(tr("String parameter editor"));
+		QAction *a_cpon_ed = menu.addAction(tr("Cpon parameters editor"));
+		QAction *a = menu.exec(ui->tblAttributes->viewport()->mapToGlobal(point));
+		if (a == a_par_ed) {
+			editMethodParameters(index);
+		}
+		else if (a == a_str_ed) {
+			editStringParameter(index);
+		}
+		else if (a == a_cpon_ed) {
+			editCponParameters(index);
 		}
 	}
 }
@@ -283,9 +333,11 @@ void MainWindow::onShvTreeViewCurrentSelectionChanged(const QModelIndex &curr_ix
 		AttributesModel *m = TheApp::instance()->attributesModel();
 		if(bnd) {
 			// hide attributes for server nodes
+			ui->edAttributesShvPath->setText(QString());
 			m->load(nullptr);
 		}
 		else {
+			ui->edAttributesShvPath->setText(QString::fromStdString(nd->shvPath()));
 			m->load(nd);
 		}
 	}

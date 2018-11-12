@@ -1,8 +1,10 @@
 #pragma once
 
-#include <QAbstractTableModel>
+#include <shv/chainpack/rpcvalue.h>
 
+#include <QAbstractTableModel>
 #include <QPointer>
+
 
 class ShvNodeItem;
 //class ShvMetaMethod;
@@ -15,8 +17,8 @@ class AttributesModel : public QAbstractTableModel
 private:
 	typedef QAbstractTableModel Super;
 public:
-	enum Columns {ColMethodName = 0, ColSignature, ColIsNotify, ColParams, ColResult, ColBtRun, ColRawResult, ColIsError, ColCnt};
-	enum Roles {RawResultRole = Qt::UserRole };
+	enum Columns {ColMethodName = 0, ColSignature, ColFlags, ColAccessGrant, ColParams, ColResult, ColBtRun, ColError, ColCnt};
+	enum Roles {RpcValueRole = Qt::UserRole };
 public:
 	AttributesModel(QObject *parent = nullptr);
 	~AttributesModel() Q_DECL_OVERRIDE;
@@ -35,6 +37,7 @@ public:
 	QString method(int row) const;
 
 	Q_SIGNAL void reloaded();
+	Q_SIGNAL void methodCallResultChanged(int method_ix);
 private:
 	//void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	void onMethodsLoaded();
@@ -45,6 +48,6 @@ private:
 	void callGet();
 private:
 	QPointer<ShvNodeItem> m_shvTreeNodeItem;
-	using RowVals = QVector<QVariant>;
-	QVector<RowVals> m_rows;
+	using RowVals = shv::chainpack::RpcValue::List;
+	std::vector<RowVals> m_rows;
 };

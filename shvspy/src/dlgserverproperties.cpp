@@ -14,8 +14,8 @@ DlgServerProperties::DlgServerProperties(QWidget *parent) :
 {
 	ui->setupUi(this);
 
-	ui->cbxConnectionType->addItem(tr("Client"), QString::fromUtf8(shv::chainpack::Rpc::TYPE_CLIENT));
-	ui->cbxConnectionType->addItem(tr("Device"), QString::fromUtf8(shv::chainpack::Rpc::TYPE_DEVICE));
+	ui->cbxConnectionType->addItem(tr("Client"), "client");
+	ui->cbxConnectionType->addItem(tr("Device"), "device");
 	connect(ui->cbxConnectionType, QOverload<int>::of(&QComboBox::currentIndexChanged), ui->grpDevice, [this](int ix) {
 		ui->grpDevice->setEnabled(ix == 1);
 	});
@@ -54,7 +54,7 @@ QVariantMap DlgServerProperties::serverProperties() const
 	ret["port"] = ui->edPort->value();
 	ret["user"] = ui->edUser->text();
 	ret["password"] = ui->edPassword->text();
-	ret[shv::chainpack::Rpc::KEY_CONNECTION_TYPE] = ui->cbxConnectionType->currentData().toString();
+	ret["connectionType"] = ui->cbxConnectionType->currentData().toString();
 	ret["rpc.protocolType"] = ui->rpc_protocolType->currentData().toInt();
 	ret["rpc.reconnectInterval"] = ui->rpc_reconnectInterval->value();
 	ret["rpc.heartbeatInterval"] = ui->rpc_heartbeatInterval->value();
@@ -94,7 +94,7 @@ void DlgServerProperties::setServerProperties(const QVariantMap &props)
 			ui->device_mountPoint->setText(v.toString());
 	}
 
-	QString conn_type = props.value(shv::chainpack::Rpc::KEY_CONNECTION_TYPE).toString();
+	QString conn_type = props.value("connectionType").toString();
 	ui->cbxConnectionType->setCurrentIndex(0);
 	for (int i = 0; i < ui->cbxConnectionType->count(); ++i) {
 		if(ui->cbxConnectionType->itemData(i).toString() == conn_type) {

@@ -18,12 +18,17 @@ struct ShvMetaMethod
 {
 	std::string method;
 	shv::chainpack::MetaMethod::Signature signature = shv::chainpack::MetaMethod::Signature::VoidVoid;
-	bool isNotify = false;
+	unsigned flags = 0;
+	//int accessLevel = 0;
+	std::string accessGrant;
 	shv::chainpack::RpcValue params;
 	shv::chainpack::RpcResponse response;
 	unsigned rpcRequestId = 0;
 
 	std::string signatureStr() const;
+	std::string flagsStr() const;
+	//std::string accessLevelStr() const;
+	bool isSignal() const;
 };
 
 class ShvNodeItem : public QObject

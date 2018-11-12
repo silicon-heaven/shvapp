@@ -22,8 +22,6 @@ private:
 	void onLublicatorPropertyValueChanged(const std::string &property_name, const shv::chainpack::RpcValue &new_val);
 	void createDevices();
 private:
-	static constexpr size_t LUB_CNT = 27;
-	//Lublicator m_lublicators[LUB_CNT];
 	shv::iotqt::node::ShvNodeTree *m_shvTree = nullptr;
 };
 

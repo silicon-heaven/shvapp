@@ -37,6 +37,7 @@ public:
 	};
 
 	static const char *PROP_STATUS;
+	static const char *PROP_BATTERY_VOLTAGE;
 	static const char *METH_DEVICE_ID;
 	static const char *METH_CMD_ON;
 	static const char *METH_CMD_OFF;
@@ -62,11 +63,13 @@ private:
 	shv::chainpack::RpcValue getLog(const shv::chainpack::RpcValue &params);
 	void addLogEntry(const std::string &key, const shv::chainpack::RpcValue &value);
 	void checkBatteryTresholds();
+	void sim_setBateryVoltage(unsigned v);
 private:
 	unsigned m_status = 0;
 	unsigned m_batteryVoltage = 24;
 	unsigned m_batteryLowTreshold = 20;
 	unsigned m_batteryHighTreshold = 28;
+	int m_battSimCnt = 0;
 };
 
 

@@ -36,8 +36,8 @@ static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false},
-	{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, false},
-	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, !cp::MetaMethod::IsSignal},
+	//{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, false},
+	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, 0},
 	{cp::Rpc::METH_HELP, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_RUN_CMD, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_LAUNCH_REXEC, cp::MetaMethod::Signature::RetParam, false},
@@ -66,9 +66,9 @@ shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path,
 		if(method == cp::Rpc::METH_APP_NAME) {
 			return QCoreApplication::instance()->applicationName().toStdString();
 		}
-		if(method == cp::Rpc::METH_CONNECTION_TYPE) {
-			return ShvAgentApp::instance()->rpcConnection()->connectionType();
-		}
+		//if(method == cp::Rpc::METH_CONNECTION_TYPE) {
+		//	return ShvAgentApp::instance()->rpcConnection()->connectionType();
+		//}
 		if(method == cp::Rpc::METH_HELP) {
 			std::string meth = params.toString();
 			if(meth == cp::Rpc::METH_RUN_CMD) {
@@ -96,8 +96,8 @@ shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::Rp
 	if(rq.shvPath().toString().empty()) {
 		if(rq.method() == cp::Rpc::METH_DEVICE_ID) {
 			ShvAgentApp *app = ShvAgentApp::instance();
-			cp::RpcValue::Map opts = app->rpcConnection()->connectionOptions().toMap();;
-			cp::RpcValue::Map dev = opts.value(cp::Rpc::TYPE_DEVICE).toMap();
+			const cp::RpcValue::Map& opts = app->rpcConnection()->connectionOptions().toMap();
+			const cp::RpcValue::Map& dev = opts.value(cp::Rpc::KEY_DEVICE).toMap();
 			//shvInfo() << dev[cp::Rpc::KEY_DEVICE_ID].toString();
 			return dev.value(cp::Rpc::KEY_DEVICE_ID).toString();
 		}

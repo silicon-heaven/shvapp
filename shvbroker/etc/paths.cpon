@@ -1,0 +1,21 @@
+{
+		"admin": {
+			"": {"grant": "su"},
+		},
+		"client": {
+			"": {"grant": "bws"},
+		},
+		"broker-ping": {
+			".broker/app": {"grant": "bws"},
+		},
+		"poland": {
+			"shv/pol": {"grant": "su"},
+		},
+		"iot": {
+			"shv": {"grant": "rd"},
+		},
+		"observer": {
+			"shv/pol/lub/discon": {"grant": "cmd"},
+			"shv/pol/ols/sig/switch": {"grant": "cmd"},
+		},
+}

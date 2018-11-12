@@ -17,8 +17,8 @@ class MainWindow : public QMainWindow
 private:
 	typedef QMainWindow Super;
 public:
-	explicit MainWindow(QWidget *parent = 0);
-	~MainWindow();
+	explicit MainWindow(QWidget *parent = nullptr);
+	~MainWindow() override;
 protected:
 	Q_SLOT void on_actAddServer_triggered();
 	Q_SLOT void on_actEditServer_triggered();
@@ -31,11 +31,16 @@ protected:
 	Q_SLOT void on_treeServers_customContextMenuRequested(const QPoint &pos);
 	Q_SLOT void onShvTreeViewCurrentSelectionChanged(const QModelIndex &curr_ix, const QModelIndex &prev_ix);
 
+	void resizeAttributesViewSectionsToFit();
+
 	void editServer(ShvBrokerNodeItem *srv, bool copy_server);
 	void openNode(const QModelIndex &ix);
 	void displayResult(const QModelIndex &ix);
-	void inputParameters(const QModelIndex &ix);
-	void attributesTableContexMenu(const QPoint &point);
+	void editMethodParameters(const QModelIndex &ix);
+	void editStringParameter(const QModelIndex &ix);
+	void editCponParameters(const QModelIndex &ix);
+
+	void onAttributesTableContexMenu(const QPoint &point);
 
 	void closeEvent(QCloseEvent *ev) Q_DECL_OVERRIDE;
 private:

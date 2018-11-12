@@ -1,12 +1,14 @@
 #pragma once
 
+#include "logtablemodelbase.h"
+
 #include <QTableView>
 
 class QAbstractButton;
 
 class LogFilterProxyModel;
 class LogTableModelRow;
-class LogTableModel;
+class LogTableModelBase;
 
 namespace Ui {
 class LogWidget;
@@ -31,15 +33,15 @@ class LogWidget : public QWidget
 private:
 	typedef QWidget Super;
 public:
-	explicit LogWidget(QWidget *parent = 0);
+	explicit LogWidget(QWidget *parent = nullptr);
 	~LogWidget();
 
 	Q_SLOT void addLogRow(const LogTableModelRow &row);
 	Q_SLOT void scrollToLastRow();
 
 	void clear();
-	virtual void setLogTableModel(LogTableModel *m);
-	LogTableModel* logTableModel();
+	virtual void setLogTableModel(LogTableModelBase *m);
+	LogTableModelBase* logTableModel();
 
 	//Q_SIGNAL void severityTresholdChanged(qf::core::Log::Level lvl);
 	//void setSeverityTreshold(qf::core::Log::Level lvl);
@@ -60,7 +62,7 @@ private:
 	Q_SLOT void on_btClearLog_clicked();
 	Q_SLOT void on_btResizeColumns_clicked();
 protected:
-	LogTableModel* m_logTableModel = nullptr;
+	LogTableModelBase* m_logTableModel = nullptr;
 	LogFilterProxyModel* m_filterModel = nullptr;
 private:
 	Ui::LogWidget *ui;

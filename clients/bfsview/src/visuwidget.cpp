@@ -25,6 +25,7 @@ VisuWidget::VisuWidget(QWidget *parent)
 	, m_ompagVisuController(new SwitchVisuController(QStringLiteral("ctl_ompag"), this, &BfsViewApp::ompagSwitchStatus))
 	, m_convVisuController(new SwitchVisuController(QStringLiteral("ctl_conv"), this, &BfsViewApp::convSwitchStatus))
 {
+	setMouseTracking(true);
 	BfsViewApp *app = BfsViewApp::instance();
 	connect(app, &BfsViewApp::bfsStatusChanged, m_ompagVisuController, &SwitchVisuController::updateXml);
 	connect(app, &BfsViewApp::ompagRequiredSwitchStatusChanged, m_ompagVisuController, &SwitchVisuController::onRequiredSwitchStatusChanged);
@@ -84,8 +85,17 @@ void VisuWidget::paintEvent(QPaintEvent *event)
 	p.fillRect(widget_r, QColor("#2b4174"));
 	widget_r.setSize(svg_sz.scaled(widget_r.size(), Qt::KeepAspectRatio));
 	m_renderer->render(&p, widget_r);
-	//p.fillRect(svgRectToWidgetRect(m_ompagRect), QColor("khaki"));
-	//p.fillRect(svgRectToWidgetRect(m_convRect), QColor("salmon"));
+	static constexpr int ADJ = 2;
+	if(m_mouseInConvRect) {
+		QColor c(Qt::cyan);
+		c.setAlphaF(0.2);
+		p.fillRect(svgRectToWidgetRect(m_convRect).adjusted(ADJ, ADJ, -ADJ, -ADJ), c);
+	}
+	if(m_mouseInOmpagRect) {
+		QColor c(Qt::cyan);
+		c.setAlphaF(0.2);
+		p.fillRect(svgRectToWidgetRect(m_ompagRect).adjusted(ADJ, ADJ, -ADJ, -ADJ), c);
+	}
 }
 
 QRect VisuWidget::svgRectToWidgetRect(const QRectF &svg_rect)
@@ -180,6 +190,24 @@ void VisuWidget::contextMenuEvent(QContextMenuEvent *event)
 	}
 	if(menu.actions().count())
 		menu.exec(mapToGlobal(pos));
+}
+
+void VisuWidget::mouseMoveEvent(QMouseEvent *event)
+{
+	bool prev_in_conv = m_mouseInConvRect;
+	bool prev_in_ompag = m_mouseInOmpagRect;
+	const QPoint pos = event->pos();
+	m_mouseInOmpagRect = (svgRectToWidgetRect(m_ompagRect).contains(pos));
+	m_mouseInConvRect = (svgRectToWidgetRect(m_convRect).contains(pos));
+	if(m_mouseInConvRect != prev_in_conv) {
+		shvDebug() << "mouse in conv:" << m_mouseInConvRect;
+		update();
+	}
+	if(m_mouseInOmpagRect != prev_in_ompag) {
+		shvDebug() << "mouse in ompag:" << m_mouseInOmpagRect;
+		update();
+	}
+	Super::mouseMoveEvent(event);
 }
 
 static QString switchStatusToColor(BfsViewApp::SwitchStatus status)
