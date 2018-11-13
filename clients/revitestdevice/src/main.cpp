@@ -10,6 +10,8 @@
 #include <QTranslator>
 #include <QDateTime>
 
+#include <iostream>
+
 int main(int argc, char *argv[])
 {
 	QCoreApplication::setOrganizationName("Elektroline");
@@ -18,9 +20,6 @@ int main(int argc, char *argv[])
 	QCoreApplication::setApplicationVersion("0.0.1");
 
 	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);
-	QStringList args;
-	for(const std::string &arg : shv_args)
-		args << QString::fromStdString(arg);
 
 	shvDebug() << "debug log test";
 	shvInfo() << "info log test";
@@ -30,20 +29,19 @@ int main(int argc, char *argv[])
 	int ret = 0;
 
 	AppCliOptions cli_opts;
-	cli_opts.parse(args);
+	cli_opts.parse(shv_args);
 	if(cli_opts.isParseError()) {
-		foreach(QString err, cli_opts.parseErrors())
-			shvError() << err.toStdString();
+		for(const std::string &err : cli_opts.parseErrors())
+			shvError() << err;
 		return EXIT_FAILURE;
 	}
 	if(cli_opts.isAppBreak()) {
 		if(cli_opts.isHelp()) {
-			QTextStream ts(stdout);
-			cli_opts.printHelp(ts);
+			cli_opts.printHelp(std::cout);
 		}
 		return EXIT_SUCCESS;
 	}
-	foreach(QString s, cli_opts.unusedArguments()) {
+	for(const std::string &s : cli_opts.unusedArguments()) {
 		shvWarning() << "Undefined argument:" << s;
 	}
 

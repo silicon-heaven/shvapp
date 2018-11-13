@@ -59,7 +59,7 @@ shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path,
 			return QCoreApplication::instance()->applicationName().toStdString();
 		}
 		if(method == cp::Rpc::METH_DEVICE_ID) {
-			return BfsViewApp::instance()->cliOptions()->deviceId().toStdString();
+			return BfsViewApp::instance()->cliOptions()->deviceId();
 		}
 		//if(method == cp::Rpc::METH_MOUNT_POINT) {
 		//	return BfsViewApp::instance()->rpcConnection()->brokerMountPoint();

@@ -19,7 +19,7 @@ RevitestApp::RevitestApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	cp::RpcMessage::setMetaTypeExplicit(cli_opts->isMetaTypeExplicit());
 
 	m_shvJournal = new shv::iotqt::utils::FileShvJournal([this](std::vector<shv::iotqt::utils::ShvJournalEntry> &s) { this->getSnapshot(s); });
-	m_shvJournal->setJournalDir(cli_opts->shvJournalDir().toStdString());
+	m_shvJournal->setJournalDir(cli_opts->shvJournalDir());
 	m_shvJournal->setFileSizeLimit(cli_opts->shvJournalFileSizeLimit());
 	m_shvJournal->setDirSizeLimit(cli_opts->shvJournalDirSizeLimit());
 	{

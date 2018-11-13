@@ -1,6 +1,7 @@
 #include "brokernode.h"
 
 #include "brokerapp.h"
+#include "rpc/serverconnection.h"
 
 #include <shv/chainpack/metamethod.h>
 #include <shv/chainpack/rpcmessage.h>
@@ -15,6 +16,7 @@ namespace cp = shv::chainpack;
 
 static const char M_RELOAD_CONFIG[] = "reloadConfig";
 static const char M_RESTART[] = "restart";
+static const char M_MOUNT_POINTS_FOR_CLIENT_ID[] = "mountPointsForClientId";
 
 BrokerNode::BrokerNode(shv::iotqt::node::ShvNode *parent)
 	: Super(parent)
@@ -52,6 +54,7 @@ static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
 	{cp::Rpc::METH_PING, cp::MetaMethod::Signature::VoidVoid},
 	{cp::Rpc::METH_ECHO, cp::MetaMethod::Signature::RetParam},
+	{M_MOUNT_POINTS_FOR_CLIENT_IDl, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
 	{cp::Rpc::METH_SUBSCRIBE, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
 	{M_RELOAD_CONFIG, cp::MetaMethod::Signature::VoidVoid, 0, cp::Rpc::GRANT_SERVICE},
 	{M_RESTART, cp::MetaMethod::Signature::VoidVoid, 0, cp::Rpc::GRANT_SERVICE},
@@ -79,6 +82,15 @@ shv::chainpack::RpcValue BrokerNode::callMethod(const StringViewList &shv_path, 
 		}
 		if(method == cp::Rpc::METH_ECHO) {
 			return params.isValid()? params: nullptr;
+		}
+		if(method == M_MOUNT_POINTS_FOR_CLIENT_ID) {
+			rpc::ServerConnection *client = BrokerApp::instance()->clientById(params.toInt());
+			if(!client)
+				SHV_EXCEPTION("Invalid client id: " + params.toCpon());
+			const std::vector<std::string> &mps = client->mountPoints();
+			cp::RpcValue::List ret;
+			std::copy(mps.begin(), mps.end(), std::back_inserter(ret));
+			return ret;
 		}
 		if(method == M_RELOAD_CONFIG) {
 			BrokerApp::instance()->reloadConfig();

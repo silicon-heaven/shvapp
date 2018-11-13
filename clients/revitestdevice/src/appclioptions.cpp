@@ -1,8 +1,9 @@
 #include "appclioptions.h"
 
-AppCliOptions::AppCliOptions(QObject *parent)
-	: Super(parent)
+namespace cp = shv::chainpack;
+
+AppCliOptions::AppCliOptions()
 {
-	addOption("app.simBattVoltageDrift").setType(QVariant::Bool).setNames("--bd", "--battery-voltage-drift")
-			.setComment(tr("Simulate battery voltage drift")).setDefaultValue(true);
+	addOption("app.simBattVoltageDrift").setType(cp::RpcValue::Type::Bool).setNames("--bd", "--battery-voltage-drift")
+			.setComment("Simulate battery voltage drift").setDefaultValue(true);
 }

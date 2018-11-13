@@ -170,12 +170,12 @@ shv::iotqt::rpc::ClientConnection *ShvBrokerNodeItem::clientConnection()
 		{
 			QString dev_id = m_serverPropeties.value("device.id").toString();
 			if(!dev_id.isEmpty())
-				opts.setDeviceId(dev_id);
+				opts.setDeviceId(dev_id.toStdString());
 		}
 		{
 			QString mount_point = m_serverPropeties.value("device.mountPoint").toString();
 			if(!mount_point.isEmpty())
-				opts.setMountPoint(mount_point);
+				opts.setMountPoint(mount_point.toStdString());
 		}
 
 		if(conn_type == "device") {

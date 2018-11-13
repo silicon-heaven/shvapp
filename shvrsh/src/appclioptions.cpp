@@ -2,11 +2,12 @@
 
 #include <shv/chainpack/rpc.h>
 
-AppCliOptions::AppCliOptions(QObject *parent)
-	: Super(parent)
+namespace cp = shv::chainpack;
+
+AppCliOptions::AppCliOptions()
 {
-	addOption("tunnel.shvPath").setType(QVariant::String).setNames("-t", "--tunnel-shvPath").setComment(tr("Tunnel shv path."));
-	addOption("tunnel.method").setType(QVariant::String).setNames("-m", "--tunnel-method").setComment(tr("Open tunnel method.")).setDefaultValue(shv::chainpack::Rpc::METH_LAUNCH_REXEC);
+	addOption("tunnel.shvPath").setType(cp::RpcValue::Type::String).setNames("-t", "--tunnel-shvPath").setComment("Tunnel shv path.");
+	addOption("tunnel.method").setType(cp::RpcValue::Type::String).setNames("-m", "--tunnel-method").setComment("Open tunnel method.").setDefaultValue(shv::chainpack::Rpc::METH_LAUNCH_REXEC);
 
 	setHeartbeatInterval(0);
 }

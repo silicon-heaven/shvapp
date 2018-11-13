@@ -46,7 +46,7 @@ private:
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
 	AppCliOptions* m_cliOptions;
 	std::string m_tunnelShvPath;
-	unsigned m_readTunnelRequestId = 0;
+	int m_readTunnelRequestId = 0;
 	shv::iotqt::rpc::TunnelHandle m_writeTunnelHandle;
 
 	shv::iotqt::node::ShvNodeTree *m_shvTree = nullptr;

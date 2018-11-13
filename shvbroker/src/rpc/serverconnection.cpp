@@ -74,7 +74,7 @@ void ServerConnection::setIdleWatchDogTimeOut(unsigned sec)
 	}
 }
 
-std::string ServerConnection::passwordHash(PasswordHashType type, const std::string &user)
+std::string ServerConnection::passwordHash(LoginType type, const std::string &user)
 {
 	/*
 	const std::map<std::string, std::string> passwds {
@@ -86,14 +86,16 @@ std::string ServerConnection::passwordHash(PasswordHashType type, const std::str
 	BrokerApp *app = BrokerApp::instance();
 	const shv::chainpack::RpcValue::Map &user_def = app->usersConfig().toMap().value(user).toMap();
 	std::string pass = user_def.value("password").toString();
-	std::string pass_hash = user_def.value("passwordHashType").toString();
-	if(type == PasswordHashType::Plain && pass_hash == "plain") {
+	std::string login_type = user_def.value("loginType").toString();
+	if(login_type.empty())
+		login_type = user_def.value("passwordHashType").toString(); // try obsolete key
+	if(type == LoginType::Plain && login_type == "plain") {
 		return pass;
 	}
-	if(type == PasswordHashType::Sha1 && pass_hash == "sha1") {
+	if(type == LoginType::Sha1 && login_type == "sha1") {
 		return pass;
 	}
-	if(type == PasswordHashType::Sha1 && pass_hash == "plain") {
+	if(type == LoginType::Sha1 && login_type == "plain") {
 		QCryptographicHash hash(QCryptographicHash::Algorithm::Sha1);
 		hash.addData(pass.data(), pass.size());
 		QByteArray sha1 = hash.result().toHex();
@@ -176,17 +178,15 @@ shv::chainpack::RpcValue ServerConnection::login(const shv::chainpack::RpcValue 
 	cp::RpcValue ret = Super::login(auth_params);
 	if(!ret.isValid())
 		return cp::RpcValue();
-	//cp::RpcValue::Map login_resp = ret.toMap();
+	cp::RpcValue::Map login_resp = ret.toMap();
 
 	const shv::chainpack::RpcValue::Map &opts = connectionOptions();
 	shv::chainpack::RpcValue::UInt t = opts.value(cp::Rpc::OPT_IDLE_WD_TIMEOUT).toUInt();
 	setIdleWatchDogTimeOut(t);
 	BrokerApp::instance()->onClientLogin(connectionId());
 
-	//login_resp[cp::Rpc::KEY_CLIENT_ID] = connectionId();
-	//if(!mountPoint().empty())
-	//	login_resp[cp::Rpc::KEY_MOUT_POINT] = mountPoint();
-	return ret;
+	login_resp[cp::Rpc::KEY_CLIENT_ID] = connectionId();
+	return login_resp;
 }
 
 void ServerConnection::createSubscription(const std::string &rel_path, const std::string &method)

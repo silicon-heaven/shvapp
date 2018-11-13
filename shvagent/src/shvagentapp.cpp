@@ -197,7 +197,7 @@ ShvAgentApp::ShvAgentApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	m_shvTree = new shv::iotqt::node::ShvNodeTree(root, this);
 	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
 	//m_shvTree->mkdir("sys/rproc");
-	QString sys_fs_root_dir = cli_opts->sysFsRootDir();
+	QString sys_fs_root_dir = QString::fromStdString(cli_opts->sysFsRootDir());
 	if(!sys_fs_root_dir.isEmpty() && QDir(sys_fs_root_dir).exists()) {
 		const char *SYS_FS = "sys/fs";
 		shvInfo() << "Exporting" << sys_fs_root_dir << "as" << SYS_FS << "node";
@@ -378,7 +378,7 @@ void ShvAgentApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 
 void ShvAgentApp::updateConnStatusFile()
 {
-	QString fn = cliOptions()->connStatusFile();
+	QString fn = QString::fromStdString(cliOptions()->connStatusFile());
 	if(fn.isEmpty())
 		return;
 	QFile f(fn);

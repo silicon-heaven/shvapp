@@ -23,5 +23,6 @@ AppCliOptions::AppCliOptions()
 	addOption("etc.acl.paths").setType(cp::RpcValue::Type::String).setNames("--paths")
 			.setComment("File with shv node paths access rights definition, if it is relative path, {config-dir} is prepended.")
 			.setDefaultValue("paths.cpon");
-	addOption("slaveConnections").setType(cp::RpcValue::Type::Map).setComment("Can be used from config file only.");
+	addOption("slave.connections").setType(cp::RpcValue::Type::Map).setComment("Can be used from config file only.");
+	addOption("slave.enabled").setType(cp::RpcValue::Type::Bool).setNames("--slave-enabled").setComment("Enable slave connections to master broker.");
 }

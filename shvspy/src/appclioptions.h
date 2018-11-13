@@ -1,18 +1,17 @@
 #pragma once
 
-#include <shv/coreqt/utils/clioptions.h>
+#include <shv/core/utils/clioptions.h>
 
 #include <QSet>
 
-class AppCliOptions : public shv::coreqt::utils::ConfigCLIOptions
+class AppCliOptions : public shv::core::utils::ConfigCLIOptions
 {
-	Q_OBJECT
 private:
-	using Super = shv::coreqt::utils::ConfigCLIOptions;
+	using Super = shv::core::utils::ConfigCLIOptions;
 
-	CLIOPTION_GETTER_SETTER2(QString, "broker.subscribtions", s, setS, ubscriptions)
+	//CLIOPTION_GETTER_SETTER2(std::string, "broker.subscribtions", s, setS, ubscriptions)
 public:
-	AppCliOptions(QObject *parent = NULL);
-	~AppCliOptions() Q_DECL_OVERRIDE {}
+	AppCliOptions();
+	//~AppCliOptions() Q_DECL_OVERRIDE {}
 };
 

@@ -1,7 +1,6 @@
 #include "appclioptions.h"
 
-AppCliOptions::AppCliOptions(QObject *parent)
-	: Super(parent)
+AppCliOptions::AppCliOptions()
 {
 	/*
 	addOption("rexec.command").setType(QVariant::String).setNames("-e", "--command")

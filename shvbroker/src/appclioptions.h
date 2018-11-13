@@ -23,5 +23,6 @@ public:
 	CLIOPTION_GETTER_SETTER2(std::string, "etc.acl.users", u, setU, sersFile)
 	CLIOPTION_GETTER_SETTER2(std::string, "etc.acl.grants", g, setG, rantsFile)
 	CLIOPTION_GETTER_SETTER2(std::string, "etc.acl.paths", p, setP, athsFile)
+	CLIOPTION_GETTER_SETTER2(bool, "slave.enabled", is, set, SlaveBrokerEnabled)
 };
 

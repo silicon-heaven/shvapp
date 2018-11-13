@@ -101,7 +101,7 @@ ShvRshApp::ShvRshApp(int &argc, char **argv, AppCliOptions* cli_opts)
 ShvRshApp::~ShvRshApp()
 {
 	shvInfo() << "destroying shv agent application";
-	disconnect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::socketConnectedChanged, 0, 0);
+	disconnect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::socketConnectedChanged, nullptr, nullptr);
 }
 
 ShvRshApp *ShvRshApp::instance()
@@ -143,7 +143,7 @@ void ShvRshApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 			}
 			shv::chainpack::RpcValue result = rsp.result();
 			if(!m_writeTunnelHandle.isValid()) {
-				shv::chainpack::RpcValue::UInt rev_request_id = result.toUInt();
+				shv::chainpack::RpcValue::Int rev_request_id = result.toInt();
 				m_writeTunnelHandle = shv::iotqt::rpc::TunnelHandle(rev_request_id, rsp.revCallerIds());
 				if(!m_writeTunnelHandle.isValid()) {
 					shvError() << "TunnelHandle should be received:" << rsp.toCpon();
@@ -221,8 +221,8 @@ void ShvRshApp::writeToTunnel(int channel, const cp::RpcValue &data)
 
 void ShvRshApp::launchRemoteShell()
 {
-	std::string tunp = m_cliOptions->tunnelShvPath().toStdString();
-	std::string tunm = m_cliOptions->tunnelMethod().toStdString();
+	std::string tunp = m_cliOptions->tunnelShvPath();
+	std::string tunm = m_cliOptions->tunnelMethod();
 	if(!tunp.empty() && !tunm.empty()) {
 		struct winsize ws;
 		if (::ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0)
