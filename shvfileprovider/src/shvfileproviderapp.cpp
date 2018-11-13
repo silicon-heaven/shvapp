@@ -25,8 +25,7 @@ static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false},
-	{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, false},
-	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, !cp::MetaMethod::IsSignal},
+	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, 0},
 	{cp::Rpc::METH_HELP, cp::MetaMethod::Signature::RetParam, false}
 };
 
@@ -51,9 +50,6 @@ shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path,
 		if(method == cp::Rpc::METH_APP_NAME) {
 			return QCoreApplication::instance()->applicationName().toStdString();
 		}
-		if(method == cp::Rpc::METH_CONNECTION_TYPE) {
-			return ShvFileProviderApp::instance()->rpcConnection()->connectionType();
-		}
 		if(method == cp::Rpc::METH_HELP) {
 			return params.toString();
 		}
@@ -66,8 +62,9 @@ shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::Rp
 	if(rq.shvPath().toString().empty()) {
 		if(rq.method() == cp::Rpc::METH_DEVICE_ID) {
 			ShvFileProviderApp *app = ShvFileProviderApp::instance();
-			cp::RpcValue::Map opts = app->rpcConnection()->connectionOptions().toMap();;
-			cp::RpcValue::Map dev = opts.value(cp::Rpc::TYPE_DEVICE).toMap();
+			const cp::RpcValue::Map& opts = app->rpcConnection()->connectionOptions().toMap();
+			const cp::RpcValue::Map& dev = opts.value(cp::Rpc::KEY_DEVICE).toMap();
+			//shvInfo() << dev[cp::Rpc::KEY_DEVICE_ID].toString();
 			return dev.value(cp::Rpc::KEY_DEVICE_ID).toString();
 		}
 	}
@@ -83,21 +80,17 @@ ShvFileProviderApp::ShvFileProviderApp(int &argc, char **argv, AppCliOptions* cl
 		shvError() << "Error set process group ID:" << errno << ::strerror(errno);
 #endif
 	cp::RpcMessage::setMetaTypeExplicit(cli_opts->isMetaTypeExplicit());
+
 	m_rpcConnection = new shv::iotqt::rpc::DeviceConnection(this);
 
-	if(!cli_opts->user_isset()){
+	if(!cli_opts->user_isset())
 		cli_opts->setUser("iot");
-	}
-
-	if(!cli_opts->password_isset()){
+	if(!cli_opts->password_isset())
 		cli_opts->setPassword("lub42DUB");
-	}
-
 	m_rpcConnection->setCliOptions(cli_opts);
 
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &ShvFileProviderApp::onBrokerConnectedChanged);
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvFileProviderApp::onRpcMessageReceived);
-
 	AppRootNode *root = new AppRootNode();
 	m_shvTree = new shv::iotqt::node::ShvNodeTree(root, this);
 
@@ -109,12 +102,6 @@ ShvFileProviderApp::ShvFileProviderApp(int &argc, char **argv, AppCliOptions* cl
 		shvInfo() << "Exporting" << root_dir << "as" << FS << "node";
 		shv::iotqt::node::LocalFSNode *fsn = new shv::iotqt::node::LocalFSNode(root_dir);
 		m_shvTree->mount(FS, fsn);
-	}
-
-	if(cliOptions()->connStatusUpdateInterval() > 0) {
-		QTimer *tm = new QTimer(this);
-		connect(tm, &QTimer::timeout, this, &ShvFileProviderApp::updateConnStatusFile);
-		tm->start(cliOptions()->connStatusUpdateInterval() * 1000);
 	}
 
 	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
@@ -152,25 +139,6 @@ void ShvFileProviderApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &
 	else if(msg.isNotify()) {
 		cp::RpcNotify nt(msg);
 		shvInfo() << "RPC notify received:" << nt.toPrettyString();
-	}
-}
-
-void ShvFileProviderApp::updateConnStatusFile()
-{
-	QString fn = cliOptions()->connStatusFile();
-	if(fn.isEmpty())
-		return;
-	QFile f(fn);
-	QDir dir = QFileInfo(f).dir();
-	if(!dir.mkpath(dir.absolutePath())) {
-		shvError() << "Cannot create directory:" << dir.absolutePath();
-		return;
-	}
-	if(f.open(QFile::WriteOnly)) {
-		f.write(m_isBrokerConnected? "1": "0", 1);
-	}
-	else {
-		shvError() << "Cannot write to connection statu file:" << fn;
 	}
 }
 
