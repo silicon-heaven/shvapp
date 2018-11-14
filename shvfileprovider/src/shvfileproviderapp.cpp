@@ -84,9 +84,9 @@ ShvFileProviderApp::ShvFileProviderApp(int &argc, char **argv, AppCliOptions* cl
 	m_rpcConnection = new shv::iotqt::rpc::DeviceConnection(this);
 
 	if(!cli_opts->user_isset())
-		cli_opts->setUser("iot");
+		cli_opts->setUser("shvfileprovider");
 	if(!cli_opts->password_isset())
-		cli_opts->setPassword("lub42DUB");
+		cli_opts->setPassword("lub48DUB");
 	m_rpcConnection->setCliOptions(cli_opts);
 
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &ShvFileProviderApp::onBrokerConnectedChanged);
@@ -96,7 +96,7 @@ ShvFileProviderApp::ShvFileProviderApp(int &argc, char **argv, AppCliOptions* cl
 
 	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
 
-	QString root_dir = cli_opts->sysFsRootDir();
+	QString root_dir = cli_opts->fsRootDir();
 	if(!root_dir.isEmpty() && QDir(root_dir).exists()) {
 		const char *FS = "fs";
 		shvInfo() << "Exporting" << root_dir << "as" << FS << "node";
