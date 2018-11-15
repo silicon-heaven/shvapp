@@ -12,6 +12,7 @@ SUBDIRS += \
     shvagent \
     shvrexec \
     shvrsh \
-    shvfileprovider
+    sitesprovider \
+    shvfileprovider \
 }
 
