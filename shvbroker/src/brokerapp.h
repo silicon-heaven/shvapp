@@ -27,7 +27,7 @@ class QSocketNotifier;
 
 namespace shv { namespace iotqt { namespace node { class ShvNodeTree; }}}
 namespace shv { namespace chainpack { class RpcNotify; }}
-namespace rpc { class TcpServer; class ServerConnection; }
+namespace rpc { class TcpServer; class ServerConnection;  class MasterBrokerConnection; class CommonRpcClientHandle; }
 
 class BrokerApp : public QCoreApplication
 {
@@ -46,18 +46,17 @@ public:
 	static BrokerApp* instance() {return qobject_cast<BrokerApp*>(Super::instance());}
 
 	void onClientLogin(int connection_id);
-	void onRpcDataReceived(int connection_id, shv::chainpack::RpcValue::MetaData &&meta, std::string &&data);
+	void onLoggedinToMasterBroker(int connection_id);
 
-	void createSubscription(int client_id, const std::string &path, const std::string &method);
+	void onRpcDataReceived(int connection_id, shv::chainpack::Rpc::ProtocolType protocol_type, shv::chainpack::RpcValue::MetaData &&meta, std::string &&data);
+
+	void addSubscription(int client_id, const std::string &path, const std::string &method);
 
 	rpc::TcpServer* tcpServer();
 	rpc::ServerConnection* clientById(int client_id);
 
 	void reloadConfig();
 	void clearAccessGrantCache();
-
-	//shv::chainpack::RpcValue userConfig(const std::string &user_name);
-	//shv::chainpack::RpcValue grantConfig(const std::string &user_name);
 
 	shv::chainpack::RpcValue fstabConfig() { return aclConfig("fstab", !shv::core::Exception::Throw); }
 	shv::chainpack::RpcValue usersConfig() { return aclConfig("users", !shv::core::Exception::Throw); }
@@ -66,18 +65,28 @@ public:
 
 	shv::chainpack::RpcValue aclConfig(const std::string &config_name, bool throw_exc);
 	bool setAclConfig(const std::string &config_name, const shv::chainpack::RpcValue &config, bool throw_exc);
-protected:
+
+	std::string dataToCpon(shv::chainpack::Rpc::ProtocolType protocol_type, const shv::chainpack::RpcValue::MetaData &md, const std::string &data, size_t start_pos);
+private:
 	void remountDevices();
 	void reloadAcl();
 	shv::chainpack::RpcValue* aclConfigVariable(const std::string &config_name, bool throw_exc);
 	shv::chainpack::RpcValue loadAclConfig(const std::string &config_name, bool throw_exc);
 	bool saveAclConfig(const std::string &config_name, const shv::chainpack::RpcValue &config, bool throw_exc);
-private:
+
 	void lazyInit();
 
 	QString serverProfile(); // unified access via Globals::serverProfile()
 	void startTcpServer();
 
+	void createMasterBrokerConnections();
+	QList<rpc::MasterBrokerConnection*> masterBrokerConnections() const;
+	rpc::MasterBrokerConnection* masterBrokerConnectionById(int connection_id);
+
+	std::vector<rpc::CommonRpcClientHandle *> allClientConnections();
+	rpc::CommonRpcClientHandle* commonClientConnectionById(int connection_id);
+
+	std::string resolveMountPoint(const shv::chainpack::RpcValue::Map &device_opts);
 	std::string mountPointForDevice(const shv::chainpack::RpcValue &device_id);
 
 	shv::chainpack::Rpc::AccessGrant accessGrantForShvPath(const std::string &user_name, const std::string &shv_path);

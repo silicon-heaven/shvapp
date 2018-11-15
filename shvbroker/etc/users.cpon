@@ -1,30 +1,37 @@
 {
+  "broker":{
+    "grants":[
+      "broker"
+    ],
+    "loginType":"sha1",
+    "password":"ffee1086753ca76fe84b7fadd738d76caf2072d0"
+  },
   "elviz":{
     "grants":[
       "elviz"
     ],
-    "password":"3fae43e926dc7b2b1e0fed398c32c149e0954d26",
-    "loginType":"sha1"
+    "loginType":"sha1",
+    "password":"3fae43e926dc7b2b1e0fed398c32c149e0954d26"
   },
   "fanda":{
     "grants":[
       "admin"
     ],
-    "password":"998886fed1af5c356cff427eca4aa7bb53ee4d6c",
-    "loginType":"sha1"
+    "loginType":"sha1",
+    "password":"998886fed1af5c356cff427eca4aa7bb53ee4d6c"
   },
   "iot":{
     "grants":[
       "device"
     ],
-    "password":"8884a26b82a69838092fd4fc824bbfde56719e02",
-    "loginType":"sha1"
+    "loginType":"sha1",
+    "password":"8884a26b82a69838092fd4fc824bbfde56719e02"
   },
   "revitest":{
     "grants":[
       "observer"
     ],
-    "password":"99f76f19bfc9bd2331df02c72c65627b77d0888e",
-    "loginType":"sha1"
+    "loginType":"sha1",
+    "password":"99f76f19bfc9bd2331df02c72c65627b77d0888e"
   }
 }

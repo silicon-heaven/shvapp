@@ -14,7 +14,6 @@ public:
 	//~AppCliOptions() Q_DECL_OVERRIDE {}
 
 	CLIOPTION_GETTER_SETTER(std::string, l, setL, ocale)
-	CLIOPTION_GETTER_SETTER(shv::chainpack::RpcValue, s, setS, laveConnections)
 	CLIOPTION_GETTER_SETTER2(int, "server.port", s, setS, erverPort)
 	CLIOPTION_GETTER_SETTER2(std::string, "sql.host", s, setS, qlHost)
 	CLIOPTION_GETTER_SETTER2(int, "sql.port", s, setS, qlPort)
@@ -23,6 +22,7 @@ public:
 	CLIOPTION_GETTER_SETTER2(std::string, "etc.acl.users", u, setU, sersFile)
 	CLIOPTION_GETTER_SETTER2(std::string, "etc.acl.grants", g, setG, rantsFile)
 	CLIOPTION_GETTER_SETTER2(std::string, "etc.acl.paths", p, setP, athsFile)
-	CLIOPTION_GETTER_SETTER2(bool, "slave.enabled", is, set, SlaveBrokerEnabled)
+	CLIOPTION_GETTER_SETTER2(shv::chainpack::RpcValue, "masters.connections", m, setM, asterBrokersConnections)
+	CLIOPTION_GETTER_SETTER2(bool, "masters.enabled", is, set, MasterBrokersEnabled)
 };
 

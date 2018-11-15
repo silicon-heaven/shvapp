@@ -1,15 +1,16 @@
 #include "brokerapp.h"
-#include "shvclientnode.h"
+#include "clientshvnode.h"
 #include "brokernode.h"
 #include "subscriptionsnode.h"
 #include "brokerconfigfilenode.h"
 #include "clientconnectionnode.h"
 #include "rpc/tcpserver.h"
 #include "rpc/serverconnection.h"
+#include "rpc/masterbrokerconnection.h"
 
 #include <shv/iotqt/node/shvnode.h>
 #include <shv/iotqt/node/shvnodetree.h>
-#include <shv/iotqt/rpc/clientconnection.h>
+#include <shv/iotqt/rpc/brokerconnection.h>
 #include <shv/coreqt/log.h>
 
 #include <shv/core/string.h>
@@ -47,15 +48,29 @@ class ClientsNode : public shv::iotqt::node::MethodsTableNode
 	using Super = shv::iotqt::node::MethodsTableNode;
 public:
 	ClientsNode(shv::iotqt::node::ShvNode *parent = nullptr)
-		: Super("clients" , parent)
-	{
-		m_methods = &m_metaMethods;
-	}
+		: Super("clients", m_metaMethods, parent)
+		, m_metaMethods{
+				  {cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam},
+				  {cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_CONFIG},
+		}
+	{ }
 private:
-	std::vector<cp::MetaMethod> m_metaMethods {
-		{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam},
-		{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_CONFIG},
-	};
+	std::vector<cp::MetaMethod> m_metaMethods;
+};
+
+class MasterBrokersNode : public shv::iotqt::node::MethodsTableNode
+{
+	using Super = shv::iotqt::node::MethodsTableNode;
+public:
+	MasterBrokersNode(shv::iotqt::node::ShvNode *parent = nullptr)
+		: Super("masters", m_metaMethods, parent)
+		, m_metaMethods{
+				  {cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam},
+				  {cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_CONFIG},
+		}
+	{ }
+private:
+	std::vector<cp::MetaMethod> m_metaMethods;
 };
 
 //static constexpr int SQL_RECONNECT_INTERVAL = 3000;
@@ -83,6 +98,7 @@ BrokerApp::BrokerApp(int &argc, char **argv, AppCliOptions *cli_opts)
 	BrokerNode *bn = new BrokerNode();
 	m_deviceTree->mount(cp::Rpc::DIR_BROKER_APP, bn);
 	m_deviceTree->mount(std::string(cp::Rpc::DIR_BROKER) + "/clients", new ClientsNode());
+	m_deviceTree->mount(std::string(cp::Rpc::DIR_BROKER) + "/masters", new MasterBrokersNode());
 	m_deviceTree->mount(std::string(cp::Rpc::DIR_BROKER) + "/etc/acl", new EtcAclNode());
 
 	QTimer::singleShot(0, this, &BrokerApp::lazyInit);
@@ -244,6 +260,7 @@ void BrokerApp::lazyInit()
 {
 	//reconnectSqlServer();
 	startTcpServer();
+	createMasterBrokerConnections();
 }
 
 shv::chainpack::RpcValue BrokerApp::aclConfig(const std::string &config_name, bool throw_exc)
@@ -286,6 +303,26 @@ bool BrokerApp::setAclConfig(const std::string &config_name, const shv::chainpac
 		else
 			return false;
 	}
+}
+
+std::string BrokerApp::dataToCpon(shv::chainpack::Rpc::ProtocolType protocol_type, const shv::chainpack::RpcValue::MetaData &md, const std::string &data, size_t start_pos)
+{
+	shv::chainpack::RpcValue rpc_val;
+	if(data.size() - start_pos < 256) {
+		rpc_val = shv::chainpack::RpcDriver::decodeData(protocol_type, data, start_pos);
+	}
+	else {
+		rpc_val = " ... " + std::to_string(data.size() - start_pos) + " bytes of data ... ";
+	}
+	rpc_val.setMetaData(shv::chainpack::RpcValue::MetaData(md));
+	std::ostringstream out;
+	{
+		cp::CponWriterOptions opts;
+		opts.setTranslateIds(cliOptions()->isMetaTypeExplicit());
+		cp::CponWriter wr(out, opts);
+		wr << rpc_val;
+	}
+	return out.str();
 }
 
 void BrokerApp::remountDevices()
@@ -385,6 +422,26 @@ bool BrokerApp::saveAclConfig(const std::string &config_name, const shv::chainpa
 		else
 			return false;
 	}
+}
+
+std::string BrokerApp::resolveMountPoint(const shv::chainpack::RpcValue::Map &device_opts)
+{
+	std::string mount_point;
+	shv::chainpack::RpcValue device_id = device_opts.value(cp::Rpc::KEY_DEVICE_ID);
+	if(device_id.isValid())
+		mount_point = mountPointForDevice(device_id);
+	if(mount_point.empty()) {
+		mount_point = device_opts.value(cp::Rpc::KEY_MOUT_POINT).toString();
+		std::vector<shv::core::StringView> path = shv::iotqt::node::ShvNode::splitPath(mount_point);
+		if(path.size() && !(path[0] == "test")) {
+			shvWarning() << "Mount point can be explicitly specified to test/ dir only, dev id:" << device_id.toCpon();
+			mount_point.clear();
+		}
+	}
+	if(mount_point.empty()) {
+		shvWarning() << "cannot find mount point for device id:" << device_id.toCpon();// << "connection id:" << connection_id;
+	}
+	return mount_point;
 }
 
 std::string BrokerApp::mountPointForDevice(const shv::chainpack::RpcValue &device_id)
@@ -510,7 +567,7 @@ void BrokerApp::onClientLogin(int connection_id)
 			SHV_EXCEPTION("Cannot create parent for ClientDirNode id: " + std::to_string(connection_id));
 		ClientConnectionNode *client_dir_node = new ClientConnectionNode(connection_id, clients_nd);
 		//shvWarning() << "path1:" << client_dir_node->shvPath();
-		ShvClientNode *client_app_node = new ShvClientNode(conn, client_dir_node);
+		ClientShvNode *client_app_node = new ClientShvNode(conn, client_dir_node);
 		client_app_node->setNodeId("app");
 		//shvWarning() << "path2:" << client_app_node->shvPath();
 		/*
@@ -527,8 +584,7 @@ void BrokerApp::onClientLogin(int connection_id)
 						  + " shv path: " + app_mount_point);
 		*/
 		// delete whole client tree, when client is destroyed
-		connect(conn, &rpc::ServerConnection::destroyed, client_app_node->parentNode(), &ShvClientNode::deleteLater);
-		/// do not send NTF_CONNECTED_CHANGED, exposing client ID maight be dangerous
+		connect(conn, &rpc::ServerConnection::destroyed, client_app_node->parentNode(), &ClientShvNode::deleteLater);
 		//this->sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_CONNECTED_CHANGED, true);
 		//connect(conn, &rpc::ServerConnection::destroyed, this, [this, connection_id, mount_point]() {
 		//	this->sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_CONNECTED_CHANGED, false);
@@ -545,25 +601,9 @@ void BrokerApp::onClientLogin(int connection_id)
 
 	if(!conn->deviceOptions().empty()) {
 		const shv::chainpack::RpcValue::Map &device_opts = conn->deviceOptions();
-		std::string mount_point;
-		shv::chainpack::RpcValue device_id = conn->deviceId();
-		if(device_id.isValid())
-			mount_point = mountPointForDevice(device_id);
-		if(mount_point.empty()) {
-			mount_point = device_opts.value(cp::Rpc::KEY_MOUT_POINT).toString();
-			std::vector<shv::core::StringView> path = shv::iotqt::node::ShvNode::splitPath(mount_point);
-			if(path.size() && !(path[0] == "test")) {
-				shvWarning() << "Mount point can be explicitly specified to test/ dir only, dev id:" << device_id.toCpon();
-				mount_point.clear();
-			}
-		}
-		if(mount_point.empty()) {
-			//mount_point = DIR_BROKER + "/mountError/" + std::to_string(connection_id);
-			//shvWarning() << "Device will be mounted to" << mount_point << ", dev id:" << device_id.toCpon();
-			shvWarning() << "cannot find mount point for device id:" << device_id.toCpon() << "connection id:" << connection_id;
-		}
+		std::string mount_point = resolveMountPoint(device_opts);
 		if(!mount_point.empty()) {
-			ShvClientNode *cli_nd = qobject_cast<ShvClientNode*>(m_deviceTree->cd(mount_point));
+			ClientShvNode *cli_nd = qobject_cast<ClientShvNode*>(m_deviceTree->cd(mount_point));
 			if(cli_nd) {
 				/*
 				shvWarning() << "The mount point" << mount_point << "exists already";
@@ -575,12 +615,12 @@ void BrokerApp::onClientLogin(int connection_id)
 				cli_nd->addConnection(conn);
 			}
 			else {
-				cli_nd = new ShvClientNode(conn);
+				cli_nd = new ClientShvNode(conn);
 				if(!m_deviceTree->mount(mount_point, cli_nd))
 					SHV_EXCEPTION("Cannot mount connection to device tree, connection id: " + std::to_string(connection_id));
 			}
 			mount_point = cli_nd->shvPath();
-			shvInfo() << "device id:" << device_id.toCpon() << " mounted on:" << mount_point;
+			shvInfo() << "client connection id:" << conn->connectionId() << "device id:" << conn->deviceId().toCpon() << " mounted on:" << mount_point;
 			/// overwrite client default mount point
 			conn->addMountPoint(mount_point);
 			connect(conn, &rpc::ServerConnection::destroyed, this, [this, connection_id, mount_point]() {
@@ -588,19 +628,75 @@ void BrokerApp::onClientLogin(int connection_id)
 				//this->sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_DISCONNECTED, cp::RpcValue());
 				this->sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_MOUNTED_CHANGED, false);
 			});
-			connect(cli_nd, &ShvClientNode::destroyed, cli_nd->parentNode(), &shv::iotqt::node::ShvNode::deleteDanglingPath, static_cast<Qt::ConnectionType>(Qt::UniqueConnection | Qt::QueuedConnection));
+			connect(cli_nd, &ClientShvNode::destroyed, cli_nd->parentNode(), &shv::iotqt::node::ShvNode::deleteIfEmptyWithParents, static_cast<Qt::ConnectionType>(Qt::UniqueConnection | Qt::QueuedConnection));
 			//sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_CONNECTED, cp::RpcValue());
 			sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_MOUNTED_CHANGED, true);
 		}
 	}
-	if(!conn->brokerOptions().empty()) {
-	}
-
 	//shvInfo() << m_deviceTree->dumpTree();
 }
 
-void BrokerApp::onRpcDataReceived(int connection_id, cp::RpcValue::MetaData &&meta, std::string &&data)
+void BrokerApp::onLoggedinToMasterBroker(int connection_id)
 {
+	rpc::MasterBrokerConnection *conn = masterBrokerConnectionById(connection_id);
+	if(!conn) {
+		shvError() << "Cannot find master broker connection for ID:" << connection_id;
+		return;
+	}
+
+	shvInfo() << "Logged-in to master broker, connection id:" << connection_id;
+	{
+		std::string dir_mount_point = std::string(cp::Rpc::DIR_BROKER) + "/masters/" + std::to_string(connection_id);
+		{
+			shv::iotqt::node::ShvNode *dir = m_deviceTree->cd(dir_mount_point);
+			if(dir) {
+				shvError() << "Master broker connection dir" << dir_mount_point << "exists already and will be deleted, this should never happen!";
+				dir->setParentNode(nullptr);
+				delete dir;
+			}
+		}
+		shv::iotqt::node::ShvNode *masters_nd = m_deviceTree->mkdir(std::string(cp::Rpc::DIR_BROKER) + "/masters/");
+		if(!masters_nd) {
+			shvError() << "Cannot create .broker/masters shv directory";
+			return;
+		}
+		MasterBrokerShvNode *mb_node = new MasterBrokerShvNode(conn, masters_nd);
+		conn->setParent(mb_node);
+	}
+
+	if(!conn->deviceOptions().empty()) {
+		const shv::chainpack::RpcValue::Map &device_opts = conn->deviceOptions();
+		std::string mount_point = resolveMountPoint(device_opts);
+		if(!mount_point.empty()) {
+			MasterBrokerShvNode *mb_nd = qobject_cast<MasterBrokerShvNode*>(m_deviceTree->cd(mount_point));
+			if(mb_nd) {
+				mb_nd->addConnection(conn);
+			}
+			else {
+				mb_nd = new MasterBrokerShvNode(conn);
+				if(!m_deviceTree->mount(mount_point, mb_nd))
+					SHV_EXCEPTION("Cannot mount connection to device tree, connection id: " + std::to_string(connection_id));
+			}
+			mount_point = mb_nd->shvPath();
+			shvInfo() << "master broker connection id:" << conn->connectionId() << "device id:" << conn->deviceId().toCpon() << " mounted on:" << mount_point;
+			/// overwrite client default mount point
+			conn->addMountPoint(mount_point);
+			connect(conn, &rpc::MasterBrokerConnection::destroyed, this, [this, connection_id, mount_point]() {
+				shvInfo() << "master broker connection destroyed, id:" << connection_id;
+				this->sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_MOUNTED_CHANGED, false);
+			});
+			connect(mb_nd, &MasterBrokerShvNode::destroyed, mb_nd->parentNode(), &shv::iotqt::node::ShvNode::deleteIfEmptyWithParents, static_cast<Qt::ConnectionType>(Qt::UniqueConnection | Qt::QueuedConnection));
+			//sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_CONNECTED, cp::RpcValue());
+			sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_MOUNTED_CHANGED, true);
+		}
+	}
+}
+
+void BrokerApp::onRpcDataReceived(int connection_id, shv::chainpack::Rpc::ProtocolType protocol_type, cp::RpcValue::MetaData &&meta, std::string &&data)
+{
+	cp::RpcMessage::setProtocolType(meta, protocol_type);
+	if(cp::RpcMessage::isRegisterRevCallerIds(meta))
+		cp::RpcMessage::pushRevCallerId(meta, connection_id);
 	if(cp::RpcMessage::isRequest(meta)) {
 		shvDebug() << "REQUEST conn id:" << connection_id << meta.toStdString();
 		try {
@@ -647,9 +743,9 @@ void BrokerApp::onRpcDataReceived(int connection_id, cp::RpcValue::MetaData &&me
 		shvDebug() << "RESPONSE conn id:" << connection_id << meta.toStdString();
 		cp::RpcValue::Int caller_id = cp::RpcMessage::popCallerId(meta);
 		if(caller_id > 0) {
-			rpc::ServerConnection *conn = tcpServer()->connectionById(caller_id);
-			if(conn) {
-				conn->sendRawData(std::move(meta), std::move(data));
+			rpc::CommonRpcClientHandle *cch = commonClientConnectionById(caller_id);
+			if(cch) {
+				cch->sendRawData(std::move(meta), std::move(data));
 			}
 			else {
 				shvWarning() << "Got RPC response for not-exists connection, may be it was closed meanwhile. Connection id:" << caller_id;
@@ -692,11 +788,11 @@ void BrokerApp::onRootNodeSendRpcMesage(const shv::chainpack::RpcMessage &msg)
 void BrokerApp::sendNotifyToSubscribers(int sender_connection_id, const shv::chainpack::RpcValue::MetaData &meta_data, const std::string &data)
 {
 	// send it to all clients for now
-	for(int id : tcpServer()->connectionIds()) {
+	for(rpc::CommonRpcClientHandle *conn : allClientConnections()) {
+		int id = conn->connectionId();
 		if(id == sender_connection_id)
 			continue;
-		rpc::ServerConnection *conn = tcpServer()->connectionById(id);
-		if(conn && conn->isConnectedAndLoggedIn()) {
+		if(conn->isConnectedAndLoggedIn()) {
 			const cp::RpcValue shv_path = cp::RpcMessage::shvPath(meta_data);
 			const cp::RpcValue method = cp::RpcMessage::method(meta_data);
 			int subs_ix = conn->isSubscribed(shv_path.toString(), method.toString());
@@ -735,11 +831,11 @@ void BrokerApp::sendNotifyToSubscribers(int sender_connection_id, const std::str
 	ntf.setMethod(method);
 	ntf.setParams(params);
 	// send it to all clients for now
-	for(int id : tcpServer()->connectionIds()) {
+	for(rpc::CommonRpcClientHandle *conn : allClientConnections()) {
+		int id = conn->connectionId();
 		if(id == sender_connection_id)
 			continue;
-		rpc::ServerConnection *conn = tcpServer()->connectionById(id);
-		if(conn && conn->isConnectedAndLoggedIn()) {
+		if(conn->isConnectedAndLoggedIn()) {
 			int subs_ix = conn->isSubscribed(shv_path, method);
 			if(subs_ix >= 0) {
 				shvDebug() << "\t broadcasting to connection id:" << id;
@@ -754,12 +850,61 @@ void BrokerApp::sendNotifyToSubscribers(int sender_connection_id, const std::str
 	}
 }
 
-void BrokerApp::createSubscription(int client_id, const std::string &path, const std::string &method)
+void BrokerApp::addSubscription(int client_id, const std::string &path, const std::string &method)
 {
-	rpc::ServerConnection *conn = tcpServer()->connectionById(client_id);
+	auto *conn = commonClientConnectionById(client_id);
 	if(!conn)
 		SHV_EXCEPTION("Connot create subscription, client doesn't exist.");
-	conn->createSubscription(path, method);
+	conn->addSubscription(path, method);
 }
 
+void BrokerApp::createMasterBrokerConnections()
+{
+	if(!cliOptions()->isMasterBrokersEnabled())
+		return;
+	shvInfo() << "Creating master broker connections";
+	shv::chainpack::RpcValue masters = cliOptions()->masterBrokersConnections();
+	for(const auto &kv : masters.toMap()) {
+		const cp::RpcValue::Map &opts = kv.second.toMap();
+		if(opts.value("enabled").toBool() == false)
+			continue;
+		shvInfo() << "creating master broker connection:" << kv.first;
+		rpc::MasterBrokerConnection *bc = new rpc::MasterBrokerConnection(this);
+		bc->setOptions(opts);
+		bc->open();
+	}
+}
+
+QList<rpc::MasterBrokerConnection *> BrokerApp::masterBrokerConnections() const
+{
+	return findChildren<rpc::MasterBrokerConnection*>(QString(), Qt::FindDirectChildrenOnly);
+}
+
+rpc::MasterBrokerConnection *BrokerApp::masterBrokerConnectionById(int connection_id)
+{
+	for(rpc::MasterBrokerConnection *bc : masterBrokerConnections()) {
+		if(bc->connectionId() == connection_id)
+			return bc;
+	}
+	return nullptr;
+}
+
+std::vector<rpc::CommonRpcClientHandle *> BrokerApp::allClientConnections()
+{
+	std::vector<rpc::CommonRpcClientHandle *> ret;
+	for (int i : tcpServer()->connectionIds())
+		ret.push_back(tcpServer()->connectionById(i));
+	QList<rpc::MasterBrokerConnection *> mbc = masterBrokerConnections();
+	std::copy(mbc.begin(), mbc.end(), std::back_inserter(ret));
+	return ret;
+}
+
+rpc::CommonRpcClientHandle *BrokerApp::commonClientConnectionById(int connection_id)
+{
+	rpc::CommonRpcClientHandle *ret = tcpServer()->connectionById(connection_id);
+	if(ret)
+		return ret;
+	ret = masterBrokerConnectionById(connection_id);
+	return ret;
+}
 

@@ -10,6 +10,9 @@ namespace cp = shv::chainpack;
 static const char M_MOUNT_POINTS[] = "mountPoints";
 static const char M_DROP_CLIENT[] = "dropClient";
 
+//=================================================================================
+// MasterBrokerConnectionNode
+//=================================================================================
 static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam},
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_SERVICE},

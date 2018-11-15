@@ -36,7 +36,7 @@ shv::chainpack::RpcValue BrokerNode::processRpcRequest(const shv::chainpack::Rpc
 			std::string method = pm.value(cp::Rpc::PAR_METHOD).toString();
 			shv::chainpack::RpcRequest rq2 = rq;
 			int client_id = rq2.popCallerId();
-			BrokerApp::instance()->createSubscription(client_id, path, method);
+			BrokerApp::instance()->addSubscription(client_id, path, method);
 			return true;
 		}
 	}
@@ -54,7 +54,7 @@ static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
 	{cp::Rpc::METH_PING, cp::MetaMethod::Signature::VoidVoid},
 	{cp::Rpc::METH_ECHO, cp::MetaMethod::Signature::RetParam},
-	{M_MOUNT_POINTS_FOR_CLIENT_IDl, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
+	{M_MOUNT_POINTS_FOR_CLIENT_ID, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
 	{cp::Rpc::METH_SUBSCRIBE, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
 	{M_RELOAD_CONFIG, cp::MetaMethod::Signature::VoidVoid, 0, cp::Rpc::GRANT_SERVICE},
 	{M_RESTART, cp::MetaMethod::Signature::VoidVoid, 0, cp::Rpc::GRANT_SERVICE},

@@ -10,8 +10,9 @@
 
 	"admin": {"grants": ["su"]},
 	"observer": {"grants": ["client"]},
-	"client": {"grants": ["broker-ping"]},
+	"client": {"grants": ["ping"]},
 	"device": {"grants": ["client"]},
 	"poland": {},
-	"broker-ping": {},
+	"ping": {},
+	"broker": {},
 }

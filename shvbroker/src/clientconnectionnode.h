@@ -8,7 +8,7 @@ class ClientConnectionNode : public shv::iotqt::node::MethodsTableNode
 	using Super = shv::iotqt::node::MethodsTableNode;
 public:
 	ClientConnectionNode(int client_id, shv::iotqt::node::ShvNode *parent = nullptr);
-	~ClientConnectionNode() override {}
+	//~ClientConnectionNode() override;
 
 	shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params) override;
 private:
