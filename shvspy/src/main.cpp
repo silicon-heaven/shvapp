@@ -2,6 +2,7 @@
 #include "theapp.h"
 #include "appclioptions.h"
 
+#include <shv/chainpack/rpcmessage.h>
 #include <shv/core/utils.h>
 #include <shv/coreqt/log.h>
 
@@ -42,6 +43,8 @@ int main(int argc, char *argv[])
 	if(!cli_opts.loadConfigFile()) {
 		return EXIT_FAILURE;
 	}
+
+	shv::chainpack::RpcMessage::setMetaTypeExplicit(cli_opts.isMetaTypeExplicit());
 
 	shvInfo() << "======================================================================================";
 	shvInfo() << "Starting ShvSpy, PID:" << QCoreApplication::applicationPid() << "build:" << __DATE__ << __TIME__;

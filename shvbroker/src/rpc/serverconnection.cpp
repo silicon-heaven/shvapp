@@ -101,7 +101,7 @@ void ServerConnection::sendMessage(const shv::chainpack::RpcMessage &rpc_msg)
 	logRpcMsg() << SND_LOG_ARROW
 				<< "client id:" << connectionId()
 				<< "protocol_type:" << (int)protocolType() << shv::chainpack::Rpc::protocolTypeToString(protocolType())
-				<< rpc_msg.toCpon();
+				<< rpc_msg.toPrettyString();
 	Super::sendMessage(rpc_msg);
 }
 

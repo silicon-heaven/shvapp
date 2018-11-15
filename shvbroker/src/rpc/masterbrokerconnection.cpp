@@ -1,6 +1,7 @@
 #include "masterbrokerconnection.h"
 #include "../brokerapp.h"
 
+#include <shv/chainpack/rpcmessage.h>
 #include <shv/coreqt/log.h>
 
 #define logRpcMsg() shvCDebug("RpcMsg")
@@ -35,7 +36,7 @@ void MasterBrokerConnection::sendMessage(const shv::chainpack::RpcMessage &rpc_m
 	logRpcMsg() << SND_LOG_ARROW
 				<< "client id:" << connectionId()
 				<< "protocol_type:" << (int)protocolType() << shv::chainpack::Rpc::protocolTypeToString(protocolType())
-				<< rpc_msg.toCpon();
+				<< rpc_msg.toPrettyString();
 	Super::sendMessage(rpc_msg);
 }
 
@@ -55,6 +56,12 @@ void MasterBrokerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolType
 			if(!m_exportedShvPath.empty()) {
 				shv_path = m_exportedShvPath + '/' + shv_path;
 				cp::RpcMessage::setShvPath(md, shv_path);
+			}
+		}
+		else if(cp::RpcMessage::isResponse(md)) {
+			if(cp::RpcMessage::requestId(md) == m_connectionState.pingRqId) {
+				m_connectionState.pingRqId = 0;
+				return;
 			}
 		}
 		std::string msg_data(data, start_pos, data_len);

@@ -26,6 +26,8 @@ public:
 	int connectionId() const override {return Super::connectionId();}
 	bool isConnectedAndLoggedIn() const override {return Super::isConnectedAndLoggedIn();}
 
+	std::string userName() override {return Super::userName();}
+
 	const shv::chainpack::RpcValue::Map& deviceOptions() const;
 	shv::chainpack::RpcValue deviceId() const;
 

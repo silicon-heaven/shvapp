@@ -51,6 +51,8 @@ public:
 	size_t subscriptionCount() const {return m_subscriptions.size();}
 	const Subscription& subscriptionAt(size_t ix) const {return m_subscriptions.at(ix);}
 
+	virtual std::string userName() = 0;
+
 	void addMountPoint(const std::string &mp);
 	const std::vector<std::string>& mountPoints() const {return m_mountPoints;}
 

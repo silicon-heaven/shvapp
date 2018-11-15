@@ -14,5 +14,5 @@
 	"device": {"grants": ["client"]},
 	"poland": {},
 	"ping": {},
-	"broker": {},
+	"broker": {"grants": ["device"]},
 }

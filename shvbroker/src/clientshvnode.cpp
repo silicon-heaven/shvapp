@@ -17,13 +17,13 @@ namespace cp = shv::chainpack;
 ClientShvNode::ClientShvNode(rpc::ServerConnection *conn, ShvNode *parent)
 	: Super(parent)
 {
-	shvInfo() << "Creating client node:" << this << "connection:" << conn->connectionId();
+	shvInfo() << "Creating client node:" << this << nodeId() << "connection:" << conn->connectionId();
 	addConnection(conn);
 }
 
 ClientShvNode::~ClientShvNode()
 {
-	shvInfo() << "Destroying client node:" << this << "connections:" << [this]() { std::string s; for(auto c : m_connections) s += std::to_string(c->connectionId()) + " "; return s;}();
+	shvInfo() << "Destroying client node:" << this << nodeId();// << "connections:" << [this]() { std::string s; for(auto c : m_connections) s += std::to_string(c->connectionId()) + " "; return s;}();
 }
 
 void ClientShvNode::addConnection(rpc::ServerConnection *conn)

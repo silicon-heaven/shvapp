@@ -17,6 +17,8 @@ public:
 
 	int connectionId() const override {return Super::connectionId();}
 
+	std::string userName() override {return Super::user();}
+
 	bool isConnectedAndLoggedIn() const override {return isSocketConnected() && !isInitPhase();}
 
 	void setOptions(const shv::chainpack::RpcValue &slave_broker_options) override;

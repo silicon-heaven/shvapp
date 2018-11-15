@@ -269,7 +269,7 @@ shv::chainpack::RpcValue BrokerApp::aclConfig(const std::string &config_name, bo
 	if(config_val) {
 		if(!config_val->isValid()) {
 			*config_val = loadAclConfig(config_name, throw_exc);
-			shvInfo() << "ACL config:" << config_name << "loaded:\n" << config_val->toCpon("\t");
+			logAclD() << "ACL config:" << config_name << "loaded:\n" << config_val->toCpon("\t");
 		}
 		if(!config_val->isValid())
 			*config_val = cp::RpcValue::Map{}; /// will not be loaded next time
@@ -698,13 +698,12 @@ void BrokerApp::onRpcDataReceived(int connection_id, shv::chainpack::Rpc::Protoc
 	if(cp::RpcMessage::isRegisterRevCallerIds(meta))
 		cp::RpcMessage::pushRevCallerId(meta, connection_id);
 	if(cp::RpcMessage::isRequest(meta)) {
-		shvDebug() << "REQUEST conn id:" << connection_id << meta.toStdString();
 		try {
-			rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
+			rpc::CommonRpcClientHandle *cch = commonClientConnectionById(connection_id);
 			std::string shv_path = cp::RpcMessage::shvPath(meta).toString();
-			if(conn) {
+			if(cch) {
 				if(rpc::ServerConnection::Subscription::isRelativePath(shv_path)) {
-					const std::vector<std::string> &mps = conn->mountPoints();
+					const std::vector<std::string> &mps = cch->mountPoints();
 					if(mps.empty())
 						SHV_EXCEPTION("Cannot call method on relative path for unmounted device.");
 					if(mps.size() > 1)
@@ -712,12 +711,13 @@ void BrokerApp::onRpcDataReceived(int connection_id, shv::chainpack::Rpc::Protoc
 					shv_path = rpc::ServerConnection::Subscription::toAbsolutePath(mps[0], shv_path);
 					cp::RpcMessage::setShvPath(meta, shv_path);
 				}
-				cp::Rpc::AccessGrant acg = accessGrantForShvPath(conn->userName(), shv_path);
+				cp::Rpc::AccessGrant acg = accessGrantForShvPath(cch->userName(), shv_path);
 				if(!acg.isValid())
-					SHV_EXCEPTION("Acces to shv path '" + shv_path + "' not granted for user " + conn->userName());
+					SHV_EXCEPTION("Acces to shv path '" + shv_path + "' not granted for user " + cch->userName());
 				cp::RpcMessage::setAccessGrant(meta, acg.grant);
 				cp::RpcMessage::pushCallerId(meta, connection_id);
 				if(m_deviceTree->root()) {
+					shvDebug() << "REQUEST conn id:" << connection_id << meta.toStdString();
 					m_deviceTree->root()->handleRawRpcRequest(std::move(meta), std::move(data));
 				}
 				else {
@@ -775,7 +775,7 @@ void BrokerApp::onRootNodeSendRpcMesage(const shv::chainpack::RpcMessage &msg)
 	if(msg.isResponse()) {
 		cp::RpcResponse resp(msg);
 		shv::chainpack::RpcValue::Int connection_id = resp.popCallerId();
-		rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
+		rpc::CommonRpcClientHandle *conn = commonClientConnectionById(connection_id);
 		if(conn)
 			conn->sendMessage(resp);
 		else
