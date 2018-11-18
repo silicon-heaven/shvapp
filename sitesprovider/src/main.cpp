@@ -19,14 +19,11 @@ int main(int argc, char *argv[])
 	QCoreApplication::setApplicationVersion("0.0.1");
 
 	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);
-	std::vector<std::string> args;
-	for(const std::string &arg : shv_args)
-		args.push_back(arg);
 
 	int ret = 0;
 
 	AppCliOptions cli_opts;
-	cli_opts.parse(args);
+	cli_opts.parse(shv_args);
 	if(cli_opts.isParseError()) {
 		foreach(std::string err, cli_opts.parseErrors())
 			shvError() << err;

@@ -3,16 +3,14 @@
 #include <shv/iotqt/node/shvnode.h>
 
 #include <QCoreApplication>
-#include <QJsonObject>
-#include <QNetworkAccessManager>
-#include <QNetworkReply>
+#include <QDateTime>
+#include <QMap>
 
 #include <shv/chainpack/rpcmessage.h>
 
 class AppCliOptions;
 class QTimer;
 
-namespace shv { namespace chainpack { class RpcMessage; }}
 namespace shv { namespace iotqt { namespace rpc { class DeviceConnection; }}}
 namespace shv { namespace iotqt { namespace node { class ShvNodeTree; }}}
 
@@ -73,10 +71,10 @@ private:
 	shv::chainpack::RpcValue ls(const shv::core::StringViewList &shv_path, size_t index, const shv::chainpack::RpcValue::Map &object);
 
 	shv::chainpack::RpcValue leaf(const shv::core::StringViewList &shv_path);
-	QByteArray getConfig(const QString &node_id);
+	QByteArray getConfig(const QString &node_rel_path);
 	shv::chainpack::RpcValue get(const shv::core::StringViewList &shv_path);
-	void saveConfig(const QString &node_id, const QByteArray &value);
-	QString nodeConfigPath(const QString &node_id);
+	void saveConfig(const QString &node_rel_path, const QByteArray &value);
+	QString nodeConfigPath(const QString &node_rel_path);
 	void checkConfig(const QString &path);
 	void readConfig(const QString &path);
 
@@ -85,8 +83,8 @@ private:
 
 	shv::iotqt::node::ShvNodeTree *m_shvTree = nullptr;
 	AppRootNode *m_rootNode;
-	std::string m_sitesString;
-	shv::chainpack::RpcValue::Map m_sitesCp;
+	std::string m_sitesJsonString;
+	shv::chainpack::RpcValue::Map m_sitesValue;
 	QDateTime m_sitesTime;
 	bool m_downloadingSites = false;
 	QMap<QString, Config> m_configs;
