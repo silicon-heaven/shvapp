@@ -8,10 +8,10 @@
 #include <shv/chainpack/metamethod.h>
 #include <shv/core/stringview.h>
 
-#include <QTimer>
-#include <QFileInfo>
 #include <QDir>
-#include <QJsonDocument>
+#include <QFileInfo>
+#include <QNetworkReply>
+#include <QTimer>
 
 #ifdef Q_OS_UNIX
 #include <unistd.h>
@@ -26,37 +26,37 @@ static const char METH_GET_CONFIG[] = "getConfig";
 static const char METH_SAVE_CONFIG[] = "saveConfig";
 
 static std::vector<cp::MetaMethod> root_meta_methods {
-	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false },
-	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false },
-	{ cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false },
-	{ cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, false },
-	{ METH_GET_SITES, cp::MetaMethod::Signature::RetVoid, false },
-	{ METH_GET_CONFIG, cp::MetaMethod::Signature::RetParam, false },
-	{ METH_SAVE_CONFIG, cp::MetaMethod::Signature::VoidParam, false },
+	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::GRANT_BROWSE },
+	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::GRANT_BROWSE },
+	{ cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::GRANT_READ },
+	{ cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::GRANT_READ },
+	{ METH_GET_SITES, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::GRANT_READ },
+	{ METH_GET_CONFIG, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::GRANT_READ },
+	{ METH_SAVE_CONFIG, cp::MetaMethod::Signature::VoidParam, false, shv::chainpack::Rpc::GRANT_ADMIN },
 };
 
 static std::vector<cp::MetaMethod> empty_leaf_meta_methods {
-	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false },
-	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false },
-	{ METH_GET_CONFIG, cp::MetaMethod::Signature::RetVoid, false },
-	{ METH_SAVE_CONFIG, cp::MetaMethod::Signature::VoidParam, false },
+	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::GRANT_BROWSE },
+	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::GRANT_BROWSE },
+	{ METH_GET_CONFIG, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::GRANT_READ },
+	{ METH_SAVE_CONFIG, cp::MetaMethod::Signature::VoidParam, false, shv::chainpack::Rpc::GRANT_READ },
 };
 
 static std::vector<cp::MetaMethod> meta_leaf_meta_methods {
-	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false },
-	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false },
+	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::GRANT_BROWSE },
+	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::GRANT_BROWSE },
 };
 
 static std::vector<cp::MetaMethod> config_leaf_meta_methods {
-	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false },
-	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false },
-	{ cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, false },
+	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::GRANT_BROWSE },
+	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::GRANT_BROWSE },
+	{ cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::GRANT_READ },
 };
 
 static std::vector<cp::MetaMethod> data_leaf_meta_methods {
-	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false },
-	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false },
-	{ cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, false },
+	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::GRANT_BROWSE },
+	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::GRANT_BROWSE },
+	{ cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::GRANT_READ },
 };
 
 
@@ -81,7 +81,7 @@ const cp::MetaMethod *AppRootNode::metaMethod(const StringViewList &shv_path, si
 
 shv::chainpack::RpcValue AppRootNode::processRpcRequest(const cp::RpcRequest &rq)
 {
-	shv::core::StringView::StringViewList shv_path = shv::core::StringView(rq.shvPath().toString()).split('/');
+	shv::core::StringView::StringViewList shv_path =  splitPath(rq.shvPath().toString());
 	const cp::RpcValue::String method = rq.method().toString();
 
 	auto async_callback = [this, rq](const cp::RpcValue &result) mutable {
@@ -111,9 +111,12 @@ shv::chainpack::RpcValue AppRootNode::processRpcRequest(const cp::RpcRequest &rq
 			SitesProviderApp::instance()->saveConfig(rq.params());
 		}
 		else {
+			if (!rq.params().isList() || rq.params().toList().size() != 1) {
+				SHV_QT_EXCEPTION("Missing argument for saveConfig method");
+			}
 			cp::RpcValue::List params;
 			params.push_back(rq.shvPath());
-			params.push_back(rq.params()[0]);
+			params.push_back(rq.params().toList()[0]);
 			SitesProviderApp::instance()->saveConfig(params);
 		}
 		return cp::RpcValue();
@@ -181,11 +184,13 @@ SitesProviderApp::SitesProviderApp(int &argc, char **argv, AppCliOptions* cli_op
 	m_rpcConnection = new shv::iotqt::rpc::DeviceConnection(this);
 
 	if (!cli_opts->user_isset()) {
-		cli_opts->setUser("iot");
+		cli_opts->setUser("sitesprovider");
 	}
-
 	if (!cli_opts->password_isset()) {
-		cli_opts->setPassword("lub42DUB");
+		cli_opts->setPassword("b699617c94494d84d914d429dc69cafd78411bd3");
+	}
+	if (!cli_opts->loginType_isset()) {
+		cli_opts->setLoginType("SHA1");
 	}
 	if (!cli_opts->deviceId_isset()) {
 		cli_opts->setDeviceId("sitesprovider");
@@ -204,7 +209,7 @@ SitesProviderApp::SitesProviderApp(int &argc, char **argv, AppCliOptions* cli_op
 
 SitesProviderApp::~SitesProviderApp()
 {
-	shvInfo() << "destroying shv file provider application";
+	shvInfo() << "destroying sitesprovider application";
 }
 
 SitesProviderApp *SitesProviderApp::instance()
@@ -216,11 +221,11 @@ cp::RpcValue SitesProviderApp::getSites(std::function<void(shv::chainpack::RpcVa
 {
 	if (!checkSites()) {
 		downloadSites([this, callback](){
-			callback(m_sitesString);
+			callback(m_sitesJsonString);
 		});
 		return cp::RpcValue();
 	}
-	return m_sitesString;
+	return m_sitesJsonString;
 }
 
 cp::RpcValue SitesProviderApp::getConfig(const cp::RpcValue &params)
@@ -241,19 +246,19 @@ cp::RpcValue SitesProviderApp::getConfig(const cp::RpcValue &params)
 		if (param_map.size() != 1) {
 			SHV_EXCEPTION("saveConfig: invalid parameter count");
 		}
-		if (!param_map.hasKey("node_id")) {
-			SHV_EXCEPTION("getConfig: missing parameter node_id");
+		if (!param_map.hasKey("nodeId")) {
+			SHV_EXCEPTION("getConfig: missing parameter nodeId");
 		}
-		param = param_map["node_id"];
+		param = param_map["nodeId"];
 	}
 	if (!param.isString()) {
 		SHV_EXCEPTION("getConfig: invalid parameter type");
 	}
-	QString node_id = QString::fromStdString(param.toString());
-	if (node_id.isEmpty()) {
+	QString node_rel_path = QString::fromStdString(param.toString());
+	if (node_rel_path.isEmpty()) {
 		SHV_EXCEPTION("getConfig: parameter type must not be empty");
 	}
-	return getConfig(node_id);
+	return getConfig(node_rel_path).toStdString();
 }
 
 shv::chainpack::RpcValue SitesProviderApp::get(const shv::core::StringViewList &shv_path, std::function<void (shv::chainpack::RpcValue)> callback)
@@ -271,11 +276,11 @@ shv::chainpack::RpcValue SitesProviderApp::ls(const shv::core::StringViewList &s
 {
 	if (!checkSites()) {
 		downloadSites([this, shv_path, callback](){
-			callback(ls(shv_path, 0, m_sitesCp));
+			callback(ls(shv_path, 0, m_sitesValue));
 		});
 		return cp::RpcValue();
 	}
-	return ls(shv_path, 0, m_sitesCp);
+	return ls(shv_path, 0, m_sitesValue);
 }
 
 cp::RpcValue SitesProviderApp::ls(const shv::core::StringViewList &shv_path, size_t index, const cp::RpcValue::Map &object)
@@ -344,32 +349,32 @@ void SitesProviderApp::saveConfig(const cp::RpcValue &params)
 		if (param_map.size() != 2) {
 			SHV_EXCEPTION("saveConfig: invalid parameter count");
 		}
-		if (!param_map.hasKey("node_id")) {
-			SHV_EXCEPTION("saveConfig: missing parameter node_id");
+		if (!param_map.hasKey("nodeId")) {
+			SHV_EXCEPTION("saveConfig: missing parameter nodeId");
 		}
 		if (!param_map.hasKey("config")) {
 			SHV_EXCEPTION("saveConfig: missing parameter config");
 		}
-		param1 = param_map["node_id"];
+		param1 = param_map["nodeId"];
 		param2 = param_map["config"];
 	}
 	if (!param1.isString()) {
-		SHV_EXCEPTION("saveConfig: invalid node_id type");
+		SHV_EXCEPTION("saveConfig: invalid nodeId type");
 	}
 	if (!param2.isString()) {
 		SHV_EXCEPTION("saveConfig: invalid config type");
 	}
-	QString node_id = QString::fromStdString(param1.toString());
-	if (node_id.isEmpty()) {
-		SHV_EXCEPTION("saveConfig: node_id type must not be empty");
+	QString node_rel_path = QString::fromStdString(param1.toString());
+	if (node_rel_path.isEmpty()) {
+		SHV_EXCEPTION("saveConfig: nodeId type must not be empty");
 	}
 	QByteArray config = QByteArray::fromStdString(param2.toString());
-	saveConfig(node_id, config);
+	saveConfig(node_rel_path, config);
 }
 
 shv::chainpack::RpcValue SitesProviderApp::leaf(const shv::core::StringViewList &shv_path)
 {
-	cp::RpcValue::Map object = m_sitesCp;
+	cp::RpcValue::Map object = m_sitesValue;
 	cp::RpcValue value;
 	for (size_t i = 0; i < shv_path.size(); ++i) {
 		if (shv_path[i] == "_config") {
@@ -421,14 +426,14 @@ void SitesProviderApp::downloadSites(std::function<void ()> callback)
 		}
 		else{
 			QByteArray sites = reply->readAll();
-			m_sitesString = sites.toStdString();
+			m_sitesJsonString = sites.toStdString();
 			m_sitesTime = QDateTime::currentDateTime();
 			std::string err;
-			cp::RpcValue sites_cp = cp::RpcValue::fromCpon(m_sitesString, &err);
+			cp::RpcValue sites_cp = cp::RpcValue::fromCpon(m_sitesJsonString, &err);
 			if (!err.empty()) {
 				SHV_EXCEPTION(err);
 			}
-			m_sitesCp = sites_cp.toMap();
+			m_sitesValue = sites_cp.toMap();
 			shvInfo() << "Downloaded sites.json";
 		}
 		reply->deleteLater();
@@ -445,10 +450,10 @@ bool SitesProviderApp::checkSites() const
 	return !m_sitesTime.isNull() && m_sitesTime.secsTo(QDateTime::currentDateTime()) < 3600;
 }
 
-QByteArray SitesProviderApp::getConfig(const QString &node_id)
+QByteArray SitesProviderApp::getConfig(const QString &node_rel_path)
 {
-	checkConfig(node_id);
-	return m_configs[node_id].content;
+	checkConfig(node_rel_path);
+	return m_configs[node_rel_path].content;
 }
 
 shv::chainpack::RpcValue SitesProviderApp::get(const shv::core::StringViewList &shv_path)
@@ -458,26 +463,12 @@ shv::chainpack::RpcValue SitesProviderApp::get(const shv::core::StringViewList &
 		QByteArray config = getConfig(QString::fromStdString(new_path));
 		return config.toStdString();
 	}
-	cp::RpcValue val = leaf(shv_path);
-	if (val.isBool()) {
-		return val.toBool();
-	}
-	else if (val.isDouble()) {
-		return val.toDouble();
-	}
-	else if (val.isString()) {
-		return val.toString();
-	}
-	else {
-		return val.toCpon();
-	}
-	Q_ASSERT_X(false, "", "Unsupported json type");
-	return cp::RpcValue();
+	return leaf(shv_path);
 }
 
-void SitesProviderApp::saveConfig(const QString &node_id, const QByteArray &value)
+void SitesProviderApp::saveConfig(const QString &node_rel_path, const QByteArray &value)
 {
-	Config &config = m_configs[node_id];
+	Config &config = m_configs[node_rel_path];
 	std::string err;
 	config.chainpack = cp::RpcValue::fromCpon(value.toStdString(), &err);
 	if (!err.empty()) {
@@ -486,7 +477,7 @@ void SitesProviderApp::saveConfig(const QString &node_id, const QByteArray &valu
 	config.content = value;
 	config.time = QDateTime::currentDateTime();
 
-	QFile f(nodeConfigPath(node_id));
+	QFile f(nodeConfigPath(node_rel_path));
 	QDir dir = QFileInfo(f).dir();
 
 	if (!dir.exists()){
@@ -500,18 +491,18 @@ void SitesProviderApp::saveConfig(const QString &node_id, const QByteArray &valu
 		f.write(value);
 	}
 	else {
-		shvError() << "Cannot write to config file:" << nodeConfigPath(node_id);
+		shvError() << "Cannot write to config file:" << nodeConfigPath(node_rel_path);
 	}
 	f.close();
 }
 
-QString SitesProviderApp::nodeConfigPath(const QString &node_id)
+QString SitesProviderApp::nodeConfigPath(const QString &node_rel_path)
 {
 	QString path = QString::fromStdString(m_cliOptions->dataDir());
-	if (!node_id.startsWith(QDir::separator())) {
+	if (!node_rel_path.startsWith(QDir::separator())) {
 		path += QDir::separator();
 	}
-	path += node_id;
+	path += node_rel_path;
 	if (!path.endsWith(QDir::separator())) {
 		path += QDir::separator();
 	}
