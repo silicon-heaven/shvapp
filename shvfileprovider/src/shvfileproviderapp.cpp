@@ -85,8 +85,6 @@ ShvFileProviderApp::ShvFileProviderApp(int &argc, char **argv, AppCliOptions* cl
 
 	if(!cli_opts->user_isset())
 		cli_opts->setUser("shvfileprovider");
-	if(!cli_opts->password_isset())
-		cli_opts->setPassword("lub48DUB");
 	m_rpcConnection->setCliOptions(cli_opts);
 
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &ShvFileProviderApp::onBrokerConnectedChanged);
