@@ -93,7 +93,7 @@ cp::RpcValue AppRootNode::callMethod(const StringViewList &shv_path, const std::
 		}
 		else {
 			cp::RpcValue::List params;
-			params.push_back(shv::core::StringView::join(shv_path, '/'));
+			params.push_back(shv::core::StringView::join(shv_path.cbegin(), shv_path.cend(), '/'));
 			return getConfig(params);
 		}
 	}
@@ -106,7 +106,7 @@ cp::RpcValue AppRootNode::callMethod(const StringViewList &shv_path, const std::
 				SHV_QT_EXCEPTION("Missing argument for saveConfig method");
 			}
 			cp::RpcValue::List param_list;
-			param_list.push_back(shv::core::StringView::join(shv_path, '/'));
+			param_list.push_back(shv::core::StringView::join(shv_path.cbegin(), shv_path.cend(), '/'));
 			param_list.push_back(params.toList()[0]);
 			saveConfig(params);
 		}
