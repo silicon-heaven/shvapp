@@ -38,8 +38,7 @@ public:
 	void sendRawData(const shv::chainpack::RpcValue::MetaData &meta_data, std::string &&data) override;
 private:
 	void onRpcDataReceived(shv::chainpack::Rpc::ProtocolType protocol_type, shv::chainpack::RpcValue::MetaData &&md, const std::string &data, size_t start_pos, size_t data_len) override;
-	bool checkPassword(const shv::chainpack::RpcValue::Map &login) override;
-	std::string passwordHash(LoginType type, const std::string &user) override;
+	std::string passwordHash(LoginType login_type, const std::string &user) override;
 	shv::chainpack::RpcValue login(const shv::chainpack::RpcValue &auth_params) override;
 private:
 	QTimer *m_idleWatchDogTimer = nullptr;

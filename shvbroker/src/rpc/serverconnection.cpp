@@ -64,7 +64,7 @@ void ServerConnection::setIdleWatchDogTimeOut(int sec)
 	}
 }
 
-std::string ServerConnection::passwordHash(LoginType type, const std::string &user)
+std::string ServerConnection::passwordHash(LoginType login_type, const std::string &user)
 {
 	/*
 	const std::map<std::string, std::string> passwds {
@@ -73,26 +73,39 @@ std::string ServerConnection::passwordHash(LoginType type, const std::string &us
 		{"revitest", "lautrhovno271828"},
 	};
 	*/
+	if(user.empty())
+		return std::string();
 	BrokerApp *app = BrokerApp::instance();
 	const shv::chainpack::RpcValue::Map &user_def = app->usersConfig().toMap().value(user).toMap();
+	if(user_def.empty()) {
+		shvWarning() << "Invalid user:" << user;
+		return std::string();
+	}
 	std::string pass = user_def.value("password").toString();
-	std::string login_type = user_def.value("loginType").toString();
-	if(login_type.empty())
-		login_type = user_def.value("passwordHashType").toString(); // try obsolete key
-	if(type == LoginType::Plain && login_type == "plain") {
+	std::string password_format_str = user_def.value("passwordFormat").toString();
+	if(password_format_str.empty()) {
+		// obsolete users.cpon files used "loginType" key for passwordFormat
+		password_format_str = user_def.value("loginType").toString();
+	}
+	PasswordFormat password_format = passwordFormatFromString(password_format_str);
+	if(password_format == PasswordFormat::Invalid) {
+		shvWarning() << "Invalid password format for user:" << user;
+		return std::string();
+	}
+	if(login_type == LoginType::Plain && password_format == PasswordFormat::Plain) {
 		return pass;
 	}
-	if(type == LoginType::Sha1 && login_type == "sha1") {
+	if(login_type == LoginType::Sha1 && password_format == PasswordFormat::Sha1) {
 		return pass;
 	}
-	if(type == LoginType::Sha1 && login_type == "plain") {
+	if(login_type == LoginType::Sha1 && password_format == PasswordFormat::Plain) {
 		QCryptographicHash hash(QCryptographicHash::Algorithm::Sha1);
 		hash.addData(pass.data(), pass.size());
 		QByteArray sha1 = hash.result().toHex();
 		//shvWarning() << user << pass << sha1;
 		return std::string(sha1.constData(), sha1.length());
-		return pass;
 	}
+	shvWarning() << "Invalid login type for user:" << user;
 	return std::string();
 }
 
@@ -133,11 +146,6 @@ void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolType proto
 	catch (std::exception &e) {
 		shvError() << e.what();
 	}
-}
-
-bool ServerConnection::checkPassword(const shv::chainpack::RpcValue::Map &login)
-{
-	return Super::checkPassword(login);
 }
 
 shv::chainpack::RpcValue ServerConnection::login(const shv::chainpack::RpcValue &auth_params)
