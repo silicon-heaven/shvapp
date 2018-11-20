@@ -1,4 +1,4 @@
-#include "shvfileproviderapp.h"
+#include "sitesproviderapp.h"
 #include "appclioptions.h"
 
 #include <shv/core/utils.h>
@@ -15,15 +15,17 @@ int main(int argc, char *argv[])
 {
 	QCoreApplication::setOrganizationName("Elektroline");
 	QCoreApplication::setOrganizationDomain("elektroline.cz");
-	QCoreApplication::setApplicationName("shvfileprovider");
+	QCoreApplication::setApplicationName("sitesprovider");
 	QCoreApplication::setApplicationVersion("0.0.1");
 
 	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);
+
 	int ret = 0;
+
 	AppCliOptions cli_opts;
 	cli_opts.parse(shv_args);
-	if (cli_opts.isParseError()) {
-		foreach(const std::string &err, cli_opts.parseErrors())
+	if(cli_opts.isParseError()) {
+		foreach(std::string err, cli_opts.parseErrors())
 			shvError() << err;
 		return EXIT_FAILURE;
 	}
@@ -33,7 +35,7 @@ int main(int argc, char *argv[])
 		}
 		return EXIT_SUCCESS;
 	}
-	foreach(const std::string &s, cli_opts.unusedArguments()) {
+	foreach(std::string s, cli_opts.unusedArguments()) {
 		shvWarning() << "Undefined argument:" << s;
 	}
 
@@ -42,7 +44,7 @@ int main(int argc, char *argv[])
 	}
 
 	shvInfo() << "======================================================================================";
-	shvInfo() << "Starting SHV File provider, PID:" << QCoreApplication::applicationPid() << "build:" << __DATE__ << __TIME__;
+	shvInfo() << "Starting sitesprovides, PID:" << QCoreApplication::applicationPid() << "build:" << __DATE__ << __TIME__;
 #ifdef GIT_COMMIT
 	shvInfo() << "GIT commit:" << SHV_EXPAND_AND_QUOTE(GIT_COMMIT);
 #endif
@@ -51,7 +53,7 @@ int main(int argc, char *argv[])
 	shvInfo() << "Log tresholds:" << NecroLog::tresholdsLogInfo();
 	shvInfo() << "--------------------------------------------------------------------------------------";
 
-	ShvFileProviderApp a(argc, argv, &cli_opts);
+	SitesProviderApp a(argc, argv, &cli_opts);
 
 	shvInfo() << "starting main thread event loop";
 	ret = a.exec();
@@ -60,4 +62,3 @@ int main(int argc, char *argv[])
 
 	return ret;
 }
-

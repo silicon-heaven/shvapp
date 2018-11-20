@@ -27,6 +27,21 @@
     "passwordFormat":"sha1",
     "password":"8884a26b82a69838092fd4fc824bbfde56719e02"
   },
+  "sitesprovider": {
+    "grants": [ "sitesprovider" ],
+    "loginType": "sha1",
+    "password": "b699617c94494d84d914d429dc69cafd78411bd3"
+  },
+  "shvhistoryprovider": {
+    "grants": [ "shvhistoryprovider" ],
+    "loginType": "sha1",
+    "password": "8884a26b82a69838092fd4fc824bbfde56719e02"
+  },
+  "tscshvagent": {
+    "grants" : [ "tscshvagent" ],
+    "loginType": "sha1",
+    "password": "8884a26b82a69838092fd4fc824bbfde56719e02"
+  },
   "revitest":{
     "grants":[
       "observer"
