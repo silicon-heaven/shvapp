@@ -47,7 +47,7 @@ static std::vector<cp::MetaMethod> meta_leaf_meta_methods {
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::GRANT_BROWSE },
 };
 
-static std::vector<cp::MetaMethod> config_leaf_meta_methods {
+static std::vector<cp::MetaMethod> file_leaf_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::GRANT_BROWSE },
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::GRANT_BROWSE },
 	{ cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::GRANT_READ },
@@ -63,7 +63,6 @@ static std::vector<cp::MetaMethod> data_leaf_meta_methods {
 AppRootNode::AppRootNode(QObject *parent)
 	: Super(parent)
 {
-	connect(this, &AppRootNode::methodFinished, this, &AppRootNode::sendRpcMesage);
 }
 
 size_t AppRootNode::methodCount(const StringViewList &shv_path)
@@ -74,55 +73,47 @@ size_t AppRootNode::methodCount(const StringViewList &shv_path)
 const cp::MetaMethod *AppRootNode::metaMethod(const StringViewList &shv_path, size_t ix)
 {
 	const std::vector<cp::MetaMethod> &meta_methods = metaMethods(shv_path);
-	if(meta_methods.size() <= ix)
+	if (meta_methods.size() <= ix) {
 		SHV_EXCEPTION("Invalid method index: " + std::to_string(ix) + " of: " + std::to_string(meta_methods.size()));
+	}
 	return &(meta_methods[ix]);
 }
 
-shv::chainpack::RpcValue AppRootNode::processRpcRequest(const cp::RpcRequest &rq)
+cp::RpcValue AppRootNode::callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
 {
-	shv::core::StringView::StringViewList shv_path =  splitPath(rq.shvPath().toString());
-	const cp::RpcValue::String method = rq.method().toString();
-
-	auto async_callback = [this, rq](const cp::RpcValue &result) mutable {
-		cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
-		resp.setResult(result);
-		Q_EMIT methodFinished(resp);
-	};
-
 	if (method == cp::Rpc::METH_APP_NAME) {
 		return QCoreApplication::instance()->applicationName().toStdString();
 	}
 	else if (method == METH_GET_SITES) {
-		return SitesProviderApp::instance()->getSites(async_callback);
+		return getSites();
 	}
 	else if (method == METH_GET_CONFIG) {
 		if (shv_path.empty()) {
-			return SitesProviderApp::instance()->getConfig(rq.params());
+			return getConfig(params);
 		}
 		else {
 			cp::RpcValue::List params;
-			params.push_back(rq.shvPath());
-			return SitesProviderApp::instance()->getConfig(params);
+			params.push_back(shv::core::StringView::join(shv_path, '/'));
+			return getConfig(params);
 		}
 	}
 	else if (method == METH_SAVE_CONFIG) {
 		if (shv_path.empty()) {
-			SitesProviderApp::instance()->saveConfig(rq.params());
+			saveConfig(params);
 		}
 		else {
-			if (!rq.params().isList() || rq.params().toList().size() != 1) {
+			if (!params.isList() || params.toList().size() != 1) {
 				SHV_QT_EXCEPTION("Missing argument for saveConfig method");
 			}
-			cp::RpcValue::List params;
-			params.push_back(rq.shvPath());
-			params.push_back(rq.params().toList()[0]);
-			SitesProviderApp::instance()->saveConfig(params);
+			cp::RpcValue::List param_list;
+			param_list.push_back(shv::core::StringView::join(shv_path, '/'));
+			param_list.push_back(params.toList()[0]);
+			saveConfig(params);
 		}
 		return cp::RpcValue();
 	}
 	else if (method == cp::Rpc::METH_GET) {
-		return SitesProviderApp::instance()->get(shv_path, async_callback);
+		return get(shv_path);
 	}
 	else if (method == cp::Rpc::METH_DEVICE_ID) {
 		SitesProviderApp *app = SitesProviderApp::instance();
@@ -130,20 +121,13 @@ shv::chainpack::RpcValue AppRootNode::processRpcRequest(const cp::RpcRequest &rq
 		cp::RpcValue::Map dev = opts.value(cp::Rpc::KEY_DEVICE).toMap();
 		return dev.value(cp::Rpc::KEY_DEVICE_ID).toString();
 	}
-	else if (method == cp::Rpc::METH_LS) {
-		return SitesProviderApp::instance()->ls(shv_path, async_callback);
-	}
-	else if (method == cp::Rpc::METH_DIR) {
-		return SitesProviderApp::instance()->dir(shv_path, rq.params(), async_callback);
-	}
-	return cp::RpcValue();
+	return Super::callMethod(shv_path, method, params);
 }
 
 void AppRootNode::handleRpcRequest(const shv::chainpack::RpcRequest &rq)
 {
-	SitesProviderApp *app = SitesProviderApp::instance();
-	if (!app->checkSites()) {
-		app->downloadSites([this, rq]() {
+	if (!checkSites()) {
+		downloadSites([this, rq]() {
 			Super::handleRpcRequest(rq);
 		});
 	}
@@ -160,10 +144,10 @@ const std::vector<shv::chainpack::MetaMethod> &AppRootNode::metaMethods(const sh
 	else if (shv_path[shv_path.size() - 1] == "_meta") {
 		return meta_leaf_meta_methods;
 	}
-	else if (shv_path[shv_path.size() - 1] == "_config") {
-		return config_leaf_meta_methods;
+	else if (isFile(shv_path)) {
+		return file_leaf_meta_methods;
 	}
-	else if (SitesProviderApp::instance()->hasData(shv_path)) {
+	else if (hasData(shv_path)) {
 		return data_leaf_meta_methods;
 	}
 	else {
@@ -171,64 +155,28 @@ const std::vector<shv::chainpack::MetaMethod> &AppRootNode::metaMethods(const sh
 	}
 }
 
-SitesProviderApp::SitesProviderApp(int &argc, char **argv, AppCliOptions* cli_opts)
-	: Super(argc, argv)
-	, m_cliOptions(cli_opts)
+shv::chainpack::RpcValue AppRootNode::leaf(const shv::core::StringViewList &shv_path)
 {
-#ifdef Q_OS_UNIX
-	if (setpgid(0, 0) != 0) {
-		shvError() << "Error set process group ID:" << errno << ::strerror(errno);
+	cp::RpcValue::Map object = m_sitesValue;
+	cp::RpcValue value;
+	for (size_t i = 0; i < shv_path.size(); ++i) {
+		value = object.at(shv_path[i].toString());
+		if (value.isMap()) {
+			object = value.toMap();
+		}
+		else {
+			break;
+		}
 	}
-#endif
-	cp::RpcMessage::setMetaTypeExplicit(cli_opts->isMetaTypeExplicit());
-	m_rpcConnection = new shv::iotqt::rpc::DeviceConnection(this);
-
-	if (!cli_opts->user_isset()) {
-		cli_opts->setUser("sitesprovider");
-	}
-	if (!cli_opts->password_isset()) {
-		cli_opts->setPassword("b699617c94494d84d914d429dc69cafd78411bd3");
-	}
-	if (!cli_opts->loginType_isset()) {
-		cli_opts->setLoginType("SHA1");
-	}
-	if (!cli_opts->deviceId_isset()) {
-		cli_opts->setDeviceId("sitesprovider");
-	}
-	m_rpcConnection->setCliOptions(cli_opts);
-
-	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &SitesProviderApp::onRpcMessageReceived);
-
-	m_rootNode = new AppRootNode();
-	m_shvTree = new shv::iotqt::node::ShvNodeTree(m_rootNode, this);
-
-	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
-
-	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
+	return value;
 }
 
-SitesProviderApp::~SitesProviderApp()
+cp::RpcValue AppRootNode::getSites()
 {
-	shvInfo() << "destroying sitesprovider application";
-}
-
-SitesProviderApp *SitesProviderApp::instance()
-{
-	return qobject_cast<SitesProviderApp *>(QCoreApplication::instance());
-}
-
-cp::RpcValue SitesProviderApp::getSites(std::function<void(shv::chainpack::RpcValue)> callback)
-{
-	if (!checkSites()) {
-		downloadSites([this, callback](){
-			callback(m_sitesJsonString);
-		});
-		return cp::RpcValue();
-	}
 	return m_sitesJsonString;
 }
 
-cp::RpcValue SitesProviderApp::getConfig(const cp::RpcValue &params)
+cp::RpcValue AppRootNode::getConfig(const cp::RpcValue &params)
 {
 	cp::RpcValue param;
 	if (!params.isList() && !params.isMap()) {
@@ -246,90 +194,67 @@ cp::RpcValue SitesProviderApp::getConfig(const cp::RpcValue &params)
 		if (param_map.size() != 1) {
 			SHV_EXCEPTION("saveConfig: invalid parameter count");
 		}
-		if (!param_map.hasKey("nodeId")) {
-			SHV_EXCEPTION("getConfig: missing parameter nodeId");
+		if (!param_map.hasKey("shvPath")) {
+			SHV_EXCEPTION("getConfig: missing parameter shvPath");
 		}
-		param = param_map["nodeId"];
+		param = param_map["shvPath"];
 	}
 	if (!param.isString()) {
 		SHV_EXCEPTION("getConfig: invalid parameter type");
 	}
-	QString node_rel_path = QString::fromStdString(param.toString());
-	if (node_rel_path.isEmpty()) {
+	QString shv_path = QString::fromStdString(param.toString());
+	if (shv_path.isEmpty()) {
 		SHV_EXCEPTION("getConfig: parameter type must not be empty");
 	}
-	return getConfig(node_rel_path).toStdString();
+	return getConfig(shv_path).toStdString();
 }
 
-shv::chainpack::RpcValue SitesProviderApp::get(const shv::core::StringViewList &shv_path, std::function<void (shv::chainpack::RpcValue)> callback)
+shv::chainpack::RpcValue AppRootNode::ls(const shv::core::StringViewList &shv_path, const shv::chainpack::RpcValue &params)
 {
-	if (!checkSites()) {
-		downloadSites([this, shv_path, callback](){
-			callback(get(shv_path));
-		});
-		return cp::RpcValue();
-	}
-	return get(shv_path);
-}
-
-shv::chainpack::RpcValue SitesProviderApp::ls(const shv::core::StringViewList &shv_path, std::function<void(cp::RpcValue)> callback)
-{
-	if (!checkSites()) {
-		downloadSites([this, shv_path, callback](){
-			callback(ls(shv_path, 0, m_sitesValue));
-		});
-		return cp::RpcValue();
-	}
+	Q_UNUSED(params);
 	return ls(shv_path, 0, m_sitesValue);
 }
 
-cp::RpcValue SitesProviderApp::ls(const shv::core::StringViewList &shv_path, size_t index, const cp::RpcValue::Map &object)
+cp::RpcValue AppRootNode::ls(const shv::core::StringViewList &shv_path, size_t index, const cp::RpcValue::Map &object)
 {
 	if (shv_path.size() - index == 0) {
 		cp::RpcValue::List items;
-		if (!hasData(shv_path) && shv_path[index - 1].toString() != "_meta" && shv_path[index - 1].toString() != "_config") {
-			items.push_back("_config");
-		}
 		for (auto it = object.cbegin(); it != object.cend(); ++it) {
 			items.push_back(it->first);
 		}
+		bool is_meta = false;
+		for (uint i = 0; i < shv_path.size(); ++i) {
+			if (shv_path[i] == "_meta") {
+				is_meta = true;
+				break;
+			}
+		}
+		if (!is_meta) {
+			QDir dir(nodeLocalPath(shv_path));
+			QFileInfoList file_infos = dir.entryInfoList(QDir::Filter::Files, QDir::SortFlag::Name);
+			for (const QFileInfo &file_info : file_infos) {
+				items.push_back(file_info.fileName().toStdString());
+			}
+		}
 		return items;
 	}
-	cp::RpcValue val;
-	if (shv_path[index] == "_config") {
-		QString new_path = QString::fromStdString(shv::core::StringView::join(shv_path.begin(), shv_path.end() - 1, '/'));
-		checkConfig(new_path);
-		val = m_configs[new_path].chainpack;
+	std::string key = shv_path[index].toString();
+	if (object.hasKey(key)) {
+		cp::RpcValue val = object.at(key);
+		if (val.isMap()) {
+			return ls(shv_path, index + 1, val.toMap());
+		}
 	}
-	else {
-		val = object.at(shv_path[index].toString());
-	}
-//	shvInfo() << shv::core::StringView::join(shv_path, '/') << std::to_string(index) << shv_path[index].toString();
-	if (val.isMap()) {
-		return ls(shv_path, index + 1, val.toMap());
-	}
-	else {
-		return cp::RpcValue::List();
-	}
+	return cp::RpcValue::List();
 }
 
-bool SitesProviderApp::hasData(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
+bool AppRootNode::hasData(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
 {
 	cp::RpcValue leaf = this->leaf(shv_path);
 	return !leaf.isMap();
 }
 
-cp::RpcValue SitesProviderApp::dir(const shv::core::StringViewList &shv_path, const cp::RpcValue &params, std::function<void(cp::RpcValue)> callback)
-{
-	if (!checkSites()) {
-		downloadSites([this, shv_path, params, callback]() {
-			callback(m_rootNode->dir(shv_path, params));
-		});
-	}
-	return m_rootNode->dir(shv_path, params);
-}
-
-void SitesProviderApp::saveConfig(const cp::RpcValue &params)
+void AppRootNode::saveConfig(const cp::RpcValue &params)
 {
 	cp::RpcValue param1;
 	cp::RpcValue param2;
@@ -349,68 +274,34 @@ void SitesProviderApp::saveConfig(const cp::RpcValue &params)
 		if (param_map.size() != 2) {
 			SHV_EXCEPTION("saveConfig: invalid parameter count");
 		}
-		if (!param_map.hasKey("nodeId")) {
-			SHV_EXCEPTION("saveConfig: missing parameter nodeId");
+		if (!param_map.hasKey("shvPath")) {
+			SHV_EXCEPTION("saveConfig: missing parameter shvPath");
 		}
 		if (!param_map.hasKey("config")) {
 			SHV_EXCEPTION("saveConfig: missing parameter config");
 		}
-		param1 = param_map["nodeId"];
+		param1 = param_map["shvPath"];
 		param2 = param_map["config"];
 	}
 	if (!param1.isString()) {
-		SHV_EXCEPTION("saveConfig: invalid nodeId type");
+		SHV_EXCEPTION("saveConfig: invalid shvPath type");
 	}
 	if (!param2.isString()) {
 		SHV_EXCEPTION("saveConfig: invalid config type");
 	}
-	QString node_rel_path = QString::fromStdString(param1.toString());
-	if (node_rel_path.isEmpty()) {
-		SHV_EXCEPTION("saveConfig: nodeId type must not be empty");
+	QString shv_path = QString::fromStdString(param1.toString());
+	if (shv_path.isEmpty()) {
+		SHV_EXCEPTION("saveConfig: shvPath type must not be empty");
 	}
 	QByteArray config = QByteArray::fromStdString(param2.toString());
-	saveConfig(node_rel_path, config);
+	saveConfig(shv_path, config);
 }
 
-shv::chainpack::RpcValue SitesProviderApp::leaf(const shv::core::StringViewList &shv_path)
-{
-	cp::RpcValue::Map object = m_sitesValue;
-	cp::RpcValue value;
-	for (size_t i = 0; i < shv_path.size(); ++i) {
-		if (shv_path[i] == "_config") {
-			QString new_path = QString::fromStdString(shv::core::StringView::join(shv_path.begin(), shv_path.begin() + i, '/'));
-			checkConfig(new_path);
-			value = m_configs[new_path].chainpack;
-		}
-		else {
-			value = object.at(shv_path[i].toString());
-		}
-		if (value.isMap()) {
-			object = value.toMap();
-		}
-		else {
-			break;
-		}
-	}
-	return value;
-}
-
-void SitesProviderApp::onRpcMessageReceived(const cp::RpcMessage &msg)
-{
-	shvLogFuncFrame() << msg.toCpon();
-	if (msg.isRequest()) {
-		cp::RpcRequest rq(msg);
-		if(m_shvTree->root()) {
-			m_shvTree->root()->handleRpcRequest(rq);
-		}
-	}
-}
-
-void SitesProviderApp::downloadSites(std::function<void ()> callback)
+void AppRootNode::downloadSites(std::function<void ()> callback)
 {
 	if (m_downloadingSites) {
 		QMetaObject::Connection *connection = new QMetaObject::Connection();
-		*connection = connect(this, &SitesProviderApp::downloadFinished, [this, connection, callback]() {
+		*connection = connect(this, &AppRootNode::downloadFinished, [this, connection, callback]() {
 			disconnect(*connection);
 			delete connection;
 			callback();
@@ -442,42 +333,44 @@ void SitesProviderApp::downloadSites(std::function<void ()> callback)
 		Q_EMIT downloadFinished();
 		callback();
 	});
-	network_manager->get(QNetworkRequest(QUrl(QString::fromStdString(m_cliOptions->remoteSitesUrl()))));
+	network_manager->get(QNetworkRequest(QUrl(QString::fromStdString(SitesProviderApp::instance()->cliOptions()->remoteSitesUrl()))));
 }
 
-bool SitesProviderApp::checkSites() const
+bool AppRootNode::checkSites() const
 {
 	return !m_sitesTime.isNull() && m_sitesTime.secsTo(QDateTime::currentDateTime()) < 3600;
 }
 
-QByteArray SitesProviderApp::getConfig(const QString &node_rel_path)
+QByteArray AppRootNode::getConfig(const QString &shv_path)
 {
-	checkConfig(node_rel_path);
-	return m_configs[node_rel_path].content;
+	QFile f(nodeConfigPath(shv_path));
+	QByteArray file_content;
+	if (f.exists()) {
+		if (f.open(QFile::ReadOnly)) {
+			file_content = f.readAll();
+			f.close();
+		}
+	}
+	return file_content;
 }
 
-shv::chainpack::RpcValue SitesProviderApp::get(const shv::core::StringViewList &shv_path)
+shv::chainpack::RpcValue AppRootNode::get(const shv::core::StringViewList &shv_path)
 {
-	if (shv_path[shv_path.size() - 1] == "_config") {
-		std::string new_path = shv::core::StringView::join(shv_path.begin(), shv_path.end() - 1, '/');
-		QByteArray config = getConfig(QString::fromStdString(new_path));
-		return config.toStdString();
+	if (!shv_path.empty() && !(shv_path[shv_path.size() - 1] == "_meta") && isFile(shv_path)) {
+		QFile f(nodeLocalPath(shv_path));
+		if (!f.open(QFile::ReadOnly)) {
+			return std::string();
+		}
+		QByteArray file_content = f.readAll();
+		f.close();
+		return file_content.toStdString();
 	}
 	return leaf(shv_path);
 }
 
-void SitesProviderApp::saveConfig(const QString &node_rel_path, const QByteArray &value)
+void AppRootNode::saveConfig(const QString &shv_path, const QByteArray &value)
 {
-	Config &config = m_configs[node_rel_path];
-	std::string err;
-	config.chainpack = cp::RpcValue::fromCpon(value.toStdString(), &err);
-	if (!err.empty()) {
-		SHV_EXCEPTION(err);
-	}
-	config.content = value;
-	config.time = QDateTime::currentDateTime();
-
-	QFile f(nodeConfigPath(node_rel_path));
+	QFile f(nodeConfigPath(shv_path));
 	QDir dir = QFileInfo(f).dir();
 
 	if (!dir.exists()){
@@ -491,55 +384,119 @@ void SitesProviderApp::saveConfig(const QString &node_rel_path, const QByteArray
 		f.write(value);
 	}
 	else {
-		shvError() << "Cannot write to config file:" << nodeConfigPath(node_rel_path);
+		shvError() << "Cannot write to config file:" << nodeConfigPath(shv_path);
 	}
 	f.close();
 }
 
-QString SitesProviderApp::nodeConfigPath(const QString &node_rel_path)
+QString AppRootNode::nodeConfigPath(const QString &shv_path) const
 {
-	QString path = QString::fromStdString(m_cliOptions->dataDir());
-	if (!node_rel_path.startsWith(QDir::separator())) {
-		path += QDir::separator();
-	}
-	path += node_rel_path;
-	if (!path.endsWith(QDir::separator())) {
-		path += QDir::separator();
-	}
-	path += "config.cpon";
+	QString path = nodeLocalPath(shv_path);
+	path += "/config.cpon";
 	return path;
 }
 
-void SitesProviderApp::checkConfig(const QString &path)
+QString AppRootNode::nodeLocalPath(const QString &shv_path) const
 {
-	QFileInfo file_info(nodeConfigPath(path));
-	if (!m_configs.contains(path) || file_info.lastModified() > m_configs[path].time) {
-		readConfig(path);
+	QString path = QString::fromStdString(SitesProviderApp::instance()->cliOptions()->localSitesDir());
+	if (!path.endsWith(QDir::separator()) && !shv_path.startsWith(QDir::separator())) {
+		path += QDir::separator();
+	}
+	return path + shv_path;
+}
+
+QString AppRootNode::nodeLocalPath(const std::string &shv_path) const
+{
+	return nodeLocalPath(QString::fromStdString(shv_path));
+}
+
+QString AppRootNode::nodeLocalPath(const shv::core::StringViewList &shv_path) const
+{
+	if (shv_path.size()) {
+		return nodeLocalPath(shv::core::StringView::join(shv_path.begin(), shv_path.end(), '/'));
+	}
+	else {
+		return nodeLocalPath(QString());
 	}
 }
 
-void SitesProviderApp::readConfig(const QString &path)
+bool AppRootNode::isFile(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
 {
-	shvInfo() << "got request for config for" << path;
-	QFile f(nodeConfigPath(path));
-	QByteArray file_content;
-	if (f.exists()) {
-		if (f.open(QFile::ReadOnly)) {
-			file_content = f.readAll();
-			f.close();
+	uint i = 0;
+	shv::chainpack::RpcValue::Map map = m_sitesValue;
+	while (true) {
+		std::string key = shv_path[i].toString();
+		if (map.hasKey(key)) {
+			if (i + 1 == shv_path.size()) {
+				return false;
+			}
+			cp::RpcValue child = map[key];
+			if (child.isMap()) {
+				map = child.toMap();
+				++i;
+				continue;
+			}
+			else {
+				break;
+			}
+		}
+		else {
+			break;
 		}
 	}
-	Config &config = m_configs[path];
-	if (!file_content.isEmpty()) {
-		std::string err;
-		config.chainpack = cp::RpcValue::fromCpon(file_content.toStdString(), &err);
-		if (!err.empty()) {
-			SHV_EXCEPTION(err);
+	return QFile::exists(nodeLocalPath(shv_path));
+}
+
+SitesProviderApp::SitesProviderApp(int &argc, char **argv, AppCliOptions* cli_opts)
+	: Super(argc, argv)
+	, m_cliOptions(cli_opts)
+{
+#ifdef Q_OS_UNIX
+	if (setpgid(0, 0) != 0) {
+		shvError() << "Error set process group ID:" << errno << ::strerror(errno);
+	}
+#endif
+	cp::RpcMessage::setMetaTypeExplicit(cli_opts->isMetaTypeExplicit());
+	m_rpcConnection = new shv::iotqt::rpc::DeviceConnection(this);
+
+	if (!cli_opts->user_isset()) {
+		cli_opts->setUser("sitesprovider");
+	}
+	if (!cli_opts->password_isset()) {
+		cli_opts->setPassword("dub34pub");
+	}
+	if (!cli_opts->deviceId_isset()) {
+		cli_opts->setDeviceId("sitesprovider");
+	}
+	m_rpcConnection->setCliOptions(cli_opts);
+
+	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &SitesProviderApp::onRpcMessageReceived);
+
+	m_rootNode = new AppRootNode();
+	m_shvTree = new shv::iotqt::node::ShvNodeTree(m_rootNode, this);
+
+	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
+
+	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
+}
+
+SitesProviderApp::~SitesProviderApp()
+{
+	shvInfo() << "destroying sitesprovider application";
+}
+
+SitesProviderApp *SitesProviderApp::instance()
+{
+	return qobject_cast<SitesProviderApp *>(QCoreApplication::instance());
+}
+
+void SitesProviderApp::onRpcMessageReceived(const cp::RpcMessage &msg)
+{
+	shvLogFuncFrame() << msg.toCpon();
+	if (msg.isRequest()) {
+		cp::RpcRequest rq(msg);
+		if(m_shvTree->root()) {
+			m_shvTree->root()->handleRpcRequest(rq);
 		}
 	}
-	else {
-		config.chainpack = cp::RpcValue::String();
-	}
-	config.content = file_content;
-	config.time = QFileInfo(f).lastModified();
 }
