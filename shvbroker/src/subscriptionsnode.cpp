@@ -100,7 +100,7 @@ shv::chainpack::RpcValue SubscriptionsNode::callMethod(const StringViewList &shv
 				}
 			}
 			if(subs == nullptr)
-				SHV_EXCEPTION("Method " + method + " called on invalid path " + StringView::join(shv_path, '/'));
+				SHV_EXCEPTION("Method " + method + " called on invalid path " + shv_path.join('/'));
 			if(method == METH_PATH)
 				return subs->absolutePath;
 			if(method == METH_METHOD)

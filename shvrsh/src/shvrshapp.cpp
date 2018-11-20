@@ -187,12 +187,9 @@ void ShvRshApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 			}
 		}
 	}
-	else if(msg.isNotify()) {
-		cp::RpcNotify ntf(msg);
+	else if(msg.isSignal()) {
+		cp::RpcSignal ntf(msg);
 		shvInfo() << "RPC notify received:" << ntf.toCpon();
-		if(ntf.method() == cp::Rpc::NTF_CONNECTED_CHANGED) {
-			quit();
-		}
 	}
 }
 

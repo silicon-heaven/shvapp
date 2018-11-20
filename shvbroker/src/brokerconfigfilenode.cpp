@@ -110,7 +110,7 @@ shv::chainpack::RpcValue RpcValueMapNode::valueOnPath(const shv::iotqt::node::Sh
 		const shv::chainpack::RpcValue::Map &m = v.toMap();
 		v = m.value(dir.toString());
 		if(!v.isValid())
-			SHV_EXCEPTION("Invalid path: " + shv::core::StringView::join(shv_path, '/'));
+			SHV_EXCEPTION("Invalid path: " + shv_path.join('/'));
 	}
 	return v;
 }
@@ -118,14 +118,14 @@ shv::chainpack::RpcValue RpcValueMapNode::valueOnPath(const shv::iotqt::node::Sh
 void RpcValueMapNode::setValueOnPath(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const shv::chainpack::RpcValue &val)
 {
 	if(shv_path.empty())
-		SHV_EXCEPTION("Invalid path: " + shv::core::StringView::join(shv_path, '/'));
+		SHV_EXCEPTION("Invalid path: " + shv_path.join('/'));
 	shv::chainpack::RpcValue v = config();
 	for (size_t i = 0; i < shv_path.size()-1; ++i) {
 		auto dir = shv_path.at(i);
 		const shv::chainpack::RpcValue::Map &m = v.toMap();
 		v = m.value(dir.toString());
 		if(!v.isValid())
-			SHV_EXCEPTION("Invalid path: " + shv::core::StringView::join(shv_path, '/'));
+			SHV_EXCEPTION("Invalid path: " + shv_path.join('/'));
 	}
 	v.set(shv_path.at(shv_path.size() - 1).toString(), val);
 }
@@ -193,7 +193,7 @@ shv::iotqt::node::ShvNode::StringList AclPathsConfigFileNode::childNames(const s
 
 shv::chainpack::RpcValue AclPathsConfigFileNode::valueOnPath(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
 {
-	shvInfo() << "valueOnPath:" << shv::iotqt::node::ShvNode::StringView::join(shv_path, '/');
+	//shvInfo() << "valueOnPath:" << shv_path.join('/');
 	shv::chainpack::RpcValue v = config();
 	for (size_t i = 0; i < shv_path.size(); ++i) {
 		shv::iotqt::node::ShvNode::StringView dir = shv_path[i];
@@ -204,7 +204,7 @@ shv::chainpack::RpcValue AclPathsConfigFileNode::valueOnPath(const shv::iotqt::n
 		v = m.value(key);
 		shvInfo() << "\t i:" << i << "key:" << key << "val:" << v.toCpon();
 		if(!v.isValid())
-			SHV_EXCEPTION("Invalid path: " + shv::core::StringView::join(shv_path, '/'));
+			SHV_EXCEPTION("Invalid path: " + shv_path.join('/'));
 	}
 	return v;
 }

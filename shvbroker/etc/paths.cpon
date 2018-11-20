@@ -5,7 +5,7 @@
 		"client": {
 			"": {"grant": "bws"},
 		},
-		"broker-ping": {
+		"ping": {
 			".broker/app": {"grant": "bws"},
 		},
 		"poland": {

@@ -26,7 +26,7 @@ inline unsigned qHash(const std::string &s) noexcept //Q_DECL_NOEXCEPT_EXPR(noex
 class QSocketNotifier;
 
 namespace shv { namespace iotqt { namespace node { class ShvNodeTree; }}}
-namespace shv { namespace chainpack { class RpcNotify; }}
+namespace shv { namespace chainpack { class RpcSignal; }}
 namespace rpc { class TcpServer; class ServerConnection;  class MasterBrokerConnection; class CommonRpcClientHandle; }
 
 class BrokerApp : public QCoreApplication
@@ -54,6 +54,8 @@ public:
 
 	rpc::TcpServer* tcpServer();
 	rpc::ServerConnection* clientById(int client_id);
+
+	rpc::CommonRpcClientHandle* commonClientConnectionById(int connection_id);
 
 	void reloadConfig();
 	void clearAccessGrantCache();
@@ -84,7 +86,6 @@ private:
 	rpc::MasterBrokerConnection* masterBrokerConnectionById(int connection_id);
 
 	std::vector<rpc::CommonRpcClientHandle *> allClientConnections();
-	rpc::CommonRpcClientHandle* commonClientConnectionById(int connection_id);
 
 	std::string resolveMountPoint(const shv::chainpack::RpcValue::Map &device_opts);
 	std::string mountPointForDevice(const shv::chainpack::RpcValue &device_id);
@@ -94,7 +95,7 @@ private:
 	void onRootNodeSendRpcMesage(const shv::chainpack::RpcMessage &msg);
 
 	void sendNotifyToSubscribers(int sender_connection_id, const std::string &shv_path, const std::string &method, const shv::chainpack::RpcValue &params);
-	void sendNotifyToSubscribers(int sender_connection_id, const shv::chainpack::RpcValue::MetaData &meta_data, const std::string &data);
+	bool sendNotifyToSubscribers(int sender_connection_id, const shv::chainpack::RpcValue::MetaData &meta_data, const std::string &data);
 
 	static std::string brokerClientDirPath(int client_id);
 	static std::string brokerClientAppPath(int client_id);

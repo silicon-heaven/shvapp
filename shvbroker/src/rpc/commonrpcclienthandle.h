@@ -22,7 +22,7 @@ public:
 		std::string toRelativePath(const std::string &abs_path, bool &changed) const;
 		static std::string toAbsolutePath(const std::string &mount_point, const std::string &rel_path);
 
-		bool operator<(const Subscription &o) const;
+		//bool operator<(const Subscription &o) const;
 		bool operator==(const Subscription &o) const;
 		bool match(const shv::core::StringView &shv_path, const shv::core::StringView &shv_method) const;
 		std::string toString() const {return absolutePath + ':' + method;}
@@ -47,11 +47,12 @@ public:
 
 	void addSubscription(const std::string &rel_path, const std::string &method);
 	int isSubscribed(const std::string &path, const std::string &method) const;
-	//std::vector<std::string> subscriptionKeys() const;
 	size_t subscriptionCount() const {return m_subscriptions.size();}
 	const Subscription& subscriptionAt(size_t ix) const {return m_subscriptions.at(ix);}
+	bool unsubscribeRejectedSignal(const std::string &path, const std::string &method);
 
 	virtual std::string userName() = 0;
+	virtual bool isSlaveBrokerConnection() const = 0;
 
 	void addMountPoint(const std::string &mp);
 	const std::vector<std::string>& mountPoints() const {return m_mountPoints;}

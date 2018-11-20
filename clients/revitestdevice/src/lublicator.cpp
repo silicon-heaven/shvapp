@@ -96,7 +96,7 @@ static std::vector<cp::MetaMethod> meta_methods_status {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, false},
 	{METH_SIM_SET, cp::MetaMethod::Signature::VoidParam, false},
-	{cp::Rpc::NTF_VAL_CHANGED, cp::MetaMethod::Signature::VoidParam, true},
+	{cp::Rpc::SIG_VAL_CHANGED, cp::MetaMethod::Signature::VoidParam, true},
 };
 
 size_t Lublicator::methodCount(const StringViewList &shv_path)
