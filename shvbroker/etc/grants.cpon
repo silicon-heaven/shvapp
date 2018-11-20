@@ -14,5 +14,8 @@
 	"device": {"grants": ["client"]},
 	"poland": {},
 	"ping": {},
-	"broker": {"grants": ["device"]},
+	"broker": {},
+	"sitesprovider": { "grants": ["client"] },
+	"shvhistoryprovider": { "grants": ["client"] },
+	"tscshvagent": {"grants": ["device"]},
 }
