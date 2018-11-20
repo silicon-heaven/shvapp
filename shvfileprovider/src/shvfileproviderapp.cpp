@@ -94,7 +94,7 @@ ShvFileProviderApp::ShvFileProviderApp(int &argc, char **argv, AppCliOptions* cl
 
 	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
 
-	QString root_dir = cli_opts->fsRootDir();
+	QString root_dir = QString::fromStdString(cli_opts->fsRootDir());
 	if(!root_dir.isEmpty() && QDir(root_dir).exists()) {
 		const char *FS = "fs";
 		shvInfo() << "Exporting" << root_dir << "as" << FS << "node";
@@ -134,9 +134,9 @@ void ShvFileProviderApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &
 		cp::RpcResponse rp(msg);
 		shvInfo() << "RPC response received:" << rp.toPrettyString();
 	}
-	else if(msg.isNotify()) {
-		cp::RpcNotify nt(msg);
-		shvInfo() << "RPC notify received:" << nt.toPrettyString();
+	else if(msg.isSignal()) {
+		cp::RpcSignal nt(msg);
+		shvInfo() << "RPC signal received:" << nt.toPrettyString();
 	}
 }
 
