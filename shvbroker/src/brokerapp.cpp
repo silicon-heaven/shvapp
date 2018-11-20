@@ -626,11 +626,11 @@ void BrokerApp::onClientLogin(int connection_id)
 			connect(conn, &rpc::ServerConnection::destroyed, this, [this, connection_id, mount_point]() {
 				shvInfo() << "server connection destroyed";
 				//this->sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_DISCONNECTED, cp::RpcValue());
-				this->sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_MOUNTED_CHANGED, false);
+				this->sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::SIG_MOUNTED_CHANGED, false);
 			});
 			connect(cli_nd, &ClientShvNode::destroyed, cli_nd->parentNode(), &shv::iotqt::node::ShvNode::deleteIfEmptyWithParents, static_cast<Qt::ConnectionType>(Qt::UniqueConnection | Qt::QueuedConnection));
 			//sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_CONNECTED, cp::RpcValue());
-			sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_MOUNTED_CHANGED, true);
+			sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::SIG_MOUNTED_CHANGED, true);
 		}
 	}
 	//shvInfo() << m_deviceTree->dumpTree();
@@ -683,11 +683,11 @@ void BrokerApp::onLoggedinToMasterBroker(int connection_id)
 			conn->addMountPoint(mount_point);
 			connect(conn, &rpc::MasterBrokerConnection::destroyed, this, [this, connection_id, mount_point]() {
 				shvInfo() << "master broker connection destroyed, id:" << connection_id;
-				this->sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_MOUNTED_CHANGED, false);
+				this->sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::SIG_MOUNTED_CHANGED, false);
 			});
 			connect(mb_nd, &MasterBrokerShvNode::destroyed, mb_nd->parentNode(), &shv::iotqt::node::ShvNode::deleteIfEmptyWithParents, static_cast<Qt::ConnectionType>(Qt::UniqueConnection | Qt::QueuedConnection));
 			//sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_CONNECTED, cp::RpcValue());
-			sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_MOUNTED_CHANGED, true);
+			sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::SIG_MOUNTED_CHANGED, true);
 		}
 	}
 }
@@ -755,15 +755,24 @@ void BrokerApp::onRpcDataReceived(int connection_id, shv::chainpack::Rpc::Protoc
 			shvError() << "Got RPC response without src connection specified, throwing message away." << meta.toStdString();
 		}
 	}
-	else if(cp::RpcMessage::isNotify(meta)) {
+	else if(cp::RpcMessage::isSignal(meta)) {
 		shvDebug() << "NOTIFY:" << meta.toStdString() << "from:" << connection_id;
-		rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
+		rpc::CommonRpcClientHandle *conn = commonClientConnectionById(connection_id);
 		if(conn) {
 			for(const std::string &mp : conn->mountPoints()) {
 				std::string full_shv_path = shv::core::Utils::joinPath(mp, cp::RpcMessage::shvPath(meta).toString());
 				if(!full_shv_path.empty()) {
 					cp::RpcMessage::setShvPath(meta, full_shv_path);
-					sendNotifyToSubscribers(connection_id, meta, data);
+					bool sig_sent = sendNotifyToSubscribers(connection_id, meta, data);
+					if(!sig_sent && conn->isSlaveBrokerConnection()) {
+						cp::RpcRequest rq;
+						rq.setMethod(cp::Rpc::METH_REJECT_NOT_SUBSCRIBED)
+								.setParams(cp::RpcValue::Map{
+											   { cp::Rpc::PAR_PATH, full_shv_path},
+											   { cp::Rpc::PAR_METHOD, cp::RpcMessage::method(meta).toString()}})
+								.setShvPath(cp::Rpc::DIR_BROKER_APP);
+						conn->sendMessage(rq);
+					}
 				}
 			}
 		}
@@ -785,7 +794,17 @@ void BrokerApp::onRootNodeSendRpcMesage(const shv::chainpack::RpcMessage &msg)
 	shvError() << "Send message not implemented.";// << msg.toCpon();
 }
 
-void BrokerApp::sendNotifyToSubscribers(int sender_connection_id, const shv::chainpack::RpcValue::MetaData &meta_data, const std::string &data)
+std::string BrokerApp::brokerClientDirPath(int client_id)
+{
+	return std::string(cp::Rpc::DIR_BROKER) + "/clients/" + std::to_string(client_id);
+}
+
+std::string BrokerApp::brokerClientAppPath(int client_id)
+{
+	return brokerClientDirPath(client_id) + "/app";
+}
+
+bool BrokerApp::sendNotifyToSubscribers(int sender_connection_id, const shv::chainpack::RpcValue::MetaData &meta_data, const std::string &data)
 {
 	// send it to all clients for now
 	for(rpc::CommonRpcClientHandle *conn : allClientConnections()) {
@@ -797,7 +816,7 @@ void BrokerApp::sendNotifyToSubscribers(int sender_connection_id, const shv::cha
 			const cp::RpcValue method = cp::RpcMessage::method(meta_data);
 			int subs_ix = conn->isSubscribed(shv_path.toString(), method.toString());
 			if(subs_ix >= 0) {
-				shvDebug() << "\t broadcasting to connection id:" << id;
+				//shvDebug() << "\t broadcasting to connection id:" << id;
 				const rpc::ServerConnection::Subscription &subs = conn->subscriptionAt((size_t)subs_ix);
 				bool changed;
 				std::string new_path = subs.toRelativePath(shv_path.toString(), changed);
@@ -805,28 +824,21 @@ void BrokerApp::sendNotifyToSubscribers(int sender_connection_id, const shv::cha
 					shv::chainpack::RpcValue::MetaData md2(meta_data);
 					cp::RpcMessage::setShvPath(md2, new_path);
 					conn->sendRawData(md2, std::string(data));
+					return true;
 				}
 				else {
 					conn->sendRawData(meta_data, std::string(data));
+					return true;
 				}
 			}
 		}
 	}
-}
-
-std::string BrokerApp::brokerClientDirPath(int client_id)
-{
-	return std::string(cp::Rpc::DIR_BROKER) + "/clients/" + std::to_string(client_id);
-}
-
-std::string BrokerApp::brokerClientAppPath(int client_id)
-{
-	return brokerClientDirPath(client_id) + "/app";
+	return false;
 }
 
 void BrokerApp::sendNotifyToSubscribers(int sender_connection_id, const std::string &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
 {
-	cp::RpcNotify ntf;
+	cp::RpcSignal ntf;
 	ntf.setShvPath(shv_path);
 	ntf.setMethod(method);
 	ntf.setParams(params);
@@ -838,7 +850,7 @@ void BrokerApp::sendNotifyToSubscribers(int sender_connection_id, const std::str
 		if(conn->isConnectedAndLoggedIn()) {
 			int subs_ix = conn->isSubscribed(shv_path, method);
 			if(subs_ix >= 0) {
-				shvDebug() << "\t broadcasting to connection id:" << id;
+				//shvDebug() << "\t broadcasting to connection id:" << id;
 				const rpc::ServerConnection::Subscription &subs = conn->subscriptionAt((size_t)subs_ix);
 				bool changed;
 				std::string new_path = subs.toRelativePath(shv_path, changed);
@@ -856,6 +868,23 @@ void BrokerApp::addSubscription(int client_id, const std::string &path, const st
 	if(!conn)
 		SHV_EXCEPTION("Connot create subscription, client doesn't exist.");
 	conn->addSubscription(path, method);
+	// check slave broker connections
+	// whether this subsciption should be propagated to them
+	for (int connection_id : tcpServer()->connectionIds()) {
+		rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
+		if(conn->isSlaveBrokerConnection()) {
+			for(const std::string &mpoint : conn->mountPoints()) {
+				shv::core::StringViewList mntlst = shv::iotqt::node::ShvNode::splitPath(mpoint);
+				shv::core::StringViewList subslst = shv::iotqt::node::ShvNode::splitPath(path);
+				if(subslst.startsWith(mntlst)) {
+					addSubscription(connection_id, subslst.mid(mntlst.size()).join('/'), method);
+				}
+				else if(mntlst.startsWith(subslst)) {
+					addSubscription(connection_id, std::string(), method);
+				}
+			}
+		}
+	}
 }
 
 void BrokerApp::createMasterBrokerConnections()

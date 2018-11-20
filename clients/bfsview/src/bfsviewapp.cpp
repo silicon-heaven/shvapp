@@ -96,7 +96,7 @@ shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::Rp
 static std::vector<cp::MetaMethod> meta_methods_pwrstatus {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false},
 	{cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, false},
-	{cp::Rpc::NTF_VAL_CHANGED, cp::MetaMethod::Signature::VoidParam, true},
+	{cp::Rpc::SIG_VAL_CHANGED, cp::MetaMethod::Signature::VoidParam, true},
 	{METH_SIM_SET, cp::MetaMethod::Signature::VoidParam, false},
 };
 
@@ -171,8 +171,8 @@ void PwrStatusNode::sendPwrStatusChangedDeferred()
 #ifndef TEST
 	if(!BfsViewApp::instance()->rpcConnection()->isBrokerConnected())
 		return;
-	cp::RpcNotify ntf;
-	ntf.setMethod(cp::Rpc::NTF_VAL_CHANGED);
+	cp::RpcSignal ntf;
+	ntf.setMethod(cp::Rpc::SIG_VAL_CHANGED);
 	ntf.setParams((unsigned)m_pwrStatusToSendDeferred);
 	ntf.setShvPath(BFS1_PWR_STATUS);
 	rootNode()->emitSendRpcMesage(ntf);
@@ -419,7 +419,7 @@ QString BfsViewApp::switchStatusToString(BfsViewApp::SwitchStatus status)
 void BfsViewApp::onBrokerConnectedChanged(bool is_connected)
 {
 	if(is_connected) {
-		rpcConnection()->createSubscription("../bfs1", cp::Rpc::NTF_VAL_CHANGED);
+		rpcConnection()->createSubscription("../bfs1", cp::Rpc::SIG_VAL_CHANGED);
 		m_pwrStatusNode->sendPwrStatusChanged();
 		sendGetStatusRequest();
 		//shvInfo() << "get status rq id:" << m_getStatusRpcId;
@@ -486,12 +486,12 @@ void BfsViewApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 			}
 		}
 	}
-	else if(msg.isNotify()) {
-		cp::RpcNotify ntf(msg);
+	else if(msg.isSignal()) {
+		cp::RpcSignal ntf(msg);
 #ifdef TEST
 		shvInfo() << "RPC notify received:" << ntf.toCpon();
 #else
-		if(ntf.method() == cp::Rpc::NTF_VAL_CHANGED) {
+		if(ntf.method() == cp::Rpc::SIG_VAL_CHANGED) {
 			if(ntf.shvPath() == "../bfs1/status") {
 				setBfsStatus(ntf.params().toInt());
 			}

@@ -25,8 +25,8 @@ QVariant RpcNotificationsModel::headerData(int section, Qt::Orientation orientat
 
 void RpcNotificationsModel::addLogRow(const std::string &broker_name, const shv::chainpack::RpcMessage &msg)
 {
-	if(msg.isNotify()) {
-		cp::RpcNotify ntf(msg);
+	if(msg.isSignal()) {
+		cp::RpcSignal ntf(msg);
 		LogTableModelRow rw;
 		rw.resize(ColCnt);
 		rw[ColBroker] = QString::fromStdString(broker_name);

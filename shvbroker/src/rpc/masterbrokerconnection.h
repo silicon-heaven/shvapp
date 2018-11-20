@@ -20,6 +20,7 @@ public:
 	std::string userName() override {return Super::user();}
 
 	bool isConnectedAndLoggedIn() const override {return isSocketConnected() && !isInitPhase();}
+	bool isSlaveBrokerConnection() const override {return false;}
 
 	void setOptions(const shv::chainpack::RpcValue &slave_broker_options) override;
 

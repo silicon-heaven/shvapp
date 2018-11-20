@@ -234,8 +234,8 @@ void ShvRExecApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 			}
 		}
 	}
-	else if(msg.isNotify()) {
-		cp::RpcNotify ntf(msg);
+	else if(msg.isSignal()) {
+		cp::RpcSignal ntf(msg);
 		/*
 		const cp::RpcValue shv_path = ntf.shvPath();
 		if(shv_path.toString() == "in") {

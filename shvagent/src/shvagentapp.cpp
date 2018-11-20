@@ -363,8 +363,8 @@ void ShvAgentApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 		cp::RpcResponse rp(msg);
 		shvInfo() << "RPC response received:" << rp.toPrettyString();
 	}
-	else if(msg.isNotify()) {
-		cp::RpcNotify nt(msg);
+	else if(msg.isSignal()) {
+		cp::RpcSignal nt(msg);
 		shvInfo() << "RPC notify received:" << nt.toPrettyString();
 		/*
 		if(nt.method() == cp::Rpc::NTF_VAL_CHANGED) {

@@ -18,6 +18,18 @@ static const char M_RELOAD_CONFIG[] = "reloadConfig";
 static const char M_RESTART[] = "restart";
 static const char M_MOUNT_POINTS_FOR_CLIENT_ID[] = "mountPointsForClientId";
 
+static std::vector<cp::MetaMethod> meta_methods {
+	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
+	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
+	{cp::Rpc::METH_PING, cp::MetaMethod::Signature::VoidVoid},
+	{cp::Rpc::METH_ECHO, cp::MetaMethod::Signature::RetParam},
+	{M_MOUNT_POINTS_FOR_CLIENT_ID, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
+	{cp::Rpc::METH_SUBSCRIBE, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
+	{cp::Rpc::METH_REJECT_NOT_SUBSCRIBED, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
+	{M_RELOAD_CONFIG, cp::MetaMethod::Signature::VoidVoid, 0, cp::Rpc::GRANT_SERVICE},
+	{M_RESTART, cp::MetaMethod::Signature::VoidVoid, 0, cp::Rpc::GRANT_SERVICE},
+};
+
 BrokerNode::BrokerNode(shv::iotqt::node::ShvNode *parent)
 	: Super(parent)
 {
@@ -34,9 +46,18 @@ shv::chainpack::RpcValue BrokerNode::processRpcRequest(const shv::chainpack::Rpc
 			const shv::chainpack::RpcValue::Map &pm = parms.toMap();
 			std::string path = pm.value(cp::Rpc::PAR_PATH).toString();
 			std::string method = pm.value(cp::Rpc::PAR_METHOD).toString();
-			shv::chainpack::RpcRequest rq2 = rq;
-			int client_id = rq2.popCallerId();
+			int client_id = rq.peekCallerId();
 			BrokerApp::instance()->addSubscription(client_id, path, method);
+			return true;
+		}
+		else if(method == cp::Rpc::METH_REJECT_NOT_SUBSCRIBED) {
+			const shv::chainpack::RpcValue parms = rq.params();
+			const shv::chainpack::RpcValue::Map &pm = parms.toMap();
+			std::string path = pm.value(cp::Rpc::PAR_PATH).toString();
+			std::string method = pm.value(cp::Rpc::PAR_METHOD).toString();
+			int client_id = rq.peekCallerId();
+			rpc::CommonRpcClientHandle *conn = BrokerApp::instance()->commonClientConnectionById(client_id);
+			conn->unsubscribeRejectedSignal(path, method);
 			return true;
 		}
 	}
@@ -48,17 +69,6 @@ shv::iotqt::node::ShvNode::StringList BrokerNode::childNames(const StringViewLis
 	Q_UNUSED(shv_path)
 	return shv::iotqt::node::ShvNode::StringList{};
 }
-
-static std::vector<cp::MetaMethod> meta_methods {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
-	{cp::Rpc::METH_PING, cp::MetaMethod::Signature::VoidVoid},
-	{cp::Rpc::METH_ECHO, cp::MetaMethod::Signature::RetParam},
-	{M_MOUNT_POINTS_FOR_CLIENT_ID, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
-	{cp::Rpc::METH_SUBSCRIBE, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
-	{M_RELOAD_CONFIG, cp::MetaMethod::Signature::VoidVoid, 0, cp::Rpc::GRANT_SERVICE},
-	{M_RESTART, cp::MetaMethod::Signature::VoidVoid, 0, cp::Rpc::GRANT_SERVICE},
-};
 
 size_t BrokerNode::methodCount(const StringViewList &shv_path)
 {
