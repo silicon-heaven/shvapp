@@ -23,7 +23,7 @@ linux:
 
 linux-deploy:
   only:
-    - master
+    - production
   tags:
     - linux
   stage:
