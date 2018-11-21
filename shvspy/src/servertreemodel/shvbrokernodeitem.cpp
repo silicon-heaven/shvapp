@@ -117,6 +117,7 @@ void ShvBrokerNodeItem::open()
 	cli->setPort(m_serverPropeties.value("port").toInt());
 	cli->setUser(m_serverPropeties.value("user").toString().toStdString());
 	cli->setPassword(m_serverPropeties.value("password").toString().toStdString());
+	cli->setLoginType(cp::AbstractRpcConnection::LoginType::Plain);
 	cli->open();
 	m_openStatus = OpenStatus::Connecting;
 	emitDataChanged();
