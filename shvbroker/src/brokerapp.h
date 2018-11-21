@@ -68,7 +68,7 @@ public:
 	shv::chainpack::RpcValue aclConfig(const std::string &config_name, bool throw_exc);
 	bool setAclConfig(const std::string &config_name, const shv::chainpack::RpcValue &config, bool throw_exc);
 
-	std::string dataToCpon(shv::chainpack::Rpc::ProtocolType protocol_type, const shv::chainpack::RpcValue::MetaData &md, const std::string &data, size_t start_pos);
+	std::string dataToCpon(shv::chainpack::Rpc::ProtocolType protocol_type, const shv::chainpack::RpcValue::MetaData &md, const std::string &data, size_t start_pos = 0, size_t data_len = 0);
 private:
 	void remountDevices();
 	void reloadAcl();

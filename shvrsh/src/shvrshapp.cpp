@@ -91,7 +91,7 @@ ShvRshApp::ShvRshApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	m_shvTree = new shv::iotqt::node::ShvNodeTree(root, this);
 	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
 
-	fcntl(0, F_SETFL, fcntl(0, F_GETFL) | O_NONBLOCK);
+	fcntl(STDIN_FILENO, F_SETFL, fcntl(STDIN_FILENO, F_GETFL) | O_NONBLOCK);
 	QSocketNotifier *stdin_notifier = new QSocketNotifier(STDIN_FILENO, QSocketNotifier::Read, this);
 	connect(stdin_notifier, &QSocketNotifier::activated, this, &ShvRshApp::onReadyReadStdIn);
 
@@ -167,19 +167,7 @@ void ShvRshApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 				int channel = lst.value(0).toInt();
 				if(channel == STDOUT_FILENO || channel == STDERR_FILENO) {
 					const shv::chainpack::RpcValue::String &blob = lst.value(1).toString();
-					ssize_t written = 0;
-					do {
-						ssize_t n = ::write(channel, blob.data() + written, blob.size() - written);
-						if(n < 0) {
-							shvError() << "Error write remote data to " << (channel == STDOUT_FILENO? "stdout": "stderr") << ::strerror(errno);
-							break;
-						}
-						written += n;
-						if(written < (ssize_t)blob.size()) {
-							shvInfo() << "only" << n << "of" << (blob.size() - written) << "was written";
-							continue;
-						}
-					} while(false);
+					writeToOutChannel(channel, blob);
 				}
 				else {
 					shvError() << "Ignoring invalid channel number data received, channel:" << channel;
@@ -216,6 +204,28 @@ void ShvRshApp::writeToTunnel(int channel, const cp::RpcValue &data)
 	}
 }
 
+void ShvRshApp::writeToOutChannel(int channel, const std::string &data)
+{
+	if(channel == STDOUT_FILENO || channel == STDERR_FILENO) {
+		std::string &buff = m_channelBuffs[channel];
+		buff += data;
+		ssize_t n = ::write(channel, buff.data(), buff.size());
+		if(n < 0) {
+			//shvError() << "Error write remote data to " << (channel == STDOUT_FILENO? "stdout": "stderr") << ::strerror(errno);
+			n = 0;
+		}
+		buff.erase(0, (size_t)n);
+		if(!buff.empty()) {
+			QTimer::singleShot(100, this, [this, channel]() {
+				this->writeToOutChannel(channel, std::string());
+			});
+		}
+	}
+	else {
+		shvError() << "Ignoring invalid channel number, channel:" << channel;
+	}
+}
+
 void ShvRshApp::launchRemoteShell()
 {
 	std::string tunp = m_cliOptions->tunnelShvPath();
@@ -226,7 +236,7 @@ void ShvRshApp::launchRemoteShell()
 			SHV_EXCEPTION("ioctl-TIOCGWINSZ");
 		cp::RpcValue::Map params;
 		params[cp::Rpc::JSONRPC_METHOD] = "runPtyCmd";
-		params[cp::Rpc::JSONRPC_PARAMS] = cp::RpcValue::List{"/bin/sh", ws.ws_col, ws.ws_row};
+		params[cp::Rpc::JSONRPC_PARAMS] = cp::RpcValue::List{"/bin/bash", ws.ws_col, ws.ws_row};
 		m_readTunnelRequestId = m_rpcConnection->callShvMethod(tunp, tunm, params);
 		shvDebug() << "opening tunnel on path:" << tunp << "method:" << tunm << "request id:" << m_readTunnelRequestId;
 #if 0

@@ -41,6 +41,7 @@ private:
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	void onReadyReadStdIn();
 	void writeToTunnel(int channel, const shv::chainpack::RpcValue &data);
+	void writeToOutChannel(int channel, const std::string &data);
 	void launchRemoteShell();
 private:
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
@@ -50,5 +51,7 @@ private:
 	shv::iotqt::rpc::TunnelHandle m_writeTunnelHandle;
 
 	shv::iotqt::node::ShvNodeTree *m_shvTree = nullptr;
+
+	std::map<int, std::string> m_channelBuffs;
 };
 
