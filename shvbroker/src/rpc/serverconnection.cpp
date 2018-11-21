@@ -64,7 +64,7 @@ void ServerConnection::setIdleWatchDogTimeOut(int sec)
 	}
 }
 
-std::string ServerConnection::passwordHash(LoginType login_type, const std::string &user)
+std::tuple<std::string, ServerConnection::PasswordFormat> ServerConnection::password(const std::string &user)
 {
 	/*
 	const std::map<std::string, std::string> passwds {
@@ -73,13 +73,14 @@ std::string ServerConnection::passwordHash(LoginType login_type, const std::stri
 		{"revitest", "lautrhovno271828"},
 	};
 	*/
+	std::tuple<std::string, ServerConnection::PasswordFormat> invalid;
 	if(user.empty())
-		return std::string();
+		return invalid;
 	BrokerApp *app = BrokerApp::instance();
 	const shv::chainpack::RpcValue::Map &user_def = app->usersConfig().toMap().value(user).toMap();
 	if(user_def.empty()) {
 		shvWarning() << "Invalid user:" << user;
-		return std::string();
+		return invalid;
 	}
 	std::string pass = user_def.value("password").toString();
 	std::string password_format_str = user_def.value("passwordFormat").toString();
@@ -90,23 +91,9 @@ std::string ServerConnection::passwordHash(LoginType login_type, const std::stri
 	PasswordFormat password_format = passwordFormatFromString(password_format_str);
 	if(password_format == PasswordFormat::Invalid) {
 		shvWarning() << "Invalid password format for user:" << user;
-		return std::string();
+		return invalid;
 	}
-	if(login_type == LoginType::Plain && password_format == PasswordFormat::Plain) {
-		return pass;
-	}
-	if(login_type == LoginType::Sha1 && password_format == PasswordFormat::Sha1) {
-		return pass;
-	}
-	if(login_type == LoginType::Sha1 && password_format == PasswordFormat::Plain) {
-		QCryptographicHash hash(QCryptographicHash::Algorithm::Sha1);
-		hash.addData(pass.data(), pass.size());
-		QByteArray sha1 = hash.result().toHex();
-		//shvWarning() << user << pass << sha1;
-		return std::string(sha1.constData(), sha1.length());
-	}
-	shvWarning() << "Invalid login type for user:" << user;
-	return std::string();
+	return std::tuple<std::string, ServerConnection::PasswordFormat>(pass, password_format);
 }
 
 void ServerConnection::sendMessage(const shv::chainpack::RpcMessage &rpc_msg)
