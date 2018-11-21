@@ -110,7 +110,7 @@ void ServerConnection::sendRawData(const shv::chainpack::RpcValue::MetaData &met
 	logRpcMsg() << SND_LOG_ARROW
 				<< "client id:" << connectionId()
 				<< "protocol_type:" << (int)protocolType() << shv::chainpack::Rpc::protocolTypeToString(protocolType())
-				<< BrokerApp::instance()->dataToCpon(shv::chainpack::RpcMessage::protocolType(meta_data), meta_data, data, 0);
+				<< BrokerApp::instance()->dataToCpon(shv::chainpack::RpcMessage::protocolType(meta_data), meta_data, data);
 	Super::sendRawData(meta_data, std::move(data));
 }
 
@@ -119,7 +119,7 @@ void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolType proto
 	logRpcMsg() << RCV_LOG_ARROW
 				<< "client id:" << connectionId()
 				<< "protocol_type:" << (int)protocol_type << shv::chainpack::Rpc::protocolTypeToString(protocol_type)
-				<< BrokerApp::instance()->dataToCpon(protocol_type, md, data, start_pos);
+				<< BrokerApp::instance()->dataToCpon(protocol_type, md, data, start_pos, data_len);
 	try {
 		if(isInitPhase()) {
 			Super::onRpcDataReceived(protocol_type, std::move(md), data, start_pos, data_len);
