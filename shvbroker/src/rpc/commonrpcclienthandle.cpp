@@ -7,16 +7,16 @@
 #include <shv/core/stringview.h>
 #include <shv/core/exception.h>
 
+#define logSubscriptionsD() nCDebug("Subs")
+
 namespace rpc {
 
-std::string CommonRpcClientHandle::Subscription::toRelativePath(const std::string &abs_path, bool &changed) const
+std::string CommonRpcClientHandle::Subscription::toRelativePath(const std::string &abs_path) const
 {
 	if(relativePath.empty()) {
-		changed = false;
 		return abs_path;
 	}
 	std::string ret = relativePath + abs_path.substr(absolutePath.size());
-	changed = true;
 	return ret;
 }
 
@@ -38,7 +38,7 @@ std::string CommonRpcClientHandle::Subscription::toAbsolutePath(const std::strin
 	}
 	std::string abs_path;
 	if(ddot_cnt > 0 && !mount_point.empty()) {
-		shv::core::StringViewList mpl = shv::iotqt::node::ShvNode::splitPath(mount_point);
+		shv::core::StringViewList mpl = shv::iotqt::node::ShvNode::splitShvPath(mount_point);
 		if(mpl.size() >= ddot_cnt) {
 			mpl.resize(mpl.size() - ddot_cnt);
 			abs_path = mpl.join('/') + '/' + p.toString();
@@ -101,6 +101,7 @@ void CommonRpcClientHandle::addSubscription(const std::string &rel_path, const s
 			SHV_EXCEPTION("Cannot subscribe relative path on device mounted to more than single node.");
 		abs_path = Subscription::toAbsolutePath(mps[0], rel_path);
 	}
+	logSubscriptionsD() << "adding subscription for connection id:" << connectionId() << "path:" << abs_path << "method:" << method;
 	Subscription subs(abs_path, rel_path, method);
 	auto it = std::find(m_subscriptions.begin(), m_subscriptions.end(), subs);
 	if(it == m_subscriptions.end()) {
@@ -123,6 +124,11 @@ int CommonRpcClientHandle::isSubscribed(const std::string &path, const std::stri
 			return i;
 	}
 	return -1;
+}
+
+std::string CommonRpcClientHandle::toSubscribedPath(const CommonRpcClientHandle::Subscription &subs, const std::string &abs_path) const
+{
+	return subs.toRelativePath(abs_path);
 }
 
 bool CommonRpcClientHandle::unsubscribeRejectedSignal(const std::string &path, const std::string &method)

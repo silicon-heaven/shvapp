@@ -90,7 +90,7 @@ private:
 	std::string resolveMountPoint(const shv::chainpack::RpcValue::Map &device_opts);
 	std::string mountPointForDevice(const shv::chainpack::RpcValue &device_id);
 
-	shv::chainpack::Rpc::AccessGrant accessGrantForShvPath(const std::string &user_name, const std::string &shv_path);
+	shv::chainpack::Rpc::AccessGrant accessGrantForRequest(const std::string &user_name, const std::string &rq_shv_path, const std::string &rq_grant);
 
 	void onRootNodeSendRpcMesage(const shv::chainpack::RpcMessage &msg);
 

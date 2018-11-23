@@ -419,7 +419,7 @@ QString BfsViewApp::switchStatusToString(BfsViewApp::SwitchStatus status)
 void BfsViewApp::onBrokerConnectedChanged(bool is_connected)
 {
 	if(is_connected) {
-		rpcConnection()->createSubscription("../bfs1", cp::Rpc::SIG_VAL_CHANGED);
+		rpcConnection()->callMethodSubscribe("../bfs1", cp::Rpc::SIG_VAL_CHANGED);
 		m_pwrStatusNode->sendPwrStatusChanged();
 		sendGetStatusRequest();
 		//shvInfo() << "get status rq id:" << m_getStatusRpcId;

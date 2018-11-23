@@ -211,7 +211,7 @@ void ShvBrokerNodeItem::onBrokerConnectedChanged(bool is_connected)
 ShvNodeItem* ShvBrokerNodeItem::findNode(const std::string &path, std::string *path_rest)
 {
 	ShvNodeItem *ret = this;
-	shv::core::StringViewList id_list = shv::iotqt::node::ShvNode::splitPath(path);
+	shv::core::StringViewList id_list = shv::iotqt::node::ShvNode::splitShvPath(path);
 
 	for(const shv::core::StringView &node_id : id_list) {
 		int i;
@@ -237,7 +237,7 @@ ShvNodeItem* ShvBrokerNodeItem::findNode(const std::string &path, std::string *p
 int ShvBrokerNodeItem::callCreateSubscription(const std::string &shv_path, std::string method)
 {
 	shv::iotqt::rpc::ClientConnection *cc = clientConnection();
-	int rqid = cc->createSubscription(shv_path, method);
+	int rqid = cc->callMethodSubscribe(shv_path, method);
 	return rqid;
 }
 

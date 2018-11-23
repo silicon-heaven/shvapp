@@ -2,6 +2,7 @@
 #include "../brokerapp.h"
 
 #include <shv/chainpack/rpcmessage.h>
+#include <shv/core/string.h>
 #include <shv/coreqt/log.h>
 
 #define logRpcMsg() shvCDebug("RpcMsg")
@@ -40,6 +41,22 @@ void MasterBrokerConnection::sendMessage(const shv::chainpack::RpcMessage &rpc_m
 	Super::sendMessage(rpc_msg);
 }
 
+void MasterBrokerConnection::addSubscription(const std::string &rel_path, const std::string &method)
+{
+	if(m_exportedShvPath.empty())
+		CommonRpcClientHandle::addSubscription(rel_path, method);
+	else
+		CommonRpcClientHandle::addSubscription(m_exportedShvPath + '/' + rel_path, method);
+}
+
+std::string MasterBrokerConnection::toSubscribedPath(const CommonRpcClientHandle::Subscription &subs, const std::string &abs_path) const
+{
+	if(m_exportedShvPath.empty())
+		return CommonRpcClientHandle::toSubscribedPath(subs, abs_path);
+	else
+		return abs_path.substr(m_exportedShvPath.size() + 1);
+}
+
 void MasterBrokerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolType protocol_type, shv::chainpack::RpcValue::MetaData &&md, const std::string &data, size_t start_pos, size_t data_len)
 {
 	logRpcMsg() << RpcDriver::RCV_LOG_ARROW
@@ -52,10 +69,12 @@ void MasterBrokerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolType
 			return;
 		}
 		if(cp::RpcMessage::isRequest(md)) {
-			std::string shv_path = cp::RpcMessage::shvPath(md).toString();
-			if(!m_exportedShvPath.empty()) {
-				shv_path = m_exportedShvPath + '/' + shv_path;
-				cp::RpcMessage::setShvPath(md, shv_path);
+			shv::core::String shv_path = cp::RpcMessage::shvPath(md).toString();
+			if(!shv_path.startsWith(cp::Rpc::DIR_BROKER)) {
+				if(!m_exportedShvPath.empty()) {
+					shv_path = m_exportedShvPath + '/' + shv_path;
+					cp::RpcMessage::setShvPath(md, shv_path);
+				}
 			}
 		}
 		else if(cp::RpcMessage::isResponse(md)) {

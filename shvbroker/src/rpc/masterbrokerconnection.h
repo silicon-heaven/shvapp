@@ -26,6 +26,9 @@ public:
 
 	void sendRawData(const shv::chainpack::RpcValue::MetaData &meta_data, std::string &&data) override;
 	void sendMessage(const shv::chainpack::RpcMessage &rpc_msg) override;
+
+	void addSubscription(const std::string &rel_path, const std::string &method) override;
+	std::string toSubscribedPath(const Subscription &subs, const std::string &abs_path) const override;
 protected:
 	void onRpcDataReceived(shv::chainpack::Rpc::ProtocolType protocol_type, shv::chainpack::RpcValue::MetaData &&md, const std::string &data, size_t start_pos, size_t data_len) override;
 protected:

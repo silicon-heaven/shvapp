@@ -11,6 +11,8 @@
 #include <shv/iotqt/node/shvnode.h>
 #include <shv/iotqt/node/shvnodetree.h>
 #include <shv/iotqt/rpc/brokerconnection.h>
+#include <shv/iotqt/utils/shvpath.h>
+
 #include <shv/coreqt/log.h>
 
 #include <shv/core/string.h>
@@ -37,6 +39,7 @@
 #include <unistd.h>
 
 #define logAclD() nCDebug("Acl")
+#define logSubscriptionsD() nCDebug("Subs")
 
 int BrokerApp::m_sigTermFd[2];
 #endif
@@ -434,7 +437,7 @@ std::string BrokerApp::resolveMountPoint(const shv::chainpack::RpcValue::Map &de
 		mount_point = mountPointForDevice(device_id);
 	if(mount_point.empty()) {
 		mount_point = device_opts.value(cp::Rpc::KEY_MOUT_POINT).toString();
-		std::vector<shv::core::StringView> path = shv::iotqt::node::ShvNode::splitPath(mount_point);
+		std::vector<shv::core::StringView> path = shv::iotqt::node::ShvNode::splitShvPath(mount_point);
 		if(path.size() && !(path[0] == "test")) {
 			shvWarning() << "Mount point can be explicitly specified to test/ dir only, dev id:" << device_id.toCpon();
 			mount_point.clear();
@@ -495,9 +498,9 @@ const std::set<std::string> &BrokerApp::userFlattenGrants(const std::string &use
 	return m_userFlattenGrantsCache.at(user_name);
 }
 
-cp::Rpc::AccessGrant BrokerApp::accessGrantForShvPath(const std::string &user_name, const std::string &shv_path)
+cp::Rpc::AccessGrant BrokerApp::accessGrantForRequest(const std::string &user_name, const std::string &rq_shv_path, const std::string &rq_grant)
 {
-	logAclD() << "accessGrantForShvPath user:" << user_name << "shv path:" << shv_path;
+	logAclD() << "accessGrantForShvPath user:" << user_name << "shv path:" << rq_shv_path << "request grant:" << rq_grant;
 #ifdef USE_SHV_PATHS_GRANTS_CACHE
 	PathGrantCache *user_path_grants = m_userPathGrantCache.object(user_name);
 	if(user_path_grants) {
@@ -510,21 +513,37 @@ cp::Rpc::AccessGrant BrokerApp::accessGrantForShvPath(const std::string &user_na
 #endif
 	cp::Rpc::AccessGrant ret;
 	//shv::chainpack::RpcValue user = usersConfig().toMap().value(user_name);
+	shv::iotqt::node::ShvNode::StringViewList shv_path_lst = shv::iotqt::node::ShvNode::splitShvPath(rq_shv_path);
 	for(const std::string &grant : userFlattenGrants(user_name)) {
 		logAclD() << "cheking grant:" << grant;
 		cp::RpcValue grant_paths = pathsConfig().toMap().value(grant);
 		for(const auto &kv : grant_paths.toMap()) {
 			const std::string &p = kv.first;
-			logAclD().nospace() << "\t cheking if path: '" << shv_path << "' starts with granted path: '" << p;
+			logAclD().nospace() << "\t checking if path: '" << rq_shv_path << "' starts with granted path: '" << p;
 			//logAclD().nospace() << "\t cheking if path: '" << shv_path << "' starts with granted path: '" << p << "' ,result:" << shv::core::String::startsWith(shv_path, p);
+			shv::iotqt::node::ShvNode::StringViewList grant_path_pattern = shv::iotqt::node::ShvNode::splitShvPath(p);
+			for(size_t i=0; i<grant_path_pattern.size(); i++) {
+				if(grant_path_pattern[i] == "{{rq.shvPath}}")
+					grant_path_pattern[i] = rq_shv_path;
+				else if(grant_path_pattern[i] == "{{rq.grant}}")
+					grant_path_pattern[i] = rq_grant;
+			}
 			do {
-				if(!shv::core::String::startsWith(shv_path, p))
+				if(!shv::iotqt::utils::ShvPath::matchWild(shv_path_lst, grant_path_pattern))
 					break;
-				if(p.size() > 0 && p.size() < shv_path.size() && shv_path[p.size()] != '/')
-					break;
-				std::string gn = kv.second.toMap().value("grant").toString();
-				cp::RpcValue grant_def = grantsConfig().toMap().value(gn);
-				int weight = grant_def.toMap().value("weight").toInt();
+				const cp::RpcValue::Map &path_grant = kv.second.toMap();
+				std::string gn = path_grant.value("grant").toString();
+				int weight = 0;
+				if(gn.empty()) {
+					if(path_grant.value("forwardGrant").toBool()) {
+						weight = path_grant.value("weight").toInt();
+						gn = rq_grant;
+					}
+				}
+				else {
+					cp::RpcValue grant_def = grantsConfig().toMap().value(gn);
+					weight = grant_def.toMap().value("weight").toInt();
+				}
 				logAclD() << "\t\t match, granted:" << gn << "weight:" << weight;
 				if(weight > ret.weight) {
 					logAclD() << "\t\t\t greatest weight!";
@@ -713,7 +732,7 @@ void BrokerApp::onRpcDataReceived(int connection_id, shv::chainpack::Rpc::Protoc
 					shv_path = rpc::ServerConnection::Subscription::toAbsolutePath(mps[0], shv_path);
 					cp::RpcMessage::setShvPath(meta, shv_path);
 				}
-				cp::Rpc::AccessGrant acg = accessGrantForShvPath(cch->userName(), shv_path);
+				cp::Rpc::AccessGrant acg = accessGrantForRequest(cch->userName(), shv_path, cp::RpcMessage::accessGrant(meta).toString());
 				if(!acg.isValid())
 					SHV_EXCEPTION("Acces to shv path '" + shv_path + "' not granted for user " + cch->userName());
 				cp::RpcMessage::setAccessGrant(meta, acg.grant);
@@ -820,18 +839,16 @@ bool BrokerApp::sendNotifyToSubscribers(int sender_connection_id, const shv::cha
 			if(subs_ix >= 0) {
 				//shvDebug() << "\t broadcasting to connection id:" << id;
 				const rpc::ServerConnection::Subscription &subs = conn->subscriptionAt((size_t)subs_ix);
-				bool changed;
-				std::string new_path = subs.toRelativePath(shv_path.toString(), changed);
-				if(changed) {
+				std::string new_path = conn->toSubscribedPath(subs, shv_path.toString());
+				if(new_path == shv_path.toString()) {
+					conn->sendRawData(meta_data, std::string(data));
+				}
+				else {
 					shv::chainpack::RpcValue::MetaData md2(meta_data);
 					cp::RpcMessage::setShvPath(md2, new_path);
 					conn->sendRawData(md2, std::string(data));
-					return true;
 				}
-				else {
-					conn->sendRawData(meta_data, std::string(data));
-					return true;
-				}
+				return true;
 			}
 		}
 	}
@@ -854,9 +871,8 @@ void BrokerApp::sendNotifyToSubscribers(int sender_connection_id, const std::str
 			if(subs_ix >= 0) {
 				//shvDebug() << "\t broadcasting to connection id:" << id;
 				const rpc::ServerConnection::Subscription &subs = conn->subscriptionAt((size_t)subs_ix);
-				bool changed;
-				std::string new_path = subs.toRelativePath(shv_path, changed);
-				if(changed)
+				std::string new_path = conn->toSubscribedPath(subs, shv_path);
+				if(new_path != shv_path)
 					ntf.setShvPath(new_path);
 				conn->sendMessage(ntf);
 			}
@@ -869,6 +885,7 @@ void BrokerApp::addSubscription(int client_id, const std::string &path, const st
 	auto *conn = commonClientConnectionById(client_id);
 	if(!conn)
 		SHV_EXCEPTION("Connot create subscription, client doesn't exist.");
+	//logSubscriptionsD() << "addSubscription connection id:" << client_id << "path:" << path << "method:" << method;
 	conn->addSubscription(path, method);
 	// check slave broker connections
 	// whether this subsciption should be propagated to them
@@ -876,13 +893,13 @@ void BrokerApp::addSubscription(int client_id, const std::string &path, const st
 		rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
 		if(conn->isSlaveBrokerConnection()) {
 			for(const std::string &mpoint : conn->mountPoints()) {
-				shv::core::StringViewList mntlst = shv::iotqt::node::ShvNode::splitPath(mpoint);
-				shv::core::StringViewList subslst = shv::iotqt::node::ShvNode::splitPath(path);
+				shv::core::StringViewList mntlst = shv::iotqt::node::ShvNode::splitShvPath(mpoint);
+				shv::core::StringViewList subslst = shv::iotqt::node::ShvNode::splitShvPath(path);
 				if(subslst.startsWith(mntlst)) {
-					addSubscription(connection_id, subslst.mid(mntlst.size()).join('/'), method);
+					conn->callMethodSubscribe(subslst.mid(mntlst.size()).join('/'), method);
 				}
 				else if(mntlst.startsWith(subslst)) {
-					addSubscription(connection_id, std::string(), method);
+					conn->callMethodSubscribe(std::string(), method);
 				}
 			}
 		}
