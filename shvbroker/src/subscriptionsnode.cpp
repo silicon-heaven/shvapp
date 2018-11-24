@@ -39,17 +39,12 @@ SubscriptionsNode::SubscriptionsNode(rpc::ServerConnection *conn)
 
 size_t SubscriptionsNode::methodCount(const StringViewList &shv_path)
 {
-	if(shv_path.empty() || shv_path[0] == ND_BY_ID || shv_path[0] == ND_BY_PATH)
-		return meta_methods1.size();
-	return meta_methods2.size();
+	return (shv_path.size() < 2) ?  meta_methods1.size() : meta_methods2.size();
 }
 
 const shv::chainpack::MetaMethod *SubscriptionsNode::metaMethod(const StringViewList &shv_path, size_t ix)
 {
-	const std::vector<cp::MetaMethod> &mms =
-			(shv_path.empty() || shv_path[0] == ND_BY_ID || shv_path[0] == ND_BY_PATH)
-			?  meta_methods1
-			 : meta_methods2;
+	const std::vector<cp::MetaMethod> &mms = (shv_path.size() < 2) ?  meta_methods1 : meta_methods2;
 	if(mms.size() <= ix)
 		SHV_EXCEPTION("Invalid method index: " + std::to_string(ix) + " of: " + std::to_string(meta_methods1.size()));
 	return &(mms[ix]);
@@ -71,7 +66,7 @@ shv::iotqt::node::ShvNode::StringList SubscriptionsNode::childNames(const String
 		shv::iotqt::node::ShvNode::StringList ret;
 		for (size_t i = 0; i < m_client->subscriptionCount(); ++i) {
 			const rpc::ServerConnection::Subscription &subs = m_client->subscriptionAt(i);
-			ret.push_back(subs.absolutePath + ':' + subs.method);
+			ret.push_back('"' + subs.absolutePath + ':' + subs.method + '"');
 		}
 		return ret;
 	}
@@ -92,7 +87,7 @@ shv::chainpack::RpcValue SubscriptionsNode::callMethod(const StringViewList &shv
 				shv::core::StringView path = shv_path.at(1);
 				for (size_t i = 0; i < m_client->subscriptionCount(); ++i) {
 					const rpc::ServerConnection::Subscription &subs1 = m_client->subscriptionAt(i);
-					std::string p = subs1.absolutePath + ':' + subs1.method;
+					std::string p = '"' + subs1.absolutePath + ':' + subs1.method + '"';
 					if(path == p) {
 						subs = &subs1;
 						break;

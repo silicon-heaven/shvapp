@@ -11,6 +11,9 @@
 
 namespace rpc {
 
+//=====================================================================
+// CommonRpcClientHandle::Subscription
+//=====================================================================
 std::string CommonRpcClientHandle::Subscription::toRelativePath(const std::string &abs_path) const
 {
 	if(relativePath.empty()) {
@@ -76,7 +79,9 @@ bool CommonRpcClientHandle::Subscription::match(const shv::core::StringView &shv
 	}
 	return false;
 }
-
+//=====================================================================
+// CommonRpcClientHandle
+//=====================================================================
 CommonRpcClientHandle::CommonRpcClientHandle()
 {
 }
@@ -90,7 +95,7 @@ void CommonRpcClientHandle::addMountPoint(const std::string &mp)
 	m_mountPoints.push_back(mp);
 }
 
-void CommonRpcClientHandle::addSubscription(const std::string &rel_path, const std::string &method)
+unsigned CommonRpcClientHandle::addSubscription(const std::string &rel_path, const std::string &method)
 {
 	std::string abs_path = rel_path;
 	if(Subscription::isRelativePath(abs_path)) {
@@ -107,9 +112,11 @@ void CommonRpcClientHandle::addSubscription(const std::string &rel_path, const s
 	if(it == m_subscriptions.end()) {
 		m_subscriptions.push_back(subs);
 		//std::sort(m_subscriptions.begin(), m_subscriptions.end());
+		return m_subscriptions.size() - 1;
 	}
 	else {
 		*it = subs;
+		return (it - m_subscriptions.begin());
 	}
 }
 
@@ -126,7 +133,7 @@ int CommonRpcClientHandle::isSubscribed(const std::string &path, const std::stri
 	return -1;
 }
 
-std::string CommonRpcClientHandle::toSubscribedPath(const CommonRpcClientHandle::Subscription &subs, const std::string &abs_path) const
+std::string CommonRpcClientHandle::toSubscribedPath(const Subscription &subs, const std::string &abs_path) const
 {
 	return subs.toRelativePath(abs_path);
 }

@@ -5,6 +5,7 @@
 #include <shv/chainpack/cponwriter.h>
 #include <shv/coreqt/log.h>
 #include <shv/core/stringview.h>
+#include <shv/iotqt/utils/shvpath.h>
 
 #include <QCryptographicHash>
 #include <QTcpSocket>
@@ -151,17 +152,21 @@ shv::chainpack::RpcValue ServerConnection::login(const shv::chainpack::RpcValue 
 	return login_resp;
 }
 
-/*
-shv::chainpack::Rpc::AccessGrant ServerConnection::accessGrantForShvPath(const std::string &shv_path)
+bool ServerConnection::propagateSubscriptionToSlaveBroker(const CommonRpcClientHandle::Subscription &subs)
 {
-	shv::chainpack::Rpc::AccessGrant *pag = m_accessGrantCache.object(shv_path);
-	if(!pag) {
-		BrokerApp *app = BrokerApp::instance();
-		shv::chainpack::Rpc::AccessGrant ag = app->accessGrantForShvPath(m_user, shv_path);
-		m_accessGrantCache.insert(shv_path, new cp::Rpc::AccessGrant(ag));
-		return ag;
+	if(!isSlaveBrokerConnection())
+		return false;
+	for(const std::string &mount_point : mountPoints()) {
+		if(shv::iotqt::utils::ShvPath(subs.absolutePath).startsWithPath(mount_point)) {
+			callMethodSubscribe(subs.absolutePath.substr(mount_point.size() + 1), subs.method, cp::Rpc::GRANT_MASTER_BROKER);
+			return true;
+		}
+		if(shv::iotqt::utils::ShvPath(mount_point).startsWithPath(subs.absolutePath)) {
+			callMethodSubscribe(std::string(), subs.method, cp::Rpc::GRANT_MASTER_BROKER);
+			return true;
+		}
 	}
-	return *pag;
+	return false;
 }
-*/
+
 } // namespace rpc

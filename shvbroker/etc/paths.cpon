@@ -8,6 +8,9 @@
 		"ping": {
 			".broker/app": {"grant": "bws"},
 		},
+		"subscribe": {
+			".broker/app": {"grant": "wr"},
+		},
 		"poland": {
 			"shv/pol/**": {"grant": "su"},
 		},
@@ -26,7 +29,7 @@
 		"tscshvagent": {
 			".broker/clients/**": { "grant": "rd" }
 		},
-		"broker": {
+		"masterBroker": {
 			"**": { "forwardGrant": true, "weight:": 0 }
 		},
 }

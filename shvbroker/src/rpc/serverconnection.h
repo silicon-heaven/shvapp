@@ -26,8 +26,9 @@ public:
 	int connectionId() const override {return Super::connectionId();}
 	bool isConnectedAndLoggedIn() const override {return Super::isConnectedAndLoggedIn();}
 	bool isSlaveBrokerConnection() const override {return Super::isSlaveBrokerConnection();}
+	bool isMasterBrokerConnection() const override {return false;}
 
-	std::string userName() override {return Super::userName();}
+	std::string loggedUserName() override {return Super::userName();}
 
 	const shv::chainpack::RpcValue::Map& deviceOptions() const;
 	shv::chainpack::RpcValue deviceId() const;
@@ -36,6 +37,8 @@ public:
 
 	void sendMessage(const shv::chainpack::RpcMessage &rpc_msg) override;
 	void sendRawData(const shv::chainpack::RpcValue::MetaData &meta_data, std::string &&data) override;
+
+	bool propagateSubscriptionToSlaveBroker(const Subscription &subs);
 private:
 	void onRpcDataReceived(shv::chainpack::Rpc::ProtocolType protocol_type, shv::chainpack::RpcValue::MetaData &&md, const std::string &data, size_t start_pos, size_t data_len) override;
 	std::tuple<std::string, PasswordFormat> password(const std::string &user) override;

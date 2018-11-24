@@ -90,9 +90,11 @@ private:
 	std::string resolveMountPoint(const shv::chainpack::RpcValue::Map &device_opts);
 	std::string mountPointForDevice(const shv::chainpack::RpcValue &device_id);
 
-	shv::chainpack::Rpc::AccessGrant accessGrantForRequest(const std::string &user_name, const std::string &rq_shv_path, const std::string &rq_grant);
+	shv::chainpack::Rpc::AccessGrant accessGrantForRequest(rpc::CommonRpcClientHandle *conn, const std::string &rq_shv_path, const std::string &rq_grant);
 
 	void onRootNodeSendRpcMesage(const shv::chainpack::RpcMessage &msg);
+
+	void onClientMountedChanged(int client_id, const std::string &mount_point, bool is_mounted);
 
 	void sendNotifyToSubscribers(int sender_connection_id, const std::string &shv_path, const std::string &method, const shv::chainpack::RpcValue &params);
 	bool sendNotifyToSubscribers(int sender_connection_id, const shv::chainpack::RpcValue::MetaData &meta_data, const std::string &data);

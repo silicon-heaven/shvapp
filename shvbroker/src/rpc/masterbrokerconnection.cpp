@@ -4,6 +4,7 @@
 #include <shv/chainpack/rpcmessage.h>
 #include <shv/core/string.h>
 #include <shv/coreqt/log.h>
+#include <shv/iotqt/utils/shvpath.h>
 
 #define logRpcMsg() shvCDebug("RpcMsg")
 
@@ -41,20 +42,33 @@ void MasterBrokerConnection::sendMessage(const shv::chainpack::RpcMessage &rpc_m
 	Super::sendMessage(rpc_msg);
 }
 
-void MasterBrokerConnection::addSubscription(const std::string &rel_path, const std::string &method)
+unsigned MasterBrokerConnection::addSubscription(const std::string &rel_path, const std::string &method)
 {
-	if(m_exportedShvPath.empty())
-		CommonRpcClientHandle::addSubscription(rel_path, method);
-	else
-		CommonRpcClientHandle::addSubscription(m_exportedShvPath + '/' + rel_path, method);
+	return CommonRpcClientHandle::addSubscription(masterPathToSlave(rel_path), method);
 }
 
 std::string MasterBrokerConnection::toSubscribedPath(const CommonRpcClientHandle::Subscription &subs, const std::string &abs_path) const
 {
+	Q_UNUSED((subs))
+	return slavePathToMaster(abs_path);
+}
+
+std::string MasterBrokerConnection::masterPathToSlave(const std::string &master_path) const
+{
 	if(m_exportedShvPath.empty())
-		return CommonRpcClientHandle::toSubscribedPath(subs, abs_path);
-	else
-		return abs_path.substr(m_exportedShvPath.size() + 1);
+		return master_path;
+	if(shv::iotqt::utils::ShvPath::startsWithPath(master_path, cp::Rpc::DIR_BROKER))
+		return master_path;
+	return m_exportedShvPath + '/' + master_path;
+}
+
+std::string MasterBrokerConnection::slavePathToMaster(const std::string &slave_path) const
+{
+	if(m_exportedShvPath.empty())
+		return slave_path;
+	//if(shv::iotqt::utils::ShvPath::startsWithPath(slave_path, cp::Rpc::DIR_BROKER))
+	//	return std::move(slave_path);
+	return slave_path.substr(m_exportedShvPath.size() + 1);
 }
 
 void MasterBrokerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolType protocol_type, shv::chainpack::RpcValue::MetaData &&md, const std::string &data, size_t start_pos, size_t data_len)
@@ -69,13 +83,8 @@ void MasterBrokerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolType
 			return;
 		}
 		if(cp::RpcMessage::isRequest(md)) {
-			shv::core::String shv_path = cp::RpcMessage::shvPath(md).toString();
-			if(!shv_path.startsWith(cp::Rpc::DIR_BROKER)) {
-				if(!m_exportedShvPath.empty()) {
-					shv_path = m_exportedShvPath + '/' + shv_path;
-					cp::RpcMessage::setShvPath(md, shv_path);
-				}
-			}
+			shv::core::String shv_path = masterPathToSlave(cp::RpcMessage::shvPath(md).toString());
+			cp::RpcMessage::setShvPath(md, shv_path);
 		}
 		else if(cp::RpcMessage::isResponse(md)) {
 			if(cp::RpcMessage::requestId(md) == m_connectionState.pingRqId) {

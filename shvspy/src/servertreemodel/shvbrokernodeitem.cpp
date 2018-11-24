@@ -2,6 +2,7 @@
 #include "../theapp.h"
 #include "../appclioptions.h"
 #include "../log/errorlogmodel.h"
+#include "../log/rpcnotificationsmodel.h"
 
 #include <shv/iotqt/rpc/clientconnection.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
@@ -306,12 +307,17 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 		}
 		m_rpcConnection->sendMessage(resp);
 	}
+	else if(msg.isSignal()) {
+		shvInfo() << msg.toCpon();
+		RpcNotificationsModel *m = TheApp::instance()->rpcNotificationsModel();
+		m->addLogRow(nodeId(), msg);
+	}
 }
 
 void ShvBrokerNodeItem::createSubscriptions()
 {
-	QVariantMap proprs = serverProperties();
-	QVariant v = proprs.value("subscriptions");
+	QVariantMap props = serverProperties();
+	QVariant v = props.value("subscriptions");
 	if(v.isValid()) {
 		QVariantList subs = v.toList();
 		for (int i = 0; i < subs.size(); i++) {
