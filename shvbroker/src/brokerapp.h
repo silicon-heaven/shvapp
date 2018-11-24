@@ -83,8 +83,9 @@ private:
 
 	void createMasterBrokerConnections();
 	QList<rpc::MasterBrokerConnection*> masterBrokerConnections() const;
+public:
 	rpc::MasterBrokerConnection* masterBrokerConnectionById(int connection_id);
-
+private:
 	std::vector<rpc::CommonRpcClientHandle *> allClientConnections();
 
 	std::string resolveMountPoint(const shv::chainpack::RpcValue::Map &device_opts);

@@ -7,7 +7,7 @@
 #include <shv/core/stringview.h>
 #include <shv/core/exception.h>
 
-#define logSubscriptionsD() nCDebug("Subs")
+#define logSubscriptionsD() nCDebug("Subscr").color(NecroLog::Color::Yellow)
 
 namespace rpc {
 
@@ -138,8 +138,9 @@ std::string CommonRpcClientHandle::toSubscribedPath(const Subscription &subs, co
 	return subs.toRelativePath(abs_path);
 }
 
-bool CommonRpcClientHandle::unsubscribeRejectedSignal(const std::string &path, const std::string &method)
+bool CommonRpcClientHandle::rejectNotSubscribedSignal(const std::string &path, const std::string &method)
 {
+	logSubscriptionsD() << "unsubscribing rejected signal, shv_path:" << path << "method:" << method;
 	int most_explicit_subs_ix = -1;
 	size_t max_path_len = 0;
 	shv::core::StringView shv_path(path);
@@ -157,9 +158,11 @@ bool CommonRpcClientHandle::unsubscribeRejectedSignal(const std::string &path, c
 		}
 	}
 	if(most_explicit_subs_ix >= 0) {
+		logSubscriptionsD() << "\t found subscription:" << m_subscriptions.at(most_explicit_subs_ix).toString();
 		m_subscriptions.erase(m_subscriptions.begin() + most_explicit_subs_ix);
 		return true;
 	}
+	logSubscriptionsD() << "\t not found";
 	return false;
 }
 

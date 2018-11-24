@@ -50,7 +50,7 @@ public:
 	virtual std::string toSubscribedPath(const Subscription &subs, const std::string &abs_path) const;
 	size_t subscriptionCount() const {return m_subscriptions.size();}
 	const Subscription& subscriptionAt(size_t ix) const {return m_subscriptions.at(ix);}
-	bool unsubscribeRejectedSignal(const std::string &path, const std::string &method);
+	bool rejectNotSubscribedSignal(const std::string &path, const std::string &method);
 
 	virtual std::string loggedUserName() = 0;
 	virtual bool isSlaveBrokerConnection() const = 0;

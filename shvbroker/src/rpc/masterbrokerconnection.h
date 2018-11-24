@@ -32,9 +32,10 @@ public:
 
 	unsigned addSubscription(const std::string &rel_path, const std::string &method) override;
 	std::string toSubscribedPath(const Subscription &subs, const std::string &abs_path) const override;
-protected:
+
 	std::string masterPathToSlave(const std::string &master_path) const;
 	std::string slavePathToMaster(const std::string &slave_path) const;
+protected:
 	void onRpcDataReceived(shv::chainpack::Rpc::ProtocolType protocol_type, shv::chainpack::RpcValue::MetaData &&md, const std::string &data, size_t start_pos, size_t data_len) override;
 protected:
 	std::string m_exportedShvPath;

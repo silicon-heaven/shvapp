@@ -39,7 +39,8 @@
 #include <unistd.h>
 
 #define logAclD() nCDebug("Acl")
-#define logSubscriptionsD() nCDebug("Subs")
+#define logAccessD() nCDebug("Access").color(NecroLog::Color::Green)
+#define logSubscriptionsD() nCDebug("Subscr").color(NecroLog::Color::Yellow)
 
 int BrokerApp::m_sigTermFd[2];
 #endif
@@ -498,6 +499,18 @@ const std::set<std::string> &BrokerApp::userFlattenGrants(const std::string &use
 	return m_userFlattenGrantsCache.at(user_name);
 }
 
+static std::string join_string_set(const std::set<std::string> &ss, char sep)
+{
+	std::string ret;
+	for(const std::string &s : ss) {
+		if(ret.empty())
+			ret = s;
+		else
+			ret = ret + sep + s;
+	}
+	return ret;
+}
+
 cp::Rpc::AccessGrant BrokerApp::accessGrantForRequest(rpc::CommonRpcClientHandle *conn, const std::string &rq_shv_path, const std::string &rq_grant)
 {
 	logAclD() << "accessGrantForShvPath user:" << conn->loggedUserName() << "shv path:" << rq_shv_path << "request grant:" << rq_grant;
@@ -567,6 +580,11 @@ cp::Rpc::AccessGrant BrokerApp::accessGrantForRequest(rpc::CommonRpcClientHandle
 		user_path_grants->insert(shv_path, new cp::Rpc::AccessGrant(ret));
 #endif
 	logAclD() << "\t resolved:" << ret.grant << "weight:" << ret.weight;
+	logAccessD() << "access user:" << conn->loggedUserName()
+				 << "shv_path:" << rq_shv_path
+				 << "rq_grant:" << (rq_grant.empty()? "<none>": rq_grant)
+				 << "grants:" << join_string_set(user_flattent_grants, ',')
+				 << " => " << ret.grant << "weight:" << ret.weight;
 	return ret;
 }
 
@@ -779,7 +797,8 @@ void BrokerApp::onRpcDataReceived(int connection_id, shv::chainpack::Rpc::Protoc
 		}
 		else {
 			// broker messages like create master broker subscription
-			//shvError() << "Got RPC response without src connection specified, throwing message away." << meta.toStdString();
+			if(cp::RpcMessage::requestId(meta).toInt() != 0)
+				shvError() << "Got RPC response without src connection specified, throwing message away." << meta.toStdString();
 		}
 	}
 	else if(cp::RpcMessage::isSignal(meta)) {
@@ -792,10 +811,12 @@ void BrokerApp::onRpcDataReceived(int connection_id, shv::chainpack::Rpc::Protoc
 					cp::RpcMessage::setShvPath(meta, full_shv_path);
 					bool sig_sent = sendNotifyToSubscribers(connection_id, meta, data);
 					if(!sig_sent && conn->isSlaveBrokerConnection()) {
+						logSubscriptionsD() << "Rejecting unsubscribed signal, shv_path:" << full_shv_path << "method:" << cp::RpcMessage::method(meta).toString();
 						cp::RpcRequest rq;
+						rq.setRequestId(0);
 						rq.setMethod(cp::Rpc::METH_REJECT_NOT_SUBSCRIBED)
 								.setParams(cp::RpcValue::Map{
-											   { cp::Rpc::PAR_PATH, full_shv_path},
+											   { cp::Rpc::PAR_PATH, full_shv_path.substr(mp.size() + 1)},
 											   { cp::Rpc::PAR_METHOD, cp::RpcMessage::method(meta).toString()}})
 								.setShvPath(cp::Rpc::DIR_BROKER_APP);
 						conn->sendMessage(rq);

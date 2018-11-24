@@ -2,6 +2,7 @@
 
 #include "brokerapp.h"
 #include "rpc/serverconnection.h"
+#include "rpc/masterbrokerconnection.h"
 
 #include <shv/chainpack/metamethod.h>
 #include <shv/chainpack/rpcmessage.h>
@@ -11,6 +12,8 @@
 #include <shv/core/log.h>
 
 #include <QTimer>
+
+#define logSubscriptionsD() nCDebug("Subscr").color(NecroLog::Color::Yellow)
 
 namespace cp = shv::chainpack;
 
@@ -55,10 +58,13 @@ shv::chainpack::RpcValue BrokerNode::processRpcRequest(const shv::chainpack::Rpc
 			const shv::chainpack::RpcValue::Map &pm = parms.toMap();
 			std::string path = pm.value(cp::Rpc::PAR_PATH).toString();
 			std::string method = pm.value(cp::Rpc::PAR_METHOD).toString();
+			logSubscriptionsD() << "signal rejected, shv_path:" << path << "method:" << method;
 			int client_id = rq.peekCallerId();
-			rpc::CommonRpcClientHandle *conn = BrokerApp::instance()->commonClientConnectionById(client_id);
-			conn->unsubscribeRejectedSignal(path, method);
-			return true;
+			rpc::MasterBrokerConnection *conn = BrokerApp::instance()->masterBrokerConnectionById(client_id);
+			if(conn) {
+				return conn->rejectNotSubscribedSignal(conn->masterPathToSlave(path), method);
+			}
+			return false;
 		}
 	}
 	return Super::processRpcRequest(rq);
