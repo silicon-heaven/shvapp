@@ -51,6 +51,7 @@ public:
 	void onRpcDataReceived(int connection_id, shv::chainpack::Rpc::ProtocolType protocol_type, shv::chainpack::RpcValue::MetaData &&meta, std::string &&data);
 
 	void addSubscription(int client_id, const std::string &path, const std::string &method);
+	bool rejectNotSubscribedSignal(int client_id, const std::string &path, const std::string &method);
 
 	rpc::TcpServer* tcpServer();
 	rpc::ServerConnection* clientById(int client_id);
@@ -83,9 +84,8 @@ private:
 
 	void createMasterBrokerConnections();
 	QList<rpc::MasterBrokerConnection*> masterBrokerConnections() const;
-public:
 	rpc::MasterBrokerConnection* masterBrokerConnectionById(int connection_id);
-private:
+
 	std::vector<rpc::CommonRpcClientHandle *> allClientConnections();
 
 	std::string resolveMountPoint(const shv::chainpack::RpcValue::Map &device_opts);

@@ -53,18 +53,13 @@ shv::chainpack::RpcValue BrokerNode::processRpcRequest(const shv::chainpack::Rpc
 			BrokerApp::instance()->addSubscription(client_id, path, method);
 			return true;
 		}
-		else if(method == cp::Rpc::METH_REJECT_NOT_SUBSCRIBED) {
+		if(method == cp::Rpc::METH_REJECT_NOT_SUBSCRIBED) {
 			const shv::chainpack::RpcValue parms = rq.params();
 			const shv::chainpack::RpcValue::Map &pm = parms.toMap();
 			std::string path = pm.value(cp::Rpc::PAR_PATH).toString();
 			std::string method = pm.value(cp::Rpc::PAR_METHOD).toString();
-			logSubscriptionsD() << "signal rejected, shv_path:" << path << "method:" << method;
 			int client_id = rq.peekCallerId();
-			rpc::MasterBrokerConnection *conn = BrokerApp::instance()->masterBrokerConnectionById(client_id);
-			if(conn) {
-				return conn->rejectNotSubscribedSignal(conn->masterPathToSlave(path), method);
-			}
-			return false;
+			return BrokerApp::instance()->rejectNotSubscribedSignal(client_id, path, method);
 		}
 	}
 	return Super::processRpcRequest(rq);

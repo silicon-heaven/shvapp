@@ -948,6 +948,16 @@ void BrokerApp::addSubscription(int client_id, const std::string &shv_path, cons
 	}
 }
 
+bool BrokerApp::rejectNotSubscribedSignal(int client_id, const std::string &path, const std::string &method)
+{
+	logSubscriptionsD() << "signal rejected, shv_path:" << path << "method:" << method;
+	rpc::MasterBrokerConnection *conn = masterBrokerConnectionById(client_id);
+	if(conn) {
+		return conn->rejectNotSubscribedSignal(conn->masterPathToSlave(path), method);
+	}
+	return false;
+}
+
 void BrokerApp::createMasterBrokerConnections()
 {
 	if(!cliOptions()->isMasterBrokersEnabled())
