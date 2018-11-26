@@ -21,7 +21,7 @@ linux:
     - /opt/qt/5.8/gcc_64/bin/qmake -r CONFIG+=no-libshv-gui ../shv.pro DEFINES+=GIT_COMMIT=${CI_BUILD_REF}
     - make -j2
 
-linux-deploy:
+production-deploy:
   only:
     - production
   tags:
@@ -37,6 +37,23 @@ linux-deploy:
     # nirvana
     - rsync -avz lib bin gitlab@165.227.247.202:/opt/shv/ 
     - ssh -t gitlab@165.227.247.202 "sudo /opt/shv/install.sh"
+
+  environment:
+    name: jessie
+    
+test-deploy:
+  only:
+    - master
+  tags:
+    - linux
+  stage:
+    deploy
+  script:
+    # nirvana
+    - rsync -avz shvbroker/etc gitlab@165.227.247.202:/opt/shv-test/ 
+    - cd build
+    - rsync -avz lib bin gitlab@165.227.247.202:/opt/shv-test/ 
+    - ssh -t gitlab@165.227.247.202 "sudo /opt/shv-test/install.sh"
 
   environment:
     name: jessie
