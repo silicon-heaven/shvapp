@@ -5,7 +5,7 @@
 #include <shv/iotqt/node/shvnodetree.h>
 #include <shv/coreqt/log.h>
 #include <shv/coreqt/exception.h>
-#include <shv/chainpack/chainpackreader.h>
+#include <shv/chainpack/cponreader.h>
 #include <shv/chainpack/metamethod.h>
 #include <shv/core/stringview.h>
 
@@ -352,8 +352,15 @@ shv::chainpack::RpcValue AppRootNode::getConfig(const QString &shv_path) const
 	std::ifstream in_file;
 	in_file.open(file_name, std::ios::in | std::ios::binary);
 	if (in_file) {
-		cp::ChainPackReader(in_file).read(result);
+		std::string err;
+		cp::CponReader(in_file).read(result, err);
 		in_file.close();
+		if (!err.empty()) {
+			SHV_EXCEPTION(err);
+		}
+	}
+	if (!result.isValid()){
+		result = cp::RpcValue::Map();
 	}
 	return result;
 }
