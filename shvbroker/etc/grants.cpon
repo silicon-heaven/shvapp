@@ -17,7 +17,7 @@
 	"subscribe": {},
 	"slaveBroker": {"grants": ["ping"]},
 	"masterBroker": {"grants": ["subscribe"]},
-	"sitesprovider": { "grants": ["client"] },
+	"shvsitesprovider": { "grants": ["client"] },
 	"shvhistoryprovider": { "grants": ["client"] },
 	"tscshvagent": {"grants": ["device"]},
 }

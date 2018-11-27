@@ -5,6 +5,7 @@
 #include <shv/iotqt/node/shvnodetree.h>
 #include <shv/coreqt/log.h>
 #include <shv/coreqt/exception.h>
+#include <shv/chainpack/chainpackreader.h>
 #include <shv/chainpack/metamethod.h>
 #include <shv/core/stringview.h>
 
@@ -18,6 +19,8 @@
 #include <errno.h>
 #include <string.h>
 #endif
+
+#include <fstream>
 
 namespace cp = shv::chainpack;
 
@@ -206,7 +209,7 @@ cp::RpcValue AppRootNode::getConfig(const cp::RpcValue &params)
 	if (shv_path.isEmpty()) {
 		SHV_EXCEPTION("getConfig: parameter type must not be empty");
 	}
-	return getConfig(shv_path).toStdString();
+	return getConfig(shv_path);
 }
 
 shv::chainpack::RpcValue AppRootNode::ls(const shv::core::StringViewList &shv_path, const shv::chainpack::RpcValue &params)
@@ -341,17 +344,18 @@ bool AppRootNode::checkSites() const
 	return !m_sitesTime.isNull() && m_sitesTime.secsTo(QDateTime::currentDateTime()) < 3600;
 }
 
-QByteArray AppRootNode::getConfig(const QString &shv_path)
+shv::chainpack::RpcValue AppRootNode::getConfig(const QString &shv_path) const
 {
-	QFile f(nodeConfigPath(shv_path));
-	QByteArray file_content;
-	if (f.exists()) {
-		if (f.open(QFile::ReadOnly)) {
-			file_content = f.readAll();
-			f.close();
-		}
+	cp::RpcValue result;
+
+	std::string file_name = nodeConfigPath(shv_path).toStdString();
+	std::ifstream in_file;
+	in_file.open(file_name, std::ios::in | std::ios::binary);
+	if (in_file) {
+		cp::ChainPackReader(in_file).read(result);
+		in_file.close();
 	}
-	return file_content;
+	return result;
 }
 
 shv::chainpack::RpcValue AppRootNode::get(const shv::core::StringViewList &shv_path)
@@ -460,13 +464,14 @@ SitesProviderApp::SitesProviderApp(int &argc, char **argv, AppCliOptions* cli_op
 	m_rpcConnection = new shv::iotqt::rpc::DeviceConnection(this);
 
 	if (!cli_opts->user_isset()) {
-		cli_opts->setUser("sitesprovider");
+		cli_opts->setUser("shvsitesprovider");
 	}
 	if (!cli_opts->password_isset()) {
-		cli_opts->setPassword("dub34pub");
+		cli_opts->setPassword("lub42DUB");
+		cli_opts->setLoginType("PLAIN");
 	}
 	if (!cli_opts->deviceId_isset()) {
-		cli_opts->setDeviceId("sitesprovider");
+		cli_opts->setDeviceId("shvsitesprovider");
 	}
 	m_rpcConnection->setCliOptions(cli_opts);
 
@@ -482,7 +487,7 @@ SitesProviderApp::SitesProviderApp(int &argc, char **argv, AppCliOptions* cli_op
 
 SitesProviderApp::~SitesProviderApp()
 {
-	shvInfo() << "destroying sitesprovider application";
+	shvInfo() << "destroying shvsitesprovider application";
 }
 
 SitesProviderApp *SitesProviderApp::instance()

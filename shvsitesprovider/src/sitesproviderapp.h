@@ -44,7 +44,7 @@ private:
 	shv::chainpack::RpcValue ls(const shv::core::StringViewList &shv_path, size_t index, const shv::chainpack::RpcValue::Map &object);
 
 	shv::chainpack::RpcValue leaf(const shv::core::StringViewList &shv_path);
-	QByteArray getConfig(const QString &shv_path);
+	shv::chainpack::RpcValue getConfig(const QString &shv_path) const;
 	shv::chainpack::RpcValue get(const shv::core::StringViewList &shv_path);
 	void saveConfig(const QString &shv_path, const QByteArray &value);
 	QString nodeConfigPath(const QString &shv_path) const;
