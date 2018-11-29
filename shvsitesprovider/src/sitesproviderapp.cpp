@@ -131,7 +131,15 @@ void AppRootNode::handleRpcRequest(const shv::chainpack::RpcRequest &rq)
 {
 	if (!checkSites()) {
 		downloadSites([this, rq]() {
-			Super::handleRpcRequest(rq);
+			if (!m_downloadSitesError.empty()) {
+				shvError() << m_downloadSitesError;
+				cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
+				resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, m_downloadSitesError));
+				sendRpcMesage(resp);
+			}
+			else {
+				Super::handleRpcRequest(rq);
+			}
 		});
 	}
 	else {
@@ -312,13 +320,14 @@ void AppRootNode::downloadSites(std::function<void ()> callback)
 		return;
 	}
 	m_downloadingSites = true;
+	m_downloadSitesError.clear();
 	QNetworkAccessManager *network_manager = new QNetworkAccessManager(this);
 
 	connect(network_manager, &QNetworkAccessManager::finished, [this, network_manager, callback](QNetworkReply *reply) {
-		if (reply->error()) {
-			shvInfo() << "Download sites.json error:" << reply->errorString();
-		}
-		else{
+		try {
+			if (reply->error()) {
+				SHV_QT_EXCEPTION("Download sites.json error:" + reply->errorString());
+			}
 			std::string sites_string = reply->readAll().toStdString();
 			m_sitesTime = QDateTime::currentDateTime();
 			std::string err;
@@ -332,6 +341,9 @@ void AppRootNode::downloadSites(std::function<void ()> callback)
 			m_sites = sites_cp.toMap();
 			shvInfo() << "Downloaded sites.json";
 		}
+		catch (std::exception &e) {
+			m_downloadSitesError = e.what();
+		}
 		reply->deleteLater();
 		network_manager->deleteLater();
 		m_downloadingSites = false;
@@ -343,7 +355,7 @@ void AppRootNode::downloadSites(std::function<void ()> callback)
 
 bool AppRootNode::checkSites() const
 {
-	return !m_sitesTime.isNull() && m_sitesTime.secsTo(QDateTime::currentDateTime()) < 3600;
+	return !m_downloadSitesError.empty() || (!m_sitesTime.isNull() && m_sitesTime.secsTo(QDateTime::currentDateTime()) < 3600);
 }
 
 shv::chainpack::RpcValue AppRootNode::getConfig(const QString &shv_path) const

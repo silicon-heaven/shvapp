@@ -56,6 +56,7 @@ private:
 	shv::chainpack::RpcValue::Map m_sites;
 	QDateTime m_sitesTime;
 	bool m_downloadingSites = false;
+	std::string m_downloadSitesError;
 };
 
 class SitesProviderApp : public QCoreApplication
