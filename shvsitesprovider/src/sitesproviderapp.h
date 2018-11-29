@@ -53,8 +53,7 @@ private:
 	QString nodeLocalPath(const shv::core::StringViewList &shv_path) const;
 	bool isFile(const shv::iotqt::node::ShvNode::StringViewList &shv_path);
 
-	std::string m_sitesJsonString;
-	shv::chainpack::RpcValue::Map m_sitesValue;
+	shv::chainpack::RpcValue::Map m_sites;
 	QDateTime m_sitesTime;
 	bool m_downloadingSites = false;
 };

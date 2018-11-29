@@ -160,7 +160,7 @@ const std::vector<shv::chainpack::MetaMethod> &AppRootNode::metaMethods(const sh
 
 shv::chainpack::RpcValue AppRootNode::leaf(const shv::core::StringViewList &shv_path)
 {
-	cp::RpcValue::Map object = m_sitesValue;
+	cp::RpcValue::Map object = m_sites;
 	cp::RpcValue value;
 	for (size_t i = 0; i < shv_path.size(); ++i) {
 		value = object.at(shv_path[i].toString());
@@ -176,7 +176,7 @@ shv::chainpack::RpcValue AppRootNode::leaf(const shv::core::StringViewList &shv_
 
 cp::RpcValue AppRootNode::getSites()
 {
-	return m_sitesJsonString;
+	return m_sites;
 }
 
 cp::RpcValue AppRootNode::getConfig(const cp::RpcValue &params)
@@ -215,7 +215,7 @@ cp::RpcValue AppRootNode::getConfig(const cp::RpcValue &params)
 shv::chainpack::RpcValue AppRootNode::ls(const shv::core::StringViewList &shv_path, const shv::chainpack::RpcValue &params)
 {
 	Q_UNUSED(params);
-	return ls(shv_path, 0, m_sitesValue);
+	return ls(shv_path, 0, m_sites);
 }
 
 cp::RpcValue AppRootNode::ls(const shv::core::StringViewList &shv_path, size_t index, const cp::RpcValue::Map &object)
@@ -319,15 +319,17 @@ void AppRootNode::downloadSites(std::function<void ()> callback)
 			shvInfo() << "Download sites.json error:" << reply->errorString();
 		}
 		else{
-			QByteArray sites = reply->readAll();
-			m_sitesJsonString = sites.toStdString();
+			std::string sites_string = reply->readAll().toStdString();
 			m_sitesTime = QDateTime::currentDateTime();
 			std::string err;
-			cp::RpcValue sites_cp = cp::RpcValue::fromCpon(m_sitesJsonString, &err);
+			cp::RpcValue sites_cp = cp::RpcValue::fromCpon(sites_string, &err);
 			if (!err.empty()) {
 				SHV_EXCEPTION(err);
 			}
-			m_sitesValue = sites_cp.toMap();
+			if (!sites_cp.isMap()) {
+				SHV_EXCEPTION("Sites.json must be map");
+			}
+			m_sites = sites_cp.toMap();
 			shvInfo() << "Downloaded sites.json";
 		}
 		reply->deleteLater();
@@ -434,7 +436,7 @@ QString AppRootNode::nodeLocalPath(const shv::core::StringViewList &shv_path) co
 bool AppRootNode::isFile(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
 {
 	uint i = 0;
-	shv::chainpack::RpcValue::Map map = m_sitesValue;
+	shv::chainpack::RpcValue::Map map = m_sites;
 	while (true) {
 		std::string key = shv_path[i].toString();
 		if (map.hasKey(key)) {
