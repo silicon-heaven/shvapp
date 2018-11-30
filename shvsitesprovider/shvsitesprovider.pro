@@ -12,7 +12,7 @@ QT -= gui
 CONFIG += c++14
 
 TEMPLATE = app
-TARGET = sitesprovider
+TARGET = shvsitesprovider
 
 DESTDIR = $$QF_PROJECT_TOP_BUILDDIR/bin
 
