@@ -2,11 +2,12 @@
 #include "appclioptions.h"
 #include "sessionprocess.h"
 
+#include <shv/iotqt/rpc/rpcresponsecallback.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
-#include <shv/iotqt/rpc/tunnelhandle.h>
 #include <shv/iotqt/node/shvnodetree.h>
 #include <shv/iotqt/node/localfsnode.h>
 #include <shv/coreqt/log.h>
+#include <shv/chainpack/tunnelctl.h>
 #include <shv/chainpack/metamethod.h>
 
 #include <shv/core/stringview.h>
@@ -31,16 +32,17 @@
 #endif
 
 namespace cp = shv::chainpack;
+namespace si = shv::iotqt;
 
 static std::vector<cp::MetaMethod> meta_methods {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false},
-	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false},
-	//{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, false},
-	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, 0},
-	{cp::Rpc::METH_HELP, cp::MetaMethod::Signature::RetParam, false},
-	{cp::Rpc::METH_RUN_CMD, cp::MetaMethod::Signature::RetParam, false},
-	{cp::Rpc::METH_LAUNCH_REXEC, cp::MetaMethod::Signature::RetParam, false},
+	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_BROWSE},
+	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_BROWSE},
+	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_BROWSE},
+	//{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_BROWSE},
+	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_BROWSE},
+	{cp::Rpc::METH_HELP, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_BROWSE},
+	{cp::Rpc::METH_RUN_CMD, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_COMMAND},
+	{cp::Rpc::METH_LAUNCH_REXEC, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_COMMAND},
 };
 
 size_t AppRootNode::methodCount(const StringViewList &shv_path)
@@ -180,9 +182,9 @@ ShvAgentApp::ShvAgentApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	if(0 != ::setpgid(0, 0))
 		shvError() << "Error set process group ID:" << errno << ::strerror(errno);
 #endif
-	cp::RpcMessage::setMetaTypeExplicit(cli_opts->isMetaTypeExplicit());
+	//cp::RpcMessage::setMetaTypeExplicit(cli_opts->isMetaTypeExplicit());
 
-	m_rpcConnection = new shv::iotqt::rpc::DeviceConnection(this);
+	m_rpcConnection = new si::rpc::DeviceConnection(this);
 
 	if(!cli_opts->user_isset())
 		cli_opts->setUser("iot");
@@ -190,18 +192,18 @@ ShvAgentApp::ShvAgentApp(int &argc, char **argv, AppCliOptions* cli_opts)
 		cli_opts->setPassword("lub42DUB");
 	m_rpcConnection->setCliOptions(cli_opts);
 
-	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &ShvAgentApp::onBrokerConnectedChanged);
-	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvAgentApp::onRpcMessageReceived);
+	connect(m_rpcConnection, &si::rpc::ClientConnection::brokerConnectedChanged, this, &ShvAgentApp::onBrokerConnectedChanged);
+	connect(m_rpcConnection, &si::rpc::ClientConnection::rpcMessageReceived, this, &ShvAgentApp::onRpcMessageReceived);
 
 	AppRootNode *root = new AppRootNode();
-	m_shvTree = new shv::iotqt::node::ShvNodeTree(root, this);
-	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
+	m_shvTree = new si::node::ShvNodeTree(root, this);
+	connect(m_shvTree->root(), &si::node::ShvRootNode::sendRpcMesage, m_rpcConnection, &si::rpc::ClientConnection::sendMessage);
 	//m_shvTree->mkdir("sys/rproc");
 	QString sys_fs_root_dir = QString::fromStdString(cli_opts->sysFsRootDir());
 	if(!sys_fs_root_dir.isEmpty() && QDir(sys_fs_root_dir).exists()) {
 		const char *SYS_FS = "sys/fs";
 		shvInfo() << "Exporting" << sys_fs_root_dir << "as" << SYS_FS << "node";
-		shv::iotqt::node::LocalFSNode *fsn = new shv::iotqt::node::LocalFSNode(sys_fs_root_dir);
+		si::node::LocalFSNode *fsn = new si::node::LocalFSNode(sys_fs_root_dir);
 		m_shvTree->mount(SYS_FS, fsn);
 	}
 
@@ -211,7 +213,7 @@ ShvAgentApp::ShvAgentApp(int &argc, char **argv, AppCliOptions* cli_opts)
 		tm->start(cliOptions()->connStatusUpdateInterval() * 1000);
 	}
 
-	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
+	QTimer::singleShot(0, m_rpcConnection, &si::rpc::ClientConnection::open);
 }
 
 ShvAgentApp::~ShvAgentApp()
@@ -226,8 +228,54 @@ ShvAgentApp *ShvAgentApp::instance()
 
 void ShvAgentApp::launchRexec(const shv::chainpack::RpcRequest &rq)
 {
-	using ConnectionParams = shv::iotqt::rpc::ConnectionParams;
-	using ConnectionParamsMT = shv::iotqt::rpc::ConnectionParams::MetaType;
+	cp::FindTunnelRequest find_tunnel_request;
+	find_tunnel_request.setCallerIds(rq.callerIds());
+	shv::chainpack::RpcResponse resp = rq.makeResponse();
+	resp.setTunnelCtl(find_tunnel_request);
+	resp.setRegisterRevCallerIds();
+	//resp.setResult(nullptr);
+	shvDebug() << "Sending Find tunnel request:" << resp.toPrettyString();
+	rpcConnection()->sendMessage(resp);
+
+	si::rpc::RpcResponseCallBack *cb = new si::rpc::RpcResponseCallBack(resp.requestId().toInt(), this);
+	connect(rpcConnection(), &si::rpc::ClientConnection::rpcMessageReceived, cb, &si::rpc::RpcResponseCallBack::onRpcMessageReceived);
+	cp::RpcValue on_connected = rq.params();
+	cb->start([this, on_connected](const shv::chainpack::RpcResponse &resp) {
+		shvDebug() << "Received Find tunnel response:" << resp.toPrettyString();
+		cp::TunnelCtl tctl1 = resp.tunnelCtl();
+		if(tctl1.state() == cp::TunnelCtl::State::FindTunnelResponse) {
+			cp::FindTunnelResponse find_tunnel_response(tctl1);
+			find_tunnel_response.setRequestId(resp.requestId().toInt());
+			/*
+			cp::CreateTunnelRequest create_tunnel_request = cp::CreateTunnelRequest::fromFindTunnelResponse(find_tunnel_response);
+			// cut resp rcid len from request cid to make return path from tunnel node
+			cp::RpcValueGenList rcids(resp.revCallerIds());
+			cp::RpcValue::List cids = cp::RpcValueGenList(tctl1.callerIds()).toList();
+			if(rcids.size() > 0 && rcids.size() <= cids.size())
+				cids.erase(cids.end()-rcids.size(), cids.end());
+			tctl2.setCallerIds(cids);
+			*/
+			SessionProcess *proc = new SessionProcess(this);
+			QString app = QCoreApplication::applicationDirPath() + "/shvrexec";
+			QStringList params;
+			params << "--mtid";// << "-v" << "rpcrawmsg";
+			shvInfo() << "starting child process:" << app << params.join(' ');
+			proc->start(app, params);
+			cp::RpcValue::Map startup_params;
+			startup_params["findTunnelResponse"] = find_tunnel_response;
+			startup_params["onConnectedCall"] = on_connected;
+			std::string cpon = cp::RpcValue(std::move(startup_params)).toCpon();
+			//shvInfo() << "cpon:" << cpon;
+			proc->write(cpon.data(), cpon.size());
+			proc->write("\n", 1);
+		}
+		else {
+			shvError() << "Invalid response to FindTunnelRequest:" << resp.toPrettyString();
+		}
+	});
+#if 0
+	using ConnectionParams = si::rpc::ConnectionParams;
+	using ConnectionParamsMT = si::rpc::ConnectionParams::MetaType;
 	ConnectionParams conn_params;
 	conn_params[ConnectionParamsMT::Key::Host] = m_rpcConnection->host();
 	conn_params[ConnectionParamsMT::Key::Port] = m_rpcConnection->port();
@@ -241,7 +289,16 @@ void ShvAgentApp::launchRexec(const shv::chainpack::RpcRequest &rq)
 	}
 
 	SessionProcess *proc = new SessionProcess(this);
-#if 0
+	QString app = QCoreApplication::applicationDirPath() + "/shvrexec";
+	QStringList params;
+	params << "--mtid" << "-v" << "rpcrawmsg";
+	shvInfo() << "starting child process:" << app << params.join(' ');
+	proc->start(app, params);
+	std::string cpon = conn_params.toRpcValue().toCpon();
+	//shvInfo() << "cpon:" << cpon;
+	proc->write(cpon.data(), cpon.size());
+	proc->write("\n", 1);
+
 	//proc->setCurrentReadChannel(QProcess::StandardOutput);
 	cp::RpcResponse resp1 = cp::RpcResponse::forRequest(rq);
 	connect(proc, &SessionProcess::readyReadStandardOutput, [this, proc, resp1]() {
@@ -254,7 +311,7 @@ void ShvAgentApp::launchRexec(const shv::chainpack::RpcRequest &rq)
 			std::string data(ba.constData(), ba.size());
 			cp::RpcValue::Map m = cp::RpcValue::fromCpon(data).toMap();
 			unsigned rexec_client_id = m.value(cp::Rpc::KEY_CLIENT_ID).toUInt();
-			std::string rexec_client_broker_path = shv::iotqt::rpc::ClientConnection::brokerClientPath(rexec_client_id);
+			std::string rexec_client_broker_path = si::rpc::ClientConnection::brokerClientPath(rexec_client_id);
 			std::string mount_point = m_rpcConnection->brokerMountPoint();
 			size_t cnt = shv::core::StringView(mount_point).split('/').size();
 			std::string rel_path;
@@ -272,15 +329,7 @@ void ShvAgentApp::launchRexec(const shv::chainpack::RpcRequest &rq)
 		m_rpcConnection->sendMessage(resp);
 	});
 #endif
-	QString app = QCoreApplication::applicationDirPath() + "/shvrexec";
-	QStringList params;
-	params << "--mtid" << "-v" << "rpcrawmsg";
-	shvInfo() << "starting child process:" << app << params.join(' ');
-	proc->start(app, params);
-	std::string cpon = conn_params.toRpcValue().toCpon();
-	//shvInfo() << "cpon:" << cpon;
-	proc->write(cpon.data(), cpon.size());
-	proc->write("\n", 1);
+
 }
 
 void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq)

@@ -1,6 +1,8 @@
 #include "shvrshapp.h"
 #include "appclioptions.h"
 
+#include <shv/chainpack/rpcmessage.h>
+
 #include <shv/core/utils.h>
 
 #include <shv/coreqt/log.h>
@@ -110,6 +112,8 @@ int main(int argc, char *argv[])
 		cli_opts.setPassword(QString::fromStdString(password));
 	}
 	*/
+
+	shv::chainpack::RpcMessage::MetaType::registerMetaType();
 
 	struct termios tty_orig;
 	if (ttySetRaw(STDIN_FILENO, &tty_orig) == -1) {

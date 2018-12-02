@@ -41,7 +41,6 @@ public:
 	QString versionString() const;
 
 	AppCliOptions* cliOptions() {return m_cliOptions;}
-	//sql::SqlConnector *sqlConnector();
 
 	static BrokerApp* instance() {return qobject_cast<BrokerApp*>(Super::instance());}
 

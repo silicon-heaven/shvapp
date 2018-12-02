@@ -2,11 +2,11 @@
 #include "appclioptions.h"
 
 #include <shv/iotqt/rpc/clientconnection.h>
-#include <shv/iotqt/rpc/tunnelhandle.h>
 #include <shv/iotqt/node/shvnodetree.h>
 
-#include <shv/coreqt/log.h>
 #include <shv/chainpack/metamethod.h>
+#include <shv/chainpack/tunnelctl.h>
+#include <shv/coreqt/log.h>
 #include <shv/core/stringview.h>
 #include <shv/core/utils.h>
 
@@ -65,7 +65,7 @@ ShvRshApp::ShvRshApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
 {
-	cp::RpcMessage::setMetaTypeExplicit(cli_opts->isMetaTypeExplicit());
+	//cp::RpcMessage::setMetaTypeExplicit(cli_opts->isMetaTypeExplicit());
 
 	m_rpcConnection = new shv::iotqt::rpc::ClientConnection(this);
 
@@ -131,47 +131,55 @@ void ShvRshApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 		}
 	}
 	else if(msg.isResponse()) {
-		cp::RpcResponse rsp(msg);
-		shvInfo() << "RPC response received request id:" << rsp.requestId().toCpon() << rsp.toPrettyString();
+		cp::RpcResponse resp(msg);
+		shvInfo() << "RPC response received request id:" << resp.requestId().toCpon() << resp.toPrettyString();
 		//shvInfo() << __LINE__ << m_tunnelRequestId << m_tunnelShvPath;
 		//shv::chainpack::RpcValue v = rsp.requestId();
-		if(rsp.requestId() == m_readTunnelRequestId) {
-			if(rsp.isError()) {
-				shvError() << "Open tunnel error:" << rsp.error().toString();
+		if(resp.requestId() == m_readTunnelRequestId) {
+			cp::TunnelCtl tctl = resp.tunnelCtl();
+			if(tctl.state() == cp::TunnelCtl::State::CloseTunnel) {
+				shvInfo() << "Tunnel closed by peer.";
 				quit();
 				return;
 			}
-			shv::chainpack::RpcValue result = rsp.result();
-			if(!m_writeTunnelHandle.isValid()) {
-				shv::chainpack::RpcValue::Int rev_request_id = result.toInt();
-				m_writeTunnelHandle = shv::iotqt::rpc::TunnelHandle(rev_request_id, rsp.revCallerIds());
-				if(!m_writeTunnelHandle.isValid()) {
-					shvError() << "TunnelHandle should be received:" << rsp.toCpon();
+			if(m_writeTunnelRequestId == 0) {
+				if(resp.isError()) {
+					shvError() << "Create tunnel error:" << resp.error().toString();
 					quit();
 					return;
 				}
-			}
-			else {
-				const shv::chainpack::RpcValue result = rsp.result();
-				if(result.isNull()) {
-					shvInfo() << "peer has closed tunnel";
-					quit();
-					return;
-				}
-				const shv::chainpack::RpcValue::List &lst = result.toList();
-				if(lst.empty()) {
-					shvError() << "Invalid tunnel message received:" << rsp.toCpon();
-					quit();
-					return;
-				}
-				int channel = lst.value(0).toInt();
-				if(channel == STDOUT_FILENO || channel == STDERR_FILENO) {
-					const shv::chainpack::RpcValue::String &blob = lst.value(1).toString();
-					writeToOutChannel(channel, blob);
+				if(tctl.state() == cp::TunnelCtl::State::CreateTunnelRequest) {
+					cp::CreateTunnelRequest create_tunnel_request(tctl);
+					m_writeTunnelRequestId = create_tunnel_request.requestId();
+					m_writeTunnelCallerIds = resp.revCallerIds();
+					cp::CreateTunnelResponse create_tunnel_response;
+					cp::RpcMessage resp2;
+					resp2.setRequestId(m_writeTunnelRequestId);
+					resp2.setCallerIds(m_writeTunnelCallerIds);
+					resp2.setTunnelCtl(create_tunnel_response);
+					//resp.setResult(nullptr);
+					rpcConnection()->sendMessage(resp2);
 				}
 				else {
-					shvError() << "Ignoring invalid channel number data received, channel:" << channel;
+					shvError() << "Create tunnel request expected!";
+					quit();
 				}
+				return;
+			}
+			cp::RpcValue result = resp.result();
+			const shv::chainpack::RpcValue::List &lst = result.toList();
+			if(lst.empty()) {
+				shvError() << "Invalid tunnel message received:" << resp.toCpon();
+				quit();
+				return;
+			}
+			int channel = lst.value(0).toInt();
+			if(channel == STDOUT_FILENO || channel == STDERR_FILENO) {
+				const shv::chainpack::RpcValue::String &blob = lst.value(1).toString();
+				writeToOutChannel(channel, blob);
+			}
+			else {
+				shvError() << "Ignoring invalid channel number data received, channel:" << channel;
 			}
 		}
 	}
@@ -190,17 +198,17 @@ void ShvRshApp::onReadyReadStdIn()
 void ShvRshApp::writeToTunnel(int channel, const cp::RpcValue &data)
 {
 	//shvInfo() << m_rpcConnection->isBrokerConnected() << m_tunnelShvPath << "GGG";
-	if(!m_rpcConnection->isBrokerConnected() || !m_writeTunnelHandle.isValid()) {
-		shvError() << "Tunnel not open, throwing away data:" << data.toCpon();
-		//quit();
+	if(!m_rpcConnection->isBrokerConnected() || m_writeTunnelRequestId == 0 || !m_writeTunnelCallerIds.isValid()) {
+		shvError() << "Tunnel not open or initiallized, quitting and throwing away data:" << data.toCpon();
+		quit();
 	}
 	else {
 		cp::RpcResponse resp;
-		resp.setRequestId(m_writeTunnelHandle.requestId());
-		resp.setCallerIds(m_writeTunnelHandle.callerIds());
+		resp.setRequestId(m_writeTunnelRequestId);
+		resp.setCallerIds(m_writeTunnelCallerIds);
 		cp::RpcValue::List result{channel, data};
 		resp.setResult(result);
-		m_rpcConnection->sendMessage(resp);
+		rpcConnection()->sendMessage(resp);
 	}
 }
 

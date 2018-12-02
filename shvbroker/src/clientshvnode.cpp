@@ -5,7 +5,6 @@
 #include "rpc/masterbrokerconnection.h"
 
 #include <shv/coreqt/log.h>
-#include <shv/iotqt/rpc/tunnelhandle.h>
 
 #define logRpcMsg() shvCDebug("RpcMsg")
 

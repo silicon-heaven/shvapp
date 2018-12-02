@@ -1,6 +1,9 @@
 #include "brokerapp.h"
 #include "appclioptions.h"
 
+#include <shv/chainpack/rpcmessage.h>
+#include <shv/chainpack/tunnelctl.h>
+
 #include <shv/core/utils.h>
 
 #include <shv/coreqt/log.h>
@@ -16,6 +19,8 @@ int main(int argc, char *argv[])
 	QCoreApplication::setOrganizationDomain("elektroline.cz");
 	QCoreApplication::setApplicationName("shvbroker");
 	QCoreApplication::setApplicationVersion("0.0.1");
+
+	std::srand(std::time(nullptr));
 
 	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);
 
@@ -41,6 +46,9 @@ int main(int argc, char *argv[])
 	if(!cli_opts.loadConfigFile()) {
 		return EXIT_FAILURE;
 	}
+
+	shv::chainpack::RpcMessage::MetaType::registerMetaType();
+	shv::chainpack::TunnelCtl::MetaType::registerMetaType();
 
 	shvInfo() << "======================================================================================";
 	shvInfo() << "Starting SHV BROKER server, PID:" << QCoreApplication::applicationPid() << "build:" << __DATE__ << __TIME__;

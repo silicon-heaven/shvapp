@@ -24,6 +24,7 @@
 #include <shv/chainpack/rpcmessage.h>
 #include <shv/chainpack/metamethod.h>
 #include <shv/chainpack/cponwriter.h>
+#include <shv/chainpack/tunnelctl.h>
 
 #include <QFile>
 #include <QSocketNotifier>
@@ -89,7 +90,7 @@ BrokerApp::BrokerApp(int &argc, char **argv, AppCliOptions *cli_opts)
 	installUnixSignalHandlers();
 #endif
 
-	cp::RpcMessage::setMetaTypeExplicit(cli_opts->isMetaTypeExplicit());
+	//cp::RpcMessage::setMetaTypeExplicit(cli_opts->isMetaTypeExplicit());
 
 	//connect(this, &BrokerApp::sqlServerConnected, this, &BrokerApp::onSqlServerConnected);
 	/*
@@ -321,14 +322,7 @@ std::string BrokerApp::dataToCpon(shv::chainpack::Rpc::ProtocolType protocol_typ
 		rpc_val = " ... " + std::to_string(data_len) + " bytes of data ... ";
 	}
 	rpc_val.setMetaData(shv::chainpack::RpcValue::MetaData(md));
-	std::ostringstream out;
-	{
-		cp::CponWriterOptions opts;
-		opts.setTranslateIds(cliOptions()->isMetaTypeExplicit());
-		cp::CponWriter wr(out, opts);
-		wr << rpc_val;
-	}
-	return out.str();
+	return rpc_val.toPrettyString();
 }
 
 void BrokerApp::remountDevices()
@@ -786,7 +780,39 @@ void BrokerApp::onRpcDataReceived(int connection_id, shv::chainpack::Rpc::Protoc
 	else if(cp::RpcMessage::isResponse(meta)) {
 		shvDebug() << "RESPONSE conn id:" << connection_id << meta.toStdString();
 		cp::RpcValue::Int caller_id = cp::RpcMessage::popCallerId(meta);
+		shvDebug() << "top caller id:" << caller_id;
 		if(caller_id > 0) {
+			cp::TunnelCtl tctl = cp::RpcMessage::tunnelCtl(meta);
+			if(tctl.state() == cp::TunnelCtl::State::FindTunnelRequest) {
+				shvDebug() << "FindTunnelRequest received";
+				cp::FindTunnelRequest find_tunnel_request(tctl);
+				bool last_broker = cp::RpcValueGenList(cp::RpcMessage::callerIds(meta)).empty();
+				if(cliOptions()->isPublicNode() || (last_broker && find_tunnel_request.host().empty())) {
+					QString ip_addr = tcpServer()->serverAddress().toString();
+					find_tunnel_request.setHost(ip_addr.toStdString());
+					find_tunnel_request.setPort(tcpServer()->serverPort());
+					find_tunnel_request.setCallerIds(cp::RpcMessage::callerIds(meta));
+					find_tunnel_request.setSecret("DEBUG SECRET: " + ip_addr.toStdString() + ':' + std::to_string(find_tunnel_request.port()));
+				}
+				if(last_broker) {
+					cp::FindTunnelResponse find_tunnel_response = cp::FindTunnelResponse::fromFindTunnelRequest(find_tunnel_request);
+					cp::RpcMessage msg;
+					msg.setRequestId(cp::RpcMessage::requestId(meta));
+					// send response to FindTunnelRequest, remove top client id, since it is this connection id
+					msg.setCallerIds(cp::RpcMessage::revCallerIds(meta));
+					int top_connection_id = msg.popCallerId();
+					if(top_connection_id != connection_id) {
+						shvError() << "(top_connection_id != connection_id) this should never happen";
+						return;
+					}
+					msg.setTunnelCtl(find_tunnel_response);
+					rpc::CommonRpcClientHandle *cch = commonClientConnectionById(connection_id);
+					if(cch)
+						cch->sendMessage(msg);
+					return;
+				}
+				cp::RpcMessage::setTunnelCtl(meta, find_tunnel_request);
+			}
 			rpc::CommonRpcClientHandle *cch = commonClientConnectionById(caller_id);
 			if(cch) {
 				cch->sendRawData(std::move(meta), std::move(data));

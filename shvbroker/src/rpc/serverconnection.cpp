@@ -31,6 +31,12 @@ ServerConnection::ServerConnection(QTcpSocket *socket, QObject *parent)
 ServerConnection::~ServerConnection()
 {
 	//rpc::ServerConnectionshvWarning() << "destroying" << this;
+	//shvWarning() << __FUNCTION__;
+}
+
+const shv::chainpack::RpcValue::Map &ServerConnection::tunnelOptions() const
+{
+	return connectionOptions().value(cp::Rpc::KEY_TUNNEL).toMap();
 }
 
 const shv::chainpack::RpcValue::Map& ServerConnection::deviceOptions() const

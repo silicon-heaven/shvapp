@@ -30,6 +30,7 @@ public:
 
 	std::string loggedUserName() override {return Super::userName();}
 
+	const shv::chainpack::RpcValue::Map& tunnelOptions() const;
 	const shv::chainpack::RpcValue::Map& deviceOptions() const;
 	shv::chainpack::RpcValue deviceId() const;
 

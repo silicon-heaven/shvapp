@@ -79,7 +79,7 @@ ShvFileProviderApp::ShvFileProviderApp(int &argc, char **argv, AppCliOptions* cl
 	if(0 != ::setpgid(0, 0))
 		shvError() << "Error set process group ID:" << errno << ::strerror(errno);
 #endif
-	cp::RpcMessage::setMetaTypeExplicit(cli_opts->isMetaTypeExplicit());
+	//cp::RpcMessage::setMetaTypeExplicit(cli_opts->isMetaTypeExplicit());
 
 	m_rpcConnection = new shv::iotqt::rpc::DeviceConnection(this);
 

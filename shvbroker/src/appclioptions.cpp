@@ -5,8 +5,8 @@ namespace cp = shv::chainpack;
 AppCliOptions::AppCliOptions()
 {
 	addOption("locale").setType(cp::RpcValue::Type::String).setNames("--locale").setComment("Application locale").setDefaultValue("system");
-	//addOption("profile").setType(cp::RpcValue::Type::String).setNames("--profile").setComment("Server profile name").setDefaultValue("eyassrv");
 	addOption("server.port").setType(cp::RpcValue::Type::Int).setNames("--server-port").setComment("Server port").setDefaultValue(3755);
+	addOption("server.publicNode").setType(cp::RpcValue::Type::Bool).setNames("--pbnd", "--server-is-public-node").setComment("Server is public node");
 	addOption("sql.host").setType(cp::RpcValue::Type::String).setNames("-s", "--sql-host").setComment("SQL server host");
 	addOption("sql.port").setType(cp::RpcValue::Type::Int).setNames("--sql-port").setComment("SQL server port").setDefaultValue(5432);
 	addOption("rpc.metaTypeExplicit").setType(cp::RpcValue::Type::Bool).setNames("--mtid", "--rpc-metatype-explicit").setComment("RpcMessage Type ID is included in RpcMessage when set, for more verbose -v rpcmsg log output").setDefaultValue(false);

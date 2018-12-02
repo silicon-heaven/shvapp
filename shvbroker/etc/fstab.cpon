@@ -7,6 +7,6 @@
 "C621A8190000-agent": "shv/pol/lub/discon/0110-agent",
 "DS:E3F524190000": "shv/pol/lub/discon/1302",
 "E3F524190000-agent": "shv/pol/lub/discon/1302-agent",
-//"jessie/agent": "shv/cze/prg/jessie/agent",
+"bfsview-001": "bfs/plzen/bfsView",
 //"olsztyn/depot/agent": "shv/pol/olsztyn/depot/agent",
 }

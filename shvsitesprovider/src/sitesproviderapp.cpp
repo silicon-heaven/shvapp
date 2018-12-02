@@ -481,7 +481,7 @@ SitesProviderApp::SitesProviderApp(int &argc, char **argv, AppCliOptions* cli_op
 		shvError() << "Error set process group ID:" << errno << ::strerror(errno);
 	}
 #endif
-	cp::RpcMessage::setMetaTypeExplicit(cli_opts->isMetaTypeExplicit());
+	//cp::RpcMessage::setMetaTypeExplicit(cli_opts->isMetaTypeExplicit());
 	m_rpcConnection = new shv::iotqt::rpc::DeviceConnection(this);
 
 	if (!cli_opts->user_isset()) {

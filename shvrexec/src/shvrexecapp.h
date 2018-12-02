@@ -1,14 +1,15 @@
 #pragma once
 
 #include <shv/iotqt/node/shvnode.h>
-#include <shv/iotqt/rpc/tunnelhandle.h>
 
 #include <shv/chainpack/rpcmessage.h>
+#include <shv/chainpack/tunnelctl.h>
 
 #include <QCoreApplication>
 
 class PtyProcess;
 class QProcess;
+class QTimer;
 class AppCliOptions;
 
 namespace shv { namespace chainpack { class RpcMessage; }}
@@ -55,7 +56,7 @@ private:
 	void onReadyReadProcessStandardError();
 
 	//void setTerminalWindowSize(int w, int h);
-	void openTunnel(const std::string &method, const shv::chainpack::RpcValue &params, int request_id, const shv::chainpack::RpcValue &cids);
+	//void openTunnel(const std::string &method, const shv::chainpack::RpcValue &params, int request_id, const shv::chainpack::RpcValue &cids);
 
 	void sendProcessOutput(int channel, const char *data, size_t data_len);
 	void closeAndQuit();
@@ -65,13 +66,17 @@ private:
 
 	shv::iotqt::node::ShvNodeTree *m_shvTree = nullptr;
 
-	shv::iotqt::rpc::TunnelHandle m_writeTunnelHandle;
+	int m_writeTunnelRequestId = 0;
+	shv::chainpack::RpcValue m_writeTunnelCallerIds;
 	int m_readTunnelRequestId = 0;
 
+	shv::chainpack::TunnelCtl m_tunnelCtl;
+	// which shvrexec shv method will be called after conection to broker
 	shv::chainpack::RpcValue m_onConnectedCall;
 	PtyProcess *m_ptyCmdProc = nullptr;
 	QProcess *m_cmdProc = nullptr;
 	//int m_termWidth = 0;
 	//int m_termHeight = 0;
+	QTimer *m_inactivityTimer = nullptr;
 };
 

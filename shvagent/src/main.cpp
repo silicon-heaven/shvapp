@@ -1,6 +1,8 @@
 #include "shvagentapp.h"
 #include "appclioptions.h"
 
+#include <shv/chainpack/rpcmessage.h>
+
 #include <shv/core/utils.h>
 
 #include <shv/coreqt/log.h>
@@ -42,6 +44,8 @@ int main(int argc, char *argv[])
 	if(!cli_opts.loadConfigFile()) {
 		return EXIT_FAILURE;
 	}
+
+	shv::chainpack::RpcMessage::MetaType::registerMetaType();
 
 	shvInfo() << "======================================================================================";
 	shvInfo() << "Starting SHV AGENT server, PID:" << QCoreApplication::applicationPid() << "build:" << __DATE__ << __TIME__;

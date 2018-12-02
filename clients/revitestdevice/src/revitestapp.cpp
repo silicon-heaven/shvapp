@@ -1,6 +1,5 @@
 #include "revitestapp.h"
 #include "appclioptions.h"
-//#include "lublicator.h"
 #include "revitestdevice.h"
 
 #include <shv/iotqt/rpc/deviceconnection.h>
@@ -16,7 +15,7 @@ RevitestApp::RevitestApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
 {
-	cp::RpcMessage::setMetaTypeExplicit(cli_opts->isMetaTypeExplicit());
+	//cp::RpcMessage::setMetaTypeExplicit(cli_opts->isMetaTypeExplicit());
 
 	m_shvJournal = new shv::iotqt::utils::FileShvJournal([this](std::vector<shv::iotqt::utils::ShvJournalEntry> &s) { this->getSnapshot(s); });
 	m_shvJournal->setJournalDir(cli_opts->shvJournalDir());

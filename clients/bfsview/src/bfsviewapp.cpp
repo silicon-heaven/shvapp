@@ -3,7 +3,6 @@
 #include "settings.h"
 
 #include <shv/iotqt/rpc/deviceconnection.h>
-#include <shv/iotqt/rpc/tunnelhandle.h>
 #include <shv/iotqt/node/shvnodetree.h>
 #include <shv/iotqt/node/localfsnode.h>
 #include <shv/coreqt/log.h>
@@ -12,7 +11,6 @@
 #include <shv/core/stringview.h>
 #include <shv/core/assert.h>
 
-//#include <QProcess>
 #include <QFileSystemWatcher>
 #include <QSettings>
 #include <QTimer>
@@ -32,7 +30,6 @@ static std::vector<cp::MetaMethod> meta_methods_root {
 	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, 0},
 	{cp::Rpc::METH_MOUNT_POINT, cp::MetaMethod::Signature::RetVoid, 0},
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, 0},
-	//{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, 0},
 	{METH_APP_LOG, cp::MetaMethod::Signature::RetVoid, 0},
 };
 
@@ -183,7 +180,7 @@ BfsViewApp::BfsViewApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
 {
-	cp::RpcMessage::setMetaTypeExplicit(cli_opts->isMetaTypeExplicit());
+	//cp::RpcMessage::setMetaTypeExplicit(cli_opts->isMetaTypeExplicit());
 
 	m_rpcConnection = new shv::iotqt::rpc::DeviceConnection(this);
 
