@@ -35,8 +35,8 @@ production-deploy:
     #- rsync -avz lib bin gitlab-jessie@35.167.83.38:/opt/shv/ 
     #- ssh -t gitlab-jessie@35.167.83.38 "sudo /opt/shv/install.sh"
     # nirvana
-    - rsync -avz lib bin gitlab@165.227.247.202:/opt/shv/ 
-    - ssh -t gitlab@165.227.247.202 "sudo /opt/shv/install.sh"
+    - rsync -avz lib bin gitlab@165.227.247.202:/opt/shv-prod/ 
+    - ssh -t gitlab@165.227.247.202 "sudo /opt/shv-prod/install.sh"
 
   environment:
     name: jessie
@@ -50,10 +50,10 @@ test-deploy:
     deploy
   script:
     # nirvana
-    - rsync -avz shvbroker/etc gitlab@165.227.247.202:/opt/shv-test/ 
+    - rsync -avz shvbroker/etc gitlab@165.227.247.202:/opt/shv/ 
     - cd build
-    - rsync -avz lib bin gitlab@165.227.247.202:/opt/shv-test/ 
-    - ssh -t gitlab@165.227.247.202 "sudo /opt/shv-test/install.sh"
+    - rsync -avz lib bin gitlab@165.227.247.202:/opt/shv/ 
+    - ssh -t gitlab@165.227.247.202 "sudo /opt/shv/install.sh"
 
   environment:
     name: jessie
