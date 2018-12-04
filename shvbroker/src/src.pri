@@ -20,6 +20,7 @@ SOURCES += \
 
 include ($$PWD/sql/sql.pri)
 include ($$PWD/rpc/rpc.pri)
+include ($$PWD/utils/utils.pri)
 
 
 
