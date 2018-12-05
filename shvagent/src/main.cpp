@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
-	shv::chainpack::RpcMessage::MetaType::registerMetaType();
+	shv::chainpack::RpcMessage::registerMetaTypes();
 
 	shvInfo() << "======================================================================================";
 	shvInfo() << "Starting SHV AGENT server, PID:" << QCoreApplication::applicationPid() << "build:" << __DATE__ << __TIME__;

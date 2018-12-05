@@ -30,8 +30,8 @@ public:
 
 	std::string loggedUserName() override {return Super::userName();}
 
-	const shv::chainpack::RpcValue::Map& tunnelOptions() const;
-	const shv::chainpack::RpcValue::Map& deviceOptions() const;
+	shv::chainpack::RpcValue tunnelOptions() const;
+	shv::chainpack::RpcValue deviceOptions() const;
 	shv::chainpack::RpcValue deviceId() const;
 
 	void setIdleWatchDogTimeOut(int sec);
@@ -44,6 +44,7 @@ private:
 	void onRpcDataReceived(shv::chainpack::Rpc::ProtocolType protocol_type, shv::chainpack::RpcValue::MetaData &&md, const std::string &data, size_t start_pos, size_t data_len) override;
 	std::tuple<std::string, PasswordFormat> password(const std::string &user) override;
 	shv::chainpack::RpcValue login(const shv::chainpack::RpcValue &auth_params) override;
+	bool checkTunnelSecret(const std::string &s);
 private:
 	QTimer *m_idleWatchDogTimer = nullptr;
 };

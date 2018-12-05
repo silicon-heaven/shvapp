@@ -34,19 +34,19 @@ ServerConnection::~ServerConnection()
 	//shvWarning() << __FUNCTION__;
 }
 
-const shv::chainpack::RpcValue::Map &ServerConnection::tunnelOptions() const
+shv::chainpack::RpcValue ServerConnection::tunnelOptions() const
 {
-	return connectionOptions().value(cp::Rpc::KEY_TUNNEL).toMap();
+	return connectionOptions().value(cp::Rpc::KEY_TUNNEL);
 }
 
-const shv::chainpack::RpcValue::Map& ServerConnection::deviceOptions() const
+shv::chainpack::RpcValue ServerConnection::deviceOptions() const
 {
-	return connectionOptions().value(cp::Rpc::KEY_DEVICE).toMap();
+	return connectionOptions().value(cp::Rpc::KEY_DEVICE);
 }
 
 shv::chainpack::RpcValue ServerConnection::deviceId() const
 {
-	return deviceOptions().value(cp::Rpc::KEY_DEVICE_ID);
+	return deviceOptions().toMap().value(cp::Rpc::KEY_DEVICE_ID);
 }
 
 void ServerConnection::setIdleWatchDogTimeOut(int sec)
@@ -144,7 +144,15 @@ void ServerConnection::onRpcDataReceived(shv::chainpack::Rpc::ProtocolType proto
 
 shv::chainpack::RpcValue ServerConnection::login(const shv::chainpack::RpcValue &auth_params)
 {
-	cp::RpcValue ret = Super::login(auth_params);
+	cp::RpcValue ret;
+	if(tunnelOptions().isMap()) {
+		std::string secret = tunnelOptions().toMap().value(cp::Rpc::KEY_SECRET).toString();
+		if(checkTunnelSecret(secret))
+			ret = cp::RpcValue::Map();
+	}
+	else {
+		ret = Super::login(auth_params);
+	}
 	if(!ret.isValid())
 		return cp::RpcValue();
 	cp::RpcValue::Map login_resp = ret.toMap();
@@ -156,6 +164,11 @@ shv::chainpack::RpcValue ServerConnection::login(const shv::chainpack::RpcValue 
 
 	login_resp[cp::Rpc::KEY_CLIENT_ID] = connectionId();
 	return login_resp;
+}
+
+bool ServerConnection::checkTunnelSecret(const std::string &s)
+{
+	return BrokerApp::instance()->checkTunnelSecret(s);
 }
 
 bool ServerConnection::propagateSubscriptionToSlaveBroker(const CommonRpcClientHandle::Subscription &subs)

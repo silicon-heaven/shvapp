@@ -1,5 +1,6 @@
 #include "brokerapp.h"
 #include "appclioptions.h"
+#include "utils/network.h"
 
 #include <shv/chainpack/rpcmessage.h>
 #include <shv/chainpack/tunnelctl.h>
@@ -10,6 +11,7 @@
 
 #include <QTextStream>
 #include <QTranslator>
+#include <QHostAddress>
 
 #include <iostream>
 
@@ -19,8 +21,6 @@ int main(int argc, char *argv[])
 	QCoreApplication::setOrganizationDomain("elektroline.cz");
 	QCoreApplication::setApplicationName("shvbroker");
 	QCoreApplication::setApplicationVersion("0.0.1");
-
-	std::srand(std::time(nullptr));
 
 	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);
 
@@ -47,8 +47,7 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
-	shv::chainpack::RpcMessage::MetaType::registerMetaType();
-	shv::chainpack::TunnelCtl::MetaType::registerMetaType();
+	shv::chainpack::RpcMessage::registerMetaTypes();
 
 	shvInfo() << "======================================================================================";
 	shvInfo() << "Starting SHV BROKER server, PID:" << QCoreApplication::applicationPid() << "build:" << __DATE__ << __TIME__;
@@ -59,8 +58,9 @@ int main(int argc, char *argv[])
 	shvInfo() << "======================================================================================";
 	shvInfo() << "Log tresholds:" << NecroLog::tresholdsLogInfo();
 	//shvInfo() << NecroLog::instantiationInfo();
+	shvInfo() << "Primary IPv4 address:" << utils::Network::primaryIPv4Address().toString();
+	shvInfo() << "Primary public IPv4 address:" << utils::Network::primaryPublicIPv4Address().toString();
 	shvInfo() << "--------------------------------------------------------------------------------------";
-	//break;
 
 	BrokerApp a(argc, argv, &cli_opts);
 

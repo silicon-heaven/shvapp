@@ -228,8 +228,8 @@ ShvAgentApp *ShvAgentApp::instance()
 
 void ShvAgentApp::launchRexec(const shv::chainpack::RpcRequest &rq)
 {
-	cp::FindTunnelRequest find_tunnel_request;
-	find_tunnel_request.setCallerIds(rq.callerIds());
+	cp::FindTunnelReqCtl find_tunnel_request;
+	//find_tunnel_request.setCallerIds(rq.callerIds());
 	shv::chainpack::RpcResponse resp = rq.makeResponse();
 	resp.setTunnelCtl(find_tunnel_request);
 	resp.setRegisterRevCallerIds();
@@ -244,17 +244,8 @@ void ShvAgentApp::launchRexec(const shv::chainpack::RpcRequest &rq)
 		shvDebug() << "Received Find tunnel response:" << resp.toPrettyString();
 		cp::TunnelCtl tctl1 = resp.tunnelCtl();
 		if(tctl1.state() == cp::TunnelCtl::State::FindTunnelResponse) {
-			cp::FindTunnelResponse find_tunnel_response(tctl1);
+			cp::FindTunnelRespCtl find_tunnel_response(tctl1);
 			find_tunnel_response.setRequestId(resp.requestId().toInt());
-			/*
-			cp::CreateTunnelRequest create_tunnel_request = cp::CreateTunnelRequest::fromFindTunnelResponse(find_tunnel_response);
-			// cut resp rcid len from request cid to make return path from tunnel node
-			cp::RpcValueGenList rcids(resp.revCallerIds());
-			cp::RpcValue::List cids = cp::RpcValueGenList(tctl1.callerIds()).toList();
-			if(rcids.size() > 0 && rcids.size() <= cids.size())
-				cids.erase(cids.end()-rcids.size(), cids.end());
-			tctl2.setCallerIds(cids);
-			*/
 			SessionProcess *proc = new SessionProcess(this);
 			QString app = QCoreApplication::applicationDirPath() + "/shvrexec";
 			QStringList params;

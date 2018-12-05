@@ -76,6 +76,8 @@ int main(int argc, char *argv[])
 		cli_opts.setPassword(QString::fromStdString(password));
 	}
 	*/
+	shv::chainpack::RpcMessage::registerMetaTypes();
+
 	shvInfo() << "======================================================================================";
 	shvInfo() << "Starting SHV Remote Exec, PID:" << QCoreApplication::applicationPid() << "build:" << __DATE__ << __TIME__;
 #ifdef GIT_COMMIT

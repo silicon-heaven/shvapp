@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
 	}
 	*/
 
-	shv::chainpack::RpcMessage::MetaType::registerMetaType();
+	shv::chainpack::RpcMessage::registerMetaTypes();
 
 	struct termios tty_orig;
 	if (ttySetRaw(STDIN_FILENO, &tty_orig) == -1) {

@@ -15,7 +15,7 @@ public:
 
 	CLIOPTION_GETTER_SETTER(std::string, l, setL, ocale)
 	CLIOPTION_GETTER_SETTER2(int, "server.port", s, setS, erverPort)
-	CLIOPTION_GETTER_SETTER2(bool, "server.publicNode", is, set, PublicNode)
+	CLIOPTION_GETTER_SETTER2(std::string, "server.publicIP", p, setP, ublicIP)
 	CLIOPTION_GETTER_SETTER2(std::string, "sql.host", s, setS, qlHost)
 	CLIOPTION_GETTER_SETTER2(int, "sql.port", s, setS, qlPort)
 	CLIOPTION_GETTER_SETTER2(bool, "rpc.metaTypeExplicit", is, set, MetaTypeExplicit)

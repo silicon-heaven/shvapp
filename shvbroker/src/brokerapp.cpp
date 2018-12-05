@@ -7,6 +7,7 @@
 #include "rpc/tcpserver.h"
 #include "rpc/serverconnection.h"
 #include "rpc/masterbrokerconnection.h"
+#include "utils/network.h"
 
 #include <shv/iotqt/node/shvnode.h>
 #include <shv/iotqt/node/shvnodetree.h>
@@ -39,6 +40,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#define logTunnelD() nCDebug("Tunnel")
 #define logAclD() nCDebug("Acl")
 #define logAccessD() nCDebug("Access").color(NecroLog::Color::Green)
 #define logSubscriptionsD() nCDebug("Subscr").color(NecroLog::Color::Yellow)
@@ -310,6 +312,11 @@ bool BrokerApp::setAclConfig(const std::string &config_name, const shv::chainpac
 	}
 }
 
+bool BrokerApp::checkTunnelSecret(const std::string &s)
+{
+	return m_tunnelSecretList.checkSecret(s);
+}
+
 std::string BrokerApp::dataToCpon(shv::chainpack::Rpc::ProtocolType protocol_type, const shv::chainpack::RpcValue::MetaData &md, const std::string &data, size_t start_pos, size_t data_len)
 {
 	shv::chainpack::RpcValue rpc_val;
@@ -493,6 +500,22 @@ const std::set<std::string> &BrokerApp::userFlattenGrants(const std::string &use
 	return m_userFlattenGrantsCache.at(user_name);
 }
 
+std::string BrokerApp::primaryIPAddress(bool &is_public)
+{
+	if(cliOptions()->publicIP_isset())
+		return cliOptions()->publicIP();
+	QHostAddress ha = utils::Network::primaryPublicIPv4Address();
+	if(!ha.isNull()) {
+		is_public = true;
+		return ha.toString().toStdString();
+	}
+	is_public = false;
+	ha = utils::Network::primaryIPv4Address();
+	if(!ha.isNull())
+		return ha.toString().toStdString();
+	return std::string();
+}
+
 static std::string join_string_set(const std::set<std::string> &ss, char sep)
 {
 	std::string ret;
@@ -637,8 +660,8 @@ void BrokerApp::onClientLogin(int connection_id)
 		}
 	}
 
-	if(!conn->deviceOptions().empty()) {
-		const shv::chainpack::RpcValue::Map &device_opts = conn->deviceOptions();
+	if(conn->deviceOptions().isMap()) {
+		const shv::chainpack::RpcValue::Map &device_opts = conn->deviceOptions().toMap();
 		std::string mount_point = resolveMountPoint(device_opts);
 		if(!mount_point.empty()) {
 			ClientShvNode *cli_nd = qobject_cast<ClientShvNode*>(m_deviceTree->cd(mount_point));
@@ -755,7 +778,7 @@ void BrokerApp::onRpcDataReceived(int connection_id, shv::chainpack::Rpc::Protoc
 				cp::RpcMessage::setAccessGrant(meta, acg.grant);
 				cp::RpcMessage::pushCallerId(meta, connection_id);
 				if(m_deviceTree->root()) {
-					shvDebug() << "REQUEST conn id:" << connection_id << meta.toStdString();
+					shvDebug() << "REQUEST conn id:" << connection_id << meta.toPrettyString();
 					m_deviceTree->root()->handleRawRpcRequest(std::move(meta), std::move(data));
 				}
 				else {
@@ -778,24 +801,26 @@ void BrokerApp::onRpcDataReceived(int connection_id, shv::chainpack::Rpc::Protoc
 		}
 	}
 	else if(cp::RpcMessage::isResponse(meta)) {
-		shvDebug() << "RESPONSE conn id:" << connection_id << meta.toStdString();
+		shvDebug() << "RESPONSE conn id:" << connection_id << meta.toPrettyString();
+		shv::chainpack::RpcValue orig_caller_ids = cp::RpcMessage::callerIds(meta);
 		cp::RpcValue::Int caller_id = cp::RpcMessage::popCallerId(meta);
 		shvDebug() << "top caller id:" << caller_id;
 		if(caller_id > 0) {
 			cp::TunnelCtl tctl = cp::RpcMessage::tunnelCtl(meta);
 			if(tctl.state() == cp::TunnelCtl::State::FindTunnelRequest) {
-				shvDebug() << "FindTunnelRequest received";
-				cp::FindTunnelRequest find_tunnel_request(tctl);
+				logTunnelD() << "FindTunnelRequest received:" << meta.toPrettyString();
+				cp::FindTunnelReqCtl find_tunnel_request(tctl);
 				bool last_broker = cp::RpcValueGenList(cp::RpcMessage::callerIds(meta)).empty();
-				if(cliOptions()->isPublicNode() || (last_broker && find_tunnel_request.host().empty())) {
-					QString ip_addr = tcpServer()->serverAddress().toString();
-					find_tunnel_request.setHost(ip_addr.toStdString());
+				bool is_public_node;
+				std::string server_ip = primaryIPAddress(is_public_node);
+				if(is_public_node || (last_broker && find_tunnel_request.host().empty())) {
+					find_tunnel_request.setHost(server_ip);
 					find_tunnel_request.setPort(tcpServer()->serverPort());
-					find_tunnel_request.setCallerIds(cp::RpcMessage::callerIds(meta));
-					find_tunnel_request.setSecret("DEBUG SECRET: " + ip_addr.toStdString() + ':' + std::to_string(find_tunnel_request.port()));
+					find_tunnel_request.setCallerIds(orig_caller_ids);
+					find_tunnel_request.setSecret(m_tunnelSecretList.createSecret());
 				}
 				if(last_broker) {
-					cp::FindTunnelResponse find_tunnel_response = cp::FindTunnelResponse::fromFindTunnelRequest(find_tunnel_request);
+					cp::FindTunnelRespCtl find_tunnel_response = cp::FindTunnelRespCtl::fromFindTunnelRequest(find_tunnel_request);
 					cp::RpcMessage msg;
 					msg.setRequestId(cp::RpcMessage::requestId(meta));
 					// send response to FindTunnelRequest, remove top client id, since it is this connection id
@@ -807,8 +832,10 @@ void BrokerApp::onRpcDataReceived(int connection_id, shv::chainpack::Rpc::Protoc
 					}
 					msg.setTunnelCtl(find_tunnel_response);
 					rpc::CommonRpcClientHandle *cch = commonClientConnectionById(connection_id);
-					if(cch)
+					if(cch) {
+						logTunnelD() << "Sending FindTunnelResponse:" << msg.toPrettyString();
 						cch->sendMessage(msg);
+					}
 					return;
 				}
 				cp::RpcMessage::setTunnelCtl(meta, find_tunnel_request);
@@ -824,11 +851,11 @@ void BrokerApp::onRpcDataReceived(int connection_id, shv::chainpack::Rpc::Protoc
 		else {
 			// broker messages like create master broker subscription
 			if(cp::RpcMessage::requestId(meta).toInt() != 0)
-				shvError() << "Got RPC response without src connection specified, throwing message away." << meta.toStdString();
+				shvError() << "Got RPC response without src connection specified, throwing message away." << meta.toPrettyString();
 		}
 	}
 	else if(cp::RpcMessage::isSignal(meta)) {
-		shvDebug() << "NOTIFY:" << meta.toStdString() << "from:" << connection_id;
+		shvDebug() << "NOTIFY:" << meta.toPrettyString() << "from:" << connection_id;
 		rpc::CommonRpcClientHandle *conn = commonClientConnectionById(connection_id);
 		if(conn) {
 			for(const std::string &mp : conn->mountPoints()) {

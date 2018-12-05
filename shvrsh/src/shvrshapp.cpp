@@ -21,6 +21,8 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 
+#define logTunnelD() nCDebug("Tunnel")
+
 namespace cp = shv::chainpack;
 namespace ir = shv::iotqt::rpc;
 
@@ -149,15 +151,18 @@ void ShvRshApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 					return;
 				}
 				if(tctl.state() == cp::TunnelCtl::State::CreateTunnelRequest) {
-					cp::CreateTunnelRequest create_tunnel_request(tctl);
+					logTunnelD() << "CreateTunnelRequest received:" << msg.toPrettyString();
+					cp::CreateTunnelReqCtl create_tunnel_request(tctl);
 					m_writeTunnelRequestId = create_tunnel_request.requestId();
 					m_writeTunnelCallerIds = resp.revCallerIds();
-					cp::CreateTunnelResponse create_tunnel_response;
+					cp::CreateTunnelRespCtl create_tunnel_response;
 					cp::RpcMessage resp2;
 					resp2.setRequestId(m_writeTunnelRequestId);
 					resp2.setCallerIds(m_writeTunnelCallerIds);
 					resp2.setTunnelCtl(create_tunnel_response);
+					resp2.setRegisterRevCallerIds();
 					//resp.setResult(nullptr);
+					logTunnelD() << "Sending CreateTunnelResponse:" << resp2.toPrettyString();
 					rpcConnection()->sendMessage(resp2);
 				}
 				else {

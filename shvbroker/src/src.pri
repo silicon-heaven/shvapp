@@ -6,7 +6,8 @@ HEADERS += \
     $$PWD/subscriptionsnode.h \
     $$PWD/brokerconfigfilenode.h \
     $$PWD/clientconnectionnode.h \
-    $$PWD/clientshvnode.h
+    $$PWD/clientshvnode.h \
+    $$PWD/tunnelsecretlist.h
 
 SOURCES += \
     $$PWD/main.cpp\
@@ -16,7 +17,8 @@ SOURCES += \
     $$PWD/subscriptionsnode.cpp \
     $$PWD/brokerconfigfilenode.cpp \
     $$PWD/clientconnectionnode.cpp \
-    $$PWD/clientshvnode.cpp
+    $$PWD/clientshvnode.cpp \
+    $$PWD/tunnelsecretlist.cpp
 
 include ($$PWD/sql/sql.pri)
 include ($$PWD/rpc/rpc.pri)

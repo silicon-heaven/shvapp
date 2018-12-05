@@ -12,6 +12,7 @@ inline unsigned qHash(const std::string &s) noexcept //Q_DECL_NOEXCEPT_EXPR(noex
 #endif
 
 #include "appclioptions.h"
+#include "tunnelsecretlist.h"
 
 #include <shv/iotqt/node/shvnode.h>
 
@@ -68,6 +69,8 @@ public:
 	shv::chainpack::RpcValue aclConfig(const std::string &config_name, bool throw_exc);
 	bool setAclConfig(const std::string &config_name, const shv::chainpack::RpcValue &config, bool throw_exc);
 
+	bool checkTunnelSecret(const std::string &s);
+
 	std::string dataToCpon(shv::chainpack::Rpc::ProtocolType protocol_type, const shv::chainpack::RpcValue::MetaData &md, const std::string &data, size_t start_pos = 0, size_t data_len = 0);
 private:
 	void remountDevices();
@@ -103,6 +106,8 @@ private:
 	static std::string brokerClientAppPath(int client_id);
 
 	const std::set<std::string>& userFlattenGrants(const std::string &user_name);
+
+	std::string primaryIPAddress(bool &is_public);
 private:
 	AppCliOptions *m_cliOptions;
 	rpc::TcpServer *m_tcpServer = nullptr;
@@ -112,7 +117,7 @@ private:
 	shv::chainpack::RpcValue m_grantsConfig;
 	shv::chainpack::RpcValue m_pathsConfig;
 	std::map<std::string, std::vector<std::string>> m_flattenUserGrants;
-
+	TunnelSecretList m_tunnelSecretList;
 #ifdef USE_SHV_PATHS_GRANTS_CACHE
 	using PathGrantCache = QCache<std::string, shv::chainpack::Rpc::AccessGrant>;
 	using UserPathGrantCache = QCache<std::string, PathGrantCache>;

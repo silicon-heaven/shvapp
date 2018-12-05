@@ -107,7 +107,7 @@ ShvRExecApp::ShvRExecApp(int &argc, char **argv, AppCliOptions* cli_opts)
 		//using ConnectionParams = shv::iotqt::rpc::ConnectionParams;
 		//using ConnectionParamsMT = shv::iotqt::rpc::ConnectionParams::MetaType;
 		//const TunnelParams &m = m_rpcConnection->tunnelParams();
-		cp::FindTunnelResponse find_tunnel_response(startup_opts.at("findTunnelResponse"));
+		cp::FindTunnelRespCtl find_tunnel_response(startup_opts.at("findTunnelResponse"));
 		m_tunnelCtl = find_tunnel_response;
 		m_rpcConnection->setHost(find_tunnel_response.host());
 		m_rpcConnection->setPort(find_tunnel_response.port());
@@ -166,8 +166,8 @@ void ShvRExecApp::onBrokerConnectedChanged(bool is_connected)
 {
 	if(is_connected) {
 		if(m_tunnelCtl.state() == cp::TunnelCtl::State::FindTunnelResponse) {
-			cp::FindTunnelResponse find_tunnel_response = cp::FindTunnelResponse(m_tunnelCtl);
-			cp::CreateTunnelRequest create_tunnel_request = cp::CreateTunnelRequest::fromFindTunnelResponse(find_tunnel_response);
+			cp::FindTunnelRespCtl find_tunnel_response = cp::FindTunnelRespCtl(m_tunnelCtl);
+			cp::CreateTunnelReqCtl create_tunnel_request = cp::CreateTunnelReqCtl::fromFindTunnelResponse(find_tunnel_response);
 			// generate ID for messages read from tunnel, which is different
 			// than request ID used to open tunnel
 			// this original request ID is used for writing to the tunnel
@@ -187,7 +187,7 @@ void ShvRExecApp::onBrokerConnectedChanged(bool is_connected)
 			cb->start([this](const shv::chainpack::RpcResponse &resp) {
 				cp::TunnelCtl tctl = resp.tunnelCtl();
 				if(tctl.state() == cp::TunnelCtl::State::CreateTunnelResponse) {
-					cp::CreateTunnelResponse create_tunnel_response(tctl);
+					cp::CreateTunnelRespCtl create_tunnel_response(tctl);
 					m_writeTunnelCallerIds = resp.revCallerIds();
 					const shv::chainpack::RpcValue::Map &call_p = m_onConnectedCall.toMap();
 					const shv::chainpack::RpcValue::String &method = call_p.value(cp::Rpc::JSONRPC_METHOD).toString();
