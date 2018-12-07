@@ -190,7 +190,7 @@ cp::RpcValue AppRootNode::getSites()
 cp::RpcValue AppRootNode::getConfig(const cp::RpcValue &params)
 {
 	cp::RpcValue param;
-	if (!params.isList() && !params.isMap()) {
+	if (!params.isList() && !params.isMap() && !params.isString()) {
 		SHV_EXCEPTION("getConfig: invalid parameters type");
 	}
 	if (params.isList()) {
@@ -209,6 +209,9 @@ cp::RpcValue AppRootNode::getConfig(const cp::RpcValue &params)
 			SHV_EXCEPTION("getConfig: missing parameter shvPath");
 		}
 		param = param_map["shvPath"];
+	}
+	else {
+		param = params;
 	}
 	if (!param.isString()) {
 		SHV_EXCEPTION("getConfig: invalid parameter type");
