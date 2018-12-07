@@ -1,6 +1,6 @@
 @echo "making shv" %WORKSPACE%
 
-set path=c:/Qt/Tools/mingw73_64/bin
+set path=c:/Qt/Tools/mingw730_64/bin
 C:/Qt/5.12.0/mingw73_64/bin/qmake.exe DEFINES+=GIT_COMMIT=%CI_COMMIT_SHA% DEFINES+=GIT_BRANCH=%CI_COMMIT_REF_SLUG% -r CONFIG+=release shv.pro || exit /b 2
 C:/Qt\Tools/mingw73_64/bin\mingw32-make.exe clean
 C:/Qt\Tools/mingw73_64/bin\mingw32-make.exe -j4 || exit /b 2
