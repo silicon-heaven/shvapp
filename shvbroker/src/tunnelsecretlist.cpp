@@ -2,7 +2,15 @@
 
 #include <QCryptographicHash>
 #include <QDateTime>
+#include <QtGlobal>
+
+#if QT_VERSION >= 0x050A00
+	#define HAVE_QT_RANDOM_GENERATOR
+#endif
+
+#ifdef HAVE_QT_RANDOM_GENERATOR
 #include <QRandomGenerator>
+#endif
 
 #include <array>
 
@@ -34,7 +42,12 @@ std::string TunnelSecretList::createSecret()
 
 	static constexpr size_t DATA_LEN = 64;
 	uint32_t data[DATA_LEN];
+#ifdef HAVE_QT_RANDOM_GENERATOR
 	QRandomGenerator::global()->generate(data, data + DATA_LEN);
+#else
+	for(size_t i=0; i<DATA_LEN; i++)
+		data[i] = std::rand();
+#endif
 	QCryptographicHash hash(QCryptographicHash::Algorithm::Sha1);
 	hash.addData((const char*)data, DATA_LEN * sizeof(data[0]));
 	Secret sc;
