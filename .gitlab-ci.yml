@@ -50,6 +50,7 @@ test-deploy:
     deploy
   script:
     # nirvana
+    - pwd
     - rsync -avz shvbroker/etc gitlab@165.227.247.202:/opt/shv/ 
     - cd build
     - rsync -avz lib bin gitlab@165.227.247.202:/opt/shv/ 
