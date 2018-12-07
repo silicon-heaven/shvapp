@@ -64,7 +64,7 @@ win-build:
   stage:
     build
   script:
-    - cmd /Q /C build-win.cmd
+    - cmd /C build-win.cmd
   artifacts:
     paths:
       - _inno/
