@@ -25,8 +25,6 @@ public:
 	bool isSlaveBrokerConnection() const override {return false;}
 	bool isMasterBrokerConnection() const override {return true;}
 
-	void setOptions(const shv::chainpack::RpcValue &slave_broker_options) override;
-
 	void sendRawData(const shv::chainpack::RpcValue::MetaData &meta_data, std::string &&data) override;
 	void sendMessage(const shv::chainpack::RpcMessage &rpc_msg) override;
 
@@ -35,10 +33,14 @@ public:
 
 	std::string masterPathToSlave(const std::string &master_path) const;
 	std::string slavePathToMaster(const std::string &slave_path) const;
+
+	void setOptions(const shv::chainpack::RpcValue &slave_broker_options) override;
+	shv::chainpack::RpcValue options() {return m_options;}
 protected:
 	void onRpcDataReceived(shv::chainpack::Rpc::ProtocolType protocol_type, shv::chainpack::RpcValue::MetaData &&md, const std::string &data, size_t start_pos, size_t data_len) override;
 protected:
 	std::string m_exportedShvPath;
+	shv::chainpack::RpcValue m_options;
 };
 
 }

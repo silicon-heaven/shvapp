@@ -20,6 +20,7 @@ MasterBrokerConnection::MasterBrokerConnection(QObject *parent)
 
 void MasterBrokerConnection::setOptions(const shv::chainpack::RpcValue &slave_broker_options)
 {
+	m_options = slave_broker_options;
 	Super::setOptions(slave_broker_options);
 	m_exportedShvPath = slave_broker_options.toMap().value("exportedShvPath").toString();
 }

@@ -46,7 +46,7 @@ public:
 	static BrokerApp* instance() {return qobject_cast<BrokerApp*>(Super::instance());}
 
 	void onClientLogin(int connection_id);
-	void onLoggedinToMasterBroker(int connection_id);
+	void onConnectedToMasterBrokerChanged(int connection_id, bool is_connected);
 
 	void onRpcDataReceived(int connection_id, shv::chainpack::Rpc::ProtocolType protocol_type, shv::chainpack::RpcValue::MetaData &&meta, std::string &&data);
 
@@ -111,7 +111,7 @@ private:
 private:
 	AppCliOptions *m_cliOptions;
 	rpc::TcpServer *m_tcpServer = nullptr;
-	shv::iotqt::node::ShvNodeTree *m_deviceTree = nullptr;
+	shv::iotqt::node::ShvNodeTree *m_nodesTree = nullptr;
 	shv::chainpack::RpcValue m_fstabConfig;
 	shv::chainpack::RpcValue m_usersConfig;
 	shv::chainpack::RpcValue m_grantsConfig;

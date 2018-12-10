@@ -30,17 +30,7 @@ class MasterBrokerShvNode : public shv::iotqt::node::ShvNode
 private:
 	using Super = shv::iotqt::node::ShvNode;
 public:
-	MasterBrokerShvNode(rpc::MasterBrokerConnection *conn, shv::iotqt::node::ShvNode *parent = nullptr);
+	MasterBrokerShvNode(shv::iotqt::node::ShvNode *parent = nullptr);
 	~MasterBrokerShvNode() override;
-
-	rpc::MasterBrokerConnection * connection() const {return m_connections.value(0);}
-
-	void addConnection(rpc::MasterBrokerConnection *conn);
-	void removeConnection(rpc::MasterBrokerConnection *conn);
-
-	void handleRawRpcRequest(shv::chainpack::RpcValue::MetaData &&meta, std::string &&data) override;
-	shv::chainpack::RpcValue hasChildren(const StringViewList &shv_path) override {Q_UNUSED(shv_path) return false;}
-private:
-	QList<rpc::MasterBrokerConnection *> m_connections;
 };
 
