@@ -212,7 +212,7 @@ void AttributesModel::load(ShvNodeItem *nd)
 	loadRows();
 }
 
-void AttributesModel::callMethod(int method_ix)
+void AttributesModel::callMethod(unsigned method_ix)
 {
 	if(m_shvTreeNodeItem.isNull())
 		return;
@@ -240,7 +240,7 @@ QString AttributesModel::method(int row) const
 void AttributesModel::onMethodsLoaded()
 {
 	loadRows();
-	callGet();
+	callGetters();
 }
 
 void AttributesModel::onRpcMethodCallFinished(int method_ix)
@@ -257,40 +257,51 @@ void AttributesModel::emitRowChanged(int row_ix)
 	emit dataChanged(ix1, ix2);
 }
 
-void AttributesModel::callGet()
+void AttributesModel::callGetters()
 {
 	for (unsigned i = 0; i < m_rows.size(); ++i) {
-		std::string mn = m_rows[i][ColMethodName].toString();
-		if(mn == cp::Rpc::METH_GET) {
-			callMethod(i);
+		const ShvMetaMethod *mm = metaMethodAt(i);
+		if(mm) {
+			if(mm->method == cp::Rpc::METH_GET || (mm->flags & cp::MetaMethod::Flag::IsGetter)) {
+				callMethod(i);
+			}
 		}
 	}
 }
 
-void AttributesModel::loadRow(int method_ix)
+const ShvMetaMethod *AttributesModel::metaMethodAt(unsigned method_ix)
 {
-	if(method_ix < 0 || method_ix >= (int)m_rows.size() || m_shvTreeNodeItem.isNull())
-		return;
+	if(method_ix >= m_rows.size() || m_shvTreeNodeItem.isNull())
+		return nullptr;
 	const QVector<ShvMetaMethod> &mm = m_shvTreeNodeItem->methods();
-	const ShvMetaMethod & mtd = mm[method_ix];
+	if(method_ix >= mm.size())
+		return nullptr;
+	return &(mm[method_ix]);
+}
+
+void AttributesModel::loadRow(unsigned method_ix)
+{
+	const ShvMetaMethod * mtd = metaMethodAt(method_ix);
+	if(!mtd)
+		return;
 	RowVals &rv = m_rows[method_ix];
-	shvDebug() << "load row:" << mtd.method << "flags:" << mtd.flags << mtd.flagsStr();
-	rv[ColMethodName] = mtd.method;
-	rv[ColSignature] = mtd.signatureStr();
-	rv[ColFlags] = mtd.flagsStr();
-	rv[ColAccessGrant] = mtd.accessGrant;
-	if(mtd.params.isValid()) {
-		rv[ColParams] = mtd.params;
+	shvDebug() << "load row:" << mtd->method << "flags:" << mtd->flags << mtd->flagsStr();
+	rv[ColMethodName] = mtd->method;
+	rv[ColSignature] = mtd->signatureStr();
+	rv[ColFlags] = mtd->flagsStr();
+	rv[ColAccessGrant] = mtd->accessGrant;
+	if(mtd->params.isValid()) {
+		rv[ColParams] = mtd->params;
 	}
-	shvDebug() << "\t response:" << mtd.response.toCpon() << "is valid:" << mtd.response.isValid();
-	if(mtd.response.isError()) {
-		rv[ColResult] = mtd.response.error();
+	shvDebug() << "\t response:" << mtd->response.toCpon() << "is valid:" << mtd->response.isValid();
+	if(mtd->response.isError()) {
+		rv[ColResult] = mtd->response.error();
 	}
 	else {
-		shv::chainpack::RpcValue result = mtd.response.result();
+		shv::chainpack::RpcValue result = mtd->response.result();
 		rv[ColResult] = result;
 	}
-	rv[ColBtRun] = mtd.rpcRequestId;
+	rv[ColBtRun] = mtd->rpcRequestId;
 }
 
 void AttributesModel::loadRows()

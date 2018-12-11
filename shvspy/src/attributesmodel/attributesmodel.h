@@ -7,7 +7,7 @@
 
 
 class ShvNodeItem;
-//class ShvMetaMethod;
+struct ShvMetaMethod;
 
 namespace shv { namespace chainpack { class RpcMessage; }}
 
@@ -31,7 +31,7 @@ public:
 	QVariant headerData ( int section, Qt::Orientation o, int role = Qt::DisplayRole ) const Q_DECL_OVERRIDE;
 
 	void load(ShvNodeItem *nd);
-	void callMethod(int row);
+	void callMethod(unsigned row);
 
 	QString path() const;
 	QString method(int row) const;
@@ -42,10 +42,11 @@ private:
 	//void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	void onMethodsLoaded();
 	void onRpcMethodCallFinished(int method_ix);
-	void loadRow(int method_ix);
+	const ShvMetaMethod *metaMethodAt(unsigned method_ix);
+	void loadRow(unsigned method_ix);
 	void loadRows();
 	void emitRowChanged(int row_ix);
-	void callGet();
+	void callGetters();
 private:
 	QPointer<ShvNodeItem> m_shvTreeNodeItem;
 	using RowVals = shv::chainpack::RpcValue::List;

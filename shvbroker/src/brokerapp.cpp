@@ -707,7 +707,7 @@ void BrokerApp::onConnectedToMasterBrokerChanged(int connection_id, bool is_conn
 		shvError() << ".broker/masters shv directory does not exist, this should never happen";
 		return;
 	}
-	std::string connection_path = masters_path + '/' + std::to_string(connection_id);
+	std::string connection_path = masters_path + '/' + conn->objectName().toStdString();
 	shv::iotqt::node::ShvNode *node = m_nodesTree->cd(connection_path);
 	if(is_connected) {
 		shvInfo() << "Logged-in to master broker, connection id:" << connection_id;
@@ -725,37 +725,11 @@ void BrokerApp::onConnectedToMasterBrokerChanged(int connection_id, bool is_conn
 	}
 	else {
 		shvInfo() << "Connection to master broker lost, connection id:" << connection_id;
-		node->setParentNode(nullptr);
-		delete node;
-	}
-	/*
-	if(!conn->deviceOptions().empty()) {
-		const shv::chainpack::RpcValue::Map &device_opts = conn->deviceOptions();
-		std::string mount_point = resolveMountPoint(device_opts);
-		if(!mount_point.empty()) {
-			MasterBrokerShvNode *mb_nd = qobject_cast<MasterBrokerShvNode*>(m_nodesTree->cd(mount_point));
-			if(mb_nd) {
-				mb_nd->addConnection(conn);
-			}
-			else {
-				mb_nd = new MasterBrokerShvNode(conn);
-				if(!m_nodesTree->mount(mount_point, mb_nd))
-					SHV_EXCEPTION("Cannot mount connection to device tree, connection id: " + std::to_string(connection_id));
-			}
-			mount_point = mb_nd->shvPath();
-			shvInfo() << "master broker connection id:" << conn->connectionId() << "device id:" << conn->deviceId().toCpon() << " mounted on:" << mount_point;
-			/// overwrite client default mount point
-			conn->addMountPoint(mount_point);
-			connect(conn, &rpc::MasterBrokerConnection::destroyed, this, [this, connection_id, mount_point]() {
-				shvInfo() << "master broker connection destroyed, id:" << connection_id;
-				this->sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::SIG_MOUNTED_CHANGED, false);
-			});
-			connect(mb_nd, &MasterBrokerShvNode::destroyed, mb_nd->parentNode(), &shv::iotqt::node::ShvNode::deleteIfEmptyWithParents, static_cast<Qt::ConnectionType>(Qt::UniqueConnection | Qt::QueuedConnection));
-			//sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_CONNECTED, cp::RpcValue());
-			sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::SIG_MOUNTED_CHANGED, true);
+		if(node) {
+			node->setParentNode(nullptr);
+			delete node;
 		}
 	}
-	*/
 }
 
 void BrokerApp::onRpcDataReceived(int connection_id, shv::chainpack::Rpc::ProtocolType protocol_type, cp::RpcValue::MetaData &&meta, std::string &&data)
@@ -817,6 +791,8 @@ void BrokerApp::onRpcDataReceived(int connection_id, shv::chainpack::Rpc::Protoc
 			if(tctl.state() == cp::TunnelCtl::State::FindTunnelRequest) {
 				logTunnelD() << "FindTunnelRequest received:" << meta.toPrettyString();
 				cp::FindTunnelReqCtl find_tunnel_request(tctl);
+				//uint32_t tctl_ipv4_addr = utils::Network::toIntIPv4Address(find_tunnel_request.host());
+				//bool tctl_ipv4_addr_is_public = utils::Network::isPublicIPv4Address(tctl_ipv4_addr);
 				bool last_broker = cp::RpcValueGenList(cp::RpcMessage::callerIds(meta)).empty();
 				bool is_public_node;
 				std::string server_ip = primaryIPAddress(is_public_node);
@@ -846,6 +822,7 @@ void BrokerApp::onRpcDataReceived(int connection_id, shv::chainpack::Rpc::Protoc
 					return;
 				}
 				cp::RpcMessage::setTunnelCtl(meta, find_tunnel_request);
+				logTunnelD() << "Forwarding FindTunnelRequest:" << meta.toPrettyString();
 			}
 			rpc::CommonRpcClientHandle *cch = commonClientConnectionById(caller_id);
 			if(cch) {
