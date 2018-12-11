@@ -80,15 +80,15 @@ bool Lublicator::setStatus(unsigned stat)
 static std::vector<cp::MetaMethod> meta_methods_device {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_BROWSE},
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_BROWSE},
-	{Lublicator::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_READ},
+	{Lublicator::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_READ},
 	{Lublicator::METH_CMD_ON, cp::MetaMethod::Signature::VoidVoid, 0, cp::Rpc::GRANT_COMMAND},
 	{Lublicator::METH_CMD_OFF, cp::MetaMethod::Signature::VoidVoid, 0, cp::Rpc::GRANT_COMMAND},
 	{Lublicator::METH_GET_LOG, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
-	{METH_BATTERY_LOW_TRESHOLD, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_READ},
+	{METH_BATTERY_LOW_TRESHOLD, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_READ},
 	{METH_SET_BATTERY_LOW_TRESHOLD, cp::MetaMethod::Signature::VoidParam, 0, cp::Rpc::GRANT_SERVICE},
-	{METH_BATTERY_HIGH_TRESHOLD, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_READ},
+	{METH_BATTERY_HIGH_TRESHOLD, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_READ},
 	{METH_SET_BATTERY_HIGH_TRESHOLD, cp::MetaMethod::Signature::VoidParam, 0, cp::Rpc::GRANT_SERVICE},
-	{METH_BATTERY_VOLTAGE, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_READ},
+	{METH_BATTERY_VOLTAGE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_READ},
 	{METH_SIM_SET_BATTERY_VOLTAGE, cp::MetaMethod::Signature::VoidParam, 0, cp::Rpc::GRANT_SERVICE},
 };
 
