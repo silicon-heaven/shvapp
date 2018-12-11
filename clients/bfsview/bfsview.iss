@@ -6,9 +6,8 @@
 #define COMPANY "elektroline"
 #define VERSION "1.2.3"
 
-#define QT_DIR "C:\Qt\5.11.1\mingw53_32"
-#define MINGW_DIR "C:\Qt\Tools\mingw530_32"
-;#define PSQL_DIR "C:\app\pgsql32"
+#define QT_DIR "C:\Qt\5.12.0\mingw73_64"
+#define MINGW_DIR "C:\Qt\Tools\mingw730_64"
 
 #define INCLUDE_QT
 
@@ -74,7 +73,7 @@ Source: {#QT_DIR}\plugins\platforms\qwindows.dll; DestDir: {app}\platforms; Flag
 ;Source: {#QT_DIR}\plugins\audio\qtaudio_windows.dll; DestDir: {app}\audio; Flags: ignoreversion
 Source: {#QT_DIR}\plugins\imageformats\qsvg.dll; DestDir: {app}\imageformats; Flags: ignoreversion
 
-Source: {#QT_DIR}\bin\libgcc_s_dw2-1.dll; DestDir: {app}; Flags: ignoreversion
+Source: {#QT_DIR}\bin\libgcc_s_seh-1.dll; DestDir: {app}; Flags: ignoreversion
 Source: {#QT_DIR}\bin\libwinpthread-1.dll; DestDir: {app}; Flags: ignoreversion
 Source: {#QT_DIR}\bin\libstdc++-6.dll; DestDir: {app}; Flags: ignoreversion
 
