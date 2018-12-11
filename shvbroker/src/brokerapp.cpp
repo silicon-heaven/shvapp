@@ -455,7 +455,12 @@ std::string BrokerApp::mountPointForDevice(const shv::chainpack::RpcValue &devic
 {
 	shv::chainpack::RpcValue fstab = fstabConfig();
 	const std::string dev_id = device_id.toString();
-	std::string mount_point = m_fstabConfig.toMap().value(dev_id).toString();
+	shv::chainpack::RpcValue mp_record = m_fstabConfig.toMap().value(dev_id);
+	std::string mount_point;
+	if(mp_record.isString())
+		mount_point = mp_record.toString();
+	else
+		mount_point = mp_record.toMap().value(cp::Rpc::KEY_MOUT_POINT).toString();
 	return mount_point;
 }
 

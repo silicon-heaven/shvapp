@@ -1,5 +1,5 @@
 {
-"DS:3224A8190000": "shv/pol/lub/discon/1203",
+"DS:3224A8190000": {"mountPoint":"shv/pol/lub/discon/1203"},
 "3224A8190000-agent": "shv/pol/lub/discon/1203-agent",
 "DS:A20924190000": "shv/pol/lub/discon/1303",
 "A20924190000-agent": "shv/pol/lub/discon/1303-agent",
