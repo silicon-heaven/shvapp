@@ -173,6 +173,7 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 	QMenu m;
 	QAction *a_reloadNode = new QAction(tr("Reload"), &m);
 	QAction *a_subscribeNode = new QAction(tr("Subscribe"), &m);
+	//QAction *a_test = new QAction(tr("create test.txt"), &m);
 	if(!nd) {
 		m.addAction(ui->actAddServer);
 	}
@@ -189,6 +190,7 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 	else {
 		m.addAction(a_reloadNode);
 		m.addAction(a_subscribeNode);
+		//m.addAction(a_test);
 	}
 	if(!m.actions().isEmpty()) {
 		QAction *a = m.exec(ui->treeServers->viewport()->mapToGlobal(pos));
@@ -198,7 +200,7 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 				if(nd)
 					nd->reload();
 			}
-			if(a == a_subscribeNode) {
+			else if(a == a_subscribeNode) {
 				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 				if(nd) {
 					DlgSubscriptions dlg(this);
@@ -210,6 +212,16 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 					}
 				}
 			}
+			/*
+			else if(a == a_test) {
+				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
+				if(nd) {
+					std::string file_path = nd->shvPath() + "/test.txt";
+					ShvBrokerNodeItem *srv_nd = nd->serverNode();
+					srv_nd->callNodeRpcMethod(file_path, "write", "abc");
+				}
+			}
+			*/
 		}
 	}
 }

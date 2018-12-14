@@ -20,7 +20,7 @@ RevitestApp::RevitestApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	m_shvJournal = new shv::iotqt::utils::FileShvJournal([this](std::vector<shv::iotqt::utils::ShvJournalEntry> &s) { this->getSnapshot(s); });
 	m_shvJournal->setJournalDir(cli_opts->shvJournalDir());
 	m_shvJournal->setFileSizeLimit(cli_opts->shvJournalFileSizeLimit());
-	m_shvJournal->setDirSizeLimit(cli_opts->shvJournalDirSizeLimit());
+	m_shvJournal->setJournalSizeLimit(cli_opts->shvJournalSizeLimit());
 	{
 		cp::RpcValue::Map types {
 			{"Status", cp::RpcValue::Map{

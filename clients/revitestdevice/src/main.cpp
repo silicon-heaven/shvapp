@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
 
 	shvInfo() << "Shv journal dir:" << a.shvJournal()->journalDir();
 	shvInfo() << "Shv journal file size limit:" << a.shvJournal()->fileSizeLimit();
-	shvInfo() << "Shv journal dir size limit:" << a.shvJournal()->dirSizeLimit();
+	shvInfo() << "Shv journal dir size limit:" << a.shvJournal()->journalSizeLimit();
 	shvInfo() << "--------------------------------------------------------------------------------------";
 
 	shvInfo() << "starting main thread event loop";

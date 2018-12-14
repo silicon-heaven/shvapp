@@ -14,7 +14,7 @@ private:
 
 	struct Secret
 	{
-		int64_t msec;
+		int64_t createdMsec;
 		std::string secret;
 		uint8_t hitCnt = 0;
 	};
