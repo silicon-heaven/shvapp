@@ -232,20 +232,24 @@ void MainWindow::displayResult(const QModelIndex &ix)
 	QVariant v = ix.data(AttributesModel::RpcValueRole);
 	cp::RpcValue rv = qvariant_cast<cp::RpcValue>(v);
 	if(rv.isString()) {
-		TextEditDialog view(this);
-		view.setWindowIconText(tr("Result"));
-		view.setReadOnly(true);
-		view.setText(QString::fromStdString(rv.toString()));
-		view.exec();
+		TextEditDialog *view = new TextEditDialog(this);
+		view->setModal(false);
+		view->setAttribute(Qt::WA_DeleteOnClose);
+		view->setWindowIconText(tr("Result"));
+		view->setReadOnly(true);
+		view->setText(QString::fromStdString(rv.toString()));
+		view->show();
 	}
 	else {
-		CponEditDialog view(this);
-		view.setWindowIconText(tr("Result"));
-		view.setReadOnly(true);
-		view.setValidateContent(false);
+		CponEditDialog *view = new CponEditDialog(this);
+		view->setModal(false);
+		view->setAttribute(Qt::WA_DeleteOnClose);
+		view->setWindowIconText(tr("Result"));
+		view->setReadOnly(true);
+		view->setValidateContent(false);
 		QString cpon = QString::fromStdString(rv.toCpon("  "));
-		view.setText(cpon);
-		view.exec();
+		view->setText(cpon);
+		view->show();
 	}
 }
 
