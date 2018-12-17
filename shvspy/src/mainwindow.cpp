@@ -173,6 +173,7 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 	QMenu m;
 	QAction *a_reloadNode = new QAction(tr("Reload"), &m);
 	QAction *a_subscribeNode = new QAction(tr("Subscribe"), &m);
+	//QAction *a_test = new QAction(tr("create test.txt"), &m);
 	if(!nd) {
 		m.addAction(ui->actAddServer);
 	}
@@ -189,6 +190,7 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 	else {
 		m.addAction(a_reloadNode);
 		m.addAction(a_subscribeNode);
+		//m.addAction(a_test);
 	}
 	if(!m.actions().isEmpty()) {
 		QAction *a = m.exec(ui->treeServers->viewport()->mapToGlobal(pos));
@@ -198,7 +200,7 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 				if(nd)
 					nd->reload();
 			}
-			if(a == a_subscribeNode) {
+			else if(a == a_subscribeNode) {
 				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 				if(nd) {
 					DlgSubscriptions dlg(this);
@@ -210,6 +212,16 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 					}
 				}
 			}
+			/*
+			else if(a == a_test) {
+				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
+				if(nd) {
+					std::string file_path = nd->shvPath() + "/test.txt";
+					ShvBrokerNodeItem *srv_nd = nd->serverNode();
+					srv_nd->callNodeRpcMethod(file_path, "write", "abc");
+				}
+			}
+			*/
 		}
 	}
 }
@@ -232,20 +244,24 @@ void MainWindow::displayResult(const QModelIndex &ix)
 	QVariant v = ix.data(AttributesModel::RpcValueRole);
 	cp::RpcValue rv = qvariant_cast<cp::RpcValue>(v);
 	if(rv.isString()) {
-		TextEditDialog view(this);
-		view.setWindowIconText(tr("Result"));
-		view.setReadOnly(true);
-		view.setText(QString::fromStdString(rv.toString()));
-		view.exec();
+		TextEditDialog *view = new TextEditDialog(this);
+		view->setModal(false);
+		view->setAttribute(Qt::WA_DeleteOnClose);
+		view->setWindowIconText(tr("Result"));
+		view->setReadOnly(true);
+		view->setText(QString::fromStdString(rv.toString()));
+		view->show();
 	}
 	else {
-		CponEditDialog view(this);
-		view.setWindowIconText(tr("Result"));
-		view.setReadOnly(true);
-		view.setValidateContent(false);
+		CponEditDialog *view = new CponEditDialog(this);
+		view->setModal(false);
+		view->setAttribute(Qt::WA_DeleteOnClose);
+		view->setWindowIconText(tr("Result"));
+		view->setReadOnly(true);
+		view->setValidateContent(false);
 		QString cpon = QString::fromStdString(rv.toCpon("  "));
-		view.setText(cpon);
-		view.exec();
+		view->setText(cpon);
+		view->show();
 	}
 }
 
@@ -259,8 +275,14 @@ void MainWindow::editMethodParameters(const QModelIndex &ix)
 	MethodParametersDialog dlg(path, method, rv, this);
 	dlg.setWindowTitle(tr("Parameters"));
 	if (dlg.exec() == QDialog::Accepted) {
-		std::string cpon = dlg.value().toCpon();
-		ui->tblAttributes->model()->setData(ix, QString::fromStdString(cpon), Qt::EditRole);
+		cp::RpcValue val = dlg.value();
+		if (val.isValid()) {
+			std::string cpon = dlg.value().toCpon();
+			ui->tblAttributes->model()->setData(ix, QString::fromStdString(cpon), Qt::EditRole);
+		}
+		else {
+			ui->tblAttributes->model()->setData(ix, QString(), Qt::EditRole);
+		}
 	}
 }
 

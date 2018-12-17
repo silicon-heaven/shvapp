@@ -125,18 +125,18 @@ void ShvFileProviderApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &
 	shvLogFuncFrame() << msg.toCpon();
 	if(msg.isRequest()) {
 		cp::RpcRequest rq(msg);
-		shvInfo() << "RPC request received:" << rq.toPrettyString();
+		shvDebug() << "RPC request received:" << rq.toPrettyString();
 		if(m_shvTree->root()) {
 			m_shvTree->root()->handleRpcRequest(rq);
 		}
 	}
 	else if(msg.isResponse()) {
 		cp::RpcResponse rp(msg);
-		shvInfo() << "RPC response received:" << rp.toPrettyString();
+		shvDebug() << "RPC response received:" << rp.toPrettyString();
 	}
 	else if(msg.isSignal()) {
 		cp::RpcSignal nt(msg);
-		shvInfo() << "RPC signal received:" << nt.toPrettyString();
+		shvDebug() << "RPC signal received:" << nt.toPrettyString();
 	}
 }
 

@@ -17,7 +17,7 @@ SessionProcess::SessionProcess(QObject *parent)
 	//connect(ShvAgentApp::instance(), &ShvAgentApp::aboutToTerminate, this, &SessionProcess::terminate);
 	connect(this, QOverload<int>::of(&QProcess::finished), this, &SessionProcess::onFinished);
 	//connect(this, &QProcess::readyReadStandardOutput, this, &SessionProcess::onReadyReadStandardOutput);
-	connect(this, &QProcess::readyReadStandardError, this, &SessionProcess::onReadyReadStandardError);
+	//connect(this, &QProcess::readyReadStandardError, this, &SessionProcess::onReadyReadStandardError);
 }
 
 void SessionProcess::onFinished(int exit_code)
@@ -34,6 +34,7 @@ void SessionProcess::onReadyReadStandardOutput()
 		shvInfo() << "Process stdout:" << std::string(ba.constData(), ba.size());
 }
 */
+/*
 void SessionProcess::onReadyReadStandardError()
 {
 	//setCurrentReadChannel(QProcess::StandardError);
@@ -41,7 +42,7 @@ void SessionProcess::onReadyReadStandardError()
 	if(!ba.isEmpty())
 		shvWarning() << "Process stderr:" << std::string(ba.constData(), ba.size());
 }
-
+*/
 void SessionProcess::setupChildProcess()
 {
 #ifdef Q_OS_UNIX

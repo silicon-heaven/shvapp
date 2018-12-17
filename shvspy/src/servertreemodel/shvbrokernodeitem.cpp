@@ -271,7 +271,7 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 			nd->processRpcMessage(msg);
 		}
 		else {
-			shvError() << "cannot find node on path:" << path;
+			shvError() << "Running RPC request response arrived - cannot find node on path:" << path;
 		}
 		m_runningRpcRequests.erase(it);
 	}
