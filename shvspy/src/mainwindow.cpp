@@ -263,8 +263,14 @@ void MainWindow::editMethodParameters(const QModelIndex &ix)
 	MethodParametersDialog dlg(path, method, rv, this);
 	dlg.setWindowTitle(tr("Parameters"));
 	if (dlg.exec() == QDialog::Accepted) {
-		std::string cpon = dlg.value().toCpon();
-		ui->tblAttributes->model()->setData(ix, QString::fromStdString(cpon), Qt::EditRole);
+		cp::RpcValue val = dlg.value();
+		if (val.isValid()) {
+			std::string cpon = dlg.value().toCpon();
+			ui->tblAttributes->model()->setData(ix, QString::fromStdString(cpon), Qt::EditRole);
+		}
+		else {
+			ui->tblAttributes->model()->setData(ix, QString(""), Qt::EditRole);
+		}
 	}
 }
 

@@ -41,7 +41,6 @@ MethodParametersDialog::MethodParametersDialog(const QString &path, const QStrin
 	ui->setupUi(this);
 
 	ui->parsingSingleLabel->hide();
-	ui->singleParameterTable->hide();
 
 	ui->removeListButton->setEnabled(false);
 	ui->parsingListLabel->hide();
@@ -72,21 +71,12 @@ MethodParametersDialog::MethodParametersDialog(const QString &path, const QStrin
 	}
 	m_singleValueGetters << ValueGetter();
 	m_singleValueSetters << ValueSetter();
+	switchToString(ui->singleParameterTable, 0, 1, m_singleValueGetters, m_singleValueSetters);
 
 	connect(m_singleTypeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MethodParametersDialog::onSingleTypeChanged);
 
-	if (tryParseSingleParam(params)) {
-		ui->tabWidget->setCurrentIndex(TAB_INDEX_SINGLE_PARAMETER);
-	}
-	else if (tryParseListParams(params)) {
-		ui->tabWidget->setCurrentIndex(TAB_INDEX_PARAMETER_LIST);
-	}
-	else if (tryParseMapParams(params)) {
-		ui->tabWidget->setCurrentIndex(TAB_INDEX_PARAMETER_MAP);
-	}
-	else {
-		ui->tabWidget->setCurrentIndex(TAB_INDEX_CPON);
-		ui->rawCponEdit->setPlainText(QString::fromStdString(params.isValid()? params.toPrettyString("  "): std::string()));
+	if (params.isValid()) {
+		loadParams(params);
 	}
 	m_syntaxCheckTimer.setInterval(500);
 	m_syntaxCheckTimer.setSingleShot(true);
@@ -129,20 +119,22 @@ cp::RpcValue MethodParametersDialog::value() const
 
 void MethodParametersDialog::newSingleParameter(const shv::chainpack::RpcValue &param)
 {
-	disconnect(m_singleTypeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MethodParametersDialog::onSingleTypeChanged);
+	cp::RpcValue::Type current_type = (cp::RpcValue::Type)m_singleTypeCombo->itemData(m_singleTypeCombo->currentIndex()).toInt();
+	cp::RpcValue::Type requested_type;
 	if (param.isValid()) {
-		cp::RpcValue::Type t = param.type();
-		int index = m_supportedTypes.indexOf(t);
-		m_singleTypeCombo->setCurrentIndex(index);
-		switchByType(t, ui->singleParameterTable, 0, 1, m_singleValueGetters, m_singleValueSetters);
-		m_singleValueSetters[0](param);
+		requested_type = param.type();
 	}
 	else {
-		int index = m_supportedTypes.indexOf(cp::RpcValue::Type::String);
-		m_singleTypeCombo->setCurrentIndex(index);
-		switchToString(ui->singleParameterTable, 0, 1, m_singleValueGetters, m_singleValueSetters);
+		requested_type = cp::RpcValue::Type::String;
 	}
-	connect(m_singleTypeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MethodParametersDialog::onSingleTypeChanged);
+	if (current_type != requested_type) {
+		disconnect(m_singleTypeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MethodParametersDialog::onSingleTypeChanged);
+		int index = m_supportedTypes.indexOf(requested_type);
+		m_singleTypeCombo->setCurrentIndex(index);
+		switchByType(requested_type, ui->singleParameterTable, 0, 1, m_singleValueGetters, m_singleValueSetters);
+		connect(m_singleTypeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MethodParametersDialog::onSingleTypeChanged);
+	}
+	m_singleValueSetters[0](param);
 }
 
 void MethodParametersDialog::newListParameter()
@@ -656,8 +648,7 @@ void MethodParametersDialog::loadLastUsed()
 	if (!m_usedParamsWidget) {
 		m_usedParamsWidget = new LastUsedParamsWidget(m_path, m_method, this);
 		m_usedParamsWidget->setWindowFlags(Qt::Popup | Qt::Dialog);
-		connect(m_usedParamsWidget, &LastUsedParamsWidget::paramSelected, this, &MethodParametersDialog::loadParams);
-
+		connect(m_usedParamsWidget, &LastUsedParamsWidget::paramSelected, this, QOverload<const QString &>::of(&MethodParametersDialog::loadParams));
 	}
 	m_usedParamsWidget->move(mapToGlobal(ui->lastUsedButton->geometry().bottomRight()));
 	m_usedParamsWidget->show();
@@ -665,8 +656,15 @@ void MethodParametersDialog::loadLastUsed()
 
 void MethodParametersDialog::loadParams(const QString &s)
 {
-	clear();
 	cp::RpcValue params = cp::RpcValue::fromCpon(s.toStdString());
+	loadParams(params);
+}
+
+void MethodParametersDialog::loadParams(const shv::chainpack::RpcValue &params)
+{
+	disconnect(ui->tabWidget, &QTabWidget::currentChanged, this, &MethodParametersDialog::onCurrentTabChanged);
+
+	clear();
 	if (params.isValid()) {
 		ui->tabWidget->setCurrentIndex(TAB_INDEX_SINGLE_PARAMETER);
 		if (!tryParseSingleParam(params)) {
@@ -680,6 +678,7 @@ void MethodParametersDialog::loadParams(const QString &s)
 			}
 		}
 	}
+	connect(ui->tabWidget, &QTabWidget::currentChanged, this, &MethodParametersDialog::onCurrentTabChanged);
 }
 
 cp::RpcValue MethodParametersDialog::singleParamValue() const

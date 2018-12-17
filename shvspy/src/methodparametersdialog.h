@@ -65,6 +65,7 @@ private:
 	void checkSyntax();
 	void loadLastUsed();
 	void loadParams(const QString &s);
+	void loadParams(const shv::chainpack::RpcValue &params);
 
 	shv::chainpack::RpcValue singleParamValue() const;
 	shv::chainpack::RpcValue listParamValue() const;
