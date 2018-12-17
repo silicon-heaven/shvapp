@@ -269,7 +269,7 @@ void MainWindow::editMethodParameters(const QModelIndex &ix)
 			ui->tblAttributes->model()->setData(ix, QString::fromStdString(cpon), Qt::EditRole);
 		}
 		else {
-			ui->tblAttributes->model()->setData(ix, QString(""), Qt::EditRole);
+			ui->tblAttributes->model()->setData(ix, QString(), Qt::EditRole);
 		}
 	}
 }
