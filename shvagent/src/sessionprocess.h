@@ -12,7 +12,7 @@ public:
 private:
 	void onFinished(int exit_code);
 	//void onReadyReadStandardOutput();
-	void onReadyReadStandardError();
+	//void onReadyReadStandardError();
 
 	void setupChildProcess() override;
 };
