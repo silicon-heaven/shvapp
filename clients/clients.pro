@@ -9,7 +9,7 @@ SUBDIRS += \
     revitestdevice \
 }
 
-shvplaces {
+shvsites {
 SUBDIRS += \
-    shvplaces \
+    shvsites \
 }

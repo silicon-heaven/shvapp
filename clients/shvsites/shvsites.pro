@@ -6,7 +6,7 @@ message ( SHV_TOP_BUILDDIR == '$$SHV_TOP_BUILDDIR' )
 
 QT += quick qml network positioning location
 
-TARGET = shvplaces
+TARGET = shvsites
 TEMPLATE = app
 
 DESTDIR = $$SHV_TOP_BUILDDIR/bin
@@ -38,13 +38,17 @@ INCLUDEPATH += \
         ../../libshviotqt/include \
 
 SOURCES = main.cpp \
-    poimodel.cpp
+    sitesmodel.cpp \
+    shvsitesapp.cpp \
+    appclioptions.cpp
 
 HEADERS += \
-    poimodel.h
+    sitesmodel.h \
+    shvsitesapp.h \
+    appclioptions.h
 
 RESOURCES += \
-    shvplaces.qrc
+    shvsites.qrc
 
 target.path = $$[QT_INSTALL_EXAMPLES]/location/$$TARGET
 INSTALLS += target

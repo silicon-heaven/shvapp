@@ -19,10 +19,22 @@ static std::vector<cp::MetaMethod> meta_methods_acl {
 EtcAclNode::EtcAclNode(shv::iotqt::node::ShvNode *parent)
 	: Super("acl", meta_methods_acl, parent)
 {
-	new BrokerConfigFileNode("fstab", this);
-	new BrokerConfigFileNode("users", this);
-	new BrokerConfigFileNode("grants", this);
-	new AclPathsConfigFileNode(this);
+	{
+		auto *nd = new BrokerConfigFileNode("fstab", this);
+		connect(BrokerApp::instance(), &BrokerApp::configReloaded, nd, &shv::iotqt::node::RpcValueMapNode::clearValuesCache);
+	}
+	{
+		auto *nd = new BrokerConfigFileNode("users", this);
+		connect(BrokerApp::instance(), &BrokerApp::configReloaded, nd, &shv::iotqt::node::RpcValueMapNode::clearValuesCache);
+	}
+	{
+		auto *nd = new BrokerConfigFileNode("grants", this);
+		connect(BrokerApp::instance(), &BrokerApp::configReloaded, nd, &shv::iotqt::node::RpcValueMapNode::clearValuesCache);
+	}
+	{
+		auto *nd = new AclPathsConfigFileNode(this);
+		connect(BrokerApp::instance(), &BrokerApp::configReloaded, nd, &shv::iotqt::node::RpcValueMapNode::clearValuesCache);
+	}
 }
 
 enum AclAccessLevel {AclUserView = cp::MetaMethod::AccessLevel::Service, AclUserAdmin = cp::MetaMethod::AccessLevel::Admin};

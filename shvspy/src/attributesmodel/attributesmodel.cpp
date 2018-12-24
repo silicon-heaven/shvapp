@@ -274,7 +274,7 @@ const ShvMetaMethod *AttributesModel::metaMethodAt(unsigned method_ix)
 	if(method_ix >= m_rows.size() || m_shvTreeNodeItem.isNull())
 		return nullptr;
 	const QVector<ShvMetaMethod> &mm = m_shvTreeNodeItem->methods();
-	if(method_ix >= mm.size())
+	if(method_ix >= static_cast<unsigned>(mm.size()))
 		return nullptr;
 	return &(mm[method_ix]);
 }

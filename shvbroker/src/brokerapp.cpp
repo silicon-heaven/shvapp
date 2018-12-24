@@ -187,6 +187,7 @@ void BrokerApp::reloadConfig()
 	shvInfo() << "Reloading config";
 	reloadAcl();
 	remountDevices();
+	emit configReloaded();
 }
 
 void BrokerApp::clearAccessGrantCache()

@@ -59,6 +59,7 @@ public:
 	rpc::CommonRpcClientHandle* commonClientConnectionById(int connection_id);
 
 	void reloadConfig();
+	Q_SIGNAL void configReloaded();
 	void clearAccessGrantCache();
 
 	shv::chainpack::RpcValue fstabConfig() { return aclConfig("fstab", !shv::core::Exception::Throw); }
