@@ -19,6 +19,11 @@ QVariant SitesModel::value(int row, int role) const
 	return data(createIndex(row, 0), role);
 }
 
+void SitesModel::clear()
+{
+	m_sites.clear();
+}
+
 QHash<int, QByteArray> SitesModel::roleNames() const
 {
 	static QHash<int, QByteArray> roles;
@@ -61,7 +66,7 @@ ShvSite *SitesModel::addSite(const QString &shv_path, const QString &name, GPS g
 void SitesModel::setSiteBrokerConnected(const std::string &shv_path, bool is_connected)
 {
 	//shvInfo() << "setSiteBrokerConnected:" << shv_path << is_connected;
-	QString qshv_path = "shv/cze/plz/tram/switch/karlov";// QString::fromStdString(shv_path);
+	QString qshv_path = QString::fromStdString(shv_path);
 	for (int i = 0; i < m_sites.count(); ++i) {
 		ShvSite &site = m_sites[i];
 		if(site.shvPath == qshv_path) {

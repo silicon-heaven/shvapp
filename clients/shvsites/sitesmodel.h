@@ -47,6 +47,7 @@ public:
 	Q_INVOKABLE QVariant value(int row, const QString &role_name) const;
 	Q_INVOKABLE QVariant value(int row, int role) const;
 
+	void clear();
 	QHash<int, QByteArray> roleNames() const override;
 	int rowCount(const QModelIndex &parent = QModelIndex()) const override {Q_UNUSED(parent) return m_sites.count();}
 	QVariant data(const QModelIndex &index, int role) const override;

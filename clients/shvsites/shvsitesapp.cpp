@@ -55,6 +55,7 @@ void ShvSitesApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 
 void ShvSitesApp::onBrokerConnected(bool is_connected)
 {
+	sitesModel()->clear();
 	if(is_connected) {
 		shv::iotqt::rpc::ClientConnection *conn = rpcConnection();
 		conn->callMethodSubscribe("shv", cp::Rpc::SIG_MOUNTED_CHANGED);
