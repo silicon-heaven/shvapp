@@ -28,7 +28,7 @@ class QSocketNotifier;
 
 namespace shv { namespace iotqt { namespace node { class ShvNodeTree; }}}
 namespace shv { namespace chainpack { class RpcSignal; }}
-namespace rpc { class TcpServer; class ServerConnection;  class MasterBrokerConnection; class CommonRpcClientHandle; }
+namespace rpc { class WebSocketServer; class TcpServer; class ServerConnection;  class MasterBrokerConnection; class CommonRpcClientHandle; }
 
 class BrokerApp : public QCoreApplication
 {
@@ -55,6 +55,8 @@ public:
 
 	rpc::TcpServer* tcpServer();
 	rpc::ServerConnection* clientById(int client_id);
+
+	rpc::WebSocketServer* webSocketServer();
 
 	rpc::CommonRpcClientHandle* commonClientConnectionById(int connection_id);
 
@@ -83,7 +85,13 @@ private:
 	void lazyInit();
 
 	QString serverProfile(); // unified access via Globals::serverProfile()
+
 	void startTcpServer();
+
+	void startWebSocketServer();
+
+	rpc::ServerConnection* clientConnectionById(int connection_id);
+	std::vector<int> clientConnectionIds();
 
 	void createMasterBrokerConnections();
 	QList<rpc::MasterBrokerConnection*> masterBrokerConnections() const;
@@ -112,6 +120,7 @@ private:
 private:
 	AppCliOptions *m_cliOptions;
 	rpc::TcpServer *m_tcpServer = nullptr;
+	rpc::WebSocketServer *m_webSocketServer = nullptr;
 	shv::iotqt::node::ShvNodeTree *m_nodesTree = nullptr;
 	shv::chainpack::RpcValue m_fstabConfig;
 	shv::chainpack::RpcValue m_usersConfig;

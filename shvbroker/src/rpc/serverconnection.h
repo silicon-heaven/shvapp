@@ -9,6 +9,7 @@
 class QTimer;
 
 namespace shv { namespace core { class StringView; }}
+namespace shv { namespace iotqt { namespace rpc { class Socket; }}}
 
 namespace rpc {
 
@@ -20,7 +21,7 @@ class ServerConnection : public shv::iotqt::rpc::ServerConnection, public Common
 
 	//SHV_FIELD_IMPL(std::string, m, M, ountPoint)
 public:
-	ServerConnection(QTcpSocket* socket, QObject *parent = nullptr);
+	ServerConnection(shv::iotqt::rpc::Socket* socket, QObject *parent = nullptr);
 	~ServerConnection() override;
 
 	int connectionId() const override {return Super::connectionId();}
@@ -41,6 +42,7 @@ public:
 
 	bool propagateSubscriptionToSlaveBroker(const Subscription &subs);
 private:
+	void onSocketConnectedChanged(bool is_connected);
 	void onRpcDataReceived(shv::chainpack::Rpc::ProtocolType protocol_type, shv::chainpack::RpcValue::MetaData &&md, const std::string &data, size_t start_pos, size_t data_len) override;
 	std::tuple<std::string, PasswordFormat> password(const std::string &user) override;
 	shv::chainpack::RpcValue login(const shv::chainpack::RpcValue &auth_params) override;

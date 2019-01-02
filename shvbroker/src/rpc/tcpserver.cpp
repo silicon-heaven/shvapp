@@ -1,6 +1,8 @@
 #include "tcpserver.h"
 #include "serverconnection.h"
 
+#include <shv/iotqt/rpc/socket.h>
+
 namespace rpc {
 
 TcpServer::TcpServer(QObject *parent)
@@ -16,7 +18,7 @@ ServerConnection *TcpServer::connectionById(int connection_id)
 
 shv::iotqt::rpc::ServerConnection *TcpServer::createServerConnection(QTcpSocket *socket, QObject *parent)
 {
-	return new ServerConnection(socket, parent);
+	return new ServerConnection(new shv::iotqt::rpc::TcpSocket(socket), parent);
 }
 
 } // namespace rpc

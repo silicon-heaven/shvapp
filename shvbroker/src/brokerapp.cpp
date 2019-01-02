@@ -8,6 +8,7 @@
 #include "rpc/serverconnection.h"
 #include "rpc/masterbrokerconnection.h"
 #include "utils/network.h"
+#include "rpc/websocketserver.h"
 
 #include <shv/iotqt/node/shvnode.h>
 #include <shv/iotqt/node/shvnodetree.h>
@@ -179,7 +180,14 @@ rpc::TcpServer *BrokerApp::tcpServer()
 
 rpc::ServerConnection *BrokerApp::clientById(int client_id)
 {
-	return tcpServer()->connectionById(client_id);
+	return clientConnectionById(client_id);
+}
+
+rpc::WebSocketServer *BrokerApp::webSocketServer()
+{
+	if(!m_webSocketServer)
+		SHV_EXCEPTION("WebSocket server is NULL!");
+	return m_webSocketServer;
 }
 
 void BrokerApp::reloadConfig()
@@ -264,10 +272,37 @@ void BrokerApp::startTcpServer()
 	}
 }
 
+void BrokerApp::startWebSocketServer()
+{
+	SHV_SAFE_DELETE(m_webSocketServer);
+	m_webSocketServer = new rpc::WebSocketServer(this);
+	if(!m_webSocketServer->start()) {
+		SHV_EXCEPTION("Cannot start WebSocket server!");
+	}
+}
+
+rpc::ServerConnection *BrokerApp::clientConnectionById(int connection_id)
+{
+	rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
+	if(!conn && m_webSocketServer)
+		conn = m_webSocketServer->connectionById(connection_id);
+	return conn;
+}
+
+std::vector<int> BrokerApp::clientConnectionIds()
+{
+	std::vector<int> ids = tcpServer()->connectionIds();
+	if(m_webSocketServer) {
+		std::vector<int> ids2 = m_webSocketServer->connectionIds();
+		ids.insert( ids.end(), ids2.begin(), ids2.end() );
+	}
+	return ids;
+}
+
 void BrokerApp::lazyInit()
 {
-	//reconnectSqlServer();
 	startTcpServer();
+	startWebSocketServer();
 	createMasterBrokerConnections();
 }
 
@@ -337,8 +372,8 @@ void BrokerApp::remountDevices()
 {
 	shvInfo() << "Remounting devices by dropping their connection";
 	m_fstabConfig = cp::RpcValue();
-	for(int conn_id : tcpServer()->connectionIds()) {
-		rpc::ServerConnection *conn = tcpServer()->connectionById(conn_id);
+	for(int conn_id : clientConnectionIds()) {
+		rpc::ServerConnection *conn = clientConnectionById(conn_id);
 		if(conn && !conn->mountPoints().empty()) {
 			shvInfo() << "Dropping connection ID:" << conn_id << "mounts:" << shv::core::String::join(conn->mountPoints(), ' ');
 			conn->close();
@@ -613,7 +648,7 @@ cp::Rpc::AccessGrant BrokerApp::accessGrantForRequest(rpc::CommonRpcClientHandle
 
 void BrokerApp::onClientLogin(int connection_id)
 {
-	rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
+	rpc::ServerConnection *conn = clientConnectionById(connection_id);
 	if(!conn)
 		SHV_EXCEPTION("Cannot find connection for ID: " + std::to_string(connection_id));
 	//const shv::chainpack::RpcValue::Map &opts = conn->connectionOptions();
@@ -778,7 +813,7 @@ void BrokerApp::onRpcDataReceived(int connection_id, shv::chainpack::Rpc::Protoc
 			}
 		}
 		catch (std::exception &e) {
-			rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
+			rpc::ServerConnection *conn = clientConnectionById(connection_id);
 			if(conn) {
 				rsp.setError(cp::RpcResponse::Error::create(
 								 cp::RpcResponse::Error::MethodCallException
@@ -890,7 +925,7 @@ void BrokerApp::onClientMountedChanged(int client_id, const std::string &mount_p
 	sendNotifyToSubscribers(client_id, mount_point, cp::Rpc::SIG_MOUNTED_CHANGED, is_mounted);
 	if(is_mounted) {
 		//sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_CONNECTED, cp::RpcValue());
-		rpc::ServerConnection *cc = tcpServer()->connectionById(client_id);
+		rpc::ServerConnection *cc = clientConnectionById(client_id);
 		if(cc && cc->isSlaveBrokerConnection()) {
 			/// if slave broker is connected, forward subscriptions of connected clients
 			for(rpc::CommonRpcClientHandle *ch : allClientConnections()) {
@@ -983,8 +1018,8 @@ void BrokerApp::addSubscription(int client_id, const std::string &shv_path, cons
 	const rpc::CommonRpcClientHandle::Subscription &subs = conn->subscriptionAt(subs_ix);
 	// check slave broker connections
 	// whether this subsciption should be propagated to them
-	for (int connection_id : tcpServer()->connectionIds()) {
-		rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
+	for (int connection_id : clientConnectionIds()) {
+		rpc::ServerConnection *conn = clientConnectionById(connection_id);
 		if(conn->isSlaveBrokerConnection()) {
 			conn->propagateSubscriptionToSlaveBroker(subs);
 		}
@@ -1040,8 +1075,8 @@ rpc::MasterBrokerConnection *BrokerApp::masterBrokerConnectionById(int connectio
 std::vector<rpc::CommonRpcClientHandle *> BrokerApp::allClientConnections()
 {
 	std::vector<rpc::CommonRpcClientHandle *> ret;
-	for (int i : tcpServer()->connectionIds())
-		ret.push_back(tcpServer()->connectionById(i));
+	for (int i : clientConnectionIds())
+		ret.push_back(clientConnectionById(i));
 	QList<rpc::MasterBrokerConnection *> mbc = masterBrokerConnections();
 	std::copy(mbc.begin(), mbc.end(), std::back_inserter(ret));
 	return ret;
@@ -1049,7 +1084,7 @@ std::vector<rpc::CommonRpcClientHandle *> BrokerApp::allClientConnections()
 
 rpc::CommonRpcClientHandle *BrokerApp::commonClientConnectionById(int connection_id)
 {
-	rpc::CommonRpcClientHandle *ret = tcpServer()->connectionById(connection_id);
+	rpc::CommonRpcClientHandle *ret = clientConnectionById(connection_id);
 	if(ret)
 		return ret;
 	ret = masterBrokerConnectionById(connection_id);

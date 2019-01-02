@@ -7,7 +7,7 @@ else {
 }
 message ( QF_PROJECT_TOP_BUILDDIR == '$$QF_PROJECT_TOP_BUILDDIR' )
 
-QT += core network sql
+QT += core network sql websockets
 QT -= gui
 CONFIG += c++11
 
