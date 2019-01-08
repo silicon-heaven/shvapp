@@ -63,13 +63,13 @@ void RevitestDevice::getSnapshot(std::vector<shv::iotqt::utils::ShvJournalEntry>
 		{
 			shv::iotqt::utils::ShvJournalEntry e;
 			e.path = id + '/' + Lublicator::PROP_STATUS;
-			e.value = nd->callMethod(shv::iotqt::node::ShvNode::StringViewList{shv::iotqt::node::ShvNode::StringView(Lublicator::PROP_STATUS)}, cp::Rpc::METH_GET, cp::RpcValue());
+			e.values.push_back(nd->callMethod(shv::iotqt::node::ShvNode::StringViewList{shv::iotqt::node::ShvNode::StringView(Lublicator::PROP_STATUS)}, cp::Rpc::METH_GET, cp::RpcValue()));
 			snapshot.emplace_back(std::move(e));
 		}
 		{
 			shv::iotqt::utils::ShvJournalEntry e;
 			e.path = id + '/' + Lublicator::PROP_BATTERY_VOLTAGE;
-			e.value = nd->callMethod(shv::iotqt::node::ShvNode::StringViewList{}, Lublicator::PROP_BATTERY_VOLTAGE, cp::RpcValue());
+			e.values.push_back(nd->callMethod(shv::iotqt::node::ShvNode::StringViewList{}, Lublicator::PROP_BATTERY_VOLTAGE, cp::RpcValue()));
 			snapshot.emplace_back(std::move(e));
 		}
 	}

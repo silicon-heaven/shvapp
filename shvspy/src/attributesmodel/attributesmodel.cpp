@@ -155,7 +155,7 @@ bool AttributesModel::setData(const QModelIndex &ix, const QVariant &val, int ro
 	if(role == Qt::EditRole) {
 		if(ix.column() == ColParams) {
 			if(!m_shvTreeNodeItem.isNull()) {
-				std::string cpon = val.toString().toStdString();
+				std::string cpon = val.toString().trimmed().toStdString();
 				cp::RpcValue params;
 				if(!cpon.empty()) {
 					std::string err;
@@ -290,9 +290,7 @@ void AttributesModel::loadRow(unsigned method_ix)
 	rv[ColSignature] = mtd->signatureStr();
 	rv[ColFlags] = mtd->flagsStr();
 	rv[ColAccessGrant] = mtd->accessGrant;
-	if(mtd->params.isValid()) {
-		rv[ColParams] = mtd->params;
-	}
+	rv[ColParams] = mtd->params;
 	shvDebug() << "\t response:" << mtd->response.toCpon() << "is valid:" << mtd->response.isValid();
 	if(mtd->response.isError()) {
 		rv[ColResult] = mtd->response.error();

@@ -232,7 +232,8 @@ shv::chainpack::RpcValue Lublicator::getLog(const shv::chainpack::RpcValue &para
 
 void Lublicator::addLogEntry(const std::string &key, const shv::chainpack::RpcValue &value)
 {
-	RevitestApp::instance()->shvJournal()->append({nodeId() + '/' + key, value});
+	static int n = 0;
+	RevitestApp::instance()->shvJournal()->append({nodeId() + '/' + key, {value, ++n}});
 }
 
 void Lublicator::checkBatteryTresholds()

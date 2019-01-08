@@ -15,6 +15,9 @@ public:
 
 	CLIOPTION_GETTER_SETTER(std::string, l, setL, ocale)
 	CLIOPTION_GETTER_SETTER2(int, "server.port", s, setS, erverPort)
+#ifdef WITH_SHV_WEBSOCKETS
+	CLIOPTION_GETTER_SETTER2(int, "server.websocket.port", s, setS, erverWebsocketPort)
+#endif
 	CLIOPTION_GETTER_SETTER2(std::string, "server.publicIP", p, setP, ublicIP)
 	CLIOPTION_GETTER_SETTER2(std::string, "sql.host", s, setS, qlHost)
 	CLIOPTION_GETTER_SETTER2(int, "sql.port", s, setS, qlPort)
