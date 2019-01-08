@@ -8,7 +8,10 @@
 #include "rpc/serverconnection.h"
 #include "rpc/masterbrokerconnection.h"
 #include "utils/network.h"
+
+#ifdef WITH_SHV_WEBSOCKETS
 #include "rpc/websocketserver.h"
+#endif
 
 #include <shv/iotqt/node/shvnode.h>
 #include <shv/iotqt/node/shvnodetree.h>
@@ -183,12 +186,14 @@ rpc::ServerConnection *BrokerApp::clientById(int client_id)
 	return clientConnectionById(client_id);
 }
 
+#ifdef WITH_SHV_WEBSOCKETS
 rpc::WebSocketServer *BrokerApp::webSocketServer()
 {
 	if(!m_webSocketServer)
 		SHV_EXCEPTION("WebSocket server is NULL!");
 	return m_webSocketServer;
 }
+#endif
 
 void BrokerApp::reloadConfig()
 {
@@ -274,28 +279,36 @@ void BrokerApp::startTcpServer()
 
 void BrokerApp::startWebSocketServer()
 {
+#ifdef WITH_SHV_WEBSOCKETS
 	SHV_SAFE_DELETE(m_webSocketServer);
 	m_webSocketServer = new rpc::WebSocketServer(this);
 	if(!m_webSocketServer->start()) {
 		SHV_EXCEPTION("Cannot start WebSocket server!");
 	}
+#else
+	shvError() << "Websocket server is not included in this build";
+#endif
 }
 
 rpc::ServerConnection *BrokerApp::clientConnectionById(int connection_id)
 {
 	rpc::ServerConnection *conn = tcpServer()->connectionById(connection_id);
+#ifdef WITH_SHV_WEBSOCKETS
 	if(!conn && m_webSocketServer)
 		conn = m_webSocketServer->connectionById(connection_id);
+#endif
 	return conn;
 }
 
 std::vector<int> BrokerApp::clientConnectionIds()
 {
 	std::vector<int> ids = tcpServer()->connectionIds();
+#ifdef WITH_SHV_WEBSOCKETS
 	if(m_webSocketServer) {
 		std::vector<int> ids2 = m_webSocketServer->connectionIds();
 		ids.insert( ids.end(), ids2.begin(), ids2.end() );
 	}
+#endif
 	return ids;
 }
 

@@ -56,7 +56,9 @@ public:
 	rpc::TcpServer* tcpServer();
 	rpc::ServerConnection* clientById(int client_id);
 
+#ifdef WITH_SHV_WEBSOCKETS
 	rpc::WebSocketServer* webSocketServer();
+#endif
 
 	rpc::CommonRpcClientHandle* commonClientConnectionById(int connection_id);
 
@@ -120,7 +122,9 @@ private:
 private:
 	AppCliOptions *m_cliOptions;
 	rpc::TcpServer *m_tcpServer = nullptr;
+#ifdef WITH_SHV_WEBSOCKETS
 	rpc::WebSocketServer *m_webSocketServer = nullptr;
+#endif
 	shv::iotqt::node::ShvNodeTree *m_nodesTree = nullptr;
 	shv::chainpack::RpcValue m_fstabConfig;
 	shv::chainpack::RpcValue m_usersConfig;

@@ -3,15 +3,19 @@ HEADERS += \
     $$PWD/tcpserver.h \
     $$PWD/masterbrokerconnection.h \
     $$PWD/commonrpcclienthandle.h \
-    $$PWD/websocketserver.h \
-    #$$PWD/websocketserverconnection.h \
-    $$PWD/websocket.h
 
 SOURCES += \
     $$PWD/serverconnection.cpp \
     $$PWD/tcpserver.cpp \
     $$PWD/masterbrokerconnection.cpp \
     $$PWD/commonrpcclienthandle.cpp \
+
+with-shvwebsockets {
+HEADERS += \
+    $$PWD/websocketserver.h \
+    $$PWD/websocket.h
+
+SOURCES += \
     $$PWD/websocketserver.cpp \
-    #$$PWD/websocketserverconnection.cpp \
     $$PWD/websocket.cpp
+}

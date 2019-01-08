@@ -9,7 +9,7 @@ SUBDIRS += \
     revitestdevice \
 }
 
-!noshvsites {
+with-shvsites {
 SUBDIRS += \
     shvsites \
 }

@@ -1,14 +1,22 @@
+<!DOCTYPE html>
 <html>
 	<head>
-		<title>WebSocket Shv Broker test Client</title>
+		<title>WebSocketoSaurus</title>
 		<meta charset="utf-8">
+		<script type="text/javascript" src="../../3rdparty/libshv/libshvchainpack/js/rpcvalue.js"></script>
+		<script type="text/javascript" src="../../3rdparty/libshv/libshvchainpack/js/cpcontext.js"></script>
+		<script type="text/javascript" src="../../3rdparty/libshv/libshvchainpack/js/chainpack.js"></script>
+		<script type="text/javascript" src="../../3rdparty/libshv/libshvchainpack/js/cpon.js"></script>
+		<script type="text/javascript" src="../../3rdparty/libshv/libshvchainpack/js/rpcmessage.js"></script>
 	</head>
 	<body>
-		<h1>WebSocket Shv Broker test Client</h1>
+		<h1>WebSocketoSaurus</h1>
+		<h2>WebSocket Shv Broker test Client</h1>
 		<p>
 			<button onClick="initWebSocket();">Connect</button>
 			<button onClick="stopWebSocket();">Disconnect</button>
 			<button onClick="checkSocket();">State</button>
+			<span id="lblState">---</span>
 		</p>
 		<p>
 			<input type="text" id="edShvPath" onkeydown="if(event.keyCode==13)sendMessage();"/>
@@ -24,7 +32,7 @@
 		</p>
 
 		<script type="text/javascript">
-			var txtLog = document.getElementById("txtLog");
+			let txtLog = document.getElementById("txtLog");
 			function debug(message) {
 				txtLog.value += message + "\n";
 				txtLog.scrollTop = txtLog.scrollHeight;
@@ -33,50 +41,56 @@
 			function sendMessage()
 			{
 				if ( websocket && websocket.readyState == 1 ) {
-					var shv_path = document.getElementById("edShvPath").value;
-					var method = document.getElementById("edMethod").value;
-					var params = document.getElementById("edParams").value;
+					let shv_path = document.getElementById("edShvPath").value;
+					let method = document.getElementById("edMethod").value;
+					let params = document.getElementById("edParams").value;
 
 					callRpcMethod(shv_path, method, params);
 				}
 			}
 
-			var wsUri = "ws://localhost:3777";
-			var websocket = null;
-			var hello_phase = false;
-			var login_phase = false;
-			var broker_connected = false;
-			var request_id = 1
+			let wsUri = "ws://localhost:3777";
+			let websocket = null;
+			let hello_phase = false;
+			let login_phase = false;
+			let broker_connected = false;
+			let request_id = 1
 
 			function initWebSocket()
 			{
-				var txtLog = document.getElementById("txtLog");
+				let txtLog = document.getElementById("txtLog");
 				txtLog.value = ""
 				request_id = 1;
 				try {
+					checkSocket();
 					//if (typeof MozWebSocket == 'function')
 					//    WebSocket = MozWebSocket;
 					if ( websocket && websocket.readyState == 1 )
 						websocket.close();
+					checkSocket();
 					websocket = new WebSocket( wsUri );
 					websocket.binaryType = "arraybuffer";
+					checkSocket();
 
 					websocket.onopen = function (evt) {
+						checkSocket();
 						debug("CONNECTED");
 						callRpcMethod(null, "hello")
 						//sendCpon('<1:1,8:' + request_id++ + ',10:"hello">i{}')
 						hello_phase = true;
 					};
 					websocket.onclose = function (evt) {
+						checkSocket();
 						debug("DISCONNECTED");
 					};
 					websocket.onmessage = function (evt) {
 						//console.log( "Message received :", evt.data );
-						var cpon = dataToCponRpcMessage(evt.data);
-						debug("message received: " + cpon );
+						let rpc_val = datatoRpcValue(evt.data);
+						debug("message received: " + rpc_val );
+						let rpc_msg = new RpcMessage(rpc_val);
 						if(hello_phase) {
 							// <1:1,8:1>i{2:{"nonce":"1805368699"}}
-							var rqid = parseInt(cpon.split(">")[0].split("8:")[1]);
+							let rqid = rpc_msg.requestId();
 							if(rqid == 1) {
 								// <T:RpcMessage,id:2,method:"login">i{params:{"login":{"password":"lub42DUB","type":"PLAIN","user":"iot"},"options":{"device":{"mountPoint":"test/agent1"},"idleWatchDogTimeOut":0}}}
 								let params = '{"login":{"password":"lub42DUB","type":"PLAIN","user":"iot"},"options":{"device":{"mountPoint":"test/agent1"},"idleWatchDogTimeOut":0}}'
@@ -87,7 +101,7 @@
 						}
 						else if(login_phase) {
 							// <T:RpcMessage,id:2>i{result:{"clientId":2}}
-							var rqid = parseInt(cpon.split(">")[0].split("8:")[1]);
+							let rqid = rpc_msg.requestId();
 							if(rqid == 2) {
 								login_phase = false;
 								broker_connected = true;
@@ -95,17 +109,18 @@
 							}
 						}
 						else if(broker_connected) {
-							var txtResult = document.getElementById("txtResult");
+							let txtResult = document.getElementById("txtResult");
 							// result == 2
 							// error == 3
-							var ret_key = parseInt(cpon.split(">i{")[1].split(":")[0]);
-							if(ret_key == 2) {
-								txtResult.value = cpon.split(">i{")[1].slice(2, -1)
-								txtResult.style.background = ""
-							}
-							else if(ret_key == 3) {
-								txtResult.value = cpon.split(">i{")[1].slice(2, -1)
+							let err = rpc_msg.error();
+							if(err) {
+								txtResult.value = err.toString()
 								txtResult.style.background = "salmon"
+							}
+							else {
+								let result = rpc_msg.result();
+								txtResult.value = result.toString()
+								txtResult.style.background = ""
 							}
 						}
 					};
@@ -122,9 +137,11 @@
 					websocket.close();
 			}
 
-			function checkSocket() {
+			function checkSocket()
+			{
+				let lblState = document.getElementById("lblState");
 				if (websocket != null) {
-					var stateStr;
+					let stateStr;
 					switch (websocket.readyState) {
 						case 0: {
 							stateStr = "CONNECTING";
@@ -148,84 +165,60 @@
 						}
 					}
 					debug("WebSocket state = " + websocket.readyState + " ( " + stateStr + " )");
+					lblState.innerHTML = stateStr
 				} else {
 					debug("WebSocket is null");
+					lblState.innerHTML = "no-socket"
 				}
 			}
 
 			function callRpcMethod(shv_path, method, params)
 			{
-				// 8 - requestId
-				// 9 - shvPath
-				// 10 - method
 				if(!params)
 					params = "null"
-				var cpon = '<1:1,8:' + request_id++;
+				let rq = new RpcMessage({});
+				rq.setRequestId(request_id++);
 				if(shv_path)
-					cpon += ',9:"' + shv_path + '"'
-				cpon += ',10:"' + method + '">i{1:' + params + '}'
-				sendCpon(cpon);
+					rq.setShvPath(shv_path);
+				rq.setMethod(method);
+				if(params)
+					rq.setParams(RpcValue.fromCpon(params));
+				sendRpcMessage(rq);
 			}
 
-			function sendCpon(cpon)
+			function sendRpcMessage(rpc_msg)
 			{
 				if(websocket && websocket.readyState == 1) {
-					var a = strToUtf8Array(cpon);
-					const CPON_PROTO = 2
-					let dgram_len = a.length + 1;
-					if(dgram_len < 128)
-						a.unshift(dgram_len, CPON_PROTO);
-					else
-						a.unshift(128 + (dgram_len >> 8), dgram_len % 256, CPON_PROTO);
-					const ba = new Uint8Array(a.length);
-					for(let i=0; i<a.length; i++)
-						ba[i] = a[i];
-					debug("sending " + ba.length + " bytes of data")
-					websocket.send(ba)
+					cpon_data = rpc_msg.rpcvalue.toCpon();
+					let wr = new ChainPackWriter();
+					wr.writeUInt(cpon_data.length + 1)
+					let dgram = new Uint8Array(wr.ctx.length + 1 + cpon_data.length)
+					let ix = 0
+					for (let i = 0; i < wr.ctx.length; i++)
+						dgram[ix++] = wr.ctx.data[i]
+					dgram[ix++] = Cpon.ProtocolType
+					for (let i = 0; i < cpon_data.length; i++)
+						dgram[ix++] = cpon_data[i]
+					debug("sending " + dgram.length + " bytes of data")
+					websocket.send(dgram.buffer)
 				}
 			}
 
-			function dataToCponRpcMessage(buf)
+			function datatoRpcValue(buff)
 			{
-				return String.fromCharCode.apply(null, new Uint8Array(buf, 2));
-			}
-
-			function strToUtf8Array(str) {
-				var utf8 = [];
-				for (var i=0; i < str.length; i++) {
-					var charcode = str.charCodeAt(i);
-					if (charcode < 0x80) utf8.push(charcode);
-					else if (charcode < 0x800) {
-						utf8.push(0xc0 | (charcode >> 6),
-								  0x80 | (charcode & 0x3f));
-					}
-					else if (charcode < 0xd800 || charcode >= 0xe000) {
-						utf8.push(0xe0 | (charcode >> 12),
-								  0x80 | ((charcode>>6) & 0x3f),
-								  0x80 | (charcode & 0x3f));
-					}
-					// surrogate pair
-					else {
-						i++;
-						charcode = ((charcode&0x3ff)<<10)|(str.charCodeAt(i)&0x3ff)
-						utf8.push(0xf0 | (charcode >>18),
-								  0x80 | ((charcode>>12) & 0x3f),
-								  0x80 | ((charcode>>6) & 0x3f),
-								  0x80 | (charcode & 0x3f));
-					}
-				}
-				return utf8;
-			}
-			function jsArrayToUint8Array(arr)
-			{
-				const uint8a = new Uint8Array(s.length);
-				for(let i=0; i<arr.length; i++)
-					uint8a[i] = arr[i];
-				return utf8a;
-			}
-			function strToUtf8Uint8Array(str)
-			{
-				return jsArrayToUint8Array(strToUtf8Array(str));
+				let ctx = new UnpackContext(buff);
+				let len = ChainPack.readUInt(ctx)
+				let proto = ctx.getByte();
+				let n = unpackUInt(buff)
+				let reader = null;
+				if(proto == Cpon.ProtocolType)
+					reader = new CponReader(ctx)
+				else if(proto == ChainPack.ProtocolType)
+					reader = new ChainPackReader(ctx)
+				let rpc_val = reader.read();
+				//debug("msg buff len " + buff.byteLength + " offset: " + offset)
+				//return String.fromCharCode.apply(null, new Uint8Array(buff, offset));
+				return rpc_val;
 			}
 		</script>
 	</body>

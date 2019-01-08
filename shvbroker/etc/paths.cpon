@@ -5,6 +5,9 @@
 		"client": {
 			"**": {"grant": "bws"},
 		},
+		"device": {
+			"**": {"grant": "rd"},
+		},
 		"ping": {
 			".broker/app": {"grant": "bws"},
 		},
