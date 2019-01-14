@@ -29,7 +29,7 @@ static const char METH_GET_SITES[] = "getSites";
 static const char METH_GET_CONFIG[] = "getConfig";
 static const char METH_SAVE_CONFIG[] = "saveConfig";
 static const char METH_RELOAD_SITES[] = "reloadSites";
-static const char METH_SITES_TIME[] = "sitesTime";
+static const char METH_SITES_TIME[] = "sitesSyncTime";
 
 static std::vector<cp::MetaMethod> root_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::GRANT_BROWSE },
