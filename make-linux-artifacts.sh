@@ -10,6 +10,7 @@ DIST_LIB_DIR=$DIST_DIR/lib
 DIST_BIN_DIR=$DIST_DIR/bin
 
 QT_DIR=/opt/qt/5.12.0/gcc_64
+QT_LIB_DIR=/opt/qt/5.12.0/gcc_64/lib
 
 
 rm -r $DIST_DIR
