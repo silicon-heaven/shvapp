@@ -21,8 +21,7 @@ linux:
     - cd build
     - /opt/qt/5.12.0/gcc_64/bin/qmake -r CONFIG+=no-libshv-gui ../shv.pro DEFINES+=GIT_COMMIT=${CI_BUILD_REF}
     - make -j2
-    - cd ..
-    - ./make-linux-artifacts.sh
+    - ../make-linux-artifacts.sh
 
 production-deploy:
   only:
