@@ -1,25 +1,13 @@
 #!/bin/sh
 
-DISTRO_NAME=shv
-DISTRO_VER=master
+DIST_LIB_DIR=lib 
+DIST_BIN_DIR=bin 
 
-SRC_DIR=`pwd`
-BUILD_DIR=$SRC_DIR/build
-DIST_DIR=$BUILD_DIR/dist
-DIST_LIB_DIR=$DIST_DIR/lib
-DIST_BIN_DIR=$DIST_DIR/bin
+rm $DIST_LIB_DIR/*.debug
+rm $DIST_BIN_DIR/*.debug
 
 QT_DIR=/opt/qt/5.12.0/gcc_64
 QT_LIB_DIR=/opt/qt/5.12.0/gcc_64/lib
-
-
-rm -r $DIST_DIR
-mkdir -p $DIST_DIR
-
-rsync -av --exclude '*.debug' $BUILD_DIR/lib/ $DIST_LIB_DIR
-rsync -av --exclude '*.debug' $BUILD_DIR/bin/ $DIST_BIN_DIR
-
-#rsync -a --exclude '*.debug'v $QT_DIR/lib/libicu* $DIST_LIB_DIR
 
 rsync -av --exclude '*.debug' $QT_LIB_DIR/libQt5Core.so* $DIST_LIB_DIR
 rsync -av --exclude '*.debug' $QT_LIB_DIR/libQt5Gui.so* $DIST_LIB_DIR
