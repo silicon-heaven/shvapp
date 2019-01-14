@@ -54,7 +54,7 @@ test-deploy:
     # nirvana
     - pwd
     - rsync -avz shvbroker/etc gitlab@165.227.247.202:/opt/shv/ 
-    - cd build
+    - cd build/dist
     - rsync -avz lib bin gitlab@165.227.247.202:/opt/shv/ 
     - ssh -t gitlab@165.227.247.202 "sudo /opt/shv/install.sh"
 
