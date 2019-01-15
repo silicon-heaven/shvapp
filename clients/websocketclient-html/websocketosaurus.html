@@ -205,7 +205,7 @@
 			function datatoRpcValue(buff)
 			{
 				let rd = new ChainPackReader(new UnpackContext(buff));
-				let len = rd.readUInt()
+				let len = rd.readUIntData()
 				let proto = rd.ctx.getByte();
 				if(proto == Cpon.ProtocolType)
 					rd = new CponReader(rd.ctx)
