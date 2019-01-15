@@ -2,7 +2,7 @@
 #include "ui_dlgserverproperties.h"
 #include "dlgsubscriptions.h"
 
-#include <shv/chainpack/abstractrpcconnection.h>
+#include <shv/chainpack/irpcconnection.h>
 
 #include <QSettings>
 
@@ -70,7 +70,7 @@ void DlgServerProperties::setServerProperties(const QVariantMap &props)
 
 	ui->edName->setText(props.value("name").toString());
 	ui->edHost->setText(props.value("host").toString());
-	ui->edPort->setValue(props.value("port", shv::chainpack::AbstractRpcConnection::DEFAULT_RPC_BROKER_PORT).toInt());
+	ui->edPort->setValue(props.value("port", shv::chainpack::IRpcConnection::DEFAULT_RPC_BROKER_PORT).toInt());
 	ui->edUser->setText(props.value("user").toString());
 	ui->edPassword->setText(props.value("password").toString());
 	{

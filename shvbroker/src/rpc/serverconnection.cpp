@@ -6,6 +6,7 @@
 #include <shv/coreqt/log.h>
 #include <shv/core/stringview.h>
 #include <shv/iotqt/utils/shvpath.h>
+#include <shv/iotqt/rpc/socket.h>
 
 #include <QCryptographicHash>
 #include <QTcpSocket>
@@ -17,21 +18,24 @@ namespace cp = shv::chainpack;
 
 namespace rpc {
 
-ServerConnection::ServerConnection(QTcpSocket *socket, QObject *parent)
+ServerConnection::ServerConnection(shv::iotqt::rpc::Socket *socket, QObject *parent)
 	: Super(socket, parent)
 {
-	connect(this, &ServerConnection::socketConnectedChanged, [this](bool is_connected) {
-		if(!is_connected) {
-			shvInfo() << "Socket disconnected, deleting connection:" << connectionId();
-			deleteLater();
-		}
-	});
+	connect(this, &ServerConnection::socketConnectedChanged, this, &ServerConnection::onSocketConnectedChanged);
 }
 
 ServerConnection::~ServerConnection()
 {
 	//rpc::ServerConnectionshvWarning() << "destroying" << this;
 	//shvWarning() << __FUNCTION__;
+}
+
+void ServerConnection::onSocketConnectedChanged(bool is_connected)
+{
+	if(!is_connected) {
+		shvInfo() << "Socket disconnected, deleting connection:" << connectionId();
+		deleteLater();
+	}
 }
 
 shv::chainpack::RpcValue ServerConnection::tunnelOptions() const
@@ -163,7 +167,7 @@ shv::chainpack::RpcValue ServerConnection::login(const shv::chainpack::RpcValue 
 	BrokerApp::instance()->onClientLogin(connectionId());
 
 	login_resp[cp::Rpc::KEY_CLIENT_ID] = connectionId();
-	return login_resp;
+	return shv::chainpack::RpcValue{login_resp};
 }
 
 bool ServerConnection::checkTunnelSecret(const std::string &s)
@@ -187,5 +191,6 @@ bool ServerConnection::propagateSubscriptionToSlaveBroker(const CommonRpcClientH
 	}
 	return false;
 }
+
 
 } // namespace rpc

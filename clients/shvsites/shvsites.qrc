@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/">
+        <file>map.qml</file>
+        <file>images/marker-off.svg</file>
+        <file>images/marker-on.svg</file>
+        <file>SiteListRow.qml</file>
+    </qresource>
+</RCC>

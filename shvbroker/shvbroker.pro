@@ -7,8 +7,14 @@ else {
 }
 message ( QF_PROJECT_TOP_BUILDDIR == '$$QF_PROJECT_TOP_BUILDDIR' )
 
-QT += core network sql
 QT -= gui
+QT += core network sql
+
+with-shvwebsockets {
+	QT += websockets
+	DEFINES += WITH_SHV_WEBSOCKETS
+}
+
 CONFIG += c++11
 
 TEMPLATE = app
@@ -53,7 +59,6 @@ RESOURCES += \
 
 
 TRANSLATIONS += \
-#        ../eyassrv.pl_PL.ts \
 
 include (src/src.pri)
 

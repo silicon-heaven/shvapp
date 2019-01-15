@@ -8,3 +8,8 @@ unix {
 SUBDIRS += \
     revitestdevice \
 }
+
+with-shvsites {
+SUBDIRS += \
+    shvsites \
+}

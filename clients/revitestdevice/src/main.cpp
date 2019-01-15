@@ -2,7 +2,6 @@
 #include "appclioptions.h"
 
 #include <shv/core/utils.h>
-
 #include <shv/coreqt/log.h>
 #include <shv/iotqt/utils/fileshvjournal.h>
 
@@ -16,7 +15,7 @@ int main(int argc, char *argv[])
 {
 	QCoreApplication::setOrganizationName("Elektroline");
 	QCoreApplication::setOrganizationDomain("elektroline.cz");
-	QCoreApplication::setApplicationName("shvagent");
+	QCoreApplication::setApplicationName("revidestdevice");
 	QCoreApplication::setApplicationVersion("0.0.1");
 
 	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);

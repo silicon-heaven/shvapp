@@ -11,7 +11,7 @@ class TcpServer : public shv::iotqt::rpc::TcpServer
 	Q_OBJECT
 	using Super = shv::iotqt::rpc::TcpServer;
 public:
-	TcpServer(QObject *parent = 0);
+	TcpServer(QObject *parent = nullptr);
 
 	ServerConnection* connectionById(int connection_id);
 protected:
