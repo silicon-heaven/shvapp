@@ -972,6 +972,7 @@ std::string BrokerApp::brokerClientAppPath(int client_id)
 bool BrokerApp::sendNotifyToSubscribers(int sender_connection_id, const shv::chainpack::RpcValue::MetaData &meta_data, const std::string &data)
 {
 	// send it to all clients for now
+	bool subs_sent = false;
 	for(rpc::CommonRpcClientHandle *conn : allClientConnections()) {
 		int id = conn->connectionId();
 		if(id == sender_connection_id)
@@ -992,11 +993,11 @@ bool BrokerApp::sendNotifyToSubscribers(int sender_connection_id, const shv::cha
 					cp::RpcMessage::setShvPath(md2, new_path);
 					conn->sendRawData(md2, std::string(data));
 				}
-				return true;
+				subs_sent = true;
 			}
 		}
 	}
-	return false;
+	return subs_sent;
 }
 
 void BrokerApp::sendNotifyToSubscribers(int sender_connection_id, const std::string &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
