@@ -54,20 +54,18 @@ const cp::MetaMethod *FileProviderLocalFsNode::metaMethod(const shv::iotqt::node
 cp::RpcValue FileProviderLocalFsNode::ndLsMeta(const StringViewList &shv_path, const cp::RpcValue &methods_params)
 {
 	cp::RpcValue::List ret;
-	cp::RpcValue files = ls(shv_path, methods_params);
+	QString dir_path = m_rootDir.absolutePath() + '/' + QString::fromStdString(shv_path.join('/')) + '/';
 
-	if (files.isList()){
-		cp::RpcValue::List l = files.toList();
+	QString filter = (!methods_params.isValid()) ? "*" : QString::fromStdString(methods_params.toStdString());
+	QDir dir(dir_path);
 
-		for (int i = 0; i < l.size(); i++){
-			if (l[i].isString()){
-				QString file_path = m_rootDir.absolutePath() + '/' + QString::fromStdString(shv_path.join('/')) + '/' + QString::fromStdString(l[i].toString());
-				cp::RpcValue md = readMetaData(file_path);
+	QStringList file_names = dir.entryList(QStringList(filter), QDir::Files);
 
-				if (md.isValid()){
-					ret.emplace_back(md);
-				}
-			}
+	for (int i = 0; i < file_names.size(); i++){
+		cp::RpcValue md = readMetaData(dir_path + file_names.at(i));
+
+		if (md.isValid()){
+			ret.emplace_back(md);
 		}
 	}
 	return ret;
