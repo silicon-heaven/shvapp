@@ -2,8 +2,10 @@ TEMPLATE = subdirs
 CONFIG += ordered
 
 SUBDIRS += \
-    3rdparty \
-!contains(QT_ARCH, arm){
+    3rdparty
+
+qtHaveModule(gui) {
+SUBDIRS += \
 	shvspy \
     clients \
 }
@@ -14,8 +16,7 @@ SUBDIRS += \
     shvagent \
     shvrexec \
     shvrsh \
-!contains(QT_ARCH, arm){
     shvsitesprovider \
     shvfileprovider \
 }
-}
+
