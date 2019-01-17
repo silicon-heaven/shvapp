@@ -2,9 +2,13 @@ TEMPLATE = subdirs
 CONFIG += ordered
 
 SUBDIRS += \
-    3rdparty \
-    shvspy \
+    3rdparty
+
+qtHaveModule(gui) {
+SUBDIRS += \
+	shvspy \
     clients \
+}
 
 unix {
 SUBDIRS += \
@@ -15,3 +19,4 @@ SUBDIRS += \
     shvsitesprovider \
     shvfileprovider \
 }
+
