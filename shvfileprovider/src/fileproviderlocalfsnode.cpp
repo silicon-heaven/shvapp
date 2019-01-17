@@ -65,7 +65,7 @@ cp::RpcValue FileProviderLocalFsNode::ndLsMeta(const StringViewList &shv_path, c
 		cp::RpcValue md = readMetaData(dir_path + file_names.at(i));
 
 		if (md.isValid()){
-			ret.emplace_back(md);
+			ret.push_back(std::move(md));
 		}
 	}
 	return ret;
@@ -73,24 +73,22 @@ cp::RpcValue FileProviderLocalFsNode::ndLsMeta(const StringViewList &shv_path, c
 
 shv::chainpack::RpcValue FileProviderLocalFsNode::readMetaData(const QString &file)
 {
-	QFileInfo fi(file);
-	if (!fi.isFile()){
+	try{
+		std::ifstream file_stream;
+		file_stream.exceptions( std::ifstream::failbit | std::ifstream::badbit );
+		file_stream.open(file.toUtf8().constData(), std::ios::binary);
+
+		cp::RpcValue::MetaData md;
+		shv::chainpack::ChainPackReader rd(file_stream);
+		rd.read(md);
+		file_stream.close();
+
+		QFileInfo fi(file);
+		cp::RpcValue ret(fi.fileName().toStdString());
+		ret.setMetaData(std::move(md));
+		return ret;
+	}
+	catch (...) {
 		return cp::RpcValue();
 	}
-
-	std::ifstream file_stream;
-	file_stream.exceptions( std::ifstream::failbit | std::ifstream::badbit );
-	file_stream.open(file.toUtf8().constData(), std::ios::binary);
-
-	shv::chainpack::AbstractStreamReader *rd;
-
-	cp::RpcValue::MetaData md;
-	rd = new shv::chainpack::ChainPackReader(file_stream);
-	rd->read(md);
-	file_stream.close();
-	delete rd;
-
-	cp::RpcValue ret(fi.fileName().toStdString());
-	ret.setMetaData(std::move(md));
-	return ret;
 }
