@@ -174,9 +174,7 @@
 
 			function callRpcMethod(shv_path, method, params)
 			{
-				if(!params)
-					params = "null"
-				let rq = new RpcMessage({});
+				let rq = new RpcMessage();
 				rq.setRequestId(request_id++);
 				if(shv_path)
 					rq.setShvPath(shv_path);
@@ -189,9 +187,9 @@
 			function sendRpcMessage(rpc_msg)
 			{
 				if(websocket && websocket.readyState == 1) {
-					cpon_data = rpc_msg.rpcvalue.toCpon();
+					let cpon_data = rpc_msg.toCpon();
 					let wr = new ChainPackWriter();
-					wr.writeUInt(cpon_data.length + 1)
+					wr.writeUIntData(cpon_data.length + 1)
 					let dgram = new Uint8Array(wr.ctx.length + 1 + cpon_data.length)
 					let ix = 0
 					for (let i = 0; i < wr.ctx.length; i++)
@@ -206,16 +204,12 @@
 
 			function datatoRpcValue(buff)
 			{
-				let ctx = new UnpackContext(buff);
-				let len = ChainPack.readUInt(ctx)
-				let proto = ctx.getByte();
-				let n = unpackUInt(buff)
-				let reader = null;
+				let rd = new ChainPackReader(new UnpackContext(buff));
+				let len = rd.readUIntData()
+				let proto = rd.ctx.getByte();
 				if(proto == Cpon.ProtocolType)
-					reader = new CponReader(ctx)
-				else if(proto == ChainPack.ProtocolType)
-					reader = new ChainPackReader(ctx)
-				let rpc_val = reader.read();
+					rd = new CponReader(rd.ctx)
+				let rpc_val = rd.read();
 				//debug("msg buff len " + buff.byteLength + " offset: " + offset)
 				//return String.fromCharCode.apply(null, new Uint8Array(buff, offset));
 				return rpc_val;
