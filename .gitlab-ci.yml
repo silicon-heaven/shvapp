@@ -23,6 +23,24 @@ linux:
     - make -j2
     - ../make-linux-artifacts.sh
 
+linux-bbb:
+  tags:
+    - beaglebone
+  stage:
+    build
+  artifacts:
+    paths:
+    - build/lib/
+    - build/bin/
+  script:
+    #- git submodule update --init --force --recursive
+    - rm -rf build
+    - mkdir -p build
+    - cd build
+    - /opt/qt5bbb/bin/qmake -r CONFIG+=no-libshv-gui ../shv.pro DEFINES+=GIT_COMMIT=${CI_BUILD_REF}
+    - make -j2
+
+
 production-deploy:
   only:
     - production

@@ -3,8 +3,10 @@ CONFIG += ordered
 
 SUBDIRS += \
     3rdparty \
-    shvspy \
+!contains(QT_ARCH, arm){
+	shvspy \
     clients \
+}
 
 unix {
 SUBDIRS += \
@@ -12,6 +14,8 @@ SUBDIRS += \
     shvagent \
     shvrexec \
     shvrsh \
+!contains(QT_ARCH, arm){
     shvsitesprovider \
     shvfileprovider \
+}
 }
