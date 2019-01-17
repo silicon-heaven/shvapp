@@ -1,9 +1,9 @@
 #include "shvfileproviderapp.h"
 #include "appclioptions.h"
+#include "fileproviderlocalfsnode.h"
 
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/node/shvnodetree.h>
-#include <shv/iotqt/node/localfsnode.h>
 #include <shv/coreqt/log.h>
 #include <shv/chainpack/metamethod.h>
 
@@ -98,7 +98,7 @@ ShvFileProviderApp::ShvFileProviderApp(int &argc, char **argv, AppCliOptions* cl
 	if(!root_dir.isEmpty() && QDir(root_dir).exists()) {
 		const char *FS = "fs";
 		shvInfo() << "Exporting" << root_dir << "as" << FS << "node";
-		shv::iotqt::node::LocalFSNode *fsn = new shv::iotqt::node::LocalFSNode(root_dir);
+		FileProviderLocalFsNode *fsn = new FileProviderLocalFsNode(root_dir);
 		m_shvTree->mount(FS, fsn);
 	}
 

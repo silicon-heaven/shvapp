@@ -44,9 +44,9 @@ private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	void onNetworkManagerFinished(QNetworkReply *reply);
+
 	shv::iotqt::rpc::DeviceConnection *m_rpcConnection = nullptr;
 	AppCliOptions* m_cliOptions;
-
 	shv::iotqt::node::ShvNodeTree *m_shvTree = nullptr;
 	bool m_isBrokerConnected = false;
 };
