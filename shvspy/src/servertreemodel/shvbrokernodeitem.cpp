@@ -41,7 +41,7 @@ ShvBrokerNodeItem::ShvBrokerNodeItem(ServerTreeModel *m, const std::string &serv
 		tm2.start();
 		auto it = m_runningRpcRequests.begin();
 		while (it != m_runningRpcRequests.end()) {
-			if(it->second.startTS.msecsTo(tm2) > shv::iotqt::rpc::ClientConnection::defaultRpcTimeout()) {
+			if(it->second.startTS.msecsTo(tm2) > shv::iotqt::rpc::ClientConnection::defaultRpcTimeoutMsec()) {
 				shvWarning() << "RPC request timeout expired for node:" << it->second.shvPath;
 				it = m_runningRpcRequests.erase(it);
 			}
@@ -168,6 +168,11 @@ shv::iotqt::rpc::ClientConnection *ShvBrokerNodeItem::clientConnection()
 			QVariant v = m_serverPropeties.value("rpc.heartbeatInterval");
 			if(v.isValid())
 				opts.setHeartbeatInterval(v.toInt());
+		}
+		{
+			QVariant v = m_serverPropeties.value("rpc.defaultRpcTimeout");
+			if(v.isValid())
+				opts.setDefaultRpcTimeout(v.toInt());
 		}
 		{
 			QString dev_id = m_serverPropeties.value("device.id").toString();
@@ -308,7 +313,7 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 		m_rpcConnection->sendMessage(resp);
 	}
 	else if(msg.isSignal()) {
-		shvInfo() << msg.toCpon();
+		shvDebug() << msg.toCpon();
 		RpcNotificationsModel *m = TheApp::instance()->rpcNotificationsModel();
 		m->addLogRow(nodeId(), msg);
 	}
