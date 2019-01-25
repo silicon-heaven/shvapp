@@ -14,7 +14,8 @@
 		<h1>WebSocketoSaurus</h1>
 		<h2>WebSocket Shv Broker test Client</h1>
 		<p>
-			<button onClick="initWebSocket();">Connect</button>
+			<button onClick="initWebSocket(true);">Connect ChainPack</button>
+			<button onClick="initWebSocket(false);">Connect Cpon</button>
 			<button onClick="stopWebSocket();">Disconnect</button>
 			<button onClick="checkSocket();">State</button>
 			<span id="lblState">---</span>
@@ -67,12 +68,13 @@
 			let login_phase = false;
 			let broker_connected = false;
 			let request_id = 1
-			let use_cpon = false
+			let isUseCpon = false
 
-			function initWebSocket()
+			function initWebSocket(use_chainpack)
 			{
+				isUseCpon = !use_chainpack
 				let txtLog = document.getElementById("txtLog");
-				txtLog.value = ""
+				txtLog.value = "Connection to shvbroker using " + (isUseCpon? "Cpon": "ChainPack") + " serialization.";
 				request_id = 1;
 				try {
 					checkSocket();
@@ -204,7 +206,7 @@
 			{
 				if(websocket && websocket.readyState == 1) {
 					debug("sending rpc message:", rpc_msg.toString())
-					if(use_cpon)
+					if(isUseCpon)
 						var msg_data = new Uint8Array(rpc_msg.toCpon());
 					else
 						var msg_data = new Uint8Array(rpc_msg.toChainPack());
@@ -216,7 +218,7 @@
 					for (let i = 0; i < wr.ctx.length; i++)
 						dgram[ix++] = wr.ctx.data[i]
 
-					if(use_cpon)
+					if(isUseCpon)
 						dgram[ix++] = Cpon.ProtocolType
 					else
 						dgram[ix++] = ChainPack.ProtocolType
