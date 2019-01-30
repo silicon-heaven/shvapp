@@ -2,6 +2,9 @@
 
 #include "brclabparser.h"
 
+#include "shvfileproviderapp.h"
+
+#include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/chainpack/metamethod.h>
 #include <shv/chainpack/chainpackreader.h>
 #include <shv/coreqt/log.h>
@@ -21,7 +24,7 @@ static std::vector<cp::MetaMethod> meta_methods_brclab {
 FileProviderLocalFsNode::FileProviderLocalFsNode(const QString &root_path, Super *parent):
 	Super(root_path, parent)
 {
-
+	m_isRootNode = true;
 }
 
 cp::RpcValue FileProviderLocalFsNode::callMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const std::string &method, const cp::RpcValue &params)
@@ -63,6 +66,20 @@ const cp::MetaMethod *FileProviderLocalFsNode::metaMethod(const shv::iotqt::node
 	}
 
 	return Super::metaMethod(shv_path, ix);
+}
+
+shv::chainpack::RpcValue FileProviderLocalFsNode::processRpcRequest(const shv::chainpack::RpcRequest &rq)
+{
+	if(rq.shvPath().toString().empty()) {
+		if(rq.method() == cp::Rpc::METH_DEVICE_ID) {
+			ShvFileProviderApp *app = ShvFileProviderApp::instance();
+			const cp::RpcValue::Map& opts = app->rpcConnection()->connectionOptions().toMap();
+			const cp::RpcValue::Map& dev = opts.value(cp::Rpc::KEY_DEVICE).toMap();
+			//shvInfo() << dev[cp::Rpc::KEY_DEVICE_ID].toString();
+			return dev.value(cp::Rpc::KEY_DEVICE_ID).toString();
+		}
+	}
+	return Super::processRpcRequest(rq);
 }
 
 shv::chainpack::RpcValue FileProviderLocalFsNode::ndReadBrclab(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const shv::chainpack::RpcValue &methods_params)

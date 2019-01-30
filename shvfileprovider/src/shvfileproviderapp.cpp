@@ -29,48 +29,6 @@ static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_HELP, cp::MetaMethod::Signature::RetParam, false}
 };
 
-size_t AppRootNode::methodCount(const StringViewList &shv_path)
-{
-	return (shv_path.empty()) ? meta_methods.size() : 0;
-}
-
-const shv::chainpack::MetaMethod *AppRootNode::metaMethod(const StringViewList &shv_path, size_t ix)
-{
-	if(shv_path.empty()) {
-		if(meta_methods.size() <= ix)
-			SHV_EXCEPTION("Invalid method index: " + std::to_string(ix) + " of: " + std::to_string(meta_methods.size()));
-		return &(meta_methods[ix]);
-	}
-	return nullptr;
-}
-
-shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
-{
-	if(shv_path.empty()) {
-		if(method == cp::Rpc::METH_APP_NAME) {
-			return QCoreApplication::instance()->applicationName().toStdString();
-		}
-		if(method == cp::Rpc::METH_HELP) {
-			return params.toString();
-		}
-	}
-	return Super::callMethod(shv_path, method, params);
-}
-
-shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::RpcRequest &rq)
-{
-	if(rq.shvPath().toString().empty()) {
-		if(rq.method() == cp::Rpc::METH_DEVICE_ID) {
-			ShvFileProviderApp *app = ShvFileProviderApp::instance();
-			const cp::RpcValue::Map& opts = app->rpcConnection()->connectionOptions().toMap();
-			const cp::RpcValue::Map& dev = opts.value(cp::Rpc::KEY_DEVICE).toMap();
-			//shvInfo() << dev[cp::Rpc::KEY_DEVICE_ID].toString();
-			return dev.value(cp::Rpc::KEY_DEVICE_ID).toString();
-		}
-	}
-	return Super::processRpcRequest(rq);
-}
-
 ShvFileProviderApp::ShvFileProviderApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
@@ -79,7 +37,6 @@ ShvFileProviderApp::ShvFileProviderApp(int &argc, char **argv, AppCliOptions* cl
 	if(0 != ::setpgid(0, 0))
 		shvError() << "Error set process group ID:" << errno << ::strerror(errno);
 #endif
-	//cp::RpcMessage::setMetaTypeExplicit(cli_opts->isMetaTypeExplicit());
 
 	m_rpcConnection = new shv::iotqt::rpc::DeviceConnection(this);
 
@@ -89,17 +46,12 @@ ShvFileProviderApp::ShvFileProviderApp(int &argc, char **argv, AppCliOptions* cl
 
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &ShvFileProviderApp::onBrokerConnectedChanged);
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvFileProviderApp::onRpcMessageReceived);
-	AppRootNode *root = new AppRootNode();
-	m_shvTree = new shv::iotqt::node::ShvNodeTree(root, this);
-
-	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
 
 	QString root_dir = QString::fromStdString(cli_opts->fsRootDir());
 	if(!root_dir.isEmpty() && QDir(root_dir).exists()) {
-		const char *FS = "fs";
-		shvInfo() << "Exporting" << root_dir << "as" << FS << "node";
-		FileProviderLocalFsNode *fsn = new FileProviderLocalFsNode(root_dir);
-		m_shvTree->mount(FS, fsn);
+		shvInfo() << "Exporting" << root_dir << "as root node";
+		m_root = new FileProviderLocalFsNode(root_dir);
+		connect(m_root, &shv::iotqt::node::ShvNode::sendRpcMesage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
 	}
 
 	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
@@ -126,8 +78,8 @@ void ShvFileProviderApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &
 	if(msg.isRequest()) {
 		cp::RpcRequest rq(msg);
 		shvDebug() << "RPC request received:" << rq.toPrettyString();
-		if(m_shvTree->root()) {
-			m_shvTree->root()->handleRpcRequest(rq);
+		if(m_root) {
+			m_root->handleRpcRequest(rq);
 		}
 	}
 	else if(msg.isResponse()) {
