@@ -1,6 +1,6 @@
 #include "shvfileproviderapp.h"
 #include "appclioptions.h"
-#include "fileproviderlocalfsnode.h"
+#include "brclabfsnode.h"
 
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/node/shvnodetree.h>
@@ -22,12 +22,56 @@
 namespace cp = shv::chainpack;
 
 static std::vector<cp::MetaMethod> meta_methods {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false},
-	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false},
-	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, 0},
-	{cp::Rpc::METH_HELP, cp::MetaMethod::Signature::RetParam, false}
+	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::GRANT_BROWSE},
+	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::GRANT_BROWSE},
+	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false, cp::Rpc::GRANT_READ},
+	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_READ}
 };
+
+AppRootNode::AppRootNode(const QString &root_path, AppRootNode::Super *parent):
+	Super(root_path, parent)
+{
+	m_isRootNode = true;
+}
+
+size_t AppRootNode::methodCount(const StringViewList &shv_path)
+{
+	return (shv_path.empty()) ? meta_methods.size() : Super::methodCount(shv_path);
+}
+
+const shv::chainpack::MetaMethod *AppRootNode::metaMethod(const StringViewList &shv_path, size_t ix)
+{
+	if(shv_path.empty()) {
+		if(meta_methods.size() <= ix)
+			SHV_EXCEPTION("Invalid method index: " + std::to_string(ix) + " of: " + std::to_string(meta_methods.size()));
+		return &(meta_methods[ix]);
+	}
+
+	return Super::metaMethod(shv_path, ix);
+}
+
+shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
+{
+	if(shv_path.empty()) {
+		if(method == cp::Rpc::METH_APP_NAME) {
+			return QCoreApplication::instance()->applicationName().toStdString();
+		}
+	}
+	return Super::callMethod(shv_path, method, params);
+}
+
+shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::RpcRequest &rq)
+{
+	if(rq.shvPath().toString().empty()) {
+		if(rq.method() == cp::Rpc::METH_DEVICE_ID) {
+			ShvFileProviderApp *app = ShvFileProviderApp::instance();
+			const cp::RpcValue::Map& opts = app->rpcConnection()->connectionOptions().toMap();
+			const cp::RpcValue::Map& dev = opts.value(cp::Rpc::KEY_DEVICE).toMap();
+			return dev.value(cp::Rpc::KEY_DEVICE_ID).toString();
+		}
+	}
+	return Super::processRpcRequest(rq);
+}
 
 ShvFileProviderApp::ShvFileProviderApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
@@ -50,7 +94,7 @@ ShvFileProviderApp::ShvFileProviderApp(int &argc, char **argv, AppCliOptions* cl
 	QString root_dir = QString::fromStdString(cli_opts->fsRootDir());
 	if(!root_dir.isEmpty() && QDir(root_dir).exists()) {
 		shvInfo() << "Exporting" << root_dir << "as root node";
-		m_root = new FileProviderLocalFsNode(root_dir);
+		m_root = new AppRootNode(root_dir);
 		connect(m_root, &shv::iotqt::node::ShvNode::sendRpcMesage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
 	}
 
@@ -60,6 +104,10 @@ ShvFileProviderApp::ShvFileProviderApp(int &argc, char **argv, AppCliOptions* cl
 ShvFileProviderApp::~ShvFileProviderApp()
 {
 	shvInfo() << "destroying shv file provider application";
+
+	if (m_root){
+		delete m_root;
+	}
 }
 
 ShvFileProviderApp *ShvFileProviderApp::instance()

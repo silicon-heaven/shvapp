@@ -81,7 +81,6 @@ shv::chainpack::RpcValue BrclabParser::deviceData(const shv::chainpack::RpcValue
 	const cp::RpcValue::Map &tuning_results = tuning.value("results").toMap();
 	const cp::RpcValue::List &tunning_series = tuning.value("series").toList();
 
-
 	ret["resonantFrequency"] = tuning_results.value("RSNT_FRQ_DAC");
 	ret["Q"] = tuning_results.value("Q");
 	ret["Umax"] = tuning_results.value("AMPL_MAX");
