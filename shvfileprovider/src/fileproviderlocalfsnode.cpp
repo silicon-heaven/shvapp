@@ -1,5 +1,7 @@
 #include "fileproviderlocalfsnode.h"
 
+#include "brclabparser.h"
+
 #include <shv/chainpack/metamethod.h>
 #include <shv/chainpack/chainpackreader.h>
 #include <shv/coreqt/log.h>
@@ -7,11 +9,13 @@
 #include <fstream>
 
 static const char M_LSMETA[] = "lsmeta";
+static const char M_READ_BRCLAB[] = "readBrclab";
 
 namespace cp = shv::chainpack;
 
 static std::vector<cp::MetaMethod> meta_methods_brclab {
 	{M_LSMETA, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
+	{M_READ_BRCLAB, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
 };
 
 FileProviderLocalFsNode::FileProviderLocalFsNode(const QString &root_path, Super *parent):
@@ -25,6 +29,9 @@ cp::RpcValue FileProviderLocalFsNode::callMethod(const shv::iotqt::node::ShvNode
 	if (method == M_LSMETA){
 		return ndLsMeta(shv_path, params);
 	}
+	else if (method == M_READ_BRCLAB){
+		return ndReadBrclab(shv_path, params);
+	}
 
 	return Super::callMethod(shv_path, method, params);
 }
@@ -35,20 +42,34 @@ size_t FileProviderLocalFsNode::methodCount(const shv::iotqt::node::ShvNode::Str
 	if (hasChildren(shv_path).toBool()){
 		method_count += 1;
 	}
+	else{
+		method_count += 1;
+	}
 
 	return method_count;
 }
 
 const cp::MetaMethod *FileProviderLocalFsNode::metaMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, size_t ix)
 {
-	if (hasChildren(shv_path).toBool()){
-		size_t method_count = Super::methodCount(shv_path);
+	size_t method_count = Super::methodCount(shv_path);
 
-		if(ix == method_count){
+	if(ix == method_count){
+		if (hasChildren(shv_path).toBool()){
 			return &(meta_methods_brclab[0]);
 		}
+		else {
+			return &(meta_methods_brclab[1]);
+		}
 	}
+
 	return Super::metaMethod(shv_path, ix);
+}
+
+shv::chainpack::RpcValue FileProviderLocalFsNode::ndReadBrclab(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const shv::chainpack::RpcValue &methods_params)
+{
+	cp::RpcValue::Map ret;
+	QString dir_path = m_rootDir.absolutePath() + '/' + QString::fromStdString(shv_path.join('/'));
+	return BrclabParser::parse(dir_path);
 }
 
 cp::RpcValue FileProviderLocalFsNode::ndLsMeta(const StringViewList &shv_path, const cp::RpcValue &methods_params)
