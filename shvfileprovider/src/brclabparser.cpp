@@ -6,6 +6,7 @@
 #include <fstream>
 
 namespace cp = shv::chainpack;
+static constexpr double TO_VOLTS_RATIO = 2.5 / 4095;
 
 BrclabParser::BrclabParser()
 {
@@ -26,8 +27,8 @@ cp::RpcValue BrclabParser::parse(const QString &fn)
 
 	cp::RpcValue::Map ret;
 	ret["sha1"] = md.value("documentHash");
-	ret["dcsMode"] = md.value("deviceType");
-	ret["trafficType"] = md.value("trafficType");
+	ret["dcsMode"] = deviceTypeToString(md.value("deviceType").toInt());
+	ret["trafficType"] = trafficTypeToString(md.value("trafficType").toInt());
 
 	const cp::RpcValue::List &devices = body.toMap().value("devices").toList();
 
@@ -82,10 +83,52 @@ shv::chainpack::RpcValue BrclabParser::deviceData(const shv::chainpack::RpcValue
 	const cp::RpcValue::List &tunning_series = tuning.value("series").toList();
 
 	ret["resonantFrequency"] = tuning_results.value("RSNT_FRQ_DAC");
-	ret["Q"] = tuning_results.value("Q");
-	ret["Umax"] = tuning_results.value("AMPL_MAX");
+	ret["Q"] = tuning_results.value("Q").toInt() / 100.0;
+	ret["Umax"] = tuning_results.value("AMPL_MAX").toInt() * TO_VOLTS_RATIO;
 	ret["operationlGain"] = tuning_results.value("OPER_GAIN_SCANNED");
 	ret["tuningCurve"] = tunning_series;
 
 	return ret;
+}
+
+std::string BrclabParser::deviceTypeToString(int device_type)
+{
+	enum DeviceType {Unknown = 0, Single, DCS, SIL3};
+
+	switch (device_type) {
+	case DeviceType::Single : return "single";
+	case DeviceType::DCS: return "double";
+	case DeviceType::SIL3: return "sil3";
+	default: return "unknown";
+	}
+}
+
+std::string BrclabParser::trafficTypeToString(int traffic_type)
+{
+	enum TrafficType {Unknown = 0, TramsOnly, Mixed};
+
+	switch (traffic_type) {
+	case TrafficType::TramsOnly: return "tramsOnly";
+	case TrafficType::Mixed: return "mixed";
+	default: return "unknown";
+	}
+}
+
+std::string BrclabParser::tcTypeToString(int tc_type)
+{
+	enum TcType {NotSelected = 0, ComplexRectangular, Rectangular, Triangular, Twincap, Double, MetalDetector, MetalDetectorPrefabricated,
+			InductiveCoupled, TypeEnumLast};
+
+	switch (tc_type) {
+	case TcType::NotSelected: return "notSelected";
+	case TcType::ComplexRectangular: return "crtc";
+	case TcType::Rectangular: return "rtc";
+	case TcType::Triangular: return "ttc";
+	case TcType::Twincap: return "twctc";
+	case TcType::Double: return "dtc";
+	case TcType::MetalDetector: return "md";
+	case TcType::MetalDetectorPrefabricated: return "mdp";
+	case TcType::InductiveCoupled: return "ictc";
+	default: return "unknown";
+	}
 }
