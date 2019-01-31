@@ -1,5 +1,9 @@
-#include "fileproviderlocalfsnode.h"
+#include "brclabfsnode.h"
 
+#include "brclabparser.h"
+#include "shvfileproviderapp.h"
+
+#include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/chainpack/metamethod.h>
 #include <shv/chainpack/chainpackreader.h>
 #include <shv/coreqt/log.h>
@@ -7,51 +11,70 @@
 #include <fstream>
 
 static const char M_LSMETA[] = "lsmeta";
+static const char M_READ_BRCLAB_SUMMARY[] = "readBrclabSummary";
 
 namespace cp = shv::chainpack;
 
 static std::vector<cp::MetaMethod> meta_methods_brclab {
 	{M_LSMETA, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
+	{M_READ_BRCLAB_SUMMARY, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
 };
 
-FileProviderLocalFsNode::FileProviderLocalFsNode(const QString &root_path, Super *parent):
+BrclabFsNode::BrclabFsNode(const QString &root_path, Super *parent):
 	Super(root_path, parent)
 {
-
 }
 
-cp::RpcValue FileProviderLocalFsNode::callMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const std::string &method, const cp::RpcValue &params)
+cp::RpcValue BrclabFsNode::callMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const std::string &method, const cp::RpcValue &params)
 {
 	if (method == M_LSMETA){
 		return ndLsMeta(shv_path, params);
+	}
+	else if (method == M_READ_BRCLAB_SUMMARY){
+		return ndReadBrclabSummary(shv_path, params);
 	}
 
 	return Super::callMethod(shv_path, method, params);
 }
 
-size_t FileProviderLocalFsNode::methodCount(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
+size_t BrclabFsNode::methodCount(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
 {
 	size_t method_count = Super::methodCount(shv_path);
 	if (hasChildren(shv_path).toBool()){
+		method_count += 1;
+	}
+	else{
 		method_count += 1;
 	}
 
 	return method_count;
 }
 
-const cp::MetaMethod *FileProviderLocalFsNode::metaMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, size_t ix)
+const cp::MetaMethod *BrclabFsNode::metaMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, size_t ix)
 {
-	if (hasChildren(shv_path).toBool()){
-		size_t method_count = Super::methodCount(shv_path);
+	size_t method_count = Super::methodCount(shv_path);
 
-		if(ix == method_count){
+	if(ix == method_count){
+		if (hasChildren(shv_path).toBool()){
 			return &(meta_methods_brclab[0]);
 		}
+		else {
+			return &(meta_methods_brclab[1]);
+		}
 	}
+
 	return Super::metaMethod(shv_path, ix);
 }
 
-cp::RpcValue FileProviderLocalFsNode::ndLsMeta(const StringViewList &shv_path, const cp::RpcValue &methods_params)
+shv::chainpack::RpcValue BrclabFsNode::ndReadBrclabSummary(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const shv::chainpack::RpcValue &methods_params)
+{
+	Q_UNUSED (methods_params);
+	cp::RpcValue::Map ret;
+	QString dir_path = m_rootDir.absolutePath() + '/' + QString::fromStdString(shv_path.join('/'));
+	return BrclabParser::parse(dir_path);
+}
+
+cp::RpcValue BrclabFsNode::ndLsMeta(const StringViewList &shv_path, const cp::RpcValue &methods_params)
 {
 	cp::RpcValue::List ret;
 	QString dir_path = m_rootDir.absolutePath() + '/' + QString::fromStdString(shv_path.join('/')) + '/';
@@ -71,7 +94,7 @@ cp::RpcValue FileProviderLocalFsNode::ndLsMeta(const StringViewList &shv_path, c
 	return ret;
 }
 
-shv::chainpack::RpcValue FileProviderLocalFsNode::readMetaData(const QString &file)
+shv::chainpack::RpcValue BrclabFsNode::readMetaData(const QString &file)
 {
 	try{
 		std::ifstream file_stream;
