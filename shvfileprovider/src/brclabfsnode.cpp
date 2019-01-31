@@ -11,13 +11,13 @@
 #include <fstream>
 
 static const char M_LSMETA[] = "lsmeta";
-static const char M_READ_BRCLAB[] = "readBrclab";
+static const char M_READ_BRCLAB_SUMMARY[] = "readBrclabSummary";
 
 namespace cp = shv::chainpack;
 
 static std::vector<cp::MetaMethod> meta_methods_brclab {
 	{M_LSMETA, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
-	{M_READ_BRCLAB, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
+	{M_READ_BRCLAB_SUMMARY, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
 };
 
 BrclabFsNode::BrclabFsNode(const QString &root_path, Super *parent):
@@ -30,8 +30,8 @@ cp::RpcValue BrclabFsNode::callMethod(const shv::iotqt::node::ShvNode::StringVie
 	if (method == M_LSMETA){
 		return ndLsMeta(shv_path, params);
 	}
-	else if (method == M_READ_BRCLAB){
-		return ndReadBrclab(shv_path, params);
+	else if (method == M_READ_BRCLAB_SUMMARY){
+		return ndReadBrclabSummary(shv_path, params);
 	}
 
 	return Super::callMethod(shv_path, method, params);
@@ -66,8 +66,9 @@ const cp::MetaMethod *BrclabFsNode::metaMethod(const shv::iotqt::node::ShvNode::
 	return Super::metaMethod(shv_path, ix);
 }
 
-shv::chainpack::RpcValue BrclabFsNode::ndReadBrclab(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const shv::chainpack::RpcValue &methods_params)
+shv::chainpack::RpcValue BrclabFsNode::ndReadBrclabSummary(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const shv::chainpack::RpcValue &methods_params)
 {
+	Q_UNUSED (methods_params);
 	cp::RpcValue::Map ret;
 	QString dir_path = m_rootDir.absolutePath() + '/' + QString::fromStdString(shv_path.join('/'));
 	return BrclabParser::parse(dir_path);

@@ -18,7 +18,7 @@ public:
 	const shv::chainpack::MetaMethod* metaMethod(const StringViewList &shv_path, size_t ix) override;
 
 private:
-	shv::chainpack::RpcValue ndReadBrclab(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const shv::chainpack::RpcValue &methods_params);
+	shv::chainpack::RpcValue ndReadBrclabSummary(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const shv::chainpack::RpcValue &methods_params);
 	shv::chainpack::RpcValue ndLsMeta(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const shv::chainpack::RpcValue &methods_params);
 	shv::chainpack::RpcValue readMetaData(const QString &file);
 };

@@ -23,6 +23,8 @@ public:
 	const shv::chainpack::MetaMethod* metaMethod(const StringViewList &shv_path, size_t ix) override;
 	shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params) override;
 	shv::chainpack::RpcValue processRpcRequest(const shv::chainpack::RpcRequest &rq) override;
+private:
+	bool m_isRootNodeValid = false;
 };
 
 class ShvFileProviderApp : public QCoreApplication

@@ -22,7 +22,7 @@
 namespace cp = shv::chainpack;
 
 static std::vector<cp::MetaMethod> meta_methods {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::GRANT_BROWSE},
+	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_BROWSE},
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::GRANT_BROWSE},
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false, cp::Rpc::GRANT_READ},
 	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_READ}
@@ -32,6 +32,14 @@ AppRootNode::AppRootNode(const QString &root_path, AppRootNode::Super *parent):
 	Super(root_path, parent)
 {
 	m_isRootNode = true;
+	m_isRootNodeValid = !root_path.isEmpty() && QDir(root_path).exists();
+
+	if (!m_isRootNodeValid){
+		shvError() << "Invalid root path: " << root_path.toStdString();
+	}
+	else{
+		shvInfo() << "Exporting" << root_path.toStdString() << "as root node";
+	}
 }
 
 size_t AppRootNode::methodCount(const StringViewList &shv_path)
@@ -52,24 +60,27 @@ const shv::chainpack::MetaMethod *AppRootNode::metaMethod(const StringViewList &
 
 shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
 {
+	if (!m_isRootNodeValid){
+		SHV_EXCEPTION("Invalid root path: " + m_rootDir.absolutePath().toStdString());
+	}
+
 	if(shv_path.empty()) {
 		if(method == cp::Rpc::METH_APP_NAME) {
 			return QCoreApplication::instance()->applicationName().toStdString();
 		}
-	}
-	return Super::callMethod(shv_path, method, params);
-}
-
-shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::RpcRequest &rq)
-{
-	if(rq.shvPath().toString().empty()) {
-		if(rq.method() == cp::Rpc::METH_DEVICE_ID) {
+		else if(method == cp::Rpc::METH_DEVICE_ID) {
 			ShvFileProviderApp *app = ShvFileProviderApp::instance();
 			const cp::RpcValue::Map& opts = app->rpcConnection()->connectionOptions().toMap();
 			const cp::RpcValue::Map& dev = opts.value(cp::Rpc::KEY_DEVICE).toMap();
 			return dev.value(cp::Rpc::KEY_DEVICE_ID).toString();
 		}
 	}
+
+	return Super::callMethod(shv_path, method, params);
+}
+
+shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::RpcRequest &rq)
+{
 	return Super::processRpcRequest(rq);
 }
 
@@ -93,15 +104,9 @@ ShvFileProviderApp::ShvFileProviderApp(int &argc, char **argv, AppCliOptions* cl
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvFileProviderApp::onRpcMessageReceived);
 
 	QString root_dir = QString::fromStdString(cli_opts->fsRootDir());
-	if(!root_dir.isEmpty() && QDir(root_dir).exists()) {
-		shvInfo() << "Exporting" << root_dir << "as root node";
-		m_root = new AppRootNode(root_dir);
-		connect(m_root, &shv::iotqt::node::ShvNode::sendRpcMesage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
-	}
-	else{
-		shvError() << "Invalid param fsRootDir: " + root_dir.toStdString();
-	}
+	m_root = new AppRootNode(root_dir);
 
+	connect(m_root, &shv::iotqt::node::ShvNode::sendRpcMesage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
 	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
 }
 
