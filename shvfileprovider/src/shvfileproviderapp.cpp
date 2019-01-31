@@ -86,6 +86,7 @@ ShvFileProviderApp::ShvFileProviderApp(int &argc, char **argv, AppCliOptions* cl
 
 	if(!cli_opts->user_isset())
 		cli_opts->setUser("shvfileprovider");
+
 	m_rpcConnection->setCliOptions(cli_opts);
 
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &ShvFileProviderApp::onBrokerConnectedChanged);
@@ -96,6 +97,9 @@ ShvFileProviderApp::ShvFileProviderApp(int &argc, char **argv, AppCliOptions* cl
 		shvInfo() << "Exporting" << root_dir << "as root node";
 		m_root = new AppRootNode(root_dir);
 		connect(m_root, &shv::iotqt::node::ShvNode::sendRpcMesage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
+	}
+	else{
+		shvError() << "Invalid param fsRootDir: " + root_dir.toStdString();
 	}
 
 	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
