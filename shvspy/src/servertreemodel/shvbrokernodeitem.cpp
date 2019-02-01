@@ -3,6 +3,7 @@
 #include "../appclioptions.h"
 #include "../log/errorlogmodel.h"
 #include "../log/rpcnotificationsmodel.h"
+#include "../attributesmodel/attributesmodel.h"
 
 #include <shv/iotqt/rpc/clientconnection.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
@@ -208,6 +209,8 @@ void ShvBrokerNodeItem::onBrokerConnectedChanged(bool is_connected)
 	if(is_connected) {
 		createSubscriptions();
 		loadChildren();
+		AttributesModel *m = TheApp::instance()->attributesModel();
+		m->load(this);
 	}
 	else {
 		deleteChildren();

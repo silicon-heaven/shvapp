@@ -231,10 +231,14 @@ void MainWindow::openNode(const QModelIndex &ix)
 	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
 	ShvBrokerNodeItem *bnd = qobject_cast<ShvBrokerNodeItem*>(nd);
 	if(bnd) {
-		if(bnd->openStatus() == ShvBrokerNodeItem::OpenStatus::Disconnected)
+		AttributesModel *m = TheApp::instance()->attributesModel();
+		if(bnd->openStatus() == ShvBrokerNodeItem::OpenStatus::Disconnected) {
 			bnd->open();
-		else
+		}
+		else {
 			bnd->close();
+			m->load(nullptr);
+		}
 	}
 }
 
@@ -351,15 +355,16 @@ void MainWindow::onShvTreeViewCurrentSelectionChanged(const QModelIndex &curr_ix
 	Q_UNUSED(prev_ix)
 	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(curr_ix);
 	{
-		ShvBrokerNodeItem *bnd = qobject_cast<ShvBrokerNodeItem*>(nd);
 		AttributesModel *m = TheApp::instance()->attributesModel();
+		ui->edAttributesShvPath->setText(QString::fromStdString(nd->shvPath()));
+		ShvBrokerNodeItem *bnd = qobject_cast<ShvBrokerNodeItem*>(nd);
 		if(bnd) {
 			// hide attributes for server nodes
-			ui->edAttributesShvPath->setText(QString());
-			m->load(nullptr);
+			//ui->edAttributesShvPath->setText(QString());
+			m->load(bnd->isOpen()? bnd: nullptr);
 		}
 		else {
-			ui->edAttributesShvPath->setText(QString::fromStdString(nd->shvPath()));
+			//ui->edAttributesShvPath->setText(QString::fromStdString(nd->shvPath()));
 			m->load(nd);
 		}
 	}
