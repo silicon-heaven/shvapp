@@ -22,8 +22,6 @@
 namespace cp = shv::chainpack;
 
 static std::vector<cp::MetaMethod> meta_methods {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_BROWSE},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::GRANT_BROWSE},
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false, cp::Rpc::GRANT_READ},
 	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_READ}
 };
@@ -44,15 +42,20 @@ AppRootNode::AppRootNode(const QString &root_path, AppRootNode::Super *parent):
 
 size_t AppRootNode::methodCount(const StringViewList &shv_path)
 {
-	return (shv_path.empty()) ? meta_methods.size() : Super::methodCount(shv_path);
+	return (shv_path.empty()) ? meta_methods.size() + Super::methodCount(shv_path) : Super::methodCount(shv_path);
 }
 
 const shv::chainpack::MetaMethod *AppRootNode::metaMethod(const StringViewList &shv_path, size_t ix)
 {
 	if(shv_path.empty()) {
-		if(meta_methods.size() <= ix)
-			SHV_EXCEPTION("Invalid method index: " + std::to_string(ix) + " of: " + std::to_string(meta_methods.size()));
-		return &(meta_methods[ix]);
+		size_t all_method_count = meta_methods.size() + Super::methodCount(shv_path);
+
+		if (ix < meta_methods.size())
+			return &(meta_methods[ix]);
+		else if (ix < all_method_count)
+			return Super::metaMethod(shv_path, ix - meta_methods.size());
+		else
+			SHV_EXCEPTION("Invalid method index: " + std::to_string(ix) + " of: " + std::to_string(all_method_count));
 	}
 
 	return Super::metaMethod(shv_path, ix);
@@ -73,6 +76,9 @@ shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path,
 			const cp::RpcValue::Map& opts = app->rpcConnection()->connectionOptions().toMap();
 			const cp::RpcValue::Map& dev = opts.value(cp::Rpc::KEY_DEVICE).toMap();
 			return dev.value(cp::Rpc::KEY_DEVICE_ID).toString();
+		}
+		else{
+			return Super::callMethod(shv_path, method, params);
 		}
 	}
 
