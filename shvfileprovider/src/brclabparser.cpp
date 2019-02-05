@@ -29,7 +29,6 @@ cp::RpcValue BrclabParser::parse(const QString &fn)
 	cp::RpcValue::Map ret;
 	ret["sha1"] = md.value("documentHash");
 	ret["dcsMode"] = deviceTypeToString(md.value("deviceType").toInt());
-	ret["trafficType"] = trafficTypeToString(md.value("trafficType").toInt());
 
 	const cp::RpcValue::List &devices = body.toMap().value("devices").toList();
 
@@ -78,6 +77,7 @@ shv::chainpack::RpcValue BrclabParser::deviceData(const shv::chainpack::RpcValue
 	ret["feedingVoltage"] = tc.value("feeding_voltage");
 	ret["detectorLength"] = tc.value("length").toUInt();
 	ret["detectorShape "] = tc.value("type").toInt();
+	ret["trafficType"] = ((tc.value("only_rail_vehicles").toBool()) ? "tramsOnly" : "mixed");
 
 	const cp::RpcValue::Map &tuning = device.toMap().value("tunning").toMap();
 	const cp::RpcValue::Map &tuning_results = tuning.value("results").toMap();
@@ -100,17 +100,6 @@ std::string BrclabParser::deviceTypeToString(int device_type)
 	case DeviceType::Single : return "single";
 	case DeviceType::DCS: return "double";
 	case DeviceType::SIL3: return "sil3";
-	default: return "unknown";
-	}
-}
-
-std::string BrclabParser::trafficTypeToString(int traffic_type)
-{
-	enum TrafficType {Unknown = 0, TramsOnly, Mixed};
-
-	switch (traffic_type) {
-	case TrafficType::TramsOnly: return "tramsOnly";
-	case TrafficType::Mixed: return "mixed";
 	default: return "unknown";
 	}
 }
