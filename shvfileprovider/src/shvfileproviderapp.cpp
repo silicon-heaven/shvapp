@@ -90,7 +90,7 @@ shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path,
 				SHV_EXCEPTION("Invalid parameters format. Params must be a map and it must contains keys: user, password.");
 			}
 			cp::RpcValue::Map map = params.toMap();
-			return app->brclabUsers()->addUser(map.value("user").toStdString(), map.value("password").toStdString());
+			return app->brclabUsers()->addUser(map.value("user").toStdString(), map.value("password").toStdString(), map.value("grants"));
 		}
 		else if(method == M_CHANGE_USER_PASSWORD) {
 			if (!params.isMap() || !params.toMap().hasKey("user") || !params.toMap().hasKey("newPassword")){
@@ -129,12 +129,6 @@ ShvFileProviderApp::ShvFileProviderApp(int &argc, char **argv, AppCliOptions* cl
 	if(0 != ::setpgid(0, 0))
 		shvError() << "Error set process group ID:" << errno << ::strerror(errno);
 #endif
-
-	//m_brclabUsers.addUser("test", "8884a26b82a69838092fd4fc824bbfde56719e01");
-	//cp::RpcValue grants = m_brclabUsers.getUserGrants("iot", "8884a26b82a69838092fd4fc824bbfde56719e02");
-
-	//shvInfo() << grants.isValid() << grants.isList() << grants.toList().size();
-
 	m_rpcConnection = new shv::iotqt::rpc::DeviceConnection(this);
 
 	if(!cli_opts->user_isset())
@@ -168,7 +162,7 @@ ShvFileProviderApp *ShvFileProviderApp::instance()
 
 std::string ShvFileProviderApp::brclabUsersFileName()
 {
-	return cliOptions()->configDir() + "brclabusers.cpon";
+	return cliOptions()->configDir() + "/" +"brclabusers.cpon";
 }
 
 BrclabUsers *ShvFileProviderApp::brclabUsers()

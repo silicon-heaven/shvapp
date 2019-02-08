@@ -9,10 +9,11 @@
 
 namespace cp = shv::chainpack;
 
-BrclabUsers::BrclabUsers(const std::string &users_config_fn, QObject *parent):
+BrclabUsers::BrclabUsers(const std::string &config_file_name, QObject *parent):
 	QObject(parent)
 {
-	m_usersConfigFileName = users_config_fn;
+	m_usersConfigFileName = config_file_name;
+	reloadUsersConfig();
 }
 
 shv::chainpack::RpcValue BrclabUsers::loadUsersConfig()
@@ -23,7 +24,7 @@ shv::chainpack::RpcValue BrclabUsers::loadUsersConfig()
 		std::ifstream ifs(m_usersConfigFileName);
 
 		if (!ifs.good()) {
-			throw std::runtime_error("Input stream is broken.");
+			throw std::runtime_error("Input stream error");
 		}
 
 		cp::CponReader rd(ifs);
@@ -53,7 +54,6 @@ void BrclabUsers::saveUsersConfig(const cp::RpcValue &data)
 		opts.setIndent("  ");
 		shv::chainpack::CponWriter wr(ofs, opts);
 		wr << data;
-		shvInfo() << "Users were updated in" << m_usersConfigFileName;
 	}
 	else{
 		SHV_EXCEPTION("Config must be RpcValue::Map type, config name: " + m_usersConfigFileName);
@@ -69,22 +69,25 @@ const shv::chainpack::RpcValue &BrclabUsers::usersConfig()
 	return m_usersConfig;
 }
 
-bool BrclabUsers::addUser(const std::string &user_name, const std::string &password_sha1)
+bool BrclabUsers::addUser(const std::string &user_name, const std::string &password_sha1, const cp::RpcValue &grants)
 {
-	cp::RpcValue users_config = loadUsersConfig();
+	cp::RpcValue uc = loadUsersConfig();
 
-	if (users_config.toMap().hasKey(user_name)){
+	if (!uc.isMap()){
+		SHV_EXCEPTION("Config must be RpcValue::Map type, config name: " + m_usersConfigFileName);
+	}
+	else if (uc.toMap().hasKey(user_name)){
 		SHV_EXCEPTION("User " + user_name + " is already added in config file");
 	}
 
-	cp::RpcValue::Map new_users_config = users_config.toMap();
-	cp::RpcValue::Map user_config;
+	cp::RpcValue::Map users_config = uc.toMap();
+	cp::RpcValue::Map user;
 
-	user_config["grants"] = cp::RpcValue::List();
-	user_config["password"] = password_sha1;
-	new_users_config[user_name] = user_config;
+	user["grants"] = (grants.isList()) ? grants.toList() : cp::RpcValue::List();
+	user["password"] = password_sha1;
+	users_config[user_name] = user;
 
-	saveUsersConfig(new_users_config);
+	saveUsersConfig(users_config);
 	reloadUsersConfig();
 
 	return true;
@@ -92,14 +95,18 @@ bool BrclabUsers::addUser(const std::string &user_name, const std::string &passw
 
 bool BrclabUsers::changePassword(const std::string &user_name, const std::string &new_password_sha1)
 {
-	cp::RpcValue::Map users = loadUsersConfig().toMap();
+	cp::RpcValue uc = loadUsersConfig();
+	if (!uc.isMap()){
+		SHV_EXCEPTION("Config must be RpcValue::Map type, config name: " + m_usersConfigFileName);
+	}
 
-	if (users.hasKey(user_name)){
-		cp::RpcValue::Map user = users.at(user_name).toMap();
+	cp::RpcValue::Map users_config = uc.toMap();
+	if (users_config.hasKey(user_name)){
+		cp::RpcValue::Map user = users_config.at(user_name).toMap();
 		user["password"] = new_password_sha1;
-		users.at(user_name) = user;
+		users_config.at(user_name) = user;
 
-		saveUsersConfig(users);
+		saveUsersConfig(users_config);
 		reloadUsersConfig();
 	}
 	else{
@@ -114,7 +121,7 @@ shv::chainpack::RpcValue BrclabUsers::getUserGrants(const std::string &user_name
 	cp::RpcValue users_config = usersConfig();
 
 	if (!users_config.isMap()){
-		SHV_EXCEPTION("Invalid chainpack format in config file " + m_usersConfigFileName);
+		SHV_EXCEPTION("Config must be RpcValue::Map type, config name: " + m_usersConfigFileName);
 	}
 
 	for(const auto &kv :users_config.toMap()) {

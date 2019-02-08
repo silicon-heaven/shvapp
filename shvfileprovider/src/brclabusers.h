@@ -9,14 +9,14 @@ class BrclabUsers: public QObject
 {
 	Q_OBJECT
 public:
-	BrclabUsers(const std::string &brclab_users_file_name, QObject *parent);
-	bool addUser(const std::string &user_name, const std::string &password_sha1);
+	BrclabUsers(const std::string &config_file_name, QObject *parent);
+	bool addUser(const std::string &user_name, const std::string &password_sha1, const shv::chainpack::RpcValue &grants);
 	bool changePassword(const std::string &user_name, const std::string &new_password_sha1);
 	shv::chainpack::RpcValue getUserGrants(const std::string &user_name, const std::string &password_sha1);
-	void reloadUsersConfig();
 
 private:
 	shv::chainpack::RpcValue loadUsersConfig();
+	void reloadUsersConfig();
 	void saveUsersConfig(const shv::chainpack::RpcValue &data);
 
 	const shv::chainpack::RpcValue &usersConfig();
