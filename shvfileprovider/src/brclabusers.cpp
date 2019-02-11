@@ -25,23 +25,18 @@ shv::chainpack::RpcValue BrclabUsers::loadUsersConfig()
 		setUsersConfig(cp::RpcValue::Map());
 	}
 
-	try{
-		std::ifstream ifs(m_usersConfigFileName);
-		ifs.exceptions( std::ifstream::failbit | std::ifstream::badbit );
+	std::ifstream ifs(m_usersConfigFileName);
+	ifs.exceptions( std::ifstream::failbit | std::ifstream::badbit );
 
-		if (!ifs.good()) {
-			throw std::runtime_error("Input stream error");
-		}
-
-		cp::CponReader rd(ifs);
-		rd.read(ret);
-
-		if (!ret.isMap()){
-			throw std::runtime_error("Config file must be a Map!");
-		}
+	if (!ifs.good()) {
+		SHV_EXCEPTION("Cannot open file " + m_usersConfigFileName +  " for reading!");
 	}
-	catch (std::exception &e) {
-		SHV_EXCEPTION ("Cannot open file" + m_usersConfigFileName + e.what());
+
+	cp::CponReader rd(ifs);
+	rd.read(ret);
+
+	if (!ret.isMap()){
+		SHV_EXCEPTION("Config file " + m_usersConfigFileName + " must be a Map!");
 	}
 
 	return ret;
