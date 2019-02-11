@@ -5,6 +5,7 @@
 #include <shv/chainpack/cponwriter.h>
 #include <shv/chainpack/cponreader.h>
 
+#include <QFile>
 #include <fstream>
 
 namespace cp = shv::chainpack;
@@ -13,37 +14,40 @@ BrclabUsers::BrclabUsers(const std::string &config_file_name, QObject *parent):
 	QObject(parent)
 {
 	m_usersConfigFileName = config_file_name;
-	reloadUsersConfig();
+	m_usersConfig = loadUsersConfig();
 }
 
 shv::chainpack::RpcValue BrclabUsers::loadUsersConfig()
 {
 	shv::chainpack::RpcValue ret;
 
+	if (!QFile::exists(QString::fromStdString(m_usersConfigFileName))){
+		setUsersConfig(cp::RpcValue::Map());
+	}
+
 	try{
 		std::ifstream ifs(m_usersConfigFileName);
+		ifs.exceptions( std::ifstream::failbit | std::ifstream::badbit );
 
 		if (!ifs.good()) {
 			throw std::runtime_error("Input stream error");
 		}
 
 		cp::CponReader rd(ifs);
-		std::string err;
-		rd.read(ret, err);
+		rd.read(ret);
 
-		if (!err.empty()) {
-			throw std::runtime_error(err);
+		if (!ret.isMap()){
+			throw std::runtime_error("Config file must be a Map!");
 		}
 	}
 	catch (std::exception &e) {
-		shvError() << "Cannot open file" << m_usersConfigFileName << e.what();
-		return cp::RpcValue::Map();
+		SHV_EXCEPTION ("Cannot open file" + m_usersConfigFileName + e.what());
 	}
 
 	return ret;
 }
 
-void BrclabUsers::saveUsersConfig(const cp::RpcValue &data)
+void BrclabUsers::setUsersConfig(const shv::chainpack::RpcValue &data)
 {
 	if(data.isMap()) {
 		std::ofstream ofs(m_usersConfigFileName, std::ios::binary | std::ios::trunc);
@@ -56,8 +60,10 @@ void BrclabUsers::saveUsersConfig(const cp::RpcValue &data)
 		wr << data;
 	}
 	else{
-		SHV_EXCEPTION("Config must be RpcValue::Map type, config name: " + m_usersConfigFileName);
+		SHV_EXCEPTION("Config file must be a Map, config name: " + m_usersConfigFileName);
 	}
+
+	m_usersConfig = loadUsersConfig();
 }
 
 const shv::chainpack::RpcValue &BrclabUsers::usersConfig()
@@ -69,45 +75,49 @@ const shv::chainpack::RpcValue &BrclabUsers::usersConfig()
 	return m_usersConfig;
 }
 
-bool BrclabUsers::addUser(const std::string &user_name, const std::string &password_sha1, const cp::RpcValue &grants)
+bool BrclabUsers::addUser(const cp::RpcValue &params)
 {
-	cp::RpcValue uc = loadUsersConfig();
-
-	if (!uc.isMap()){
-		SHV_EXCEPTION("Config must be RpcValue::Map type, config name: " + m_usersConfigFileName);
-	}
-	else if (uc.toMap().hasKey(user_name)){
-		SHV_EXCEPTION("User " + user_name + " is already added in config file");
+	if (!params.isMap() || !params.toMap().hasKey("user") || !params.toMap().hasKey("password")){
+		SHV_EXCEPTION("Invalid parameters format. Params must be a map and it must contains keys: user, password.");
 	}
 
-	cp::RpcValue::Map users_config = uc.toMap();
+	cp::RpcValue::Map map = params.toMap();
+	std::string user_name = map.value("user").toStdString();
+
+	cp::RpcValue::Map users_config = usersConfig().toMap();
+
+	if (users_config.hasKey(user_name)){
+		SHV_EXCEPTION("User " + user_name + " already exists");
+	}
+
 	cp::RpcValue::Map user;
-
+	const cp::RpcValue grants = map.value("grants");
 	user["grants"] = (grants.isList()) ? grants.toList() : cp::RpcValue::List();
-	user["password"] = password_sha1;
+	user["password"] = map.value("password").toStdString();
 	users_config[user_name] = user;
 
-	saveUsersConfig(users_config);
-	reloadUsersConfig();
-
+	setUsersConfig(users_config);
 	return true;
 }
 
-bool BrclabUsers::changePassword(const std::string &user_name, const std::string &new_password_sha1)
+bool BrclabUsers::changePassword(const cp::RpcValue &params)
 {
-	cp::RpcValue uc = loadUsersConfig();
-	if (!uc.isMap()){
-		SHV_EXCEPTION("Config must be RpcValue::Map type, config name: " + m_usersConfigFileName);
+	if (!params.isMap() || !params.toMap().hasKey("user") || !params.toMap().hasKey("newPassword")){
+		SHV_EXCEPTION("Invalid parameters format. Params must be a map and it must contains keys: user, newPassword.");
 	}
 
-	cp::RpcValue::Map users_config = uc.toMap();
+	cp::RpcValue::Map map = params.toMap();
+	std::string user_name = map.value("user").toStdString();
+	std::string new_password_sha1 = map.value("newPassword").toStdString();
+
+	cp::RpcValue::Map users_config = usersConfig().toMap();
+
 	if (users_config.hasKey(user_name)){
 		cp::RpcValue::Map user = users_config.at(user_name).toMap();
 		user["password"] = new_password_sha1;
 		users_config.at(user_name) = user;
 
-		saveUsersConfig(users_config);
-		reloadUsersConfig();
+		setUsersConfig(users_config);
 	}
 	else{
 		SHV_EXCEPTION("User " + user_name + " does not exist.");
@@ -116,13 +126,17 @@ bool BrclabUsers::changePassword(const std::string &user_name, const std::string
 	return true;
 }
 
-shv::chainpack::RpcValue BrclabUsers::getUserGrants(const std::string &user_name, const std::string &password_sha1)
+shv::chainpack::RpcValue BrclabUsers::getUserGrants(const cp::RpcValue &params)
 {
-	cp::RpcValue users_config = usersConfig();
-
-	if (!users_config.isMap()){
-		SHV_EXCEPTION("Config must be RpcValue::Map type, config name: " + m_usersConfigFileName);
+	if (!params.isMap() || !params.toMap().hasKey("user") || !params.toMap().hasKey("password")){
+		SHV_EXCEPTION("Invalid parameters format. Params must be a map and it must contains keys: user, password.");
 	}
+
+	cp::RpcValue::Map map = params.toMap();
+	std::string user_name = map.value("user").toStdString();
+	std::string password_sha1 = map.value("password").toStdString();
+
+	cp::RpcValue users_config = usersConfig();
 
 	for(const auto &kv :users_config.toMap()) {
 		if (!kv.second.isMap()){
@@ -139,10 +153,3 @@ shv::chainpack::RpcValue BrclabUsers::getUserGrants(const std::string &user_name
 
 	return cp::RpcValue("");
 }
-
-void BrclabUsers::reloadUsersConfig()
-{
-	m_usersConfig = cp::RpcValue();
-	loadUsersConfig();
-}
-

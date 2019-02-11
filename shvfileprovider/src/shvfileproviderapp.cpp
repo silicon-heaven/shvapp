@@ -86,26 +86,14 @@ shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path,
 			return dev.value(cp::Rpc::KEY_DEVICE_ID).toString();
 		}
 		else if(method == M_ADD_USER) {
-			if (!params.isMap() || !params.toMap().hasKey("user") || !params.toMap().hasKey("password")){
-				SHV_EXCEPTION("Invalid parameters format. Params must be a map and it must contains keys: user, password.");
-			}
-			cp::RpcValue::Map map = params.toMap();
-			return app->brclabUsers()->addUser(map.value("user").toStdString(), map.value("password").toStdString(), map.value("grants"));
+			return app->brclabUsers()->addUser(params);
 		}
 		else if(method == M_CHANGE_USER_PASSWORD) {
-			if (!params.isMap() || !params.toMap().hasKey("user") || !params.toMap().hasKey("newPassword")){
-				SHV_EXCEPTION("Invalid parameters format. Params must be a map and it must contains keys: user, newPassword.");
-			}
-			cp::RpcValue::Map map = params.toMap();
-			return app->brclabUsers()->changePassword(map.value("user").toStdString(), map.value("newPassword").toStdString());
+
+			return app->brclabUsers()->changePassword(params);
 		}
 		else if(method == M_GET_USER_GRANTS) {
-			if (!params.isMap() || !params.toMap().hasKey("user") || !params.toMap().hasKey("password")){
-				SHV_EXCEPTION("Invalid parameters format. Params must be a map and it must contains keys: user, password.");
-			}
-
-			cp::RpcValue::Map map = params.toMap();
-			return app->brclabUsers()->getUserGrants(map.value("user").toStdString(), map.value("password").toStdString());
+				return app->brclabUsers()->getUserGrants(params);
 		}
 		else{
 			return Super::callMethod(shv_path, method, params);
