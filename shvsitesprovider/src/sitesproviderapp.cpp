@@ -355,7 +355,15 @@ void AppRootNode::downloadSites(std::function<void ()> callback)
 			if (!sites_cp.isMap()) {
 				SHV_EXCEPTION("Sites.json must be map");
 			}
-			m_sites = sites_cp.toMap();
+			const cp::RpcValue::Map &sites_cp_map = sites_cp.toMap();
+			if (!sites_cp_map.hasKey("shv")) {
+				SHV_EXCEPTION("Sites.json does not have root key shv");
+			}
+			cp::RpcValue shv_cp = sites_cp_map.value("shv");
+			if (!shv_cp.isMap()) {
+				SHV_EXCEPTION("Shv key in sites.json must be map");
+			}
+			m_sites = shv_cp.toMap();
 			shvInfo() << "Downloaded sites.json";
 		}
 		catch (std::exception &e) {
