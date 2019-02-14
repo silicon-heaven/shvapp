@@ -21,9 +21,16 @@
 
 namespace cp = shv::chainpack;
 
+static const char M_ADD_USER[] = "addUser";
+static const char M_CHANGE_USER_PASSWORD[] = "changeUserPassword";
+static const char M_GET_USER_GRANTS[] = "getUserGrants";
+
 static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false, cp::Rpc::GRANT_READ},
-	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_READ}
+	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_READ},
+	{M_ADD_USER, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_WRITE},
+	{M_CHANGE_USER_PASSWORD, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_WRITE},
+	{M_GET_USER_GRANTS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_WRITE}
 };
 
 AppRootNode::AppRootNode(const QString &root_path, AppRootNode::Super *parent):
@@ -68,14 +75,25 @@ shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path,
 	}
 
 	if(shv_path.empty()) {
+		ShvFileProviderApp *app = ShvFileProviderApp::instance();
+
 		if(method == cp::Rpc::METH_APP_NAME) {
 			return QCoreApplication::instance()->applicationName().toStdString();
 		}
 		else if(method == cp::Rpc::METH_DEVICE_ID) {
-			ShvFileProviderApp *app = ShvFileProviderApp::instance();
 			const cp::RpcValue::Map& opts = app->rpcConnection()->connectionOptions().toMap();
 			const cp::RpcValue::Map& dev = opts.value(cp::Rpc::KEY_DEVICE).toMap();
 			return dev.value(cp::Rpc::KEY_DEVICE_ID).toString();
+		}
+		else if(method == M_ADD_USER) {
+			return app->brclabUsers()->addUser(params);
+		}
+		else if(method == M_CHANGE_USER_PASSWORD) {
+
+			return app->brclabUsers()->changePassword(params);
+		}
+		else if(method == M_GET_USER_GRANTS) {
+				return app->brclabUsers()->getUserGrants(params);
 		}
 		else{
 			return Super::callMethod(shv_path, method, params);
@@ -93,12 +111,12 @@ shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::Rp
 ShvFileProviderApp::ShvFileProviderApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
+	, m_brclabUsers(brclabUsersFileName(), this)
 {
 #ifdef Q_OS_UNIX
 	if(0 != ::setpgid(0, 0))
 		shvError() << "Error set process group ID:" << errno << ::strerror(errno);
 #endif
-
 	m_rpcConnection = new shv::iotqt::rpc::DeviceConnection(this);
 
 	if(!cli_opts->user_isset())
@@ -128,6 +146,16 @@ ShvFileProviderApp::~ShvFileProviderApp()
 ShvFileProviderApp *ShvFileProviderApp::instance()
 {
 	return qobject_cast<ShvFileProviderApp *>(QCoreApplication::instance());
+}
+
+std::string ShvFileProviderApp::brclabUsersFileName()
+{
+	return cliOptions()->configDir() + "/" +"brclabusers.cpon";
+}
+
+BrclabUsers *ShvFileProviderApp::brclabUsers()
+{
+	return &m_brclabUsers;
 }
 
 void ShvFileProviderApp::onBrokerConnectedChanged(bool is_connected)

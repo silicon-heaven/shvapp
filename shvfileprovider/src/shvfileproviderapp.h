@@ -2,6 +2,7 @@
 
 #include <shv/iotqt/node/shvnode.h>
 #include "brclabfsnode.h"
+#include "brclabusers.h"
 
 #include <QCoreApplication>
 #include <QNetworkAccessManager>
@@ -40,6 +41,8 @@ public:
 	shv::iotqt::rpc::DeviceConnection *rpcConnection() const {return m_rpcConnection;}
 
 	AppCliOptions* cliOptions() {return m_cliOptions;}
+	std::string brclabUsersFileName();
+	BrclabUsers *brclabUsers();
 private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
@@ -48,6 +51,7 @@ private:
 	shv::iotqt::rpc::DeviceConnection *m_rpcConnection = nullptr;
 	AppCliOptions* m_cliOptions;
 	AppRootNode *m_root = nullptr;
+	BrclabUsers m_brclabUsers;
 	bool m_isBrokerConnected = false;
 };
 
