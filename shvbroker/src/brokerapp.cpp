@@ -289,7 +289,7 @@ void BrokerApp::startWebSocketServer()
 		}
 	}
 #else
-	shvError() << "Websocket server is not included in this build";
+	shvWarning() << "Websocket server is not included in this build";
 #endif
 }
 

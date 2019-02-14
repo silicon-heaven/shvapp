@@ -80,6 +80,7 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 				if(tts.size() > MAX_TT_SIZE)
 					tts = tts.substr(0, MAX_TT_SIZE) + " < ... " + std::to_string(tts.size() - MAX_TT_SIZE) + " more bytes >";
 
+				//shvWarning() << tts << tts.length();
 				return QString::fromStdString(tts);
 			}
 		}
