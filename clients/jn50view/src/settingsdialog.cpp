@@ -14,9 +14,9 @@ SettingsDialog::SettingsDialog(QWidget *parent) :
 	{
 		QSettings qsettings;
 		Settings settings(qsettings);
-		ui->edPowerSwitchesFile->setText(settings.powerFileName());
+		//ui->edPowerSwitchesFile->setText(settings.powerFileName());
 		//ui->edPowerSwitchName->setText(settings.powerSwitchName());
-		ui->edCheckInterval->setValue(settings.powerFileCheckInterval());
+		//ui->edCheckInterval->setValue(settings.powerFileCheckInterval());
 	}
 
 	connect(ui->edPowerSwitchesFile, &QLineEdit::textEdited, [this]() {
@@ -50,9 +50,9 @@ void SettingsDialog::done(int status)
 	if(status == Accepted) {
 		QSettings qsettings;
 		Settings settings(qsettings);
-		settings.setPowerFileName(ui->edPowerSwitchesFile->text());
+		//settings.setPowerFileName(ui->edPowerSwitchesFile->text());
 		//settings.setPowerSwitchName(ui->edPowerSwitchName->text());
-		settings.setCheckPowerFileInterval(ui->edCheckInterval->value());
+		//settings.setCheckPowerFileInterval(ui->edCheckInterval->value());
 	}
 	Super::done(status);
 }

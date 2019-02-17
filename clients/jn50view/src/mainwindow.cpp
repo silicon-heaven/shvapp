@@ -25,6 +25,22 @@ MainWindow::MainWindow(QWidget *parent)
 		s = Jn50ViewApp::setMask(s, Jn50ViewApp::ConvStatus::OCL_VOLTAGE, on);
 		app->setConvStatus(s);
 	});
+	connect(ui->doorOpen, &QCheckBox::toggled, [](bool on) {
+		Jn50ViewApp *app = Jn50ViewApp::instance();
+		unsigned s = app->convStatus();
+		s = Jn50ViewApp::setMask(s, Jn50ViewApp::ConvStatus::DOOR_OPEN, on);
+		app->setConvStatus(s);
+	});
+	connect(ui->acReady, &QCheckBox::toggled, [](bool on) {
+		Jn50ViewApp *app = Jn50ViewApp::instance();
+		unsigned s = app->convStatus();
+		s = Jn50ViewApp::setMask(s, Jn50ViewApp::ConvStatus::AC_READY, on);
+		app->setConvStatus(s);
+	});
+	connect(ui->shvConnected, &QCheckBox::toggled, [](bool on) {
+		Jn50ViewApp *app = Jn50ViewApp::instance();
+		app->setShvDeviceConnected(on);
+	});
 	connect(ui->inI, QOverload<int>::of(&QSpinBox::valueChanged), [](int val) {
 		Jn50ViewApp *app = Jn50ViewApp::instance();
 		app->setShvDeviceValue("inI", val);

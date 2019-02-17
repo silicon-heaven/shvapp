@@ -1,10 +1,10 @@
 #pragma once
 
-#include <shv/iotqt/rpc/deviceconnection.h>
+#include <shv/iotqt/rpc/clientappclioptions.h>
 
-class AppCliOptions : public shv::iotqt::rpc::DeviceAppCliOptions
+class AppCliOptions : public shv::iotqt::rpc::ClientAppCliOptions
 {
-	using Super = shv::iotqt::rpc::DeviceAppCliOptions;
+	using Super = shv::iotqt::rpc::ClientAppCliOptions;
 public:
 	AppCliOptions();
 

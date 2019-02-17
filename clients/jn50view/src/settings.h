@@ -12,10 +12,10 @@ public:
 
 	//QString powerSwitchName();
 	//void setPowerSwitchName(const QString &s);
-	QString powerFileName();
-	void setPowerFileName(const QString &s);
-	int powerFileCheckInterval();
-	void setCheckPowerFileInterval(int sec);
+	//QString powerFileName();
+	//void setPowerFileName(const QString &s);
+	//int powerFileCheckInterval();
+	//void setCheckPowerFileInterval(int sec);
 private:
 	QSettings &m_settings;
 };

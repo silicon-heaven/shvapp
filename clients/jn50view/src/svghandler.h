@@ -11,6 +11,7 @@ public:
 
 protected:
 	QGraphicsItem *createGroupItem(const SvgElement &el) override;
+	void setXmlAttributes(QGraphicsItem *git, const SvgElement &el) override;
 };
 
 #endif // SVGHANDLER_H

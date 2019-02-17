@@ -15,13 +15,13 @@ class QAbstractGraphicsShapeItem;
 namespace svgscene {
 
 using XmlAttributes = QMap<QString, QString>;
+using CssAttributes = QMap<QString, QString>;
 
 enum {XmlAttributesKey = 1};
 
 class SaxHandler
 {
 public:
-	using CssAttributes = QMap<QString, QString>;
 	struct SvgElement
 	{
 		QString name;

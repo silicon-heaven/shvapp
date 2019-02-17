@@ -10,7 +10,7 @@ class AppCliOptions;
 class QFileSystemWatcher;
 
 namespace shv { namespace chainpack { class RpcMessage; }}
-namespace shv { namespace iotqt { namespace rpc { class DeviceConnection; }}}
+namespace shv { namespace iotqt { namespace rpc { class ClientConnection; }}}
 namespace shv { namespace iotqt { namespace node { class ShvNodeTree; }}}
 
 class Jn50ViewApp : public QApplication
@@ -40,17 +40,21 @@ public:
 			ERROR_RTC  = 1 << 15,
 		};
 	};
-	SHV_PROPERTY_BOOL_IMPL2(s, S, hvDeviceConnected, false)
+	//SHV_PROPERTY_BOOL_IMPL2(s, S, hvDeviceConnected, false)
 public:
 	Jn50ViewApp(int &argc, char **argv, AppCliOptions* cli_opts);
 	~Jn50ViewApp() Q_DECL_OVERRIDE;
 
 	static Jn50ViewApp *instance();
-	shv::iotqt::rpc::DeviceConnection *rpcConnection() const {return m_rpcConnection;}
+	shv::iotqt::rpc::ClientConnection *rpcConnection() const {return m_rpcConnection;}
 	AppCliOptions* cliOptions() {return m_cliOptions;}
 
 	unsigned convStatus() const;
 	void setConvStatus(unsigned s);
+
+	void setShvDeviceConnected(bool on);
+	bool isShvDeviceConnected() const;
+	Q_SIGNAL void shvDeviceConnectedChanged(bool is_connected);
 
 	void loadSettings();
 
@@ -83,16 +87,16 @@ public:
 
 	Q_SIGNAL void shvDeviceValueChanged(const std::string &path, const shv::chainpack::RpcValue &val);
 	void setShvDeviceValue(const std::string &path, const shv::chainpack::RpcValue &val);
+	shv::chainpack::RpcValue shvDeviceValue(const std::string &path) const;
+	void reloadShvDeviceValue(const std::string &path);
 private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 
-	void onBfsStatusChanged(int);
-
 	void checkShvDeviceConnected();
 	void sendGetStatusRequest();
 private:
-	shv::iotqt::rpc::DeviceConnection *m_rpcConnection = nullptr;
+	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
 	AppCliOptions* m_cliOptions;
 
 	QTimer *m_shvDeviceConnectedCheckTimer = nullptr;

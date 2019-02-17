@@ -1,5 +1,6 @@
 #include "visucontroller.h"
 #include "jn50viewapp.h"
+#include "svgscene/simpletextitem.h"
 
 #include <shv/coreqt/log.h>
 
@@ -8,7 +9,7 @@
 #include <QPainter>
 
 namespace cp = shv::chainpack;
-
+/*
 static std::string transform2string(const QTransform &t)
 {
 	std::string ret;
@@ -26,7 +27,7 @@ static std::string transform2string(const QTransform &t)
 
 	return ret;
 }
-
+*/
 //===========================================================================
 // VisuController
 //===========================================================================
@@ -39,16 +40,74 @@ VisuController::VisuController(QGraphicsItem *parent)
 {
 }
 
+void VisuController::load()
+{
+	Jn50ViewApp *app = Jn50ViewApp::instance();
+	shv::chainpack::RpcValue val = app->shvDeviceValue(shvPath());
+	onShvDeviceValueChanged(shvPath(), val);
+	app->reloadShvDeviceValue(shvPath());
+}
+
 const std::string &VisuController::shvPath()
 {
-	if(!m_shvPathLoaded) {
-		m_shvPathLoaded = true;
-		svgscene::XmlAttributes attrs = qvariant_cast<svgscene::XmlAttributes>(data(svgscene::XmlAttributesKey));
-		m_shvPath = attrs.value(ATTR_SHV_PATH).toStdString();
-	}
 	return m_shvPath;
 }
 
+void VisuController::init()
+{
+	svgscene::XmlAttributes attrs = qvariant_cast<svgscene::XmlAttributes>(data(svgscene::XmlAttributesKey));
+	m_shvPath = attrs.value(ATTR_SHV_PATH).toStdString();
+}
+
+//===========================================================================
+// SwitchVisuController
+//===========================================================================
+StatusVisuController::StatusVisuController(QGraphicsItem *parent)
+	: Super(parent)
+{
+
+}
+
+void StatusVisuController::init()
+{
+	Super::init();
+	if(auto *box = findChild<QGraphicsRectItem*>(ATTR_CHILD_ID, QStringLiteral("box"))) {
+		svgscene::XmlAttributes attrs = qvariant_cast<svgscene::XmlAttributes>(box->data(svgscene::XmlAttributesKey));
+		m_bitMask = attrs.value(QStringLiteral("shv_mask")).toUInt();
+		QString color_on = attrs.value(QStringLiteral("shv_colorOn"));
+		m_colorOn = color_on.isEmpty()? QColor("limegreen"): QColor(color_on);
+		QString color_off = attrs.value(QStringLiteral("shv_colorOff"));
+		m_colorOff = color_off.isEmpty()? QColor(Qt::red): QColor(color_off);
+		//shvInfo() << this->metaObject()->className() << "on:" << color_on << "off:" << color_off;
+	}
+}
+
+//===========================================================================
+// StatusBoxVisuController
+//===========================================================================
+StatusBitVisuController::StatusBitVisuController(QGraphicsItem *parent)
+	: Super(parent)
+{
+
+}
+
+void StatusBitVisuController::onShvDeviceValueChanged(const std::string &path, const shv::chainpack::RpcValue &val)
+{
+	if(shvPath() == path) {
+		shvDebug() << __FUNCTION__ << shvPath() << "<<<" << path << "-->" << val.toCpon();
+		if(auto *box = findChild<QGraphicsRectItem*>(ATTR_CHILD_ID, QStringLiteral("box"))) {
+			if(val.isValid()) {
+				unsigned status = val.toUInt();
+				bool is_on = status & m_bitMask;
+				shvDebug() << "on:" << is_on;
+				box->setBrush(is_on? m_colorOn: m_colorOff);
+			}
+			else {
+				box->setBrush(QColor(Qt::darkGray));
+			}
+		}
+	}
+}
 //===========================================================================
 // SwitchVisuController
 //===========================================================================
@@ -63,38 +122,38 @@ void SwitchVisuController::onShvDeviceValueChanged(const std::string &path, cons
 	if(shvPath() == path) {
 		shvDebug() << __FUNCTION__ << shvPath() << "<<<" << path << "-->" << val.toCpon();
 		unsigned status = val.toUInt();
-		bool ocl_on = status & Jn50ViewApp::ConvStatus::OCL_VOLTAGE;
-		shvDebug() << "OCL on:" << ocl_on;
+		bool is_on = status & m_bitMask;
+		shvDebug() << "OCL on:" << is_on;
 		if(auto *box = findChild<QGraphicsRectItem*>(ATTR_CHILD_ID, QStringLiteral("box"))) {
-			box->setBrush(ocl_on? Qt::green: Qt::darkGray);
-		}
-		if(auto *bar = findChild<QGraphicsPathItem*>(ATTR_CHILD_ID, QStringLiteral("bar"))) {
-			if(!m_originalTrasformationLoaded) {
-				m_originalTrasformationLoaded = true;
-				m_originalTrasformation = bar->transform();
-				m_originalRotation = bar->rotation();
-				//transformOriginPoint()
-				shvDebug() << "original transformation: \n" << transform2string(m_originalTrasformation);
-			}
-			if(ocl_on) {
-				QPointF bl = bar->boundingRect().bottomLeft();
-#if 1
-				QTransform tfm = m_originalTrasformation;
-				tfm.translate(bl.x(), bl.y());
-				tfm.rotate(15);
-				tfm.translate(-bl.x(), -bl.y());
-				bar->setTransform(tfm);
-				shvDebug() << "OCL on transformation: \n" << transform2string(bar->transform());
-				//bar->setRotation(m_originalRotation + 30);
-#else
-				bar->setTransformOriginPoint(bl);
-				bar->setRotation(30);
-#endif
+			if(val.isValid()) {
+				box->setBrush(is_on? m_colorOn: m_colorOff);
 			}
 			else {
-				bar->setTransform(m_originalTrasformation);
-				shvDebug() << "OCL off transformation: \n" << transform2string(bar->transform());
-				//bar->setRotation(m_originalRotation);
+				box->setBrush(QColor(Qt::darkGray));
+			}
+		}
+		if(auto *bar = findChild<QGraphicsPathItem*>(ATTR_CHILD_ID, QStringLiteral("bar"))) {
+			bar->setVisible(val.isValid());
+			if(val.isValid()) {
+				if(is_on) {
+					bar->setTransform(m_originalTrasformation);
+					//shvDebug() << "OCL off transformation: \n" << transform2string(bar->transform());
+					QPen pen = bar->pen();
+					pen.setColor(Qt::white);
+					bar->setPen(pen);
+				}
+				else {
+					QPointF bl = bar->boundingRect().bottomLeft();
+					QTransform tfm = m_originalTrasformation;
+					tfm.translate(bl.x(), bl.y());
+					tfm.rotate(15);
+					tfm.translate(-bl.x(), -bl.y());
+					bar->setTransform(tfm);
+					//shvDebug() << "OCL on transformation: \n" << transform2string(bar->transform());
+					QPen pen = bar->pen();
+					pen.setColor(Qt::white);
+					bar->setPen(pen);
+				}
 			}
 		}
 	}
@@ -111,41 +170,19 @@ void SwitchVisuController::paint(QPainter *painter, const QStyleOptionGraphicsIt
 	}
 	*/
 }
-#if 0
-void SwitchVisuController::onRequiredSwitchStatusChanged(Jn50ViewApp::SwitchStatus st)
-{
-	Jn50ViewApp *app = Jn50ViewApp::instance();
-	Jn50ViewApp::SwitchStatus status = m_statusFn(app);
-	m_requiredSwitchStatus = st;
-	if(m_requiredSwitchStatus == status) {
-		if(m_blinkTimer)
-			m_blinkTimer->stop();
-	}
-	else {
-		//m_requiredStatus = st;
-		if(!m_blinkTimer) {
-			m_blinkTimer = new QTimer(this);
-			connect(m_blinkTimer, &QTimer::timeout, [this]() {
-				m_toggleBit = !m_toggleBit;
-			});
-		}
-		m_blinkTimer->start(500);
-	}
-}
 
-QString SwitchVisuController::statusToColor(Jn50ViewApp::SwitchStatus status)
+void SwitchVisuController::init()
 {
-	if(m_requiredSwitchStatus != Jn50ViewApp::SwitchStatus::Unknown) {
-		Jn50ViewApp *app = Jn50ViewApp::instance();
-		Jn50ViewApp::SwitchStatus status = m_statusFn(app);
-		if(status != m_requiredSwitchStatus) {
-			if(m_toggleBit)
-				return QStringLiteral("orangered");
-		}
+	Super::init();
+	if(auto *box = findChild<QGraphicsRectItem*>(ATTR_CHILD_ID, QStringLiteral("box"))) {
+		svgscene::XmlAttributes attrs = qvariant_cast<svgscene::XmlAttributes>(box->data(svgscene::XmlAttributesKey));
+		m_bitMask = attrs.value(QStringLiteral("shv_mask")).toUInt();
 	}
-	return ::switchStatusToColor(status);
+	if(auto *bar = findChild<QGraphicsPathItem*>(ATTR_CHILD_ID, QStringLiteral("bar"))) {
+		m_originalTrasformation = bar->transform();
+		//shvDebug() << "original transformation: \n" << transform2string(m_originalTrasformation);
+	}
 }
-#endif
 
 //===========================================================================
 // MultimeterVisuController
@@ -153,15 +190,45 @@ QString SwitchVisuController::statusToColor(Jn50ViewApp::SwitchStatus status)
 MultimeterVisuController::MultimeterVisuController(QGraphicsItem *parent)
 	: Super(parent)
 {
-
 }
 
 void MultimeterVisuController::onShvDeviceValueChanged(const std::string &path, const shv::chainpack::RpcValue &val)
 {
 	if(shvPath() == path) {
 		shvDebug() << __FUNCTION__ << shvPath() << "<<<" << path << "-->" << val.toCpon() << findChild<QGraphicsSimpleTextItem*>(ATTR_CHILD_ID, QStringLiteral("value"));
-		if(auto *value_item = findChild<QGraphicsSimpleTextItem*>(ATTR_CHILD_ID, QStringLiteral("value"))) {
-			value_item->setText(QString::fromStdString(val.toCpon()));
+		if(auto *value_item = findChild<svgscene::SimpleTextItem*>(ATTR_CHILD_ID, QStringLiteral("value"))) {
+			if(val.isValid()) {
+				//value_item->setPen(QPen(Qt::green));
+				value_item->setBrush(QBrush(Qt::magenta));
+				QString txt = QString::fromStdString(val.toCpon());
+				if(!m_suffix.isEmpty())
+					txt += ' ' + m_suffix;
+				value_item->setText(txt);
+			}
+			else {
+				//value_item->setPen(QPen(Qt::green));
+				value_item->setBrush(QBrush(Qt::darkGray));
+				value_item->setText("---");
+			}
+		}
+		if(auto *item = findChild<QGraphicsEllipseItem*>()) {
+			if(val.isValid()) {
+				item->setBrush(QBrush(Qt::white));
+			}
+			else {
+				item->setBrush(QBrush(Qt::darkGray));
+			}
 		}
 	}
 }
+
+void MultimeterVisuController::init()
+{
+	Super::init();
+	if(auto *value_item = findChild<svgscene::SimpleTextItem*>(ATTR_CHILD_ID, QStringLiteral("value"))) {
+		svgscene::XmlAttributes attrs = qvariant_cast<svgscene::XmlAttributes>(value_item->data(svgscene::XmlAttributesKey));
+		m_suffix = attrs.value(QStringLiteral("shv_suffix"));
+	}
+}
+
+

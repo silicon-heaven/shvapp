@@ -1,6 +1,7 @@
 ﻿#include "saxhandler.h"
 
 #include "log.h"
+#include "simpletextitem.h"
 
 #include <QGraphicsItem>
 #include <QGraphicsTextItem>
@@ -951,12 +952,13 @@ void SaxHandler::parse()
 		}
 		case QXmlStreamReader::Characters:
 		{
-			logSvgD() << "characters element:" << m_xml->text();
-			if(QGraphicsSimpleTextItem *text_item = dynamic_cast<QGraphicsSimpleTextItem*>(m_topLevelItem)) {
-				//QString text = text_item->text();
-				//if(!text.isEmpty())
-				//	text += '\n';
-				text_item->setText(m_xml->text().toString());
+			logSvgD() << "characters element:" << m_xml->text();// << typeid (*m_topLevelItem).name();
+			if(SimpleTextItem *text_item = dynamic_cast<SimpleTextItem*>(m_topLevelItem)) {
+				QString text = text_item->text();
+				if(!text.isEmpty())
+					text += '\n';
+				logSvgD() << text_item->text() << "+" << m_xml->text().toString();
+				text_item->setText(text + m_xml->text().toString());
 			}
 			else if(QGraphicsTextItem *text_item = dynamic_cast<QGraphicsTextItem*>(m_topLevelItem)) {
 				QString text = text_item->toPlainText();
@@ -1088,7 +1090,7 @@ bool SaxHandler::startElement()
 			return true;
 		}
 		else if (el.name == QLatin1String("tspan")) {
-			QGraphicsSimpleTextItem *item = new QGraphicsSimpleTextItem();
+			SimpleTextItem *item = new SimpleTextItem(el.styleAttributes);
 			setXmlAttributes(item, el);
 			qreal x = toDouble(el.xmlAttributes.value(QStringLiteral("x")));
 			qreal y = toDouble(el.xmlAttributes.value(QStringLiteral("y")));
@@ -1129,7 +1131,7 @@ QGraphicsItem *SaxHandler::createGroupItem(const SaxHandler::SvgElement &el)
 void SaxHandler::setXmlAttributes(QGraphicsItem *git, const SaxHandler::SvgElement &el)
 {
 	XmlAttributes attrs;
-	static QSet<QString> known_attrs {"shvPath", "shvType", "chid", "id"};
+	static QSet<QString> known_attrs {"id"};
 	QMapIterator<QString, QString> it(el.xmlAttributes);
 	while (it.hasNext()) {
 		it.next();
@@ -1174,7 +1176,10 @@ void SaxHandler::mergeCSSAttributes(CssAttributes &css_attributes, const QString
 void SaxHandler::setStyle(QAbstractGraphicsShapeItem *it, const CssAttributes &attributes)
 {
 	QString fill = attributes.value(QStringLiteral("fill"));
-	if(fill.isEmpty() || fill == QLatin1String("none")) {
+	if(fill.isEmpty()) {
+		// default fill
+	}
+	else if(fill == QLatin1String("none")) {
 		it->setBrush(Qt::NoBrush);
 	}
 	else {
@@ -1207,7 +1212,7 @@ void SaxHandler::setStyle(QAbstractGraphicsShapeItem *it, const CssAttributes &a
 	}
 }
 
-void SaxHandler::setTextStyle(QFont &font, const SaxHandler::CssAttributes &attributes)
+void SaxHandler::setTextStyle(QFont &font, const CssAttributes &attributes)
 {
 	QString font_size = attributes.value(QStringLiteral("font-size"));
 	if(!font_size.isEmpty()) {
@@ -1244,6 +1249,7 @@ void SaxHandler::setTextStyle(QFont &font, const SaxHandler::CssAttributes &attr
 		else if(font_style == QLatin1String("oblique"))
 			font.setStyle(QFont::StyleOblique);
 	}
+	//shvInfo() << "font" << "px size:" << font.pixelSize() << "pt size:" << font.pointSize();
 }
 
 void SaxHandler::setTextStyle(QGraphicsSimpleTextItem *text, const CssAttributes &attributes)
@@ -1253,7 +1259,7 @@ void SaxHandler::setTextStyle(QGraphicsSimpleTextItem *text, const CssAttributes
 	text->setFont(f);
 }
 
-void SaxHandler::setTextStyle(QGraphicsTextItem *text, const SaxHandler::CssAttributes &attributes)
+void SaxHandler::setTextStyle(QGraphicsTextItem *text, const CssAttributes &attributes)
 {
 	QFont f = text->font();
 	setTextStyle(f, attributes);

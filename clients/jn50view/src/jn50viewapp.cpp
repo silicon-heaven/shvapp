@@ -3,6 +3,7 @@
 #include "settings.h"
 
 #include <shv/iotqt/rpc/deviceconnection.h>
+#include <shv/iotqt/rpc/rpcresponsecallback.h>
 #include <shv/iotqt/node/shvnodetree.h>
 #include <shv/iotqt/node/localfsnode.h>
 #include <shv/coreqt/log.h>
@@ -31,8 +32,6 @@ Jn50ViewApp::Jn50ViewApp(int &argc, char **argv, AppCliOptions* cli_opts)
 		cli_opts->setUser("iot");
 	if(!cli_opts->password_isset())
 		cli_opts->setPassword("lub42DUB");
-	if(!cli_opts->deviceId_isset())
-		cli_opts->setDeviceId("bfsview-001");
 	m_rpcConnection->setCliOptions(cli_opts);
 
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &Jn50ViewApp::onBrokerConnectedChanged);
@@ -62,6 +61,28 @@ void Jn50ViewApp::setConvStatus(unsigned s)
 	setShvDeviceValue("status", s);
 }
 
+void Jn50ViewApp::setShvDeviceConnected(bool on)
+{
+	bool old_val = isShvDeviceConnected();
+	if(old_val == on)
+		return;
+	if(on) {
+		//shvInfo() << "SHV device connected";
+		/// todo load all the shv values
+	}
+	else {
+		m_deviceSnapshot.clear();
+		shvWarning() << "SHV device disconnected";
+	}
+	setShvDeviceValue("shvDeviceConnected", on);
+	emit shvDeviceConnectedChanged(on);
+}
+
+bool Jn50ViewApp::isShvDeviceConnected() const
+{
+	return shvDeviceValue("shvDeviceConnected").toBool();
+}
+
 void Jn50ViewApp::loadSettings()
 {
 	QSettings qsettings;
@@ -77,11 +98,37 @@ const std::string &Jn50ViewApp::logFilePath()
 void Jn50ViewApp::setShvDeviceValue(const std::string &path, const shv::chainpack::RpcValue &val)
 {
 	cp::RpcValue old_val = m_deviceSnapshot.value(path);
-	shvDebug() << __FUNCTION__ << old_val.toCpon() << "-->" << val.toCpon() << "ne:" << (old_val != val);
+	shvDebug() << __FUNCTION__ << path << old_val.toCpon() << "-->" << val.toCpon() << "ne:" << (old_val != val);
 	if(old_val != val) {
 		m_deviceSnapshot[path] = val;
 		emit shvDeviceValueChanged(path, val);
 	}
+}
+
+shv::chainpack::RpcValue Jn50ViewApp::shvDeviceValue(const std::string &path) const
+{
+	return  m_deviceSnapshot.value(path);
+}
+
+void Jn50ViewApp::reloadShvDeviceValue(const std::string &path)
+{
+	if(path == "shvDeviceConnected")
+		return;
+	shvDebug() << "GET" << (cliOptions()->converterShvPath() + '/' + path);
+	shv::iotqt::rpc::ClientConnection *conn = rpcConnection();
+	int rq_id = conn->callShvMethod(cliOptions()->converterShvPath() + '/' + path, cp::Rpc::METH_GET);
+	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(conn, rq_id, this);
+	connect(cb, &shv::iotqt::rpc::RpcResponseCallBack::finished, this, [this, path](const cp::RpcResponse &resp) {
+		if(resp.isValid()) {
+			if(resp.isError())
+				shvWarning() << "GET" << path << "RPC request error:" << resp.error().toString();
+			else
+				this->setShvDeviceValue(path, resp.result());
+		}
+		else {
+			shvWarning() << "RPC request timeout";
+		}
+	});
 }
 
 static constexpr int PLC_CONNECTED_TIMOUT_MSEC = 10*1000;
@@ -90,7 +137,7 @@ void Jn50ViewApp::sendGetStatusRequest()
 {
 	auto *conn = rpcConnection();
 	if(conn->isBrokerConnected()) {
-		m_getStatusRpcId = conn->callShvMethod(cliOptions()->converterShvPath(), cp::Rpc::METH_GET);
+		m_getStatusRpcId = conn->callShvMethod(cliOptions()->converterShvPath() + "/status", cp::Rpc::METH_GET);
 		shvDebug() << "Sending get status request id:" << m_getStatusRpcId;
 	}
 }

@@ -11,7 +11,7 @@
 
 class QTimer;
 class QGraphicsScene;
-class SwitchVisuController;
+class VisuController;
 
 class VisuWidget : public svgscene::GraphicsView
 {
@@ -29,7 +29,10 @@ public:
 	void paintEvent(QPaintEvent *event) override;
 	//void onShvDeviceValueChanged(const std::string &path, const shv::chainpack::RpcValue &val);
 private:
+	QList<VisuController*> findVisuControllers();
+private:
 	QGraphicsScene *m_scene;
+	//QList<VisuController*> m_visuControllers;
 	QTimer *m_scaleToFitTimer = nullptr;
 };
 
