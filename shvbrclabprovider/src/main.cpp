@@ -1,4 +1,4 @@
-#include "shvfileproviderapp.h"
+#include "shvbrclabproviderapp.h"
 #include "appclioptions.h"
 
 #include <shv/core/utils.h>
@@ -15,7 +15,7 @@ int main(int argc, char *argv[])
 {
 	QCoreApplication::setOrganizationName("Elektroline");
 	QCoreApplication::setOrganizationDomain("elektroline.cz");
-	QCoreApplication::setApplicationName("shvfileprovider");
+	QCoreApplication::setApplicationName("shvbrclabprovider");
 	QCoreApplication::setApplicationVersion("0.0.1");
 
 	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);
@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
 	shvInfo() << "Log tresholds:" << NecroLog::tresholdsLogInfo();
 	shvInfo() << "--------------------------------------------------------------------------------------";
 
-	ShvFileProviderApp a(argc, argv, &cli_opts);
+	ShvBrclabProviderApp a(argc, argv, &cli_opts);
 
 	shvInfo() << "starting main thread event loop";
 	ret = a.exec();

@@ -28,16 +28,16 @@ private:
 	bool m_isRootNodeValid = false;
 };
 
-class ShvFileProviderApp : public QCoreApplication
+class ShvBrclabProviderApp : public QCoreApplication
 {
 	Q_OBJECT
 private:
 	using Super = QCoreApplication;
 public:
-	ShvFileProviderApp(int &argc, char **argv, AppCliOptions* cli_opts);
-	~ShvFileProviderApp() Q_DECL_OVERRIDE;
+	ShvBrclabProviderApp(int &argc, char **argv, AppCliOptions* cli_opts);
+	~ShvBrclabProviderApp() Q_DECL_OVERRIDE;
 
-	static ShvFileProviderApp *instance();
+	static ShvBrclabProviderApp *instance();
 	shv::iotqt::rpc::DeviceConnection *rpcConnection() const {return m_rpcConnection;}
 
 	AppCliOptions* cliOptions() {return m_cliOptions;}

@@ -1,7 +1,7 @@
 #include "brclabfsnode.h"
 
 #include "brclabparser.h"
-#include "shvfileproviderapp.h"
+#include "shvbrclabproviderapp.h"
 
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/chainpack/metamethod.h>

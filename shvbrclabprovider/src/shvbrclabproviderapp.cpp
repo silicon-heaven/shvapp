@@ -1,4 +1,4 @@
-#include "shvfileproviderapp.h"
+#include "shvbrclabproviderapp.h"
 #include "appclioptions.h"
 #include "brclabfsnode.h"
 
@@ -75,7 +75,7 @@ shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path,
 	}
 
 	if(shv_path.empty()) {
-		ShvFileProviderApp *app = ShvFileProviderApp::instance();
+		ShvBrclabProviderApp *app = ShvBrclabProviderApp::instance();
 
 		if(method == cp::Rpc::METH_APP_NAME) {
 			return QCoreApplication::instance()->applicationName().toStdString();
@@ -108,7 +108,7 @@ shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::Rp
 	return Super::processRpcRequest(rq);
 }
 
-ShvFileProviderApp::ShvFileProviderApp(int &argc, char **argv, AppCliOptions* cli_opts)
+ShvBrclabProviderApp::ShvBrclabProviderApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
 	, m_brclabUsers(brclabUsersFileName(), this)
@@ -120,12 +120,12 @@ ShvFileProviderApp::ShvFileProviderApp(int &argc, char **argv, AppCliOptions* cl
 	m_rpcConnection = new shv::iotqt::rpc::DeviceConnection(this);
 
 	if(!cli_opts->user_isset())
-		cli_opts->setUser("shvfileprovider");
+		cli_opts->setUser("shvbrclabprovider");
 
 	m_rpcConnection->setCliOptions(cli_opts);
 
-	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &ShvFileProviderApp::onBrokerConnectedChanged);
-	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvFileProviderApp::onRpcMessageReceived);
+	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &ShvBrclabProviderApp::onBrokerConnectedChanged);
+	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvBrclabProviderApp::onRpcMessageReceived);
 
 	QString root_dir = QString::fromStdString(cli_opts->fsRootDir());
 	m_root = new AppRootNode(root_dir);
@@ -134,7 +134,7 @@ ShvFileProviderApp::ShvFileProviderApp(int &argc, char **argv, AppCliOptions* cl
 	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
 }
 
-ShvFileProviderApp::~ShvFileProviderApp()
+ShvBrclabProviderApp::~ShvBrclabProviderApp()
 {
 	shvInfo() << "destroying shv file provider application";
 
@@ -143,27 +143,27 @@ ShvFileProviderApp::~ShvFileProviderApp()
 	}
 }
 
-ShvFileProviderApp *ShvFileProviderApp::instance()
+ShvBrclabProviderApp *ShvBrclabProviderApp::instance()
 {
-	return qobject_cast<ShvFileProviderApp *>(QCoreApplication::instance());
+	return qobject_cast<ShvBrclabProviderApp *>(QCoreApplication::instance());
 }
 
-std::string ShvFileProviderApp::brclabUsersFileName()
+std::string ShvBrclabProviderApp::brclabUsersFileName()
 {
 	return cliOptions()->configDir() + "/" +"brclabusers.cpon";
 }
 
-BrclabUsers *ShvFileProviderApp::brclabUsers()
+BrclabUsers *ShvBrclabProviderApp::brclabUsers()
 {
 	return &m_brclabUsers;
 }
 
-void ShvFileProviderApp::onBrokerConnectedChanged(bool is_connected)
+void ShvBrclabProviderApp::onBrokerConnectedChanged(bool is_connected)
 {
 	m_isBrokerConnected = is_connected;
 }
 
-void ShvFileProviderApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
+void ShvBrclabProviderApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 {
 	shvLogFuncFrame() << msg.toCpon();
 	if(msg.isRequest()) {
