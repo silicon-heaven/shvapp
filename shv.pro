@@ -17,6 +17,6 @@ SUBDIRS += \
     shvrexec \
     shvrsh \
     shvsitesprovider \
-    shvfileprovider \
+    shvbrclabprovider \
 }
 

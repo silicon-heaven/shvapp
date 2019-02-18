@@ -1,5 +1,5 @@
-#ifndef FILEPROVIDERLOCALFSNODE_H
-#define FILEPROVIDERLOCALFSNODE_H
+#ifndef BRCLABFSNODE_H
+#define BRCLABFSNODE_H
 
 #include <shv/iotqt/node/localfsnode.h>
 
@@ -23,4 +23,4 @@ private:
 	shv::chainpack::RpcValue readMetaData(const QString &file);
 };
 
-#endif // FILEPROVIDERLOCALFSNODE_H
+#endif // BRCLABFSNODE_H
