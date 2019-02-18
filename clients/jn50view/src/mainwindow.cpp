@@ -1,5 +1,6 @@
-#include "jn50viewapp.h"
 #include "mainwindow.h"
+#include "jn50viewapp.h"
+#include "appclioptions.h"
 #include "ui_mainwindow.h"
 
 #include <shv/coreqt/log.h>
@@ -52,6 +53,15 @@ MainWindow::MainWindow(QWidget *parent)
 #else
 	ui->frmTest->hide();
 #endif
+
+	connect(ui->btRun, &QPushButton::clicked, []() {
+		Jn50ViewApp *app = Jn50ViewApp::instance();
+		app->rpcConnection()->callShvMethod(app->cliOptions()->converterShvPath(), "start");
+	});
+	connect(ui->btOff, &QPushButton::clicked, []() {
+		Jn50ViewApp *app = Jn50ViewApp::instance();
+		app->rpcConnection()->callShvMethod(app->cliOptions()->converterShvPath(), "stop");
+	});
 
 	QTimer::singleShot(0, [this]() {
 		QSettings settings;
