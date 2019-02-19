@@ -14,15 +14,10 @@ SettingsDialog::SettingsDialog(QWidget *parent) :
 	{
 		QSettings qsettings;
 		Settings settings(qsettings);
-		//ui->edPowerSwitchesFile->setText(settings.powerFileName());
-		//ui->edPowerSwitchName->setText(settings.powerSwitchName());
-		//ui->edCheckInterval->setValue(settings.powerFileCheckInterval());
+		ui->predatorShvPath->setText(settings.predatorShvPath());
+		ui->shvBrokerHost->setText(settings.shvBrokerHost());
+		ui->shvBrokerPort->setValue(settings.shvBrokerPort());
 	}
-
-	connect(ui->edPowerSwitchesFile, &QLineEdit::textEdited, [this]() {
-		bool ok = QFile::exists(ui->edPowerSwitchesFile->text());
-		ui->edPowerSwitchesFile->setStyleSheet(ok? QString(): QStringLiteral("background:salmon"));
-	});
 }
 
 SettingsDialog::~SettingsDialog()
@@ -50,9 +45,9 @@ void SettingsDialog::done(int status)
 	if(status == Accepted) {
 		QSettings qsettings;
 		Settings settings(qsettings);
-		//settings.setPowerFileName(ui->edPowerSwitchesFile->text());
-		//settings.setPowerSwitchName(ui->edPowerSwitchName->text());
-		//settings.setCheckPowerFileInterval(ui->edCheckInterval->value());
+		settings.setPredatorShvPath(ui->predatorShvPath->text());
+		settings.setShvBrokerHost(ui->shvBrokerHost->text());
+		settings.setShvBrokerPort(ui->shvBrokerPort->value());
 	}
 	Super::done(status);
 }

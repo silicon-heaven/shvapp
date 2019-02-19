@@ -168,7 +168,7 @@
        <item>
         <widget class="QPushButton" name="btRun">
          <property name="text">
-          <string>Run</string>
+          <string>On</string>
          </property>
         </widget>
        </item>
@@ -176,13 +176,6 @@
         <widget class="QPushButton" name="btOff">
          <property name="text">
           <string>Off</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="btBlock">
-         <property name="text">
-          <string>Block</string>
          </property>
         </widget>
        </item>
@@ -205,6 +198,13 @@
           </size>
          </property>
         </spacer>
+       </item>
+       <item>
+        <widget class="QPushButton" name="btSettings">
+         <property name="text">
+          <string>Settings</string>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>

@@ -1,7 +1,8 @@
 #include "mainwindow.h"
+#include "ui_mainwindow.h"
 #include "jn50viewapp.h"
 #include "appclioptions.h"
-#include "ui_mainwindow.h"
+#include "settingsdialog.h"
 
 #include <shv/coreqt/log.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
@@ -61,6 +62,10 @@ MainWindow::MainWindow(QWidget *parent)
 	connect(ui->btOff, &QPushButton::clicked, []() {
 		Jn50ViewApp *app = Jn50ViewApp::instance();
 		app->rpcConnection()->callShvMethod(app->cliOptions()->converterShvPath(), "stop");
+	});
+	connect(ui->btSettings, &QPushButton::clicked, [this]() {
+		SettingsDialog dlg(this);
+		dlg.exec();
 	});
 
 	QTimer::singleShot(0, [this]() {

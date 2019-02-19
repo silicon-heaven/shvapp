@@ -62,8 +62,8 @@ int main(int argc, char *argv[])
 {
 	QCoreApplication::setOrganizationName("Elektroline");
 	QCoreApplication::setOrganizationDomain("elektroline.cz");
-	QCoreApplication::setApplicationName("bfsview");
-	QCoreApplication::setApplicationVersion("1.2.3");
+	QCoreApplication::setApplicationName("jn50view");
+	QCoreApplication::setApplicationVersion("1.0.0");
 
 	init_log_environment();
 

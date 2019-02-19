@@ -24,21 +24,16 @@ Jn50ViewApp::Jn50ViewApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
 {
+	loadSettings();
+
 	m_rpcConnection = new shv::iotqt::rpc::DeviceConnection(this);
 
-	if(!cli_opts->serverHost_isset())
-		cli_opts->setServerHost("nirvana.elektroline.cz");
-	if(!cli_opts->user_isset())
-		cli_opts->setUser("iot");
-	if(!cli_opts->password_isset())
-		cli_opts->setPassword("lub42DUB");
 	m_rpcConnection->setCliOptions(cli_opts);
 
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &Jn50ViewApp::onBrokerConnectedChanged);
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &Jn50ViewApp::onRpcMessageReceived);
 
 	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
-	loadSettings();
 }
 
 Jn50ViewApp::~Jn50ViewApp()
@@ -87,6 +82,19 @@ void Jn50ViewApp::loadSettings()
 {
 	QSettings qsettings;
 	Settings settings(qsettings);
+	AppCliOptions *cli_opts = cliOptions();
+	if(!cli_opts->serverHost_isset())
+		cli_opts->setServerHost(settings.shvBrokerHost().toStdString());
+	if(!cli_opts->user_isset())
+		cli_opts->setUser("jn50view");
+	if(!cli_opts->serverPort_isset())
+		cli_opts->setServerPort(settings.shvBrokerPort());
+	if(!cli_opts->password_isset()) {
+		cli_opts->setPassword("8884a26b82a69838092fd4fc824bbfde56719e02");
+		cli_opts->setLoginType("SHA1");
+	}
+	if(!cli_opts->converterShvPath_isset())
+		cli_opts->setConverterShvPath(settings.predatorShvPath().toStdString());
 }
 
 const std::string &Jn50ViewApp::logFilePath()
@@ -187,7 +195,9 @@ void Jn50ViewApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 	}
 	else if(msg.isResponse()) {
 		cp::RpcResponse rsp(msg);
-		//shvInfo() << "RPC response received:" << rsp.toCpon();
+		if(rsp.isError())
+			shvError() << "RPC error response received:" << rsp.toCpon();
+
 		if(rsp.requestId() == m_getStatusRpcId) {
 			shvDebug() << "Get status response id:" << m_getStatusRpcId;
 			if(rsp.isError()) {
