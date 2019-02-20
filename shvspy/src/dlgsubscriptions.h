@@ -1,15 +1,9 @@
 #ifndef DLGSUBSCRIPTION_H
 #define DLGSUBSCRIPTION_H
 
-#include <shv/iotqt/rpc/deviceconnection.h>
-
-#include "attributesmodel/attributesmodel.h"
-#include "servertreemodel/servertreemodel.h"
-#include "servertreemodel/shvbrokernodeitem.h"
-#include "servertreeview.h"
-
+#include "subscriptionswidget.h"
 #include <QDialog>
-#include <QTableWidgetItem>
+
 
 namespace Ui {
 class DlgSubscriptions;
@@ -23,18 +17,9 @@ public:
 	explicit DlgSubscriptions(QWidget *parent = 0);
 	~DlgSubscriptions();
 
-	void setSubscriptionsList(const QVariantList &props);
-	QVariantList subscriptionsList();
-	void setShvPath(std::string path);
-
-private slots:
-	void onAddSubscription();
-	void onDeleteSubscription();
-	void on_buttonBox_accepted();
-
+	SubscriptionsWidget *subscriptionsWidget();
 private:
 	Ui::DlgSubscriptions *ui;
-	QVariantList m_subscriptionList;
 };
 
 #endif // DLGSUBSCRIPTION_H

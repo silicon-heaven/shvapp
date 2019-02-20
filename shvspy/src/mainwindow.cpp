@@ -205,10 +205,10 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 				if(nd) {
 					DlgSubscriptions dlg(this);
 					QVariantMap props = nd->serverNode()->serverProperties();
-					dlg.setSubscriptionsList(props.value(QStringLiteral("subscriptions")).toList());
-					dlg.setShvPath(nd->shvPath());
+					dlg.subscriptionsWidget()->setSubscriptionsList(props.value(QStringLiteral("subscriptions")).toList());
+					dlg.subscriptionsWidget()->setShvPath(nd->shvPath());
 					if (dlg.exec()){
-						nd->serverNode()->setSubscriptionList(dlg.subscriptionsList());
+						nd->serverNode()->setSubscriptionList(dlg.subscriptionsWidget()->subscriptionsList());
 					}
 				}
 			}
