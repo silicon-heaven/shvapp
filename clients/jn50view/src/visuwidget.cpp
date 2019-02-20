@@ -29,13 +29,16 @@ VisuWidget::VisuWidget(QWidget *parent)
 	Jn50ViewApp *app = Jn50ViewApp::instance();
 	connect(app, &Jn50ViewApp::shvDeviceConnectedChanged, [this](bool ) {
 		for(VisuController *vc : findVisuControllers()) {
-			vc->load();
+			vc->reload();
 		}
 	});
 
 	m_scene = new QGraphicsScene(this);
 	setScene(m_scene);
 	load(":/images/visu.svg");
+	for(VisuController *vc : findVisuControllers()) {
+		vc->updateValue();
+	}
 }
 
 VisuWidget::~VisuWidget()

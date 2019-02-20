@@ -22,7 +22,7 @@ public:
 protected:
 	void resizeEvent(QResizeEvent *event) override;
 private:
-#ifdef TEST
+#ifdef TESTING
 #endif
 	//void onVisuWidgetContextMenuRequest(const QPoint &pos);
 private:

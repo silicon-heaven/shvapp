@@ -31,8 +31,8 @@ unix {
                 -Wl,-rpath,\'\$\$ORIGIN/../lib\'
 }
 
-test {
-	DEFINES += TEST
+testing {
+	DEFINES += TESTING
 }
 
 INCLUDEPATH += \

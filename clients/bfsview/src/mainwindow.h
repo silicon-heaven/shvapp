@@ -21,7 +21,7 @@ public:
 	~MainWindow();
 
 private:
-#ifdef TEST
+#ifdef TESTING
 	Q_SLOT void on_ompagOn_toggled(bool on);
 	Q_SLOT void on_convOn_toggled(bool on);
 	Q_SLOT void on_pwrOn_toggled(bool on);

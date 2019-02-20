@@ -20,7 +20,7 @@ MainWindow::MainWindow(QWidget *parent)
 	setWindowIcon(QIcon(":/images/eline"));
 	setWindowTitle(tr("Converter JN50 View"));
 
-#ifdef TEST
+#ifdef TESTING
 	connect(ui->oclOn, &QCheckBox::toggled, [](bool on) {
 		Jn50ViewApp *app = Jn50ViewApp::instance();
 		unsigned s = app->convStatus();
@@ -62,6 +62,10 @@ MainWindow::MainWindow(QWidget *parent)
 	connect(ui->btOff, &QPushButton::clicked, []() {
 		Jn50ViewApp *app = Jn50ViewApp::instance();
 		app->rpcConnection()->callShvMethod(app->cliOptions()->converterShvPath(), "stop");
+	});
+	connect(ui->btResetOutputEnergy, &QPushButton::clicked, []() {
+		Jn50ViewApp *app = Jn50ViewApp::instance();
+		app->rpcConnection()->callShvMethod(app->cliOptions()->converterShvPath() + "/outEnergy", "resetCounter");
 	});
 	connect(ui->btSettings, &QPushButton::clicked, [this]() {
 		SettingsDialog dlg(this);

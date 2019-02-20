@@ -18,7 +18,7 @@ MainWindow::MainWindow(QWidget *parent)
 	setWindowIcon(QIcon(":/images/eline"));
 	setWindowTitle(tr("BFS View"));
 
-#ifdef TEST
+#ifdef TESTING
 	connect(ui->bfsPower, &QCheckBox::toggled, [this](bool on) {
 		int s = BfsViewApp::instance()->bfsStatus();
 		BfsViewApp::setBit(s, BfsViewApp::BfsStatus::BfsOn, on);
@@ -86,7 +86,7 @@ MainWindow::~MainWindow()
 	delete ui;
 }
 
-#ifdef TEST
+#ifdef TESTING
 void MainWindow::on_ompagOn_toggled(bool on)
 {
 	BfsViewApp::instance()->setOmpag(on);

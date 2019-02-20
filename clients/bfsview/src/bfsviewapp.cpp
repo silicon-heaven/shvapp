@@ -356,7 +356,7 @@ BfsViewApp::PwrStatus BfsViewApp::pwrStatus()
 
 void BfsViewApp::setOmpag(bool val)
 {
-#ifdef TEST
+#ifdef TESTING
 	int s = bfsStatus();
 	setBit(s, BfsStatus::OmpagOn, val);
 	setBit(s, BfsStatus::OmpagOff, !val);
@@ -371,7 +371,7 @@ void BfsViewApp::setOmpag(bool val)
 
 void BfsViewApp::setConv(bool val)
 {
-#ifdef TEST
+#ifdef TESTING
 	int s = bfsStatus();
 	setBit(s, BfsViewApp::BfsStatus::MswOn, val);
 	setBit(s, BfsViewApp::BfsStatus::MswOff, !val);
@@ -485,7 +485,7 @@ void BfsViewApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 	}
 	else if(msg.isSignal()) {
 		cp::RpcSignal ntf(msg);
-#ifdef TEST
+#ifdef TESTING
 		shvInfo() << "RPC notify received:" << ntf.toCpon();
 #else
 		if(ntf.method() == cp::Rpc::SIG_VAL_CHANGED) {
