@@ -47,11 +47,6 @@ Source: {#BUILD_DIR}\bin\shvcoreqt.dll; DestDir: {app}; Flags: ignoreversion
 ;Source: {#BUILD_DIR}\bin\shvgui.dll; DestDir: {app}; Flags: ignoreversion
 Source: {#BUILD_DIR}\bin\shviotqt.dll; DestDir: {app}; Flags: ignoreversion
 
-Source: {#BUILD_DIR}\bin\libcmark-gfm.dll; DestDir: {app}; Flags: ignoreversion
-Source: {#BUILD_DIR}\bin\libcmark-gfmextensions.dll; DestDir: {app}; Flags: ignoreversion
-Source: {#BUILD_DIR}\bin\md2doc.dll; DestDir: {app}; Flags: ignoreversion
-Source: {#BUILD_DIR}\bin\flatline.dll; DestDir: {app}; Flags: ignoreversion
-
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 Source: {#QT_DIR}\bin\Qt5Core.dll; DestDir: {app}; Flags: ignoreversion
