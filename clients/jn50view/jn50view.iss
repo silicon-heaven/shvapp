@@ -44,7 +44,7 @@ Source: {#BUILD_DIR}\bin\necrolog.dll; DestDir: {app}; Flags: ignoreversion
 Source: {#BUILD_DIR}\bin\shvchainpack.dll; DestDir: {app}; Flags: ignoreversion
 Source: {#BUILD_DIR}\bin\shvcore.dll; DestDir: {app}; Flags: ignoreversion
 Source: {#BUILD_DIR}\bin\shvcoreqt.dll; DestDir: {app}; Flags: ignoreversion
-Source: {#BUILD_DIR}\bin\shvgui.dll; DestDir: {app}; Flags: ignoreversion
+;Source: {#BUILD_DIR}\bin\shvgui.dll; DestDir: {app}; Flags: ignoreversion
 Source: {#BUILD_DIR}\bin\shviotqt.dll; DestDir: {app}; Flags: ignoreversion
 
 Source: {#BUILD_DIR}\bin\libcmark-gfm.dll; DestDir: {app}; Flags: ignoreversion
