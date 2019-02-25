@@ -23,32 +23,39 @@ std::string CommonRpcClientHandle::Subscription::toRelativePath(const std::strin
 	return ret;
 }
 
-static const std::string DDOT("../");
+static const std::string DDOT_SLASH("../");
+static const std::string DDOT("..");
 
 bool CommonRpcClientHandle::Subscription::isRelativePath(const std::string &path)
 {
 	shv::core::StringView p(path);
-	return p.startsWith(DDOT);
+	return p.startsWith(DDOT_SLASH);
 }
 
 std::string CommonRpcClientHandle::Subscription::toAbsolutePath(const std::string &mount_point, const std::string &rel_path)
 {
+	if(!isRelativePath(rel_path))
+		return rel_path;
+
+	shv::core::StringViewList plst = shv::iotqt::node::ShvNode::splitShvPath(mount_point);
+	for(const auto &p : shv::iotqt::node::ShvNode::splitShvPath(rel_path))
+		plst.push_back(p);
+	while(true) {
+		ssize_t ix = plst.indexOf(DDOT);
+		if(ix <= 0)
+			break;
+		for(size_t i = (size_t)ix; i < plst.size(); i++)
+			plst[i-1] = plst[i];
+		plst.resize(plst.size() - 1);
+	}
 	shv::core::StringView p(rel_path);
 	size_t ddot_cnt = 0;
-	while(p.startsWith(DDOT)) {
+	while(p.startsWith(DDOT_SLASH)) {
 		ddot_cnt++;
-		p = p.mid(DDOT.size());
+		p = p.mid(DDOT_SLASH.size());
 	}
-	std::string abs_path;
-	if(ddot_cnt > 0 && !mount_point.empty()) {
-		shv::core::StringViewList mpl = shv::iotqt::node::ShvNode::splitShvPath(mount_point);
-		if(mpl.size() >= ddot_cnt) {
-			mpl.resize(mpl.size() - ddot_cnt);
-			abs_path = mpl.join('/') + '/' + p.toString();
-			return abs_path;
-		}
-	}
-	return rel_path;
+	std::string abs_path = plst.join('/');
+	return abs_path;
 }
 /*
 bool CommonRpcClientHandle::Subscription::operator<(const CommonRpcClientHandle::Subscription &o) const

@@ -146,7 +146,7 @@ void Jn50ViewApp::sendGetStatusRequest()
 	auto *conn = rpcConnection();
 	if(conn->isBrokerConnected()) {
 		m_getStatusRpcId = conn->callShvMethod(cliOptions()->converterShvPath() + "/status", cp::Rpc::METH_GET);
-		shvDebug() << "Sending get status request id:" << m_getStatusRpcId;
+        shvDebug() << (cliOptions()->converterShvPath() + "/status") << "Sending get status request id:" << m_getStatusRpcId;
 	}
 }
 

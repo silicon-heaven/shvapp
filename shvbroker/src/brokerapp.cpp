@@ -809,6 +809,9 @@ void BrokerApp::onRpcDataReceived(int connection_id, shv::chainpack::Rpc::Protoc
 					if(mps.size() > 1)
 						SHV_EXCEPTION("Cannot call method on relative path for device mounted to more than single node.");
 					shv_path = rpc::ServerConnection::Subscription::toAbsolutePath(mps[0], shv_path);
+					if(rpc::ServerConnection::Subscription::isRelativePath(shv_path)) {
+
+					}
 					cp::RpcMessage::setShvPath(meta, shv_path);
 				}
 				cp::Rpc::AccessGrant acg = accessGrantForRequest(cch, shv_path, cp::RpcMessage::accessGrant(meta).toString());
