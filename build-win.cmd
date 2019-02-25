@@ -10,4 +10,5 @@ rem "C:\Program Files (x86)\Inno Setup 5\iscc.exe" "/SdefaultSignTool=C:\Program
 
 "C:\Program Files (x86)\Inno Setup 5\iscc.exe" shvspy/shvspy.iss  || exit /b 2
 "C:\Program Files (x86)\Inno Setup 5\iscc.exe" clients/bfsview/bfsview.iss || exit /b 2
+"C:\Program Files (x86)\Inno Setup 5\iscc.exe" clients/jn50view/jn50view.iss || exit /b 2
 
