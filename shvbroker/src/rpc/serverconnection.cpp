@@ -181,7 +181,10 @@ bool ServerConnection::propagateSubscriptionToSlaveBroker(const CommonRpcClientH
 		return false;
 	for(const std::string &mount_point : mountPoints()) {
 		if(shv::iotqt::utils::ShvPath(subs.absolutePath).startsWithPath(mount_point)) {
-			callMethodSubscribe(subs.absolutePath.substr(mount_point.size() + 1), subs.method, cp::Rpc::GRANT_MASTER_BROKER);
+			std::string slave_path = subs.absolutePath.substr(mount_point.size());
+			if(!slave_path.empty() && slave_path[0] == '/')
+				slave_path = slave_path.substr(1);
+			callMethodSubscribe(slave_path, subs.method, cp::Rpc::GRANT_MASTER_BROKER);
 			return true;
 		}
 		if(shv::iotqt::utils::ShvPath(mount_point).startsWithPath(subs.absolutePath)) {
