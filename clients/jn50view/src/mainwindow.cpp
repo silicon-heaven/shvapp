@@ -3,11 +3,14 @@
 #include "jn50viewapp.h"
 #include "appclioptions.h"
 #include "settingsdialog.h"
+#include "dlgapplog.h"
+#include "thresholdsdialog.h"
 
 #include <shv/coreqt/log.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
 
 #include <QFile>
+#include <QMessageBox>
 #include <QSettings>
 #include <QTimer>
 
@@ -18,7 +21,7 @@ MainWindow::MainWindow(QWidget *parent)
 	ui->setupUi(this);
 
 	setWindowIcon(QIcon(":/images/eline"));
-	setWindowTitle(tr("Converter JN50 View"));
+	setWindowTitle(tr("Měnič JN50"));
 
 #ifdef TESTING
 	connect(ui->oclOn, &QCheckBox::toggled, [](bool on) {
@@ -55,20 +58,39 @@ MainWindow::MainWindow(QWidget *parent)
 	ui->frmTest->hide();
 #endif
 
-	connect(ui->btRun, &QPushButton::clicked, []() {
+	ui->btSwitchOn->setDefaultAction(ui->actSwitchOn);
+	ui->btSwitchOff->setDefaultAction(ui->actSwitchOff);
+	connect(ui->actSwitchOn, &QAction::triggered, []() {
 		Jn50ViewApp *app = Jn50ViewApp::instance();
 		app->rpcConnection()->callShvMethod(app->cliOptions()->converterShvPath(), "start");
 	});
-	connect(ui->btOff, &QPushButton::clicked, []() {
+	connect(ui->actSwitchOff, &QAction::triggered, []() {
 		Jn50ViewApp *app = Jn50ViewApp::instance();
 		app->rpcConnection()->callShvMethod(app->cliOptions()->converterShvPath(), "stop");
 	});
-	connect(ui->btResetOutputEnergy, &QPushButton::clicked, []() {
+	connect(ui->actResetOutputEnergy, &QAction::triggered, []() {
 		Jn50ViewApp *app = Jn50ViewApp::instance();
 		app->rpcConnection()->callShvMethod(app->cliOptions()->converterShvPath() + "/outEnergy", "resetCounter");
 	});
-	connect(ui->btSettings, &QPushButton::clicked, [this]() {
+	connect(ui->actSettingsConnection, &QAction::triggered, [this]() {
 		SettingsDialog dlg(this);
+		dlg.exec();
+	});
+	connect(ui->actSettingsTresholds, &QAction::triggered, [this]() {
+		ThresholdsDialog dlg(this);
+		dlg.exec();
+	});
+	connect(ui->actHelpAbout, &QAction::triggered, [this]() {
+		QMessageBox::about(this
+						   , "JN50 View"
+						   , "<p><b>JN50 View</b></p>"
+							 "<p>Program na vizualizaci měniče JN 50</p>"
+							 "<p>2019 Elektroline a.s.</p>"
+							 "<p><a href=\"www.elektroline.cz\">www.elektroline.cz</a></p>"
+						   );
+	});
+	connect(ui->actHelpAppLog, &QAction::triggered, [this]() {
+		DlgAppLog dlg(this);
 		dlg.exec();
 	});
 

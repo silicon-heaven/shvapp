@@ -99,7 +99,7 @@ void Jn50ViewApp::loadSettings()
 
 const std::string &Jn50ViewApp::logFilePath()
 {
-	static std::string log_file_path = QDir::tempPath().toStdString() + "/jn50view.log";
+	static std::string log_file_path = QDir::tempPath().toStdString() + "/" + applicationName().toStdString() + ".log";
 	return log_file_path;
 }
 

@@ -36,7 +36,7 @@ void init_log_environment()
 		// keep log file smaller than max_size
 		constexpr unsigned max_size = 1024 * 1024;
 		constexpr unsigned min_size = max_size / 2;
-		size_t size = 0;
+		ssize_t size = 0;
 		{
 			std::ifstream f1(log_file_path, std::ios::binary);
 			f1.seekg (0, std::ios::end);
