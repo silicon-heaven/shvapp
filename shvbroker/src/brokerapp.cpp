@@ -808,17 +808,24 @@ void BrokerApp::onRpcDataReceived(int connection_id, shv::chainpack::Rpc::Protoc
 						SHV_EXCEPTION("Cannot call method on relative path for unmounted device.");
 					if(mps.size() > 1)
 						SHV_EXCEPTION("Cannot call method on relative path for device mounted to more than single node.");
-					shv_path = rpc::ServerConnection::Subscription::toAbsolutePath(mps[0], shv_path);
+					std::string mount_point = mps[0];
+					rpc::MasterBrokerConnection *master_broker_conn = nullptr;
+					{
+						QList<rpc::MasterBrokerConnection *> mbcs = masterBrokerConnections();
+						if(!mbcs.isEmpty()) {
+							master_broker_conn = mbcs[0];
+							mount_point = master_broker_conn->slavePathToMaster(mount_point);
+						}
+					}
+					shv_path = rpc::ServerConnection::Subscription::toAbsolutePath(mount_point, shv_path);
 					if(rpc::ServerConnection::Subscription::isRelativePath(shv_path)) {
 						/// still relative path, it should be forwarded to mater broker
-						QList<rpc::MasterBrokerConnection *> mbcs = masterBrokerConnections();
-						if(mbcs.count() > 1)
-							SHV_EXCEPTION("Cannot resolve relative path " + cp::RpcMessage::shvPath(meta).toString() + ", there are more master broker connections to forward the request.");
-						rpc::MasterBrokerConnection *conn = mbcs.value(0);
-						if(conn == nullptr)
+						if(master_broker_conn == nullptr)
 							SHV_EXCEPTION("Cannot resolve relative path " + cp::RpcMessage::shvPath(meta).toString() + ", there is no master broker to forward the request.");
 						cp::RpcMessage::setShvPath(meta, shv_path);
-						conn->sendRawData(std::move(meta), std::move(data));
+						cp::RpcMessage::pushCallerId(meta, connection_id);
+						master_broker_conn->sendRawData(std::move(meta), std::move(data));
+						return;
 					}
 					cp::RpcMessage::setShvPath(meta, shv_path);
 				}
