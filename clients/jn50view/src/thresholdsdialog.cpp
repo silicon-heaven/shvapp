@@ -1,5 +1,5 @@
 #include "thresholdsdialog.h"
-#include "ui_tresholdsdialog.h"
+#include "ui_thresholdsdialog.h"
 #include "jn50viewapp.h"
 #include "appclioptions.h"
 
@@ -12,7 +12,7 @@ namespace cp = shv::chainpack;
 
 ThresholdsDialog::ThresholdsDialog(QWidget *parent) :
 	QDialog(parent),
-	ui(new Ui::TresholdsDialog)
+	ui(new Ui::ThresholdsDialog)
 {
 	ui->setupUi(this);
 

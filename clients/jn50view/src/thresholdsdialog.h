@@ -4,7 +4,7 @@
 #include <QDialog>
 
 namespace Ui {
-class TresholdsDialog;
+class ThresholdsDialog;
 }
 
 class QSpinBox;
@@ -19,7 +19,7 @@ public:
 private:
 	void loadTreshold(const std::string &shv_name, QSpinBox *editor);
 private:
-	Ui::TresholdsDialog *ui;
+	Ui::ThresholdsDialog *ui;
 };
 
 #endif // THRESHOLDSDIALOG_H
