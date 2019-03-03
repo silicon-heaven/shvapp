@@ -29,11 +29,12 @@ static const std::string DDOT("..");
 bool CommonRpcClientHandle::Subscription::isRelativePath(const std::string &path)
 {
 	shv::core::StringView p(path);
-	return p.startsWith(DDOT_SLASH);
+	return p == DDOT || p.startsWith(DDOT_SLASH);
 }
 
 std::string CommonRpcClientHandle::Subscription::toAbsolutePath(const std::string &mount_point, const std::string &rel_path)
 {
+	shvWarning() << "mount point:" << mount_point << "rel path:" << rel_path;
 	if(!isRelativePath(rel_path))
 		return rel_path;
 
@@ -44,9 +45,9 @@ std::string CommonRpcClientHandle::Subscription::toAbsolutePath(const std::strin
 		ssize_t ix = plst.indexOf(DDOT);
 		if(ix <= 0)
 			break;
-		for(size_t i = (size_t)ix; i < plst.size(); i++)
-			plst[i-1] = plst[i];
-		plst.resize(plst.size() - 1);
+		for(ssize_t i = ix; i < static_cast<ssize_t>(plst.size())-1; i++)
+			plst[i-1] = plst[i+1];
+		plst.resize(plst.size() - 2);
 	}
 	shv::core::StringView p(rel_path);
 	size_t ddot_cnt = 0;
@@ -55,6 +56,7 @@ std::string CommonRpcClientHandle::Subscription::toAbsolutePath(const std::strin
 		p = p.mid(DDOT_SLASH.size());
 	}
 	std::string abs_path = plst.join('/');
+	shvWarning() << "mount point:" << mount_point << "rel path:" << rel_path << "-->" << abs_path;
 	return abs_path;
 }
 /*

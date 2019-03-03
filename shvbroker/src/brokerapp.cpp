@@ -799,24 +799,32 @@ void BrokerApp::onRpcDataReceived(int connection_id, shv::chainpack::Rpc::Protoc
 		// it cannot be constructed from meta, since meta is moved in the try block
 		shv::chainpack::RpcResponse rsp = cp::RpcResponse::forRequest(meta);
 		try {
-			rpc::CommonRpcClientHandle *cch = commonClientConnectionById(connection_id);
+			rpc::CommonRpcClientHandle *connection_handle = commonClientConnectionById(connection_id);
 			std::string shv_path = cp::RpcMessage::shvPath(meta).toString();
-			if(cch) {
+			if(connection_handle) {
 				if(rpc::ServerConnection::Subscription::isRelativePath(shv_path)) {
-					const std::vector<std::string> &mps = cch->mountPoints();
+					const std::vector<std::string> &mps = connection_handle->mountPoints();
 					if(mps.empty())
 						SHV_EXCEPTION("Cannot call method on relative path for unmounted device.");
 					if(mps.size() > 1)
 						SHV_EXCEPTION("Cannot call method on relative path for device mounted to more than single node.");
 					shv_path = rpc::ServerConnection::Subscription::toAbsolutePath(mps[0], shv_path);
 					if(rpc::ServerConnection::Subscription::isRelativePath(shv_path)) {
-
+						/// still relative path, it should be forwarded to mater broker
+						QList<rpc::MasterBrokerConnection *> mbcs = masterBrokerConnections();
+						if(mbcs.count() > 1)
+							SHV_EXCEPTION("Cannot resolve relative path " + cp::RpcMessage::shvPath(meta).toString() + ", there are more master broker connections to forward the request.");
+						rpc::MasterBrokerConnection *conn = mbcs.value(0);
+						if(conn == nullptr)
+							SHV_EXCEPTION("Cannot resolve relative path " + cp::RpcMessage::shvPath(meta).toString() + ", there is no master broker to forward the request.");
+						cp::RpcMessage::setShvPath(meta, shv_path);
+						conn->sendRawData(std::move(meta), std::move(data));
 					}
 					cp::RpcMessage::setShvPath(meta, shv_path);
 				}
-				cp::Rpc::AccessGrant acg = accessGrantForRequest(cch, shv_path, cp::RpcMessage::accessGrant(meta).toString());
+				cp::Rpc::AccessGrant acg = accessGrantForRequest(connection_handle, shv_path, cp::RpcMessage::accessGrant(meta).toString());
 				if(!acg.isValid())
-					SHV_EXCEPTION("Acces to shv path '" + shv_path + "' not granted for user '" + cch->loggedUserName() + "'");
+					SHV_EXCEPTION("Acces to shv path '" + shv_path + "' not granted for user '" + connection_handle->loggedUserName() + "'");
 				cp::RpcMessage::setAccessGrant(meta, acg.grant);
 				cp::RpcMessage::pushCallerId(meta, connection_id);
 				if(m_nodesTree->root()) {

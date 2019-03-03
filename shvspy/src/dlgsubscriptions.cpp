@@ -14,6 +14,7 @@ DlgSubscriptions::DlgSubscriptions(QWidget *parent)
 {
 	ui->setupUi(this);
 
+	ui->subsriptionsTableWidget->setRowHeight(0, ui->subsriptionsTableWidget->fontInfo().pointSize());
 	ui->subsriptionsTableWidget->setRowCount(0);
 	ui->subsriptionsTableWidget->setColumnCount(2);
 	QStringList header;
@@ -70,7 +71,6 @@ void DlgSubscriptions::onDeleteSubscription()
 void DlgSubscriptions::onAddSubscription()
 {
 	ui->subsriptionsTableWidget->insertRow(0);
-	ui->subsriptionsTableWidget->setRowHeight(0, ui->subsriptionsTableWidget->fontInfo().pointSize());
 	ui->subsriptionsTableWidget->setItem(0, 0, new QTableWidgetItem(ui->subscriptionPathLineEdit->text()));
 	ui->subsriptionsTableWidget->setItem(0, 1, new QTableWidgetItem(ui->subscriptionMethodLineEdit->text()));
 
