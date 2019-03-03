@@ -34,7 +34,7 @@ bool CommonRpcClientHandle::Subscription::isRelativePath(const std::string &path
 
 std::string CommonRpcClientHandle::Subscription::toAbsolutePath(const std::string &mount_point, const std::string &rel_path)
 {
-	shvWarning() << "mount point:" << mount_point << "rel path:" << rel_path;
+	shvDebug() << "mount point:" << mount_point << "rel path:" << rel_path;
 	if(!isRelativePath(rel_path))
 		return rel_path;
 
@@ -56,7 +56,7 @@ std::string CommonRpcClientHandle::Subscription::toAbsolutePath(const std::strin
 		p = p.mid(DDOT_SLASH.size());
 	}
 	std::string abs_path = plst.join('/');
-	shvWarning() << "mount point:" << mount_point << "rel path:" << rel_path << "-->" << abs_path;
+	shvDebug() << "mount point:" << mount_point << "rel path:" << rel_path << "-->" << abs_path;
 	return abs_path;
 }
 /*
