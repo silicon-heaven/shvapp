@@ -51,6 +51,7 @@ public:
 	void onRpcDataReceived(int connection_id, shv::chainpack::Rpc::ProtocolType protocol_type, shv::chainpack::RpcValue::MetaData &&meta, std::string &&data);
 
 	void addSubscription(int client_id, const std::string &path, const std::string &method);
+	bool removeSubscription(int client_id, const std::string &shv_path, const std::string &method);
 	bool rejectNotSubscribedSignal(int client_id, const std::string &path, const std::string &method);
 
 	rpc::TcpServer* tcpServer();

@@ -46,6 +46,7 @@ public:
 	virtual bool isConnectedAndLoggedIn() const = 0;
 
 	virtual unsigned addSubscription(const std::string &rel_path, const std::string &method);
+	virtual bool removeSubscription(const std::string &rel_path, const std::string &method);
 	int isSubscribed(const std::string &path, const std::string &method) const;
 	virtual std::string toSubscribedPath(const Subscription &subs, const std::string &abs_path) const;
 	size_t subscriptionCount() const {return m_subscriptions.size();}

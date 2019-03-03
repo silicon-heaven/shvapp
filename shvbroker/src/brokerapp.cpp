@@ -1049,7 +1049,7 @@ void BrokerApp::addSubscription(int client_id, const std::string &shv_path, cons
 	if(!conn)
 		SHV_EXCEPTION("Connot create subscription, client doesn't exist.");
 	//logSubscriptionsD() << "addSubscription connection id:" << client_id << "path:" << path << "method:" << method;
-	int subs_ix = conn->addSubscription(shv_path, method);
+	auto subs_ix = conn->addSubscription(shv_path, method);
 	const rpc::CommonRpcClientHandle::Subscription &subs = conn->subscriptionAt(subs_ix);
 	// check slave broker connections
 	// whether this subsciption should be propagated to them
@@ -1059,6 +1059,15 @@ void BrokerApp::addSubscription(int client_id, const std::string &shv_path, cons
 			conn->propagateSubscriptionToSlaveBroker(subs);
 		}
 	}
+}
+
+bool BrokerApp::removeSubscription(int client_id, const std::string &shv_path, const std::string &method)
+{
+	rpc::CommonRpcClientHandle *conn = commonClientConnectionById(client_id);
+	if(!conn)
+		SHV_EXCEPTION("Connot remove subscription, client doesn't exist.");
+	//logSubscriptionsD() << "addSubscription connection id:" << client_id << "path:" << path << "method:" << method;
+	return conn->removeSubscription(shv_path, method);
 }
 
 bool BrokerApp::rejectNotSubscribedSignal(int client_id, const std::string &path, const std::string &method)

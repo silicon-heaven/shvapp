@@ -28,6 +28,7 @@ static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_ECHO, cp::MetaMethod::Signature::RetParam},
 	{M_MOUNT_POINTS_FOR_CLIENT_ID, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
 	{cp::Rpc::METH_SUBSCRIBE, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
+	{cp::Rpc::METH_UNSUBSCRIBE, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
 	{cp::Rpc::METH_REJECT_NOT_SUBSCRIBED, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
 	{M_RELOAD_CONFIG, cp::MetaMethod::Signature::VoidVoid, 0, cp::Rpc::GRANT_SERVICE},
 	{M_RESTART, cp::MetaMethod::Signature::VoidVoid, 0, cp::Rpc::GRANT_SERVICE},
@@ -52,6 +53,14 @@ shv::chainpack::RpcValue BrokerNode::processRpcRequest(const shv::chainpack::Rpc
 			int client_id = rq.peekCallerId();
 			BrokerApp::instance()->addSubscription(client_id, path, method);
 			return true;
+		}
+		if(method == cp::Rpc::METH_UNSUBSCRIBE) {
+			const shv::chainpack::RpcValue parms = rq.params();
+			const shv::chainpack::RpcValue::Map &pm = parms.toMap();
+			std::string path = pm.value(cp::Rpc::PAR_PATH).toString();
+			std::string method = pm.value(cp::Rpc::PAR_METHOD).toString();
+			int client_id = rq.peekCallerId();
+			return BrokerApp::instance()->removeSubscription(client_id, path, method);
 		}
 		if(method == cp::Rpc::METH_REJECT_NOT_SUBSCRIBED) {
 			const shv::chainpack::RpcValue parms = rq.params();

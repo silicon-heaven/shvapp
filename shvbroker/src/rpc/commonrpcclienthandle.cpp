@@ -129,6 +129,29 @@ unsigned CommonRpcClientHandle::addSubscription(const std::string &rel_path, con
 	}
 }
 
+bool CommonRpcClientHandle::removeSubscription(const std::string &rel_path, const std::string &method)
+{
+	std::string abs_path = rel_path;
+	if(Subscription::isRelativePath(abs_path)) {
+		const std::vector<std::string> &mps = mountPoints();
+		if(mps.empty())
+			SHV_EXCEPTION("Cannot unsubscribe relative path on unmounted device.");
+		if(mps.size() > 1)
+			SHV_EXCEPTION("Cannot unsubscribe relative path on device mounted to more than single node.");
+		abs_path = Subscription::toAbsolutePath(mps[0], rel_path);
+	}
+	logSubscriptionsD() << "removing subscription for connection id:" << connectionId() << "path:" << abs_path << "method:" << method;
+	Subscription subs(abs_path, rel_path, method);
+	auto it = std::find(m_subscriptions.begin(), m_subscriptions.end(), subs);
+	if(it == m_subscriptions.end()) {
+		return false;
+	}
+	else {
+		m_subscriptions.erase(it);
+		return true;
+	}
+}
+
 int CommonRpcClientHandle::isSubscribed(const std::string &path, const std::string &method) const
 {
 	shv::core::StringView shv_path(path);
