@@ -2,12 +2,10 @@
 
 #include <shv/chainpack/rpcvalue.h>
 
+#include "../servertreemodel/shvbrokernodeitem.h"
+
 #include <QAbstractTableModel>
 #include <QPointer>
-
-
-class ShvNodeItem;
-struct ShvMetaMethod;
 
 namespace shv { namespace chainpack { class RpcMessage; }}
 
@@ -17,21 +15,21 @@ class SubscriptionsModel : public QAbstractTableModel
 private:
 	typedef QAbstractTableModel Super;
 public:
-	enum Columns {ColMethodName = 0, ColSignature, ColFlags, ColAccessGrant, ColParams, ColResult, ColBtRun, ColError, ColCnt};
-	enum Roles {RpcValueRole = Qt::UserRole };
+	enum Columns {ColServer = 0, ColPath, ColMethod, ColPermanent, ColSubscribeAfterConnect, ColEnabled, ColCount};
+
 public:
 	SubscriptionsModel(QObject *parent = nullptr);
 	~SubscriptionsModel() Q_DECL_OVERRIDE;
 public:
 	int rowCount(const QModelIndex &parent) const override;
-	int columnCount(const QModelIndex &parent) const override {Q_UNUSED(parent) return ColBtRun + 1;}
+	int columnCount(const QModelIndex &parent) const override;
 	Qt::ItemFlags flags(const QModelIndex &ix) const Q_DECL_OVERRIDE;
 	QVariant data( const QModelIndex & index, int role = Qt::DisplayRole ) const Q_DECL_OVERRIDE;
 	bool setData(const QModelIndex &ix, const QVariant &val, int role = Qt::EditRole) Q_DECL_OVERRIDE;
-	QVariant headerData ( int section, Qt::Orientation o, int role = Qt::DisplayRole ) const Q_DECL_OVERRIDE;
+	QVariant headerData (int section, Qt::Orientation orientation, int role = Qt::DisplayRole ) const Q_DECL_OVERRIDE;
 
-	void load(ShvNodeItem *nd);
-	void callMethod(unsigned row);
+	void addShvBrokerNodeItem(ShvBrokerNodeItem *nd);
+//	void load(ShvNodeItem *nd);
 
 	QString path() const;
 	QString method(int row) const;
@@ -39,15 +37,16 @@ public:
 	Q_SIGNAL void reloaded();
 	Q_SIGNAL void methodCallResultChanged(int method_ix);
 private:
+	void onSubscriptionAdded(ShvBrokerNodeItem *nd, const std::string &path);
 	void onMethodsLoaded();
 	void onRpcMethodCallFinished(int method_ix);
-	const ShvMetaMethod *metaMethodAt(unsigned method_ix);
+//	const ShvMetaMethod *metaMethodAt(unsigned method_ix);
 	void loadRow(unsigned method_ix);
 	void loadRows();
 	void emitRowChanged(int row_ix);
 	void callGetters();
 private:
-	QPointer<ShvNodeItem> m_shvTreeNodeItem;
+	QVector<QPointer<ShvBrokerNodeItem>> m_shvNodeItems;
 	using RowVals = shv::chainpack::RpcValue::List;
 	std::vector<RowVals> m_rows;
 };

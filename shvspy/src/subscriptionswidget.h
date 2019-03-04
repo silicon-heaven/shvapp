@@ -6,7 +6,7 @@
 #include "attributesmodel/attributesmodel.h"
 #include "servertreemodel/servertreemodel.h"
 #include "servertreemodel/shvbrokernodeitem.h"
-#include "servertreeview.h"
+#include "subscriptionsmodel/subscriptionsmodel.h"
 
 #include <QWidget>
 #include <QTableWidgetItem>
@@ -20,20 +20,14 @@ class SubscriptionsWidget : public QWidget
 	Q_OBJECT
 
 public:
-	enum TableColumn {tcServer = 0, tcPath, tcMethod, tcPermanent, tcSubscribeAfterConnect, tcEnabled, tcCount};
 
 	explicit SubscriptionsWidget(QWidget *parent = nullptr);
 	~SubscriptionsWidget();
 
-	void setShvPath(std::string path);
-
-	void addSubscriptions(const std::string &broker_id, const QVariantList &subscriptions);
-	void addSubscription(const std::string &broker_id,const QVariantMap &subscription);
+	void subscriptionsCreated(ShvBrokerNodeItem *shv_broker_node_item);
 private:
-	QString boolToStr(bool val);
-
 	Ui::SubscriptionsWidget *ui;
-	QVariantList m_subscriptionList;
+	SubscriptionsModel m_subscriptionsModel;
 };
 
 #endif // SUBSCRIPTIONSWIDGET_H

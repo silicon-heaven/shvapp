@@ -49,8 +49,12 @@ ShvBrokerNodeItem *ServerTreeModel::createConnection(const QVariantMap &params)
 {
 	//qDebug() << params;
 	ShvBrokerNodeItem *ret = new ShvBrokerNodeItem(this, params.value("name").toString().toStdString());
-	connect(ret, &ShvBrokerNodeItem::subscriptionsCreated, this, &ServerTreeModel::subscriptionsCreated);
-	connect(ret, &ShvBrokerNodeItem::subscriptionAdded, this, &ServerTreeModel::subscriptionAdded);
+	connect(ret, &ShvBrokerNodeItem::subscriptionsCreated, this, [this, ret]() {
+		emit ServerTreeModel::subscriptionsCreated(ret);
+	});
+	connect(ret, &ShvBrokerNodeItem::subscriptionAdded, this, [this, ret](const std::string &path){
+		emit ServerTreeModel::subscriptionAdded(ret, path);
+	});
 
 	const std::string broker_name = ret->nodeId();
 	ret->setServerProperties(params);

@@ -1,5 +1,5 @@
 #include "subscriptionstableitemdelegate.h"
-#include "subscriptionswidget.h"
+#include "subscriptionsmodel.h"
 
 #include <QComboBox>
 
@@ -12,10 +12,8 @@ SubscriptionsTableItemDelegate::SubscriptionsTableItemDelegate(QObject *parent) 
 QWidget *SubscriptionsTableItemDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
 	int col = index.column();
-	if ((col == SubscriptionsWidget::TableColumn::tcPermanent) ||
-		(col == SubscriptionsWidget::TableColumn::tcSubscribeAfterConnect) ||
-		(col == SubscriptionsWidget::TableColumn::tcEnabled)){
-
+	if ((col == SubscriptionsModel::Columns::ColPermanent) || (col == SubscriptionsModel::Columns::ColSubscribeAfterConnect) ||
+		(col == SubscriptionsModel::Columns::ColEnabled)){
 		QComboBox *editor = new QComboBox(parent);
 		editor->setInsertPolicy(QComboBox::NoInsert);
 		editor->addItem(tr("yes"), true);
@@ -30,9 +28,8 @@ QWidget *SubscriptionsTableItemDelegate::createEditor(QWidget *parent, const QSt
 void SubscriptionsTableItemDelegate::setEditorData(QWidget *editor, const QModelIndex &index) const
 {
 	int col = index.column();
-	if ((col == SubscriptionsWidget::TableColumn::tcPermanent) ||
-		(col == SubscriptionsWidget::TableColumn::tcSubscribeAfterConnect) ||
-		(col == SubscriptionsWidget::TableColumn::tcEnabled)){
+	if ((col == SubscriptionsModel::Columns::ColPermanent) || (col == SubscriptionsModel::Columns::ColSubscribeAfterConnect) ||
+		(col == SubscriptionsModel::Columns::ColEnabled)){
 		QComboBox *cb = static_cast<QComboBox*>(editor);
 		for(int i = 0; i < cb->count(); ++i){
 			if (cb->itemData(i, Qt::UserRole).toBool() == index.data(Qt::UserRole).toBool()){
@@ -48,9 +45,8 @@ void SubscriptionsTableItemDelegate::setEditorData(QWidget *editor, const QModel
 void SubscriptionsTableItemDelegate::setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const
 {
 	int col = index.column();
-	if ((col == SubscriptionsWidget::TableColumn::tcPermanent) ||
-		(col == SubscriptionsWidget::TableColumn::tcSubscribeAfterConnect) ||
-		(col == SubscriptionsWidget::TableColumn::tcEnabled)){
+	if ((col == SubscriptionsModel::Columns::ColPermanent) || (col == SubscriptionsModel::Columns::ColSubscribeAfterConnect) ||
+		(col == SubscriptionsModel::Columns::ColEnabled)){
 		QComboBox *cb = static_cast<QComboBox*>(editor);
 		model->setData(index, cb->currentData(Qt::UserRole), Qt::UserRole);
 	}

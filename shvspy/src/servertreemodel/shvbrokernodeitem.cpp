@@ -113,9 +113,9 @@ void ShvBrokerNodeItem::addSubscription(const std::string &shv_path, const std::
 			subscription["isSubscribedAfterConnect"] = false;
 			subscription["isEnabled"] = true;
 			subscriptions.append(subscription);
-
 			m_serverPropeties["subscriptions"] = subscriptions;
-			emit subscriptionAdded(nodeId(), subscription);
+
+			emit subscriptionAdded(shv_path);
 		}
 	}
 }
@@ -362,7 +362,7 @@ void ShvBrokerNodeItem::createSubscriptions()
 		}
 
 		m_serverPropeties["subscriptions"] = subs;
-		emit subscriptionsCreated(nodeId(), m_serverPropeties.value("subscriptions").toList());
+		emit subscriptionsCreated();
 	}
 }
 

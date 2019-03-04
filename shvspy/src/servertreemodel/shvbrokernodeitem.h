@@ -40,8 +40,8 @@ public:
 
 	ShvNodeItem *findNode(const std::string &path, std::string *path_rest = nullptr);
 
-	Q_SIGNAL void subscriptionsCreated(const std::string &broker, const QVariantList &subscriptions);
-	Q_SIGNAL void subscriptionAdded(const std::string &broker, const QVariantMap &subscription);
+	Q_SIGNAL void subscriptionsCreated();
+	Q_SIGNAL void subscriptionAdded(const std::string &path);
 
 private:
 	void onBrokerConnectedChanged(bool is_connected);

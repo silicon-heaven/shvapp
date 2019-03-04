@@ -28,24 +28,42 @@ SubscriptionsModel::~SubscriptionsModel()
 int SubscriptionsModel::rowCount(const QModelIndex &parent) const
 {
 	Q_UNUSED(parent)
-	if(m_shvTreeNodeItem.isNull())
+	int count = 0;
+
+	for (int i = 0; i < m_shvNodeItems.count(); i++){
+		QVariant v = m_shvNodeItems.at(i)->serverProperties().value("subscriptions");
+		if(v.isValid()) {
+			count += v.toList().size();
+		}
+	}
+	return  count;
+}
+
+int SubscriptionsModel::columnCount(const QModelIndex &parent) const
+{
+	if (parent.isValid())
 		return 0;
-	return m_shvTreeNodeItem->methods().count();
+
+	return Columns::ColCount;
 }
 
 Qt::ItemFlags SubscriptionsModel::flags(const QModelIndex &ix) const
 {
-	Qt::ItemFlags ret = Super::flags(ix);
-	if(ix.column() == ColParams)
-		ret |= Qt::ItemIsEditable;
-	if(ix.column() == ColBtRun)
-		ret &= ~Qt::ItemIsSelectable;
-	return ret;
+	if (!ix.isValid())
+		return Qt::NoItemFlags;
+
+	if((ix.column() == Columns::ColEnabled) ||
+		(ix.column() == Columns::ColPermanent) ||
+		(ix.column() == Columns::ColSubscribeAfterConnect)){
+		return  Super::flags(ix) |= Qt::ItemIsEditable;
+	}
+
+	return Super::flags(ix);
 }
 
 QVariant SubscriptionsModel::data(const QModelIndex &ix, int role) const
 {
-	if(m_shvTreeNodeItem.isNull())
+/*	if(m_shvTreeNodeItem.isNull())
 		return QVariant();
 	const QVector<ShvMetaMethod> &mms = m_shvTreeNodeItem->methods();
 	if(ix.row() < 0 || ix.row() >= mms.count())
@@ -144,13 +162,13 @@ QVariant SubscriptionsModel::data(const QModelIndex &ix, int role) const
 	}
 	default:
 		break;
-	}
+	}*/
 	return QVariant();
 }
 
 bool SubscriptionsModel::setData(const QModelIndex &ix, const QVariant &val, int role)
 {
-	shvLogFuncFrame() << val.toString() << val.typeName() << "role:" << role;
+/*	shvLogFuncFrame() << val.toString() << val.typeName() << "role:" << role;
 	if(role == Qt::EditRole) {
 		if(ix.column() == ColParams) {
 			if(!m_shvTreeNodeItem.isNull()) {
@@ -167,73 +185,58 @@ bool SubscriptionsModel::setData(const QModelIndex &ix, const QVariant &val, int
 				return true;
 			}
 		}
-	}
+	}*/
 	return false;
 }
 
-QVariant SubscriptionsModel::headerData(int section, Qt::Orientation o, int role) const
+QVariant SubscriptionsModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
 	QVariant ret;
-	if(o == Qt::Horizontal) {
+	if(orientation == Qt::Horizontal) {
 		if(role == Qt::DisplayRole) {
-			if(section == ColMethodName)
+			if(section == Columns::ColServer)
+				ret = tr("Server");
+			else if(section == Columns::ColPath)
+				ret = tr("Path");
+			else if(section == Columns::ColMethod)
 				ret = tr("Method");
-			else if(section == ColSignature)
-				ret = tr("Signature");
-			else if(section == ColFlags)
-				ret = tr("Flags");
-			else if(section == ColAccessGrant)
-				ret = tr("ACG");
-			else if(section == ColParams)
-				ret = tr("Params");
-			else if(section == ColResult)
-				ret = tr("Result");
+			else if(section == Columns::ColPermanent)
+				ret = tr("Permanent");
+			else if(section == Columns::ColSubscribeAfterConnect)
+				ret = tr("Auto subscribe");
+			else if(section == Columns::ColEnabled)
+				ret = tr("Enabled");
 		}
 		else if(role == Qt::ToolTipRole) {
-			if(section == ColAccessGrant)
-				ret = tr("Acess Grant");
+			if(section == Columns::ColSubscribeAfterConnect)
+				ret = tr("Subscribe after connect");
 		}
 	}
 	return ret;
 }
 
-void SubscriptionsModel::load(ShvNodeItem *nd)
+void SubscriptionsModel::addShvBrokerNodeItem(ShvBrokerNodeItem *nd)
 {
-	m_rows.clear();
-	if(!m_shvTreeNodeItem.isNull())
-		m_shvTreeNodeItem->disconnect(this);
-	m_shvTreeNodeItem = nd;
-	if(nd) {
-		connect(nd, &ShvNodeItem::methodsLoaded, this, &SubscriptionsModel::onMethodsLoaded, Qt::UniqueConnection);
-		connect(nd, &ShvNodeItem::rpcMethodCallFinished, this, &SubscriptionsModel::onRpcMethodCallFinished, Qt::UniqueConnection);
-		nd->checkMethodsLoaded();
-	}
-	loadRows();
+	m_shvNodeItems.append(nd);
+	connect(nd, &ShvBrokerNodeItem::subscriptionAdded, this, [this, nd](const std::string &path){
+		onSubscriptionAdded(nd, path);
+	});
 }
 
-void SubscriptionsModel::callMethod(unsigned method_ix)
+void SubscriptionsModel::onSubscriptionAdded(ShvBrokerNodeItem *nd, const std::string &path)
 {
-	if(m_shvTreeNodeItem.isNull())
-		return;
-	unsigned rqid = m_shvTreeNodeItem->callMethod(method_ix);
-	m_rows[method_ix][ColBtRun] = rqid;
-	emitRowChanged(method_ix);
-}
-
-QString SubscriptionsModel::path() const
-{
-	if (m_shvTreeNodeItem.isNull()) {
-		return QString();
-	}
-	return QString::fromStdString(m_shvTreeNodeItem->shvPath());
+	shvInfo() << nd->nodeId();
+	beginResetModel();
+	endResetModel();
 }
 
 QString SubscriptionsModel::method(int row) const
 {
-	if (m_shvTreeNodeItem.isNull()) {
+/*	if (m_shvTreeNodeItem.isNull()) {
 		return QString();
 	}
 	return QString::fromStdString(m_shvTreeNodeItem->methods()[row].method);
+*/
 }
 
 void SubscriptionsModel::onMethodsLoaded()
@@ -244,21 +247,23 @@ void SubscriptionsModel::onMethodsLoaded()
 
 void SubscriptionsModel::onRpcMethodCallFinished(int method_ix)
 {
-	loadRow(method_ix);
+/*	loadRow(method_ix);
 	emitRowChanged(method_ix);
 	emit methodCallResultChanged(method_ix);
+*/
 }
 
 void SubscriptionsModel::emitRowChanged(int row_ix)
 {
-	QModelIndex ix1 = index(row_ix, 0);
+/*	QModelIndex ix1 = index(row_ix, 0);
 	QModelIndex ix2 = index(row_ix, ColCnt - 1);
 	emit dataChanged(ix1, ix2);
+*/
 }
 
 void SubscriptionsModel::callGetters()
 {
-	for (unsigned i = 0; i < m_rows.size(); ++i) {
+/*	for (unsigned i = 0; i < m_rows.size(); ++i) {
 		const ShvMetaMethod *mm = metaMethodAt(i);
 		if(mm) {
 			if(mm->method == cp::Rpc::METH_GET || (mm->flags & cp::MetaMethod::Flag::IsGetter)) {
@@ -266,9 +271,10 @@ void SubscriptionsModel::callGetters()
 			}
 		}
 	}
+*/
 }
 
-const ShvMetaMethod *SubscriptionsModel::metaMethodAt(unsigned method_ix)
+/*const ShvMetaMethod *SubscriptionsModel::metaMethodAt(unsigned method_ix)
 {
 	if(method_ix >= m_rows.size() || m_shvTreeNodeItem.isNull())
 		return nullptr;
@@ -276,11 +282,11 @@ const ShvMetaMethod *SubscriptionsModel::metaMethodAt(unsigned method_ix)
 	if(method_ix >= static_cast<unsigned>(mm.size()))
 		return nullptr;
 	return &(mm[method_ix]);
-}
+}*/
 
 void SubscriptionsModel::loadRow(unsigned method_ix)
 {
-	const ShvMetaMethod * mtd = metaMethodAt(method_ix);
+/*	const ShvMetaMethod * mtd = metaMethodAt(method_ix);
 	if(!mtd)
 		return;
 	RowVals &rv = m_rows[method_ix];
@@ -299,11 +305,12 @@ void SubscriptionsModel::loadRow(unsigned method_ix)
 		rv[ColResult] = result;
 	}
 	rv[ColBtRun] = mtd->rpcRequestId;
+	*/
 }
 
 void SubscriptionsModel::loadRows()
 {
-	m_rows.clear();
+/*	m_rows.clear();
 	if(!m_shvTreeNodeItem.isNull()) {
 		const QVector<ShvMetaMethod> &mm = m_shvTreeNodeItem->methods();
 		for (int i = 0; i < mm.count(); ++i) {
@@ -315,4 +322,5 @@ void SubscriptionsModel::loadRows()
 	}
 	emit layoutChanged();
 	emit reloaded();
+	*/
 }
