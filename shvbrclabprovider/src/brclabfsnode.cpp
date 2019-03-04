@@ -15,9 +15,9 @@ static const char M_READ_BRCLAB_SUMMARY[] = "readBrclabSummary";
 
 namespace cp = shv::chainpack;
 
-static std::vector<cp::MetaMethod> meta_methods_brclab {
+static std::vector<cp::MetaMethod> meta_methods {
 	{M_LSMETA, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
-	{M_READ_BRCLAB_SUMMARY, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
+	{M_READ_BRCLAB_SUMMARY, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ}
 };
 
 BrclabFsNode::BrclabFsNode(const QString &root_path, Super *parent):
@@ -56,10 +56,10 @@ const cp::MetaMethod *BrclabFsNode::metaMethod(const shv::iotqt::node::ShvNode::
 
 	if(ix == method_count){
 		if (hasChildren(shv_path).toBool()){
-			return &(meta_methods_brclab[0]);
+			return &(meta_methods[0]);
 		}
 		else {
-			return &(meta_methods_brclab[1]);
+			return &(meta_methods[1]);
 		}
 	}
 

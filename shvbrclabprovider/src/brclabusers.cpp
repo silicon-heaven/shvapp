@@ -1,7 +1,7 @@
 #include "brclabusers.h"
 #include "appclioptions.h"
 
-#include "shv/core/log.h"
+#include <shv/core/log.h>
 #include <shv/chainpack/cponwriter.h>
 #include <shv/chainpack/cponreader.h>
 

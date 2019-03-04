@@ -4,7 +4,9 @@ HEADERS += \
     $$PWD/brclabparser.h \
     $$PWD/brclabfsnode.h \
     $$PWD/brclabusers.h \
-    $$PWD/shvbrclabproviderapp.h
+    $$PWD/shvbrclabproviderapp.h \
+    $$PWD/brclabnode.h \
+    $$PWD/brclabusersnode.h
 
 SOURCES += \
     $$PWD/main.cpp \
@@ -12,4 +14,6 @@ SOURCES += \
     $$PWD/brclabparser.cpp \
     $$PWD/brclabfsnode.cpp \
     $$PWD/brclabusers.cpp \
-    $$PWD/shvbrclabproviderapp.cpp
+    $$PWD/shvbrclabproviderapp.cpp \
+    $$PWD/brclabnode.cpp \
+    $$PWD/brclabusersnode.cpp

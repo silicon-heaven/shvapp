@@ -13,9 +13,9 @@ public:
 	bool addUser(const shv::chainpack::RpcValue &params);
 	bool changePassword(const shv::chainpack::RpcValue &params);
 	shv::chainpack::RpcValue getUserGrants(const shv::chainpack::RpcValue &params);
+	shv::chainpack::RpcValue loadUsersConfig();
 
 private:
-	shv::chainpack::RpcValue loadUsersConfig();
 	void reloadUsersConfig();
 	void setUsersConfig(const shv::chainpack::RpcValue &data);
 
