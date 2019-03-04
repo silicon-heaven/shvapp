@@ -21,6 +21,8 @@
 
 namespace cp = shv::chainpack;
 
+const std::string AppRootNode::BRCLAB_NODE = ".brclab";
+
 static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false, cp::Rpc::GRANT_READ},
 	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_READ},
@@ -31,7 +33,7 @@ AppRootNode::AppRootNode(const QString &root_path, AppRootNode::Super *parent):
 {
 	m_isRootNode = true;
 	m_isRootNodeValid = !root_path.isEmpty() && QDir(root_path).exists();
-	m_brclabNode = new BrclabNode(this);
+	m_brclabNode = new BrclabNode(BRCLAB_NODE, this);
 
 	if (!m_isRootNodeValid){
 		shvError() << "Invalid root path: " << root_path.toStdString();
@@ -58,7 +60,7 @@ const shv::chainpack::MetaMethod *AppRootNode::metaMethod(const StringViewList &
 		else
 			SHV_EXCEPTION("Invalid method index: " + std::to_string(ix) + " of: " + std::to_string(all_method_count));
 	}
-	else if (shv_path[0] == ".brclab"){
+	else if (shv_path[0] == BRCLAB_NODE){
 		return nullptr;
 	}
 
@@ -70,7 +72,7 @@ shv::iotqt::node::ShvNode::StringList AppRootNode::childNames(const shv::iotqt::
 	shv::iotqt::node::ShvNode::StringList child_names = Super::childNames(shv_path);
 
 	if (shv_path.size() == 0){
-		child_names.push_back(".brclab");
+		child_names.push_back(BRCLAB_NODE);
 	}
 
 	return child_names;

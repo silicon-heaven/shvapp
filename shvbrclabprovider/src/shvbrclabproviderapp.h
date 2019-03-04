@@ -3,7 +3,6 @@
 #include <shv/iotqt/node/shvnode.h>
 #include "brclabnode.h"
 #include "brclabfsnode.h"
-#include "brclabusers.h"
 
 #include <QCoreApplication>
 #include <QNetworkAccessManager>
@@ -19,6 +18,8 @@ class AppRootNode : public BrclabFsNode
 {
 	using Super = BrclabFsNode;
 public:
+	static const std::string BRCLAB_NODE;
+
 	explicit AppRootNode(const QString &root_path, Super *parent = nullptr);
 
 	size_t methodCount(const StringViewList &shv_path) override;
