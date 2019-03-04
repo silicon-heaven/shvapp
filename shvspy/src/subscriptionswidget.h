@@ -20,19 +20,18 @@ class SubscriptionsWidget : public QWidget
 	Q_OBJECT
 
 public:
-	explicit SubscriptionsWidget(QWidget *parent = 0);
+	enum TableColumn {tcServer = 0, tcPath, tcMethod, tcPermanent, tcSubscribeAfterConnect, tcEnabled, tcCount};
+
+	explicit SubscriptionsWidget(QWidget *parent = nullptr);
 	~SubscriptionsWidget();
 
-	void setSubscriptionsList(const QVariantList &props);
-	QVariantList subscriptionsList();
 	void setShvPath(std::string path);
 
-private slots:
-	void onAddSubscription();
-	void onDeleteSubscription();
-	void on_buttonBox_accepted();
-
+	void addSubscriptions(const std::string &broker_id, const QVariantList &subscriptions);
+	void addSubscription(const std::string &broker_id,const QVariantMap &subscription);
 private:
+	QString boolToStr(bool val);
+
 	Ui::SubscriptionsWidget *ui;
 	QVariantList m_subscriptionList;
 };

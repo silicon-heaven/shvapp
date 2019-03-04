@@ -248,13 +248,6 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
-      <widget class="QPushButton" name="subscriptionDialogButton">
-       <property name="text">
-        <string>Subscription Editor</string>
-       </property>
-      </widget>
-     </item>
-     <item>
       <widget class="QDialogButtonBox" name="buttonBox">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
@@ -281,7 +274,6 @@
   <tabstop>rpc_timeout</tabstop>
   <tabstop>device_id</tabstop>
   <tabstop>device_mountPoint</tabstop>
-  <tabstop>subscriptionDialogButton</tabstop>
  </tabstops>
  <resources/>
  <connections>

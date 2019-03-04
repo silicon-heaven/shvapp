@@ -34,6 +34,9 @@ public:
 public:
 	ShvBrokerNodeItem* createConnection(const QVariantMap &params);
 	unsigned nextId() {return ++m_maxId;}
+
+	Q_SIGNAL void subscriptionsCreated(const std::string &broker, const QVariantList &subscriptions);
+	Q_SIGNAL void subscriptionAdded(const std::string &broker, const QVariantMap &subscription);
 private:
 	ShvNodeRootItem *m_invisibleRoot;
 	QMap<unsigned, ShvNodeItem*> m_nodes;

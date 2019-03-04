@@ -1,6 +1,5 @@
 #include "dlgserverproperties.h"
 #include "ui_dlgserverproperties.h"
-#include "dlgsubscriptions.h"
 
 #include <shv/chainpack/irpcconnection.h>
 
@@ -29,21 +28,11 @@ DlgServerProperties::DlgServerProperties(QWidget *parent) :
 
 	QSettings settings;
 	restoreGeometry(settings.value(QStringLiteral("ui/dlgServerProperties/geometry")).toByteArray());
-
 }
 
 DlgServerProperties::~DlgServerProperties()
 {
 	delete ui;
-}
-
-void DlgServerProperties::on_subscriptionDialogButton_clicked()
-{
-	DlgSubscriptions dlg_subs(this);
-	dlg_subs.subscriptionsWidget()->setSubscriptionsList(m_subscriptions);
-	if(dlg_subs.exec()) {
-		m_subscriptions = dlg_subs.subscriptionsWidget()->subscriptionsList();
-	}
 }
 
 QVariantMap DlgServerProperties::serverProperties() const

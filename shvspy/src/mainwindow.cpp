@@ -10,7 +10,6 @@
 //#include "dlgdumpnode.h"
 #include "dlgserverproperties.h"
 #include "dlgsubscriptionparameters.h"
-#include "dlgsubscriptions.h"
 #include "methodparametersdialog.h"
 #include "texteditdialog.h"
 
@@ -50,6 +49,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui->menu_View->addAction(ui->dockAttributes->toggleViewAction());
 	ui->menu_View->addAction(ui->dockNotifications->toggleViewAction());
 	ui->menu_View->addAction(ui->dockErrors->toggleViewAction());
+	ui->menu_View->addAction(ui->dockSubscriptions->toggleViewAction());
 
 	ServerTreeModel *tree_model = TheApp::instance()->serverTreeModel();
 	ui->treeServers->setModel(tree_model);
@@ -67,6 +67,8 @@ MainWindow::MainWindow(QWidget *parent) :
 		}
 	});
 	connect(ui->treeServers->selectionModel(), &QItemSelectionModel::currentChanged, this, &MainWindow::onShvTreeViewCurrentSelectionChanged);
+	connect(tree_model, &ServerTreeModel::subscriptionsCreated, ui->subscriptionsWidget, &SubscriptionsWidget::addSubscriptions);
+	connect(tree_model, &ServerTreeModel::subscriptionAdded, ui->subscriptionsWidget, &SubscriptionsWidget::addSubscription);
 
 	ui->tblAttributes->setModel(TheApp::instance()->attributesModel());
 	ui->tblAttributes->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
@@ -203,13 +205,7 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 			else if(a == a_subscribeNode) {
 				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 				if(nd) {
-					DlgSubscriptions dlg(this);
-					QVariantMap props = nd->serverNode()->serverProperties();
-					dlg.subscriptionsWidget()->setSubscriptionsList(props.value(QStringLiteral("subscriptions")).toList());
-					dlg.subscriptionsWidget()->setShvPath(nd->shvPath());
-					if (dlg.exec()){
-						nd->serverNode()->setSubscriptionList(dlg.subscriptionsWidget()->subscriptionsList());
-					}
+					nd->serverNode()->addSubscription(nd->shvPath(), "change");
 				}
 			}
 			/*

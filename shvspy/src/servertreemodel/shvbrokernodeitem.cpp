@@ -90,14 +90,34 @@ QVariantMap ShvBrokerNodeItem::serverProperties() const
 	return m_serverPropeties;
 }
 
-void ShvBrokerNodeItem::setSubscriptionList(const QVariantList &subs)
+void ShvBrokerNodeItem::addSubscription(const std::string &shv_path, const std::string &method)
 {
-	for (int i = 0; i < subs.size(); i++) {
-		QVariantMap subscription = subs.at(i).toMap();
-		shvInfo() << "Create subscription:" << nodeId() << "creating subscription" << subscription.value(QStringLiteral("path")).toString() << ":" << subscription.value(QStringLiteral("method")).toString();
-		callCreateSubscription(subscription.value(QStringLiteral("path")).toString().toStdString(), subscription.value(QStringLiteral("method")).toString().toStdString());
+	QVariant v = m_serverPropeties.value("subscriptions");
+
+	if(v.isValid()) {
+		bool add = true;
+		QVariantList subscriptions = v.toList();
+
+		for (int i = 0; i < subscriptions.size(); i++) {
+			QVariantMap subscription = subscriptions.at(i).toMap();
+			if ((subscription.value(QStringLiteral("path")).toString().toStdString() == shv_path) || (shv_path == "")){
+				add = false;
+			}
+		}
+
+		if (add){
+			QVariantMap subscription;
+			subscription["path"] = QString::fromStdString(shv_path);
+			subscription["method"] = QString::fromStdString(method);
+			subscription["isPermanent"] = false;
+			subscription["isSubscribedAfterConnect"] = false;
+			subscription["isEnabled"] = true;
+			subscriptions.append(subscription);
+
+			m_serverPropeties["subscriptions"] = subscriptions;
+			emit subscriptionAdded(nodeId(), subscription);
+		}
 	}
-	m_serverPropeties["subscriptions"] = subs;
 }
 
 void ShvBrokerNodeItem::setServerProperties(const QVariantMap &props)
@@ -245,6 +265,7 @@ ShvNodeItem* ShvBrokerNodeItem::findNode(const std::string &path, std::string *p
 
 int ShvBrokerNodeItem::callCreateSubscription(const std::string &shv_path, std::string method)
 {
+	shvInfo() << "Create subscription:" << nodeId() << "creating subscription" << shv_path << ":" << method;
 	shv::iotqt::rpc::ClientConnection *cc = clientConnection();
 	int rqid = cc->callMethodSubscribe(shv_path, method);
 	return rqid;
@@ -324,15 +345,24 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 
 void ShvBrokerNodeItem::createSubscriptions()
 {
-	QVariantMap props = serverProperties();
-	QVariant v = props.value("subscriptions");
+	QVariant v = m_serverPropeties.value("subscriptions");
 	if(v.isValid()) {
 		QVariantList subs = v.toList();
-		for (int i = 0; i < subs.size(); i++) {
+
+		for (int i = subs.size() -1; i >= 0; i--) {
 			QVariantMap subscription = subs.at(i).toMap();
-			shvInfo() << "Create subscription:" << nodeId() << "creating subscription" << subscription["path"].toString() << ":" << subscription["method"].toString();
-			callCreateSubscription(subscription.value(QStringLiteral("path")).toString().toStdString(), subscription.value(QStringLiteral("method")).toString().toStdString());
+			if (!subscription.value(QStringLiteral("isPermanent")).toBool()){
+				subs.removeAt(i);
+			}
+			else{
+				if (subscription.value(QStringLiteral("enabled")).toBool()){
+					callCreateSubscription(subscription.value(QStringLiteral("path")).toString().toStdString(), subscription.value(QStringLiteral("method")).toString().toStdString());
+				}
+			}
 		}
+
+		m_serverPropeties["subscriptions"] = subs;
+		emit subscriptionsCreated(nodeId(), m_serverPropeties.value("subscriptions").toList());
 	}
 }
 

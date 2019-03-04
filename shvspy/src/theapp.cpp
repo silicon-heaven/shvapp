@@ -85,4 +85,3 @@ void TheApp::saveSettings(QSettings &settings)
 	}
 	settings.endGroup();
 }
-

@@ -31,20 +31,24 @@ public:
 
 	QVariantMap serverProperties() const;
 	void setServerProperties(const QVariantMap &props);
-	void setSubscriptionList(const QVariantList &props);
+
+	void addSubscription(const std::string &shv_path, const std::string &method);
 
 	shv::iotqt::rpc::ClientConnection *clientConnection();
 
 	int callNodeRpcMethod(const std::string &calling_node_shv_path, const std::string &method, const shv::chainpack::RpcValue &params);
 
-	int callCreateSubscription(const std::string &shv_path, std::string method);
-
-
 	ShvNodeItem *findNode(const std::string &path, std::string *path_rest = nullptr);
+
+	Q_SIGNAL void subscriptionsCreated(const std::string &broker, const QVariantList &subscriptions);
+	Q_SIGNAL void subscriptionAdded(const std::string &broker, const QVariantMap &subscription);
+
 private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	void createSubscriptions();
+	int callCreateSubscription(const std::string &shv_path, std::string method);
+
 private:
 	QVariantMap m_serverPropeties;
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;

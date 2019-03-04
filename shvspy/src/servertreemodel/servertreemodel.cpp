@@ -49,6 +49,9 @@ ShvBrokerNodeItem *ServerTreeModel::createConnection(const QVariantMap &params)
 {
 	//qDebug() << params;
 	ShvBrokerNodeItem *ret = new ShvBrokerNodeItem(this, params.value("name").toString().toStdString());
+	connect(ret, &ShvBrokerNodeItem::subscriptionsCreated, this, &ServerTreeModel::subscriptionsCreated);
+	connect(ret, &ShvBrokerNodeItem::subscriptionAdded, this, &ServerTreeModel::subscriptionAdded);
+
 	const std::string broker_name = ret->nodeId();
 	ret->setServerProperties(params);
 	ShvNodeRootItem *root = invisibleRootItem();
