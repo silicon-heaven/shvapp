@@ -1,7 +1,9 @@
-#include "brclabusers.h"
-#include "appclioptions.h"
+#include "brclabusersnode.h"
+#include "shv/chainpack/rpcvalue.h"
+#include "shvbrclabproviderapp.h"
 
-#include "shv/core/log.h"
+#include <shv/core/log.h>
+#include <shv/core/exception.h>
 #include <shv/chainpack/cponwriter.h>
 #include <shv/chainpack/cponreader.h>
 
@@ -10,14 +12,73 @@
 
 namespace cp = shv::chainpack;
 
-BrclabUsers::BrclabUsers(const std::string &config_file_name, QObject *parent):
-	QObject(parent)
+static const char M_ADD_USER[] = "addUser";
+static const char M_CHANGE_USER_PASSWORD[] = "changeUserPassword";
+static const char M_GET_USER_GRANTS[] = "getUserGrants";
+
+static std::vector<cp::MetaMethod> meta_methods {
+	{M_ADD_USER, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_WRITE},
+	{M_CHANGE_USER_PASSWORD, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_WRITE},
+	{M_GET_USER_GRANTS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_WRITE}
+};
+
+BrclabUsersNode::BrclabUsersNode(const std::string &node_id, const std::string &fn, ShvNode *parent)
+	: Super(node_id, parent)
 {
-	m_usersConfigFileName = config_file_name;
+	m_usersConfigFileName = fn;
 	m_usersConfig = loadUsersConfig();
 }
 
-shv::chainpack::RpcValue BrclabUsers::loadUsersConfig()
+size_t BrclabUsersNode::methodCount(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
+{
+	return (shv_path.empty()) ? meta_methods.size() + Super::methodCount(shv_path) : Super::methodCount(shv_path);
+}
+
+const shv::chainpack::MetaMethod *BrclabUsersNode::metaMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, size_t ix)
+{
+	if(shv_path.empty()) {
+		size_t all_method_count = meta_methods.size() + Super::methodCount(shv_path);
+
+		if (ix < meta_methods.size())
+			return &(meta_methods[ix]);
+		else if (ix < all_method_count)
+			return Super::metaMethod(shv_path, ix - meta_methods.size());
+		else
+			SHV_EXCEPTION("Invalid method index: " + std::to_string(ix) + " of: " + std::to_string(all_method_count));
+	}
+
+	return Super::metaMethod(shv_path, ix);
+}
+
+shv::chainpack::RpcValue BrclabUsersNode::callMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
+{
+	if(shv_path.empty()) {
+		if(method == M_ADD_USER) {
+			return addUser(params);
+		}
+		else if(method == M_CHANGE_USER_PASSWORD) {
+			return changePassword(params);
+		}
+		else if(method == M_GET_USER_GRANTS) {
+			return getUserGrants(params);
+		}
+	}
+
+	return Super::callMethod(shv_path, method, params);
+}
+
+shv::chainpack::RpcValue BrclabUsersNode::loadValues()
+{
+	return  loadUsersConfig();
+}
+
+bool BrclabUsersNode::saveValues(const shv::chainpack::RpcValue &vals)
+{
+	setUsersConfig(vals);
+	return  true;
+}
+
+shv::chainpack::RpcValue BrclabUsersNode::loadUsersConfig()
 {
 	shv::chainpack::RpcValue ret;
 
@@ -42,7 +103,7 @@ shv::chainpack::RpcValue BrclabUsers::loadUsersConfig()
 	return ret;
 }
 
-void BrclabUsers::setUsersConfig(const shv::chainpack::RpcValue &data)
+void BrclabUsersNode::setUsersConfig(const shv::chainpack::RpcValue &data)
 {
 	if(data.isMap()) {
 		std::ofstream ofs(m_usersConfigFileName, std::ios::binary | std::ios::trunc);
@@ -61,7 +122,7 @@ void BrclabUsers::setUsersConfig(const shv::chainpack::RpcValue &data)
 	m_usersConfig = loadUsersConfig();
 }
 
-const shv::chainpack::RpcValue &BrclabUsers::usersConfig()
+const shv::chainpack::RpcValue &BrclabUsersNode::usersConfig()
 {
 	if (!m_usersConfig.isMap()){
 		m_usersConfig = loadUsersConfig();
@@ -70,7 +131,7 @@ const shv::chainpack::RpcValue &BrclabUsers::usersConfig()
 	return m_usersConfig;
 }
 
-bool BrclabUsers::addUser(const cp::RpcValue &params)
+bool BrclabUsersNode::addUser(const cp::RpcValue &params)
 {
 	if (!params.isMap() || !params.toMap().hasKey("user") || !params.toMap().hasKey("password")){
 		SHV_EXCEPTION("Invalid parameters format. Params must be a map and it must contains keys: user, password.");
@@ -95,7 +156,7 @@ bool BrclabUsers::addUser(const cp::RpcValue &params)
 	return true;
 }
 
-bool BrclabUsers::changePassword(const cp::RpcValue &params)
+bool BrclabUsersNode::changePassword(const cp::RpcValue &params)
 {
 	if (!params.isMap() || !params.toMap().hasKey("user") || !params.toMap().hasKey("newPassword")){
 		SHV_EXCEPTION("Invalid parameters format. Params must be a map and it must contains keys: user, newPassword.");
@@ -121,7 +182,7 @@ bool BrclabUsers::changePassword(const cp::RpcValue &params)
 	return true;
 }
 
-shv::chainpack::RpcValue BrclabUsers::getUserGrants(const cp::RpcValue &params)
+shv::chainpack::RpcValue BrclabUsersNode::getUserGrants(const cp::RpcValue &params)
 {
 	if (!params.isMap() || !params.toMap().hasKey("user") || !params.toMap().hasKey("password")){
 		SHV_EXCEPTION("Invalid parameters format. Params must be a map and it must contains keys: user, password.");
@@ -148,3 +209,4 @@ shv::chainpack::RpcValue BrclabUsers::getUserGrants(const cp::RpcValue &params)
 
 	return cp::RpcValue("");
 }
+
