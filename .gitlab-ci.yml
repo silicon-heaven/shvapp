@@ -59,7 +59,22 @@ production-deploy:
 
   environment:
     name: jessie
-    
+
+production-deploy-heaven:
+  only:
+    - production
+  tags:
+    - linux
+  stage:
+    deploy
+  script:
+    - id
+    - cd build
+    - rsync -avz lib bin shv@138.68.112.73:/opt/shv/production/
+    - ssh -t shv@138.68.112.73 "sudo /opt/shv/production/install.sh"
+  environment:
+    name: heaven
+
 test-deploy:
   only:
     - master
