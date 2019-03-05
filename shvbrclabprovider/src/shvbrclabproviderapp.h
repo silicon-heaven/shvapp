@@ -25,8 +25,11 @@ public:
 	size_t methodCount(const StringViewList &shv_path) override;
 	const shv::chainpack::MetaMethod* metaMethod(const StringViewList &shv_path, size_t ix) override;
 	StringList childNames(const ShvNode::StringViewList &shv_path) override;
+	shv::chainpack::RpcValue hasChildren(const StringViewList &shv_path);
+
 	shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params) override;
 	shv::chainpack::RpcValue processRpcRequest(const shv::chainpack::RpcRequest &rq) override;
+
 private:
 	BrclabNode *m_brclabNode = nullptr;
 	bool m_isRootNodeValid = false;

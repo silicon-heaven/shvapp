@@ -22,10 +22,10 @@ static std::vector<cp::MetaMethod> meta_methods {
 	{M_GET_USER_GRANTS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_WRITE}
 };
 
-BrclabUsersNode::BrclabUsersNode(const std::string &config_name, ShvNode *parent)
-	: Super(config_name, parent)
+BrclabUsersNode::BrclabUsersNode(const std::string &node_id, const std::string &fn, ShvNode *parent)
+	: Super(node_id, parent)
 {
-	m_usersConfigFileName = ShvBrclabProviderApp::instance()->brclabUsersFileName();
+	m_usersConfigFileName = fn;
 	m_usersConfig = loadUsersConfig();
 }
 
@@ -69,7 +69,7 @@ shv::chainpack::RpcValue BrclabUsersNode::callMethod(const shv::iotqt::node::Shv
 
 shv::chainpack::RpcValue BrclabUsersNode::loadValues()
 {
-	return loadUsersConfig();
+	return  loadUsersConfig();
 }
 
 bool BrclabUsersNode::saveValues(const shv::chainpack::RpcValue &vals)

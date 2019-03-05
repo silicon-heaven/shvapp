@@ -9,7 +9,7 @@ class BrclabUsersNode : public shv::iotqt::node::RpcValueMapNode
 {
 	using Super = shv::iotqt::node::RpcValueMapNode;
 public:
-	BrclabUsersNode(const std::string &config_name, shv::iotqt::node::ShvNode *parent);
+	BrclabUsersNode(const std::string &node_id, const std::string &fn, shv::iotqt::node::ShvNode *parent);
 
 	size_t methodCount(const StringViewList &shv_path) override;
 	const shv::chainpack::MetaMethod* metaMethod(const StringViewList &shv_path, size_t ix) override;

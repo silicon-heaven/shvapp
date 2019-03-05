@@ -78,6 +78,15 @@ shv::iotqt::node::ShvNode::StringList AppRootNode::childNames(const shv::iotqt::
 	return child_names;
 }
 
+shv::chainpack::RpcValue AppRootNode::hasChildren(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
+{
+	if (shv_path.size() > 0 && shv_path[0] == BRCLAB_NODE){
+		return true;
+	}
+
+	return Super::hasChildren(shv_path);
+}
+
 shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
 {
 	if (!m_isRootNodeValid){
