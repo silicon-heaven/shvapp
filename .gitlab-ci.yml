@@ -23,6 +23,23 @@ linux:
     - make -j2
     - ../make-linux-artifacts.sh
 
+linux-bb:
+  tags:
+    - beaglebone
+  stage:
+    build
+  artifacts:
+    paths:
+    - build-bb/lib/
+    - build-bb/bin/
+  script:
+    #- git submodule update --init --force --recursive
+    - rm -rf build-bb
+    - mkdir -p build-bb
+    - cd build-bb
+    - /opt/qt5bbb/bin/qmake -r CONFIG+=no-libshv-gui CONFIG+=beaglebone ../shv.pro DEFINES+=GIT_COMMIT=${CI_BUILD_REF}
+    - make -j2
+
 production-deploy:
   only:
     - production
@@ -42,7 +59,22 @@ production-deploy:
 
   environment:
     name: jessie
-    
+
+production-deploy-heaven:
+  only:
+    - production
+  tags:
+    - linux
+  stage:
+    deploy
+  script:
+    - id
+    - cd build
+    - rsync -avz lib bin shv@138.68.112.73:/opt/shv/production/
+    - ssh -t shv@138.68.112.73 "sudo /opt/shv/production/install.sh"
+  environment:
+    name: heaven
+
 test-deploy:
   only:
     - master

@@ -83,7 +83,7 @@ shv::chainpack::RpcValue AclPathsConfigFileNode::valueOnPath(const shv::iotqt::n
 		const shv::chainpack::RpcValue::Map &m = v.toMap();
 		std::string key = dir.toString();
 		v = m.value(key);
-		shvInfo() << "\t i:" << i << "key:" << key << "val:" << v.toCpon();
+		//shvInfo() << "\t i:" << i << "key:" << key << "val:" << v.toCpon();
 		if(!v.isValid())
 			SHV_EXCEPTION("Invalid path: " + shv_path.join('/'));
 	}

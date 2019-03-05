@@ -12,7 +12,7 @@ QT -= gui
 CONFIG += c++11
 
 TEMPLATE = app
-TARGET = shvfileprovider
+TARGET = shvbrclabprovider
 
 DESTDIR = $$QF_PROJECT_TOP_BUILDDIR/bin
 

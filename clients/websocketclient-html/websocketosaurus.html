@@ -7,13 +7,15 @@
 		<script type="text/javascript" src="../../3rdparty/libshv/libshvchainpack/js/cpcontext.js"></script>
 		<script type="text/javascript" src="../../3rdparty/libshv/libshvchainpack/js/chainpack.js"></script>
 		<script type="text/javascript" src="../../3rdparty/libshv/libshvchainpack/js/cpon.js"></script>
+		<script type="text/javascript" src="../../3rdparty/libshv/libshvchainpack/js/bint.js"></script>
 		<script type="text/javascript" src="../../3rdparty/libshv/libshvchainpack/js/rpcmessage.js"></script>
 	</head>
 	<body>
 		<h1>WebSocketoSaurus</h1>
 		<h2>WebSocket Shv Broker test Client</h1>
 		<p>
-			<button onClick="initWebSocket();">Connect</button>
+			<button onClick="initWebSocket(true);">Connect ChainPack</button>
+			<button onClick="initWebSocket(false);">Connect Cpon</button>
 			<button onClick="stopWebSocket();">Disconnect</button>
 			<button onClick="checkSocket();">State</button>
 			<span id="lblState">---</span>
@@ -32,9 +34,20 @@
 		</p>
 
 		<script type="text/javascript">
+			document.getElementById("edShvPath").value = ".broker/app";
+			document.getElementById("edMethod").value = "echo";
+			document.getElementById("edParams").value = "42";
+
 			let txtLog = document.getElementById("txtLog");
-			function debug(message) {
-				txtLog.value += message + "\n";
+			function debug(...args)
+			{
+				let line = "";
+				for (let i=0; i < args.length; i++) {
+					if(i > 0)
+						line += " "
+      				line += args[i];
+				}
+				txtLog.value += line + "\n";
 				txtLog.scrollTop = txtLog.scrollHeight;
 			}
 
@@ -55,11 +68,13 @@
 			let login_phase = false;
 			let broker_connected = false;
 			let request_id = 1
+			let isUseCpon = false
 
-			function initWebSocket()
+			function initWebSocket(use_chainpack)
 			{
+				isUseCpon = !use_chainpack
 				let txtLog = document.getElementById("txtLog");
-				txtLog.value = ""
+				txtLog.value = "Connection to shvbroker using " + (isUseCpon? "Cpon": "ChainPack") + " serialization.";
 				request_id = 1;
 				try {
 					checkSocket();
@@ -127,8 +142,11 @@
 					websocket.onerror = function (evt) {
 						debug('ERROR: ' + evt.data);
 					};
+					websocket.onclose = function (evt) {
+						debug('socket close code: ' + evt.code);
+					};
 				} catch (exception) {
-					debug('ERROR: ' + exception);
+					debug('EXCEPTION: ' + exception);
 				}
 			}
 
@@ -187,16 +205,26 @@
 			function sendRpcMessage(rpc_msg)
 			{
 				if(websocket && websocket.readyState == 1) {
-					let cpon_data = rpc_msg.toCpon();
+					debug("sending rpc message:", rpc_msg.toString())
+					if(isUseCpon)
+						var msg_data = new Uint8Array(rpc_msg.toCpon());
+					else
+						var msg_data = new Uint8Array(rpc_msg.toChainPack());
+
 					let wr = new ChainPackWriter();
-					wr.writeUIntData(cpon_data.length + 1)
-					let dgram = new Uint8Array(wr.ctx.length + 1 + cpon_data.length)
+					wr.writeUIntData(msg_data.length + 1)
+					let dgram = new Uint8Array(wr.ctx.length + 1 + msg_data.length)
 					let ix = 0
 					for (let i = 0; i < wr.ctx.length; i++)
 						dgram[ix++] = wr.ctx.data[i]
-					dgram[ix++] = Cpon.ProtocolType
-					for (let i = 0; i < cpon_data.length; i++)
-						dgram[ix++] = cpon_data[i]
+
+					if(isUseCpon)
+						dgram[ix++] = Cpon.ProtocolType
+					else
+						dgram[ix++] = ChainPack.ProtocolType
+
+					for (let i = 0; i < msg_data.length; i++)
+						dgram[ix++] = msg_data[i]
 					debug("sending " + dgram.length + " bytes of data")
 					websocket.send(dgram.buffer)
 				}
@@ -209,6 +237,8 @@
 				let proto = rd.ctx.getByte();
 				if(proto == Cpon.ProtocolType)
 					rd = new CponReader(rd.ctx)
+				else
+					rd = new ChainPackReader(rd.ctx)
 				let rpc_val = rd.read();
 				//debug("msg buff len " + buff.byteLength + " offset: " + offset)
 				//return String.fromCharCode.apply(null, new Uint8Array(buff, offset));

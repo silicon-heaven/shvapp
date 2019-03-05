@@ -289,7 +289,7 @@ void BrokerApp::startWebSocketServer()
 		}
 	}
 #else
-	shvError() << "Websocket server is not included in this build";
+	shvWarning() << "Websocket server is not included in this build";
 #endif
 }
 
@@ -799,21 +799,39 @@ void BrokerApp::onRpcDataReceived(int connection_id, shv::chainpack::Rpc::Protoc
 		// it cannot be constructed from meta, since meta is moved in the try block
 		shv::chainpack::RpcResponse rsp = cp::RpcResponse::forRequest(meta);
 		try {
-			rpc::CommonRpcClientHandle *cch = commonClientConnectionById(connection_id);
+			rpc::CommonRpcClientHandle *connection_handle = commonClientConnectionById(connection_id);
 			std::string shv_path = cp::RpcMessage::shvPath(meta).toString();
-			if(cch) {
+			if(connection_handle) {
 				if(rpc::ServerConnection::Subscription::isRelativePath(shv_path)) {
-					const std::vector<std::string> &mps = cch->mountPoints();
+					const std::vector<std::string> &mps = connection_handle->mountPoints();
 					if(mps.empty())
 						SHV_EXCEPTION("Cannot call method on relative path for unmounted device.");
 					if(mps.size() > 1)
 						SHV_EXCEPTION("Cannot call method on relative path for device mounted to more than single node.");
-					shv_path = rpc::ServerConnection::Subscription::toAbsolutePath(mps[0], shv_path);
+					std::string mount_point = mps[0];
+					rpc::MasterBrokerConnection *master_broker_conn = nullptr;
+					{
+						QList<rpc::MasterBrokerConnection *> mbcs = masterBrokerConnections();
+						if(!mbcs.isEmpty()) {
+							master_broker_conn = mbcs[0];
+							mount_point = master_broker_conn->slavePathToMaster(mount_point);
+						}
+					}
+					shv_path = rpc::ServerConnection::Subscription::toAbsolutePath(mount_point, shv_path);
+					if(rpc::ServerConnection::Subscription::isRelativePath(shv_path)) {
+						/// still relative path, it should be forwarded to mater broker
+						if(master_broker_conn == nullptr)
+							SHV_EXCEPTION("Cannot resolve relative path " + cp::RpcMessage::shvPath(meta).toString() + ", there is no master broker to forward the request.");
+						cp::RpcMessage::setShvPath(meta, shv_path);
+						cp::RpcMessage::pushCallerId(meta, connection_id);
+						master_broker_conn->sendRawData(std::move(meta), std::move(data));
+						return;
+					}
 					cp::RpcMessage::setShvPath(meta, shv_path);
 				}
-				cp::Rpc::AccessGrant acg = accessGrantForRequest(cch, shv_path, cp::RpcMessage::accessGrant(meta).toString());
+				cp::Rpc::AccessGrant acg = accessGrantForRequest(connection_handle, shv_path, cp::RpcMessage::accessGrant(meta).toString());
 				if(!acg.isValid())
-					SHV_EXCEPTION("Acces to shv path '" + shv_path + "' not granted for user '" + cch->loggedUserName() + "'");
+					SHV_EXCEPTION("Acces to shv path '" + shv_path + "' not granted for user '" + connection_handle->loggedUserName() + "'");
 				cp::RpcMessage::setAccessGrant(meta, acg.grant);
 				cp::RpcMessage::pushCallerId(meta, connection_id);
 				if(m_nodesTree->root()) {
@@ -1031,7 +1049,7 @@ void BrokerApp::addSubscription(int client_id, const std::string &shv_path, cons
 	if(!conn)
 		SHV_EXCEPTION("Connot create subscription, client doesn't exist.");
 	//logSubscriptionsD() << "addSubscription connection id:" << client_id << "path:" << path << "method:" << method;
-	int subs_ix = conn->addSubscription(shv_path, method);
+	auto subs_ix = conn->addSubscription(shv_path, method);
 	const rpc::CommonRpcClientHandle::Subscription &subs = conn->subscriptionAt(subs_ix);
 	// check slave broker connections
 	// whether this subsciption should be propagated to them
@@ -1041,6 +1059,15 @@ void BrokerApp::addSubscription(int client_id, const std::string &shv_path, cons
 			conn->propagateSubscriptionToSlaveBroker(subs);
 		}
 	}
+}
+
+bool BrokerApp::removeSubscription(int client_id, const std::string &shv_path, const std::string &method)
+{
+	rpc::CommonRpcClientHandle *conn = commonClientConnectionById(client_id);
+	if(!conn)
+		SHV_EXCEPTION("Connot remove subscription, client doesn't exist.");
+	//logSubscriptionsD() << "addSubscription connection id:" << client_id << "path:" << path << "method:" << method;
+	return conn->removeSubscription(shv_path, method);
 }
 
 bool BrokerApp::rejectNotSubscribedSignal(int client_id, const std::string &path, const std::string &method)

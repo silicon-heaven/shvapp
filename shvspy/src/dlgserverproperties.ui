@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>613</width>
-    <height>579</height>
+    <height>632</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -169,7 +169,7 @@
        </property>
       </widget>
      </item>
-     <item row="9" column="0" colspan="2">
+     <item row="10" column="0" colspan="2">
       <widget class="QGroupBox" name="grpDevice">
        <property name="title">
         <string>Device</string>
@@ -196,6 +196,38 @@
          <widget class="QLineEdit" name="device_id"/>
         </item>
        </layout>
+      </widget>
+     </item>
+     <item row="9" column="0">
+      <widget class="QLabel" name="label_12">
+       <property name="text">
+        <string>RPC Timeout</string>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="1">
+      <widget class="QSpinBox" name="rpc_timeout">
+       <property name="toolTip">
+        <string>Send heart beat to broker every n sec. Disabled when set to 0.</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
+       <property name="suffix">
+        <string> sec</string>
+       </property>
+       <property name="minimum">
+        <number>1</number>
+       </property>
+       <property name="maximum">
+        <number>999999999</number>
+       </property>
+       <property name="singleStep">
+        <number>10</number>
+       </property>
+       <property name="value">
+        <number>5</number>
+       </property>
       </widget>
      </item>
     </layout>
@@ -246,8 +278,10 @@
   <tabstop>rpc_protocolType</tabstop>
   <tabstop>rpc_reconnectInterval</tabstop>
   <tabstop>rpc_heartbeatInterval</tabstop>
+  <tabstop>rpc_timeout</tabstop>
   <tabstop>device_id</tabstop>
   <tabstop>device_mountPoint</tabstop>
+  <tabstop>subscriptionDialogButton</tabstop>
  </tabstops>
  <resources/>
  <connections>
@@ -258,8 +292,8 @@
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>184</x>
-     <y>179</y>
+     <x>394</x>
+     <y>616</y>
     </hint>
     <hint type="destinationlabel">
      <x>157</x>
@@ -274,8 +308,8 @@
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>184</x>
-     <y>179</y>
+     <x>394</x>
+     <y>616</y>
     </hint>
     <hint type="destinationlabel">
      <x>286</x>

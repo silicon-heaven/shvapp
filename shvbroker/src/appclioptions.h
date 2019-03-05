@@ -19,9 +19,9 @@ public:
 	CLIOPTION_GETTER_SETTER2(int, "server.websocket.port", s, setS, erverWebsocketPort)
 #endif
 	CLIOPTION_GETTER_SETTER2(std::string, "server.publicIP", p, setP, ublicIP)
-	CLIOPTION_GETTER_SETTER2(std::string, "sql.host", s, setS, qlHost)
-	CLIOPTION_GETTER_SETTER2(int, "sql.port", s, setS, qlPort)
-	CLIOPTION_GETTER_SETTER2(bool, "rpc.metaTypeExplicit", is, set, MetaTypeExplicit)
+	//CLIOPTION_GETTER_SETTER2(std::string, "sql.host", s, setS, qlHost)
+	//CLIOPTION_GETTER_SETTER2(int, "sql.port", s, setS, qlPort)
+	//CLIOPTION_GETTER_SETTER2(bool, "rpc.metaTypeExplicit", is, set, MetaTypeExplicit)
 	CLIOPTION_GETTER_SETTER2(std::string, "etc.acl.fstab", f, setF, stabFile)
 	CLIOPTION_GETTER_SETTER2(std::string, "etc.acl.users", u, setU, sersFile)
 	CLIOPTION_GETTER_SETTER2(std::string, "etc.acl.grants", g, setG, rantsFile)

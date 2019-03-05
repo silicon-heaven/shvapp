@@ -58,6 +58,7 @@ QVariantMap DlgServerProperties::serverProperties() const
 	ret["rpc.protocolType"] = ui->rpc_protocolType->currentData().toInt();
 	ret["rpc.reconnectInterval"] = ui->rpc_reconnectInterval->value();
 	ret["rpc.heartbeatInterval"] = ui->rpc_heartbeatInterval->value();
+	ret["rpc.defaultRpcTimeout"] = ui->rpc_timeout->value();
 	ret["device.id"] = ui->device_id->text().trimmed();
 	ret["device.mountPoint"] = ui->device_mountPoint->text().trimmed();
 	ret["subscriptions"] = m_subscriptions;
@@ -82,6 +83,11 @@ void DlgServerProperties::setServerProperties(const QVariantMap &props)
 		QVariant v = props.value("rpc.heartbeatInterval");
 		if(v.isValid())
 			ui->rpc_heartbeatInterval->setValue(v.toInt());
+	}
+	{
+		QVariant v = props.value("rpc.defaultRpcTimeout");
+		if(v.isValid())
+			ui->rpc_timeout->setValue(v.toInt());
 	}
 	{
 		QVariant v = props.value("device.id");

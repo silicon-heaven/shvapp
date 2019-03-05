@@ -45,7 +45,7 @@ shv::chainpack::RpcValue ClientConnectionNode::callMethod(const shv::iotqt::node
 				for(auto s : cli->mountPoints())
 					ret.push_back(s);
 			}
-			return ret;
+			return cp::RpcValue(ret);
 		}
 		if(method == M_DROP_CLIENT) {
 			rpc::ServerConnection *cli = BrokerApp::instance()->clientById(m_clientId);

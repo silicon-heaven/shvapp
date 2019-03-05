@@ -23,32 +23,41 @@ std::string CommonRpcClientHandle::Subscription::toRelativePath(const std::strin
 	return ret;
 }
 
-static const std::string DDOT("../");
+static const std::string DDOT_SLASH("../");
+static const std::string DDOT("..");
 
 bool CommonRpcClientHandle::Subscription::isRelativePath(const std::string &path)
 {
 	shv::core::StringView p(path);
-	return p.startsWith(DDOT);
+	return p == DDOT || p.startsWith(DDOT_SLASH);
 }
 
 std::string CommonRpcClientHandle::Subscription::toAbsolutePath(const std::string &mount_point, const std::string &rel_path)
 {
+	shvDebug() << "mount point:" << mount_point << "rel path:" << rel_path;
+	if(!isRelativePath(rel_path))
+		return rel_path;
+
+	shv::core::StringViewList plst = shv::iotqt::node::ShvNode::splitShvPath(mount_point);
+	for(const auto &p : shv::iotqt::node::ShvNode::splitShvPath(rel_path))
+		plst.push_back(p);
+	while(true) {
+		ssize_t ix = plst.indexOf(DDOT);
+		if(ix <= 0)
+			break;
+		for(ssize_t i = ix; i < static_cast<ssize_t>(plst.size())-1; i++)
+			plst[i-1] = plst[i+1];
+		plst.resize(plst.size() - 2);
+	}
 	shv::core::StringView p(rel_path);
 	size_t ddot_cnt = 0;
-	while(p.startsWith(DDOT)) {
+	while(p.startsWith(DDOT_SLASH)) {
 		ddot_cnt++;
-		p = p.mid(DDOT.size());
+		p = p.mid(DDOT_SLASH.size());
 	}
-	std::string abs_path;
-	if(ddot_cnt > 0 && !mount_point.empty()) {
-		shv::core::StringViewList mpl = shv::iotqt::node::ShvNode::splitShvPath(mount_point);
-		if(mpl.size() >= ddot_cnt) {
-			mpl.resize(mpl.size() - ddot_cnt);
-			abs_path = mpl.join('/') + '/' + p.toString();
-			return abs_path;
-		}
-	}
-	return rel_path;
+	std::string abs_path = plst.join('/');
+	shvDebug() << "mount point:" << mount_point << "rel path:" << rel_path << "-->" << abs_path;
+	return abs_path;
 }
 /*
 bool CommonRpcClientHandle::Subscription::operator<(const CommonRpcClientHandle::Subscription &o) const
@@ -117,6 +126,29 @@ unsigned CommonRpcClientHandle::addSubscription(const std::string &rel_path, con
 	else {
 		*it = subs;
 		return (it - m_subscriptions.begin());
+	}
+}
+
+bool CommonRpcClientHandle::removeSubscription(const std::string &rel_path, const std::string &method)
+{
+	std::string abs_path = rel_path;
+	if(Subscription::isRelativePath(abs_path)) {
+		const std::vector<std::string> &mps = mountPoints();
+		if(mps.empty())
+			SHV_EXCEPTION("Cannot unsubscribe relative path on unmounted device.");
+		if(mps.size() > 1)
+			SHV_EXCEPTION("Cannot unsubscribe relative path on device mounted to more than single node.");
+		abs_path = Subscription::toAbsolutePath(mps[0], rel_path);
+	}
+	logSubscriptionsD() << "removing subscription for connection id:" << connectionId() << "path:" << abs_path << "method:" << method;
+	Subscription subs(abs_path, rel_path, method);
+	auto it = std::find(m_subscriptions.begin(), m_subscriptions.end(), subs);
+	if(it == m_subscriptions.end()) {
+		return false;
+	}
+	else {
+		m_subscriptions.erase(it);
+		return true;
 	}
 }
 

@@ -6,11 +6,10 @@
 #include "servertreemodel/shvbrokernodeitem.h"
 #include "log/rpcnotificationsmodel.h"
 #include "log/errorlogmodel.h"
-
-//#include "dlgdumpnode.h"
 #include "dlgserverproperties.h"
 #include "dlgsubscriptionparameters.h"
 #include "dlgsubscriptions.h"
+#include "dlgcallshvmethod.h"
 #include "methodparametersdialog.h"
 #include "texteditdialog.h"
 
@@ -173,6 +172,7 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 	QMenu m;
 	QAction *a_reloadNode = new QAction(tr("Reload"), &m);
 	QAction *a_subscribeNode = new QAction(tr("Subscribe"), &m);
+	QAction *a_callShvMethod = new QAction(tr("Call shv method"), &m);
 	//QAction *a_test = new QAction(tr("create test.txt"), &m);
 	if(!nd) {
 		m.addAction(ui->actAddServer);
@@ -190,7 +190,7 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 	else {
 		m.addAction(a_reloadNode);
 		m.addAction(a_subscribeNode);
-		//m.addAction(a_test);
+		m.addAction(a_callShvMethod);
 	}
 	if(!m.actions().isEmpty()) {
 		QAction *a = m.exec(ui->treeServers->viewport()->mapToGlobal(pos));
@@ -212,16 +212,16 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 					}
 				}
 			}
-			/*
-			else if(a == a_test) {
+			else if(a == a_callShvMethod) {
 				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 				if(nd) {
-					std::string file_path = nd->shvPath() + "/test.txt";
-					ShvBrokerNodeItem *srv_nd = nd->serverNode();
-					srv_nd->callNodeRpcMethod(file_path, "write", "abc");
+					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
+
+					DlgCallShvMethod dlg(cc, this);
+					dlg.setShvPath(nd->shvPath());
+					dlg.exec();
 				}
 			}
-			*/
 		}
 	}
 }
@@ -231,10 +231,14 @@ void MainWindow::openNode(const QModelIndex &ix)
 	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ix);
 	ShvBrokerNodeItem *bnd = qobject_cast<ShvBrokerNodeItem*>(nd);
 	if(bnd) {
-		if(bnd->openStatus() == ShvBrokerNodeItem::OpenStatus::Disconnected)
+		AttributesModel *m = TheApp::instance()->attributesModel();
+		if(bnd->openStatus() == ShvBrokerNodeItem::OpenStatus::Disconnected) {
 			bnd->open();
-		else
+		}
+		else {
 			bnd->close();
+			m->load(nullptr);
+		}
 	}
 }
 
@@ -351,15 +355,16 @@ void MainWindow::onShvTreeViewCurrentSelectionChanged(const QModelIndex &curr_ix
 	Q_UNUSED(prev_ix)
 	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(curr_ix);
 	{
-		ShvBrokerNodeItem *bnd = qobject_cast<ShvBrokerNodeItem*>(nd);
 		AttributesModel *m = TheApp::instance()->attributesModel();
+		ui->edAttributesShvPath->setText(QString::fromStdString(nd->shvPath()));
+		ShvBrokerNodeItem *bnd = qobject_cast<ShvBrokerNodeItem*>(nd);
 		if(bnd) {
 			// hide attributes for server nodes
-			ui->edAttributesShvPath->setText(QString());
-			m->load(nullptr);
+			//ui->edAttributesShvPath->setText(QString());
+			m->load(bnd->isOpen()? bnd: nullptr);
 		}
 		else {
-			ui->edAttributesShvPath->setText(QString::fromStdString(nd->shvPath()));
+			//ui->edAttributesShvPath->setText(QString::fromStdString(nd->shvPath()));
 			m->load(nd);
 		}
 	}
