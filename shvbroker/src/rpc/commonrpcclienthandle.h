@@ -16,7 +16,7 @@ public:
 		std::string method;
 
 		Subscription() {}
-		Subscription(const std::string &ap, const std::string &rp, const std::string &m) : absolutePath(ap), relativePath(rp), method(m) {}
+		Subscription(const std::string &ap, const std::string &rp, const std::string &m);
 
 		static bool isRelativePath(const std::string &path);
 		std::string toRelativePath(const std::string &abs_path) const;
