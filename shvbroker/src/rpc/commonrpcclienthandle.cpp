@@ -8,6 +8,7 @@
 #include <shv/core/exception.h>
 
 #define logSubscriptionsD() nCDebug("Subscr").color(NecroLog::Color::Yellow)
+#define logSubsResolveD() nCDebug("SubsRes").color(NecroLog::Color::LightGreen)
 
 namespace rpc {
 
@@ -25,6 +26,27 @@ std::string CommonRpcClientHandle::Subscription::toRelativePath(const std::strin
 
 static const std::string DDOT_SLASH("../");
 static const std::string DDOT("..");
+
+CommonRpcClientHandle::Subscription::Subscription(const std::string &ap, const std::string &rp, const std::string &m)
+	: relativePath(rp)
+	, method(m)
+{
+	size_t ix1 = 0;
+	while(ix1 < ap.size()) {
+		if(ap[ix1] == '/')
+			ix1++;
+		else
+			break;
+	}
+	size_t len = ap.size();
+	while(len > 0) {
+		if(ap[len - 1] == '/')
+			len--;
+		else
+			break;
+	}
+	absolutePath = ap.substr(ix1, len);
+}
 
 bool CommonRpcClientHandle::Subscription::isRelativePath(const std::string &path)
 {
@@ -157,10 +179,16 @@ int CommonRpcClientHandle::isSubscribed(const std::string &path, const std::stri
 	shv::core::StringView shv_path(path);
 	while(shv_path.length() && shv_path[0] == '/')
 		shv_path = shv_path.mid(1);
+	while(shv_path.value(-1) == '/')
+		shv_path = shv_path.mid(0, shv_path.length()-1);
+	logSubsResolveD() << connectionId() << "checking if subcribed path:" << shv_path.toString() << "method:" << method;
 	for (size_t i = 0; i < subscriptionCount(); ++i) {
 		const Subscription &subs = subscriptionAt(i);
-		if(subs.match(shv_path, method))
-			return i;
+		logSubsResolveD() << "\tvs. path:" << subs.absolutePath << "method:" << subs.method;
+		if(subs.match(shv_path, method)) {
+			logSubsResolveD() << "\tHIT";
+			return (int)i;
+		}
 	}
 	return -1;
 }

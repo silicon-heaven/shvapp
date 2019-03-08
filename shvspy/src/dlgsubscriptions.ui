@@ -40,7 +40,11 @@
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="subscriptionMethodLineEdit"/>
+      <widget class="QLineEdit" name="subscriptionMethodLineEdit">
+       <property name="text">
+        <string>chng</string>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QPushButton" name="addSubsriptionButton">

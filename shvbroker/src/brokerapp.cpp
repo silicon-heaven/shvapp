@@ -48,6 +48,7 @@
 #define logAclD() nCDebug("Acl")
 #define logAccessD() nCDebug("Access").color(NecroLog::Color::Green)
 #define logSubscriptionsD() nCDebug("Subscr").color(NecroLog::Color::Yellow)
+#define logSubsResolveD() nCDebug("SubsRes").color(NecroLog::Color::LightGreen)
 
 int BrokerApp::m_sigTermFd[2];
 #endif
@@ -909,17 +910,21 @@ void BrokerApp::onRpcDataReceived(int connection_id, shv::chainpack::Rpc::Protoc
 		}
 		else {
 			// broker messages like create master broker subscription
-			if(cp::RpcMessage::requestId(meta).toInt() != 0)
-				shvError() << "Got RPC response without src connection specified, throwing message away." << meta.toPrettyString();
+			shvDebug() << "Got RPC response without src connection specified, it should be this broker call like create master broker subscription, throwing message away." << meta.toPrettyString();
 		}
 	}
 	else if(cp::RpcMessage::isSignal(meta)) {
-		shvDebug() << "NOTIFY:" << meta.toPrettyString() << "from:" << connection_id;
+		logSubsResolveD() << "NOTIFY:" << meta.toPrettyString() << "from:" << connection_id;
 		rpc::CommonRpcClientHandle *conn = commonClientConnectionById(connection_id);
 		if(conn) {
-			for(const std::string &mp : conn->mountPoints()) {
+			const std::vector<std::string> mps = conn->mountPoints();
+			logSubsResolveD() << conn->connectionId()
+							  << "NOTIFY mount points:"
+							  << std::accumulate(mps.begin(), mps.end(), std::string(),  [](const std::string& a, const std::string& b) -> std::string {  return a + (a.length() > 0 ? "," : "") + b; } );
+			for(const std::string &mp : mps) {
 				std::string full_shv_path = shv::core::Utils::joinPath(mp, cp::RpcMessage::shvPath(meta).toString());
 				if(!full_shv_path.empty()) {
+					logSubsResolveD() << conn->connectionId() << "forwarding signal to client on mount point:" << mp << "as:" << full_shv_path;
 					cp::RpcMessage::setShvPath(meta, full_shv_path);
 					bool sig_sent = sendNotifyToSubscribers(connection_id, meta, data);
 					if(!sig_sent && conn->isSlaveBrokerConnection()) {

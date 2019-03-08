@@ -23,7 +23,7 @@ struct ShvMetaMethod
 	std::string accessGrant;
 	shv::chainpack::RpcValue params;
 	shv::chainpack::RpcResponse response;
-	unsigned rpcRequestId = 0;
+	int rpcRequestId = 0;
 
 	std::string signatureStr() const;
 	std::string flagsStr() const;
@@ -85,11 +85,11 @@ protected:
 	//mutable QMap<qfopcua::AttributeId::Enum, QVariant> m_attribudes;
 	QVariant m_hasChildren;
 	bool m_childrenLoaded = false;
-	unsigned m_loadChildrenRqId = 0;
+	int m_loadChildrenRqId = 0;
 	QVector<ShvNodeItem*> m_children;
 	QVector<ShvMetaMethod> m_methods;
 	bool m_methodsLoaded = false;
-	unsigned m_loadMethodsRqId = 0;
+	int m_loadMethodsRqId = 0;
 	unsigned m_treeModelId = 0;
 };
 
