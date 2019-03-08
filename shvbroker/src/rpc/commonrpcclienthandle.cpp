@@ -101,13 +101,17 @@ bool CommonRpcClientHandle::Subscription::operator==(const CommonRpcClientHandle
 bool CommonRpcClientHandle::Subscription::match(const shv::core::StringView &shv_path, const shv::core::StringView &shv_method) const
 {
 	//shvInfo() << pathPattern << ':' << method << "match" << shv_path.toString() << ':' << shv_method.toString();// << "==" << true;
-	if(shv_path.startsWith(absolutePath)) {
-		if(shv_path.length() == absolutePath.length())
-			return (method.empty() || shv_method == method);
-		if(shv_path.length() > absolutePath.length()
-				&& (absolutePath.empty() || shv_path[absolutePath.length()] == '/'))
-			return (method.empty() || shv_method == method);
+	bool path_match = false;
+	if(absolutePath.empty()) {
+		path_match = true;
 	}
+	else if(shv_path.startsWith(absolutePath)) {
+		path_match = (shv_path.length() == absolutePath.length())
+				|| (absolutePath[absolutePath.length() - 1] == '/')
+				|| (shv_path[absolutePath.length()] == '/');
+	}
+	if(path_match)
+		return (method.empty() || shv_method == method);
 	return false;
 }
 //=====================================================================
