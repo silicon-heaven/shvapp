@@ -23,6 +23,7 @@ AppSupportURL=http://www.{#APP_NAME_LOWER}.cz
 AppUpdatesURL=http://www.{#APP_NAME_LOWER}.cz
 DefaultDirName=C:\{#APP_NAME}
 DefaultGroupName={#APP_NAME}
+OutputDir={#BUILD_DIR}\_inno\{#APP_NAME_LOWER}
 OutputBaseFilename={#APP_NAME_LOWER}-{#COMPANY}-{#VERSION}-setup
 SetupIconFile=.\{#APP_NAME_LOWER}.ico
 Compression=lzma
