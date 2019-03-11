@@ -48,7 +48,7 @@
 #define logAclD() nCDebug("Acl")
 #define logAccessD() nCDebug("Access").color(NecroLog::Color::Green)
 #define logSubscriptionsD() nCDebug("Subscr").color(NecroLog::Color::Yellow)
-#define logSubsResolveD() nCDebug("SubsRes").color(NecroLog::Color::LightGreen)
+#define logSigResolveD() nCDebug("SigRes").color(NecroLog::Color::LightGreen)
 
 int BrokerApp::m_sigTermFd[2];
 #endif
@@ -914,17 +914,17 @@ void BrokerApp::onRpcDataReceived(int connection_id, shv::chainpack::Rpc::Protoc
 		}
 	}
 	else if(cp::RpcMessage::isSignal(meta)) {
-		logSubsResolveD() << "NOTIFY:" << meta.toPrettyString() << "from:" << connection_id;
+		logSigResolveD() << "NOTIFY:" << meta.toPrettyString() << "from:" << connection_id;
 		rpc::CommonRpcClientHandle *conn = commonClientConnectionById(connection_id);
 		if(conn) {
 			const std::vector<std::string> mps = conn->mountPoints();
-			logSubsResolveD() << conn->connectionId()
+			logSigResolveD() << conn->connectionId()
 							  << "NOTIFY mount points:"
 							  << std::accumulate(mps.begin(), mps.end(), std::string(),  [](const std::string& a, const std::string& b) -> std::string {  return a + (a.length() > 0 ? "," : "") + b; } );
 			for(const std::string &mp : mps) {
 				std::string full_shv_path = shv::core::Utils::joinPath(mp, cp::RpcMessage::shvPath(meta).toString());
 				if(!full_shv_path.empty()) {
-					logSubsResolveD() << conn->connectionId() << "forwarding signal to client on mount point:" << mp << "as:" << full_shv_path;
+					logSigResolveD() << conn->connectionId() << "forwarding signal to client on mount point:" << mp << "as:" << full_shv_path;
 					cp::RpcMessage::setShvPath(meta, full_shv_path);
 					bool sig_sent = sendNotifyToSubscribers(connection_id, meta, data);
 					if(!sig_sent && conn->isSlaveBrokerConnection()) {
