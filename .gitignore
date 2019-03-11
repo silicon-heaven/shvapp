@@ -37,3 +37,5 @@ Makefile*
 .idea
 
 _build
+
+!clients/jn50view/doc/help/Makefile
