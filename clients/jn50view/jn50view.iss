@@ -10,6 +10,7 @@
 #define MINGW_DIR "C:\Qt\Tools\mingw730_64"
 
 #define BUILD_DIR "..\.."
+#define DOC_BUILD_DIR BUILD_DIR + "\clients\jn50view\doc\help\_build\html"
 
 [Setup]
 AppName={#APP_NAME}
@@ -39,6 +40,8 @@ Name: desktopicon; Description: {cm:CreateDesktopIcon}; GroupDescription: {cm:Ad
 Name: quicklaunchicon; Description: {cm:CreateQuickLaunchIcon}; GroupDescription: {cm:AdditionalIcons}; Flags: unchecked
 
 [Files]
+Source: {#DOC_BUILD_DIR}\*; DestDir: {app}\doc\help\html; Flags: ignoreversion recursesubdirs createallsubdirs
+
 Source: {#BUILD_DIR}\bin\{#APP_NAME_LOWER}.exe; DestDir: {app}; Flags: ignoreversion
 Source: {#BUILD_DIR}\bin\necrolog.dll; DestDir: {app}; Flags: ignoreversion
 Source: {#BUILD_DIR}\bin\shvchainpack.dll; DestDir: {app}; Flags: ignoreversion

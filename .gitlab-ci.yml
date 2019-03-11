@@ -98,8 +98,8 @@ win-build:
     - windows
   stage:
     build
-  script:
-    - cmd /C build-win.cmd
+  script: 
+    - bash build-win.sh
   artifacts:
     paths:
       - _inno/
@@ -112,7 +112,7 @@ win-deploy:
   stage:
     deploy
   script:
-    - cmd /Q /C deploy-win.cmd
+    - cmd /Q /C deploy-win.sh
   environment:
     name: claudius
 

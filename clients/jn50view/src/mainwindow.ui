@@ -236,6 +236,8 @@
      <string>Help</string>
     </property>
     <addaction name="actHelpAbout"/>
+    <addaction name="actHelpHelp"/>
+    <addaction name="separator"/>
     <addaction name="actHelpAppLog"/>
    </widget>
    <addaction name="menuM_ni"/>
@@ -274,6 +276,11 @@
   <action name="actHelpAppLog">
    <property name="text">
     <string>Aplikačni log</string>
+   </property>
+  </action>
+  <action name="actHelpHelp">
+   <property name="text">
+    <string>Help</string>
    </property>
   </action>
  </widget>

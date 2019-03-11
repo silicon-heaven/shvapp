@@ -9,10 +9,12 @@
 #include <shv/coreqt/log.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
 
+#include <QDesktopServices>
 #include <QFile>
 #include <QMessageBox>
 #include <QSettings>
 #include <QTimer>
+#include <QUrl>
 
 MainWindow::MainWindow(QWidget *parent)
 	: QMainWindow(parent)
@@ -88,6 +90,10 @@ MainWindow::MainWindow(QWidget *parent)
 							 "<p>2019 Elektroline a.s.</p>"
 							 "<p><a href=\"www.elektroline.cz\">www.elektroline.cz</a></p>"
 						   );
+	});
+	connect(ui->actHelpHelp, &QAction::triggered, []() {
+		QUrl url = QUrl::fromLocalFile(QCoreApplication::applicationDirPath() + "/doc/help/html/index.html");
+		QDesktopServices::openUrl(url);
 	});
 	connect(ui->actHelpAppLog, &QAction::triggered, [this]() {
 		DlgAppLog dlg(this);
