@@ -5,7 +5,7 @@ c:/Qt/Tools/mingw730_64/bin/mingw32-make.exe -j4 || exit 2
 
 #[ -d bin/translations ] || mkdir bin/translations  || exit 2
 
-#VERSION=`grep BRCLAB_VERSION brclab/src/version.h | cut -d\" -f2`
+JN50VIEW_VERSION=`grep APP_VERSION clients/jn50view/src/version.h | cut -d\" -f2`
 
 echo "making jn50view-doc"
 cd clients/jn50view/doc/help
@@ -15,7 +15,7 @@ cd ../../../..
 #"C:\Program Files (x86)\Inno Setup 5\iscc.exe" "-DVERSION=${VERSION}" "-SdefaultSignTool=C:\Program Files (x86)\Windows Kits\10\bin\x86\signTool.exe sign /f C:\Certificates\Elektroline_code_signing.p12 /p 123456789asdfghjkl /t http://timestamp.comodoca.com/authenticode \$f" brclab/brclab.iss  || exit 2
 "C:\Program Files (x86)\Inno Setup 5\iscc.exe" shvspy/shvspy.iss  || exit /b 2
 "C:\Program Files (x86)\Inno Setup 5\iscc.exe" clients/bfsview/bfsview.iss || exit /b 2
-"C:\Program Files (x86)\Inno Setup 5\iscc.exe" clients/jn50view/jn50view.iss || exit /b 2
+"C:\Program Files (x86)\Inno Setup 5\iscc.exe" "-DVERSION=${JN50VIEW_VERSION}" clients/jn50view/jn50view.iss || exit /b 2
 
 
 

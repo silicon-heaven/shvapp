@@ -27,6 +27,7 @@ private:
 	//void onVisuWidgetContextMenuRequest(const QPoint &pos);
 private:
 	void closeEvent(QCloseEvent *event) override;
+	bool checkPassword();
 private:
 	Ui::MainWindow *ui;
 };

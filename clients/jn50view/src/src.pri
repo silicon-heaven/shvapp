@@ -1,5 +1,6 @@
 
 HEADERS += \
+    $$PWD/version.h \
     $$PWD/appclioptions.h \
     $$PWD/jn50viewapp.h \
 	$$PWD/mainwindow.h \

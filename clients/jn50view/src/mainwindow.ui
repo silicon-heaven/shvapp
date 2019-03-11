@@ -230,6 +230,8 @@
     <addaction name="actResetOutputEnergy"/>
     <addaction name="separator"/>
     <addaction name="menuNastaven"/>
+    <addaction name="separator"/>
+    <addaction name="actChangePassword"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -281,6 +283,11 @@
   <action name="actHelpHelp">
    <property name="text">
     <string>Help</string>
+   </property>
+  </action>
+  <action name="actChangePassword">
+   <property name="text">
+    <string>Změnit heslo</string>
    </property>
   </action>
  </widget>

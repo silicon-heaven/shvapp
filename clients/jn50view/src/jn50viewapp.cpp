@@ -80,8 +80,7 @@ bool Jn50ViewApp::isShvDeviceConnected() const
 
 void Jn50ViewApp::loadSettings()
 {
-	QSettings qsettings;
-	Settings settings(qsettings);
+	Settings settings;
 	AppCliOptions *cli_opts = cliOptions();
 	if(!cli_opts->serverHost_isset())
 		cli_opts->setServerHost(settings.shvBrokerHost().toStdString());

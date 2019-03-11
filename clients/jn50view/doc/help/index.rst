@@ -1,4 +1,4 @@
-.. BrcLab User Guide documentation master file, created by
+.. JN50 View User Guide documentation master file, created by
    sphinx-quickstart on Mon Mar  4 20:12:07 2019.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
@@ -96,4 +96,21 @@ DC converter          vstupní střídač
 AC inverter           výstupní 3f střídač
 ===================== =============================
 
+Nastavení
+---------
 
+
+Připojení
+~~~~~~~~~
+
+Pro správnou funkci vizualizace je třeba správně nastavit připojeni k datovému serveru.
+
+===================== =================
+*SHV broker host*     nirvana.elektroline.cz
+*SHV broker port*     3756
+*Predator SHV path*   shv/cze/plz/pow/jn50/conv
+===================== =================
+
+
+.. figure:: images/connection.png
+   :alt: connection
