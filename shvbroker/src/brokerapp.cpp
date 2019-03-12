@@ -61,7 +61,7 @@ class ClientsNode : public shv::iotqt::node::MethodsTableNode
 public:
 	ClientsNode(shv::iotqt::node::ShvNode *parent = nullptr)
 		: Super("clients", m_metaMethods, parent)
-		, m_metaMethods{
+		, m_metaMethods {
 				  {cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam},
 				  {cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_CONFIG},
 		}
@@ -134,7 +134,7 @@ void BrokerApp::installUnixSignalHandlers()
 		sigemptyset(&sa.sa_mask);
 		sa.sa_flags |= SA_RESTART;
 
-		if(sigaction(sig_num, &sa, 0) > 0)
+		if(sigaction(sig_num, &sa, nullptr) > 0)
 			qFatal("Couldn't register posix signal handler");
 	}
 	if(::socketpair(AF_UNIX, SOCK_STREAM, 0, m_sigTermFd))
@@ -147,7 +147,7 @@ void BrokerApp::installUnixSignalHandlers()
 void BrokerApp::nativeSigHandler(int sig_number)
 {
 	shvInfo() << "SIG:" << sig_number;
-	unsigned char a = sig_number;
+	unsigned char a = static_cast<unsigned char>(sig_number);
 	::write(m_sigTermFd[0], &a, sizeof(a));
 }
 
