@@ -57,13 +57,9 @@ public:
 	virtual bool isSlaveBrokerConnection() const = 0;
 	virtual bool isMasterBrokerConnection() const = 0;
 
-	void addMountPoint(const std::string &mp);
-	const std::vector<std::string>& mountPoints() const {return m_mountPoints;}
-
 	virtual void sendRawData(const shv::chainpack::RpcValue::MetaData &meta_data, std::string &&data) = 0;
 	virtual void sendMessage(const shv::chainpack::RpcMessage &rpc_msg) = 0;
 protected:
-	std::vector<std::string> m_mountPoints;
 	std::vector<Subscription> m_subscriptions;
 };
 

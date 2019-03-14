@@ -12,8 +12,8 @@ namespace cp = shv::chainpack;
 // EtcAclNode
 //========================================================
 static std::vector<cp::MetaMethod> meta_methods_acl {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_CONFIG},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_CONFIG},
+	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::GRANT_CONFIG},
+	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::GRANT_CONFIG},
 };
 
 EtcAclNode::EtcAclNode(shv::iotqt::node::ShvNode *parent)
@@ -63,7 +63,7 @@ shv::iotqt::node::ShvNode::StringList AclPathsConfigFileNode::childNames(const s
 	if(shv_path.size() == 1) {
 		std::vector<std::string> keys = values().at(shv_path[0].toString()).toMap().keys();
 		for (size_t i = 0; i < keys.size(); ++i)
-			keys[i] = '"' + keys[i] + '"';
+			keys[i] = SHV_PATH_QUOTE + keys[i] + SHV_PATH_QUOTE;
 		return keys;
 
 	}

@@ -125,11 +125,6 @@ CommonRpcClientHandle::~CommonRpcClientHandle()
 {
 }
 
-void CommonRpcClientHandle::addMountPoint(const std::string &mp)
-{
-	m_mountPoints.push_back(mp);
-}
-
 unsigned CommonRpcClientHandle::addSubscription(const std::string &rel_path, const std::string &method)
 {
 	std::string abs_path = rel_path;

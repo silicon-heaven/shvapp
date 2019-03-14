@@ -53,6 +53,11 @@ shv::chainpack::RpcValue ServerConnection::deviceId() const
 	return deviceOptions().toMap().value(cp::Rpc::KEY_DEVICE_ID);
 }
 
+void ServerConnection::addMountPoint(const std::string &mp)
+{
+	m_mountPoints.push_back(mp);
+}
+
 void ServerConnection::setIdleWatchDogTimeOut(int sec)
 {
 	if(sec == 0) {

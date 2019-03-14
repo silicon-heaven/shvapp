@@ -16,10 +16,10 @@ static const char M_USER_NAME[] = "userName";
 //=================================================================================
 static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_SERVICE},
-	{M_USER_NAME, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_SERVICE},
-	{M_MOUNT_POINTS, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_SERVICE},
-	{M_DROP_CLIENT, cp::MetaMethod::Signature::VoidVoid, 0, cp::Rpc::GRANT_SERVICE},
+	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::GRANT_SERVICE},
+	{M_USER_NAME, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::GRANT_SERVICE},
+	{M_MOUNT_POINTS, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::GRANT_SERVICE},
+	{M_DROP_CLIENT, cp::MetaMethod::Signature::VoidVoid, cp::MetaMethod::Flag::None, cp::Rpc::GRANT_SERVICE},
 };
 
 ClientConnectionNode::ClientConnectionNode(int client_id, shv::iotqt::node::ShvNode *parent)

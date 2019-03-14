@@ -60,10 +60,10 @@ class ClientsNode : public shv::iotqt::node::MethodsTableNode
 	using Super = shv::iotqt::node::MethodsTableNode;
 public:
 	ClientsNode(shv::iotqt::node::ShvNode *parent = nullptr)
-		: Super("clients", m_metaMethods, parent)
+		: Super(std::string(), m_metaMethods, parent)
 		, m_metaMethods {
 				  {cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam},
-				  {cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_CONFIG},
+				  {cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::GRANT_CONFIG},
 		}
 	{ }
 private:
@@ -75,14 +75,92 @@ class MasterBrokersNode : public shv::iotqt::node::MethodsTableNode
 	using Super = shv::iotqt::node::MethodsTableNode;
 public:
 	MasterBrokersNode(shv::iotqt::node::ShvNode *parent = nullptr)
-		: Super("masters", m_metaMethods, parent)
+		: Super(std::string(), m_metaMethods, parent)
 		, m_metaMethods{
 				  {cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam},
-				  {cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_CONFIG},
+				  {cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::GRANT_CONFIG},
 		}
 	{ }
 private:
 	std::vector<cp::MetaMethod> m_metaMethods;
+};
+
+class MountsNode : public shv::iotqt::node::ShvNode
+{
+	using Super = shv::iotqt::node::ShvNode;
+public:
+	MountsNode(shv::iotqt::node::ShvNode *parent = nullptr)
+		: Super(parent)
+	{ }
+
+	size_t methodCount(const StringViewList &shv_path) override
+	{
+		if(shv_path.empty())
+			return m_metaMethods.size() - 1;
+		if(shv_path.size() == 1)
+			return m_metaMethods.size();
+		return Super::methodCount(shv_path);
+	}
+
+	const shv::chainpack::MetaMethod *metaMethod(const StringViewList &shv_path, size_t ix) override
+	{
+		if(methodCount(shv_path) <= ix)
+			SHV_EXCEPTION("Invalid method index: " + std::to_string(ix) + " of: " + std::to_string(methodCount(shv_path)));
+		if(shv_path.empty())
+			return &(m_metaMethods[ix]);
+		if(shv_path.size() == 1)
+			return &(m_metaMethods[ix]);
+		return Super::metaMethod(shv_path, ix);
+	}
+
+	StringList childNames(const StringViewList &shv_path) override
+	{
+		if(shv_path.empty()) {
+			BrokerApp *app = BrokerApp::instance();
+			StringList lst;
+			for(int id : app->clientConnectionIds()) {
+				rpc::ServerConnection *conn = app->clientConnectionById(id);
+				for(const std::string &mp : conn->mountPoints()) {
+					lst.push_back(SHV_PATH_QUOTE + mp + SHV_PATH_QUOTE);
+				}
+			}
+			return lst;
+		}
+		else {
+			if(shv_path.size() == 1) {
+				return StringList();
+			}
+		}
+		return Super::childNames(shv_path);
+	}
+
+	shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params) override
+	{
+		if(shv_path.size() == 1) {
+			if(method == METH_CLIENT_IDS) {
+				BrokerApp *app = BrokerApp::instance();
+				ClientShvNode *nd = qobject_cast<ClientShvNode*>(app->m_nodesTree->cd(shv_path.at(0).toString()));
+				if(nd == nullptr)
+					SHV_EXCEPTION("Cannot find client node on path: " + shv_path.at(0).toString());
+				cp::RpcValue::List lst;
+				for(rpc::ServerConnection *conn : nd->connections())
+					lst.push_back(conn->connectionId());
+				return cp::RpcValue{lst};
+			}
+		}
+		return Super::callMethod(shv_path, method, params);
+	}
+private:
+	static const char *METH_CLIENT_IDS;
+	static std::vector<cp::MetaMethod> m_metaMethods;
+};
+
+const char *MountsNode::METH_CLIENT_IDS = "clientIds";
+
+std::vector<cp::MetaMethod> MountsNode::m_metaMethods = {
+	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam},
+	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::GRANT_CONFIG},
+	{METH_CLIENT_IDS, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_CONFIG},
 };
 
 //static constexpr int SQL_RECONNECT_INTERVAL = 3000;
@@ -111,6 +189,7 @@ BrokerApp::BrokerApp(int &argc, char **argv, AppCliOptions *cli_opts)
 	m_nodesTree->mount(cp::Rpc::DIR_BROKER_APP, bn);
 	m_nodesTree->mount(std::string(cp::Rpc::DIR_BROKER) + "/clients", new ClientsNode());
 	m_nodesTree->mount(std::string(cp::Rpc::DIR_BROKER) + "/masters", new MasterBrokersNode());
+	m_nodesTree->mount(std::string(cp::Rpc::DIR_BROKER) + "/mounts", new MountsNode());
 	m_nodesTree->mount(std::string(cp::Rpc::DIR_BROKER) + "/etc/acl", new EtcAclNode());
 
 	QTimer::singleShot(0, this, &BrokerApp::lazyInit);
@@ -800,25 +879,33 @@ void BrokerApp::onRpcDataReceived(int connection_id, shv::chainpack::Rpc::Protoc
 		// it cannot be constructed from meta, since meta is moved in the try block
 		shv::chainpack::RpcResponse rsp = cp::RpcResponse::forRequest(meta);
 		try {
-			rpc::CommonRpcClientHandle *connection_handle = commonClientConnectionById(connection_id);
+			//rpc::CommonRpcClientHandle *connection_handle = commonClientConnectionById(connection_id);
+			rpc::ServerConnection *client_connection = clientConnectionById(connection_id);
+			rpc::MasterBrokerConnection *broker_connection = masterBrokerConnectionById(connection_id);
+			rpc::CommonRpcClientHandle *connection_handle = client_connection;
+			if(connection_handle == nullptr)
+				connection_handle = broker_connection;
 			std::string shv_path = cp::RpcMessage::shvPath(meta).toString();
 			if(connection_handle) {
 				if(rpc::ServerConnection::Subscription::isRelativePath(shv_path)) {
-					const std::vector<std::string> &mps = connection_handle->mountPoints();
-					if(mps.empty())
-						SHV_EXCEPTION("Cannot call method on relative path for unmounted device.");
-					if(mps.size() > 1)
-						SHV_EXCEPTION("Cannot call method on relative path for device mounted to more than single node.");
-					std::string mount_point = mps[0];
 					rpc::MasterBrokerConnection *master_broker_conn = nullptr;
-					{
-						QList<rpc::MasterBrokerConnection *> mbcs = masterBrokerConnections();
-						if(!mbcs.isEmpty()) {
-							master_broker_conn = mbcs[0];
-							mount_point = master_broker_conn->slavePathToMaster(mount_point);
+					if(client_connection) {
+						const std::vector<std::string> &mps = client_connection->mountPoints();
+						if(mps.empty())
+							SHV_EXCEPTION("Cannot call method on relative path for unmounted device.");
+						if(mps.size() > 1)
+							SHV_EXCEPTION("Cannot call method on relative path for device mounted to more than single node.");
+						std::string mount_point = mps[0];
+						{
+							QList<rpc::MasterBrokerConnection *> mbcs = masterBrokerConnections();
+							if(!mbcs.isEmpty()) {
+								master_broker_conn = mbcs[0];
+								/// if master broker connection exists, then relative paths are resolved with respect to it
+								mount_point = master_broker_conn->slavePathToMaster(mount_point);
+							}
 						}
+						shv_path = rpc::ServerConnection::Subscription::toAbsolutePath(mount_point, shv_path);
 					}
-					shv_path = rpc::ServerConnection::Subscription::toAbsolutePath(mount_point, shv_path);
 					if(rpc::ServerConnection::Subscription::isRelativePath(shv_path)) {
 						/// still relative path, it should be forwarded to mater broker
 						if(master_broker_conn == nullptr)
@@ -1139,4 +1226,5 @@ rpc::CommonRpcClientHandle *BrokerApp::commonClientConnectionById(int connection
 	ret = masterBrokerConnectionById(connection_id);
 	return ret;
 }
+
 

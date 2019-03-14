@@ -35,6 +35,7 @@ class BrokerApp : public QCoreApplication
 	Q_OBJECT
 private:
 	typedef QCoreApplication Super;
+	friend class MountsNode;
 public:
 	BrokerApp(int &argc, char **argv, AppCliOptions* cli_opts);
 	~BrokerApp() Q_DECL_OVERRIDE;

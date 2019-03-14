@@ -2,7 +2,7 @@
 
 #include <shv/iotqt/node/shvnode.h>
 
-namespace rpc { class TcpServer; class ServerConnection; class MasterBrokerConnection; }
+namespace rpc { class TcpServer; class ServerConnection; }
 
 class ClientShvNode : public shv::iotqt::node::ShvNode
 {
@@ -14,6 +14,7 @@ public:
 	~ClientShvNode() override;
 
 	rpc::ServerConnection * connection() const {return m_connections.value(0);}
+	QList<rpc::ServerConnection *> connections() const {return m_connections;}
 
 	void addConnection(rpc::ServerConnection *conn);
 	void removeConnection(rpc::ServerConnection *conn);

@@ -35,6 +35,9 @@ public:
 	shv::chainpack::RpcValue deviceOptions() const;
 	shv::chainpack::RpcValue deviceId() const;
 
+	void addMountPoint(const std::string &mp);
+	const std::vector<std::string>& mountPoints() const {return m_mountPoints;}
+
 	void setIdleWatchDogTimeOut(int sec);
 
 	void sendMessage(const shv::chainpack::RpcMessage &rpc_msg) override;
@@ -49,6 +52,7 @@ private:
 	bool checkTunnelSecret(const std::string &s);
 private:
 	QTimer *m_idleWatchDogTimer = nullptr;
+	std::vector<std::string> m_mountPoints;
 };
 
 } // namespace rpc
