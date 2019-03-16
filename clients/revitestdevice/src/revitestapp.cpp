@@ -3,6 +3,7 @@
 #include "revitestdevice.h"
 
 #include <shv/iotqt/rpc/deviceconnection.h>
+#include <shv/iotqt/rpc/rpcresponsecallback.h>
 #include <shv/iotqt/utils/fileshvjournal.h>
 #include <shv/iotqt/node/shvnodetree.h>
 #include <shv/core/log.h>
@@ -67,6 +68,7 @@ RevitestApp::RevitestApp(int &argc, char **argv, AppCliOptions* cli_opts)
 
 	m_revitest = new RevitestDevice(this);
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, m_revitest, &RevitestDevice::onRpcMessageReceived);
+	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &RevitestApp::onBrokerConnectedChanged);
 	connect(m_revitest, &RevitestDevice::sendRpcMessage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
 	connect(m_revitest->shvTree()->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
 
@@ -84,8 +86,56 @@ RevitestApp *RevitestApp::instance()
 	return qobject_cast<RevitestApp *>(QCoreApplication::instance());
 }
 
+void RevitestApp::onBrokerConnectedChanged(bool is_connected)
+{
+	if(is_connected) {
+		std::string err;
+		cp::RpcValue rv = cp::RpcValue::fromCpon(cliOptions()->callMethods(), &err);
+		if(rv.isList()) {
+			if(rv.toList().value(0).isList())
+				m_shvCalls = rv.toList();
+			else
+				m_shvCalls.push_back(rv.toList());
+			processShvCalls();
+		}
+	}
+}
+
 void RevitestApp::getSnapshot(std::vector<shv::iotqt::utils::ShvJournalEntry> &snapshot)
 {
 	m_revitest->getSnapshot(snapshot);
+}
+
+void RevitestApp::processShvCalls()
+{
+	if(!m_rpcConnection->isBrokerConnected()) {
+		m_shvCalls.clear();
+		return;
+	}
+	if(m_shvCalls.empty())
+		return;
+
+	cp::RpcValue rv = m_shvCalls.front();
+	m_shvCalls.erase(m_shvCalls.begin());
+	const shv::chainpack::RpcValue::List &lst = rv.toList();
+	std::string shv_path = lst.value(0).toString();
+	std::string method = lst.value(1).toString();
+	cp::RpcValue params = lst.value(2);
+
+	int rq_id = m_rpcConnection->callShvMethod(shv_path, method, params);
+	shvInfo() << "CALL rqid:" << rq_id << "method:" << rv.toCpon();
+	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rq_id, this);
+	connect(cb, &shv::iotqt::rpc::RpcResponseCallBack::finished, this, [this, rq_id](const cp::RpcResponse &resp) {
+		if(resp.isValid()) {
+			if(resp.isError())
+				shvWarning() << "ERROR rqid:" << rq_id << "request error:" << resp.error().toString();
+			else
+				shvInfo() << "RESULT rqid:" << rq_id << "result:" << resp.toCpon();
+		}
+		else {
+			shvWarning() << "TIMEOUT rqid:" << rq_id;
+		}
+		this->processShvCalls();
+	});
 }
 

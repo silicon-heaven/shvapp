@@ -2,7 +2,7 @@
 
 #include <shv/iotqt/node/shvnode.h>
 
-namespace rpc { class TcpServer; class ServerConnection; }
+namespace rpc { class TcpServer; class ClientBrokerConnection; }
 
 class ClientShvNode : public shv::iotqt::node::ShvNode
 {
@@ -10,19 +10,19 @@ class ClientShvNode : public shv::iotqt::node::ShvNode
 private:
 	using Super = shv::iotqt::node::ShvNode;
 public:
-	ClientShvNode(rpc::ServerConnection *conn, shv::iotqt::node::ShvNode *parent = nullptr);
+	ClientShvNode(rpc::ClientBrokerConnection *conn, shv::iotqt::node::ShvNode *parent = nullptr);
 	~ClientShvNode() override;
 
-	rpc::ServerConnection * connection() const {return m_connections.value(0);}
-	QList<rpc::ServerConnection *> connections() const {return m_connections;}
+	rpc::ClientBrokerConnection * connection() const {return m_connections.value(0);}
+	QList<rpc::ClientBrokerConnection *> connections() const {return m_connections;}
 
-	void addConnection(rpc::ServerConnection *conn);
-	void removeConnection(rpc::ServerConnection *conn);
+	void addConnection(rpc::ClientBrokerConnection *conn);
+	void removeConnection(rpc::ClientBrokerConnection *conn);
 
 	void handleRawRpcRequest(shv::chainpack::RpcValue::MetaData &&meta, std::string &&data) override;
 	shv::chainpack::RpcValue hasChildren(const StringViewList &shv_path) override;
 private:
-	QList<rpc::ServerConnection *> m_connections;
+	QList<rpc::ClientBrokerConnection *> m_connections;
 };
 
 class MasterBrokerShvNode : public shv::iotqt::node::ShvNode

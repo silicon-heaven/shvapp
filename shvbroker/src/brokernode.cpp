@@ -1,7 +1,7 @@
 #include "brokernode.h"
 
 #include "brokerapp.h"
-#include "rpc/serverconnection.h"
+#include "rpc/clientbrokerconnection.h"
 #include "rpc/masterbrokerconnection.h"
 
 #include <shv/chainpack/metamethod.h>
@@ -104,7 +104,7 @@ shv::chainpack::RpcValue BrokerNode::callMethod(const StringViewList &shv_path, 
 			return params.isValid()? params: nullptr;
 		}
 		if(method == M_MOUNT_POINTS_FOR_CLIENT_ID) {
-			rpc::ServerConnection *client = BrokerApp::instance()->clientById(params.toInt());
+			rpc::ClientBrokerConnection *client = BrokerApp::instance()->clientById(params.toInt());
 			if(!client)
 				SHV_EXCEPTION("Invalid client id: " + params.toCpon());
 			const std::vector<std::string> &mps = client->mountPoints();

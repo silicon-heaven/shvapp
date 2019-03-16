@@ -8,6 +8,7 @@
 #include <shv/iotqt/rpc/clientconnection.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/node/shvnode.h>
+#include <shv/iotqt/utils/shvpath.h>
 
 #include <shv/chainpack/rpcmessage.h>
 #include <shv/core/stringview.h>
@@ -220,7 +221,7 @@ void ShvBrokerNodeItem::onBrokerConnectedChanged(bool is_connected)
 ShvNodeItem* ShvBrokerNodeItem::findNode(const std::string &path, std::string *path_rest)
 {
 	ShvNodeItem *ret = this;
-	shv::core::StringViewList id_list = shv::iotqt::node::ShvNode::splitShvPath(path);
+	shv::core::StringViewList id_list = shv::iotqt::utils::ShvPath::split(path);
 
 	for(const shv::core::StringView &node_id : id_list) {
 		int i;

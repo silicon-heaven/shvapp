@@ -10,6 +10,8 @@
 #include <shv/chainpack/rpcmessage.h>
 #include <shv/chainpack/metamethod.h>
 #include <shv/core/string.h>
+#include "appclioptions.h"
+
 #include <shv/core/stringview.h>
 #include <shv/core/exception.h>
 
@@ -28,7 +30,7 @@ RevitestDevice::RevitestDevice(QObject *parent)
 
 void RevitestDevice::createDevices()
 {
-	for (size_t i = 0; i < RevitestApp::LUB_CNT; ++i) {
+	for (int i = 0; i < RevitestApp::instance()->cliOptions()->deviceCount(); ++i) {
 		auto *nd = new Lublicator(std::to_string(i+1), m_shvTree->root());
 		connect(nd, &Lublicator::propertyValueChanged, this, &RevitestDevice::onLublicatorPropertyValueChanged);
 	}
@@ -50,7 +52,7 @@ void RevitestDevice::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 	}
 	else if(msg.isSignal()) {
 		cp::RpcSignal nt(msg);
-		shvInfo() << "RPC notify received:" << nt.toCpon();
+		shvInfo() << "RPC signal received:" << nt.toCpon();
 	}
 }
 

@@ -18,9 +18,7 @@ public:
 		Subscription() {}
 		Subscription(const std::string &ap, const std::string &rp, const std::string &m);
 
-		static bool isRelativePath(const std::string &path);
 		std::string toRelativePath(const std::string &abs_path) const;
-		static std::string toAbsolutePath(const std::string &mount_point, const std::string &rel_path);
 
 		//bool operator<(const Subscription &o) const;
 		bool operator==(const Subscription &o) const;
@@ -45,9 +43,11 @@ public:
 	virtual int connectionId() const = 0;
 	virtual bool isConnectedAndLoggedIn() const = 0;
 
-	virtual unsigned addSubscription(const std::string &rel_path, const std::string &method);
-	virtual bool removeSubscription(const std::string &rel_path, const std::string &method);
-	int isSubscribed(const std::string &path, const std::string &method) const;
+	virtual unsigned addSubscription(const std::string &rel_path, const std::string &method) = 0;
+	unsigned addSubscription(const Subscription &subs);
+	virtual bool removeSubscription(const std::string &rel_path, const std::string &method) = 0;
+	bool removeSubscription(const Subscription &subs);
+	int isSubscribed(const std::string &shv_path, const std::string &method) const;
 	virtual std::string toSubscribedPath(const Subscription &subs, const std::string &abs_path) const;
 	size_t subscriptionCount() const {return m_subscriptions.size();}
 	const Subscription& subscriptionAt(size_t ix) const {return m_subscriptions.at(ix);}

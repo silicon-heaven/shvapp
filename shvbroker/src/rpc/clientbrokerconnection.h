@@ -13,7 +13,7 @@ namespace shv { namespace iotqt { namespace rpc { class Socket; }}}
 
 namespace rpc {
 
-class ServerConnection : public shv::iotqt::rpc::ServerConnection, public CommonRpcClientHandle
+class ClientBrokerConnection : public shv::iotqt::rpc::ServerConnection, public CommonRpcClientHandle
 {
 	Q_OBJECT
 
@@ -21,8 +21,8 @@ class ServerConnection : public shv::iotqt::rpc::ServerConnection, public Common
 
 	//SHV_FIELD_IMPL(std::string, m, M, ountPoint)
 public:
-	ServerConnection(shv::iotqt::rpc::Socket* socket, QObject *parent = nullptr);
-	~ServerConnection() override;
+	ClientBrokerConnection(shv::iotqt::rpc::Socket* socket, QObject *parent = nullptr);
+	~ClientBrokerConnection() override;
 
 	int connectionId() const override {return Super::connectionId();}
 	bool isConnectedAndLoggedIn() const override {return Super::isConnectedAndLoggedIn();}
@@ -38,12 +38,16 @@ public:
 	void addMountPoint(const std::string &mp);
 	const std::vector<std::string>& mountPoints() const {return m_mountPoints;}
 
+	std::string resolveLocalPath(const std::string rel_path);
+
 	void setIdleWatchDogTimeOut(int sec);
 
 	void sendMessage(const shv::chainpack::RpcMessage &rpc_msg) override;
 	void sendRawData(const shv::chainpack::RpcValue::MetaData &meta_data, std::string &&data) override;
 
-	bool propagateSubscriptionToSlaveBroker(const Subscription &subs);
+	unsigned addSubscription(const std::string &rel_path, const std::string &method) override;
+	bool removeSubscription(const std::string &rel_path, const std::string &method) override;
+	void propagateSubscriptionToSlaveBroker(const Subscription &subs);
 private:
 	void onSocketConnectedChanged(bool is_connected);
 	void onRpcDataReceived(shv::chainpack::Rpc::ProtocolType protocol_type, shv::chainpack::RpcValue::MetaData &&md, const std::string &data, size_t start_pos, size_t data_len) override;

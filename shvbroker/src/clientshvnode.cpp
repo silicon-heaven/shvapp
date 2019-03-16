@@ -1,7 +1,7 @@
 #include "clientshvnode.h"
 #include "brokerapp.h"
 
-#include "rpc/serverconnection.h"
+#include "rpc/clientbrokerconnection.h"
 #include "rpc/masterbrokerconnection.h"
 
 #include <shv/coreqt/log.h>
@@ -13,7 +13,7 @@ namespace cp = shv::chainpack;
 //======================================================================
 // ClientShvNode
 //======================================================================
-ClientShvNode::ClientShvNode(rpc::ServerConnection *conn, ShvNode *parent)
+ClientShvNode::ClientShvNode(rpc::ClientBrokerConnection *conn, ShvNode *parent)
 	: Super(parent)
 {
 	shvInfo() << "Creating client node:" << this << nodeId() << "connection:" << conn->connectionId();
@@ -25,13 +25,13 @@ ClientShvNode::~ClientShvNode()
 	shvInfo() << "Destroying client node:" << this << nodeId();// << "connections:" << [this]() { std::string s; for(auto c : m_connections) s += std::to_string(c->connectionId()) + " "; return s;}();
 }
 
-void ClientShvNode::addConnection(rpc::ServerConnection *conn)
+void ClientShvNode::addConnection(rpc::ClientBrokerConnection *conn)
 {
 	m_connections << conn;
-	connect(conn, &rpc::ServerConnection::destroyed, [this, conn]() {removeConnection(conn);});
+	connect(conn, &rpc::ClientBrokerConnection::destroyed, [this, conn]() {removeConnection(conn);});
 }
 
-void ClientShvNode::removeConnection(rpc::ServerConnection *conn)
+void ClientShvNode::removeConnection(rpc::ClientBrokerConnection *conn)
 {
 	//shvWarning() << this << "removing connection:" << conn;
 	m_connections.removeOne(conn);
@@ -41,7 +41,7 @@ void ClientShvNode::removeConnection(rpc::ServerConnection *conn)
 
 void ClientShvNode::handleRawRpcRequest(shv::chainpack::RpcValue::MetaData &&meta, std::string &&data)
 {
-	rpc::ServerConnection *conn = connection();
+	rpc::ClientBrokerConnection *conn = connection();
 	if(conn)
 		conn->sendRawData(std::move(meta), std::move(data));
 }

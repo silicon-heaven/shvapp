@@ -2,7 +2,7 @@
 
 #include <shv/iotqt/node/shvnode.h>
 
-namespace rpc { class ServerConnection; }
+namespace rpc { class ClientBrokerConnection; }
 
 class SubscriptionsNode : public shv::iotqt::node::ShvNode
 {
@@ -10,7 +10,7 @@ class SubscriptionsNode : public shv::iotqt::node::ShvNode
 
 	using Super = shv::iotqt::node::ShvNode;
 public:
-	SubscriptionsNode(rpc::ServerConnection *conn);
+	SubscriptionsNode(rpc::ClientBrokerConnection *conn);
 
 	size_t methodCount(const StringViewList &shv_path) override;
 	const shv::chainpack::MetaMethod* metaMethod(const StringViewList &shv_path, size_t ix) override;
@@ -19,5 +19,5 @@ public:
 
 	shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params) override;
 private:
-	rpc::ServerConnection *m_client;
+	rpc::ClientBrokerConnection *m_client;
 };

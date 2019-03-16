@@ -1,6 +1,6 @@
 #include "clientconnectionnode.h"
 #include "brokerapp.h"
-#include "rpc/serverconnection.h"
+#include "rpc/clientbrokerconnection.h"
 
 #include <shv/chainpack/metamethod.h>
 #include <shv/chainpack/rpc.h>
@@ -32,14 +32,14 @@ shv::chainpack::RpcValue ClientConnectionNode::callMethod(const shv::iotqt::node
 {
 	if(shv_path.empty()) {
 		if(method == M_USER_NAME) {
-			rpc::ServerConnection *cli = BrokerApp::instance()->clientById(m_clientId);
+			rpc::ClientBrokerConnection *cli = BrokerApp::instance()->clientById(m_clientId);
 			if(cli) {
 				return cli->loggedUserName();
 			}
 			return nullptr;
 		}
 		if(method == M_MOUNT_POINTS) {
-			rpc::ServerConnection *cli = BrokerApp::instance()->clientById(m_clientId);
+			rpc::ClientBrokerConnection *cli = BrokerApp::instance()->clientById(m_clientId);
 			cp::RpcValue::List ret;
 			if(cli) {
 				for(auto s : cli->mountPoints())
@@ -48,7 +48,7 @@ shv::chainpack::RpcValue ClientConnectionNode::callMethod(const shv::iotqt::node
 			return cp::RpcValue(ret);
 		}
 		if(method == M_DROP_CLIENT) {
-			rpc::ServerConnection *cli = BrokerApp::instance()->clientById(m_clientId);
+			rpc::ClientBrokerConnection *cli = BrokerApp::instance()->clientById(m_clientId);
 			if(cli) {
 				cli->close();
 				return true;

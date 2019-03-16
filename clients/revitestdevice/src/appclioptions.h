@@ -10,5 +10,7 @@ public:
 	AppCliOptions();
 
 	CLIOPTION_GETTER_SETTER2(bool, "app.simBattVoltageDrift", is, set, SimBattVoltageDrift)
+	CLIOPTION_GETTER_SETTER2(int, "app.deviceCount", d, setD, eviceCount)
+	CLIOPTION_GETTER_SETTER2(std::string, "app.callMethods", c, setC, allMethods)
 };
 

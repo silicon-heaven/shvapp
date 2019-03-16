@@ -1,6 +1,9 @@
 #pragma once
 
+#include <shv/chainpack/rpcvalue.h>
+
 #include <QCoreApplication>
+
 #include <vector>
 
 class AppCliOptions;
@@ -18,19 +21,21 @@ public:
 	RevitestApp(int &argc, char **argv, AppCliOptions* cli_opts);
 	~RevitestApp() Q_DECL_OVERRIDE;
 
-	static constexpr size_t LUB_CNT = 27;
 	static RevitestApp *instance();
 
 	AppCliOptions* cliOptions() {return m_cliOptions;}
 
 	shv::iotqt::utils::FileShvJournal *shvJournal() {return m_shvJournal;}
 private:
-	//void onBrokerConnectedChanged(bool is_connected);
+	void onBrokerConnectedChanged(bool is_connected);
 	//void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	void getSnapshot(std::vector<shv::iotqt::utils::ShvJournalEntry> &snapshot);
+
+	void processShvCalls();
 private:
 	RevitestDevice *m_revitest;
 	shv::iotqt::rpc::DeviceConnection *m_rpcConnection = nullptr;
 	shv::iotqt::utils::FileShvJournal *m_shvJournal = nullptr;
 	AppCliOptions* m_cliOptions;
+	shv::chainpack::RpcValue::List m_shvCalls;
 };
