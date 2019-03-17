@@ -14,6 +14,10 @@ SettingsDialog::SettingsDialog(QWidget *parent) :
 	{
 		QSettings qsettings;
 		Settings settings(qsettings);
+		ui->bfsShvPath->setText(settings.bfsShvPath());
+		ui->shvBrokerHost->setText(settings.shvBrokerHost());
+		ui->shvBrokerPort->setValue(settings.shvBrokerPort());
+
 		ui->edPowerSwitchesFile->setText(settings.powerFileName());
 		//ui->edPowerSwitchName->setText(settings.powerSwitchName());
 		ui->edCheckInterval->setValue(settings.powerFileCheckInterval());
@@ -50,6 +54,9 @@ void SettingsDialog::done(int status)
 	if(status == Accepted) {
 		QSettings qsettings;
 		Settings settings(qsettings);
+		settings.setBfsShvPath(ui->bfsShvPath->text());
+		settings.setShvBrokerHost(ui->shvBrokerHost->text());
+		settings.setShvBrokerPort(ui->shvBrokerPort->value());
 		settings.setPowerFileName(ui->edPowerSwitchesFile->text());
 		//settings.setPowerSwitchName(ui->edPowerSwitchName->text());
 		settings.setCheckPowerFileInterval(ui->edCheckInterval->value());

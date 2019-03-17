@@ -5,6 +5,7 @@
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/node/shvnodetree.h>
 #include <shv/iotqt/node/localfsnode.h>
+#include <shv/iotqt/utils/shvpath.h>
 #include <shv/coreqt/log.h>
 #include <shv/chainpack/metamethod.h>
 
@@ -184,12 +185,20 @@ BfsViewApp::BfsViewApp(int &argc, char **argv, AppCliOptions* cli_opts)
 
 	m_rpcConnection = new shv::iotqt::rpc::DeviceConnection(this);
 
+	QSettings qsettings;
+	Settings settings(qsettings);
+
 	if(!cli_opts->serverHost_isset())
-		cli_opts->setServerHost("nirvana.elektroline.cz");
+		cli_opts->setServerHost(settings.shvBrokerHost().toStdString());
 	if(!cli_opts->user_isset())
-		cli_opts->setUser("iot");
-	if(!cli_opts->password_isset())
-		cli_opts->setPassword("lub42DUB");
+		cli_opts->setUser("bfsview");
+	if(!cli_opts->serverPort_isset())
+		cli_opts->setServerPort(settings.shvBrokerPort());
+	if(!cli_opts->password_isset()) {
+		cli_opts->setPassword("8884a26b82a69838092fd4fc824bbfde56719e02");
+		cli_opts->setLoginType("SHA1");
+	}
+
 	if(!cli_opts->deviceId_isset())
 		cli_opts->setDeviceId("bfsview-001");
 	m_rpcConnection->setCliOptions(cli_opts);
@@ -328,9 +337,20 @@ void BfsViewApp::sendGetStatusRequest()
 {
 	auto *conn = rpcConnection();
 	if(conn->isBrokerConnected()) {
-		m_getStatusRpcId = conn->callShvMethod("../bfs1/status", cp::Rpc::METH_GET);
+		m_getStatusRpcId = conn->callShvMethod(bfsStatusShvPath(), cp::Rpc::METH_GET);
 		shvDebug() << "Sending get status request id:" << m_getStatusRpcId;
 	}
+}
+
+const std::string &BfsViewApp::bfsStatusShvPath()
+{
+	static std::string shv_path;
+	if(shv_path.empty()) {
+		QSettings qsettings;
+		Settings settings(qsettings);
+		shv_path = shv::iotqt::utils::ShvPath::join(settings.bfsShvPath().toStdString(), "status");
+	}
+	return shv_path;
 }
 
 void BfsViewApp::checkPlcConnected()
@@ -416,7 +436,7 @@ QString BfsViewApp::switchStatusToString(BfsViewApp::SwitchStatus status)
 void BfsViewApp::onBrokerConnectedChanged(bool is_connected)
 {
 	if(is_connected) {
-		rpcConnection()->callMethodSubscribe("../bfs1", cp::Rpc::SIG_VAL_CHANGED);
+		rpcConnection()->callMethodSubscribe(bfsStatusShvPath(), cp::Rpc::SIG_VAL_CHANGED);
 		m_pwrStatusNode->sendPwrStatusChanged();
 		sendGetStatusRequest();
 		//shvInfo() << "get status rq id:" << m_getStatusRpcId;
@@ -489,7 +509,7 @@ void BfsViewApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 		shvInfo() << "RPC notify received:" << ntf.toCpon();
 #else
 		if(ntf.method() == cp::Rpc::SIG_VAL_CHANGED) {
-			if(ntf.shvPath() == "../bfs1/status") {
+			if(ntf.shvPath() == bfsStatusShvPath()) {
 				setBfsStatus(ntf.params().toInt());
 			}
 		}

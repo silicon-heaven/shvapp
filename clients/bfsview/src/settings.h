@@ -10,8 +10,13 @@ class Settings
 public:
 	Settings(QSettings &settings);
 
-	//QString powerSwitchName();
-	//void setPowerSwitchName(const QString &s);
+	QString bfsShvPath();
+	void setBfsShvPath(const QString &s);
+	QString shvBrokerHost();
+	void setShvBrokerHost(const QString &s);
+	int shvBrokerPort();
+	void setShvBrokerPort(int p);
+
 	QString powerFileName();
 	void setPowerFileName(const QString &s);
 	int powerFileCheckInterval();

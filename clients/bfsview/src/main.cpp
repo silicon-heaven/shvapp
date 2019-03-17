@@ -1,6 +1,7 @@
 #include "bfsviewapp.h"
 #include "appclioptions.h"
 #include "mainwindow.h"
+#include "version.h"
 
 #include <shv/core/utils.h>
 
@@ -63,7 +64,7 @@ int main(int argc, char *argv[])
 	QCoreApplication::setOrganizationName("Elektroline");
 	QCoreApplication::setOrganizationDomain("elektroline.cz");
 	QCoreApplication::setApplicationName("bfsview");
-	QCoreApplication::setApplicationVersion("1.2.3");
+	QCoreApplication::setApplicationVersion(APP_VERSION);
 
 	init_log_environment();
 
