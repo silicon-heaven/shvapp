@@ -10,4 +10,6 @@ AppCliOptions::AppCliOptions()
 			.setComment("Number of created devices").setDefaultValue(27);
 	addOption("app.callMethods").setType(cp::RpcValue::Type::String).setNames("-c", "--call-methods")
 			.setComment("List SHV of methods to call after successfull connection to broker.");
+	addOption("app.callFile").setType(cp::RpcValue::Type::String).setNames("-f", "--call-file")
+			.setComment("File with list SHV of methods to call after successfull connection to broker.");
 }

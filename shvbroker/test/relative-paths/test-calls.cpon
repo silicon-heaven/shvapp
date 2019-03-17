@@ -1,0 +1,35 @@
+[
+	{
+		"descr": "Subscribe value change of node on different broker", 
+		"cmd": "call", 
+		"method": "subscribe", 
+		"shvPath": ".broker/app", 
+		"params": {"method":"chng", "path":"../../../broker1/slave/lub1/1/status"},
+		"result": true
+	},
+	{
+		"descr": "Wait for value change notify", 
+		"cmd": "sigTrap", 
+		"method": "chng", 
+		"shvPath": "../../../broker1/slave/lub1/1/status", 
+		"params": 42,
+		"timeout": 500
+		"processNextOnExec": true
+	},
+	{
+		"descr": "Set value on node conected to different broker via relative shv_path call", 
+		"cmd": "call", 
+		"method": "sim_set", 
+		"shvPath": "../../../broker1/slave/lub1/1/status", 
+		"params": 42,
+		"result": true,
+		"processNextOnSuccess": false
+	},
+	{
+		"descr": "Get value on node conected to different broker via relative shv_path call", 
+		"cmd": "call", 
+		"method": "get", 
+		"shvPath": "../../../broker1/slave/lub1/1/status", 
+		"result": 42,
+	},
+]

@@ -9,6 +9,16 @@
 #include <shv/core/log.h>
 #include <shv/chainpack/rpcdriver.h>
 
+#include <QFile>
+#include <QTimer>
+
+#define logTestCallsD() nCDebug("TestCalls")
+#define logTestCallsI() nCInfo("TestCalls")
+#define logTestCallsW() nCWarning("TestCalls")
+#define logTestCallsE() nCError("TestCalls")
+#define logTestPassed() nCError("TestCalls").color(NecroLog::Color::LightGreen) << "[PASSED]"
+#define logTestFailed() nCError("TestCalls").color(NecroLog::Color::LightRed) << "[FAILED]"
+
 namespace cp = shv::chainpack;
 namespace iot = shv::iotqt;
 
@@ -89,13 +99,24 @@ RevitestApp *RevitestApp::instance()
 void RevitestApp::onBrokerConnectedChanged(bool is_connected)
 {
 	if(is_connected) {
-		std::string err;
-		cp::RpcValue rv = cp::RpcValue::fromCpon(cliOptions()->callMethods(), &err);
-		if(rv.isList()) {
-			if(rv.toList().value(0).isList())
-				m_shvCalls = rv.toList();
+		std::string cpon;
+		if(cliOptions()->callFile_isset()) {
+			QFile f(cliOptions()->callFile().data());
+			if(!f.open(QFile::ReadOnly))
+				SHV_EXCEPTION("Cannot oprn file " + f.fileName().toStdString() + " for reading");
+			QByteArray ba = f.readAll();
+			cpon = std::string(ba.data(), ba.length());
+		}
+		else if(cliOptions()->callFile_isset()) {
+			cpon = cliOptions()->callMethods();
+		}
+		if(!cpon.empty()) {
+			std::string err;
+			cp::RpcValue rv = cp::RpcValue::fromCpon(cpon, &err);
+			if(rv.isMap())
+				m_shvCalls.push_back(rv);
 			else
-				m_shvCalls.push_back(rv.toList());
+				m_shvCalls = rv.toList();
 			processShvCalls();
 		}
 	}
@@ -117,25 +138,76 @@ void RevitestApp::processShvCalls()
 
 	cp::RpcValue rv = m_shvCalls.front();
 	m_shvCalls.erase(m_shvCalls.begin());
-	const shv::chainpack::RpcValue::List &lst = rv.toList();
-	std::string shv_path = lst.value(0).toString();
-	std::string method = lst.value(1).toString();
-	cp::RpcValue params = lst.value(2);
+	const shv::chainpack::RpcValue::Map &task = rv.toMap();
+	std::string descr = task.value("descr").toString();
+	std::string cmd = task.value("cmd").toString();
+	bool process_next_on_exec = task.value("processNextOnExec", false).toBool();
+	bool process_next_on_success = task.value("processNextOnSuccess", true).toBool();
+	logTestCallsI() << "=========================================";
+	logTestCallsI() << "DESCR:" << descr;
+	logTestCallsI() << "COMMAND:" << cmd;
+	if(cmd == "call") {
+		std::string shv_path = task.value("shvPath").toString();
+		std::string method = task.value("method").toString();
+		cp::RpcValue params = task.value("params");
+		cp::RpcValue result = task.value("result");
 
-	int rq_id = m_rpcConnection->callShvMethod(shv_path, method, params);
-	shvInfo() << "CALL rqid:" << rq_id << "method:" << rv.toCpon();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rq_id, this);
-	connect(cb, &shv::iotqt::rpc::RpcResponseCallBack::finished, this, [this, rq_id](const cp::RpcResponse &resp) {
-		if(resp.isValid()) {
-			if(resp.isError())
-				shvWarning() << "ERROR rqid:" << rq_id << "request error:" << resp.error().toString();
-			else
-				shvInfo() << "RESULT rqid:" << rq_id << "result:" << resp.toCpon();
-		}
-		else {
-			shvWarning() << "TIMEOUT rqid:" << rq_id;
-		}
-		this->processShvCalls();
-	});
+		int rq_id = m_rpcConnection->callShvMethod(shv_path, method, params);
+		logTestCallsD() << "CALL rqid:" << rq_id << "msg:" << rv.toCpon();
+		shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rq_id, this);
+		connect(cb, &shv::iotqt::rpc::RpcResponseCallBack::finished, this, [this, rq_id, result, process_next_on_success](const cp::RpcResponse &resp) {
+			bool ok = false;
+			if(resp.isValid()) {
+				if(resp.isError()) {
+					logTestCallsW() << "ERROR rqid:" << rq_id << "request error:" << resp.error().toString();
+				}
+				else {
+					logTestCallsD() << "RESULT rqid:" << rq_id << "result:" << resp.toCpon();
+					if(resp.result() == result) {
+						logTestPassed();
+						ok = true;
+					}
+					else {
+						logTestFailed() << "wrong result" << resp.result().toCpon();
+					}
+				}
+			}
+			else {
+				logTestCallsW() << "TIMEOUT rqid:" << rq_id;
+			}
+			if(ok && process_next_on_success)
+				this->processShvCalls();
+		});
+		if(process_next_on_exec)
+			this->processShvCalls();
+	}
+	else if(cmd == "sigTrap") {
+		std::string shv_path = task.value("shvPath").toString();
+		std::string method = task.value("method").toString();
+		cp::RpcValue params = task.value("params");
+		int timeout = task.value("timeout").toInt();
+		QObject *ctx = new QObject();
+		QTimer::singleShot(timeout, ctx, [ctx, timeout]() {
+			logTestFailed() << "timeout after:" << timeout;
+			ctx->deleteLater();
+		});
+		connect(m_rpcConnection
+				, &shv::iotqt::rpc::DeviceConnection::rpcMessageReceived
+				, ctx
+				, [ctx, this, shv_path, method, params, process_next_on_success](const shv::chainpack::RpcMessage &msg) {
+			logTestCallsD() << "MSG:" << msg.toCpon();
+			if(msg.isSignal()) {
+				cp::RpcSignal sig(msg);
+				if(sig.shvPath() == shv_path && sig.method() == method && sig.params() == params) {
+					logTestPassed();
+					ctx->deleteLater();
+					if(process_next_on_success)
+						this->processShvCalls();
+				}
+			}
+		});
+		if(process_next_on_exec)
+			this->processShvCalls();
+	}
 }
 

@@ -41,18 +41,18 @@ void RevitestDevice::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 	shvLogFuncFrame() << msg.toCpon();
 	if(msg.isRequest()) {
 		cp::RpcRequest rq(msg);
-		shvInfo() << "RPC request received:" << rq.toPrettyString();
+		shvDebug() << "RPC request received:" << rq.toPrettyString();
 		if(m_shvTree->root()) {
 			m_shvTree->root()->handleRpcRequest(rq);
 		}
 	}
 	else if(msg.isResponse()) {
 		cp::RpcResponse rp(msg);
-		shvInfo() << "RPC response received:" << rp.toCpon();
+		shvDebug() << "RPC response received:" << rp.toCpon();
 	}
 	else if(msg.isSignal()) {
 		cp::RpcSignal nt(msg);
-		shvInfo() << "RPC signal received:" << nt.toCpon();
+		shvDebug() << "RPC signal received:" << nt.toCpon();
 	}
 }
 
