@@ -16,8 +16,8 @@
 #define logTestCallsI() nCInfo("TestCalls")
 #define logTestCallsW() nCWarning("TestCalls")
 #define logTestCallsE() nCError("TestCalls")
-#define logTestPassed() nCError("TestCalls").color(NecroLog::Color::LightGreen) << "[PASSED]"
-#define logTestFailed() nCError("TestCalls").color(NecroLog::Color::LightRed) << "[FAILED]"
+#define logTestPassed(test_no) nCError("TestCalls").color(NecroLog::Color::LightGreen) << "#" << test_no << "[PASSED]"
+#define logTestFailed(test_no) nCError("TestCalls").color(NecroLog::Color::LightRed) << "#" << test_no << "[FAILED]"
 
 namespace cp = shv::chainpack;
 namespace iot = shv::iotqt;
@@ -143,9 +143,11 @@ void RevitestApp::processShvCalls()
 	std::string cmd = task.value("cmd").toString();
 	bool process_next_on_exec = task.value("processNextOnExec", false).toBool();
 	bool process_next_on_success = task.value("processNextOnSuccess", true).toBool();
+	static int s_test_no = 0;
+	int test_no = ++s_test_no;
 	logTestCallsI() << "=========================================";
+	logTestCallsI() << "#" << test_no << "COMMAND:" << cmd;
 	logTestCallsI() << "DESCR:" << descr;
-	logTestCallsI() << "COMMAND:" << cmd;
 	if(cmd == "call") {
 		std::string shv_path = task.value("shvPath").toString();
 		std::string method = task.value("method").toString();
@@ -155,7 +157,7 @@ void RevitestApp::processShvCalls()
 		int rq_id = m_rpcConnection->callShvMethod(shv_path, method, params);
 		logTestCallsD() << "CALL rqid:" << rq_id << "msg:" << rv.toCpon();
 		shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rq_id, this);
-		connect(cb, &shv::iotqt::rpc::RpcResponseCallBack::finished, this, [this, rq_id, result, process_next_on_success](const cp::RpcResponse &resp) {
+		connect(cb, &shv::iotqt::rpc::RpcResponseCallBack::finished, this, [this, rq_id, result, process_next_on_success, test_no](const cp::RpcResponse &resp) {
 			bool ok = false;
 			if(resp.isValid()) {
 				if(resp.isError()) {
@@ -164,11 +166,11 @@ void RevitestApp::processShvCalls()
 				else {
 					logTestCallsD() << "RESULT rqid:" << rq_id << "result:" << resp.toCpon();
 					if(resp.result() == result) {
-						logTestPassed();
+						logTestPassed(test_no);
 						ok = true;
 					}
 					else {
-						logTestFailed() << "wrong result" << resp.result().toCpon();
+						logTestFailed(test_no) << "wrong result" << resp.result().toCpon();
 					}
 				}
 			}
@@ -187,19 +189,19 @@ void RevitestApp::processShvCalls()
 		cp::RpcValue params = task.value("params");
 		int timeout = task.value("timeout").toInt();
 		QObject *ctx = new QObject();
-		QTimer::singleShot(timeout, ctx, [ctx, timeout]() {
-			logTestFailed() << "timeout after:" << timeout;
+		QTimer::singleShot(timeout, ctx, [ctx, timeout, test_no]() {
+			logTestFailed(test_no) << "timeout after:" << timeout;
 			ctx->deleteLater();
 		});
 		connect(m_rpcConnection
 				, &shv::iotqt::rpc::DeviceConnection::rpcMessageReceived
 				, ctx
-				, [ctx, this, shv_path, method, params, process_next_on_success](const shv::chainpack::RpcMessage &msg) {
+				, [ctx, this, shv_path, method, params, process_next_on_success, test_no](const shv::chainpack::RpcMessage &msg) {
 			logTestCallsD() << "MSG:" << msg.toCpon();
 			if(msg.isSignal()) {
 				cp::RpcSignal sig(msg);
 				if(sig.shvPath() == shv_path && sig.method() == method && sig.params() == params) {
-					logTestPassed();
+					logTestPassed(test_no);
 					ctx->deleteLater();
 					if(process_next_on_success)
 						this->processShvCalls();
