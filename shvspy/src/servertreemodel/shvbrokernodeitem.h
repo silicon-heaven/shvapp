@@ -39,6 +39,7 @@ public:
 
 	int callCreateSubscription(const std::string &shv_path, std::string method);
 
+	int brokerId() const { return m_brokerId; }
 
 	ShvNodeItem *findNode(const std::string &path, std::string *path_rest = nullptr);
 private:
@@ -46,6 +47,7 @@ private:
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	void createSubscriptions();
 private:
+	int m_brokerId;
 	QVariantMap m_serverPropeties;
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
 	OpenStatus m_openStatus = OpenStatus::Disconnected;

@@ -36,6 +36,9 @@ struct ShvBrokerNodeItem::RpcRequestInfo
 ShvBrokerNodeItem::ShvBrokerNodeItem(ServerTreeModel *m, const std::string &server_name)
 	: Super(m, server_name)
 {
+	static int s_broker_id = 0;
+	m_brokerId = ++ s_broker_id;
+
 	QTimer *rpc_rq_timeout = new QTimer(this);
 	rpc_rq_timeout->start(5000);
 	connect(rpc_rq_timeout, &QTimer::timeout, [this]() {
