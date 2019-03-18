@@ -17,6 +17,7 @@
 #include <QTimer>
 #include <QtGlobal>
 #include <QFileInfo>
+#include <QTemporaryFile>
 
 #ifdef Q_OS_UNIX
 #include <unistd.h>
@@ -34,6 +35,8 @@
 namespace cp = shv::chainpack;
 namespace si = shv::iotqt;
 
+static const char M_RUN_SCRIPT[] = "runScript";
+
 static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_BROWSE},
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_BROWSE},
@@ -42,6 +45,7 @@ static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_BROWSE},
 	{cp::Rpc::METH_HELP, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_BROWSE},
 	{cp::Rpc::METH_RUN_CMD, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_COMMAND},
+	{M_RUN_SCRIPT, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_COMMAND},
 	{cp::Rpc::METH_LAUNCH_REXEC, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_COMMAND},
 };
 
@@ -68,20 +72,17 @@ shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path,
 		if(method == cp::Rpc::METH_APP_NAME) {
 			return QCoreApplication::instance()->applicationName().toStdString();
 		}
-		//if(method == cp::Rpc::METH_CONNECTION_TYPE) {
-		//	return ShvAgentApp::instance()->rpcConnection()->connectionType();
-		//}
 		if(method == cp::Rpc::METH_HELP) {
 			std::string meth = params.toString();
 			if(meth == cp::Rpc::METH_RUN_CMD) {
 				return 	"method: " + meth + "\n"
-						"params: cmd_string OR [cmd_string, 1, 2]\n"
+						"params: cmd_string OR [cmd_string, 1] OR [cmd_string, 2] OR [cmd_string, 1, 2]\n"
 						"\tcmd_string: command with arguments to run\n"
 						"\t1: remote process std_out will be set at this possition in returned list\n"
 						"\t2: remote process std_err will be set at this possition in returned list\n"
 						"Any param can be omited in params sa list, also param order is irrelevant, ie [1,\"ls\"] is valid param list."
 						"return:\n"
-						"\t* process exit_code if params are just cmd_string\n"
+						"\t* process stdout if param is just cmd_string\n"
 						"\t* list of process exit code and std_out and std_err on same possitions as they are in params list.\n"
 						;
 			}
@@ -105,8 +106,68 @@ shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::Rp
 		}
 		if(rq.method() == cp::Rpc::METH_RUN_CMD) {
 			ShvAgentApp *app = ShvAgentApp::instance();
-			app->runCmd(rq);
+			app->runCmd(rq, QString());
 			return cp::RpcValue();
+		}
+		if(rq.method() == M_RUN_SCRIPT) {
+			QTemporaryFile file;
+			file.setAutoRemove(false);
+			if (file.open()) {
+				ShvAgentApp *app = ShvAgentApp::instance();
+				shv::chainpack::RpcRequest rq2 = rq;
+				std::string fn = file.fileName().toStdString();
+				std::string cmd = "bash " + fn;
+				std::string script;
+				if(rq.params().isList()) {
+					cp::RpcValue::List new_params;
+					for(auto p : rq.params().toList()) {
+						if(p.isString()) {
+							script = p.toString();
+							new_params.push_back(cmd);
+						}
+						else {
+							int i = p.toInt();
+							if(i == STDOUT_FILENO) {
+								new_params.push_back(i);
+							}
+							else if(i == STDERR_FILENO) {
+								new_params.push_back(i);
+							}
+							else {
+								SHV_EXCEPTION("Invalid request parameter: " + p.toCpon());
+							}
+						}
+					}
+					rq2.setParams(new_params);
+				}
+				else {
+					script = rq.params().toString();
+					rq2.setParams(cmd);
+				}
+				file.write(script.data(), script.size());
+				file.close();
+				QFileDevice::Permissions perms = QFile::permissions(file.fileName());
+				perms |= QFileDevice::QFileDevice::ExeOwner;
+				QFile::setPermissions(file.fileName(), perms);
+				/*
+				if(0) {
+					QString fn2 = "/tmp/test.sh";
+					QFile f2(fn2);
+					f2.open(QFile::WriteOnly);
+					f2.write(script.data(), script.size());
+					f2.close();
+					QFileDevice::Permissions perms = QFile::permissions(f2.fileName());
+					perms |= QFileDevice::QFileDevice::ExeOwner;
+					QFile::setPermissions(f2.fileName(), perms);
+					//rq2.setParams("bash /tmp/test.sh");
+				}
+				*/
+				app->runCmd(rq2, file.fileName());
+				return cp::RpcValue();
+			}
+			else {
+				SHV_EXCEPTION("Cannot create temporary file for script to execute!");
+			}
 		}
 		if(rq.method() == cp::Rpc::METH_LAUNCH_REXEC) {
 			ShvAgentApp *app = ShvAgentApp::instance();
@@ -323,43 +384,44 @@ void ShvAgentApp::launchRexec(const shv::chainpack::RpcRequest &rq)
 
 }
 
-void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq)
+void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq, QString file_to_remove)
 {
 	SessionProcess *proc = new SessionProcess(this);
 	auto rq2 = rq;
-	connect(proc, static_cast<void (SessionProcess::*)(int)>(&SessionProcess::finished), [this, proc, rq2](int) {
-		cp::RpcValue result;
-		if(rq2.params().isList()) {
-			cp::RpcValue::List lst;
-			for(auto p : rq2.params().toList()) {
-				if(p.isString()) {
-					lst.push_back(proc->exitCode());
-				}
-				else {
-					int i = p.toInt();
-					if(i == STDOUT_FILENO) {
-						QByteArray ba = proc->readAllStandardOutput();
-						lst.push_back(std::string(ba.constData(), ba.size()));
-					}
-					else if(i == STDERR_FILENO) {
-						QByteArray ba = proc->readAllStandardError();
-						lst.push_back(std::string(ba.constData(), ba.size()));
-					}
-					else {
-						shvInfo() << "RunCmd: Invalid request parameter:" << p.toCpon();
-						lst.push_back(nullptr);
-					}
-				}
-			}
-			result = lst;
+	connect(proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), [this, proc, rq2, file_to_remove](int exit_code, QProcess::ExitStatus exit_status) {
+		cp::RpcResponse resp = cp::RpcResponse::forRequest(rq2);
+		if(exit_status == QProcess::CrashExit) {
+			resp.setError(cp::RpcResponse::Error::createMethodCallExceptionError("Process crashed!"));
 		}
 		else {
-			QByteArray ba = proc->readAllStandardOutput();
-			result = std::string(ba.constData(), ba.size());
+			if(rq2.params().isList()) {
+				cp::RpcValue::List lst;
+				for(auto p : rq2.params().toList()) {
+					if(p.isString()) {
+						lst.push_back(exit_code);
+					}
+					else {
+						int i = p.toInt();
+						if(i == STDOUT_FILENO) {
+							QByteArray ba = proc->readAllStandardOutput();
+							lst.push_back(std::string(ba.constData(), ba.size()));
+						}
+						else if(i == STDERR_FILENO) {
+							QByteArray ba = proc->readAllStandardError();
+							lst.push_back(std::string(ba.constData(), ba.size()));
+						}
+					}
+				}
+				resp.setResult(lst);
+			}
+			else {
+				QByteArray ba = proc->readAllStandardOutput();
+				resp.setResult(std::string(ba.constData(), ba.size()));
+			}
 		}
-		cp::RpcResponse resp = cp::RpcResponse::forRequest(rq2);
-		resp.setResult(result);
 		m_rpcConnection->sendMessage(resp);
+		if(!file_to_remove.isEmpty())
+			QFile::remove(file_to_remove);
 	});
 	connect(proc, &QProcess::errorOccurred, [this, rq2](QProcess::ProcessError error) {
 		shvInfo() << "RunCmd: Exec process error:" << error;
@@ -374,13 +436,23 @@ void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq)
 		for(auto p : rq.params().toList()) {
 			if(p.isString()) {
 				cmd = p.toString();
-				break;
+			}
+			else {
+				int i = p.toInt();
+				if(i == STDOUT_FILENO) {
+				}
+				else if(i == STDERR_FILENO) {
+				}
+				else {
+					SHV_EXCEPTION("Invalid request parameter: " + p.toCpon());
+				}
 			}
 		}
 	}
 	else {
 		cmd = rq.params().toString();
 	}
+	shvDebug() << "CMD:" << cmd;
 	proc->start(QString::fromStdString(cmd));
 }
 

@@ -108,7 +108,7 @@ int ServerTreeModel::rowCount(const QModelIndex &parent) const
 		//	par_nd->shvPath();
 		shvDebug() << "\t parent node:" << par_nd << "id:" << par_nd->nodeId() << "path:" << par_nd->shvPath();
 		if(!par_nd->isChildrenLoaded() && !par_nd->isChildrenLoading()) {
-			shvDebug() << "l\t oading" << par_nd->shvPath();
+			shvDebug() << "\t loading" << par_nd->shvPath();
 			par_nd->loadChildren();
 		}
 		return par_nd->childCount();

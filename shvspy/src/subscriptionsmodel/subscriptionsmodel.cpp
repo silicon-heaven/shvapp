@@ -30,12 +30,6 @@ int SubscriptionsModel::rowCount(const QModelIndex &parent) const
 	Q_UNUSED(parent)
 	int count = 0;
 
-	for (int i = 0; i < m_shvNodeItems.count(); i++){
-		QVariant v = m_shvNodeItems.at(i)->serverProperties().value("subscriptions");
-		if(v.isValid()) {
-			count += v.toMap().size();
-		}
-	}
 	return  count;
 }
 
@@ -63,19 +57,9 @@ Qt::ItemFlags SubscriptionsModel::flags(const QModelIndex &ix) const
 
 QVariant SubscriptionsModel::data(const QModelIndex &ix, int role) const
 {
-	if (m_shvNodeItems.isEmpty())
-		return QVariant();
+	return QVariant();
 
-	QVariantMap subscription;
-
-	for (int i = 0; i < m_shvNodeItems.count(); i++){
-		QVariant v = m_shvNodeItems.at(i)->serverProperties().value("subscriptions");
-		if(v.isValid()) {
-			v.toList().at(ix.row);
-		}
-	}
-
-	if (!subscription.isEmpty()){
+/*	if (!subscription.isEmpty()){
 		switch (role) {
 		case Qt::DisplayRole: {
 			switch (ix.column()) {
@@ -87,9 +71,8 @@ QVariant SubscriptionsModel::data(const QModelIndex &ix, int role) const
 				ColEnabled:;
 			}
 		}
-
 		}
-	}
+	}*/
 }
 
 
@@ -126,10 +109,11 @@ QVariant SubscriptionsModel::headerData(int section, Qt::Orientation orientation
 
 void SubscriptionsModel::addShvBrokerNodeItem(ShvBrokerNodeItem *nd)
 {
-	m_shvNodeItems.append(nd);
+/*	m_shvNodeItems.append(nd);
 	connect(nd, &ShvBrokerNodeItem::subscriptionAdded, this, [this, nd](const std::string &path){
 		onSubscriptionAdded(nd, path);
 	});
+	*/
 }
 
 void SubscriptionsModel::onSubscriptionAdded(ShvBrokerNodeItem *nd, const std::string &path)

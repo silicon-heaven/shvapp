@@ -59,7 +59,22 @@ production-deploy:
 
   environment:
     name: jessie
-    
+
+production-deploy-heaven:
+  only:
+    - production
+  tags:
+    - linux
+  stage:
+    deploy
+  script:
+    - id
+    - cd build
+    - rsync -avz lib bin shv@138.68.112.73:/opt/shv/production/
+    - ssh -t shv@138.68.112.73 "sudo /opt/shv/production/install.sh"
+  environment:
+    name: heaven
+
 test-deploy:
   only:
     - master
@@ -83,8 +98,8 @@ win-build:
     - windows
   stage:
     build
-  script:
-    - cmd /C build-win.cmd
+  script: 
+    - bash build-win.sh
   artifacts:
     paths:
       - _inno/
@@ -97,7 +112,7 @@ win-deploy:
   stage:
     deploy
   script:
-    - cmd /Q /C deploy-win.cmd
+    - cmd /Q /C deploy-win.sh
   environment:
     name: claudius
 

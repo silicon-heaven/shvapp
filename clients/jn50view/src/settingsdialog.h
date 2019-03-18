@@ -13,8 +13,8 @@ class SettingsDialog : public QDialog
 
 	using Super = QDialog;
 public:
-	explicit SettingsDialog(QWidget *parent = 0);
-	~SettingsDialog();
+	explicit SettingsDialog(QWidget *parent = nullptr);
+	~SettingsDialog() override;
 	/*
 	QString switchName();
 	QString fileName();

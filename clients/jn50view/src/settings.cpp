@@ -1,15 +1,28 @@
 #include "settings.h"
 
-#include <QSettings>
-
-Settings::Settings(QSettings &settings)
-	: m_settings(settings)
+Settings::Settings()
 {
+}
+
+QString Settings::password()
+{
+	QString pwd = m_settings.value("password").toString();
+	if(pwd.isEmpty())
+		pwd = "pmdp321";
+	return pwd;
+}
+
+void Settings::setPassword(const QString &s)
+{
+	m_settings.setValue("password", s);
 }
 
 QString Settings::predatorShvPath()
 {
-	return m_settings.value("predatorShvPath").toString();
+	QString path = m_settings.value("predatorShvPath").toString();
+	if(path.isEmpty())
+		path = "shv/cze/plz/pow/jn50/conv";
+	return path;
 }
 
 void Settings::setPredatorShvPath(const QString &s)

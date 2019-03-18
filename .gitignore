@@ -35,3 +35,7 @@ Makefile*
 *.qmlproject.user.*
 
 .idea
+
+_build
+
+!clients/jn50view/doc/help/Makefile

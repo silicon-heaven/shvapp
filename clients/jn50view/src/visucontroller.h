@@ -20,7 +20,8 @@ public:
 	VisuController(QGraphicsItem *parent = nullptr);
 
 	virtual void onShvDeviceValueChanged(const std::string &shvPath, const shv::chainpack::RpcValue &val) = 0;
-	virtual void load();
+	virtual void updateValue();
+	virtual void reload();
 
 	const std::string& shvPath();
 	virtual void init();

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <shv/iotqt/node/shvnode.h>
+#include "brclabnode.h"
 #include "brclabfsnode.h"
-#include "brclabusers.h"
 
 #include <QCoreApplication>
 #include <QNetworkAccessManager>
@@ -18,13 +18,20 @@ class AppRootNode : public BrclabFsNode
 {
 	using Super = BrclabFsNode;
 public:
+	static const std::string BRCLAB_NODE;
+
 	explicit AppRootNode(const QString &root_path, Super *parent = nullptr);
 
 	size_t methodCount(const StringViewList &shv_path) override;
 	const shv::chainpack::MetaMethod* metaMethod(const StringViewList &shv_path, size_t ix) override;
+	StringList childNames(const ShvNode::StringViewList &shv_path) override;
+	shv::chainpack::RpcValue hasChildren(const StringViewList &shv_path) override;
+
 	shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params) override;
 	shv::chainpack::RpcValue processRpcRequest(const shv::chainpack::RpcRequest &rq) override;
+
 private:
+	BrclabNode *m_brclabNode = nullptr;
 	bool m_isRootNodeValid = false;
 };
 
@@ -42,7 +49,6 @@ public:
 
 	AppCliOptions* cliOptions() {return m_cliOptions;}
 	std::string brclabUsersFileName();
-	BrclabUsers *brclabUsers();
 private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
@@ -51,7 +57,6 @@ private:
 	shv::iotqt::rpc::DeviceConnection *m_rpcConnection = nullptr;
 	AppCliOptions* m_cliOptions;
 	AppRootNode *m_root = nullptr;
-	BrclabUsers m_brclabUsers;
 	bool m_isBrokerConnected = false;
 };
 

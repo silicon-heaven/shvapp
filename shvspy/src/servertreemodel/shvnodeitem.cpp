@@ -103,7 +103,6 @@ ServerTreeModel *ShvNodeItem::treeModel() const
 			return m;
 	}
 	SHV_EXCEPTION("ServerTreeModel parent must exist.");
-	return nullptr;
 }
 
 QVariant ShvNodeItem::data(int role) const
@@ -129,7 +128,6 @@ ShvBrokerNodeItem *ShvNodeItem::serverNode() const
 			return bnd;
 	}
 	SHV_EXCEPTION("ServerNode parent must exist.");
-	return nullptr;
 }
 
 ShvNodeItem *ShvNodeItem::parentNode() const
@@ -200,7 +198,7 @@ void ShvNodeItem::processRpcMessage(const shv::chainpack::RpcMessage &msg)
 {
 	if(msg.isResponse()) {
 		cp::RpcResponse resp(msg);
-		unsigned rqid = resp.requestId().toUInt();
+		int rqid = resp.requestId().toInt();
 		if(rqid == m_loadChildrenRqId) {
 			m_loadChildrenRqId = 0;
 			m_childrenLoaded = true;
@@ -265,7 +263,7 @@ void ShvNodeItem::loadChildren()
 {
 	m_childrenLoaded = false;
 	ShvBrokerNodeItem *srv_nd = serverNode();
-	m_loadChildrenRqId = srv_nd->callNodeRpcMethod(shvPath(), "ls", cp::RpcValue::List{std::string(), (unsigned)0x7F});
+	m_loadChildrenRqId = srv_nd->callNodeRpcMethod(shvPath(), cp::Rpc::METH_LS, cp::RpcValue::List{std::string(), (unsigned)0x7F});
 	emitDataChanged();
 }
 
@@ -282,7 +280,7 @@ void ShvNodeItem::loadMethods()
 {
 	m_methodsLoaded = false;
 	ShvBrokerNodeItem *srv_nd = serverNode();
-	m_loadMethodsRqId = srv_nd->callNodeRpcMethod(shvPath(), "dir", cp::RpcValue::List{std::string(), 127});
+	m_loadMethodsRqId = srv_nd->callNodeRpcMethod(shvPath(), cp::Rpc::METH_DIR, cp::RpcValue::List{std::string(), 127});
 	//emitDataChanged();
 }
 

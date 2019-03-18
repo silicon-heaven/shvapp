@@ -46,7 +46,7 @@ Lublicator::Lublicator(const std::string &node_id, ShvNode *parent)
 		int node_no = std::stoi(node_id);
 		connect(bat_voltage_sim, &QTimer::timeout, this, [this, node_no]() {
 			m_battSimCnt++;
-			if((m_battSimCnt % (int)RevitestApp::LUB_CNT) + 1 == node_no) {
+			if((m_battSimCnt % RevitestApp::instance()->cliOptions()->deviceCount()) + 1 == node_no) {
 				//shvWarning() << node_no << "bv:" << ((m_battSimCnt % (int)RevitestApp::LUB_CNT) + 1);
 				unsigned bv = m_batteryVoltage;
 				if(++bv > 30)

@@ -1,6 +1,7 @@
 #include "brokerconfigfilenode.h"
 #include "brokerapp.h"
 
+#include <shv/iotqt/utils/shvpath.h>
 #include <shv/chainpack/metamethod.h>
 #include <shv/chainpack/rpc.h>
 #include <shv/core/string.h>
@@ -12,8 +13,8 @@ namespace cp = shv::chainpack;
 // EtcAclNode
 //========================================================
 static std::vector<cp::MetaMethod> meta_methods_acl {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_CONFIG},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_CONFIG},
+	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::GRANT_CONFIG},
+	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::GRANT_CONFIG},
 };
 
 EtcAclNode::EtcAclNode(shv::iotqt::node::ShvNode *parent)
@@ -63,7 +64,7 @@ shv::iotqt::node::ShvNode::StringList AclPathsConfigFileNode::childNames(const s
 	if(shv_path.size() == 1) {
 		std::vector<std::string> keys = values().at(shv_path[0].toString()).toMap().keys();
 		for (size_t i = 0; i < keys.size(); ++i)
-			keys[i] = '"' + keys[i] + '"';
+			keys[i] = shv::iotqt::utils::ShvPath::SHV_PATH_QUOTE + keys[i] + shv::iotqt::utils::ShvPath::SHV_PATH_QUOTE;
 		return keys;
 
 	}
@@ -83,7 +84,7 @@ shv::chainpack::RpcValue AclPathsConfigFileNode::valueOnPath(const shv::iotqt::n
 		const shv::chainpack::RpcValue::Map &m = v.toMap();
 		std::string key = dir.toString();
 		v = m.value(key);
-		shvInfo() << "\t i:" << i << "key:" << key << "val:" << v.toCpon();
+		//shvInfo() << "\t i:" << i << "key:" << key << "val:" << v.toCpon();
 		if(!v.isValid())
 			SHV_EXCEPTION("Invalid path: " + shv_path.join('/'));
 	}

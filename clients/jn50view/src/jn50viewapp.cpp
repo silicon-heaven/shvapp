@@ -80,8 +80,7 @@ bool Jn50ViewApp::isShvDeviceConnected() const
 
 void Jn50ViewApp::loadSettings()
 {
-	QSettings qsettings;
-	Settings settings(qsettings);
+	Settings settings;
 	AppCliOptions *cli_opts = cliOptions();
 	if(!cli_opts->serverHost_isset())
 		cli_opts->setServerHost(settings.shvBrokerHost().toStdString());
@@ -99,7 +98,7 @@ void Jn50ViewApp::loadSettings()
 
 const std::string &Jn50ViewApp::logFilePath()
 {
-	static std::string log_file_path = QDir::tempPath().toStdString() + "/jn50view.log";
+	static std::string log_file_path = QDir::tempPath().toStdString() + "/" + applicationName().toStdString() + ".log";
 	return log_file_path;
 }
 
@@ -146,7 +145,7 @@ void Jn50ViewApp::sendGetStatusRequest()
 	auto *conn = rpcConnection();
 	if(conn->isBrokerConnected()) {
 		m_getStatusRpcId = conn->callShvMethod(cliOptions()->converterShvPath() + "/status", cp::Rpc::METH_GET);
-		shvDebug() << "Sending get status request id:" << m_getStatusRpcId;
+        shvDebug() << (cliOptions()->converterShvPath() + "/status") << "Sending get status request id:" << m_getStatusRpcId;
 	}
 }
 

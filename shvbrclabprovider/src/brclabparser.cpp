@@ -70,6 +70,7 @@ shv::chainpack::RpcValue BrclabParser::deviceData(const shv::chainpack::RpcValue
 
 	const cp::RpcValue::Map &tc = device.toMap().value("tc_parameters").toMap();
 
+	ret["dipSwitchesOn"] = device.toMap().value("dipSwitchesOn").toString();
 	ret["tcName"] = tc.value("name");
 	ret["detectorCapacity"] = tc.value("capacity");
 	ret["detectorResistor"] = tc.value("resistor");

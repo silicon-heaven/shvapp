@@ -21,16 +21,11 @@
 
 namespace cp = shv::chainpack;
 
-static const char M_ADD_USER[] = "addUser";
-static const char M_CHANGE_USER_PASSWORD[] = "changeUserPassword";
-static const char M_GET_USER_GRANTS[] = "getUserGrants";
+const std::string AppRootNode::BRCLAB_NODE = ".brclab";
 
 static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false, cp::Rpc::GRANT_READ},
 	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_READ},
-	{M_ADD_USER, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_WRITE},
-	{M_CHANGE_USER_PASSWORD, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_WRITE},
-	{M_GET_USER_GRANTS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_WRITE}
 };
 
 AppRootNode::AppRootNode(const QString &root_path, AppRootNode::Super *parent):
@@ -38,6 +33,7 @@ AppRootNode::AppRootNode(const QString &root_path, AppRootNode::Super *parent):
 {
 	m_isRootNode = true;
 	m_isRootNodeValid = !root_path.isEmpty() && QDir(root_path).exists();
+	m_brclabNode = new BrclabNode(BRCLAB_NODE, this);
 
 	if (!m_isRootNodeValid){
 		shvError() << "Invalid root path: " << root_path.toStdString();
@@ -64,8 +60,31 @@ const shv::chainpack::MetaMethod *AppRootNode::metaMethod(const StringViewList &
 		else
 			SHV_EXCEPTION("Invalid method index: " + std::to_string(ix) + " of: " + std::to_string(all_method_count));
 	}
+	else if (shv_path[0] == BRCLAB_NODE){
+		return nullptr;
+	}
 
 	return Super::metaMethod(shv_path, ix);
+}
+
+shv::iotqt::node::ShvNode::StringList AppRootNode::childNames(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
+{
+	shv::iotqt::node::ShvNode::StringList child_names = Super::childNames(shv_path);
+
+	if (shv_path.size() == 0){
+		child_names.push_back(BRCLAB_NODE);
+	}
+
+	return child_names;
+}
+
+shv::chainpack::RpcValue AppRootNode::hasChildren(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
+{
+	if (shv_path.size() > 0 && shv_path[0] == BRCLAB_NODE){
+		return true;
+	}
+
+	return Super::hasChildren(shv_path);
 }
 
 shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
@@ -85,19 +104,6 @@ shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path,
 			const cp::RpcValue::Map& dev = opts.value(cp::Rpc::KEY_DEVICE).toMap();
 			return dev.value(cp::Rpc::KEY_DEVICE_ID).toString();
 		}
-		else if(method == M_ADD_USER) {
-			return app->brclabUsers()->addUser(params);
-		}
-		else if(method == M_CHANGE_USER_PASSWORD) {
-
-			return app->brclabUsers()->changePassword(params);
-		}
-		else if(method == M_GET_USER_GRANTS) {
-				return app->brclabUsers()->getUserGrants(params);
-		}
-		else{
-			return Super::callMethod(shv_path, method, params);
-		}
 	}
 
 	return Super::callMethod(shv_path, method, params);
@@ -111,7 +117,6 @@ shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::Rp
 ShvBrclabProviderApp::ShvBrclabProviderApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
-	, m_brclabUsers(brclabUsersFileName(), this)
 {
 #ifdef Q_OS_UNIX
 	if(0 != ::setpgid(0, 0))
@@ -151,11 +156,6 @@ ShvBrclabProviderApp *ShvBrclabProviderApp::instance()
 std::string ShvBrclabProviderApp::brclabUsersFileName()
 {
 	return cliOptions()->configDir() + "/" +"brclabusers.cpon";
-}
-
-BrclabUsers *ShvBrclabProviderApp::brclabUsers()
-{
-	return &m_brclabUsers;
 }
 
 void ShvBrclabProviderApp::onBrokerConnectedChanged(bool is_connected)

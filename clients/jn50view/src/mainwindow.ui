@@ -166,23 +166,16 @@
         <number>5</number>
        </property>
        <item>
-        <widget class="QPushButton" name="btRun">
+        <widget class="QToolButton" name="btSwitchOn">
          <property name="text">
-          <string>On</string>
+          <string>...</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="btOff">
+        <widget class="QToolButton" name="btSwitchOff">
          <property name="text">
-          <string>Off</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="btResetOutputEnergy">
-         <property name="text">
-          <string>Reset output energy</string>
+          <string>...</string>
          </property>
         </widget>
        </item>
@@ -198,13 +191,6 @@
           </size>
          </property>
         </spacer>
-       </item>
-       <item>
-        <widget class="QPushButton" name="btSettings">
-         <property name="text">
-          <string>Settings</string>
-         </property>
-        </widget>
        </item>
       </layout>
      </widget>
@@ -227,29 +213,81 @@
      <height>32</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menuM_ni">
+    <property name="title">
+     <string>Měnič</string>
+    </property>
+    <widget class="QMenu" name="menuNastaven">
+     <property name="title">
+      <string>Nastavení</string>
+     </property>
+     <addaction name="actSettingsConnection"/>
+     <addaction name="actSettingsTresholds"/>
+    </widget>
+    <addaction name="actSwitchOn"/>
+    <addaction name="actSwitchOff"/>
+    <addaction name="separator"/>
+    <addaction name="actResetOutputEnergy"/>
+    <addaction name="separator"/>
+    <addaction name="menuNastaven"/>
+    <addaction name="separator"/>
+    <addaction name="actChangePassword"/>
+   </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="actHelpAbout"/>
+    <addaction name="actHelpHelp"/>
+    <addaction name="separator"/>
+    <addaction name="actHelpAppLog"/>
+   </widget>
+   <addaction name="menuM_ni"/>
+   <addaction name="menuHelp"/>
   </widget>
-  <action name="actionOmpagOn">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
+  <action name="actSwitchOn">
    <property name="text">
-    <string>Ompag ON</string>
+    <string>Zapnout</string>
    </property>
   </action>
-  <action name="actionBsOn">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
+  <action name="actSwitchOff">
    <property name="text">
-    <string>BS ON</string>
+    <string>Vypnout</string>
    </property>
   </action>
-  <action name="actionPwrStatus">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
+  <action name="actResetOutputEnergy">
    <property name="text">
-    <string>PWR Status</string>
+    <string>Vymazat počítadlo výstupní energie</string>
+   </property>
+  </action>
+  <action name="actSettingsConnection">
+   <property name="text">
+    <string>Připojení</string>
+   </property>
+  </action>
+  <action name="actSettingsTresholds">
+   <property name="text">
+    <string>Pásma necitlivosti</string>
+   </property>
+  </action>
+  <action name="actHelpAbout">
+   <property name="text">
+    <string>O aplikaci</string>
+   </property>
+  </action>
+  <action name="actHelpAppLog">
+   <property name="text">
+    <string>Aplikačni log</string>
+   </property>
+  </action>
+  <action name="actHelpHelp">
+   <property name="text">
+    <string>Help</string>
+   </property>
+  </action>
+  <action name="actChangePassword">
+   <property name="text">
+    <string>Změnit heslo</string>
    </property>
   </action>
  </widget>

@@ -12,6 +12,7 @@ HEADERS += \
     $$PWD/lastusedparamswidget.h \
     $$PWD/methodparametersdialog.h \
     $$PWD/texteditdialog.h \
+    $$PWD/dlgcallshvmethod.h \
     $$PWD/subscriptionswidget.h \
     $$PWD/subscriptionsmodel/subscriptionstableitemdelegate.h \
     $$PWD/subscriptionsmodel/subscriptionsmodel.h
@@ -31,6 +32,7 @@ SOURCES += \
     $$PWD/lastusedparamswidget.cpp \
     $$PWD/methodparametersdialog.cpp \
     $$PWD/texteditdialog.cpp \
+    $$PWD/dlgcallshvmethod.cpp \
     $$PWD/subscriptionswidget.cpp \
     $$PWD/subscriptionsmodel/subscriptionstableitemdelegate.cpp \
     $$PWD/subscriptionsmodel/subscriptionsmodel.cpp
@@ -42,6 +44,7 @@ FORMS += \
     $$PWD/lastusedparamswidget.ui \
     $$PWD/methodparametersdialog.ui \
     $$PWD/texteditdialog.ui \
-    $$PWD/subscriptionswidget.ui
+    $$PWD/subscriptionswidget.ui \
+    $$PWD/dlgcallshvmethod.ui
 
 include ( $$PWD/log/log.pri )

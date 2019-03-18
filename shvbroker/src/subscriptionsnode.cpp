@@ -1,7 +1,7 @@
 #include "subscriptionsnode.h"
 
 #include "brokerapp.h"
-#include "rpc/serverconnection.h"
+#include "rpc/clientbrokerconnection.h"
 
 #include <shv/chainpack/rpcmessage.h>
 #include <shv/chainpack/rpc.h>
@@ -31,7 +31,7 @@ std::vector<cp::MetaMethod> meta_methods2 {
 };
 }
 
-SubscriptionsNode::SubscriptionsNode(rpc::ServerConnection *conn)
+SubscriptionsNode::SubscriptionsNode(rpc::ClientBrokerConnection *conn)
 	: Super(nullptr)
 	, m_client(conn)
 {
@@ -65,7 +65,7 @@ shv::iotqt::node::ShvNode::StringList SubscriptionsNode::childNames(const String
 	if(shv_path[0] == ND_BY_PATH) {
 		shv::iotqt::node::ShvNode::StringList ret;
 		for (size_t i = 0; i < m_client->subscriptionCount(); ++i) {
-			const rpc::ServerConnection::Subscription &subs = m_client->subscriptionAt(i);
+			const rpc::ClientBrokerConnection::Subscription &subs = m_client->subscriptionAt(i);
 			ret.push_back('"' + subs.absolutePath + ':' + subs.method + '"');
 		}
 		return ret;
@@ -79,14 +79,14 @@ shv::chainpack::RpcValue SubscriptionsNode::callMethod(const StringViewList &shv
 {
 	if(shv_path.size() == 2) {
 		if(method == METH_PATH || method == METH_METHOD) {
-			const rpc::ServerConnection::Subscription *subs = nullptr;
+			const rpc::ClientBrokerConnection::Subscription *subs = nullptr;
 			if(shv_path.at(0) == ND_BY_ID) {
 				subs = &m_client->subscriptionAt(std::stoul(shv_path.at(1).toString()));
 			}
 			else if(shv_path.at(0) == ND_BY_PATH) {
 				shv::core::StringView path = shv_path.at(1);
 				for (size_t i = 0; i < m_client->subscriptionCount(); ++i) {
-					const rpc::ServerConnection::Subscription &subs1 = m_client->subscriptionAt(i);
+					const rpc::ClientBrokerConnection::Subscription &subs1 = m_client->subscriptionAt(i);
 					std::string p = '"' + subs1.absolutePath + ':' + subs1.method + '"';
 					if(path == p) {
 						subs = &subs1;

@@ -32,10 +32,8 @@ public:
 
 	QString path() const;
 
-	Q_SIGNAL void reloaded();
-	Q_SIGNAL void methodCallResultChanged(int method_ix);
 private:
 	void onSubscriptionAdded(ShvBrokerNodeItem *nd, const std::string &path);
-private:
-	QVector<QPointer<ShvBrokerNodeItem>> m_shvNodeItems;
+
+	QVariantList m_subscriptionList;
 };

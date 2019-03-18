@@ -22,11 +22,12 @@ public:
 protected:
 	void resizeEvent(QResizeEvent *event) override;
 private:
-#ifdef TEST
+#ifdef TESTING
 #endif
 	//void onVisuWidgetContextMenuRequest(const QPoint &pos);
 private:
 	void closeEvent(QCloseEvent *event) override;
+	bool checkPassword();
 private:
 	Ui::MainWindow *ui;
 };

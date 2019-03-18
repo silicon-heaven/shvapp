@@ -16,11 +16,9 @@ public:
 		std::string method;
 
 		Subscription() {}
-		Subscription(const std::string &ap, const std::string &rp, const std::string &m) : absolutePath(ap), relativePath(rp), method(m) {}
+		Subscription(const std::string &ap, const std::string &rp, const std::string &m);
 
-		static bool isRelativePath(const std::string &path);
 		std::string toRelativePath(const std::string &abs_path) const;
-		static std::string toAbsolutePath(const std::string &mount_point, const std::string &rel_path);
 
 		//bool operator<(const Subscription &o) const;
 		bool operator==(const Subscription &o) const;
@@ -45,8 +43,11 @@ public:
 	virtual int connectionId() const = 0;
 	virtual bool isConnectedAndLoggedIn() const = 0;
 
-	virtual unsigned addSubscription(const std::string &rel_path, const std::string &method);
-	int isSubscribed(const std::string &path, const std::string &method) const;
+	virtual unsigned addSubscription(const std::string &rel_path, const std::string &method) = 0;
+	unsigned addSubscription(const Subscription &subs);
+	virtual bool removeSubscription(const std::string &rel_path, const std::string &method) = 0;
+	bool removeSubscription(const Subscription &subs);
+	int isSubscribed(const std::string &shv_path, const std::string &method) const;
 	virtual std::string toSubscribedPath(const Subscription &subs, const std::string &abs_path) const;
 	size_t subscriptionCount() const {return m_subscriptions.size();}
 	const Subscription& subscriptionAt(size_t ix) const {return m_subscriptions.at(ix);}
@@ -56,13 +57,9 @@ public:
 	virtual bool isSlaveBrokerConnection() const = 0;
 	virtual bool isMasterBrokerConnection() const = 0;
 
-	void addMountPoint(const std::string &mp);
-	const std::vector<std::string>& mountPoints() const {return m_mountPoints;}
-
 	virtual void sendRawData(const shv::chainpack::RpcValue::MetaData &meta_data, std::string &&data) = 0;
 	virtual void sendMessage(const shv::chainpack::RpcMessage &rpc_msg) = 0;
 protected:
-	std::vector<std::string> m_mountPoints;
 	std::vector<Subscription> m_subscriptions;
 };
 

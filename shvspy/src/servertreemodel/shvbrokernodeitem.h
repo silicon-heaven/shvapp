@@ -41,6 +41,7 @@ public:
 	ShvNodeItem *findNode(const std::string &path, std::string *path_rest = nullptr);
 
 	Q_SIGNAL void subscriptionsCreated();
+	int brokerId() const { return m_brokerId; }
 	Q_SIGNAL void subscriptionAdded(const std::string &path);
 
 private:
@@ -50,6 +51,7 @@ private:
 	int callCreateSubscription(const std::string &shv_path, std::string method);
 
 private:
+	int m_brokerId;
 	QVariantMap m_serverPropeties;
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
 	OpenStatus m_openStatus = OpenStatus::Disconnected;

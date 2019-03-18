@@ -40,11 +40,17 @@ VisuController::VisuController(QGraphicsItem *parent)
 {
 }
 
-void VisuController::load()
+void VisuController::updateValue()
 {
 	Jn50ViewApp *app = Jn50ViewApp::instance();
 	shv::chainpack::RpcValue val = app->shvDeviceValue(shvPath());
 	onShvDeviceValueChanged(shvPath(), val);
+}
+
+void VisuController::reload()
+{
+	updateValue();
+	Jn50ViewApp *app = Jn50ViewApp::instance();
 	app->reloadShvDeviceValue(shvPath());
 }
 
@@ -212,6 +218,14 @@ void MultimeterVisuController::onShvDeviceValueChanged(const std::string &path, 
 			}
 		}
 		if(auto *item = findChild<QGraphicsEllipseItem*>()) {
+			if(val.isValid()) {
+				item->setBrush(QBrush(Qt::white));
+			}
+			else {
+				item->setBrush(QBrush(Qt::darkGray));
+			}
+		}
+		if(auto *item = findChild<QGraphicsRectItem*>()) {
 			if(val.isValid()) {
 				item->setBrush(QBrush(Qt::white));
 			}
