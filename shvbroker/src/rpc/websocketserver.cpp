@@ -2,7 +2,6 @@
 
 #include "clientbrokerconnection.h"
 #include "websocket.h"
-#include "websocketserverconnection.h"
 
 #include <shv/coreqt/log.h>
 
