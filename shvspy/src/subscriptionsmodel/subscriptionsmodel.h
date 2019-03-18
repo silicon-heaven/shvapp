@@ -29,24 +29,13 @@ public:
 	QVariant headerData (int section, Qt::Orientation orientation, int role = Qt::DisplayRole ) const Q_DECL_OVERRIDE;
 
 	void addShvBrokerNodeItem(ShvBrokerNodeItem *nd);
-//	void load(ShvNodeItem *nd);
 
 	QString path() const;
-	QString method(int row) const;
 
 	Q_SIGNAL void reloaded();
 	Q_SIGNAL void methodCallResultChanged(int method_ix);
 private:
 	void onSubscriptionAdded(ShvBrokerNodeItem *nd, const std::string &path);
-	void onMethodsLoaded();
-	void onRpcMethodCallFinished(int method_ix);
-//	const ShvMetaMethod *metaMethodAt(unsigned method_ix);
-	void loadRow(unsigned method_ix);
-	void loadRows();
-	void emitRowChanged(int row_ix);
-	void callGetters();
 private:
 	QVector<QPointer<ShvBrokerNodeItem>> m_shvNodeItems;
-	using RowVals = shv::chainpack::RpcValue::List;
-	std::vector<RowVals> m_rows;
 };

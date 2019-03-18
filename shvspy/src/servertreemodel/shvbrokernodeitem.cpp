@@ -112,6 +112,7 @@ void ShvBrokerNodeItem::addSubscription(const std::string &shv_path, const std::
 			subscription["isPermanent"] = false;
 			subscription["isSubscribedAfterConnect"] = false;
 			subscription["isEnabled"] = true;
+
 			subscriptions.append(subscription);
 			m_serverPropeties["subscriptions"] = subscriptions;
 
