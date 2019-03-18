@@ -7,6 +7,10 @@ else {
 }
 message ( QF_PROJECT_TOP_BUILDDIR == '$$QF_PROJECT_TOP_BUILDDIR' )
 
+isEmpty(LIBSHV_SRC_DIR) {
+    LIBSHV_SRC_DIR=$$SHV_PROJECT_TOP_SRCDIR/3rdparty/libshv
+}
+
 QT -= gui
 QT += core network sql
 
@@ -46,12 +50,11 @@ SHV_TOP_SRCDIR = $$PWD/..
 #include( $$PROJECT_TOP_SRCDIR/common.pri )
 
 INCLUDEPATH += \
-        ../3rdparty/libshv/3rdparty/necrolog/include \
-        ../3rdparty/libshv/libshvchainpack/include \
-        ../3rdparty/libshv/libshvcore/include \
-        ../3rdparty/libshv/libshvcoreqt/include \
-        ../3rdparty/libshv/libshviotqt/include \
-        ../libshviotqt/include \
+    $$LIBSHV_SRC_DIR/3rdparty/necrolog/include \
+    $$LIBSHV_SRC_DIR/libshvchainpack/include \
+    $$LIBSHV_SRC_DIR/libshvcore/include \
+    $$LIBSHV_SRC_DIR/libshvcoreqt/include \
+    $$LIBSHV_SRC_DIR/libshviotqt/include \
 
 
 RESOURCES += \

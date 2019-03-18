@@ -7,6 +7,10 @@ else {
 }
 message ( QF_PROJECT_TOP_BUILDDIR == '$$QF_PROJECT_TOP_BUILDDIR' )
 
+isEmpty(LIBSHV_SRC_DIR) {
+    LIBSHV_SRC_DIR=$$SHV_PROJECT_TOP_SRCDIR/3rdparty/libshv
+}
+
 QT += core gui widgets
 CONFIG += c++11
 
@@ -39,11 +43,11 @@ PROJECT_TOP_SRCDIR = $$PWD/../../..
 #include( $$PROJECT_TOP_SRCDIR/common.pri )
 
 INCLUDEPATH += \
-	$$PWD/../3rdparty/libshv/3rdparty/necrolog/include \
-	$$PWD/../3rdparty/libshv/libshvchainpack/include \
-	$$PWD/../3rdparty/libshv/libshvcore/include \
-	$$PWD/../3rdparty/libshv/libshvcoreqt/include \
-	$$PWD/../3rdparty/libshv/libshviotqt/include \
+    $$LIBSHV_SRC_DIR/3rdparty/necrolog/include \
+    $$LIBSHV_SRC_DIR/libshvchainpack/include \
+    $$LIBSHV_SRC_DIR/libshvcore/include \
+    $$LIBSHV_SRC_DIR/libshvcoreqt/include \
+    $$LIBSHV_SRC_DIR/libshviotqt/include \
 
 RESOURCES += \
 	$${TARGET}.qrc \
