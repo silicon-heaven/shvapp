@@ -6,15 +6,15 @@ SRCDIR=/home/fanda/proj/shv
 BROKER_TOPICS=rpcmsg,subscr #,sigres
 SLEEP_SETTLE=0.2
 
-# tmux setw remain-on-exit on
+# tmux set option remain-on-exit on
 
 tmux new-window $BINDIR/shvbroker --config-dir $SRCDIR/shvbroker/etc/ -v $BROKER_TOPICS
 
 # sleep 1
-tmux split-window $BINDIR/shvbroker --config-dir $SRCDIR/shvbroker/test/relative-paths/etc1/ -v $BROKER_TOPICS
+tmux split-window $BINDIR/shvbroker --config-dir $SRCDIR/shvbroker/test/relative-paths/etc1/ --server-ws-port 0 -v $BROKER_TOPICS
 
 # sleep 1
-tmux split-window -h $BINDIR/shvbroker --config-dir $SRCDIR/shvbroker/test/relative-paths/etc2/ -v $BROKER_TOPICS
+tmux split-window -h $BINDIR/shvbroker --config-dir $SRCDIR/shvbroker/test/relative-paths/etc2/ --server-ws-port 0 -v $BROKER_TOPICS
 
 #tmux split-window -h $BINDIR/revitestdevice -p 3755 -u iot --password lub42DUB --lt plain -m test/slave/lub1 --hbi 0
 # sleep 1
