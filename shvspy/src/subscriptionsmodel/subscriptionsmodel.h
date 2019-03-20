@@ -17,23 +17,43 @@ private:
 public:
 	enum Columns {ColServer = 0, ColPath, ColMethod, ColPermanent, ColSubscribeAfterConnect, ColEnabled, ColCount};
 
+	class Subscription{
+	public:
+		Subscription();
+		Subscription(int broker_id, QVariantMap data);
+
+		const QVariantMap &data() const;
+		int brokerId() const;
+		QString shvPath() const;
+		QString method() const;
+		bool isPermanent() const;
+		void setIsPermanent(bool val);
+		bool isSubscribeAfterConnect() const;
+		void setIsSubscribeAfterConnect(bool val);
+		bool isEnabled() const;
+		void setIsEnabled(bool val);
+	private:
+		int m_brokerId;
+		QVariantMap m_data;
+	};
+
 public:
 	SubscriptionsModel(QObject *parent = nullptr);
 	~SubscriptionsModel() Q_DECL_OVERRIDE;
 public:
+	static const QString boolToStr(bool val);
+
+	void setSubscriptions(QVector<SubscriptionsModel::Subscription> *subscriptions, const QMap<int, QString> *server_id_to_name);
 	int rowCount(const QModelIndex &parent) const override;
 	int columnCount(const QModelIndex &parent) const override;
 	Qt::ItemFlags flags(const QModelIndex &ix) const Q_DECL_OVERRIDE;
 	QVariant data( const QModelIndex & index, int role = Qt::DisplayRole ) const Q_DECL_OVERRIDE;
 	bool setData(const QModelIndex &ix, const QVariant &val, int role = Qt::EditRole) Q_DECL_OVERRIDE;
 	QVariant headerData (int section, Qt::Orientation orientation, int role = Qt::DisplayRole ) const Q_DECL_OVERRIDE;
+	void reload();
 
-	void addShvBrokerNodeItem(ShvBrokerNodeItem *nd);
-
-	QString path() const;
-
+	Q_SIGNAL void subscriptionEnabled(int broker_id, const std::string &shv_path, const std::string &method);
 private:
-	void onSubscriptionAdded(ShvBrokerNodeItem *nd, const std::string &path);
-
-	QVariantList m_subscriptionList;
+	QVector<Subscription> *m_subscriptions = nullptr;
+	const QMap<int, QString> *m_serverIdToName = nullptr;
 };

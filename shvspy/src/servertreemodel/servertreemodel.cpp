@@ -47,13 +47,18 @@ QModelIndex ServerTreeModel::parent(const QModelIndex &child) const
 
 ShvBrokerNodeItem *ServerTreeModel::createConnection(const QVariantMap &params)
 {
-	//qDebug() << params;
 	ShvBrokerNodeItem *ret = new ShvBrokerNodeItem(this, params.value("name").toString().toStdString());
-	connect(ret, &ShvBrokerNodeItem::subscriptionsCreated, this, [this, ret]() {
-		emit ServerTreeModel::subscriptionsCreated(ret);
+
+	connect(ret, &ShvBrokerNodeItem::subscriptionAdded, this, [this, ret](const std::string &path, const std::string &method){
+		emit ServerTreeModel::subscriptionAdded(ret->brokerId(), path, method);
 	});
-	connect(ret, &ShvBrokerNodeItem::subscriptionAdded, this, [this, ret](const std::string &path){
-		emit ServerTreeModel::subscriptionAdded(ret, path);
+
+	connect(ret, &ShvBrokerNodeItem::subscriptionRemoved, this, [this, ret](const std::string &path, const std::string &method){
+		emit ServerTreeModel::subscriptionRemoved(ret->brokerId(), path, method);
+	});
+
+	connect(ret, &ShvBrokerNodeItem::brokerConnectedChange, this, [this, ret](bool is_connected){
+		emit ServerTreeModel::brokerConnectedChange(ret, is_connected);
 	});
 
 	const std::string broker_name = ret->nodeId();
@@ -160,6 +165,18 @@ QModelIndex ServerTreeModel::indexFromItem(ShvNodeItem *nd) const
 	if(row < pnd->childCount())
 		return createIndex(row, 0, model_id);
 	return QModelIndex();
+}
+
+ShvBrokerNodeItem *ServerTreeModel::brokerById(int id)
+{
+	for (int i = 0; i < m_invisibleRoot->childCount(); i++){
+		ShvBrokerNodeItem *nd = qobject_cast<ShvBrokerNodeItem*>(m_invisibleRoot->childAt(i));
+		SHV_ASSERT_EX(nd != nullptr, "Internal error");
+		if (nd->brokerId() == id){
+			return  nd;
+		}
+	}
+	return nullptr;
 }
 
 void ServerTreeModel::loadSettings(const QSettings &settings)
