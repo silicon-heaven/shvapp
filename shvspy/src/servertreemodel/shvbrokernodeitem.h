@@ -39,7 +39,7 @@ public:
 
 	void setSubscriptionList(const QVariantList &subs);
 	void addSubscription(const std::string &shv_path, const std::string &method);
-	void removeSubscription(const std::string &shv_path, const std::string &method);
+	void enableSubscription(const std::string &shv_path, const std::string &method, bool is_enabled);
 
 	shv::iotqt::rpc::ClientConnection *clientConnection();
 
@@ -50,15 +50,14 @@ public:
 	int brokerId() const { return m_brokerId; }
 
 	Q_SIGNAL void subscriptionAdded(const std::string &path, const std::string &method);
-	Q_SIGNAL void subscriptionRemoved(const std::string &path, const std::string &method);
 	Q_SIGNAL void brokerConnectedChange(bool is_connected);
 
 private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	void createSubscriptions();
-	int callCreateSubscription(const std::string &shv_path, std::string method);
-	int callRemoveSubscription(const std::string &shv_path, std::string method);
+	int callSubscribe(const std::string &shv_path, std::string method);
+	int callUnsubscribe(const std::string &shv_path, std::string method);
 
 private:
 	int m_brokerId;
@@ -67,6 +66,5 @@ private:
 	OpenStatus m_openStatus = OpenStatus::Disconnected;
 	struct RpcRequestInfo;
 	std::map<int, RpcRequestInfo> m_runningRpcRequests;
-
 };
 

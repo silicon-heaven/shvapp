@@ -16,7 +16,7 @@
 #include <QJsonParseError>
 #include <QIcon>
 #include <QBrush>
-#include <QtDebug>
+#include <QDebug>
 
 namespace cp = shv::chainpack;
 
@@ -83,9 +83,9 @@ QVariant SubscriptionsModel::data(const QModelIndex &ix, int role) const
 		case Columns::ColServer:
 			return (m_serverIdToName != nullptr) ? m_serverIdToName->value(sub.brokerId()) : tr("Unknown");
 		case Columns::ColPath:
-			return sub.shvPath();
+			return QString::fromStdString(sub.shvPath());
 		case Columns::ColMethod:
-			return sub.method();
+			return QString::fromStdString(sub.method());
 		}
 	}
 	else if(role == Qt::CheckStateRole) {
@@ -131,17 +131,11 @@ bool SubscriptionsModel::setData(const QModelIndex &ix, const QVariant &val, int
 				ShvBrokerNodeItem *nd = TheApp::instance()->serverTreeModel()->brokerById(sub.brokerId());
 
 				if (nd != nullptr){
-					if (v){
-						nd->addSubscription(sub.shvPath().toStdString(), sub.method().toStdString());
-					}
-					else{
-						nd->removeSubscription(sub.shvPath().toStdString(), sub.method().toStdString());
-					}
-					return true;
+					nd->enableSubscription(sub.shvPath(), sub.method(), v);
 				}
 			}
-
 			m_subscriptions->replace(ix.row(), sub);
+			emit dataChanged(createIndex(ix.row(), 0), createIndex(ix.row(), Columns::ColCount-1));
 		}
 	}
 
@@ -206,14 +200,14 @@ int SubscriptionsModel::Subscription::brokerId() const
 	return m_brokerId;
 }
 
-QString SubscriptionsModel::Subscription::shvPath() const
+std::string SubscriptionsModel::Subscription::shvPath() const
 {
-	return m_data.value(ShvBrokerNodeItem::SUBSCR_PATH_KEY).toString();
+	return m_data.value(ShvBrokerNodeItem::SUBSCR_PATH_KEY).toString().toStdString();
 }
 
-QString SubscriptionsModel::Subscription::method() const
+std::string SubscriptionsModel::Subscription::method() const
 {
-	return m_data.value(ShvBrokerNodeItem::SUBSCR_METHOD_KEY).toString();
+	return m_data.value(ShvBrokerNodeItem::SUBSCR_METHOD_KEY).toString().toStdString();
 }
 
 bool SubscriptionsModel::Subscription::isPermanent() const

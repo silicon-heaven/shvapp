@@ -108,14 +108,18 @@ void ShvBrokerNodeItem::setSubscriptionList(const QVariantList &subs)
 
 void ShvBrokerNodeItem::addSubscription(const std::string &shv_path, const std::string &method)
 {
-	callCreateSubscription(shv_path, method);
+	callSubscribe(shv_path, method);
 	emit subscriptionAdded(shv_path, method);
 }
 
-void ShvBrokerNodeItem::removeSubscription(const std::string &shv_path, const std::string &method)
+void ShvBrokerNodeItem::enableSubscription(const std::string &shv_path, const std::string &method, bool is_enabled)
 {
-	callRemoveSubscription(shv_path, method);
-	emit subscriptionRemoved(shv_path, method);
+	if (is_enabled){
+		callSubscribe(shv_path, method);
+	}
+	else{
+		callUnsubscribe(shv_path, method);
+	}
 }
 
 void ShvBrokerNodeItem::setServerProperties(const QVariantMap &props)
@@ -262,7 +266,7 @@ ShvNodeItem* ShvBrokerNodeItem::findNode(const std::string &path, std::string *p
 	return ret;
 }
 
-int ShvBrokerNodeItem::callCreateSubscription(const std::string &shv_path, std::string method)
+int ShvBrokerNodeItem::callSubscribe(const std::string &shv_path, std::string method)
 {
 	shvInfo() << "Create subscription:" << nodeId() << "creating subscription" << shv_path << ":" << method;
 	shv::iotqt::rpc::ClientConnection *cc = clientConnection();
@@ -270,11 +274,11 @@ int ShvBrokerNodeItem::callCreateSubscription(const std::string &shv_path, std::
 	return rqid;
 }
 
-int ShvBrokerNodeItem::callRemoveSubscription(const std::string &shv_path, std::string method)
+int ShvBrokerNodeItem::callUnsubscribe(const std::string &shv_path, std::string method)
 {
-	shvInfo() << "remove subscription:" << nodeId() << "creating subscription" << shv_path << ":" << method;
+	shvInfo() << "Remove subscription:" << nodeId() << " subscription" << shv_path << ":" << method;
 	shv::iotqt::rpc::ClientConnection *cc = clientConnection();
-	int rqid = cc->callMethodSubscribe(shv_path, method);
+	int rqid = cc->callMethodUnsubscribe(shv_path, method);
 	return rqid;
 }
 
@@ -357,14 +361,12 @@ void ShvBrokerNodeItem::createSubscriptions()
 		QVariantList subs = v.toList();
 
 		for (int i = subs.size() -1; i >= 0; i--) {
-			QVariantMap subscription = subs.at(i).toMap();
+			QVariantMap s = subs.at(i).toMap();
 
-			if ((subscription.value(SUBSCR_IS_SUBSCRIBED_AFTER_CONNECT_KEY).toBool()) && (subscription.value(SUBSCR_IS_ENABLED_KEY).toBool())){
-				callCreateSubscription(subscription.value(QStringLiteral("path")).toString().toStdString(), subscription.value(QStringLiteral("method")).toString().toStdString());
+			if ((s.value(SUBSCR_IS_SUBSCRIBED_AFTER_CONNECT_KEY).toBool()) && (s.value(SUBSCR_IS_ENABLED_KEY).toBool())){
+				callSubscribe(s.value(SUBSCR_PATH_KEY).toString().toStdString(), s.value(SUBSCR_METHOD_KEY).toString().toStdString());
 			}
 		}
-
-		m_serverPropeties["subscriptions"] = subs;
 	}
 }
 

@@ -72,17 +72,21 @@ void SubscriptionsWidget::onBrokerConnectedChanged(ShvBrokerNodeItem *shv_broker
 void SubscriptionsWidget::onSubscriptionAdded(int broker_id, const std::string &shv_path, const std::string &method)
 {
 	qInfo() << "add subscr";
-	QVariantMap data;
-	data[ShvBrokerNodeItem::SUBSCR_PATH_KEY] = QString::fromStdString(shv_path);
-	data[ShvBrokerNodeItem::SUBSCR_METHOD_KEY] = QString::fromStdString(method);
-	data[ShvBrokerNodeItem::SUBSCR_IS_PERMANENT_KEY] = false;
-	data[ShvBrokerNodeItem::SUBSCR_IS_SUBSCRIBED_AFTER_CONNECT_KEY] = false;
-	data[ShvBrokerNodeItem::SUBSCR_IS_ENABLED_KEY] = true;
 
-	SubscriptionsModel::Subscription sub(broker_id, data);
-	m_subscriptionsList.append(sub);
-	m_subscriptionsModel.reload();
-	ui->tvSubscriptions->resizeColumnsToContents();
+	int sub_ix = subscriptionIndex(broker_id, shv_path, method);
+	if (sub_ix == -1){
+		QVariantMap data;
+		data[ShvBrokerNodeItem::SUBSCR_PATH_KEY] = QString::fromStdString(shv_path);
+		data[ShvBrokerNodeItem::SUBSCR_METHOD_KEY] = QString::fromStdString(method);
+		data[ShvBrokerNodeItem::SUBSCR_IS_PERMANENT_KEY] = false;
+		data[ShvBrokerNodeItem::SUBSCR_IS_SUBSCRIBED_AFTER_CONNECT_KEY] = false;
+		data[ShvBrokerNodeItem::SUBSCR_IS_ENABLED_KEY] = true;
+		SubscriptionsModel::Subscription sub(broker_id, data);
+
+		m_subscriptionsList.append(sub);
+		m_subscriptionsModel.reload();
+		ui->tvSubscriptions->resizeColumnsToContents();
+	}
 }
 
 int SubscriptionsWidget::subscriptionIndex(int broker_id, const std::string &shv_path, const std::string &method)
@@ -90,7 +94,7 @@ int SubscriptionsWidget::subscriptionIndex(int broker_id, const std::string &shv
 	int sub_ix = -1;
 	for (int i = 0; i < m_subscriptionsList.count(); i++){
 		const SubscriptionsModel::Subscription s = m_subscriptionsList.at(i);
-		if (s.brokerId() == broker_id && s.shvPath().toStdString() == shv_path && s.method().toStdString() == method){
+		if (s.brokerId() == broker_id && s.shvPath() == shv_path && s.method() == method){
 			sub_ix = i;
 		}
 	}
@@ -98,7 +102,3 @@ int SubscriptionsWidget::subscriptionIndex(int broker_id, const std::string &shv
 	return sub_ix;
 }
 
-void SubscriptionsWidget::onSubscriptionRemoved(int broker_id, const std::string &shv_path, const std::string &method)
-{
-
-}

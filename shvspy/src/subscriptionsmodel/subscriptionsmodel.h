@@ -24,8 +24,8 @@ public:
 
 		const QVariantMap &data() const;
 		int brokerId() const;
-		QString shvPath() const;
-		QString method() const;
+		std::string shvPath() const;
+		std::string method() const;
 		bool isPermanent() const;
 		void setIsPermanent(bool val);
 		bool isSubscribeAfterConnect() const;

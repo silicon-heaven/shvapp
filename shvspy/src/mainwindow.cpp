@@ -68,7 +68,6 @@ MainWindow::MainWindow(QWidget *parent) :
 	connect(ui->treeServers->selectionModel(), &QItemSelectionModel::currentChanged, this, &MainWindow::onShvTreeViewCurrentSelectionChanged);
 	connect(tree_model, &ServerTreeModel::brokerConnectedChange, ui->subscriptionsWidget, &SubscriptionsWidget::onBrokerConnectedChanged);
 	connect(tree_model, &ServerTreeModel::subscriptionAdded, ui->subscriptionsWidget, &SubscriptionsWidget::onSubscriptionAdded);
-	connect(tree_model, &ServerTreeModel::subscriptionRemoved, ui->subscriptionsWidget, &SubscriptionsWidget::onSubscriptionRemoved);
 
 	ui->tblAttributes->setModel(TheApp::instance()->attributesModel());
 	ui->tblAttributes->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
