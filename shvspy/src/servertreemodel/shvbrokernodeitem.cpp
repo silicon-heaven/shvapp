@@ -22,11 +22,12 @@
 
 namespace cp = shv::chainpack;
 
-const QString ShvBrokerNodeItem::SUBSCR_PATH_KEY = QStringLiteral("path");
-const QString ShvBrokerNodeItem::SUBSCR_METHOD_KEY = QStringLiteral("method");
-const QString ShvBrokerNodeItem::SUBSCR_IS_PERMANENT_KEY = QStringLiteral("isPermanent");
-const QString ShvBrokerNodeItem::SUBSCR_IS_SUBSCRIBED_AFTER_CONNECT_KEY = QStringLiteral("isSubscribedAfterConnect");
-const QString ShvBrokerNodeItem::SUBSCR_IS_ENABLED_KEY = QStringLiteral("isEnabled");
+const QString ShvBrokerNodeItem::SUBSCRIPTIONS = QStringLiteral("subscriptions");
+const QString ShvBrokerNodeItem::S_PATH_KEY = QStringLiteral("path");
+const QString ShvBrokerNodeItem::S_METHOD_KEY = QStringLiteral("method");
+const QString ShvBrokerNodeItem::S_SUBSCR_IS_PERMANENT_KEY = QStringLiteral("isPermanent");
+const QString ShvBrokerNodeItem::S_IS_SUBSCRIBED_AFTER_CONNECT_KEY = QStringLiteral("isSubscribedAfterConnect");
+const QString ShvBrokerNodeItem::S_IS_ENABLED_KEY = QStringLiteral("isEnabled");
 
 struct ShvBrokerNodeItem::RpcRequestInfo
 {
@@ -102,7 +103,7 @@ QVariantMap ShvBrokerNodeItem::serverProperties() const
 
 void ShvBrokerNodeItem::setSubscriptionList(const QVariantList &subs)
 {
-	m_serverPropeties["subscriptions"] = subs;
+	m_serverPropeties[SUBSCRIPTIONS] = subs;
 }
 
 
@@ -218,8 +219,6 @@ shv::iotqt::rpc::ClientConnection *ShvBrokerNodeItem::clientConnection()
 		}
 		//m_rpcConnection->setCheckBrokerConnectedInterval(0);
 		connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &ShvBrokerNodeItem::onBrokerConnectedChanged);
-		connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &ShvBrokerNodeItem::brokerConnectedChange);
-
 		connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvBrokerNodeItem::onRpcMessageReceived);
 	}
 	return m_rpcConnection;
@@ -238,6 +237,8 @@ void ShvBrokerNodeItem::onBrokerConnectedChanged(bool is_connected)
 	else {
 		deleteChildren();
 	}
+
+	emit brokerConnectedChange(is_connected);
 }
 
 ShvNodeItem* ShvBrokerNodeItem::findNode(const std::string &path, std::string *path_rest)
@@ -356,15 +357,15 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 
 void ShvBrokerNodeItem::createSubscriptions()
 {
-	QVariant v = m_serverPropeties.value("subscriptions");
+	QVariant v = m_serverPropeties.value(SUBSCRIPTIONS);
 	if(v.isValid()) {
 		QVariantList subs = v.toList();
 
-		for (int i = subs.size() -1; i >= 0; i--) {
+		for (int i = 0; i < subs.size(); i++) {
 			QVariantMap s = subs.at(i).toMap();
 
-			if ((s.value(SUBSCR_IS_SUBSCRIBED_AFTER_CONNECT_KEY).toBool()) && (s.value(SUBSCR_IS_ENABLED_KEY).toBool())){
-				callSubscribe(s.value(SUBSCR_PATH_KEY).toString().toStdString(), s.value(SUBSCR_METHOD_KEY).toString().toStdString());
+			if ((s.value(S_IS_SUBSCRIBED_AFTER_CONNECT_KEY).toBool()) && (s.value(S_IS_ENABLED_KEY).toBool())){
+				callSubscribe(s.value(S_PATH_KEY).toString().toStdString(), s.value(S_METHOD_KEY).toString().toStdString());
 			}
 		}
 	}

@@ -2,14 +2,11 @@
 #include "ui_subscriptionswidget.h"
 
 #include "theapp.h"
-#include "subscriptionsmodel/subscriptionstableitemdelegate.h"
 
 #include <shv/coreqt/log.h>
 
 #include <QSettings>
 #include <QStringList>
-
-#include <QDebug>
 
 namespace cp = shv::chainpack;
 
@@ -22,7 +19,6 @@ SubscriptionsWidget::SubscriptionsWidget(QWidget *parent) :
 	ui->tvSubscriptions->setModel(&m_subscriptionsModel);
 	ui->tvSubscriptions->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
 	ui->tvSubscriptions->verticalHeader()->setDefaultSectionSize(static_cast<int>(fontMetrics().height() * 1.3));
-//	ui->tvSubscriptions->setItemDelegate(new SubscriptionsTableItemDelegate(ui->tvSubscriptions));
 }
 
 SubscriptionsWidget::~SubscriptionsWidget()
@@ -35,7 +31,7 @@ void SubscriptionsWidget::onBrokerConnectedChanged(ShvBrokerNodeItem *shv_broker
 	int broker_id = shv_broker_node_item->brokerId();
 
 	if (is_connected){
-		QVariant v = shv_broker_node_item->serverProperties().value("subscriptions");
+		QVariant v = shv_broker_node_item->serverProperties().value(ShvBrokerNodeItem::SUBSCRIPTIONS);
 
 		if(v.isValid()) {
 			QVariantList subs = v.toList();
@@ -71,16 +67,14 @@ void SubscriptionsWidget::onBrokerConnectedChanged(ShvBrokerNodeItem *shv_broker
 
 void SubscriptionsWidget::onSubscriptionAdded(int broker_id, const std::string &shv_path, const std::string &method)
 {
-	qInfo() << "add subscr";
-
 	int sub_ix = subscriptionIndex(broker_id, shv_path, method);
 	if (sub_ix == -1){
 		QVariantMap data;
-		data[ShvBrokerNodeItem::SUBSCR_PATH_KEY] = QString::fromStdString(shv_path);
-		data[ShvBrokerNodeItem::SUBSCR_METHOD_KEY] = QString::fromStdString(method);
-		data[ShvBrokerNodeItem::SUBSCR_IS_PERMANENT_KEY] = false;
-		data[ShvBrokerNodeItem::SUBSCR_IS_SUBSCRIBED_AFTER_CONNECT_KEY] = false;
-		data[ShvBrokerNodeItem::SUBSCR_IS_ENABLED_KEY] = true;
+		data[ShvBrokerNodeItem::S_PATH_KEY] = QString::fromStdString(shv_path);
+		data[ShvBrokerNodeItem::S_METHOD_KEY] = QString::fromStdString(method);
+		data[ShvBrokerNodeItem::S_SUBSCR_IS_PERMANENT_KEY] = false;
+		data[ShvBrokerNodeItem::S_IS_SUBSCRIBED_AFTER_CONNECT_KEY] = false;
+		data[ShvBrokerNodeItem::S_IS_ENABLED_KEY] = true;
 		SubscriptionsModel::Subscription sub(broker_id, data);
 
 		m_subscriptionsList.append(sub);

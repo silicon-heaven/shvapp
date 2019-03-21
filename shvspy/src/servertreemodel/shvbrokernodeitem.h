@@ -16,11 +16,13 @@ private:
 	using Super = ShvNodeItem;
 public:
 	enum class OpenStatus {Invalid = 0, Disconnected, Connecting, Connected};
-	static const QString SUBSCR_PATH_KEY;
-	static const QString SUBSCR_METHOD_KEY;
-	static const QString SUBSCR_IS_PERMANENT_KEY;
-	static const QString SUBSCR_IS_SUBSCRIBED_AFTER_CONNECT_KEY;
-	static const QString SUBSCR_IS_ENABLED_KEY;
+
+	static const QString SUBSCRIPTIONS;
+	static const QString S_PATH_KEY;
+	static const QString S_METHOD_KEY;
+	static const QString S_SUBSCR_IS_PERMANENT_KEY;
+	static const QString S_IS_SUBSCRIBED_AFTER_CONNECT_KEY;
+	static const QString S_IS_ENABLED_KEY;
 public:
 	explicit ShvBrokerNodeItem(ServerTreeModel *m, const std::string &server_name);
 	~ShvBrokerNodeItem() Q_DECL_OVERRIDE;

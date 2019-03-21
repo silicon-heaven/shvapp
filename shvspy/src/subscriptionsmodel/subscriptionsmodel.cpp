@@ -6,17 +6,9 @@
 #include "../servertreemodel/servertreemodel.h"
 
 #include <shv/chainpack/rpcvalue.h>
-#include <shv/core/utils.h>
-#include <shv/core/assert.h>
 #include <shv/coreqt/log.h>
-#include <shv/iotqt/rpc/rpc.h>
 
-#include <QSettings>
-#include <QJsonDocument>
-#include <QJsonParseError>
-#include <QIcon>
 #include <QBrush>
-#include <QDebug>
 
 namespace cp = shv::chainpack;
 
@@ -27,11 +19,6 @@ SubscriptionsModel::SubscriptionsModel(QObject *parent)
 
 SubscriptionsModel::~SubscriptionsModel()
 {
-}
-
-const QString SubscriptionsModel::boolToStr(bool val)
-{
-	return (val == true) ? tr("yes") : tr("no");
 }
 
 void SubscriptionsModel::setSubscriptions(QVector<SubscriptionsModel::Subscription> *subscriptions, const QMap<int, QString> *server_id_to_name)
@@ -114,6 +101,10 @@ QVariant SubscriptionsModel::data(const QModelIndex &ix, int role) const
 
 bool SubscriptionsModel::setData(const QModelIndex &ix, const QVariant &val, int role)
 {
+	if ((m_subscriptions == nullptr) || (ix.row() >= m_subscriptions->count())){
+		return false;
+	}
+
 	if (role == Qt::CheckStateRole){
 		Subscription sub = m_subscriptions->value(ix.row());
 		int col = ix.column();
@@ -135,7 +126,7 @@ bool SubscriptionsModel::setData(const QModelIndex &ix, const QVariant &val, int
 				}
 			}
 			m_subscriptions->replace(ix.row(), sub);
-			emit dataChanged(createIndex(ix.row(), 0), createIndex(ix.row(), Columns::ColCount-1));
+			return true;
 		}
 	}
 
@@ -163,10 +154,6 @@ QVariant SubscriptionsModel::headerData(int section, Qt::Orientation orientation
 			default:
 				return tr("Unknown");
 			}
-		}
-		else if(role == Qt::ToolTipRole) {
-			if(section == Columns::ColSubscribeAfterConnect)
-				ret = tr("Subscribe after connect");
 		}
 	}
 	return ret;
@@ -202,40 +189,40 @@ int SubscriptionsModel::Subscription::brokerId() const
 
 std::string SubscriptionsModel::Subscription::shvPath() const
 {
-	return m_data.value(ShvBrokerNodeItem::SUBSCR_PATH_KEY).toString().toStdString();
+	return m_data.value(ShvBrokerNodeItem::S_PATH_KEY).toString().toStdString();
 }
 
 std::string SubscriptionsModel::Subscription::method() const
 {
-	return m_data.value(ShvBrokerNodeItem::SUBSCR_METHOD_KEY).toString().toStdString();
+	return m_data.value(ShvBrokerNodeItem::S_METHOD_KEY).toString().toStdString();
 }
 
 bool SubscriptionsModel::Subscription::isPermanent() const
 {
-	return m_data.value(ShvBrokerNodeItem::SUBSCR_IS_PERMANENT_KEY).toBool();
+	return m_data.value(ShvBrokerNodeItem::S_SUBSCR_IS_PERMANENT_KEY).toBool();
 }
 
 void SubscriptionsModel::Subscription::setIsPermanent(bool val)
 {
-	m_data[ShvBrokerNodeItem::SUBSCR_IS_PERMANENT_KEY] = val;
+	m_data[ShvBrokerNodeItem::S_SUBSCR_IS_PERMANENT_KEY] = val;
 }
 
 bool SubscriptionsModel::Subscription::isSubscribeAfterConnect() const
 {
-	return m_data.value(ShvBrokerNodeItem::SUBSCR_IS_SUBSCRIBED_AFTER_CONNECT_KEY).toBool();
+	return m_data.value(ShvBrokerNodeItem::S_IS_SUBSCRIBED_AFTER_CONNECT_KEY).toBool();
 }
 
 void SubscriptionsModel::Subscription::setIsSubscribeAfterConnect(bool val)
 {
-	m_data[ShvBrokerNodeItem::SUBSCR_IS_SUBSCRIBED_AFTER_CONNECT_KEY] = val;
+	m_data[ShvBrokerNodeItem::S_IS_SUBSCRIBED_AFTER_CONNECT_KEY] = val;
 }
 
 bool SubscriptionsModel::Subscription::isEnabled() const
 {
-	return m_data.value(ShvBrokerNodeItem::SUBSCR_IS_ENABLED_KEY).toBool();
+	return m_data.value(ShvBrokerNodeItem::S_IS_ENABLED_KEY).toBool();
 }
 
 void SubscriptionsModel::Subscription::setIsEnabled(bool val)
 {
-	m_data[ShvBrokerNodeItem::SUBSCR_IS_ENABLED_KEY] = val;
+	m_data[ShvBrokerNodeItem::S_IS_ENABLED_KEY] = val;
 }

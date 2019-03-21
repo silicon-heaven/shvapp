@@ -5,7 +5,6 @@
 #include "../servertreemodel/shvbrokernodeitem.h"
 
 #include <QAbstractTableModel>
-#include <QPointer>
 
 namespace shv { namespace chainpack { class RpcMessage; }}
 
@@ -41,8 +40,6 @@ public:
 	SubscriptionsModel(QObject *parent = nullptr);
 	~SubscriptionsModel() Q_DECL_OVERRIDE;
 public:
-	static const QString boolToStr(bool val);
-
 	void setSubscriptions(QVector<SubscriptionsModel::Subscription> *subscriptions, const QMap<int, QString> *server_id_to_name);
 	int rowCount(const QModelIndex &parent) const override;
 	int columnCount(const QModelIndex &parent) const override;
