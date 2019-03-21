@@ -15,14 +15,10 @@ class ShvBrokerNodeItem : public ShvNodeItem
 private:
 	using Super = ShvNodeItem;
 public:
-	enum class OpenStatus {Invalid = 0, Disconnected, Connecting, Connected};
-
 	static const QString SUBSCRIPTIONS;
-	static const QString S_PATH_KEY;
-	static const QString S_METHOD_KEY;
-	static const QString S_SUBSCR_IS_PERMANENT_KEY;
-	static const QString S_IS_SUBSCRIBED_AFTER_CONNECT_KEY;
-	static const QString S_IS_ENABLED_KEY;
+	enum class OpenStatus {Invalid = 0, Disconnected, Connecting, Connected};
+	enum SubscriptionItem {Path = 0, Method, IsPermanent, IsSubscribedAfterConnect, IsEnabled, Count};
+	Q_ENUM(SubscriptionItem)
 public:
 	explicit ShvBrokerNodeItem(ServerTreeModel *m, const std::string &server_name);
 	~ShvBrokerNodeItem() Q_DECL_OVERRIDE;

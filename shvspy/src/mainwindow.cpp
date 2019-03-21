@@ -66,7 +66,7 @@ MainWindow::MainWindow(QWidget *parent) :
 		}
 	});
 	connect(ui->treeServers->selectionModel(), &QItemSelectionModel::currentChanged, this, &MainWindow::onShvTreeViewCurrentSelectionChanged);
-	connect(tree_model, &ServerTreeModel::brokerConnectedChange, ui->subscriptionsWidget, &SubscriptionsWidget::onBrokerConnectedChanged);
+	connect(tree_model, &ServerTreeModel::brokerConnectedChanged, ui->subscriptionsWidget, &SubscriptionsWidget::onBrokerConnectedChanged);
 	connect(tree_model, &ServerTreeModel::subscriptionAdded, ui->subscriptionsWidget, &SubscriptionsWidget::onSubscriptionAdded);
 
 	ui->tblAttributes->setModel(TheApp::instance()->attributesModel());

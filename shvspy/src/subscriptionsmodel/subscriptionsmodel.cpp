@@ -9,6 +9,7 @@
 #include <shv/coreqt/log.h>
 
 #include <QBrush>
+#include <QDebug>
 
 namespace cp = shv::chainpack;
 
@@ -21,18 +22,10 @@ SubscriptionsModel::~SubscriptionsModel()
 {
 }
 
-void SubscriptionsModel::setSubscriptions(QVector<SubscriptionsModel::Subscription> *subscriptions, const QMap<int, QString> *server_id_to_name)
-{
-	beginResetModel();
-	m_subscriptions = subscriptions;
-	m_serverIdToName = server_id_to_name;
-	endResetModel();
-}
-
 int SubscriptionsModel::rowCount(const QModelIndex &parent) const
 {
 	Q_UNUSED(parent)
-	return (m_subscriptions != nullptr) ? m_subscriptions->count() : 0;
+	return m_subscriptions.count();
 }
 
 int SubscriptionsModel::columnCount(const QModelIndex &parent) const
@@ -59,20 +52,20 @@ Qt::ItemFlags SubscriptionsModel::flags(const QModelIndex &ix) const
 
 QVariant SubscriptionsModel::data(const QModelIndex &ix, int role) const
 {
-	if ((m_subscriptions == nullptr) || (ix.row() >= m_subscriptions->count())){
+	if (m_subscriptions.isEmpty() || ix.row() >= m_subscriptions.count() || ix.row() < 0){
 		return QVariant();
 	}
 
-	const Subscription &sub = m_subscriptions->at(ix.row());
+	const Subscription &sub = m_subscriptions.at(ix.row());
 
 	if(role == Qt::DisplayRole) {
 		switch (ix.column()) {
 		case Columns::ColServer:
-			return (m_serverIdToName != nullptr) ? m_serverIdToName->value(sub.brokerId()) : tr("Unknown");
+			return sub.serverName();
 		case Columns::ColPath:
-			return QString::fromStdString(sub.shvPath());
+			return sub.shvPath();
 		case Columns::ColMethod:
-			return QString::fromStdString(sub.method());
+			return sub.method();
 		}
 	}
 	else if(role == Qt::CheckStateRole) {
@@ -101,12 +94,12 @@ QVariant SubscriptionsModel::data(const QModelIndex &ix, int role) const
 
 bool SubscriptionsModel::setData(const QModelIndex &ix, const QVariant &val, int role)
 {
-	if ((m_subscriptions == nullptr) || (ix.row() >= m_subscriptions->count())){
+	if (m_subscriptions.isEmpty() || ix.row() >= m_subscriptions.count() || ix.row() < 0){
 		return false;
 	}
 
 	if (role == Qt::CheckStateRole){
-		Subscription sub = m_subscriptions->value(ix.row());
+		Subscription &sub = m_subscriptions[ix.row()];
 		int col = ix.column();
 		bool v = (val == Qt::Checked) ? true : false;
 
@@ -122,10 +115,10 @@ bool SubscriptionsModel::setData(const QModelIndex &ix, const QVariant &val, int
 				ShvBrokerNodeItem *nd = TheApp::instance()->serverTreeModel()->brokerById(sub.brokerId());
 
 				if (nd != nullptr){
-					nd->enableSubscription(sub.shvPath(), sub.method(), v);
+					nd->enableSubscription(sub.shvPath().toStdString(), sub.method().toStdString(), v);
 				}
 			}
-			m_subscriptions->replace(ix.row(), sub);
+
 			return true;
 		}
 	}
@@ -165,21 +158,97 @@ void SubscriptionsModel::reload()
 	endResetModel();
 }
 
-SubscriptionsModel::Subscription::Subscription():
-	SubscriptionsModel::Subscription(-1, QVariantMap())
+void SubscriptionsModel::onBrokerConnectedChanged(int broker_id, bool is_connected)
 {
+	ShvBrokerNodeItem *nd = TheApp::instance()->serverTreeModel()->brokerById(broker_id);
 
+	if (nd == nullptr){
+		return;
+	}
+
+	if (is_connected){
+		QMetaEnum met_sub = QMetaEnum::fromType<ShvBrokerNodeItem::SubscriptionItem>();
+		QVariant v = nd->serverProperties().value(ShvBrokerNodeItem::SUBSCRIPTIONS);
+
+		if(v.isValid()) {
+			QVariantList subs = v.toList();
+
+			beginInsertRows(QModelIndex(), m_subscriptions.count(), m_subscriptions.count());
+			for (int i = 0; i < subs.size(); i++) {
+				if (subs.at(i).toMap().contains(met_sub.valueToKey(ShvBrokerNodeItem::SubscriptionItem::IsPermanent))){
+					SubscriptionsModel::Subscription s(broker_id, QString::fromStdString(nd->nodeId()));
+					s.setConfig(subs.at(i).toMap());
+					m_subscriptions.append(s);
+				}
+			}
+			endInsertRows();
+		}
+	}
+	else{
+		QVariantList subs;
+		for (int i = m_subscriptions.size() -1; i >= 0; i--) {
+			if (m_subscriptions.at(i).brokerId() == broker_id){
+				m_subscriptions.removeAt(i);
+			}
+		}
+	}
 }
 
-SubscriptionsModel::Subscription::Subscription(int broker_id, QVariantMap data)
+void SubscriptionsModel::addSubscription(Subscription sub)
+{
+	int sub_ix = subscriptionIndex(sub.brokerId(), sub.shvPath(), sub.method());
+
+	if (sub_ix == -1){
+		beginInsertRows(QModelIndex(), m_subscriptions.count(), m_subscriptions.count());
+		m_subscriptions.append(sub);
+		endInsertRows();
+	}
+}
+
+int SubscriptionsModel::subscriptionIndex(int broker_id, const QString &shv_path, const QString &method)
+{
+	int sub_ix = -1;
+	for (int i = 0; i < m_subscriptions.count(); i++){
+		const SubscriptionsModel::Subscription &s = m_subscriptions.at(i);
+		if (s.brokerId() == broker_id && s.shvPath() == shv_path && s.method() == method){
+			sub_ix = i;
+			break;
+		}
+	}
+
+	return sub_ix;
+}
+
+SubscriptionsModel::Subscription::Subscription():
+	SubscriptionsModel::Subscription(-1, QString())
+{
+}
+
+SubscriptionsModel::Subscription::Subscription(int broker_id, const QString &server_name)
 {
 	m_brokerId = broker_id;
-	m_data = data;
+	m_serverName = server_name;
 }
 
-const QVariantMap &SubscriptionsModel::Subscription::data() const
+void SubscriptionsModel::Subscription::setConfig(const QVariantMap &config)
 {
-	return m_data;
+	QMetaEnum meta_sub = QMetaEnum::fromType<ShvBrokerNodeItem::SubscriptionItem>();
+
+	for (int i = 0; i < ShvBrokerNodeItem::SubscriptionItem::Count; i++){
+		m_config[i] = config.value(meta_sub.valueToKey(i));
+	}
+}
+
+QVariantMap SubscriptionsModel::Subscription::config() const
+{
+	QVariantMap config;
+	QMetaEnum meta_sub = QMetaEnum::fromType<ShvBrokerNodeItem::SubscriptionItem>();
+
+	for (int i = 0; i < ShvBrokerNodeItem::SubscriptionItem::Count; i++){
+		config[meta_sub.valueToKey(i)];
+	}
+
+	return config;
 }
 
 int SubscriptionsModel::Subscription::brokerId() const
@@ -187,42 +256,57 @@ int SubscriptionsModel::Subscription::brokerId() const
 	return m_brokerId;
 }
 
-std::string SubscriptionsModel::Subscription::shvPath() const
+QString SubscriptionsModel::Subscription::serverName() const
 {
-	return m_data.value(ShvBrokerNodeItem::S_PATH_KEY).toString().toStdString();
+	return m_serverName;
 }
 
-std::string SubscriptionsModel::Subscription::method() const
+QString SubscriptionsModel::Subscription::shvPath() const
 {
-	return m_data.value(ShvBrokerNodeItem::S_METHOD_KEY).toString().toStdString();
+	return m_config[ShvBrokerNodeItem::SubscriptionItem::Path].toString();
+}
+
+void SubscriptionsModel::Subscription::setShvPath(const QString &shv_path)
+{
+	m_config[ShvBrokerNodeItem::SubscriptionItem::Path] = shv_path;
+}
+
+QString SubscriptionsModel::Subscription::method() const
+{
+	return m_config[ShvBrokerNodeItem::SubscriptionItem::Method].toString();
+}
+
+void SubscriptionsModel::Subscription::setMethod(const QString &method)
+{
+	m_config[ShvBrokerNodeItem::SubscriptionItem::Method] = method;
 }
 
 bool SubscriptionsModel::Subscription::isPermanent() const
 {
-	return m_data.value(ShvBrokerNodeItem::S_SUBSCR_IS_PERMANENT_KEY).toBool();
+	return m_config[ShvBrokerNodeItem::SubscriptionItem::IsPermanent].toBool();
 }
 
 void SubscriptionsModel::Subscription::setIsPermanent(bool val)
 {
-	m_data[ShvBrokerNodeItem::S_SUBSCR_IS_PERMANENT_KEY] = val;
+	m_config[ShvBrokerNodeItem::SubscriptionItem::IsPermanent] = val;
 }
 
 bool SubscriptionsModel::Subscription::isSubscribeAfterConnect() const
 {
-	return m_data.value(ShvBrokerNodeItem::S_IS_SUBSCRIBED_AFTER_CONNECT_KEY).toBool();
+	return m_config[ShvBrokerNodeItem::SubscriptionItem::IsSubscribedAfterConnect].toBool();
 }
 
 void SubscriptionsModel::Subscription::setIsSubscribeAfterConnect(bool val)
 {
-	m_data[ShvBrokerNodeItem::S_IS_SUBSCRIBED_AFTER_CONNECT_KEY] = val;
+	m_config[ShvBrokerNodeItem::SubscriptionItem::IsSubscribedAfterConnect] = val;
 }
 
 bool SubscriptionsModel::Subscription::isEnabled() const
 {
-	return m_data.value(ShvBrokerNodeItem::S_IS_ENABLED_KEY).toBool();
+	return m_config[ShvBrokerNodeItem::SubscriptionItem::IsEnabled].toBool();
 }
 
 void SubscriptionsModel::Subscription::setIsEnabled(bool val)
 {
-	m_data[ShvBrokerNodeItem::S_IS_ENABLED_KEY] = val;
+	m_config[ShvBrokerNodeItem::SubscriptionItem::IsEnabled] = val;
 }

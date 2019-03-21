@@ -23,11 +23,6 @@
 namespace cp = shv::chainpack;
 
 const QString ShvBrokerNodeItem::SUBSCRIPTIONS = QStringLiteral("subscriptions");
-const QString ShvBrokerNodeItem::S_PATH_KEY = QStringLiteral("path");
-const QString ShvBrokerNodeItem::S_METHOD_KEY = QStringLiteral("method");
-const QString ShvBrokerNodeItem::S_SUBSCR_IS_PERMANENT_KEY = QStringLiteral("isPermanent");
-const QString ShvBrokerNodeItem::S_IS_SUBSCRIBED_AFTER_CONNECT_KEY = QStringLiteral("isSubscribedAfterConnect");
-const QString ShvBrokerNodeItem::S_IS_ENABLED_KEY = QStringLiteral("isEnabled");
 
 struct ShvBrokerNodeItem::RpcRequestInfo
 {
@@ -357,6 +352,7 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 
 void ShvBrokerNodeItem::createSubscriptions()
 {
+	QMetaEnum meta_sub = QMetaEnum::fromType<SubscriptionItem>();
 	QVariant v = m_serverPropeties.value(SUBSCRIPTIONS);
 	if(v.isValid()) {
 		QVariantList subs = v.toList();
@@ -364,8 +360,9 @@ void ShvBrokerNodeItem::createSubscriptions()
 		for (int i = 0; i < subs.size(); i++) {
 			QVariantMap s = subs.at(i).toMap();
 
-			if ((s.value(S_IS_SUBSCRIBED_AFTER_CONNECT_KEY).toBool()) && (s.value(S_IS_ENABLED_KEY).toBool())){
-				callSubscribe(s.value(S_PATH_KEY).toString().toStdString(), s.value(S_METHOD_KEY).toString().toStdString());
+			if ((s.value(meta_sub.valueToKey(SubscriptionItem::IsSubscribedAfterConnect)).toBool()) &&
+				(s.value(meta_sub.valueToKey(SubscriptionItem::IsEnabled)).toBool())){
+				callSubscribe(s.value(meta_sub.valueToKey(SubscriptionItem::Path)).toString().toStdString(), s.value(meta_sub.valueToKey(SubscriptionItem::Method)).toString().toStdString());
 			}
 		}
 	}

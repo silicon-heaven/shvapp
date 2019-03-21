@@ -54,7 +54,7 @@ ShvBrokerNodeItem *ServerTreeModel::createConnection(const QVariantMap &params)
 	});
 
 	connect(ret, &ShvBrokerNodeItem::brokerConnectedChange, this, [this, ret](bool is_connected){
-		emit ServerTreeModel::brokerConnectedChange(ret, is_connected);
+		emit ServerTreeModel::brokerConnectedChanged(ret->brokerId(), is_connected);
 	});
 
 	const std::string broker_name = ret->nodeId();
