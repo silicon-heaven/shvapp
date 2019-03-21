@@ -20,7 +20,7 @@ SOURCES += \
     $$PWD/clientshvnode.cpp \
     $$PWD/tunnelsecretlist.cpp
 
-include ($$PWD/sql/sql.pri)
+#include ($$PWD/sql/sql.pri)
 include ($$PWD/rpc/rpc.pri)
 include ($$PWD/utils/utils.pri)
 
