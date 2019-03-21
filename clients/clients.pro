@@ -8,6 +8,7 @@ SUBDIRS += \
 unix {
 SUBDIRS += \
     revitestdevice \
+    hscope \
 }
 
 with-shvsites {

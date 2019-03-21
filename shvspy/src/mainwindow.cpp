@@ -385,16 +385,22 @@ void MainWindow::editServer(ShvBrokerNodeItem *srv, bool copy_server)
 			TheApp::instance()->serverTreeModel()->createConnection(server_props);
 		else
 			srv->setServerProperties(server_props);
+		saveSettings();
 	}
 }
 
 void MainWindow::closeEvent(QCloseEvent *ev)
 {
+	saveSettings();
+	Super::closeEvent(ev);
+}
+
+void MainWindow::saveSettings()
+{
 	QSettings settings;
 	settings.setValue(QStringLiteral("ui/mainWindow/state"), saveState());
 	settings.setValue(QStringLiteral("ui/mainWindow/geometry"), saveGeometry());
 	TheApp::instance()->saveSettings(settings);
-	Super::closeEvent(ev);
 }
 
 

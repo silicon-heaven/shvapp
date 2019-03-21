@@ -1,6 +1,6 @@
 #pragma once
 
-#include <shv/iotqt/rpc/deviceconnection.h>
+#include <shv/iotqt/rpc/deviceappclioptions.h>
 
 class AppCliOptions : public shv::iotqt::rpc::DeviceAppCliOptions
 {

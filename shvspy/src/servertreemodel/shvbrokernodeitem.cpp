@@ -7,6 +7,7 @@
 
 #include <shv/iotqt/rpc/clientconnection.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
+#include <shv/iotqt/rpc/deviceappclioptions.h>
 #include <shv/iotqt/node/shvnode.h>
 #include <shv/iotqt/utils/shvpath.h>
 

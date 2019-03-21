@@ -43,6 +43,7 @@ protected:
 	void onAttributesTableContexMenu(const QPoint &point);
 
 	void closeEvent(QCloseEvent *ev) Q_DECL_OVERRIDE;
+	void saveSettings();
 private:
 	Ui::MainWindow *ui;
 	QStandardItemModel *m_opcObjects;
