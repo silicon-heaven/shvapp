@@ -8,7 +8,7 @@ else {
 message ( QF_PROJECT_TOP_BUILDDIR == '$$QF_PROJECT_TOP_BUILDDIR' )
 
 QT -= gui
-QT += core network sql
+QT += core network
 
 with-shvwebsockets {
 	QT += websockets
