@@ -61,6 +61,7 @@ public:
 	Q_SIGNAL void subscriptionEnabled(int broker_id, const std::string &shv_path, const std::string &method);
 private:
 	int subscriptionIndex(int broker_id, const QString &shv_path, const QString &method);
+	QVariantList brokerSubscriptions(int broker_id);
 
 	QVector<Subscription> m_subscriptions;
 };

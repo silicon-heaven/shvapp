@@ -5,9 +5,6 @@
 
 #include <shv/coreqt/log.h>
 
-#include <QSettings>
-#include <QStringList>
-
 namespace cp = shv::chainpack;
 
 SubscriptionsWidget::SubscriptionsWidget(QWidget *parent) :
@@ -44,7 +41,6 @@ void SubscriptionsWidget::onSubscriptionAdded(int broker_id, const std::string &
 	sub.setShvPath(QString::fromStdString(shv_path));
 	sub.setMethod(QString::fromStdString(method));
 	sub.setIsEnabled(true);
-
 
 	m_subscriptionsModel.addSubscription(sub);
 	ui->tvSubscriptions->resizeColumnsToContents();

@@ -9,7 +9,6 @@
 #include <shv/coreqt/log.h>
 
 #include <QBrush>
-#include <QDebug>
 
 namespace cp = shv::chainpack;
 
@@ -104,6 +103,11 @@ bool SubscriptionsModel::setData(const QModelIndex &ix, const QVariant &val, int
 		bool v = (val == Qt::Checked) ? true : false;
 
 		if (col == Columns::ColPermanent || col == Columns::ColSubscribeAfterConnect || col == Columns::ColEnabled){
+			ShvBrokerNodeItem *nd = TheApp::instance()->serverTreeModel()->brokerById(sub.brokerId());
+			if (nd == nullptr){
+				return false;
+			}
+
 			if (col == Columns::ColPermanent){
 				sub.setIsPermanent(v);
 			}
@@ -112,12 +116,11 @@ bool SubscriptionsModel::setData(const QModelIndex &ix, const QVariant &val, int
 			}
 			else if (col == Columns::ColEnabled){
 				sub.setIsEnabled(v);
-				ShvBrokerNodeItem *nd = TheApp::instance()->serverTreeModel()->brokerById(sub.brokerId());
-
-				if (nd != nullptr){
-					nd->enableSubscription(sub.shvPath().toStdString(), sub.method().toStdString(), v);
-				}
+				nd->enableSubscription(sub.shvPath().toStdString(), sub.method().toStdString(), v);
 			}
+
+			QVariantList new_subs = brokerSubscriptions(sub.brokerId());
+			nd->setSubscriptionList(new_subs);
 
 			return true;
 		}
@@ -166,6 +169,7 @@ void SubscriptionsModel::onBrokerConnectedChanged(int broker_id, bool is_connect
 		return;
 	}
 
+	beginResetModel();
 	if (is_connected){
 		QMetaEnum met_sub = QMetaEnum::fromType<ShvBrokerNodeItem::SubscriptionItem>();
 		QVariant v = nd->serverProperties().value(ShvBrokerNodeItem::SUBSCRIPTIONS);
@@ -173,15 +177,18 @@ void SubscriptionsModel::onBrokerConnectedChanged(int broker_id, bool is_connect
 		if(v.isValid()) {
 			QVariantList subs = v.toList();
 
-			beginInsertRows(QModelIndex(), m_subscriptions.count(), m_subscriptions.count());
 			for (int i = 0; i < subs.size(); i++) {
 				if (subs.at(i).toMap().contains(met_sub.valueToKey(ShvBrokerNodeItem::SubscriptionItem::IsPermanent))){
 					SubscriptionsModel::Subscription s(broker_id, QString::fromStdString(nd->nodeId()));
 					s.setConfig(subs.at(i).toMap());
+
+					if (s.isSubscribeAfterConnect() && s.isEnabled()){
+						s.setIsEnabled(false);
+					}
+
 					m_subscriptions.append(s);
 				}
 			}
-			endInsertRows();
 		}
 	}
 	else{
@@ -192,6 +199,7 @@ void SubscriptionsModel::onBrokerConnectedChanged(int broker_id, bool is_connect
 			}
 		}
 	}
+	endResetModel();
 }
 
 void SubscriptionsModel::addSubscription(Subscription sub)
@@ -217,6 +225,19 @@ int SubscriptionsModel::subscriptionIndex(int broker_id, const QString &shv_path
 	}
 
 	return sub_ix;
+}
+
+QVariantList SubscriptionsModel::brokerSubscriptions(int broker_id)
+{
+	QVariantList subscriptions;
+
+	for (int i = 0; i < m_subscriptions.count(); i++){
+		const Subscription &s = m_subscriptions.at(i);
+		if (s.brokerId() == broker_id && s.isPermanent()){
+			subscriptions.append(s.config());
+		}
+	}
+	return  subscriptions;
 }
 
 SubscriptionsModel::Subscription::Subscription():
@@ -245,7 +266,7 @@ QVariantMap SubscriptionsModel::Subscription::config() const
 	QMetaEnum meta_sub = QMetaEnum::fromType<ShvBrokerNodeItem::SubscriptionItem>();
 
 	for (int i = 0; i < ShvBrokerNodeItem::SubscriptionItem::Count; i++){
-		config[meta_sub.valueToKey(i)];
+		config[meta_sub.valueToKey(i)] = m_config.value(i);
 	}
 
 	return config;

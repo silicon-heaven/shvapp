@@ -3,7 +3,6 @@
 
 #include <shv/iotqt/rpc/deviceconnection.h>
 
-#include "attributesmodel/attributesmodel.h"
 #include "servertreemodel/servertreemodel.h"
 #include "servertreemodel/shvbrokernodeitem.h"
 #include "subscriptionsmodel/subscriptionsmodel.h"
