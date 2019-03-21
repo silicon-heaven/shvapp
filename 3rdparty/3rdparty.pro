@@ -1,6 +1,7 @@
 TEMPLATE = subdirs
 CONFIG += ordered
 
+!debpkg {
 SUBDIRS += \
 	libshv/3rdparty/necrolog/libnecrolog \
 	libshv/libshvchainpack \
@@ -9,3 +10,6 @@ SUBDIRS += \
 	libshv/libshviotqt \
 	libshv/utils \
 	libshv/tests \
+
+}
+
