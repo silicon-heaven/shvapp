@@ -28,12 +28,16 @@ public:
 	ShvNodeItem* itemFromIndex(const QModelIndex &ix) const;
 	QModelIndex indexFromItem(ShvNodeItem *nd) const;
 	ShvNodeRootItem* invisibleRootItem() const {return m_invisibleRoot;}
+	ShvBrokerNodeItem* brokerById(int id);
 
 	void loadSettings(const QSettings &settings);
 	void saveSettings(QSettings &settings);
 public:
 	ShvBrokerNodeItem* createConnection(const QVariantMap &params);
 	unsigned nextId() {return ++m_maxId;}
+
+	Q_SIGNAL void subscriptionAdded(int broker_id, const std::string &path, const std::string &method);
+	Q_SIGNAL void brokerConnectedChanged(int broker_id, bool is_connected);
 private:
 	ShvNodeRootItem *m_invisibleRoot;
 	QMap<unsigned, ShvNodeItem*> m_nodes;

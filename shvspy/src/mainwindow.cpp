@@ -8,7 +8,6 @@
 #include "log/errorlogmodel.h"
 #include "dlgserverproperties.h"
 #include "dlgsubscriptionparameters.h"
-#include "dlgsubscriptions.h"
 #include "dlgcallshvmethod.h"
 #include "methodparametersdialog.h"
 #include "texteditdialog.h"
@@ -49,6 +48,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui->menu_View->addAction(ui->dockAttributes->toggleViewAction());
 	ui->menu_View->addAction(ui->dockNotifications->toggleViewAction());
 	ui->menu_View->addAction(ui->dockErrors->toggleViewAction());
+	ui->menu_View->addAction(ui->dockSubscriptions->toggleViewAction());
 
 	ServerTreeModel *tree_model = TheApp::instance()->serverTreeModel();
 	ui->treeServers->setModel(tree_model);
@@ -66,6 +66,8 @@ MainWindow::MainWindow(QWidget *parent) :
 		}
 	});
 	connect(ui->treeServers->selectionModel(), &QItemSelectionModel::currentChanged, this, &MainWindow::onShvTreeViewCurrentSelectionChanged);
+	connect(tree_model, &ServerTreeModel::brokerConnectedChanged, ui->subscriptionsWidget, &SubscriptionsWidget::onBrokerConnectedChanged);
+	connect(tree_model, &ServerTreeModel::subscriptionAdded, ui->subscriptionsWidget, &SubscriptionsWidget::onSubscriptionAdded);
 
 	ui->tblAttributes->setModel(TheApp::instance()->attributesModel());
 	ui->tblAttributes->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
@@ -203,13 +205,7 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 			else if(a == a_subscribeNode) {
 				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 				if(nd) {
-					DlgSubscriptions dlg(this);
-					QVariantMap props = nd->serverNode()->serverProperties();
-					dlg.setSubscriptionsList(props.value(QStringLiteral("subscriptions")).toList());
-					dlg.setShvPath(nd->shvPath());
-					if (dlg.exec()){
-						nd->serverNode()->setSubscriptionList(dlg.subscriptionsList());
-					}
+					nd->serverNode()->addSubscription(nd->shvPath(), cp::Rpc::SIG_VAL_CHANGED);
 				}
 			}
 			else if(a == a_callShvMethod) {
@@ -402,7 +398,3 @@ void MainWindow::saveSettings()
 	settings.setValue(QStringLiteral("ui/mainWindow/geometry"), saveGeometry());
 	TheApp::instance()->saveSettings(settings);
 }
-
-
-
-

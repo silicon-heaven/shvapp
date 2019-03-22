@@ -9,11 +9,12 @@ HEADERS += \
     $$PWD/appclioptions.h \
     $$PWD/servertreemodel/shvnodeitem.h \
     $$PWD/servertreemodel/shvbrokernodeitem.h \
-    $$PWD/dlgsubscriptions.h \
     $$PWD/lastusedparamswidget.h \
     $$PWD/methodparametersdialog.h \
     $$PWD/texteditdialog.h \
-    $$PWD/dlgcallshvmethod.h
+    $$PWD/dlgcallshvmethod.h \
+    $$PWD/subscriptionswidget.h \
+    $$PWD/subscriptionsmodel/subscriptionsmodel.h
 
 SOURCES += \
 	$$PWD/main.cpp\
@@ -27,20 +28,21 @@ SOURCES += \
     $$PWD/appclioptions.cpp \
     $$PWD/servertreemodel/shvnodeitem.cpp \
     $$PWD/servertreemodel/shvbrokernodeitem.cpp \
-    $$PWD/dlgsubscriptions.cpp \
     $$PWD/lastusedparamswidget.cpp \
     $$PWD/methodparametersdialog.cpp \
     $$PWD/texteditdialog.cpp \
-    $$PWD/dlgcallshvmethod.cpp
+    $$PWD/dlgcallshvmethod.cpp \
+    $$PWD/subscriptionswidget.cpp \
+    $$PWD/subscriptionsmodel/subscriptionsmodel.cpp
 
 FORMS += \
 	$$PWD/mainwindow.ui \
 	$$PWD/dlgserverproperties.ui \
 	$$PWD/dlgsubscriptionparameters.ui \
-	$$PWD/dlgsubscriptions.ui \
     $$PWD/lastusedparamswidget.ui \
     $$PWD/methodparametersdialog.ui \
     $$PWD/texteditdialog.ui \
+    $$PWD/subscriptionswidget.ui \
     $$PWD/dlgcallshvmethod.ui
 
 include ( $$PWD/log/log.pri )
