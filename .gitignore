@@ -34,6 +34,9 @@ Makefile*
 *.qmlproject.user
 *.qmlproject.user.*
 
+#SHV
+*.user.cpon
+
 .idea
 
 _build

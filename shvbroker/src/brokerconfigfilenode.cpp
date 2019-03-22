@@ -45,14 +45,15 @@ BrokerConfigFileNode::BrokerConfigFileNode(const std::string &config_name, shv::
 {
 }
 
-shv::chainpack::RpcValue BrokerConfigFileNode::loadValues()
+void BrokerConfigFileNode::loadValues()
 {
-	return BrokerApp::instance()->aclConfig(nodeId(), !shv::core::Exception::Throw);
+	m_values = BrokerApp::instance()->aclConfig(nodeId(), !shv::core::Exception::Throw);
+	Super::loadValues();
 }
 
-bool BrokerConfigFileNode::saveValues(const shv::chainpack::RpcValue &vals)
+bool BrokerConfigFileNode::saveValues()
 {
-	return BrokerApp::instance()->setAclConfig(nodeId(), vals, shv::core::Exception::Throw);
+	return BrokerApp::instance()->setAclConfig(nodeId(), m_values, shv::core::Exception::Throw);
 }
 
 //========================================================

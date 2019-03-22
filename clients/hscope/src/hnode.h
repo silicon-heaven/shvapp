@@ -27,8 +27,16 @@ public:
 
 protected:
 	HNode* parentHNode();
-	shv::chainpack::RpcValue loadValues() override;
-	bool saveValues(const shv::chainpack::RpcValue &vals) override;
+	void loadValues() override;
+	bool saveValues() override;
+	shv::chainpack::RpcValue valueOnPath(const StringViewList &shv_path) override;
+	void setValueOnPath(const StringViewList &shv_path, const shv::chainpack::RpcValue &val) override;
+
+	size_t methodCount(const StringViewList &shv_path) override;
+	const shv::chainpack::MetaMethod *metaMethod(const StringViewList &shv_path, size_t ix) override;
+	shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params) override;
+protected:
+	shv::chainpack::RpcValue m_newValues;
 };
 
 #endif // HNODE_H

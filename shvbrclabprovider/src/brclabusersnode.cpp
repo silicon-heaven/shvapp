@@ -67,14 +67,15 @@ shv::chainpack::RpcValue BrclabUsersNode::callMethod(const shv::iotqt::node::Shv
 	return Super::callMethod(shv_path, method, params);
 }
 
-shv::chainpack::RpcValue BrclabUsersNode::loadValues()
+void BrclabUsersNode::loadValues()
 {
-	return  loadUsersConfig();
+	m_values = loadUsersConfig();
 }
 
-bool BrclabUsersNode::saveValues(const shv::chainpack::RpcValue &vals)
+bool BrclabUsersNode::saveValues(void)
 {
-	setUsersConfig(vals);
+	setUsersConfig(m_values);
+	Super::loadValues();
 	return  true;
 }
 
