@@ -360,8 +360,7 @@ void ShvBrokerNodeItem::createSubscriptions()
 		for (int i = 0; i < subs.size(); i++) {
 			QVariantMap s = subs.at(i).toMap();
 
-			if ((s.value(meta_sub.valueToKey(SubscriptionItem::IsSubscribedAfterConnect)).toBool()) &&
-				(s.value(meta_sub.valueToKey(SubscriptionItem::IsEnabled)).toBool())){
+			if (s.value(meta_sub.valueToKey(SubscriptionItem::IsEnabled)).toBool()){
 				callSubscribe(s.value(meta_sub.valueToKey(SubscriptionItem::Path)).toString().toStdString(), s.value(meta_sub.valueToKey(SubscriptionItem::Method)).toString().toStdString());
 			}
 		}

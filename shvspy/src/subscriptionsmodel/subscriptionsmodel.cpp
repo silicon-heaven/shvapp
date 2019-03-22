@@ -41,8 +41,7 @@ Qt::ItemFlags SubscriptionsModel::flags(const QModelIndex &ix) const
 		return Qt::NoItemFlags;
 
 	if((ix.column() == Columns::ColEnabled) ||
-		(ix.column() == Columns::ColPermanent) ||
-		(ix.column() == Columns::ColSubscribeAfterConnect)){
+		(ix.column() == Columns::ColPermanent)){
 		return  Super::flags(ix) |= Qt::ItemIsUserCheckable;
 	}
 
@@ -71,8 +70,6 @@ QVariant SubscriptionsModel::data(const QModelIndex &ix, int role) const
 		switch (ix.column()) {
 		case Columns::ColPermanent:
 			return (sub.isPermanent()) ? Qt::Checked : Qt::Unchecked;
-		case Columns::ColSubscribeAfterConnect:
-			return (sub.isSubscribeAfterConnect()) ? Qt::Checked : Qt::Unchecked;
 		case Columns::ColEnabled:
 			return (sub.isEnabled()) ? Qt::Checked : Qt::Unchecked;
 		}
@@ -102,7 +99,7 @@ bool SubscriptionsModel::setData(const QModelIndex &ix, const QVariant &val, int
 		int col = ix.column();
 		bool v = (val == Qt::Checked) ? true : false;
 
-		if (col == Columns::ColPermanent || col == Columns::ColSubscribeAfterConnect || col == Columns::ColEnabled){
+		if (col == Columns::ColPermanent || col == Columns::ColEnabled){
 			ShvBrokerNodeItem *nd = TheApp::instance()->serverTreeModel()->brokerById(sub.brokerId());
 			if (nd == nullptr){
 				return false;
@@ -110,9 +107,6 @@ bool SubscriptionsModel::setData(const QModelIndex &ix, const QVariant &val, int
 
 			if (col == Columns::ColPermanent){
 				sub.setIsPermanent(v);
-			}
-			else if (col == Columns::ColSubscribeAfterConnect){
-				sub.setIsSubscribeAfterConnect(v);
 			}
 			else if (col == Columns::ColEnabled){
 				sub.setIsEnabled(v);
@@ -143,8 +137,6 @@ QVariant SubscriptionsModel::headerData(int section, Qt::Orientation orientation
 				 return tr("Method");
 			case Columns::ColPermanent:
 				return tr("Permanent");
-			case Columns::ColSubscribeAfterConnect:
-				return tr("Auto subscribe");
 			case Columns::ColEnabled:
 				return tr("Enabled");
 			default:
@@ -181,10 +173,6 @@ void SubscriptionsModel::onBrokerConnectedChanged(int broker_id, bool is_connect
 				if (subs.at(i).toMap().contains(met_sub.valueToKey(ShvBrokerNodeItem::SubscriptionItem::IsPermanent))){
 					SubscriptionsModel::Subscription s(broker_id, QString::fromStdString(nd->nodeId()));
 					s.setConfig(subs.at(i).toMap());
-
-					if (s.isSubscribeAfterConnect() && s.isEnabled()){
-						s.setIsEnabled(false);
-					}
 
 					m_subscriptions.append(s);
 				}
@@ -310,16 +298,6 @@ bool SubscriptionsModel::Subscription::isPermanent() const
 void SubscriptionsModel::Subscription::setIsPermanent(bool val)
 {
 	m_config[ShvBrokerNodeItem::SubscriptionItem::IsPermanent] = val;
-}
-
-bool SubscriptionsModel::Subscription::isSubscribeAfterConnect() const
-{
-	return m_config[ShvBrokerNodeItem::SubscriptionItem::IsSubscribedAfterConnect].toBool();
-}
-
-void SubscriptionsModel::Subscription::setIsSubscribeAfterConnect(bool val)
-{
-	m_config[ShvBrokerNodeItem::SubscriptionItem::IsSubscribedAfterConnect] = val;
 }
 
 bool SubscriptionsModel::Subscription::isEnabled() const

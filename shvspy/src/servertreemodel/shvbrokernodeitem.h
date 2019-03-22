@@ -17,7 +17,7 @@ private:
 public:
 	static const QString SUBSCRIPTIONS;
 	enum class OpenStatus {Invalid = 0, Disconnected, Connecting, Connected};
-	enum SubscriptionItem {Path = 0, Method, IsPermanent, IsSubscribedAfterConnect, IsEnabled, Count};
+	enum SubscriptionItem {Path = 0, Method, IsPermanent, IsEnabled, Count};
 	Q_ENUM(SubscriptionItem)
 public:
 	explicit ShvBrokerNodeItem(ServerTreeModel *m, const std::string &server_name);

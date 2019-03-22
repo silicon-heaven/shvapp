@@ -15,7 +15,7 @@ class SubscriptionsModel : public QAbstractTableModel
 private:
 	typedef QAbstractTableModel Super;
 public:
-	enum Columns {ColServer = 0, ColPath, ColMethod, ColPermanent, ColSubscribeAfterConnect, ColEnabled, ColCount};
+	enum Columns {ColServer = 0, ColPath, ColMethod, ColPermanent, ColEnabled, ColCount};
 
 	class Subscription{
 	public:
@@ -33,8 +33,6 @@ public:
 		void setMethod(const QString&method);
 		bool isPermanent() const;
 		void setIsPermanent(bool val);
-		bool isSubscribeAfterConnect() const;
-		void setIsSubscribeAfterConnect(bool val);
 		bool isEnabled() const;
 		void setIsEnabled(bool val);
 	private:
