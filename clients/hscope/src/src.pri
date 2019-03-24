@@ -4,24 +4,26 @@ HEADERS += \
     $$PWD/appclioptions.h \
     $$PWD/hscopeapp.h \
     $$PWD/hnode.h \
-    $$PWD/hbrokersnode.h \
-    $$PWD/hbrokernode.h \
-    $$PWD/hnodesnode.h \
     $$PWD/hnodenode.h \
-    $$PWD/htestsnode.h \
-    $$PWD/htestnode.h
+    $$PWD/hnodetest.h \
+    $$PWD/hnodeconfig.h \
+    $$PWD/hnodebrokers.h \
+    $$PWD/hnodebroker.h \
+    $$PWD/hnodetests.h \
+    $$PWD/hnodenodes.h
 
 SOURCES += \
     $$PWD/main.cpp\
     $$PWD/appclioptions.cpp \
     $$PWD/hscopeapp.cpp \
     $$PWD/hnode.cpp \
-    $$PWD/hbrokersnode.cpp \
-    $$PWD/hbrokernode.cpp \
-    $$PWD/hnodesnode.cpp \
     $$PWD/hnodenode.cpp \
-    $$PWD/htestsnode.cpp \
-    $$PWD/htestnode.cpp
+    $$PWD/hnodetest.cpp \
+    $$PWD/hnodeconfig.cpp \
+    $$PWD/hnodebrokers.cpp \
+    $$PWD/hnodebroker.cpp \
+    $$PWD/hnodetests.cpp \
+    $$PWD/hnodenodes.cpp
 
 FORMS += \
 

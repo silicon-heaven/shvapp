@@ -13,7 +13,7 @@ namespace shv { namespace chainpack { class RpcMessage; }}
 namespace shv { namespace iotqt { namespace rpc { class DeviceConnection; }}}
 namespace shv { namespace iotqt { namespace node { class ShvNodeTree; }}}
 
-class HBrokersNode;
+class HNodeBrokers;
 
 class AppRootNode : public shv::iotqt::node::ShvRootNode
 {
@@ -50,7 +50,7 @@ private:
 	shv::iotqt::rpc::DeviceConnection *m_rpcConnection = nullptr;
 	AppCliOptions* m_cliOptions;
 	shv::iotqt::node::ShvNodeTree *m_shvTree = nullptr;
-	HBrokersNode *m_brokersNode = nullptr;
+	HNodeBrokers *m_brokersNode = nullptr;
 
 
 };

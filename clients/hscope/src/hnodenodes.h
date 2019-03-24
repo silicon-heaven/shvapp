@@ -3,13 +3,13 @@
 
 #include "hnode.h"
 
-class HNodesNode : public HNode
+class HNodeNodes : public HNode
 {
 	Q_OBJECT
 
 	using Super = HNode;
 public:
-	HNodesNode(const std::string &node_id, shv::iotqt::node::ShvNode *parent);
+	HNodeNodes(const std::string &node_id, shv::iotqt::node::ShvNode *parent);
 public:
 	void load() override;
 };

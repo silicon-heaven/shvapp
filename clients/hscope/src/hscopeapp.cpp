@@ -1,6 +1,6 @@
 #include "hscopeapp.h"
 #include "appclioptions.h"
-#include "hbrokersnode.h"
+#include "hnodebrokers.h"
 
 #include <shv/iotqt/node/shvnode.h>
 #include <shv/iotqt/node/shvnodetree.h>
@@ -104,7 +104,7 @@ void HScopeApp::createNodes()
 {
 	if(m_brokersNode)
 		delete m_brokersNode;
-	m_brokersNode = new HBrokersNode("brokers", m_shvTree->root());
+	m_brokersNode = new HNodeBrokers("brokers", m_shvTree->root());
 	m_brokersNode->load();
 }
 /*
