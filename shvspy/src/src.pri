@@ -14,7 +14,8 @@ HEADERS += \
     $$PWD/texteditdialog.h \
     $$PWD/dlgcallshvmethod.h \
     $$PWD/subscriptionswidget.h \
-    $$PWD/subscriptionsmodel/subscriptionsmodel.h
+    $$PWD/subscriptionsmodel/subscriptionsmodel.h \
+    $$PWD/subscriptionsmodel/subscriptionstableitemdelegate.h
 
 SOURCES += \
 	$$PWD/main.cpp\
@@ -33,7 +34,8 @@ SOURCES += \
     $$PWD/texteditdialog.cpp \
     $$PWD/dlgcallshvmethod.cpp \
     $$PWD/subscriptionswidget.cpp \
-    $$PWD/subscriptionsmodel/subscriptionsmodel.cpp
+    $$PWD/subscriptionsmodel/subscriptionsmodel.cpp \
+    $$PWD/subscriptionsmodel/subscriptionstableitemdelegate.cpp
 
 FORMS += \
 	$$PWD/mainwindow.ui \

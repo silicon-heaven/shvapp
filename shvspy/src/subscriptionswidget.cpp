@@ -1,6 +1,8 @@
 #include "subscriptionswidget.h"
 #include "ui_subscriptionswidget.h"
 
+#include "subscriptionsmodel/subscriptionstableitemdelegate.h"
+
 #include "theapp.h"
 
 #include <shv/coreqt/log.h>
@@ -16,6 +18,7 @@ SubscriptionsWidget::SubscriptionsWidget(QWidget *parent) :
 	ui->tvSubscriptions->setModel(&m_subscriptionsModel);
 	ui->tvSubscriptions->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
 	ui->tvSubscriptions->verticalHeader()->setDefaultSectionSize(static_cast<int>(fontMetrics().height() * 1.3));
+	ui->tvSubscriptions->setItemDelegateForColumn(SubscriptionsModel::Columns::ColMethod, new SubscriptionsTableItemDelegate(this));
 }
 
 SubscriptionsWidget::~SubscriptionsWidget()
