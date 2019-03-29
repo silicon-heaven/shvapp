@@ -37,8 +37,13 @@ int SubscriptionsModel::columnCount(const QModelIndex &parent) const
 
 Qt::ItemFlags SubscriptionsModel::flags(const QModelIndex &ix) const
 {
-	if (!ix.isValid())
+	if (!ix.isValid()){
 		return Qt::NoItemFlags;
+	}
+
+	if(ix.column() == Columns::ColMethod){
+		return  Super::flags(ix) |= Qt::ItemIsEditable;
+	}
 
 	if((ix.column() == Columns::ColEnabled) ||
 		(ix.column() == Columns::ColPermanent)){
@@ -118,6 +123,21 @@ bool SubscriptionsModel::setData(const QModelIndex &ix, const QVariant &val, int
 
 			return true;
 		}
+	}
+	else if (role == Qt::EditRole){
+		Subscription &sub = m_subscriptions[ix.row()];
+
+		ShvBrokerNodeItem *nd = TheApp::instance()->serverTreeModel()->brokerById(sub.brokerId());
+		if (nd == nullptr){
+			return false;
+		}
+
+		nd->enableSubscription(sub.shvPath().toStdString(), sub.method().toStdString(), false);
+		sub.setMethod(val.toString());
+		nd->enableSubscription(sub.shvPath().toStdString(), sub.method().toStdString(), true);
+
+		QVariantList new_subs = brokerSubscriptions(sub.brokerId());
+		nd->setSubscriptionList(new_subs);
 	}
 
 	return false;
