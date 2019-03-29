@@ -32,6 +32,9 @@ HNodeTest::HNodeTest(const std::string &node_id, HNode *parent)
 	: Super(node_id, parent)
 {
 	shvDebug() << "creating:" << metaObject()->className() << node_id;
+
+	m_status = NodeStatus();
+
 	if(meta_methods.empty()) {
 		for(const cp::MetaMethod &mm : *m_methods)
 			meta_methods.push_back(mm);
@@ -47,6 +50,11 @@ void HNodeTest::load()
 {
 	logTest() << shvPath() << "load config.";
 	Super::load();
+
+	connect(this, &HNode::statusChanged, [this]() {
+		updateOverallStatus();
+	});
+
 
 	bool disabled = configValueOnPath(KEY_DISABLED).toBool();
 	if(disabled) {
@@ -96,18 +104,37 @@ shv::chainpack::RpcValue HNodeTest::callMethodRq(const shv::chainpack::RpcReques
 				cp::RpcResponse resp2 = resp1;
 				if(resp.isValid()) {
 					if(resp.isError()) {
+						logTest() << "Running test:" << shvPath() << "ERROR:" << resp.error().toString();
 						resp2.setError(resp.error());
-						setStatus(Status{Status::Value::Error, resp.error().toString()});
+						NodeStatus st{NodeStatus::Value::Error, resp.error().toString()};
+						logTest() << "\t setting status to:" << st.toRpcValue().toCpon();
+						setStatus(st);
 					}
 					else {
+						logTest() << "Running test:" << shvPath() << "result:" << resp.result().toCpon();
 						resp2.setResult(resp.result());
-						Status st = Status::fromRpcValue(resp.result());
-						setStatus(st);
+						const std::string st_str = resp.result().toList().value(1).toString();
+						std::string err;
+						cp::RpcValue st_rpc = cp::RpcValue::fromCpon(st_str, &err);
+						if(err.empty()) {
+							NodeStatus st = NodeStatus::fromRpcValue(st_rpc);
+							logTest() << "\t setting status to:" << st.toRpcValue().toCpon();
+							setStatus(st);
+						}
+						else {
+							shvWarning() << "Malformed test result:" << st_str << "error:" << err;
+							NodeStatus st;
+							logTest() << "\t setting status to:" << st.toRpcValue().toCpon();
+							setStatus(st);
+						}
 					}
 				}
 				else {
+					logTest() << "Running test:" << shvPath() << "TIMEOUT!";
 					resp2.setError(cp::RpcResponse::Error::createSyncMethodCallTimeout("Test invocation timeout!"));
-					setStatus(Status{Status::Value::Error, "Test invocation timeout!"});
+					NodeStatus st{NodeStatus::Value::Error, "Test invocation timeout!"};
+					logTest() << "\t setting status to:" << st.toRpcValue().toCpon();
+					setStatus(st);
 				}
 				this->appRpcConnection()->sendMessage(resp2);
 			});
@@ -125,13 +152,13 @@ int HNodeTest::runTest()
 		SHV_EXCEPTION("Parent agent node missing!");
 
 	std::string shv_path = an->agentShvPath();
-	const std::string &script_fn = scriptsDir() + '/' + configValueOnPath(KEY_SCRIPT).toString();
+	const std::string &script_fn = templatesDir() + '/' + configValueOnPath(KEY_SCRIPT).toString();
 	QFile f(QString::fromStdString(script_fn));
 	if(!f.open(QFile::ReadOnly))
 		SHV_EXCEPTION("Cannot open test script file " + script_fn + " for reading!");
 	QByteArray ba = f.readAll();
 	std::string script(ba.constData(), (unsigned)ba.length());
-	const shv::chainpack::RpcValue::Map &env = configValueOnPath(KEY_ENV).toMap();
+	const shv::chainpack::RpcValue env = configValueOnPath(KEY_ENV);
 	return brokerNode()->rpcConnection()->callShvMethod(shv_path, cp::Rpc::METH_RUN_SCRIPT, cp::RpcValue::List{script, 1, env});
 }
 

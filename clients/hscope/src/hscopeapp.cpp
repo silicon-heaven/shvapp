@@ -95,6 +95,15 @@ HScopeApp *HScopeApp::instance()
 	return qobject_cast<HScopeApp *>(QCoreApplication::instance());
 }
 
+void HScopeApp::onHNodeStatusChanged(const std::string &shv_path, const NodeStatus &status)
+{
+	shv::iotqt::rpc::DeviceConnection *conn = rpcConnection();
+	if(conn->isBrokerConnected()) {
+		// log changes
+		conn->sendShvNotify(shv_path, "statusChanged", status.toRpcValue());
+	}
+}
+
 void HScopeApp::loadConfig()
 {
 	createNodes();

@@ -1,0 +1,7 @@
+{
+	"basedOn": "basictest",
+	"env": {
+		"TEST_VAL": 42,
+		"TEST_MSG": "kkt",
+	},
+}

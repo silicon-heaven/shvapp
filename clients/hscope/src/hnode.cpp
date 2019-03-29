@@ -12,18 +12,18 @@
 namespace cp = shv::chainpack;
 
 //===========================================================
-// HNode::Status
+// HNodeStatus
 //===========================================================
-HNode::Status HNode::Status::fromRpcValue(const shv::chainpack::RpcValue &val)
+NodeStatus NodeStatus::fromRpcValue(const shv::chainpack::RpcValue &val)
 {
-	HNode::Status ret;
+	NodeStatus ret;
 	if(val.isMap()) {
 		const shv::chainpack::RpcValue::Map &map = val.toMap();
 		cp::RpcValue val = map.value("value");
 		if(!val.isValid())
 			val = map.value("val");
 		if(val.isInt() || val.isUInt())
-			ret.value = (Status::Value)val.toInt();
+			ret.value = (NodeStatus::Value)val.toInt();
 		else if(val.isString()) {
 			const std::string &val_str = val.toString();
 			if(val_str.size()) {
@@ -31,30 +31,33 @@ HNode::Status HNode::Status::fromRpcValue(const shv::chainpack::RpcValue &val)
 				switch (c) {
 				case 'o':
 				case 'O':
-					ret.value = Status::Value::Ok;
+					ret.value = NodeStatus::Value::Ok;
 					break;
 				case 'w':
 				case 'W':
-					ret.value = Status::Value::Warning;
+					ret.value = NodeStatus::Value::Warning;
 					break;
 				case 'e':
 				case 'E':
-					ret.value = Status::Value::Error;
+					ret.value = NodeStatus::Value::Error;
 					break;
 				default:
-					ret.value = Status::Value::Unknown;
+					ret.value = NodeStatus::Value::Unknown;
 					break;
 				}
 			}
 		}
 		else {
-			shvWarning() << "Invalid HNode::Status rpc value:" << val.toStdString();
-			ret.value = Status::Value::Unknown;
+			shvWarning() << "Invalid HNode::Status rpc value:" << val.toCpon();
+			ret.value = NodeStatus::Value::Unknown;
 		}
 		std::string msg = map.value("message").toString();
 		if(msg.empty())
 			msg = map.value("msg").toString();
 		ret.message = msg;
+	}
+	else {
+		shvWarning() << "Invalid HNode::Status rpc value:" << val.toCpon();
 	}
 	return ret;
 }
@@ -79,10 +82,9 @@ static std::vector<cp::MetaMethod> meta_methods {
 
 HNode::HNode(const std::string &node_id, HNode *parent)
 	: Super(node_id, &meta_methods, parent)
+	, m_status(NodeStatus::Value::Ok, "from children")
 {
-	if(parent) {
-		connect(this, &HNode::statusChanged, parent, &HNode::onChildStatusChanged);
-	}
+	connect(this, &HNode::statusChanged, HScopeApp::instance(), &HScopeApp::onHNodeStatusChanged);
 }
 
 std::string HNode::appConfigDir()
@@ -95,15 +97,15 @@ std::string HNode::nodeConfigDir()
 {
 	return appConfigDir() + '/' + shvPath();
 }
-
+/*
 std::string HNode::scriptsDir()
 {
 	return appConfigDir() + "/scripts";
 }
-
+*/
 std::string HNode::templatesDir()
 {
-	return appConfigDir() + "/templates";
+	return appConfigDir() + "/template";
 }
 
 std::string HNode::nodeConfigFilePath()
@@ -127,6 +129,10 @@ void HNode::load()
 {
 	m_confignode = new ConfigNode(this);
 	//m_confignode->values();
+	//connect(this, &HNode::statusChanged, qobject_cast<HNode*>(parent()), &HNode::onChildStatusChanged);
+	HNode *parent_hnode = qobject_cast<HNode*>(parent());
+	if(parent_hnode)
+		connect(this, &HNode::overallStatusChanged, parent_hnode, &HNode::updateOverallStatus);
 }
 
 void HNode::reload()
@@ -158,11 +164,6 @@ shv::iotqt::rpc::DeviceConnection *HNode::appRpcConnection()
 	return HScopeApp::instance()->rpcConnection();
 }
 
-void HNode::onChildStatusChanged()
-{
-	updateOverallStatus();
-}
-
 std::vector<std::string> HNode::lsConfigDir()
 {
 	std::vector<std::string> ret;
@@ -177,55 +178,65 @@ std::vector<std::string> HNode::lsConfigDir()
 	return ret;
 }
 
-void HNode::setStatus(const HNode::Status &st)
+void HNode::setStatus(const NodeStatus &st)
 {
 	if(st == m_status)
 		return;
-	Status old_st = m_status;
+	NodeStatus old_st = m_status;
 	m_status = st;
-	if(old_st.value != Status::Value::Unknown)
-		emit statusChanged(shvPath(), st);
+	//shvWarning() << "emit" << shvPath() << "statusChanged" << st.toRpcValue().toCpon();
+	emit statusChanged(shvPath(), st);
 }
 
-void HNode::setOverallStatus(const HNode::Status &st)
+void HNode::setOverallStatus(const NodeStatus &st)
 {
 	if(st == m_overallStatus)
 		return;
-	Status old_st = m_overallStatus;
+	NodeStatus old_st = m_overallStatus;
 	m_overallStatus = st;
-	if(old_st.value != Status::Value::Unknown)
-		emit overallStatusChanged(shvPath(), st);
+	//shvWarning() << "emit" << shvPath() << "overallStatusChanged" << st.toRpcValue().toCpon();
+	emit overallStatusChanged(shvPath(), st);
 }
 
 void HNode::updateOverallStatus()
 {
-	Status new_st = status();
-	if(new_st.value != Status::Value::Unknown) {
-		Status chst = overallChildrenStatus();
-		if(chst.value != Status::Value::Unknown) {
+	shvLogFuncFrame() << shvPath() << "status:" << status().toString();
+	NodeStatus new_st = status();
+	if(new_st.value != NodeStatus::Value::Unknown) {
+		NodeStatus chst = overallChildrenStatus();
+		shvLogFuncFrame() << "\t children status:" << chst.toString();
+		if(chst.value != NodeStatus::Value::Unknown) {
 			if(chst.value > new_st.value) {
 				new_st.value = chst.value;
 				new_st.message = chst.message;
 			}
+			shvLogFuncFrame() << "\t new status:" << new_st.toString();
 			setOverallStatus(new_st);
+			return;
 		}
 	}
-	setOverallStatus(Status());
+	setOverallStatus(NodeStatus());
 }
 
-HNode::Status HNode::overallChildrenStatus()
+NodeStatus HNode::overallChildrenStatus()
 {
-	Status ret;
+	NodeStatus ret;
 	bool unknown_reported = false;
-	for(HNode *chnd : findChildren<HNode*>(QString(), Qt::FindDirectChildrenOnly)) {
-		const Status &chst = chnd->status();
-		unknown_reported = chst.value == Status::Value::Unknown;
-		if(chst.value > ret.value) {
-			ret.value = chst.value;
-			ret.message = chst.message;
-		}
+	QList<HNode*> lst = findChildren<HNode*>(QString(), Qt::FindDirectChildrenOnly);
+	if(lst.isEmpty()) {
+		return NodeStatus(NodeStatus::Value::Ok, "");
 	}
-	return unknown_reported? Status(): ret;
+	else {
+		for(HNode *chnd : lst) {
+			const NodeStatus &chst = chnd->status();
+			unknown_reported = chst.value == NodeStatus::Value::Unknown;
+			if(chst.value > ret.value) {
+				ret.value = chst.value;
+				ret.message = chst.message;
+			}
+		}
+		return unknown_reported? NodeStatus(): ret;
+	}
 }
 
 shv::chainpack::RpcValue HNode::configValueOnPath(const std::string &shv_path, const shv::chainpack::RpcValue &default_val) const

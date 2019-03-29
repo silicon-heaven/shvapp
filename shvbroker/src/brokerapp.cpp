@@ -522,7 +522,7 @@ shv::chainpack::RpcValue BrokerApp::loadAclConfig(const std::string &config_name
 	shv::chainpack::CponReader rd(fis);
 	shv::chainpack::RpcValue rv;
 	std::string err;
-	rd.read(rv, throw_exc? nullptr: &err);
+	rv = rd.read(throw_exc? nullptr: &err);
 	return rv;
 }
 

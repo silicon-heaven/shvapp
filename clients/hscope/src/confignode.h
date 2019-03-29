@@ -17,6 +17,9 @@ public:
 	Q_SIGNAL void configSaved();
 protected:
 	HNode* parentHNode();
+
+	shv::chainpack::RpcValue loadConfigTemplate(const std::string &file_name);
+
 	void loadValues() override;
 	bool saveValues() override;
 	void setValueOnPath(const StringViewList &shv_path, const shv::chainpack::RpcValue &val) override;

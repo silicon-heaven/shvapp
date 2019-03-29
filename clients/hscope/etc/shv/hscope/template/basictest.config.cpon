@@ -1,0 +1,7 @@
+{
+	"disabled": false,
+	"runEvery": "12h",
+	"script": "hdspace.sh",
+	"env": {
+	},
+}

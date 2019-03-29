@@ -20,6 +20,7 @@ HNodeBroker::HNodeBroker(const std::string &node_id, HNode *parent)
 	: Super(node_id, parent)
 {
 	shvDebug() << "creating:" << metaObject()->className() << node_id;
+	m_status = NodeStatus();
 }
 
 void HNodeBroker::load()
@@ -55,19 +56,19 @@ shv::iotqt::rpc::ClientConnection *HNodeBroker::rpcConnection()
 			shvInfo() << "Agent connection to broker state changed:" << this->shvPath() << (int)state << shv::iotqt::rpc::ClientConnection::stateToString(state);
 			switch (state) {
 			case shv::iotqt::rpc::ClientConnection::State::NotConnected:
-				setStatus({Status::Value::Ok, "Not connected."});
+				setStatus({NodeStatus::Value::Ok, "Not connected."});
 				break;
 			case shv::iotqt::rpc::ClientConnection::State::Connecting:
-				setStatus({Status::Value::Ok, "Connecting to broker."});
+				setStatus({NodeStatus::Value::Ok, "Connecting to broker."});
 				break;
 			case shv::iotqt::rpc::ClientConnection::State::SocketConnected:
-				setStatus({Status::Value::Ok, "Authorizating to broker."});
+				setStatus({NodeStatus::Value::Ok, "Logging in to broker."});
 				break;
 			case shv::iotqt::rpc::ClientConnection::State::BrokerConnected:
-				setStatus({Status::Value::Ok, "Connected to broker."});
+				setStatus({NodeStatus::Value::Ok, "Connected to broker."});
 				break;
 			case shv::iotqt::rpc::ClientConnection::State::ConnectionError:
-				setStatus({Status::Value::Ok, "Connect to broker error."});
+				setStatus({NodeStatus::Value::Ok, "Connect to broker error."});
 				break;
 			}
 		});

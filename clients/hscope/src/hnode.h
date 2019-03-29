@@ -9,40 +9,40 @@ class ConfigNode;
 //class HNodeAgent;
 //class HNodeBroker;
 
+struct NodeStatus
+{
+public:
+	enum class Value : int {Unknown = -1, Ok, Warning, Error};
+	Value value = Value::Unknown;
+	std::string message;
+
+	NodeStatus() {}
+	NodeStatus(Value val, const std::string &msg) : value(val), message(msg) {}
+	bool operator==(const NodeStatus &o) const { return o.value == value && o.message == message; }
+	shv::chainpack::RpcValue toRpcValue() const { return shv::chainpack::RpcValue::Map{{"val", (int)value}, {"msg", message}}; }
+	std::string toString() const { return toRpcValue().toCpon(); }
+	static NodeStatus fromRpcValue(const shv::chainpack::RpcValue &val);
+};
+
 class HNode : public shv::iotqt::node::MethodsTableNode
 {
 	Q_OBJECT
 
 	using Super = shv::iotqt::node::MethodsTableNode;
 public:
-	struct Status
-	{
-		enum class Value : int {Unknown = -1, Ok, Warning, Error};
-		Value value = Value::Unknown;
-		std::string message;
-
-		Status() {}
-		Status(Value val, const std::string &msg) : value(val), message(msg) {}
-		bool operator==(const Status &o) const { return o.value == value && o.message == message; }
-		shv::chainpack::RpcValue toRpcValue() const { return shv::chainpack::RpcValue::Map{{"val", (int)value}, {"msg", message}}; }
-		static Status fromRpcValue(const shv::chainpack::RpcValue &val);
-	};
-public:
 	HNode(const std::string &node_id, HNode *parent);
 
-	void setStatus(const Status &st);
-	const Status& status() const { return m_status; }
-	Q_SIGNAL void statusChanged(const std::string &shv_path, const Status &status);
+	void setStatus(const NodeStatus &st);
+	const NodeStatus& status() const { return m_status; }
+	Q_SIGNAL void statusChanged(const std::string &shv_path, const NodeStatus &status);
 
-	void setOverallStatus(const Status &st);
-	const Status& overallStatus() const { return m_overallStatus; }
-	Q_SIGNAL void overallStatusChanged(const std::string &shv_path, const Status &status);
-
-	virtual void updateOverallStatus();
+	void setOverallStatus(const NodeStatus &st);
+	const NodeStatus& overallStatus() const { return m_overallStatus; }
+	Q_SIGNAL void overallStatusChanged(const std::string &shv_path, const NodeStatus &status);
 
 	std::string appConfigDir();
 	std::string nodeConfigDir();
-	std::string scriptsDir();
+	//std::string scriptsDir();
 	std::string templatesDir();
 
 	std::string nodeConfigFilePath();
@@ -70,14 +70,16 @@ protected:
 		return nullptr;
 	}
 
-	virtual void onChildStatusChanged();
 	std::vector<std::string> lsConfigDir();
-	Status overallChildrenStatus();
+
+	//virtual void onChildStatusChanged() {}
+	virtual void updateOverallStatus();
+	NodeStatus overallChildrenStatus();
 
 	shv::chainpack::RpcValue configValueOnPath(const std::string &shv_path, const shv::chainpack::RpcValue &default_val = shv::chainpack::RpcValue()) const;
 protected:
-	Status m_status;
-	Status m_overallStatus;
+	NodeStatus m_status;
+	NodeStatus m_overallStatus;
 	ConfigNode *m_confignode = nullptr;
 };
 

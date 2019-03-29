@@ -9,6 +9,8 @@
 class AppCliOptions;
 class QFileSystemWatcher;
 
+class NodeStatus;
+
 namespace shv { namespace chainpack { class RpcMessage; }}
 namespace shv { namespace iotqt { namespace rpc { class DeviceConnection; }}}
 namespace shv { namespace iotqt { namespace node { class ShvNodeTree; }}}
@@ -41,6 +43,7 @@ public:
 	shv::iotqt::rpc::DeviceConnection *rpcConnection() const {return m_rpcConnection;}
 	AppCliOptions* cliOptions() {return m_cliOptions;}
 	//static const std::string& logFilePath();
+	void onHNodeStatusChanged(const std::string &shv_path, const NodeStatus &status);
 private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);

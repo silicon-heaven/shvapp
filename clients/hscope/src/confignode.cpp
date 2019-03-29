@@ -81,6 +81,40 @@ HNode *ConfigNode::parentHNode()
 	return qobject_cast<HNode*>(parent());
 }
 
+shv::chainpack::RpcValue ConfigNode::loadConfigTemplate(const std::string &file_name)
+{
+	shvLogFuncFrame() << file_name;
+	std::ifstream is(file_name);
+	if(is) {
+		cp::CponReader rd(is);
+		std::string err;
+		shv::chainpack::RpcValue rv = rd.read(&err);
+		if(err.empty()) {
+			const shv::chainpack::RpcValue::Map &map = rv.toMap();
+			static const char BASED_ON[] = "basedOn";
+			const std::string &based_on = map.value(BASED_ON).toString();
+			if(!based_on.empty()) {
+				shvDebug() << "based on:" << based_on;
+				std::string base_fn = parentHNode()->templatesDir() + '/' + based_on + ".config.cpon";
+				shv::chainpack::RpcValue rv2 = loadConfigTemplate(base_fn);
+				for (const auto &kv : map) {
+					rv2.set(kv.first, kv.second);
+				}
+				rv = rv2;
+			}
+			shvDebug() << "return:" << rv.toCpon("\t");
+			return rv;
+		}
+		else {
+			shvWarning() << "Cpon parsing error:" << err << "file:" << file_name;
+		}
+	}
+	else {
+		shvWarning() << "Cannot open file:" << file_name;
+	}
+	return shv::chainpack::RpcValue();
+}
+
 void ConfigNode::loadValues()
 {
 	Super::loadValues();
@@ -88,10 +122,9 @@ void ConfigNode::loadValues()
 	{
 		std::string cfg_file = parentHNode()->nodeConfigFilePath();
 		shvInfo() << parentHNode()->shvPath() << "Reading config file" << cfg_file;
-		std::ifstream is(cfg_file);
-		if(is) {
-			cp::CponReader rd(is);
-			m_values = rd.read();
+		cp::RpcValue val = loadConfigTemplate(cfg_file);
+		if(val.isMap()) {
+			m_values = val;
 		}
 		else {
 			/// file may not exist
@@ -132,32 +165,49 @@ bool ConfigNode::saveValues()
 	SHV_EXCEPTION("Cannot open file '" + cfg_file + "' for writing!");
 }
 
+static cp::RpcValue mergeMaps(const cp::RpcValue &orig_val, const cp::RpcValue &new_val)
+{
+	if(orig_val.isMap() && new_val.isMap()) {
+		const shv::chainpack::RpcValue::Map &orig_map = orig_val.toMap();
+		const shv::chainpack::RpcValue::Map &new_map = new_val.toMap();
+		cp::RpcValue::Map map;
+		for(const auto &kv : orig_map)
+			map[kv.first] = kv.second;
+		for(const auto &kv : new_map) {
+			if(map.hasKey(kv.first)) {
+				map[kv.first] = mergeMaps(map.value(kv.first), kv.second);
+			}
+			else {
+				map[kv.first] = kv.second;
+			}
+		}
+		return cp::RpcValue(map);
+	}
+	return new_val;
+}
+
 shv::chainpack::RpcValue ConfigNode::valueOnPath(const shv::iotqt::node::ShvNode::StringViewList &shv_path, bool throv_exc)
 {
-	shvLogFuncFrame() << shv_path.join('/');
+	//shvLogFuncFrame() << shv_path.join('/');
 	shv::chainpack::RpcValue orig_val = Super::valueOnPath(shv_path, throv_exc);
-	if(orig_val.isMap()) {
-		// take directory structure from orig values
-		shvDebug() << "\t return:" << orig_val.toStdString();
-		return orig_val;
-	}
 	if(!orig_val.isValid() && throv_exc) {
 		// path doesn't exist
-		shvDebug() << "\t return:" << orig_val.toStdString();
+		//shvDebug() << "\t return:" << orig_val.toStdString();
 		return orig_val;
 	}
-	shv::chainpack::RpcValue v = m_newValues;
+	shv::chainpack::RpcValue new_val = m_newValues;
 	for(const auto & dir : shv_path) {
-		const shv::chainpack::RpcValue::Map &m = v.toMap();
-		v = m.value(dir.toString());
-		if(!v.isValid())
+		const shv::chainpack::RpcValue::Map &m = new_val.toMap();
+		new_val = m.value(dir.toString());
+		if(!new_val.isValid())
 			break;
 	}
-	if(v.isValid()) {
-		shvDebug() << "\t return:" << v.toStdString();
-		return v;
+	if(new_val.isValid()) {
+		//shvDebug() << "\t return:" << v.toStdString();
+		/// merge new and orig val
+		return mergeMaps(orig_val, new_val);
 	}
-	shvDebug() << "\t return:" << orig_val.toStdString();
+	//shvDebug() << "\t return:" << orig_val.toStdString();
 	return orig_val;
 }
 
