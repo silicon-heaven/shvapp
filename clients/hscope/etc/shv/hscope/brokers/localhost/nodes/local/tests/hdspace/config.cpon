@@ -1,6 +1,0 @@
-{
-	"disabled": false,
-	"runEvery": "12h",
-	"script": "hdspace.sh",
-	"keyvals": {"mount": "/home"},
-}

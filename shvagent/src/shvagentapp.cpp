@@ -35,8 +35,6 @@
 namespace cp = shv::chainpack;
 namespace si = shv::iotqt;
 
-static const char M_RUN_SCRIPT[] = "runScript";
-
 static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_BROWSE},
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_BROWSE},
@@ -45,7 +43,7 @@ static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_BROWSE},
 	{cp::Rpc::METH_HELP, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_BROWSE},
 	{cp::Rpc::METH_RUN_CMD, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_COMMAND},
-	{M_RUN_SCRIPT, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_COMMAND},
+	{cp::Rpc::METH_RUN_SCRIPT, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_COMMAND},
 	{cp::Rpc::METH_LAUNCH_REXEC, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_COMMAND},
 };
 
@@ -109,7 +107,7 @@ shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::Rp
 			app->runCmd(rq, QString());
 			return cp::RpcValue();
 		}
-		if(rq.method() == M_RUN_SCRIPT) {
+		if(rq.method() == cp::Rpc::METH_RUN_SCRIPT) {
 			QTemporaryFile file;
 			file.setAutoRemove(false);
 			if (file.open()) {
@@ -124,6 +122,9 @@ shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::Rp
 						if(p.isString()) {
 							script = p.toString();
 							new_params.push_back(cmd);
+						}
+						else if(p.isMap()) {
+							new_params.push_back(p);
 						}
 						else {
 							int i = p.toInt();
@@ -432,10 +433,15 @@ void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq, QString file_to_r
 		}
 	});
 	std::string cmd;
+	QProcessEnvironment env;
 	if(rq.params().isList()) {
 		for(auto p : rq.params().toList()) {
 			if(p.isString()) {
 				cmd = p.toString();
+			}
+			else if(p.isMap()) {
+				for(auto kv : p.toMap())
+					env.insert(QString::fromStdString(kv.first), QString::fromStdString(kv.second.toStdString()));
 			}
 			else {
 				int i = p.toInt();
@@ -453,6 +459,7 @@ void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq, QString file_to_r
 		cmd = rq.params().toString();
 	}
 	shvDebug() << "CMD:" << cmd;
+	proc->setProcessEnvironment(env);
 	proc->start(QString::fromStdString(cmd));
 }
 

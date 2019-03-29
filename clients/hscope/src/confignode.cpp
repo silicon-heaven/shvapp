@@ -1,4 +1,4 @@
-#include "hnodeconfig.h"
+#include "confignode.h"
 #include "hnode.h"
 
 #include <shv/chainpack/cponreader.h>
@@ -33,13 +33,13 @@ static std::vector<cp::MetaMethod> meta_methods_node {
 	{METH_RESET_TO_ORIG_VALUE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::GRANT_WRITE},
 };
 
-HNodeConfig::HNodeConfig(HNode *parent)
-	: Super("config", parent)
+ConfigNode::ConfigNode(HNode *parent)
+	: Super(".config", parent)
 {
-	shvInfo() << "creating:" << metaObject()->className() << nodeId();
+	shvDebug() << "creating:" << metaObject()->className() << nodeId();
 }
 
-size_t HNodeConfig::methodCount(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
+size_t ConfigNode::methodCount(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
 {
 	if(shv_path.empty()) {
 		return meta_methods_root_node.size();
@@ -49,7 +49,7 @@ size_t HNodeConfig::methodCount(const shv::iotqt::node::ShvNode::StringViewList 
 	}
 }
 
-const shv::chainpack::MetaMethod *HNodeConfig::metaMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, size_t ix)
+const shv::chainpack::MetaMethod *ConfigNode::metaMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, size_t ix)
 {
 	size_t size;
 	const std::vector<shv::chainpack::MetaMethod> &methods = shv_path.empty()? meta_methods_root_node: meta_methods_node;
@@ -64,7 +64,7 @@ const shv::chainpack::MetaMethod *HNodeConfig::metaMethod(const shv::iotqt::node
 	return &(methods[ix]);
 }
 
-shv::chainpack::RpcValue HNodeConfig::callMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
+shv::chainpack::RpcValue ConfigNode::callMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
 {
 	if(method == METH_ORIG_VALUE) {
 		return Super::valueOnPath(shv_path);
@@ -76,17 +76,18 @@ shv::chainpack::RpcValue HNodeConfig::callMethod(const shv::iotqt::node::ShvNode
 	return Super::callMethod(shv_path, method, params);
 }
 
-HNode *HNodeConfig::parentHNode()
+HNode *ConfigNode::parentHNode()
 {
 	return qobject_cast<HNode*>(parent());
 }
 
-void HNodeConfig::loadValues()
+void ConfigNode::loadValues()
 {
 	Super::loadValues();
 	m_values = cp::RpcValue();
 	{
-		std::string cfg_file = parentHNode()->configDir() + "/config.cpon";
+		std::string cfg_file = parentHNode()->nodeConfigFilePath();
+		shvInfo() << parentHNode()->shvPath() << "Reading config file" << cfg_file;
 		std::ifstream is(cfg_file);
 		if(is) {
 			cp::CponReader rd(is);
@@ -95,12 +96,12 @@ void HNodeConfig::loadValues()
 		else {
 			/// file may not exist
 			m_values = cp::RpcValue::Map();
-			//SHV_EXCEPTION("Cannot open file '" + cfg_file + "' for reading!");
+			shvWarning() << parentHNode()->shvPath() << "Cannot open config file" << cfg_file << "for reading!";
 		}
 	}
 	m_newValues = cp::RpcValue();
 	{
-		std::string cfg_file = parentHNode()->configDir() + "/config.user.cpon";
+		std::string cfg_file = parentHNode()->nodeConfigDir() + "/config.user.cpon";
 		std::ifstream is(cfg_file);
 		if(is) {
 			cp::CponReader rd(is);
@@ -115,23 +116,34 @@ void HNodeConfig::loadValues()
 	Super::loadValues();
 }
 
-bool HNodeConfig::saveValues()
+bool ConfigNode::saveValues()
 {
-	std::string cfg_file = parentHNode()->configDir() + "/config.user.cpon";
+	std::string cfg_file = parentHNode()->nodeConfigDir() + "/config.user.cpon";
 	std::ofstream os(cfg_file);
 	if(os) {
-		cp::CponWriter wr(os);
+		cp::CponWriterOptions opts;
+		opts.setIndent("\t");
+		cp::CponWriter wr(os, opts);
 		wr.write(m_newValues);
+		wr.flush();
+		emit configSaved();
 		return true;
 	}
 	SHV_EXCEPTION("Cannot open file '" + cfg_file + "' for writing!");
 }
 
-shv::chainpack::RpcValue HNodeConfig::valueOnPath(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
+shv::chainpack::RpcValue ConfigNode::valueOnPath(const shv::iotqt::node::ShvNode::StringViewList &shv_path, bool throv_exc)
 {
-	shv::chainpack::RpcValue orig_val = Super::valueOnPath(shv_path);
+	shvLogFuncFrame() << shv_path.join('/');
+	shv::chainpack::RpcValue orig_val = Super::valueOnPath(shv_path, throv_exc);
 	if(orig_val.isMap()) {
 		// take directory structure from orig values
+		shvDebug() << "\t return:" << orig_val.toStdString();
+		return orig_val;
+	}
+	if(!orig_val.isValid() && throv_exc) {
+		// path doesn't exist
+		shvDebug() << "\t return:" << orig_val.toStdString();
 		return orig_val;
 	}
 	shv::chainpack::RpcValue v = m_newValues;
@@ -141,12 +153,15 @@ shv::chainpack::RpcValue HNodeConfig::valueOnPath(const shv::iotqt::node::ShvNod
 		if(!v.isValid())
 			break;
 	}
-	if(v.isValid())
+	if(v.isValid()) {
+		shvDebug() << "\t return:" << v.toStdString();
 		return v;
+	}
+	shvDebug() << "\t return:" << orig_val.toStdString();
 	return orig_val;
 }
 
-void HNodeConfig::setValueOnPath(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const shv::chainpack::RpcValue &val)
+void ConfigNode::setValueOnPath(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const shv::chainpack::RpcValue &val)
 {
 	/*
 	values();
@@ -171,13 +186,13 @@ void HNodeConfig::setValueOnPath(const shv::iotqt::node::ShvNode::StringViewList
 	setValueOnPathR(shv_path, val);
 }
 
-void HNodeConfig::setValueOnPathR(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const shv::chainpack::RpcValue &val)
+void ConfigNode::setValueOnPathR(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const shv::chainpack::RpcValue &val)
 {
 	values();
 	setValueOnPath_helper(shv_path, 0, m_newValues, val);
 }
 
-void HNodeConfig::setValueOnPath_helper(const shv::iotqt::node::ShvNode::StringViewList &path, size_t key_ix, shv::chainpack::RpcValue parent_map, const shv::chainpack::RpcValue &val)
+void ConfigNode::setValueOnPath_helper(const shv::iotqt::node::ShvNode::StringViewList &path, size_t key_ix, shv::chainpack::RpcValue parent_map, const shv::chainpack::RpcValue &val)
 {
 	shvLogFuncFrame() << "path:" << path.join('/') << "ix:" << key_ix << "parent:" << parent_map.toCpon() << "val:" << val.toPrettyString();
 	if(key_ix == path.size() - 1) {

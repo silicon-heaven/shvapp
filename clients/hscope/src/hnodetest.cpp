@@ -1,15 +1,147 @@
 #include "hnodetest.h"
+#include "confignode.h"
+#include "hnodeagent.h"
+#include "hnodebroker.h"
 
 #include <shv/coreqt/log.h>
+#include <shv/core/string.h>
+#include <shv/iotqt/utils/shvpath.h>
+#include <shv/iotqt/rpc/rpcresponsecallback.h>
+#include <shv/iotqt/rpc/deviceconnection.h>
 
-HNodeTest::HNodeTest(const std::string &node_id, ShvNode *parent)
+#include <QFile>
+#include <QTimer>
+
+#define logTest() shvCDebug("Test")
+
+namespace cp = shv::chainpack;
+
+static const char KEY_RUN_EVERY[] = "runEvery";
+static const char KEY_DISABLED[] = "disabled";
+static const char KEY_SCRIPT[] = "script";
+static const char KEY_ENV[] = "env";
+
+static const char METH_RUN_TEST[] = "runTest";
+
+static std::vector<cp::MetaMethod> meta_methods;
+static std::vector<cp::MetaMethod> meta_methods_extra {
+	{METH_RUN_TEST, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_COMMAND},
+};
+
+HNodeTest::HNodeTest(const std::string &node_id, HNode *parent)
 	: Super(node_id, parent)
 {
-	shvInfo() << "creating:" << metaObject()->className() << node_id;
+	shvDebug() << "creating:" << metaObject()->className() << node_id;
+	if(meta_methods.empty()) {
+		for(const cp::MetaMethod &mm : *m_methods)
+			meta_methods.push_back(mm);
+		for(const cp::MetaMethod &mm : meta_methods_extra)
+			meta_methods.push_back(mm);
+	}
+	m_methods = &meta_methods;
+	m_runTimer = new QTimer(this);
+	connect(m_runTimer, &QTimer::timeout, this, &HNodeTest::runTest);
 }
 
 void HNodeTest::load()
 {
+	logTest() << shvPath() << "load config.";
 	Super::load();
+
+	bool disabled = configValueOnPath(KEY_DISABLED).toBool();
+	if(disabled) {
+		logTest() << "\t" << "disabled";
+		m_runTimer->stop();
+		return;
+	}
+
+	shv::chainpack::RpcValue run_every = configValueOnPath(KEY_RUN_EVERY);
+	int interval = 0;
+	if(run_every.isString()) {
+		shv::core::StringView sv = run_every.toString();
+		if(sv.endsWith('s'))
+			interval = sv.mid(0, sv.length() - 1).toInt();
+		else if(sv.endsWith('m'))
+			interval = sv.mid(0, sv.length() - 1).toInt() * 60;
+		else if(sv.endsWith('h'))
+			interval = sv.mid(0, sv.length() - 1).toInt() * 60 * 60;
+		else if(sv.endsWith('d'))
+			interval = sv.mid(0, sv.length() - 1).toInt() * 60 * 60 * 24;
+		else
+			interval = sv.toInt();
+	}
+	else {
+		interval = run_every.toInt();
+	}
+	logTest() << "\t" << "setting interval to:" << interval << "sec";
+	if(interval == 0) {
+		m_runTimer->stop();
+	}
+	else {
+		m_runTimer->start(interval * 1000);
+	}
+}
+
+shv::chainpack::RpcValue HNodeTest::callMethodRq(const shv::chainpack::RpcRequest &rq)
+{
+	shv::chainpack::RpcValue shv_path = rq.shvPath();
+	if(shv_path.toString().empty()) {
+		const shv::chainpack::RpcValue::String &method = rq.method().toString();
+		if(method == METH_RUN_TEST) {
+			int rq_id = runTest();
+			cp::RpcResponse resp1 = rq.makeResponse();
+			shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(brokerNode()->rpcConnection(), rq_id, this);
+			cb->setTimeout(20000);
+			connect(cb, &shv::iotqt::rpc::RpcResponseCallBack::finished, this, [this, resp1](const cp::RpcResponse &resp) {
+				cp::RpcResponse resp2 = resp1;
+				if(resp.isValid()) {
+					if(resp.isError()) {
+						resp2.setError(resp.error());
+						setStatus(Status{Status::Value::Error, resp.error().toString()});
+					}
+					else {
+						resp2.setResult(resp.result());
+						Status st = Status::fromRpcValue(resp.result());
+						setStatus(st);
+					}
+				}
+				else {
+					resp2.setError(cp::RpcResponse::Error::createSyncMethodCallTimeout("Test invocation timeout!"));
+					setStatus(Status{Status::Value::Error, "Test invocation timeout!"});
+				}
+				this->appRpcConnection()->sendMessage(resp2);
+			});
+			return cp::RpcValue();
+		}
+	}
+	return Super::callMethodRq(rq);
+}
+
+int HNodeTest::runTest()
+{
+	logTest() << "Running test:" << shvPath();
+	HNodeAgent *an = agentNode();
+	if(!an)
+		SHV_EXCEPTION("Parent agent node missing!");
+
+	std::string shv_path = an->agentShvPath();
+	const std::string &script_fn = scriptsDir() + '/' + configValueOnPath(KEY_SCRIPT).toString();
+	QFile f(QString::fromStdString(script_fn));
+	if(!f.open(QFile::ReadOnly))
+		SHV_EXCEPTION("Cannot open test script file " + script_fn + " for reading!");
+	QByteArray ba = f.readAll();
+	std::string script(ba.constData(), (unsigned)ba.length());
+	const shv::chainpack::RpcValue::Map &env = configValueOnPath(KEY_ENV).toMap();
+	return brokerNode()->rpcConnection()->callShvMethod(shv_path, cp::Rpc::METH_RUN_SCRIPT, cp::RpcValue::List{script, 1, env});
+}
+
+HNodeAgent *HNodeTest::agentNode()
+{
+	return findParent<HNodeAgent*>();
+}
+
+HNodeBroker *HNodeTest::brokerNode()
+{
+	return findParent<HNodeBroker*>();
 }
 

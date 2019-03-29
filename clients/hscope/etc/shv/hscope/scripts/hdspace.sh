@@ -1,22 +1,15 @@
 #!/bin/bash
 
-# MOUNT={{mount,/home}}
-MOUNT=/home
-# WARN_TRESH={{warningTreshold,75}}
-WARN_TRESH=75
-# ERROR_TRESH={{errorTreshold,90}}
-ERROR_TRESH=90
-
-VAL=`df | grep $MOUNT | sed 's/ \+/ /g; s/%//g' | cut -d ' ' -f 5 `
-# VAL=90
+DF_VAL=`df | grep $MOUNT_POINT | sed 's/ \+/ /g; s/%//g' | cut -d ' ' -f 5 `
+# DF_VAL=90
 # echo $PROC
-if [[ $VAL -ge $ERROR_TRESH ]]; then
-	STATUS=ERR
-elif [[ $VAL -ge $WARN_TRESH ]]; then
-	STATUS=WARN
+if [[ $DF_VAL -ge $ERROR_TRESHOLD ]]; then
+	VAL=ERR
+elif [[ $DF_VAL -ge $WARN_TRESHOLD ]]; then
+	VAL=WARN
 else
-	STATUS=OK
+	VAL=OK
 fi
 
-MSG="Disc fill is ${VAL}%"
-echo "{\"staus\":\"$STATUS\", \"msg\":\"$MSG\"}"
+MSG="Disc fill is ${DF_VAL}%"
+echo "{\"val\":\"$VAL\", \"msg\":\"$MSG\"}"

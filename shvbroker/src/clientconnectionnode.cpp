@@ -23,7 +23,7 @@ static std::vector<cp::MetaMethod> meta_methods {
 };
 
 ClientConnectionNode::ClientConnectionNode(int client_id, shv::iotqt::node::ShvNode *parent)
-	: Super(std::to_string(client_id), meta_methods, parent)
+	: Super(std::to_string(client_id), &meta_methods, parent)
 	, m_clientId(client_id)
 {
 }

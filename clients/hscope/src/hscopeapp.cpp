@@ -104,7 +104,8 @@ void HScopeApp::createNodes()
 {
 	if(m_brokersNode)
 		delete m_brokersNode;
-	m_brokersNode = new HNodeBrokers("brokers", m_shvTree->root());
+	m_brokersNode = new HNodeBrokers("brokers", nullptr);
+	m_brokersNode->setParent(m_shvTree->root());
 	m_brokersNode->load();
 }
 /*
@@ -127,15 +128,7 @@ void HScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 	shvLogFuncFrame() << msg.toCpon();
 	if(msg.isRequest()) {
 		cp::RpcRequest rq(msg);
-		cp::RpcResponse resp = cp::RpcResponse::forRequest(rq.metaData());
-		try {
-			m_shvTree->root()->handleRpcRequest(rq);
-		}
-		catch (shv::core::Exception &e) {
-			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, e.message()));
-		}
-		if(resp.requestId().toInt() > 0) // RPC calls with requestID == 0 does not expect response
-			m_rpcConnection->sendMessage(resp);
+		m_shvTree->root()->handleRpcRequest(rq);
 	}
 	else if(msg.isResponse()) {
 		cp::RpcResponse rsp(msg);

@@ -1,20 +1,19 @@
-#include "hnodetests.h"
-#include "hnodetest.h"
+#include "hnodeagents.h"
+#include "hnodeagent.h"
 
 #include <shv/coreqt/log.h>
 
-HNodeTests::HNodeTests(const std::string &node_id, HNode *parent)
+HNodeAgents::HNodeAgents(const std::string &node_id, HNode *parent)
 	: Super(node_id, parent)
 {
 	shvDebug() << "creating:" << metaObject()->className() << node_id;
 }
 
-void HNodeTests::load()
+void HNodeAgents::load()
 {
 	Super::load();
 	for (const std::string &dir : lsConfigDir()) {
-		auto *nd = new HNodeTest(dir, this);
+		auto *nd = new HNodeAgent(dir, this);
 		nd->load();
 	}
 }
-

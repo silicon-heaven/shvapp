@@ -8,10 +8,10 @@
 
 #include <QDirIterator>
 
-HNodeBrokers::HNodeBrokers(const std::string &node_id, ShvNode *parent)
+HNodeBrokers::HNodeBrokers(const std::string &node_id, HNode *parent)
 	: Super(node_id, parent)
 {
-	shvInfo() << "creating:" << metaObject()->className() << node_id;
+	shvDebug() << "creating:" << metaObject()->className() << node_id;
 }
 
 void HNodeBrokers::load()

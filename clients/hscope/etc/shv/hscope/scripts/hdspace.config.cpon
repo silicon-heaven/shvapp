@@ -1,0 +1,10 @@
+{
+	"disabled": false,
+	"runEvery": "12h",
+	"script": "hdspace.sh",
+	"env": {
+		"MOUNT_POINT": "/home",
+		"WARN_TRESHOLD": 75,
+		"ERROR_TRESHOLD": 90,
+	},
+}

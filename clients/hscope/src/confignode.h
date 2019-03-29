@@ -5,19 +5,20 @@
 
 class HNode;
 
-class HNodeConfig : public shv::iotqt::node::RpcValueMapNode
+class ConfigNode : public shv::iotqt::node::RpcValueMapNode
 {
 	Q_OBJECT
 
 	using Super = shv::iotqt::node::RpcValueMapNode;
 public:
-	HNodeConfig(HNode *parent);
+	ConfigNode(HNode *parent);
 
+	shv::chainpack::RpcValue valueOnPath(const StringViewList &shv_path, bool throv_exc = true) override;
+	Q_SIGNAL void configSaved();
 protected:
 	HNode* parentHNode();
 	void loadValues() override;
 	bool saveValues() override;
-	shv::chainpack::RpcValue valueOnPath(const StringViewList &shv_path) override;
 	void setValueOnPath(const StringViewList &shv_path, const shv::chainpack::RpcValue &val) override;
 	void setValueOnPathR(const StringViewList &shv_path, const shv::chainpack::RpcValue &val);
 	void setValueOnPath_helper(const StringViewList &path, size_t key_ix, shv::chainpack::RpcValue parent_map, const shv::chainpack::RpcValue &val);

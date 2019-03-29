@@ -60,7 +60,7 @@ class ClientsNode : public shv::iotqt::node::MethodsTableNode
 	using Super = shv::iotqt::node::MethodsTableNode;
 public:
 	ClientsNode(shv::iotqt::node::ShvNode *parent = nullptr)
-		: Super(std::string(), m_metaMethods, parent)
+		: Super(std::string(), &m_metaMethods, parent)
 		, m_metaMethods {
 				  {cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam},
 				  {cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::GRANT_CONFIG},
@@ -75,7 +75,7 @@ class MasterBrokersNode : public shv::iotqt::node::MethodsTableNode
 	using Super = shv::iotqt::node::MethodsTableNode;
 public:
 	MasterBrokersNode(shv::iotqt::node::ShvNode *parent = nullptr)
-		: Super(std::string(), m_metaMethods, parent)
+		: Super(std::string(), &m_metaMethods, parent)
 		, m_metaMethods{
 				  {cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam},
 				  {cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::GRANT_CONFIG},

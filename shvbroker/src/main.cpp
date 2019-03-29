@@ -45,7 +45,6 @@ int main(int argc, char *argv[])
 	if(cli_opts.isAppBreak()) {
 		if(cli_opts.isHelp()) {
 			cli_opts.printHelp(std::cout);
-			std::cout << NecroLog::registeredTopicsInfo() << std::endl;
 		}
 		return EXIT_SUCCESS;
 	}

@@ -45,5 +45,4 @@ void ThresholdsDialog::loadTreshold(const std::string &shv_name, QSpinBox *edito
 			shvWarning() << "GET" << path << "RPC request timeout";
 		}
 	});
-
 }

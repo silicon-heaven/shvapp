@@ -65,6 +65,7 @@ int main(int argc, char *argv[])
 	QCoreApplication::setApplicationName("hscope");
 	QCoreApplication::setApplicationVersion(APP_VERSION);
 
+	NecroLog::registerTopic("Test", "Run tests debug messages");
 	//init_log_environment();
 
 	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);
