@@ -115,55 +115,6 @@ shv::chainpack::RpcValue ConfigNode::loadConfigTemplate(const std::string &file_
 	return shv::chainpack::RpcValue();
 }
 
-void ConfigNode::loadValues()
-{
-	Super::loadValues();
-	m_values = cp::RpcValue();
-	{
-		std::string cfg_file = parentHNode()->nodeConfigFilePath();
-		shvInfo() << parentHNode()->shvPath() << "Reading config file" << cfg_file;
-		cp::RpcValue val = loadConfigTemplate(cfg_file);
-		if(val.isMap()) {
-			m_values = val;
-		}
-		else {
-			/// file may not exist
-			m_values = cp::RpcValue::Map();
-			shvWarning() << parentHNode()->shvPath() << "Cannot open config file" << cfg_file << "for reading!";
-		}
-	}
-	m_newValues = cp::RpcValue();
-	{
-		std::string cfg_file = parentHNode()->nodeConfigDir() + "/config.user.cpon";
-		std::ifstream is(cfg_file);
-		if(is) {
-			cp::CponReader rd(is);
-			m_newValues = rd.read();
-		}
-		else {
-			/// file may not exist
-			m_newValues = cp::RpcValue::Map();
-			//SHV_EXCEPTION("Cannot open file '" + cfg_file + "' for reading!");
-		}
-	}
-	Super::loadValues();
-}
-
-bool ConfigNode::saveValues()
-{
-	std::string cfg_file = parentHNode()->nodeConfigDir() + "/config.user.cpon";
-	std::ofstream os(cfg_file);
-	if(os) {
-		cp::CponWriterOptions opts;
-		opts.setIndent("\t");
-		cp::CponWriter wr(os, opts);
-		wr.write(m_newValues);
-		wr.flush();
-		emit configSaved();
-		return true;
-	}
-	SHV_EXCEPTION("Cannot open file '" + cfg_file + "' for writing!");
-}
 
 static cp::RpcValue mergeMaps(const cp::RpcValue &orig_val, const cp::RpcValue &new_val)
 {
@@ -186,6 +137,65 @@ static cp::RpcValue mergeMaps(const cp::RpcValue &orig_val, const cp::RpcValue &
 	return new_val;
 }
 
+const shv::chainpack::RpcValue &ConfigNode::values()
+{
+	Super::values();
+	if(m_valuesMergeNeeded) {
+		m_values = mergeMaps(m_templateValues, m_newValues);
+		m_valuesMergeNeeded = false;
+	}
+	return m_values;
+}
+
+void ConfigNode::loadValues()
+{
+	Super::loadValues();
+	{
+		std::string cfg_file = parentHNode()->nodeConfigFilePath();
+		shvInfo() << parentHNode()->shvPath() << "Reading config file" << cfg_file;
+		cp::RpcValue val = loadConfigTemplate(cfg_file);
+		if(val.isMap()) {
+			m_templateValues = val;
+		}
+		else {
+			/// file may not exist
+			m_templateValues = cp::RpcValue::Map();
+			shvWarning() << parentHNode()->shvPath() << "Cannot open config file" << cfg_file << "for reading!";
+		}
+	}
+	m_newValues = cp::RpcValue();
+	{
+		std::string cfg_file = parentHNode()->nodeConfigDir() + "/config.user.cpon";
+		std::ifstream is(cfg_file);
+		if(is) {
+			cp::CponReader rd(is);
+			m_newValues = rd.read();
+		}
+		else {
+			/// file may not exist
+			m_newValues = cp::RpcValue::Map();
+			//SHV_EXCEPTION("Cannot open file '" + cfg_file + "' for reading!");
+		}
+	}
+	m_valuesMergeNeeded = true;
+}
+
+void ConfigNode::saveValues()
+{
+	std::string cfg_file = parentHNode()->nodeConfigDir() + "/config.user.cpon";
+	std::ofstream os(cfg_file);
+	if(os) {
+		cp::CponWriterOptions opts;
+		opts.setIndent("\t");
+		cp::CponWriter wr(os, opts);
+		wr.write(m_newValues);
+		wr.flush();
+		emit configSaved();
+		return;
+	}
+	SHV_EXCEPTION("Cannot open file '" + cfg_file + "' for writing!");
+}
+/*
 shv::chainpack::RpcValue ConfigNode::valueOnPath(const shv::iotqt::node::ShvNode::StringViewList &shv_path, bool throv_exc)
 {
 	//shvLogFuncFrame() << shv_path.join('/');
@@ -210,10 +220,11 @@ shv::chainpack::RpcValue ConfigNode::valueOnPath(const shv::iotqt::node::ShvNode
 	//shvDebug() << "\t return:" << orig_val.toStdString();
 	return orig_val;
 }
-
+*/
 void ConfigNode::setValueOnPath(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const shv::chainpack::RpcValue &val)
 {
 	/*
+	 * recursive implementation enables remove empty maps on return
 	values();
 	if(shv_path.empty())
 		SHV_EXCEPTION("Empty path");
@@ -240,6 +251,7 @@ void ConfigNode::setValueOnPathR(const shv::iotqt::node::ShvNode::StringViewList
 {
 	values();
 	setValueOnPath_helper(shv_path, 0, m_newValues, val);
+	m_valuesMergeNeeded = true;
 }
 
 void ConfigNode::setValueOnPath_helper(const shv::iotqt::node::ShvNode::StringViewList &path, size_t key_ix, shv::chainpack::RpcValue parent_map, const shv::chainpack::RpcValue &val)

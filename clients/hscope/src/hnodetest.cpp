@@ -32,7 +32,6 @@ HNodeTest::HNodeTest(const std::string &node_id, HNode *parent)
 	: Super(node_id, parent)
 {
 	shvDebug() << "creating:" << metaObject()->className() << node_id;
-
 	m_status = NodeStatus();
 
 	if(meta_methods.empty()) {

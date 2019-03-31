@@ -15,7 +15,6 @@ public:
 public:
 	void load() override;
 
-	std::string templateFileName() override;
 	shv::iotqt::rpc::ClientConnection *rpcConnection();
 private:
 	void reconnect();

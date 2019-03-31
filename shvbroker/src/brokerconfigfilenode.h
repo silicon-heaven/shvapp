@@ -21,7 +21,7 @@ public:
 	//shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params) override;
 protected:
 	void loadValues() override;
-	bool saveValues() override;
+	void saveValues() override;
 };
 
 class AclPathsConfigFileNode : public BrokerConfigFileNode

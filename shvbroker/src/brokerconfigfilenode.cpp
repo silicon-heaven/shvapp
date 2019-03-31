@@ -51,9 +51,9 @@ void BrokerConfigFileNode::loadValues()
 	Super::loadValues();
 }
 
-bool BrokerConfigFileNode::saveValues()
+void BrokerConfigFileNode::saveValues()
 {
-	return BrokerApp::instance()->setAclConfig(nodeId(), m_values, shv::core::Exception::Throw);
+	BrokerApp::instance()->setAclConfig(nodeId(), m_values, shv::core::Exception::Throw);
 }
 
 //========================================================

@@ -29,14 +29,17 @@ NodeStatus NodeStatus::fromRpcValue(const shv::chainpack::RpcValue &val)
 			if(val_str.size()) {
 				char c = val_str.at(0);
 				switch (c) {
+				case '0':
 				case 'o':
 				case 'O':
 					ret.value = NodeStatus::Value::Ok;
 					break;
+				case '1':
 				case 'w':
 				case 'W':
 					ret.value = NodeStatus::Value::Warning;
 					break;
+				case '2':
 				case 'e':
 				case 'E':
 					ret.value = NodeStatus::Value::Error;
@@ -82,9 +85,10 @@ static std::vector<cp::MetaMethod> meta_methods {
 
 HNode::HNode(const std::string &node_id, HNode *parent)
 	: Super(node_id, &meta_methods, parent)
-	, m_status(NodeStatus::Value::Ok, "from children")
+	, m_status(NodeStatus::Value::Ok, "")
 {
 	connect(this, &HNode::statusChanged, HScopeApp::instance(), &HScopeApp::onHNodeStatusChanged);
+	connect(this, &HNode::overallStatusChanged, HScopeApp::instance(), &HScopeApp::onHNodeOverallStatusChanged);
 }
 
 std::string HNode::appConfigDir()
@@ -122,7 +126,8 @@ std::string HNode::nodeConfigFilePath()
 
 std::string HNode::templateFileName()
 {
-	return std::string();
+	return QString::fromUtf8(metaObject()->className()).mid(QStringLiteral("HNode").length()).toLower().toStdString()
+			+ ".config.cpon";
 }
 
 void HNode::load()
@@ -204,13 +209,13 @@ void HNode::updateOverallStatus()
 	NodeStatus new_st = status();
 	if(new_st.value != NodeStatus::Value::Unknown) {
 		NodeStatus chst = overallChildrenStatus();
-		shvLogFuncFrame() << "\t children status:" << chst.toString();
+		shvDebug() << "\t overall children status:" << chst.toString();
 		if(chst.value != NodeStatus::Value::Unknown) {
 			if(chst.value > new_st.value) {
 				new_st.value = chst.value;
 				new_st.message = chst.message;
 			}
-			shvLogFuncFrame() << "\t new status:" << new_st.toString();
+			shvDebug() << "\t new overall status:" << new_st.toString();
 			setOverallStatus(new_st);
 			return;
 		}
@@ -220,15 +225,18 @@ void HNode::updateOverallStatus()
 
 NodeStatus HNode::overallChildrenStatus()
 {
+	shvLogFuncFrame() << shvPath();
 	NodeStatus ret;
 	bool unknown_reported = false;
 	QList<HNode*> lst = findChildren<HNode*>(QString(), Qt::FindDirectChildrenOnly);
 	if(lst.isEmpty()) {
+		shvDebug().color(NecroLog::Color::Yellow) << "\t no children return:" << NodeStatus(NodeStatus::Value::Ok, "").toString();
 		return NodeStatus(NodeStatus::Value::Ok, "");
 	}
 	else {
 		for(HNode *chnd : lst) {
-			const NodeStatus &chst = chnd->status();
+			const NodeStatus &chst = chnd->overallStatus();
+			shvDebug().color(NecroLog::Color::Yellow) << "\t child:" << chnd->shvPath() << "overall status" << chst.toString();
 			unknown_reported = chst.value == NodeStatus::Value::Unknown;
 			if(chst.value > ret.value) {
 				ret.value = chst.value;

@@ -1,7 +1,5 @@
 {
-	"disabled": false,
-	"runEvery": "12h",
-	"script": "hdspace.sh",
+	"basedOn": "basictest",
 	"env": {
 		"MOUNT_POINT": "/home",
 		"WARN_TRESHOLD": 75,

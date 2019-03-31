@@ -34,11 +34,6 @@ void HNodeBroker::load()
 	reconnect();
 }
 
-std::string HNodeBroker::templateFileName()
-{
-	return "broker.config.cpon";
-}
-
 shv::iotqt::rpc::ClientConnection *HNodeBroker::rpcConnection()
 {
 	if(!m_rpcConnection) {

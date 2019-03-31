@@ -1,12 +1,15 @@
 #include "hscopeapp.h"
 #include "appclioptions.h"
 #include "hnodebrokers.h"
+#include "hnodetest.h"
 
 #include <shv/iotqt/node/shvnode.h>
 #include <shv/iotqt/node/shvnodetree.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
 #include <shv/iotqt/node/shvnodetree.h>
+#include <shv/iotqt/utils/fileshvjournal.h>
+#include <shv/iotqt/utils/shvpath.h>
 #include <shv/coreqt/log.h>
 
 #include <QTimer>
@@ -69,6 +72,35 @@ HScopeApp::HScopeApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
 {
+	m_shvJournal = new shv::iotqt::utils::FileShvJournal([this](std::vector<shv::iotqt::utils::ShvJournalEntry> &s) { this->getSnapshot(s); });
+	if(cli_opts->shvJournalDir_isset())
+		m_shvJournal->setJournalDir(cli_opts->shvJournalDir());
+	m_shvJournal->setFileSizeLimit(cli_opts->shvJournalFileSizeLimit());
+	m_shvJournal->setJournalSizeLimit(cli_opts->shvJournalSizeLimit());
+	{
+		cp::RpcValue::Map types {
+			{"Status", cp::RpcValue::Map{
+					{"type", "Map"},
+					{"fields", cp::RpcValue::List{
+							cp::RpcValue::Map{{"name", "val"}, {"type", "Enum"}},
+							cp::RpcValue::Map{{"name", "msg"}, {"type", "String"}},
+						}
+					},
+					{"description", "Unknown = -1, OK = 0, Warning = 1, Error = 2"},
+				}
+			},
+		};
+		cp::RpcValue::Map paths {
+			{"status", cp::RpcValue::Map{ {"type", "Status"} }
+			},
+		};
+		cp::RpcValue::Map type_info {
+			{"types", types},
+			{"paths", paths},
+		};
+		m_shvJournal->setTypeInfo(type_info);
+	}
+
 	m_rpcConnection = new shv::iotqt::rpc::DeviceConnection(this);
 
 	m_rpcConnection->setCliOptions(cli_opts);
@@ -97,10 +129,20 @@ HScopeApp *HScopeApp::instance()
 
 void HScopeApp::onHNodeStatusChanged(const std::string &shv_path, const NodeStatus &status)
 {
+	shvJournal()->append({shv_path, status.toRpcValue()});
 	shv::iotqt::rpc::DeviceConnection *conn = rpcConnection();
 	if(conn->isBrokerConnected()) {
 		// log changes
 		conn->sendShvNotify(shv_path, "statusChanged", status.toRpcValue());
+	}
+}
+
+void HScopeApp::onHNodeOverallStatusChanged(const std::string &shv_path, const NodeStatus &status)
+{
+	shv::iotqt::rpc::DeviceConnection *conn = rpcConnection();
+	if(conn->isBrokerConnected()) {
+		// log changes
+		conn->sendShvNotify(shv_path, "overallStatusChanged", status.toRpcValue());
 	}
 }
 
@@ -116,6 +158,17 @@ void HScopeApp::createNodes()
 	m_brokersNode = new HNodeBrokers("brokers", nullptr);
 	m_brokersNode->setParent(m_shvTree->root());
 	m_brokersNode->load();
+}
+
+void HScopeApp::getSnapshot(std::vector<shv::iotqt::utils::ShvJournalEntry> &snapshot)
+{
+	auto lst = m_shvTree->root()->findChildren<HNodeTest*>(QString(), Qt::FindChildrenRecursively);
+	for(const HNodeTest *nd : lst) {
+		shv::iotqt::utils::ShvJournalEntry e;
+		e.path = nd->shvPath() + "/status";
+		e.value = nd->status().toRpcValue();
+		snapshot.push_back(std::move(e));
+	}
 }
 /*
 const std::string &HScopeApp::logFilePath()
