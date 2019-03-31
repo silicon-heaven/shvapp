@@ -473,18 +473,18 @@ void ShvAgentApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 	shvLogFuncFrame() << msg.toCpon();
 	if(msg.isRequest()) {
 		cp::RpcRequest rq(msg);
-		shvInfo() << "RPC request received:" << rq.toPrettyString();
+		shvDebug() << "RPC request received:" << rq.toPrettyString();
 		if(m_shvTree->root()) {
 			m_shvTree->root()->handleRpcRequest(rq);
 		}
 	}
 	else if(msg.isResponse()) {
 		cp::RpcResponse rp(msg);
-		shvInfo() << "RPC response received:" << rp.toPrettyString();
+		shvDebug() << "RPC response received:" << rp.toPrettyString();
 	}
 	else if(msg.isSignal()) {
 		cp::RpcSignal nt(msg);
-		shvInfo() << "RPC notify received:" << nt.toPrettyString();
+		shvDebug() << "RPC notify received:" << nt.toPrettyString();
 		/*
 		if(nt.method() == cp::Rpc::NTF_VAL_CHANGED) {
 			if(nt.shvPath() == "/test/shv/lublicator2/status") {

@@ -45,6 +45,10 @@ public:
 	AppCliOptions* cliOptions() {return m_cliOptions;}
 	shv::iotqt::utils::FileShvJournal *shvJournal() {return m_shvJournal;}
 	//static const std::string& logFilePath();
+
+	Q_SIGNAL void rpcMessageReceived(const shv::chainpack::RpcMessage &msg);
+	Q_SIGNAL void brokerConnectedChanged(bool is_connected);
+
 	void onHNodeStatusChanged(const std::string &shv_path, const NodeStatus &status);
 	void onHNodeOverallStatusChanged(const std::string &shv_path, const NodeStatus &status);
 private:

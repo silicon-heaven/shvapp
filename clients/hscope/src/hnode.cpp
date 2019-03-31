@@ -85,7 +85,6 @@ static std::vector<cp::MetaMethod> meta_methods {
 
 HNode::HNode(const std::string &node_id, HNode *parent)
 	: Super(node_id, &meta_methods, parent)
-	, m_status(NodeStatus::Value::Ok, "")
 {
 	connect(this, &HNode::statusChanged, HScopeApp::instance(), &HScopeApp::onHNodeStatusChanged);
 	connect(this, &HNode::overallStatusChanged, HScopeApp::instance(), &HScopeApp::onHNodeOverallStatusChanged);
@@ -169,6 +168,11 @@ shv::iotqt::rpc::DeviceConnection *HNode::appRpcConnection()
 	return HScopeApp::instance()->rpcConnection();
 }
 
+HNodeBroker *HNode::parentBrokerNode()
+{
+	return findParent<HNodeBroker *>();
+}
+
 std::vector<std::string> HNode::lsConfigDir()
 {
 	std::vector<std::string> ret;
@@ -187,7 +191,7 @@ void HNode::setStatus(const NodeStatus &st)
 {
 	if(st == m_status)
 		return;
-	NodeStatus old_st = m_status;
+	//NodeStatus old_st = m_status;
 	m_status = st;
 	//shvWarning() << "emit" << shvPath() << "statusChanged" << st.toRpcValue().toCpon();
 	emit statusChanged(shvPath(), st);
@@ -197,7 +201,7 @@ void HNode::setOverallStatus(const NodeStatus &st)
 {
 	if(st == m_overallStatus)
 		return;
-	NodeStatus old_st = m_overallStatus;
+	//NodeStatus old_st = m_overallStatus;
 	m_overallStatus = st;
 	//shvWarning() << "emit" << shvPath() << "overallStatusChanged" << st.toRpcValue().toCpon();
 	emit overallStatusChanged(shvPath(), st);
@@ -206,45 +210,30 @@ void HNode::setOverallStatus(const NodeStatus &st)
 void HNode::updateOverallStatus()
 {
 	shvLogFuncFrame() << shvPath() << "status:" << status().toString();
-	NodeStatus new_st = status();
-	if(new_st.value != NodeStatus::Value::Unknown) {
-		NodeStatus chst = overallChildrenStatus();
-		shvDebug() << "\t overall children status:" << chst.toString();
-		if(chst.value != NodeStatus::Value::Unknown) {
-			if(chst.value > new_st.value) {
-				new_st.value = chst.value;
-				new_st.message = chst.message;
-			}
-			shvDebug() << "\t new overall status:" << new_st.toString();
-			setOverallStatus(new_st);
-			return;
-		}
+	NodeStatus st = status();
+	NodeStatus chst = overallChildrenStatus();
+	if(chst.value > st.value) {
+		st.value = chst.value;
+		st.message = chst.message;
 	}
-	setOverallStatus(NodeStatus());
+	shvDebug() << "\t overall status:" << st.toString();
+	setOverallStatus(st);
 }
 
 NodeStatus HNode::overallChildrenStatus()
 {
 	shvLogFuncFrame() << shvPath();
 	NodeStatus ret;
-	bool unknown_reported = false;
 	QList<HNode*> lst = findChildren<HNode*>(QString(), Qt::FindDirectChildrenOnly);
-	if(lst.isEmpty()) {
-		shvDebug().color(NecroLog::Color::Yellow) << "\t no children return:" << NodeStatus(NodeStatus::Value::Ok, "").toString();
-		return NodeStatus(NodeStatus::Value::Ok, "");
-	}
-	else {
-		for(HNode *chnd : lst) {
-			const NodeStatus &chst = chnd->overallStatus();
-			shvDebug().color(NecroLog::Color::Yellow) << "\t child:" << chnd->shvPath() << "overall status" << chst.toString();
-			unknown_reported = chst.value == NodeStatus::Value::Unknown;
-			if(chst.value > ret.value) {
-				ret.value = chst.value;
-				ret.message = chst.message;
-			}
+	for(HNode *chnd : lst) {
+		const NodeStatus &chst = chnd->overallStatus();
+		shvDebug().color(NecroLog::Color::Yellow) << "\t child:" << chnd->shvPath() << "overall status" << chst.toString();
+		if(chst.value > ret.value) {
+			ret.value = chst.value;
+			ret.message = chst.message;
 		}
-		return unknown_reported? NodeStatus(): ret;
 	}
+	return ret;
 }
 
 shv::chainpack::RpcValue HNode::configValueOnPath(const std::string &shv_path, const shv::chainpack::RpcValue &default_val) const

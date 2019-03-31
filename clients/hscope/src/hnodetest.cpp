@@ -32,7 +32,6 @@ HNodeTest::HNodeTest(const std::string &node_id, HNode *parent)
 	: Super(node_id, parent)
 {
 	shvDebug() << "creating:" << metaObject()->className() << node_id;
-	m_status = NodeStatus();
 
 	if(meta_methods.empty()) {
 		for(const cp::MetaMethod &mm : *m_methods)
@@ -43,17 +42,14 @@ HNodeTest::HNodeTest(const std::string &node_id, HNode *parent)
 	m_methods = &meta_methods;
 	m_runTimer = new QTimer(this);
 	connect(m_runTimer, &QTimer::timeout, this, &HNodeTest::runTest);
+
+	connect(this, &HNode::statusChanged, [this]() { updateOverallStatus(); });
 }
 
 void HNodeTest::load()
 {
 	logTest() << shvPath() << "load config.";
 	Super::load();
-
-	connect(this, &HNode::statusChanged, [this]() {
-		updateOverallStatus();
-	});
-
 
 	bool disabled = configValueOnPath(KEY_DISABLED).toBool();
 	if(disabled) {

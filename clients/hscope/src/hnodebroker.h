@@ -15,6 +15,9 @@ public:
 public:
 	void load() override;
 
+	Q_SIGNAL void rpcMessageReceived(const shv::chainpack::RpcMessage &msg);
+	Q_SIGNAL void brokerConnectedChanged(bool is_connected);
+
 	shv::iotqt::rpc::ClientConnection *rpcConnection();
 private:
 	void reconnect();
