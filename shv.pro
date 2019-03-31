@@ -3,11 +3,11 @@ CONFIG += ordered
 
 SUBDIRS += \
     3rdparty
+    clients \
 
 qtHaveModule(gui) {
 SUBDIRS += \
 	shvspy \
-    clients \
 }
 
 unix {
