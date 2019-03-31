@@ -13,11 +13,13 @@
 namespace cp = shv::chainpack;
 
 static const char M_ADD_USER[] = "addUser";
+static const char M_DEL_USER[] = "delUser";
 static const char M_CHANGE_USER_PASSWORD[] = "changeUserPassword";
 static const char M_GET_USER_GRANTS[] = "getUserGrants";
 
 static std::vector<cp::MetaMethod> meta_methods {
 	{M_ADD_USER, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_WRITE},
+	{M_DEL_USER, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_WRITE},
 	{M_CHANGE_USER_PASSWORD, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_WRITE},
 	{M_GET_USER_GRANTS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_WRITE}
 };
@@ -55,6 +57,9 @@ shv::chainpack::RpcValue BrclabUsersNode::callMethod(const shv::iotqt::node::Shv
 	if(shv_path.empty()) {
 		if(method == M_ADD_USER) {
 			return addUser(params);
+		}
+		if(method == M_DEL_USER) {
+			return delUser(params);
 		}
 		else if(method == M_CHANGE_USER_PASSWORD) {
 			return changePassword(params);
@@ -154,6 +159,23 @@ bool BrclabUsersNode::addUser(const cp::RpcValue &params)
 	users_config[user_name] = user;
 
 	setUsersConfig(users_config);
+	return true;
+}
+
+bool BrclabUsersNode::delUser(const shv::chainpack::RpcValue &params)
+{
+	if (!params.isString() || !params.toString().empty()){
+		SHV_EXCEPTION("Invalid parameters format. Param must be non empty string.");
+	}
+
+	std::string user_name = params.toString();
+	cp::RpcValue::Map users_config = usersConfig().toMap();
+
+	if (!users_config.hasKey(user_name)){
+		SHV_EXCEPTION("User " + user_name + " does not exist.");
+	}
+
+	users_config.erase(user_name);
 	return true;
 }
 

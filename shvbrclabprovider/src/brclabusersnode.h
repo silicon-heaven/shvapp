@@ -18,6 +18,7 @@ public:
 	bool saveValues(void) override;
 
 	bool addUser(const shv::chainpack::RpcValue &params);
+	bool delUser(const shv::chainpack::RpcValue &params);
 	bool changePassword(const shv::chainpack::RpcValue &params);
 	shv::chainpack::RpcValue getUserGrants(const shv::chainpack::RpcValue &params);
 	shv::chainpack::RpcValue loadUsersConfig();
