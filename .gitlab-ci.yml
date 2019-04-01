@@ -88,6 +88,7 @@ test-deploy:
     - rsync -avz shvbroker/etc gitlab@165.227.247.202:/opt/shv/ 
     - rsync -avz clients/hscope/etc gitlab@165.227.247.202:/opt/shv/ 
     - cd build
+    - rsync -avz lib bin /opt/shv/ 
     - rsync -avz lib bin gitlab@165.227.247.202:/opt/shv/ 
     - ssh -t gitlab@165.227.247.202 "sudo /opt/shv/install.sh"
 
