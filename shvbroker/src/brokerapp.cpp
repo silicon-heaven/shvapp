@@ -1078,7 +1078,7 @@ void BrokerApp::onRootNodeSendRpcMesage(const shv::chainpack::RpcMessage &msg)
 
 void BrokerApp::onClientMountedChanged(int client_id, const std::string &mount_point, bool is_mounted)
 {
-	sendNotifyToSubscribers(client_id, mount_point, cp::Rpc::SIG_MOUNTED_CHANGED, is_mounted);
+	sendNotifyToSubscribers(mount_point, cp::Rpc::SIG_MOUNTED_CHANGED, is_mounted);
 	if(is_mounted) {
 		//sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_CONNECTED, cp::RpcValue());
 		rpc::ClientBrokerConnection *cc = clientConnectionById(client_id);
@@ -1137,17 +1137,15 @@ bool BrokerApp::sendNotifyToSubscribers(const shv::chainpack::RpcValue::MetaData
 	return subs_sent;
 }
 
-void BrokerApp::sendNotifyToSubscribers(int sender_connection_id, const std::string &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
+void BrokerApp::sendNotifyToSubscribers(const std::string &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
 {
+	//shvWarning() << shv_path << method << params.toPrettyString();
 	cp::RpcSignal ntf;
 	ntf.setShvPath(shv_path);
 	ntf.setMethod(method);
 	ntf.setParams(params);
 	// send it to all clients for now
 	for(rpc::CommonRpcClientHandle *conn : allClientConnections()) {
-		int id = conn->connectionId();
-		if(id == sender_connection_id)
-			continue;
 		if(conn->isConnectedAndLoggedIn()) {
 			int subs_ix = conn->isSubscribed(shv_path, method);
 			if(subs_ix >= 0) {

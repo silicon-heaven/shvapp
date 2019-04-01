@@ -16,8 +16,8 @@ public:
 	std::string agentShvPath() const;
 	std::string templateFileName() override;
 private:
-	void onAppBrokerConnectedChanged(bool is_connected);
-	void onAppRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
+	void onParentBrokerConnectedChanged(bool is_connected);
+	void onParentBrokerRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	void subscribeAgentMntChng();
 private:
 	//int m_agentPingRequestId = 0;
