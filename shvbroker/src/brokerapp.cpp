@@ -30,6 +30,7 @@
 #include <shv/chainpack/metamethod.h>
 #include <shv/chainpack/cponwriter.h>
 #include <shv/chainpack/tunnelctl.h>
+#include <shv/chainpack/accessgrant.h>
 
 #include <QFile>
 #include <QSocketNotifier>
@@ -923,6 +924,14 @@ void BrokerApp::onRpcDataReceived(int connection_id, shv::chainpack::Rpc::Protoc
 						return;
 					}
 					cp::RpcMessage::setShvPath(meta, shv_path);
+				}
+				if(client_connection) {
+					// erase grant from client connections
+					cp::AccessGrant ag = cp::RpcMessage::accessGrant(meta);
+					if(ag.isValid() && !ag.isLogin()) {
+						shvWarning() << "Client request with access grant specified not allowed, erasing:" << ag.toPrettyString();
+						cp::RpcMessage::setAccessGrant(meta, cp::RpcValue());
+					}
 				}
 				cp::Rpc::AccessGrant acg = accessGrantForRequest(connection_handle, shv_path, cp::RpcMessage::accessGrant(meta).toString());
 				if(!acg.isValid())
