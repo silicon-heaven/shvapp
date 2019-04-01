@@ -67,7 +67,7 @@ const shv::chainpack::MetaMethod *ConfigNode::metaMethod(const shv::iotqt::node:
 shv::chainpack::RpcValue ConfigNode::callMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
 {
 	if(method == METH_ORIG_VALUE) {
-		return Super::valueOnPath(shv_path);
+		return valueOnPath(m_templateValues, shv_path, shv::core::Exception::Throw);
 	}
 	if(method == METH_RESET_TO_ORIG_VALUE) {
 		setValueOnPath(shv_path, cp::RpcValue());
