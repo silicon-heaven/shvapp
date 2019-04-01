@@ -91,6 +91,9 @@ test-deploy:
     - rsync -avz lib bin /opt/shv/ 
     - rsync -avz lib bin gitlab@165.227.247.202:/opt/shv/ 
     - ssh -t gitlab@165.227.247.202 "sudo /opt/shv/install.sh"
+    # heaven
+    - rsync -avz lib bin shv@138.68.112.73:/opt/shv/test/
+    - ssh -t shv@138.68.112.73 "sudo /opt/shv/test/install.sh"
 
   environment:
     name: jessie
