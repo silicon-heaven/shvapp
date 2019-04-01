@@ -3,7 +3,7 @@
 #include <shv/iotqt/node/shvnode.h>
 #include <shv/coreqt/utils.h>
 
-#include <QApplication>
+#include <QCoreApplication>
 #include <QDateTime>
 
 class AppCliOptions;
@@ -30,11 +30,11 @@ public:
 	shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params) override;
 };
 
-class HScopeApp : public QApplication
+class HScopeApp : public QCoreApplication
 {
 	Q_OBJECT
 private:
-	using Super = QApplication;
+	using Super = QCoreApplication;
 
 public:
 	HScopeApp(int &argc, char **argv, AppCliOptions* cli_opts);
