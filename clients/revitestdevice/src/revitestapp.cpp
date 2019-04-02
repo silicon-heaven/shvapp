@@ -153,10 +153,10 @@ void RevitestApp::processShvCalls()
 		cp::RpcValue params = task.value("params");
 		cp::RpcValue result = task.value("result");
 
-		int rq_id = m_rpcConnection->callShvMethod(shv_path, method, params);
+		int rq_id = m_rpcConnection->nextRequestId();
 		logTestCallsD() << "CALL rqid:" << rq_id << "msg:" << rv.toCpon();
 		shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rq_id, this);
-		connect(cb, &shv::iotqt::rpc::RpcResponseCallBack::finished, this, [this, rq_id, result, process_next_on_success, test_no](const cp::RpcResponse &resp) {
+		cb->start(this, [this, rq_id, result, process_next_on_success, test_no](const cp::RpcResponse &resp) {
 			bool ok = false;
 			if(resp.isValid()) {
 				if(resp.isError()) {
@@ -179,6 +179,7 @@ void RevitestApp::processShvCalls()
 			if(ok && process_next_on_success)
 				this->processShvCalls();
 		});
+		m_rpcConnection->callShvMethod(rq_id, shv_path, method, params);
 		if(process_next_on_exec)
 			this->processShvCalls();
 	}

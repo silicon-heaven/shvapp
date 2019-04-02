@@ -19,6 +19,10 @@ HNodeAgent::HNodeAgent(const std::string &node_id, HNode *parent)
 {
 	shvDebug() << "creating:" << metaObject()->className() << node_id;
 	connect(this, &HNode::statusChanged, [this]() { updateOverallStatus(); });
+
+	HNodeBroker *pbnd = parentBrokerNode();
+	connect(pbnd, &HNodeBroker::brokerConnectedChanged, this, &HNodeAgent::onParentBrokerConnectedChanged);
+	connect(pbnd, &HNodeBroker::rpcMessageReceived, this, &HNodeAgent::onParentBrokerRpcMessageReceived);
 }
 
 void HNodeAgent::load()
@@ -27,11 +31,6 @@ void HNodeAgent::load()
 	for (const std::string &dir : lsConfigDir()) {
 		auto *nd = new HNodeTests(dir, this);
 		nd->load();
-	}
-	HNodeBroker *pbnd = parentBrokerNode();
-	if(pbnd) {
-		connect(pbnd, &HNodeBroker::brokerConnectedChanged, this, &HNodeAgent::onParentBrokerConnectedChanged);
-		connect(pbnd, &HNodeBroker::rpcMessageReceived, this, &HNodeAgent::onParentBrokerRpcMessageReceived);
 	}
 
 	QTimer::singleShot(100, this, &HNodeAgent::checkAgentConnected);
@@ -92,8 +91,7 @@ void HNodeAgent::checkAgentConnected()
 		if(conn && conn->isBrokerConnected()) {
 			int rq_id = conn->callShvMethod(agentShvPath(), "dir", "n");
 			shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(conn, rq_id, this);
-			cb->setTimeout(5000);
-			connect(cb, &shv::iotqt::rpc::RpcResponseCallBack::finished, this, [this](const cp::RpcResponse &resp) {
+			cb->start(5000, this, [this](const cp::RpcResponse &resp) {
 				if(resp.isValid()) {
 					if(resp.isError()) {
 						NodeStatus st{NodeStatus::Value::Error, "Agent connected chect error: " + resp.error().toString()};

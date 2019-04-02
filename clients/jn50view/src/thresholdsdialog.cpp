@@ -32,9 +32,9 @@ void ThresholdsDialog::loadTreshold(const std::string &shv_name, QSpinBox *edito
 	Jn50ViewApp *app = Jn50ViewApp::instance();
 	std::string path = app->cliOptions()->converterShvPath() + "/settings/" + shv_name;
 	shv::iotqt::rpc::ClientConnection *conn = app->rpcConnection();
-	int rq_id = conn->callShvMethod(path, cp::Rpc::METH_GET);
+	int rq_id = conn->nextRequestId();
 	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(conn, rq_id, this);
-	connect(cb, &shv::iotqt::rpc::RpcResponseCallBack::finished, this, [editor, path](const cp::RpcResponse &resp) {
+	cb->start(editor, [editor, path](const cp::RpcResponse &resp) {
 		if(resp.isValid()) {
 			if(resp.isError())
 				shvWarning() << "GET" << path << "RPC request error:" << resp.error().toString();
@@ -45,4 +45,5 @@ void ThresholdsDialog::loadTreshold(const std::string &shv_name, QSpinBox *edito
 			shvWarning() << "GET" << path << "RPC request timeout";
 		}
 	});
+	conn->callShvMethod(rq_id, path, cp::Rpc::METH_GET);
 }

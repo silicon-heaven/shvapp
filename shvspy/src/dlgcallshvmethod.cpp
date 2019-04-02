@@ -70,9 +70,9 @@ void DlgCallShvMethod::callShvMethod()
 		ui->txtResponse->setPlainText(QString::fromStdString(err));
 		return;
 	}
-	int rq_id = m_connection->callShvMethod(shv_path, method, params);
+	int rq_id = m_connection->nextRequestId();
 	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_connection, rq_id, this);
-	connect(cb, &shv::iotqt::rpc::RpcResponseCallBack::finished, this, [this](const cp::RpcResponse &resp) {
+	cb->start(this, [this](const cp::RpcResponse &resp) {
 		if(resp.isValid()) {
 			if(resp.isError())
 				ui->txtResponse->setPlainText(tr("RPC request error: %1").arg(QString::fromStdString(resp.error().toString())));
@@ -83,4 +83,5 @@ void DlgCallShvMethod::callShvMethod()
 			ui->txtResponse->setPlainText(tr("RPC request timeout"));
 		}
 	});
+	m_connection->callShvMethod(rq_id, shv_path, method, params);
 }
