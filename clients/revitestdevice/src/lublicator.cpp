@@ -94,6 +94,7 @@ static std::vector<cp::MetaMethod> meta_methods_device {
 
 static std::vector<cp::MetaMethod> meta_methods_status {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false},
+	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_BROWSE},
 	{cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, false},
 	{METH_SIM_SET, cp::MetaMethod::Signature::VoidParam, false},
 	{cp::Rpc::SIG_VAL_CHANGED, cp::MetaMethod::Signature::VoidParam, true},

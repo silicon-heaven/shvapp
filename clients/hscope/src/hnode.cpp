@@ -1,38 +1,182 @@
 #include "hnode.h"
 #include "hscopeapp.h"
 #include "appclioptions.h"
-#include "hbrokernode.h"
+#include "hnodebroker.h"
+#include "confignode.h"
 
-#include <shv/chainpack/cponreader.h>
-#include <shv/chainpack/cponwriter.h>
 #include <shv/coreqt/log.h>
 #include <shv/iotqt/utils/shvpath.h>
 
 #include <QDirIterator>
 
-#include <fstream>
-
 namespace cp = shv::chainpack;
+
+//===========================================================
+// HNodeStatus
+//===========================================================
+NodeStatus NodeStatus::fromRpcValue(const shv::chainpack::RpcValue &val)
+{
+	NodeStatus ret;
+	if(val.isMap()) {
+		const shv::chainpack::RpcValue::Map &map = val.toMap();
+		cp::RpcValue val = map.value("value");
+		if(!val.isValid())
+			val = map.value("val");
+		if(val.isInt() || val.isUInt())
+			ret.value = (NodeStatus::Value)val.toInt();
+		else if(val.isString()) {
+			const std::string &val_str = val.toString();
+			if(val_str.size()) {
+				char c = val_str.at(0);
+				switch (c) {
+				case '0':
+				case 'o':
+				case 'O':
+					ret.value = NodeStatus::Value::Ok;
+					break;
+				case '1':
+				case 'w':
+				case 'W':
+					ret.value = NodeStatus::Value::Warning;
+					break;
+				case '2':
+				case 'e':
+				case 'E':
+					ret.value = NodeStatus::Value::Error;
+					break;
+				default:
+					ret.value = NodeStatus::Value::Unknown;
+					break;
+				}
+			}
+		}
+		else {
+			shvWarning() << "Invalid HNode::Status rpc value:" << val.toCpon();
+			ret.value = NodeStatus::Value::Unknown;
+		}
+		std::string msg = map.value("message").toString();
+		if(msg.empty())
+			msg = map.value("msg").toString();
+		ret.message = msg;
+	}
+	else {
+		shvWarning() << "Invalid HNode::Status rpc value:" << val.toCpon();
+	}
+	return ret;
+}
 
 //===========================================================
 // HNode
 //===========================================================
-HNode::HNode(const std::string &node_id, shv::iotqt::node::ShvNode *parent)
-	: Super(node_id, parent)
+static const char METH_RELOAD[] = "reload";
+static const char METH_STATUS[] = "status";
+static const char METH_STATUS_CHANGED[] = "statusChanged";
+static const char METH_OVERALL_STATUS[] = "overallStatus";
+static const char METH_OVERALL_STATUS_CHANGED[] = "overallStatusChanged";
+static std::vector<cp::MetaMethod> meta_methods {
+	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::GRANT_BROWSE},
+	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::GRANT_BROWSE},
+	{METH_STATUS, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_READ},
+	{METH_STATUS_CHANGED, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsSignal, cp::Rpc::GRANT_READ},
+	{METH_OVERALL_STATUS, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_READ},
+	{METH_OVERALL_STATUS_CHANGED, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsSignal, cp::Rpc::GRANT_READ},
+	{METH_RELOAD, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::GRANT_CONFIG},
+};
+
+HNode::HNode(const std::string &node_id, HNode *parent)
+	: Super(node_id, &meta_methods, parent)
 {
-	new HNodeConfigNode(this);
+	connect(this, &HNode::statusChanged, HScopeApp::instance(), &HScopeApp::onHNodeStatusChanged);
+	connect(this, &HNode::overallStatusChanged, HScopeApp::instance(), &HScopeApp::onHNodeOverallStatusChanged);
 }
 
-std::string HNode::configDir()
+std::string HNode::appConfigDir()
 {
 	HScopeApp *app = HScopeApp::instance();
-	return app->cliOptions()->configDir() + '/' + shvPath();
+	return app->cliOptions()->configDir();
+}
+
+std::string HNode::nodeConfigDir()
+{
+	return appConfigDir() + '/' + shvPath();
+}
+/*
+std::string HNode::scriptsDir()
+{
+	return appConfigDir() + "/scripts";
+}
+*/
+std::string HNode::templatesDir()
+{
+	return appConfigDir() + "/template";
+}
+
+std::string HNode::nodeConfigFilePath()
+{
+	std::string fn = nodeConfigDir() + "/config.cpon";
+	if(!QFile::exists(QString::fromStdString(fn))) {
+		std::string tfn = templateFileName();
+		if(!tfn.empty()) {
+			fn = templatesDir() + '/' + tfn;
+		}
+	}
+	return fn;
+}
+
+std::string HNode::templateFileName()
+{
+	return QString::fromUtf8(metaObject()->className()).mid(QStringLiteral("HNode").length()).toLower().toStdString()
+			+ ".config.cpon";
+}
+
+void HNode::load()
+{
+	m_confignode = new ConfigNode(this);
+	//m_confignode->values();
+	//connect(this, &HNode::statusChanged, qobject_cast<HNode*>(parent()), &HNode::onChildStatusChanged);
+	HNode *parent_hnode = qobject_cast<HNode*>(parent());
+	if(parent_hnode)
+		connect(this, &HNode::overallStatusChanged, parent_hnode, &HNode::updateOverallStatus);
+}
+
+void HNode::reload()
+{
+	qDeleteAll(findChildren<HNode*>(QString(), Qt::FindDirectChildrenOnly));
+	qDeleteAll(findChildren<ConfigNode*>(QString(), Qt::FindDirectChildrenOnly));
+	load();
+}
+
+shv::chainpack::RpcValue HNode::callMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
+{
+	if(shv_path.empty()) {
+		if(method == METH_STATUS) {
+			return status().toRpcValue();
+		}
+		if(method == METH_OVERALL_STATUS) {
+			return overallStatus().toRpcValue();
+		}
+		if(method == METH_RELOAD) {
+			reload();
+			return true;
+		}
+	}
+	return Super::callMethod(shv_path, method, params);
+}
+
+shv::iotqt::rpc::DeviceConnection *HNode::appRpcConnection()
+{
+	return HScopeApp::instance()->rpcConnection();
+}
+
+HNodeBroker *HNode::parentBrokerNode()
+{
+	return findParent<HNodeBroker *>();
 }
 
 std::vector<std::string> HNode::lsConfigDir()
 {
 	std::vector<std::string> ret;
-	QString node_cfg_dir = QString::fromStdString(configDir());
+	QString node_cfg_dir = QString::fromStdString(nodeConfigDir());
 	shvDebug() << "ls dir:" << node_cfg_dir;
 	QDirIterator it(node_cfg_dir, QDir::AllDirs | QDir::NoDotAndDotDot | QDir::Readable, QDirIterator::NoIteratorFlags);
 	while (it.hasNext()) {
@@ -43,141 +187,62 @@ std::vector<std::string> HNode::lsConfigDir()
 	return ret;
 }
 
-//===========================================================
-// HNodeConfigNode
-//===========================================================
-static const char METH_ORIG_VALUE[] = "origValue";
-static std::vector<cp::MetaMethod> meta_methods_config_node {
-	{METH_ORIG_VALUE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_READ},
-};
-
-HNodeConfigNode::HNodeConfigNode(HNode *parent)
-	: Super("config", parent)
+void HNode::setStatus(const NodeStatus &st)
 {
-
+	if(st == m_status)
+		return;
+	//NodeStatus old_st = m_status;
+	m_status = st;
+	//shvWarning() << "emit" << shvPath() << "statusChanged" << st.toRpcValue().toCpon();
+	emit statusChanged(shvPath(), st);
 }
 
-HNode *HNodeConfigNode::parentHNode()
+void HNode::setOverallStatus(const NodeStatus &st)
 {
-	return qobject_cast<HNode*>(parent());
+	if(st == m_overallStatus)
+		return;
+	//NodeStatus old_st = m_overallStatus;
+	m_overallStatus = st;
+	//shvWarning() << "emit" << shvPath() << "overallStatusChanged" << st.toRpcValue().toCpon();
+	emit overallStatusChanged(shvPath(), st);
 }
 
-void HNodeConfigNode::loadValues()
+void HNode::updateOverallStatus()
 {
-	try {
-		Super::loadValues();
-		m_values = cp::RpcValue();
-		{
-			std::string cfg_file = parentHNode()->configDir() + "/config.cpon";
-			std::ifstream is(cfg_file);
-			if(is) {
-				cp::CponReader rd(is);
-				m_values = rd.read();
-			}
-			else {
-				shvError() << "Cannot open file" << cfg_file << "for reading!";
-			}
-		}
-		m_newValues = cp::RpcValue();
-		{
-			std::string cfg_file = parentHNode()->configDir() + "/config.user.cpon";
-			std::ifstream is(cfg_file);
-			if(is) {
-				cp::CponReader rd(is);
-				m_newValues = rd.read();
-			}
-		}
-		Super::loadValues();
+	shvLogFuncFrame() << shvPath() << "status:" << status().toString();
+	NodeStatus st = status();
+	NodeStatus chst = overallChildrenStatus();
+	if(chst.value > st.value) {
+		st.value = chst.value;
+		st.message = chst.message;
 	}
-	catch (std::exception &e) {
-		shvError() << "Read config file error:" << e.what();
-	}
+	shvDebug() << "\t overall status:" << st.toString();
+	setOverallStatus(st);
 }
 
-bool HNodeConfigNode::saveValues()
+NodeStatus HNode::overallChildrenStatus()
 {
-	try {
-		if(!m_newValues.toMap().empty()) {
-			std::string cfg_file = parentHNode()->configDir() + "/config.user.cpon";
-			std::ofstream os(cfg_file);
-			if(os) {
-				cp::CponWriter wr(os);
-				wr.write(m_newValues);
-				return true;
-			}
-			else {
-				shvError() << "Cannot open file" << cfg_file << "for writing!";
-			}
+	shvLogFuncFrame() << shvPath();
+	NodeStatus ret;
+	QList<HNode*> lst = findChildren<HNode*>(QString(), Qt::FindDirectChildrenOnly);
+	for(HNode *chnd : lst) {
+		const NodeStatus &chst = chnd->overallStatus();
+		shvDebug().color(NecroLog::Color::Yellow) << "\t child:" << chnd->shvPath() << "overall status" << chst.toString();
+		if(chst.value > ret.value) {
+			ret.value = chst.value;
+			ret.message = chst.message;
 		}
 	}
-	catch (std::exception &e) {
-		shvError() << "Write config file error:" << e.what();
-	}
-	return false;
+	return ret;
 }
 
-shv::chainpack::RpcValue HNodeConfigNode::valueOnPath(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
+shv::chainpack::RpcValue HNode::configValueOnPath(const std::string &shv_path, const shv::chainpack::RpcValue &default_val) const
 {
-	shv::chainpack::RpcValue orig_val = Super::valueOnPath(shv_path);
-	if(orig_val.isMap()) {
-		// take directory structure from orig values
-		return orig_val;
-	}
-	shv::chainpack::RpcValue v = m_newValues;
-	for(const auto & dir : shv_path) {
-		const shv::chainpack::RpcValue::Map &m = v.toMap();
-		v = m.value(dir.toString());
-		if(!v.isValid())
-			break;
-	}
-	if(v.isValid())
-		return v;
-	return orig_val;
+	shv::core::StringViewList lst = shv::iotqt::utils::ShvPath::split(shv_path);
+	shv::chainpack::RpcValue val = m_confignode->valueOnPath(lst, !shv::core::Exception::Throw);
+	if(val.isValid())
+		return val;
+	return default_val;
 }
 
-void HNodeConfigNode::setValueOnPath(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const shv::chainpack::RpcValue &val)
-{
-	values();
-	if(shv_path.empty())
-		SHV_EXCEPTION("Empty path");
-	if(!m_newValues.isMap())
-		m_newValues = cp::RpcValue::Map();
-	shv::chainpack::RpcValue v = m_newValues;
-	for (size_t i = 0; i < shv_path.size()-1; ++i) {
-		std::string dir = shv_path.at(i).toString();
-		cp::RpcValue v2 = v.at(dir);
-		if(v2.isValid() && !v2.isMap())
-			SHV_EXCEPTION("Cannot change leaf to dir, path: " + shv_path.join('/'));
-		if(!v2.isMap()) {
-			v2 = cp::RpcValue::Map();
-			v.set(dir, v2);
-		}
-		v = v2;
-	}
-	v.set(shv_path.at(shv_path.size() - 1).toString(), val);
-}
 
-size_t HNodeConfigNode::methodCount(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
-{
-	if(!shv_path.empty() && !isDir(shv_path))
-		return Super::methodCount(shv_path) + 1;
-	return Super::methodCount(shv_path);
-}
-
-const shv::chainpack::MetaMethod *HNodeConfigNode::metaMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, size_t ix)
-{
-	if(!shv_path.empty() && !isDir(shv_path)) {
-		size_t scnt = Super::methodCount(shv_path);
-		if(ix == scnt)
-			return &(meta_methods_config_node[0]);
-	}
-	return Super::metaMethod(shv_path, ix);
-}
-
-shv::chainpack::RpcValue HNodeConfigNode::callMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
-{
-	if(method == METH_ORIG_VALUE) {
-		return Super::valueOnPath(shv_path);
-	}
-	return Super::callMethod(shv_path, method, params);
-}

@@ -30,6 +30,7 @@
 #include <shv/chainpack/metamethod.h>
 #include <shv/chainpack/cponwriter.h>
 #include <shv/chainpack/tunnelctl.h>
+#include <shv/chainpack/accessgrant.h>
 
 #include <QFile>
 #include <QSocketNotifier>
@@ -60,7 +61,7 @@ class ClientsNode : public shv::iotqt::node::MethodsTableNode
 	using Super = shv::iotqt::node::MethodsTableNode;
 public:
 	ClientsNode(shv::iotqt::node::ShvNode *parent = nullptr)
-		: Super(std::string(), m_metaMethods, parent)
+		: Super(std::string(), &m_metaMethods, parent)
 		, m_metaMethods {
 				  {cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam},
 				  {cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::GRANT_CONFIG},
@@ -75,7 +76,7 @@ class MasterBrokersNode : public shv::iotqt::node::MethodsTableNode
 	using Super = shv::iotqt::node::MethodsTableNode;
 public:
 	MasterBrokersNode(shv::iotqt::node::ShvNode *parent = nullptr)
-		: Super(std::string(), m_metaMethods, parent)
+		: Super(std::string(), &m_metaMethods, parent)
 		, m_metaMethods{
 				  {cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam},
 				  {cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::GRANT_CONFIG},
@@ -522,7 +523,7 @@ shv::chainpack::RpcValue BrokerApp::loadAclConfig(const std::string &config_name
 	shv::chainpack::CponReader rd(fis);
 	shv::chainpack::RpcValue rv;
 	std::string err;
-	rd.read(rv, throw_exc? nullptr: &err);
+	rv = rd.read(throw_exc? nullptr: &err);
 	return rv;
 }
 
@@ -924,6 +925,14 @@ void BrokerApp::onRpcDataReceived(int connection_id, shv::chainpack::Rpc::Protoc
 					}
 					cp::RpcMessage::setShvPath(meta, shv_path);
 				}
+				if(client_connection) {
+					// erase grant from client connections
+					cp::AccessGrant ag = cp::RpcMessage::accessGrant(meta);
+					if(ag.isValid() && !ag.isLogin()) {
+						shvWarning() << "Client request with access grant specified not allowed, erasing:" << ag.toPrettyString();
+						cp::RpcMessage::setAccessGrant(meta, cp::RpcValue());
+					}
+				}
 				cp::Rpc::AccessGrant acg = accessGrantForRequest(connection_handle, shv_path, cp::RpcMessage::accessGrant(meta).toString());
 				if(!acg.isValid())
 					SHV_EXCEPTION("Acces to shv path '" + shv_path + "' not granted for user '" + connection_handle->loggedUserName() + "'");
@@ -1069,7 +1078,7 @@ void BrokerApp::onRootNodeSendRpcMesage(const shv::chainpack::RpcMessage &msg)
 
 void BrokerApp::onClientMountedChanged(int client_id, const std::string &mount_point, bool is_mounted)
 {
-	sendNotifyToSubscribers(client_id, mount_point, cp::Rpc::SIG_MOUNTED_CHANGED, is_mounted);
+	sendNotifyToSubscribers(mount_point, cp::Rpc::SIG_MOUNTED_CHANGED, is_mounted);
 	if(is_mounted) {
 		//sendNotifyToSubscribers(connection_id, mount_point, cp::Rpc::NTF_CONNECTED, cp::RpcValue());
 		rpc::ClientBrokerConnection *cc = clientConnectionById(client_id);
@@ -1128,17 +1137,15 @@ bool BrokerApp::sendNotifyToSubscribers(const shv::chainpack::RpcValue::MetaData
 	return subs_sent;
 }
 
-void BrokerApp::sendNotifyToSubscribers(int sender_connection_id, const std::string &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
+void BrokerApp::sendNotifyToSubscribers(const std::string &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
 {
+	//shvWarning() << shv_path << method << params.toPrettyString();
 	cp::RpcSignal ntf;
 	ntf.setShvPath(shv_path);
 	ntf.setMethod(method);
 	ntf.setParams(params);
 	// send it to all clients for now
 	for(rpc::CommonRpcClientHandle *conn : allClientConnections()) {
-		int id = conn->connectionId();
-		if(id == sender_connection_id)
-			continue;
 		if(conn->isConnectedAndLoggedIn()) {
 			int subs_ix = conn->isSubscribed(shv_path, method);
 			if(subs_ix >= 0) {

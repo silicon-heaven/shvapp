@@ -15,7 +15,7 @@ public:
 	const shv::chainpack::MetaMethod* metaMethod(const StringViewList &shv_path, size_t ix) override;
 	shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params) override;
 	void loadValues() override;
-	bool saveValues() override;
+	void saveValues(void) override;
 
 	bool addUser(const shv::chainpack::RpcValue &params);
 	bool delUser(const shv::chainpack::RpcValue &params);

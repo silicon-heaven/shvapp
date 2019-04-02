@@ -114,7 +114,7 @@ private:
 
 	void onClientMountedChanged(int client_id, const std::string &mount_point, bool is_mounted);
 
-	void sendNotifyToSubscribers(int sender_connection_id, const std::string &shv_path, const std::string &method, const shv::chainpack::RpcValue &params);
+	void sendNotifyToSubscribers(const std::string &shv_path, const std::string &method, const shv::chainpack::RpcValue &params);
 	bool sendNotifyToSubscribers(const shv::chainpack::RpcValue::MetaData &meta_data, const std::string &data);
 
 	static std::string brokerClientDirPath(int client_id);

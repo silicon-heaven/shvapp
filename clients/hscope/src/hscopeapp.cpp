@@ -1,12 +1,15 @@
 #include "hscopeapp.h"
 #include "appclioptions.h"
-#include "hbrokersnode.h"
+#include "hnodebrokers.h"
+#include "hnodetest.h"
 
 #include <shv/iotqt/node/shvnode.h>
 #include <shv/iotqt/node/shvnodetree.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
 #include <shv/iotqt/node/shvnodetree.h>
+#include <shv/iotqt/utils/fileshvjournal.h>
+#include <shv/iotqt/utils/shvpath.h>
 #include <shv/coreqt/log.h>
 
 #include <QTimer>
@@ -27,6 +30,7 @@ static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_BROWSE},
 	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_BROWSE},
 	{cp::Rpc::METH_CLIENT_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_READ},
+	{cp::Rpc::METH_GET_LOG, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::GRANT_READ},
 };
 
 size_t AppRootNode::methodCount(const StringViewList &shv_path)
@@ -58,6 +62,9 @@ shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path,
 		if(method == cp::Rpc::METH_CLIENT_ID) {
 			return HScopeApp::instance()->rpcConnection()->loginResult().value(cp::Rpc::KEY_CLIENT_ID);
 		}
+		if(method == cp::Rpc::METH_GET_LOG) {
+			return HScopeApp::instance()->shvJournal()->getLog(shv::iotqt::utils::ShvJournalGetLogParams(params));
+		}
 	}
 	return Super::callMethod(shv_path, method, params);
 }
@@ -69,9 +76,41 @@ HScopeApp::HScopeApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
 {
+	m_shvJournal = new shv::iotqt::utils::FileShvJournal([this](std::vector<shv::iotqt::utils::ShvJournalEntry> &s) { this->getSnapshot(s); });
+	if(cli_opts->shvJournalDir_isset())
+		m_shvJournal->setJournalDir(cli_opts->shvJournalDir());
+	m_shvJournal->setFileSizeLimit(cli_opts->shvJournalFileSizeLimit());
+	m_shvJournal->setJournalSizeLimit(cli_opts->shvJournalSizeLimit());
+	{
+		cp::RpcValue::Map types {
+			{"Status", cp::RpcValue::Map{
+					{"type", "Map"},
+					{"fields", cp::RpcValue::List{
+							cp::RpcValue::Map{{"name", "val"}, {"type", "Enum"}},
+							cp::RpcValue::Map{{"name", "msg"}, {"type", "String"}},
+						}
+					},
+					{"description", "Unknown = -1, OK = 0, Warning = 1, Error = 2"},
+				}
+			},
+		};
+		cp::RpcValue::Map paths {
+			{"status", cp::RpcValue::Map{ {"type", "Status"} }
+			},
+		};
+		cp::RpcValue::Map type_info {
+			{"types", types},
+			{"paths", paths},
+		};
+		m_shvJournal->setTypeInfo(type_info);
+	}
+
 	m_rpcConnection = new shv::iotqt::rpc::DeviceConnection(this);
 
 	m_rpcConnection->setCliOptions(cli_opts);
+
+	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &HScopeApp::brokerConnectedChanged);
+	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &HScopeApp::rpcMessageReceived);
 
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &HScopeApp::onBrokerConnectedChanged);
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &HScopeApp::onRpcMessageReceived);
@@ -95,6 +134,25 @@ HScopeApp *HScopeApp::instance()
 	return qobject_cast<HScopeApp *>(QCoreApplication::instance());
 }
 
+void HScopeApp::onHNodeStatusChanged(const std::string &shv_path, const NodeStatus &status)
+{
+	shvJournal()->append({shv_path, status.toRpcValue()});
+	shv::iotqt::rpc::DeviceConnection *conn = rpcConnection();
+	if(conn->isBrokerConnected()) {
+		// log changes
+		conn->sendShvNotify(shv_path, "statusChanged", status.toRpcValue());
+	}
+}
+
+void HScopeApp::onHNodeOverallStatusChanged(const std::string &shv_path, const NodeStatus &status)
+{
+	shv::iotqt::rpc::DeviceConnection *conn = rpcConnection();
+	if(conn->isBrokerConnected()) {
+		// log changes
+		conn->sendShvNotify(shv_path, "overallStatusChanged", status.toRpcValue());
+	}
+}
+
 void HScopeApp::loadConfig()
 {
 	createNodes();
@@ -104,8 +162,20 @@ void HScopeApp::createNodes()
 {
 	if(m_brokersNode)
 		delete m_brokersNode;
-	m_brokersNode = new HBrokersNode("brokers", m_shvTree->root());
+	m_brokersNode = new HNodeBrokers("brokers", nullptr);
+	m_brokersNode->setParent(m_shvTree->root());
 	m_brokersNode->load();
+}
+
+void HScopeApp::getSnapshot(std::vector<shv::iotqt::utils::ShvJournalEntry> &snapshot)
+{
+	auto lst = m_shvTree->root()->findChildren<HNodeTest*>(QString(), Qt::FindChildrenRecursively);
+	for(const HNodeTest *nd : lst) {
+		shv::iotqt::utils::ShvJournalEntry e;
+		e.path = nd->shvPath() + "/status";
+		e.value = nd->status().toRpcValue();
+		snapshot.push_back(std::move(e));
+	}
 }
 /*
 const std::string &HScopeApp::logFilePath()
@@ -127,15 +197,7 @@ void HScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 	shvLogFuncFrame() << msg.toCpon();
 	if(msg.isRequest()) {
 		cp::RpcRequest rq(msg);
-		cp::RpcResponse resp = cp::RpcResponse::forRequest(rq.metaData());
-		try {
-			m_shvTree->root()->handleRpcRequest(rq);
-		}
-		catch (shv::core::Exception &e) {
-			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, e.message()));
-		}
-		if(resp.requestId().toInt() > 0) // RPC calls with requestID == 0 does not expect response
-			m_rpcConnection->sendMessage(resp);
+		m_shvTree->root()->handleRpcRequest(rq);
 	}
 	else if(msg.isResponse()) {
 		cp::RpcResponse rsp(msg);

@@ -3,40 +3,84 @@
 
 #include <shv/iotqt/node/shvnode.h>
 
-class HNode : public shv::iotqt::node::ShvNode
+namespace shv { namespace iotqt { namespace rpc { class DeviceConnection; }}}
+
+class ConfigNode;
+//class HNodeAgent;
+class HNodeBroker;
+
+struct NodeStatus
 {
-	Q_OBJECT
-
-	using Super = shv::iotqt::node::ShvNode;
 public:
-	HNode(const std::string &node_id, shv::iotqt::node::ShvNode *parent);
+	enum class Value : int {Unknown = -1, Ok, Warning, Error};
+	Value value = Value::Unknown;
+	std::string message;
 
-	std::string configDir();
-	virtual void load() = 0;
-protected:
-	std::vector<std::string> lsConfigDir();
+	NodeStatus() {}
+	NodeStatus(Value val, const std::string &msg) : value(val), message(msg) {}
+	bool operator==(const NodeStatus &o) const { return o.value == value && o.message == message; }
+	shv::chainpack::RpcValue toRpcValue() const { return shv::chainpack::RpcValue::Map{{"val", (int)value}, {"msg", message}}; }
+	std::string toString() const { return toRpcValue().toCpon(); }
+	static NodeStatus fromRpcValue(const shv::chainpack::RpcValue &val);
 };
 
-class HNodeConfigNode : public shv::iotqt::node::RpcValueMapNode
+class HNode : public shv::iotqt::node::MethodsTableNode
 {
 	Q_OBJECT
 
-	using Super = shv::iotqt::node::RpcValueMapNode;
+	using Super = shv::iotqt::node::MethodsTableNode;
 public:
-	HNodeConfigNode(HNode *parent);
+	HNode(const std::string &node_id, HNode *parent);
 
-protected:
-	HNode* parentHNode();
-	void loadValues() override;
-	bool saveValues() override;
-	shv::chainpack::RpcValue valueOnPath(const StringViewList &shv_path) override;
-	void setValueOnPath(const StringViewList &shv_path, const shv::chainpack::RpcValue &val) override;
+	void setStatus(const NodeStatus &st);
+	const NodeStatus& status() const { return m_status; }
+	Q_SIGNAL void statusChanged(const std::string &shv_path, const NodeStatus &status);
 
-	size_t methodCount(const StringViewList &shv_path) override;
-	const shv::chainpack::MetaMethod *metaMethod(const StringViewList &shv_path, size_t ix) override;
+	void setOverallStatus(const NodeStatus &st);
+	const NodeStatus& overallStatus() const { return m_overallStatus; }
+	Q_SIGNAL void overallStatusChanged(const std::string &shv_path, const NodeStatus &status);
+
+	std::string appConfigDir();
+	std::string nodeConfigDir();
+	//std::string scriptsDir();
+	std::string templatesDir();
+
+	std::string nodeConfigFilePath();
+	virtual std::string templateFileName();
+
+	virtual void load();
+	void reload();
+
 	shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params) override;
+	//using Super::callMethod;
 protected:
-	shv::chainpack::RpcValue m_newValues;
+	shv::iotqt::rpc::DeviceConnection *appRpcConnection();
+	HNodeBroker* parentBrokerNode();
+	//HNodeAgent* agentNode();
+	template<class T>
+	T findParent()
+	{
+		QObject *o = parent();
+		while(o) {
+			T t = qobject_cast<T>(o);
+			if(t)
+				return t;
+			o = o->parent();
+		}
+		return nullptr;
+	}
+
+	std::vector<std::string> lsConfigDir();
+
+	//virtual void onChildStatusChanged() {}
+	virtual void updateOverallStatus();
+	NodeStatus overallChildrenStatus();
+
+	shv::chainpack::RpcValue configValueOnPath(const std::string &shv_path, const shv::chainpack::RpcValue &default_val = shv::chainpack::RpcValue()) const;
+protected:
+	NodeStatus m_status;
+	NodeStatus m_overallStatus;
+	ConfigNode *m_confignode = nullptr;
 };
 
 #endif // HNODE_H

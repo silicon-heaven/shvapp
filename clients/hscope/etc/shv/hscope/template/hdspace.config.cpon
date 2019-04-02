@@ -1,0 +1,8 @@
+{
+	"basedOn": "basictest",
+	"env": {
+		"MOUNT_POINT": "/home",
+		"WARN_TRESHOLD": 75,
+		"ERROR_TRESHOLD": 90,
+	},
+}

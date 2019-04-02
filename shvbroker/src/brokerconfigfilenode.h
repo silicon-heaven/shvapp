@@ -21,7 +21,7 @@ public:
 	//shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params) override;
 protected:
 	void loadValues() override;
-	bool saveValues() override;
+	void saveValues() override;
 };
 
 class AclPathsConfigFileNode : public BrokerConfigFileNode
@@ -38,7 +38,7 @@ public:
 	StringList childNames(const ShvNode::StringViewList &shv_path) override;
 	//shv::chainpack::RpcValue hasChildren(const StringViewList &shv_path) override {return Super::hasChildren(rewriteShvPath(shv_path));}
 protected:
-	shv::chainpack::RpcValue valueOnPath(const StringViewList &shv_path) override;
+	shv::chainpack::RpcValue valueOnPath(const StringViewList &shv_path, bool throw_exc = true) override;
 private:
 	//StringViewList rewriteShvPath(const StringViewList &shv_path);
 };

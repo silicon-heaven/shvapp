@@ -162,7 +162,7 @@ bool AttributesModel::setData(const QModelIndex &ix, const QVariant &val, int ro
 					std::string err;
 					params = cp::RpcValue::fromCpon(cpon, &err);
 					if(!err.empty())
-						shvError() << "cannot set invalid cpon data";
+						shvError() << "cannot set invalid cpon data:" << cpon << "error:" << err;
 				}
 				m_shvTreeNodeItem->setMethodParams(ix.row(), params);
 				loadRow(ix.row());
@@ -241,7 +241,6 @@ QString AttributesModel::method(int row) const
 void AttributesModel::onMethodsLoaded()
 {
 	loadRows();
-	callGetters();
 }
 
 void AttributesModel::onRpcMethodCallFinished(int method_ix)
@@ -317,6 +316,7 @@ void AttributesModel::loadRows()
 	}
 	emit layoutChanged();
 	emit reloaded();
+	callGetters();
 }
 
 /*

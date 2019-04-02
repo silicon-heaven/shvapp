@@ -3,17 +3,20 @@
 #include <shv/iotqt/node/shvnode.h>
 #include <shv/coreqt/utils.h>
 
-#include <QApplication>
+#include <QCoreApplication>
 #include <QDateTime>
 
 class AppCliOptions;
 class QFileSystemWatcher;
 
+class NodeStatus;
+
 namespace shv { namespace chainpack { class RpcMessage; }}
 namespace shv { namespace iotqt { namespace rpc { class DeviceConnection; }}}
 namespace shv { namespace iotqt { namespace node { class ShvNodeTree; }}}
+namespace shv { namespace iotqt { namespace utils { class FileShvJournal; struct ShvJournalEntry; }}}
 
-class HBrokersNode;
+class HNodeBrokers;
 
 class AppRootNode : public shv::iotqt::node::ShvRootNode
 {
@@ -27,11 +30,11 @@ public:
 	shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params) override;
 };
 
-class HScopeApp : public QApplication
+class HScopeApp : public QCoreApplication
 {
 	Q_OBJECT
 private:
-	using Super = QApplication;
+	using Super = QCoreApplication;
 
 public:
 	HScopeApp(int &argc, char **argv, AppCliOptions* cli_opts);
@@ -40,18 +43,25 @@ public:
 	static HScopeApp *instance();
 	shv::iotqt::rpc::DeviceConnection *rpcConnection() const {return m_rpcConnection;}
 	AppCliOptions* cliOptions() {return m_cliOptions;}
+	shv::iotqt::utils::FileShvJournal *shvJournal() {return m_shvJournal;}
 	//static const std::string& logFilePath();
+
+	Q_SIGNAL void rpcMessageReceived(const shv::chainpack::RpcMessage &msg);
+	Q_SIGNAL void brokerConnectedChanged(bool is_connected);
+
+	void onHNodeStatusChanged(const std::string &shv_path, const NodeStatus &status);
+	void onHNodeOverallStatusChanged(const std::string &shv_path, const NodeStatus &status);
 private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	void loadConfig();
 	void createNodes();
+	void getSnapshot(std::vector<shv::iotqt::utils::ShvJournalEntry> &snapshot);
 private:
 	shv::iotqt::rpc::DeviceConnection *m_rpcConnection = nullptr;
 	AppCliOptions* m_cliOptions;
 	shv::iotqt::node::ShvNodeTree *m_shvTree = nullptr;
-	HBrokersNode *m_brokersNode = nullptr;
-
-
+	HNodeBrokers *m_brokersNode = nullptr;
+	shv::iotqt::utils::FileShvJournal *m_shvJournal = nullptr;
 };
 

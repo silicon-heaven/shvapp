@@ -2,12 +2,12 @@ TEMPLATE = subdirs
 CONFIG += ordered
 
 SUBDIRS += \
-    3rdparty
+    3rdparty \
+    clients \
 
 qtHaveModule(gui) {
 SUBDIRS += \
 	shvspy \
-    clients \
 }
 
 unix {

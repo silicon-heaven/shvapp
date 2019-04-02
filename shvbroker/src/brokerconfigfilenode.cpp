@@ -18,7 +18,7 @@ static std::vector<cp::MetaMethod> meta_methods_acl {
 };
 
 EtcAclNode::EtcAclNode(shv::iotqt::node::ShvNode *parent)
-	: Super("acl", meta_methods_acl, parent)
+	: Super("acl", &meta_methods_acl, parent)
 {
 	{
 		auto *nd = new BrokerConfigFileNode("fstab", this);
@@ -51,9 +51,9 @@ void BrokerConfigFileNode::loadValues()
 	Super::loadValues();
 }
 
-bool BrokerConfigFileNode::saveValues()
+void BrokerConfigFileNode::saveValues()
 {
-	return BrokerApp::instance()->setAclConfig(nodeId(), m_values, shv::core::Exception::Throw);
+	BrokerApp::instance()->setAclConfig(nodeId(), m_values, shv::core::Exception::Throw);
 }
 
 //========================================================
@@ -74,7 +74,7 @@ shv::iotqt::node::ShvNode::StringList AclPathsConfigFileNode::childNames(const s
 	}
 }
 
-shv::chainpack::RpcValue AclPathsConfigFileNode::valueOnPath(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
+shv::chainpack::RpcValue AclPathsConfigFileNode::valueOnPath(const shv::iotqt::node::ShvNode::StringViewList &shv_path, bool throw_exc)
 {
 	//shvInfo() << "valueOnPath:" << shv_path.join('/');
 	shv::chainpack::RpcValue v = values();
@@ -86,8 +86,11 @@ shv::chainpack::RpcValue AclPathsConfigFileNode::valueOnPath(const shv::iotqt::n
 		std::string key = dir.toString();
 		v = m.value(key);
 		//shvInfo() << "\t i:" << i << "key:" << key << "val:" << v.toCpon();
-		if(!v.isValid())
-			SHV_EXCEPTION("Invalid path: " + shv_path.join('/'));
+		if(!v.isValid()) {
+			if(throw_exc)
+				SHV_EXCEPTION("Invalid path: " + shv_path.join('/'));
+			return v;
+		}
 	}
 	return v;
 }

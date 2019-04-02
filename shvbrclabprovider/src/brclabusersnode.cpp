@@ -95,10 +95,9 @@ void BrclabUsersNode::loadValues()
 	m_valuesLoaded = true;
 }
 
-bool BrclabUsersNode::saveValues()
+void BrclabUsersNode::saveValues()
 {
 	setUsersConfig(m_values);
-	return true;
 }
 
 void BrclabUsersNode::setUsersConfig(const shv::chainpack::RpcValue &data)

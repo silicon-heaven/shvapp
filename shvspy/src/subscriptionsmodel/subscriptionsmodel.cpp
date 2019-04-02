@@ -125,19 +125,22 @@ bool SubscriptionsModel::setData(const QModelIndex &ix, const QVariant &val, int
 		}
 	}
 	else if (role == Qt::EditRole){
-		Subscription &sub = m_subscriptions[ix.row()];
+		if (ix.column() == Columns::ColMethod){
+			Subscription &sub = m_subscriptions[ix.row()];
 
-		ShvBrokerNodeItem *nd = TheApp::instance()->serverTreeModel()->brokerById(sub.brokerId());
-		if (nd == nullptr){
-			return false;
+			ShvBrokerNodeItem *nd = TheApp::instance()->serverTreeModel()->brokerById(sub.brokerId());
+			if (nd == nullptr){
+				return false;
+			}
+
+			nd->enableSubscription(sub.shvPath().toStdString(), sub.method().toStdString(), false);
+			sub.setMethod(val.toString());
+			nd->enableSubscription(sub.shvPath().toStdString(), sub.method().toStdString(), true);
+
+			QVariantList new_subs = brokerSubscriptions(sub.brokerId());
+			nd->setSubscriptionList(new_subs);
+			return true;
 		}
-
-		nd->enableSubscription(sub.shvPath().toStdString(), sub.method().toStdString(), false);
-		sub.setMethod(val.toString());
-		nd->enableSubscription(sub.shvPath().toStdString(), sub.method().toStdString(), true);
-
-		QVariantList new_subs = brokerSubscriptions(sub.brokerId());
-		nd->setSubscriptionList(new_subs);
 	}
 
 	return false;

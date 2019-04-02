@@ -2,8 +2,8 @@
 #include "hscopeapp.h"
 #include "appclioptions.h"
 
+#include <shv/iotqt/utils/fileshvjournal.h>
 #include <shv/core/utils.h>
-
 #include <shv/coreqt/log.h>
 
 #include <QTextStream>
@@ -65,6 +65,7 @@ int main(int argc, char *argv[])
 	QCoreApplication::setApplicationName("hscope");
 	QCoreApplication::setApplicationVersion(APP_VERSION);
 
+	NecroLog::registerTopic("Test", "Run tests debug messages");
 	//init_log_environment();
 
 	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);
@@ -100,9 +101,13 @@ int main(int argc, char *argv[])
 	shvInfo() << QDateTime::currentDateTime().toString(Qt::ISODate).toStdString() << "UTC:" << QDateTime::currentDateTimeUtc().toString(Qt::ISODate).toStdString();
 	shvInfo() << "======================================================================================";
 	shvInfo() << "Log tresholds:" << NecroLog::tresholdsLogInfo();
-	shvInfo() << "--------------------------------------------------------------------------------------";
 
 	HScopeApp app(argc, argv, &cli_opts);
+
+	shvInfo() << "Shv journal dir:" << app.shvJournal()->journalDir();
+	shvInfo() << "Shv journal file size limit:" << app.shvJournal()->fileSizeLimit();
+	shvInfo() << "Shv journal dir size limit:" << app.shvJournal()->journalSizeLimit();
+	shvInfo() << "--------------------------------------------------------------------------------------";
 
 	shvInfo() << "starting main thread event loop";
 	ret = app.exec();
