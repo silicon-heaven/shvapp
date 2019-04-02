@@ -28,7 +28,7 @@ BrclabUsersNode::BrclabUsersNode(const std::string &node_id, const std::string &
 	: Super(node_id, parent)
 {
 	m_usersConfigFileName = fn;
-	m_usersConfig = loadUsersConfig();
+	loadValues();
 }
 
 size_t BrclabUsersNode::methodCount(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
@@ -74,20 +74,6 @@ shv::chainpack::RpcValue BrclabUsersNode::callMethod(const shv::iotqt::node::Shv
 
 void BrclabUsersNode::loadValues()
 {
-	m_values = loadUsersConfig();
-}
-
-bool BrclabUsersNode::saveValues(void)
-{
-	setUsersConfig(m_values);
-	Super::loadValues();
-	return  true;
-}
-
-shv::chainpack::RpcValue BrclabUsersNode::loadUsersConfig()
-{
-	shv::chainpack::RpcValue ret;
-
 	if (!QFile::exists(QString::fromStdString(m_usersConfigFileName))){
 		setUsersConfig(cp::RpcValue::Map());
 	}
@@ -100,13 +86,19 @@ shv::chainpack::RpcValue BrclabUsersNode::loadUsersConfig()
 	}
 
 	cp::CponReader rd(ifs);
-	rd.read(ret);
+	rd.read(m_values);
 
-	if (!ret.isMap()){
+	if (!m_values.isMap()){
 		SHV_EXCEPTION("Config file " + m_usersConfigFileName + " must be a Map!");
 	}
 
-	return ret;
+	m_valuesLoaded = true;
+}
+
+bool BrclabUsersNode::saveValues()
+{
+	setUsersConfig(m_values);
+	return true;
 }
 
 void BrclabUsersNode::setUsersConfig(const shv::chainpack::RpcValue &data)
@@ -116,6 +108,7 @@ void BrclabUsersNode::setUsersConfig(const shv::chainpack::RpcValue &data)
 		if (!ofs) {
 			SHV_EXCEPTION("Cannot open config file " + m_usersConfigFileName + " for writing");
 		}
+
 		shv::chainpack::CponWriterOptions opts;
 		opts.setIndent("  ");
 		shv::chainpack::CponWriter wr(ofs, opts);
@@ -125,16 +118,16 @@ void BrclabUsersNode::setUsersConfig(const shv::chainpack::RpcValue &data)
 		SHV_EXCEPTION("Config file must be a Map, config name: " + m_usersConfigFileName);
 	}
 
-	m_usersConfig = loadUsersConfig();
+	loadValues();
 }
 
 const shv::chainpack::RpcValue &BrclabUsersNode::usersConfig()
 {
-	if (!m_usersConfig.isMap()){
-		m_usersConfig = loadUsersConfig();
+	if (!m_values.isMap() || !m_valuesLoaded){
+		loadValues();
 	}
 
-	return m_usersConfig;
+	return m_values;
 }
 
 bool BrclabUsersNode::addUser(const cp::RpcValue &params)
@@ -169,14 +162,14 @@ bool BrclabUsersNode::delUser(const shv::chainpack::RpcValue &params)
 	}
 
 	std::string user_name = params.toString();
-	cp::RpcValue::Map users_config = usersConfig().toMap();
+	const cp::RpcValue::Map &users_config = usersConfig().toMap();
 
 	if (!users_config.hasKey(user_name)){
 		SHV_EXCEPTION("User " + user_name + " does not exist.");
 	}
 
-	users_config.erase(user_name);
-	setUsersConfig(users_config);
+	m_values.set(user_name, cp::RpcValue());
+	setUsersConfig(m_values);
 	return true;
 }
 
