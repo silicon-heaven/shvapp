@@ -89,7 +89,7 @@ void HNodeTest::load()
 	else {
 		m_runTimer->start(interval * 1000);
 	}
-	runTestFirstTime();
+	QTimer::singleShot(0, this, &HNodeTest::runTestFirstTime);
 }
 
 shv::chainpack::RpcValue HNodeTest::callMethodRq(const shv::chainpack::RpcRequest &rq)

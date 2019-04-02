@@ -118,10 +118,6 @@ HScopeApp::HScopeApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	AppRootNode *root = new AppRootNode();
 	m_shvTree = new si::node::ShvNodeTree(root, this);
 	connect(m_shvTree->root(), &si::node::ShvRootNode::sendRpcMesage, m_rpcConnection, &si::rpc::ClientConnection::sendMessage);
-
-	loadConfig();
-
-	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
 }
 
 HScopeApp::~HScopeApp()
@@ -153,9 +149,10 @@ void HScopeApp::onHNodeOverallStatusChanged(const std::string &shv_path, const N
 	}
 }
 
-void HScopeApp::loadConfig()
+void HScopeApp::start()
 {
 	createNodes();
+	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
 }
 
 void HScopeApp::createNodes()

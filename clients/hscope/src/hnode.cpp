@@ -131,6 +131,7 @@ std::string HNode::templateFileName()
 
 void HNode::load()
 {
+	//shvInfo() << "HNode::load" << shvPath();
 	m_confignode = new ConfigNode(this);
 	//m_confignode->values();
 	//connect(this, &HNode::statusChanged, qobject_cast<HNode*>(parent()), &HNode::onChildStatusChanged);

@@ -66,6 +66,7 @@ int main(int argc, char *argv[])
 	QCoreApplication::setApplicationVersion(APP_VERSION);
 
 	NecroLog::registerTopic("Test", "Run tests debug messages");
+	NecroLog::registerTopic("Config", "Load config messages");
 	//init_log_environment();
 
 	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);
@@ -110,6 +111,7 @@ int main(int argc, char *argv[])
 	shvInfo() << "--------------------------------------------------------------------------------------";
 
 	shvInfo() << "starting main thread event loop";
+	app.start();
 	ret = app.exec();
 	shvInfo() << "main event loop exit code:" << ret;
 	shvInfo() << "bye ...";

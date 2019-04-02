@@ -44,7 +44,8 @@ public:
 	shv::iotqt::rpc::DeviceConnection *rpcConnection() const {return m_rpcConnection;}
 	AppCliOptions* cliOptions() {return m_cliOptions;}
 	shv::iotqt::utils::FileShvJournal *shvJournal() {return m_shvJournal;}
-	//static const std::string& logFilePath();
+
+	void start();
 
 	Q_SIGNAL void rpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	Q_SIGNAL void brokerConnectedChanged(bool is_connected);
@@ -54,7 +55,6 @@ public:
 private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
-	void loadConfig();
 	void createNodes();
 	void getSnapshot(std::vector<shv::iotqt::utils::ShvJournalEntry> &snapshot);
 private:

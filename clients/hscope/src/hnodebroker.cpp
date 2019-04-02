@@ -31,7 +31,7 @@ void HNodeBroker::load()
 		nd->load();
 	}
 	connect(m_confignode, &ConfigNode::configSaved, this, &HNodeBroker::reconnect);
-	reconnect();
+	QTimer::singleShot(0, this, &HNodeBroker::reconnect);
 }
 
 shv::iotqt::rpc::ClientConnection *HNodeBroker::rpcConnection()
@@ -80,7 +80,7 @@ void HNodeBroker::reconnect()
 	SHV_SAFE_DELETE(m_rpcConnection);
 	shv::iotqt::rpc::ClientConnection *conn = rpcConnection();
 	if(!configValueOnPath(KEY_DISABLED).toBool()) {
-		shvInfo() << "Agent connection opening ..." << shvPath();
+		shvInfo() << "Broker connection opening ..." << shvPath();
 		QTimer::singleShot(0, conn, &shv::iotqt::rpc::ClientConnection::open);
 	}
 }

@@ -9,6 +9,8 @@
 
 #include <fstream>
 
+#define logConfig() shvCDebug("Config").color(NecroLog::Color::Yellow)
+
 namespace cp = shv::chainpack;
 
 //===========================================================
@@ -21,6 +23,7 @@ static std::vector<cp::MetaMethod> meta_methods_root_node {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_CONFIG},
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_CONFIG},
 	{shv::iotqt::node::RpcValueMapNode::M_LOAD, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_SERVICE},
+	{shv::iotqt::node::RpcValueMapNode::M_SAVE, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_ADMIN},
 	{shv::iotqt::node::RpcValueMapNode::M_COMMIT, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_ADMIN},
 };
 
@@ -70,7 +73,8 @@ shv::chainpack::RpcValue ConfigNode::callMethod(const shv::iotqt::node::ShvNode:
 		return valueOnPath(m_templateValues, shv_path, shv::core::Exception::Throw);
 	}
 	if(method == METH_RESET_TO_ORIG_VALUE) {
-		setValueOnPath(shv_path, cp::RpcValue());
+		cp::RpcValue orig_val = valueOnPath(m_templateValues, shv_path, shv::core::Exception::Throw);
+		setValueOnPath(shv_path, orig_val);
 		return true;
 	}
 	return Super::callMethod(shv_path, method, params);
@@ -116,35 +120,43 @@ shv::chainpack::RpcValue ConfigNode::loadConfigTemplate(const std::string &file_
 }
 
 
-static cp::RpcValue mergeMaps(const cp::RpcValue &orig_val, const cp::RpcValue &new_val)
+static cp::RpcValue mergeMaps(const cp::RpcValue &template_val, const cp::RpcValue &user_val)
 {
-	if(orig_val.isMap() && new_val.isMap()) {
-		const shv::chainpack::RpcValue::Map &orig_map = orig_val.toMap();
-		const shv::chainpack::RpcValue::Map &new_map = new_val.toMap();
+	if(template_val.isMap() && user_val.isMap()) {
+		const shv::chainpack::RpcValue::Map &template_map = template_val.toMap();
+		const shv::chainpack::RpcValue::Map &user_map = user_val.toMap();
 		cp::RpcValue::Map map;
-		for(const auto &kv : orig_map)
+		for(const auto &kv : template_map)
 			map[kv.first] = kv.second;
-		for(const auto &kv : new_map) {
+		for(const auto &kv : user_map) {
 			if(map.hasKey(kv.first)) {
 				map[kv.first] = mergeMaps(map.value(kv.first), kv.second);
 			}
 			else {
-				map[kv.first] = kv.second;
+				shvWarning() << "user key:" << kv.first << "not found in template map";
 			}
 		}
 		return cp::RpcValue(map);
 	}
-	return new_val;
+	return user_val;
 }
 
-const shv::chainpack::RpcValue &ConfigNode::values()
+static cp::RpcValue diffMaps(const cp::RpcValue &template_vals, const cp::RpcValue &vals)
 {
-	Super::values();
-	if(m_valuesMergeNeeded) {
-		m_values = mergeMaps(m_templateValues, m_newValues);
-		m_valuesMergeNeeded = false;
+	if(template_vals.isMap() && vals.isMap()) {
+		const shv::chainpack::RpcValue::Map &templ_map = template_vals.toMap();
+		const shv::chainpack::RpcValue::Map &vals_map = vals.toMap();
+		cp::RpcValue::Map map;
+		for(const auto &kv : templ_map) {
+			cp::RpcValue v = diffMaps(kv.second, vals_map.value(kv.first));
+			if(v.isValid())
+				map[kv.first] = v;
+		}
+		return map.empty()? cp::RpcValue(): cp::RpcValue(map);
 	}
-	return m_values;
+	if(template_vals == vals)
+		return cp::RpcValue();
+	return vals;
 }
 
 void ConfigNode::loadValues()
@@ -152,7 +164,7 @@ void ConfigNode::loadValues()
 	Super::loadValues();
 	{
 		std::string cfg_file = parentHNode()->nodeConfigFilePath();
-		shvInfo() << parentHNode()->shvPath() << "Reading config file" << cfg_file;
+		logConfig() << "Reading config template file" << cfg_file << "node:" << parentHNode()->shvPath();
 		cp::RpcValue val = loadConfigTemplate(cfg_file);
 		if(val.isMap()) {
 			m_templateValues = val;
@@ -163,124 +175,42 @@ void ConfigNode::loadValues()
 			shvWarning() << parentHNode()->shvPath() << "Cannot open config file" << cfg_file << "for reading!";
 		}
 	}
-	m_newValues = cp::RpcValue();
+	cp::RpcValue new_values = cp::RpcValue();
 	{
 		std::string cfg_file = parentHNode()->nodeConfigDir() + "/config.user.cpon";
+		logConfig() << "Reading config user file" << cfg_file << "node:" << parentHNode()->shvPath();
 		std::ifstream is(cfg_file);
 		if(is) {
 			cp::CponReader rd(is);
-			m_newValues = rd.read();
+			new_values = rd.read();
 		}
 		else {
 			/// file may not exist
-			m_newValues = cp::RpcValue::Map();
+			new_values = cp::RpcValue::Map();
 			//SHV_EXCEPTION("Cannot open file '" + cfg_file + "' for reading!");
 		}
 	}
-	m_valuesMergeNeeded = true;
+	std::string clone = mergeMaps(m_templateValues, new_values).toChainPack();
+	std::string err;
+	m_values = cp::RpcValue::fromChainPack(clone, &err);
+	if(!err.empty())
+		shvWarning() << "clone error:" << err;
 }
 
 void ConfigNode::saveValues()
 {
+	cp::RpcValue new_values = diffMaps(m_templateValues, m_values);
+	//shvWarning() << "diff:" << new_values.toPrettyString();
 	std::string cfg_file = parentHNode()->nodeConfigDir() + "/config.user.cpon";
 	std::ofstream os(cfg_file);
 	if(os) {
 		cp::CponWriterOptions opts;
 		opts.setIndent("\t");
 		cp::CponWriter wr(os, opts);
-		wr.write(m_newValues);
+		wr.write(new_values);
 		wr.flush();
 		emit configSaved();
 		return;
 	}
 	SHV_EXCEPTION("Cannot open file '" + cfg_file + "' for writing!");
-}
-/*
-shv::chainpack::RpcValue ConfigNode::valueOnPath(const shv::iotqt::node::ShvNode::StringViewList &shv_path, bool throv_exc)
-{
-	//shvLogFuncFrame() << shv_path.join('/');
-	shv::chainpack::RpcValue orig_val = Super::valueOnPath(shv_path, throv_exc);
-	if(!orig_val.isValid() && throv_exc) {
-		// path doesn't exist
-		//shvDebug() << "\t return:" << orig_val.toStdString();
-		return orig_val;
-	}
-	shv::chainpack::RpcValue new_val = m_newValues;
-	for(const auto & dir : shv_path) {
-		const shv::chainpack::RpcValue::Map &m = new_val.toMap();
-		new_val = m.value(dir.toString());
-		if(!new_val.isValid())
-			break;
-	}
-	if(new_val.isValid()) {
-		//shvDebug() << "\t return:" << v.toStdString();
-		/// merge new and orig val
-		return mergeMaps(orig_val, new_val);
-	}
-	//shvDebug() << "\t return:" << orig_val.toStdString();
-	return orig_val;
-}
-*/
-void ConfigNode::setValueOnPath(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const shv::chainpack::RpcValue &val)
-{
-	/*
-	 * recursive implementation enables remove empty maps on return
-	values();
-	if(shv_path.empty())
-		SHV_EXCEPTION("Empty path");
-	if(!m_newValues.isMap())
-		m_newValues = cp::RpcValue::Map();
-	shv::chainpack::RpcValue v = m_newValues;
-	for (size_t i = 0; i < shv_path.size()-1; ++i) {
-		std::string dir = shv_path.at(i).toString();
-		cp::RpcValue v2 = v.at(dir);
-		if(v2.isValid() && !v2.isMap())
-			SHV_EXCEPTION("Cannot change leaf to dir, path: " + shv_path.join('/'));
-		if(!v2.isMap()) {
-			v2 = cp::RpcValue::Map();
-			v.set(dir, v2);
-		}
-		v = v2;
-	}
-	v.set(shv_path.at(shv_path.size() - 1).toString(), val);
-	*/
-	setValueOnPathR(shv_path, val);
-}
-
-void ConfigNode::setValueOnPathR(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const shv::chainpack::RpcValue &val)
-{
-	values();
-	setValueOnPath_helper(shv_path, 0, m_newValues, val);
-	m_valuesMergeNeeded = true;
-}
-
-void ConfigNode::setValueOnPath_helper(const shv::iotqt::node::ShvNode::StringViewList &path, size_t key_ix, shv::chainpack::RpcValue parent_map, const shv::chainpack::RpcValue &val)
-{
-	shvLogFuncFrame() << "path:" << path.join('/') << "ix:" << key_ix << "parent:" << parent_map.toCpon() << "val:" << val.toPrettyString();
-	if(key_ix == path.size() - 1) {
-		if(!parent_map.isMap())
-			SHV_EXCEPTION("Items should be maps, path: " + path.join('/') + " current dir: " + path.at(key_ix).toString());
-		parent_map.set(path.at(key_ix).toString(), val);
-	}
-	else {
-		cp::RpcValue map = parent_map.at(path.at(key_ix).toString());
-		if(!map.isValid() && val.isValid()) {
-			/// create missing dir
-			map = cp::RpcValue::Map();
-			parent_map.set(path.at(key_ix).toString(), map);
-		}
-		if(map.isMap()) {
-			setValueOnPath_helper(path, key_ix+1, map, val);
-			if(map.count() == 0 && !val.isValid()) {
-				/// remove empty dir
-				parent_map.set(path.at(key_ix).toString(), val);
-			}
-		}
-		else if(map.isValid()) {
-			SHV_EXCEPTION("Items should be maps, path: " + path.join('/') + " current dir: " + path.at(key_ix).toString());
-		}
-		else {
-			SHV_EXCEPTION("Invalid path: " + path.join('/') + " current dir: " + path.at(key_ix).toString());
-		}
-	}
 }
