@@ -18,8 +18,8 @@ static const char M_CHANGE_USER_PASSWORD[] = "changeUserPassword";
 static const char M_GET_USER_GRANTS[] = "getUserGrants";
 
 static std::vector<cp::MetaMethod> meta_methods {
-	{M_ADD_USER, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_WRITE},
-	{M_DEL_USER, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_WRITE},
+	{M_ADD_USER, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_CONFIG},
+	{M_DEL_USER, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_CONFIG},
 	{M_CHANGE_USER_PASSWORD, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_WRITE},
 	{M_GET_USER_GRANTS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_WRITE}
 };
