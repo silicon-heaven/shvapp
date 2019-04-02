@@ -27,7 +27,8 @@ ClientShvNode::~ClientShvNode()
 
 void ClientShvNode::addConnection(rpc::ClientBrokerConnection *conn)
 {
-	m_connections << conn;
+	// prefere new connections, old one might not work
+	m_connections.insert(0, conn);
 	connect(conn, &rpc::ClientBrokerConnection::destroyed, [this, conn]() {removeConnection(conn);});
 }
 
