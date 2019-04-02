@@ -58,7 +58,7 @@ shv::chainpack::RpcValue BrclabUsersNode::callMethod(const shv::iotqt::node::Shv
 		if(method == M_ADD_USER) {
 			return addUser(params);
 		}
-		if(method == M_DEL_USER) {
+		else if(method == M_DEL_USER) {
 			return delUser(params);
 		}
 		else if(method == M_CHANGE_USER_PASSWORD) {
@@ -164,7 +164,7 @@ bool BrclabUsersNode::addUser(const cp::RpcValue &params)
 
 bool BrclabUsersNode::delUser(const shv::chainpack::RpcValue &params)
 {
-	if (!params.isString() || !params.toString().empty()){
+	if (!params.isString() || params.toString().empty()){
 		SHV_EXCEPTION("Invalid parameters format. Param must be non empty string.");
 	}
 
@@ -176,6 +176,7 @@ bool BrclabUsersNode::delUser(const shv::chainpack::RpcValue &params)
 	}
 
 	users_config.erase(user_name);
+	setUsersConfig(users_config);
 	return true;
 }
 
