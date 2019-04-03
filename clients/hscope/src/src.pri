@@ -10,7 +10,8 @@ HEADERS += \
     $$PWD/hnodetests.h \
     $$PWD/confignode.h \
     $$PWD/hnodeagent.h \
-    $$PWD/hnodeagents.h
+    $$PWD/hnodeagents.h \
+    $$PWD/telegram.h
 
 SOURCES += \
     $$PWD/main.cpp\
@@ -23,7 +24,8 @@ SOURCES += \
     $$PWD/hnodetests.cpp \
     $$PWD/confignode.cpp \
     $$PWD/hnodeagent.cpp \
-    $$PWD/hnodeagents.cpp
+    $$PWD/hnodeagents.cpp \
+    $$PWD/telegram.cpp
 
 FORMS += \
 

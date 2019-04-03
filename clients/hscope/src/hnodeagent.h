@@ -14,7 +14,6 @@ public:
 	void load() override;
 
 	std::string agentShvPath() const;
-	std::string templateFileName() override;
 private:
 	void onParentBrokerConnectedChanged(bool is_connected);
 	void onParentBrokerRpcMessageReceived(const shv::chainpack::RpcMessage &msg);

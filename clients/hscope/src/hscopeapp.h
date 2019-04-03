@@ -10,6 +10,7 @@ class AppCliOptions;
 class QFileSystemWatcher;
 
 class NodeStatus;
+class Telegram;
 
 namespace shv { namespace chainpack { class RpcMessage; }}
 namespace shv { namespace iotqt { namespace rpc { class DeviceConnection; }}}
@@ -49,6 +50,7 @@ public:
 
 	Q_SIGNAL void rpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	Q_SIGNAL void brokerConnectedChanged(bool is_connected);
+	Q_SIGNAL void alertStatusChanged(const std::string &shv_path, const NodeStatus &status);
 
 	void onHNodeStatusChanged(const std::string &shv_path, const NodeStatus &status);
 	void onHNodeOverallStatusChanged(const std::string &shv_path, const NodeStatus &status);
@@ -63,5 +65,6 @@ private:
 	shv::iotqt::node::ShvNodeTree *m_shvTree = nullptr;
 	HNodeBrokers *m_brokersNode = nullptr;
 	shv::iotqt::utils::FileShvJournal *m_shvJournal = nullptr;
+	Telegram *m_telegram = nullptr;
 };
 

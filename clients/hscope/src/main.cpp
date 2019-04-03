@@ -67,6 +67,7 @@ int main(int argc, char *argv[])
 
 	NecroLog::registerTopic("Test", "Run tests debug messages");
 	NecroLog::registerTopic("Config", "Load config messages");
+	NecroLog::registerTopic("Telegram", "Telegram messages");
 	//init_log_environment();
 
 	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);

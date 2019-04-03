@@ -14,8 +14,25 @@
 namespace cp = shv::chainpack;
 
 //===========================================================
-// HNodeConfigNode
+// ConfigNode
 //===========================================================
+ConfigNode::ConfigNode(ShvNode *parent)
+	: Super(".config", parent)
+{
+	shvDebug() << "creating:" << metaObject()->className() << nodeId();
+
+	setConfigDir(parentHNode()->nodeConfigDir());
+	setUserConfigDir(configDir());
+	setTemplateConfigName(parentHNode()->templateFileName());
+	setTemplateDir(parentHNode()->templatesDir());
+}
+
+HNode *ConfigNode::parentHNode()
+{
+	return qobject_cast<HNode*>(parent());
+}
+
+#if 0
 static const char METH_ORIG_VALUE[] = "origValue";
 static const char METH_RESET_TO_ORIG_VALUE[] = "resetValue";
 
@@ -35,12 +52,6 @@ static std::vector<cp::MetaMethod> meta_methods_node {
 	{METH_ORIG_VALUE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_READ},
 	{METH_RESET_TO_ORIG_VALUE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::GRANT_WRITE},
 };
-
-ConfigNode::ConfigNode(HNode *parent)
-	: Super(".config", parent)
-{
-	shvDebug() << "creating:" << metaObject()->className() << nodeId();
-}
 
 size_t ConfigNode::methodCount(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
 {
@@ -78,11 +89,6 @@ shv::chainpack::RpcValue ConfigNode::callMethod(const shv::iotqt::node::ShvNode:
 		return true;
 	}
 	return Super::callMethod(shv_path, method, params);
-}
-
-HNode *ConfigNode::parentHNode()
-{
-	return qobject_cast<HNode*>(parent());
 }
 
 shv::chainpack::RpcValue ConfigNode::loadConfigTemplate(const std::string &file_name)
@@ -214,3 +220,6 @@ void ConfigNode::saveValues()
 	}
 	SHV_EXCEPTION("Cannot open file '" + cfg_file + "' for writing!");
 }
+
+#endif
+

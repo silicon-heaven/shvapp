@@ -41,11 +41,6 @@ std::string HNodeAgent::agentShvPath() const
 	return configValueOnPath(KEY_SHV_PATH).toString();
 }
 
-std::string HNodeAgent::templateFileName()
-{
-	return "agent.config.cpon";
-}
-
 void HNodeAgent::onParentBrokerConnectedChanged(bool is_connected)
 {
 	if(is_connected) {
@@ -94,7 +89,7 @@ void HNodeAgent::checkAgentConnected()
 			cb->start(5000, this, [this](const cp::RpcResponse &resp) {
 				if(resp.isValid()) {
 					if(resp.isError()) {
-						NodeStatus st{NodeStatus::Value::Error, "Agent connected chect error: " + resp.error().toString()};
+						NodeStatus st{NodeStatus::Value::Error, "Agent connected check error: " + resp.error().toString()};
 						//logTest() << "\t setting status to:" << st.toRpcValue().toCpon();
 						setStatus(st);
 					}

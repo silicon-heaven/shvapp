@@ -4,7 +4,7 @@ namespace cp = shv::chainpack;
 
 AppCliOptions::AppCliOptions()
 {
-	addOption("shvconv.shvPath").setType(cp::RpcValue::Type::String)
-			.setNames("-t", "--conv-shv-path")
-			.setDefaultValue("shv/cze/plz/pow/jn50/conv");
+	addOption("telegram.enabled").setType(cp::RpcValue::Type::Bool)
+			.setNames("--tg", "--telegram-enabled");
+			//.setDefaultValue("894962268:AAHoTaHnlNWDfe3xJWN_RHjn6rxvYQSaGQI");
 }

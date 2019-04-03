@@ -22,6 +22,8 @@ public:
 	shv::chainpack::RpcValue toRpcValue() const { return shv::chainpack::RpcValue::Map{{"val", (int)value}, {"msg", message}}; }
 	std::string toString() const { return toRpcValue().toCpon(); }
 	static NodeStatus fromRpcValue(const shv::chainpack::RpcValue &val);
+	static const char* valueToString(Value val);
+	static const char* valueToStringAbbr(Value val);
 };
 
 class HNode : public shv::iotqt::node::MethodsTableNode
@@ -45,7 +47,7 @@ public:
 	//std::string scriptsDir();
 	std::string templatesDir();
 
-	std::string nodeConfigFilePath();
+	//std::string nodeConfigFilePath();
 	virtual std::string templateFileName();
 
 	virtual void load();

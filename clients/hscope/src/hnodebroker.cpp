@@ -57,10 +57,10 @@ shv::iotqt::rpc::ClientConnection *HNodeBroker::rpcConnection()
 				setStatus({NodeStatus::Value::Error, "Not connected."});
 				break;
 			case shv::iotqt::rpc::ClientConnection::State::Connecting:
-				setStatus({NodeStatus::Value::Ok, "Connecting to broker."});
+				//setStatus({NodeStatus::Value::Ok, "Connecting to broker."});
 				break;
 			case shv::iotqt::rpc::ClientConnection::State::SocketConnected:
-				setStatus({NodeStatus::Value::Ok, "Logging in to broker."});
+				//setStatus({NodeStatus::Value::Ok, "Logging in to broker."});
 				break;
 			case shv::iotqt::rpc::ClientConnection::State::BrokerConnected:
 				setStatus({NodeStatus::Value::Ok, "Connected to broker."});

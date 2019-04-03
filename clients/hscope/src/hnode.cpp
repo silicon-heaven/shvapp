@@ -65,6 +65,28 @@ NodeStatus NodeStatus::fromRpcValue(const shv::chainpack::RpcValue &val)
 	return ret;
 }
 
+const char *NodeStatus::valueToString(NodeStatus::Value val)
+{
+	switch (val) {
+	case Value::Unknown: return "Unknown";
+	case Value::Ok: return "Ok";
+	case Value::Warning: return "Warning";
+	case Value::Error: return "Error";
+	}
+	return "impossible";
+}
+
+const char *NodeStatus::valueToStringAbbr(NodeStatus::Value val)
+{
+	switch (val) {
+	case Value::Unknown: return "???";
+	case Value::Ok: return "OK";
+	case Value::Warning: return "WARN";
+	case Value::Error: return "ERR";
+	}
+	return "impossible";
+}
+
 //===========================================================
 // HNode
 //===========================================================
@@ -110,7 +132,7 @@ std::string HNode::templatesDir()
 {
 	return appConfigDir() + "/template";
 }
-
+/*
 std::string HNode::nodeConfigFilePath()
 {
 	std::string fn = nodeConfigDir() + "/config.cpon";
@@ -122,11 +144,11 @@ std::string HNode::nodeConfigFilePath()
 	}
 	return fn;
 }
-
+*/
 std::string HNode::templateFileName()
 {
 	return QString::fromUtf8(metaObject()->className()).mid(QStringLiteral("HNode").length()).toLower().toStdString()
-			+ ".config.cpon";
+			+ ".config";
 }
 
 void HNode::load()

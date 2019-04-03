@@ -2,6 +2,7 @@
 #include "appclioptions.h"
 #include "hnodebrokers.h"
 #include "hnodetest.h"
+#include "telegram.h"
 
 #include <shv/iotqt/node/shvnode.h>
 #include <shv/iotqt/node/shvnodetree.h>
@@ -138,6 +139,7 @@ void HScopeApp::onHNodeStatusChanged(const std::string &shv_path, const NodeStat
 		// log changes
 		conn->sendShvNotify(shv_path, "statusChanged", status.toRpcValue());
 	}
+	emit alertStatusChanged(shv_path, status);
 }
 
 void HScopeApp::onHNodeOverallStatusChanged(const std::string &shv_path, const NodeStatus &status)
@@ -152,6 +154,12 @@ void HScopeApp::onHNodeOverallStatusChanged(const std::string &shv_path, const N
 void HScopeApp::start()
 {
 	createNodes();
+	//shvInfo() << "Telegram plugin enabled:" << cliOptions()->isTelegramEnabled();
+	if(cliOptions()->isTelegramEnabled()) {
+		m_telegram = new Telegram(nullptr);
+		m_shvTree->mount("plugins/telegram", m_telegram);
+		m_telegram->start();
+	}
 	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
 }
 
