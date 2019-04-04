@@ -9,6 +9,7 @@
 #include "dlgserverproperties.h"
 #include "dlgsubscriptionparameters.h"
 #include "dlgcallshvmethod.h"
+#include "dlguserseditor.h"
 #include "methodparametersdialog.h"
 #include "texteditdialog.h"
 
@@ -175,6 +176,8 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 	QAction *a_reloadNode = new QAction(tr("Reload"), &m);
 	QAction *a_subscribeNode = new QAction(tr("Subscribe"), &m);
 	QAction *a_callShvMethod = new QAction(tr("Call shv method"), &m);
+	QAction *a_usersEditor = new QAction(tr("Users editor"), &m);
+
 	//QAction *a_test = new QAction(tr("create test.txt"), &m);
 	if(!nd) {
 		m.addAction(ui->actAddServer);
@@ -209,6 +212,16 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 				}
 			}
 			else if(a == a_callShvMethod) {
+				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
+				if(nd) {
+					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
+
+					DlgCallShvMethod dlg(cc, this);
+					dlg.setShvPath(nd->shvPath());
+					dlg.exec();
+				}
+			}
+			else if(a == a_usersEditor){
 				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 				if(nd) {
 					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();

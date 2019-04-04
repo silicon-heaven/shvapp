@@ -15,7 +15,9 @@ HEADERS += \
     $$PWD/dlgcallshvmethod.h \
     $$PWD/subscriptionswidget.h \
     $$PWD/subscriptionsmodel/subscriptionsmodel.h \
-    $$PWD/subscriptionsmodel/subscriptionstableitemdelegate.h
+    $$PWD/subscriptionsmodel/subscriptionstableitemdelegate.h \
+    $$PWD/dlguserseditor.h \
+    $$PWD/dlgaddedituser.h
 
 SOURCES += \
 	$$PWD/main.cpp\
@@ -35,7 +37,9 @@ SOURCES += \
     $$PWD/dlgcallshvmethod.cpp \
     $$PWD/subscriptionswidget.cpp \
     $$PWD/subscriptionsmodel/subscriptionsmodel.cpp \
-    $$PWD/subscriptionsmodel/subscriptionstableitemdelegate.cpp
+    $$PWD/subscriptionsmodel/subscriptionstableitemdelegate.cpp \
+    $$PWD/dlguserseditor.cpp \
+    $$PWD/dlgaddedituser.cpp
 
 FORMS += \
 	$$PWD/mainwindow.ui \
@@ -45,6 +49,8 @@ FORMS += \
     $$PWD/methodparametersdialog.ui \
     $$PWD/texteditdialog.ui \
     $$PWD/subscriptionswidget.ui \
-    $$PWD/dlgcallshvmethod.ui
+    $$PWD/dlgcallshvmethod.ui \
+    $$PWD/dlgaddedituser.ui \
+    $$PWD/dlguserseditor.ui
 
 include ( $$PWD/log/log.pri )
