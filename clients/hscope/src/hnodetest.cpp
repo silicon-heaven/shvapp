@@ -9,6 +9,7 @@
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
 
+#include <QCryptographicHash>
 #include <QFile>
 #include <QTimer>
 
@@ -98,7 +99,7 @@ shv::chainpack::RpcValue HNodeTest::callMethodRq(const shv::chainpack::RpcReques
 	if(shv_path.toString().empty()) {
 		const shv::chainpack::RpcValue::String &method = rq.method().toString();
 		if(method == METH_RUN_TEST) {
-			runTest(rq);
+			runTest(rq, USE_SCRIPT_CACHE);
 			return cp::RpcValue();
 		}
 	}
@@ -127,16 +128,19 @@ void HNodeTest::runTestFirstTime()
 void HNodeTest::runTestSafe()
 {
 	try {
-		runTest(cp::RpcRequest());
+		runTest(cp::RpcRequest(), USE_SCRIPT_CACHE);
 	}
 	catch (std::exception &e) {
 		logTest() << "Running test:" << shvPath() << "exception:" << e.what();
 	}
 }
 
-void HNodeTest::runTest(const shv::chainpack::RpcRequest &rq)
+void HNodeTest::runTest(const shv::chainpack::RpcRequest &rq, bool use_script_cache)
 {
-	logTest() << "Running test:" << shvPath();
+	static int s_test_no = 0;
+	int test_no = ++s_test_no;
+
+	logTest() << test_no << "Running test:" << shvPath() << "use_script_cache:" << use_script_cache << "rq:" << rq.toCpon();
 	m_runCount++;
 	HNodeAgent *agnd = agentNode();
 	if(!agnd)
@@ -150,52 +154,81 @@ void HNodeTest::runTest(const shv::chainpack::RpcRequest &rq)
 	QFile f(QString::fromStdString(script_fn));
 	if(!f.open(QFile::ReadOnly))
 		SHV_EXCEPTION("Cannot open test script file " + script_fn + " for reading!");
-	QByteArray ba = f.readAll();
-	std::string script(ba.constData(), (unsigned)ba.length());
+	QByteArray script = f.readAll();
+	//QByteArray sha1;
+	if(use_script_cache) {
+		QCryptographicHash ch(QCryptographicHash::Sha1);
+		ch.addData(script);
+		script = ch.result().toHex();
+		logTest() << test_no << "\t script SHA1:" << script.toStdString();
+	}
 	const shv::chainpack::RpcValue env = configValueOnPath(KEY_ENV);
 
 	int rq_id = bnd->rpcConnection()->nextRequestId();
-	cp::RpcResponse resp1 = rq.makeResponse();
+	cp::RpcRequest rq1 = rq;
 	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(brokerNode()->rpcConnection(), rq_id, this);
-	cb->start(20000, this, [this, resp1](const cp::RpcResponse &resp) {
-		cp::RpcResponse resp2 = resp1;
+	cb->start(20000, this, [this, rq1, test_no](const cp::RpcResponse &resp) {
+		cp::RpcResponse resp2;
+		if(rq1.isRequest())
+			resp2 = rq1.makeResponse();
 		if(resp.isValid()) {
 			if(resp.isError()) {
-				logTest() << "Running test:" << shvPath() << "ERROR:" << resp.error().toString();
-				resp2.setError(resp.error());
-				NodeStatus st{NodeStatus::Value::Error, resp.error().toString()};
-				logTest() << "\t setting status to:" << st.toRpcValue().toCpon();
-				setStatus(st);
-			}
-			else {
-				logTest() << "Running test:" << shvPath() << "result:" << resp.result().toCpon();
-				resp2.setResult(resp.result());
-				const std::string st_str = resp.result().toList().value(1).toString();
-				std::string err;
-				cp::RpcValue st_rpc = cp::RpcValue::fromCpon(st_str, &err);
-				if(err.empty()) {
-					NodeStatus st = NodeStatus::fromRpcValue(st_rpc);
-					logTest() << "\t setting status to:" << st.toRpcValue().toCpon();
-					setStatus(st);
+				cp::RpcResponse::Error err = resp.error();
+				if(err.code() == cp::RpcResponse::Error::UserCode) {
+					logTest() << test_no << "Test response:" << shvPath() << "script not found in cache." << err.toString();
+					runTest(rq1, !USE_SCRIPT_CACHE);
 				}
 				else {
-					shvWarning() << "Malformed test result:" << st_str << "error:" << err;
+					logTest() << test_no << "Test response:" << shvPath() << "ERROR:" << err.toString();
+					if(rq1.isRequest())
+						resp2.setError(err);
+					NodeStatus st{NodeStatus::Value::Error, err.toString()};
+					logTest() << test_no << "\t setting status to:" << st.toRpcValue().toCpon();
+					setStatus(st);
+				}
+			}
+			else {
+				logTest() << test_no << "Test response:" << shvPath() << "result:" << resp.result().toCpon();
+				if(rq1.isRequest())
+					resp2.setResult(resp.result());
+				int exit_code = resp.result().toList().value(0).toInt();
+				if(exit_code == 0) {
+					const std::string st_str = resp.result().toList().value(1).toString();
+					std::string err;
+					cp::RpcValue st_rpc = cp::RpcValue::fromCpon(st_str, &err);
+					if(err.empty()) {
+						NodeStatus st = NodeStatus::fromRpcValue(st_rpc);
+						logTest() << test_no << "\t setting status to:" << st.toRpcValue().toCpon();
+						setStatus(st);
+					}
+					else {
+						shvWarning() << "Malformed test result:" << st_str << "error:" << err;
+						NodeStatus st;
+						logTest() << test_no << "\t setting status to:" << st.toRpcValue().toCpon();
+						setStatus(st);
+					}
+				}
+				else {
+					shvWarning() << "Test returned error exit code:" << exit_code;
 					NodeStatus st;
-					logTest() << "\t setting status to:" << st.toRpcValue().toCpon();
+					logTest() << test_no << "\t setting status to:" << st.toRpcValue().toCpon();
 					setStatus(st);
 				}
 			}
 		}
 		else {
-			logTest() << "Running test:" << shvPath() << "TIMEOUT!";
-			resp2.setError(cp::RpcResponse::Error::createSyncMethodCallTimeout("Test invocation timeout!"));
+			logTest() << test_no << "Running test:" << shvPath() << "TIMEOUT!";
+			if(rq1.isRequest())
+				resp2.setError(cp::RpcResponse::Error::createSyncMethodCallTimeout("Test invocation timeout!"));
 			NodeStatus st{NodeStatus::Value::Error, "Test invocation timeout!"};
-			logTest() << "\t setting status to:" << st.toRpcValue().toCpon();
+			logTest() << test_no << "\t setting status to:" << st.toRpcValue().toCpon();
 			setStatus(st);
 		}
-		this->appRpcConnection()->sendMessage(resp2);
+		if(rq1.isRequest())
+			this->appRpcConnection()->sendMessage(resp2);
 	});
-	bnd->rpcConnection()->callShvMethod(rq_id, shv_path, cp::Rpc::METH_RUN_SCRIPT, cp::RpcValue::List{script, 1, env});
+	logTest() << test_no << "call shv:" << shv_path << cp::Rpc::METH_RUN_SCRIPT << cp::RpcValue(cp::RpcValue::List{script.toStdString(), 1, env}).toCpon();
+	bnd->rpcConnection()->callShvMethod(rq_id, shv_path, cp::Rpc::METH_RUN_SCRIPT, cp::RpcValue::List{script.toStdString(), 1, env});
 }
 
 HNodeAgent *HNodeTest::agentNode()

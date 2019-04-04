@@ -61,19 +61,25 @@ void Telegram::getUpdates()
 	req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 	m_getUpdateReply = m_netManager->post(req, params_data);
 	connect(m_getUpdateReply, QOverload<QNetworkReply::NetworkError>::of(&QNetworkReply::error), this, [this](QNetworkReply::NetworkError code){
-		shvError() << "TG getUpdates network reply error:" << code;
+		shvError() << "TG getUpdates network reply error:" << code << "reply:" << m_getUpdateReply;
+		if(!m_getUpdateReply)
+			return;
 		m_getUpdateReply->deleteLater();
 		m_getUpdateReply = nullptr;
 		QTimer::singleShot(0, this, &Telegram::getUpdates);
 	});
 	connect(m_getUpdateReply, &QNetworkReply::finished, this, [this]() {
+		if(!m_getUpdateReply)
+			return;
 		processUpdate(m_getUpdateReply->readAll());
 		m_getUpdateReply->deleteLater();
 		m_getUpdateReply = nullptr;
 		QTimer::singleShot(0, this, &Telegram::getUpdates);
 	});
 	QTimer::singleShot((timeout + 1) * 1000, m_getUpdateReply, [this]() {
-		shvError() << "TG getUpdates network reply timeout!";
+		shvError() << "TG getUpdates network reply timeout!" << "reply:" << m_getUpdateReply;
+		if(!m_getUpdateReply)
+			return;
 		m_getUpdateReply->deleteLater();
 		m_getUpdateReply = nullptr;
 		QTimer::singleShot(0, this, &Telegram::getUpdates);

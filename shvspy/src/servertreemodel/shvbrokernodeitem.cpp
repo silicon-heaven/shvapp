@@ -292,9 +292,11 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 	if(msg.isResponse()) {
 		cp::RpcResponse resp(msg);
 		if(resp.isError())
-			TheApp::instance()->errorLogModel()->addLogRow(NecroLog::Level::Error
-														   , resp.error().message()
-														   , cp::RpcResponse::Error::errorCodeToString(resp.error().code()));
+			TheApp::instance()->errorLogModel()->addLogRow(
+						NecroLog::Level::Error
+						, resp.error().message()
+						, QString::fromStdString(cp::RpcResponse::Error::errorCodeToString(resp.error().code()))
+						);
 		int rqid = resp.requestId().toInt();
 		auto it = m_runningRpcRequests.find(rqid);
 		if(it == m_runningRpcRequests.end()) {

@@ -23,11 +23,12 @@ private:
 
 	void runTestFirstTime();
 	void runTestSafe();
-	void runTest(const shv::chainpack::RpcRequest &rq);
+	void runTest(const shv::chainpack::RpcRequest &rq, bool use_script_cache);
 
 	HNodeAgent* agentNode();
 	HNodeBroker* brokerNode();
 protected:
+	static constexpr bool USE_SCRIPT_CACHE = true;
 	QTimer *m_runTimer = nullptr;
 	bool m_disabled = true;
 	int m_runCount = 0;
