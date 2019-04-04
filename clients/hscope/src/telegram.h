@@ -26,6 +26,8 @@ private:
 	void getUpdates();
 
 	void processUpdate(const QByteArray data);
+	void sendMessage(int peer_id, const QString &text, bool silent = false);
+	void sendNodeStatus(int peer_id, const NodeStatus &status, const std::string &shv_path);
 private:
 	QNetworkAccessManager *m_netManager = nullptr;
 	int m_getUpdateId = 0;

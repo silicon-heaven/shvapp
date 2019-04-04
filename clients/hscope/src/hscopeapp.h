@@ -48,6 +48,8 @@ public:
 
 	void start();
 
+	NodeStatus overallNodesStatus();
+
 	Q_SIGNAL void rpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	Q_SIGNAL void brokerConnectedChanged(bool is_connected);
 	Q_SIGNAL void alertStatusChanged(const std::string &shv_path, const NodeStatus &status);

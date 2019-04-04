@@ -99,21 +99,65 @@ void Telegram::processUpdate(const QByteArray data)
 			logTelegram() << "\t from:" << from.value("username").toString() << "id:" << peer_id << "text:" << text;
 			m_getUpdateId = row.value("update_id").toInt();
 			const shv::chainpack::RpcValue::List &peer_ids = m_configNode->valueOnPath(PEER_IDS).toList();
+			int new_peer_id = peer_id;
 			for(const cp::RpcValue &id : peer_ids) {
 				if(id == peer_id) {
-					peer_id = 0;
+					new_peer_id = 0;
 					break;
 				}
 			}
-			if(peer_id > 0) {
+			if(new_peer_id > 0) {
 				logTelegram() << "new peer id:" << peer_id;
 				shv::chainpack::RpcValue::List lst = peer_ids;
 				lst.push_back(peer_id);
 				m_configNode->setValueOnPath(PEER_IDS, lst);
 				m_configNode->commitChanges();
 			}
+			if(text == QLatin1String("/status")) {
+				HScopeApp *app = HScopeApp::instance();
+				NodeStatus st = app->overallNodesStatus();
+				sendNodeStatus(peer_id, st, "brokers");
+			}
 		}
 	}
+}
+
+void Telegram::sendMessage(int peer_id, const QString &text, bool silent)
+{
+	QString api_token = apiToken();
+	if(api_token.isEmpty())
+		return;
+
+	QString url = QStringLiteral("https://api.telegram.org/bot%1/sendMessage").arg(api_token);
+	QJsonObject params;
+	params.insert("chat_id", peer_id);
+	params.insert("parse_mode", "Markdown");
+	params.insert("text", text);
+	if(silent)
+		params.insert("disable_notification", true);
+	QJsonDocument doc(params);
+	QByteArray params_data = doc.toJson(QJsonDocument::Compact);
+	QNetworkRequest req(url);
+	req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+	QNetworkReply *rpl = m_netManager->post(req, params_data);
+	connect(rpl, QOverload<QNetworkReply::NetworkError>::of(&QNetworkReply::error), [rpl](QNetworkReply::NetworkError code){
+		shvError() << "TG sendMessage network reply error:" << code;
+		rpl->deleteLater();
+	});
+	connect(rpl, &QNetworkReply::finished, [rpl]() {
+		QByteArray data = rpl->readAll();
+		logTelegram() << "sendMessage data reply:" << data.toStdString();
+		rpl->deleteLater();
+	});
+}
+
+void Telegram::sendNodeStatus(int peer_id, const NodeStatus &status, const std::string &shv_path)
+{
+	QString text = QStringLiteral("*[%1]* %2\n_%3_").arg(NodeStatus::valueToStringAbbr(status.value))
+				  .arg(QString::fromStdString(status.message))
+				  .arg(QString::fromStdString(shv_path)
+				  );
+	sendMessage(peer_id, text/*, status.value == NodeStatus::Value::Ok*/);
 }
 
 void Telegram::onAlertStatusChanged(const std::string &shv_path, const NodeStatus &status)
@@ -125,29 +169,7 @@ void Telegram::onAlertStatusChanged(const std::string &shv_path, const NodeStatu
 	QString url = QStringLiteral("https://api.telegram.org/bot%1/sendMessage").arg(api_token);
 	const shv::chainpack::RpcValue::List &peer_ids = m_configNode->valueOnPath(PEER_IDS).toList();
 	for(const cp::RpcValue &id : peer_ids) {
-		QJsonObject params;
-		params.insert("chat_id", id.toInt());
-		params.insert("parse_mode", "Markdown");
-		QString text = "*[%1]* %2\n_%3_";
-		params.insert("text", text
-					  .arg(NodeStatus::valueToStringAbbr(status.value))
-					  .arg(QString::fromStdString(status.message))
-					  .arg(QString::fromStdString(shv_path))
-					  );
-		QJsonDocument doc(params);
-		QByteArray params_data = doc.toJson(QJsonDocument::Compact);
-		QNetworkRequest req(url);
-		req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-		QNetworkReply *rpl = m_netManager->post(req, params_data);
-		connect(rpl, QOverload<QNetworkReply::NetworkError>::of(&QNetworkReply::error), [rpl](QNetworkReply::NetworkError code){
-			shvError() << "TG sendMessage network reply error:" << code;
-			rpl->deleteLater();
-		});
-		connect(rpl, &QNetworkReply::finished, [rpl]() {
-			QByteArray data = rpl->readAll();
-			logTelegram() << "sendMessage data reply:" << data.toStdString();
-			rpl->deleteLater();
-		});
+		sendNodeStatus(id.toInt(), status, shv_path);
 	}
 }
 

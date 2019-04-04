@@ -163,6 +163,11 @@ void HScopeApp::start()
 	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
 }
 
+NodeStatus HScopeApp::overallNodesStatus()
+{
+	return m_brokersNode->overallStatus();
+}
+
 void HScopeApp::createNodes()
 {
 	if(m_brokersNode)
