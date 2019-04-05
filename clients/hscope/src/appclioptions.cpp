@@ -6,5 +6,6 @@ AppCliOptions::AppCliOptions()
 {
 	addOption("telegram.enabled").setType(cp::RpcValue::Type::Bool)
 			.setNames("--tg", "--telegram-enabled");
-			//.setDefaultValue("894962268:AAHoTaHnlNWDfe3xJWN_RHjn6rxvYQSaGQI");
+	addOption("telegram.logIndented").setType(cp::RpcValue::Type::Bool)
+			.setNames("--tgi", "--telegram-log-indented");
 }

@@ -9,5 +9,6 @@ public:
 	AppCliOptions();
 
 	CLIOPTION_GETTER_SETTER2(bool, "telegram.enabled", isT, setT, elegramEnabled)
+	CLIOPTION_GETTER_SETTER2(bool, "telegram.logIndented", isT, setT, elegramLogIndented)
 };
 

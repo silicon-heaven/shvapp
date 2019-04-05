@@ -48,6 +48,7 @@ public:
 
 	void start();
 
+	shv::iotqt::node::ShvNodeTree *shvTree() { return m_shvTree; }
 	NodeStatus overallNodesStatus();
 
 	Q_SIGNAL void rpcMessageReceived(const shv::chainpack::RpcMessage &msg);

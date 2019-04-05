@@ -5,9 +5,12 @@
 #include <shv/coreqt/utils.h>
 
 #include <QObject>
+#include <QCoreApplication>
 
 class QNetworkAccessManager;
 class QNetworkReply;
+class QTimer;
+
 class NodeStatus;
 
 namespace shv { namespace iotqt { namespace node { class RpcValueConfigNode; } } }
@@ -21,7 +24,12 @@ class SendMessage : public QVariantMap
 	SHV_VARIANTMAP_FIELD(bool, d, set_d, isable_web_page_preview)
 	SHV_VARIANTMAP_FIELD(bool, d, set_d, isable_notification)
 	SHV_VARIANTMAP_FIELD(int, r, set_r, eply_to_message_id)
+	//SHV_VARIANTMAP_FIELD(QString, r, set_r, eply_markup)
 	SHV_VARIANTMAP_FIELD(QVariantMap, r, set_r, eply_markup)
+
+public:
+	SendMessage() : QVariantMap() {}
+	SendMessage(const QVariantMap &o) : QVariantMap(o) {}
 };
 
 class Telegram : public shv::iotqt::node::ShvNode
@@ -53,6 +61,15 @@ private:
 	bool m_isGetUpdateRunning = false;
 	//QNetworkReply *m_getUpdateReply = nullptr;
 	shv::iotqt::node::RpcValueConfigNode *m_configNode = nullptr;
+};
+
+class LsState
+{
+	Q_DECLARE_TR_FUNCTIONS(LsState)
+public:
+	explicit LsState();
+
+	QVariantMap paramsForShvPath(const QString &shv_path);
 };
 
 #endif // TELEGRAM_H

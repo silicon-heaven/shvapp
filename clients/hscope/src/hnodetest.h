@@ -16,13 +16,13 @@ class HNodeTest : public HNode
 public:
 	HNodeTest(const std::string &node_id, HNode *parent);
 public:
+	void runTestSafe();
 	void load() override;
 	shv::chainpack::RpcValue callMethodRq(const shv::chainpack::RpcRequest &rq) override;
 private:
 	void onParentBrokerConnectedChanged(bool is_connected);
 
 	void runTestFirstTime();
-	void runTestSafe();
 	void runTest(const shv::chainpack::RpcRequest &rq, bool use_script_cache);
 
 	HNodeAgent* agentNode();

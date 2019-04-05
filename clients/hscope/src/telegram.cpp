@@ -2,9 +2,12 @@
 #include "hscopeapp.h"
 #include "appclioptions.h"
 #include "hnode.h"
+#include "hnodetest.h"
 
 #include <shv/chainpack/rpcvalue.h>
 #include <shv/coreqt/log.h>
+#include <shv/iotqt/node/shvnodetree.h>
+#include <shv/iotqt/node/shvnode.h>
 
 #include <QNetworkReply>
 #include <QNetworkRequest>
@@ -19,6 +22,13 @@
 namespace cp = shv::chainpack;
 
 static const char PEER_IDS[] = "peerIds";
+
+static std::string format_json_for_log(const QJsonDocument &doc)
+{
+	return doc.toJson(HScopeApp::instance()->cliOptions()->isTelegramLogIndented()
+			   ? QJsonDocument::Indented
+			   : QJsonDocument::Compact).toStdString();
+}
 
 Telegram::Telegram(Super *parent)
 	: Super("telegram", parent)
@@ -70,7 +80,7 @@ void Telegram::callTgApiMethod(QString method, const QVariantMap &_params, Teleg
 	QJsonObject params = QJsonObject::fromVariantMap(_params);
 	QJsonDocument doc(params);
 	QByteArray params_data = doc.toJson(QJsonDocument::Indented);
-	logTelegram() << call_cnt << "==>" << method << "params:" << params_data.toStdString();
+	logTelegram() << call_cnt << "==>" << method << "params:" << format_json_for_log(doc);
 	QNetworkRequest req(url);
 	req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 	QNetworkReply *rpl = m_netManager->post(req, params_data);
@@ -79,7 +89,7 @@ void Telegram::callTgApiMethod(QString method, const QVariantMap &_params, Teleg
 	});
 	connect(rpl, &QNetworkReply::finished, this, [this, rpl, call_cnt, method, call_back]() {
 		QJsonDocument doc = QJsonDocument::fromJson(rpl->readAll());
-		logTelegram() << call_cnt << "<==" << method << "response:" << doc.toJson(QJsonDocument::Indented).toStdString();//rv.toPrettyString("\t");
+		logTelegram() << call_cnt << "<==" << method << "response:" << format_json_for_log(doc);
 		QJsonObject rv = doc.object();
 		bool ok = rv.value(QStringLiteral("ok")).toBool();
 		if(ok) {
@@ -151,39 +161,11 @@ void Telegram::processUpdates(const QJsonValue &response)
 				sendNodeStatus(peer_id, st, "brokers");
 			}
 			else if(text == QLatin1String("/ls")) {
-				//QVariantMap inline_keyboard;
-				//QVariantList keyboard;
-				//QVariantMap key;
-				const auto key_text = QStringLiteral("text");
-				const auto key_callback_data = QStringLiteral("callback_data");
-				QVariantList keyboard = {
-					QVariantList {
-						QVariantMap {
-							{key_text, "A"},
-							{key_callback_data, "dataA"},
-						},
-						QVariantMap {
-							{key_text, "B"},
-							{key_callback_data, "dataB"},
-						},
-					},
-					QVariantList {
-						QVariantMap {
-							{key_text, "Enter"},
-							{key_callback_data, "dataE"},
-						},
-					},
-				};
-				const auto key_inline_keyboard = QStringLiteral("inline_keyboard");
-				QVariantMap reply_markup {
-					{key_inline_keyboard, keyboard}
-				};
-				SendMessage msg;
+				LsState ls_state;
+				QString shv_path = text.section(' ', 1).trimmed();
+				SendMessage msg(ls_state.paramsForShvPath(shv_path));
 				msg.set_chat_id(peer_id);
-				msg.set_text(QStringLiteral("List of: %1").arg("TBD"));
-				msg.set_parse_mode(QStringLiteral("Markdown"));
 				msg.set_reply_to_message_id(message_id);
-				msg.set_reply_markup(reply_markup);
 				sendMessage(msg);
 			}
 		}
@@ -196,17 +178,31 @@ void Telegram::processUpdates(const QJsonValue &response)
 			{
 				QVariantMap params;
 				params[key_callback_query_id] = callback_query_id;
-				params["text"] = "CB resp:" + data.toString();
+				//params["text"] = "CB resp:" + data.toString(); /// do not show popup message
 				callTgApiMethod("answerCallbackQuery", params, nullptr);
 			}
-			{
+			QString command = data.toString();
+			if(command.startsWith(QLatin1String("/ls "))) {
+				QString shv_path = command.mid(4);
+				while(shv_path.startsWith('/'))
+					shv_path = shv_path.mid(1);
+				LsState ls_state;
+				QVariantMap params = ls_state.paramsForShvPath(shv_path);
 				QJsonObject message = callback_query.value("message").toObject();
 				QJsonObject chat = message.value("chat").toObject();
-				SendMessage params;
 				params["message_id"] = message.value("message_id").toInt();
 				params["chat_id"] = chat.value("id").toInt();
-				params["text"] = "CB resp:" + data.toString();
 				callTgApiMethod("editMessageText", params, nullptr);
+			}
+			else if(command.startsWith(QLatin1String("/run "))) {
+				QString shv_path = command.mid(5);
+				while(shv_path.startsWith('/'))
+					shv_path = shv_path.mid(1);
+				HScopeApp *app = HScopeApp::instance();
+				HNodeTest *nd = qobject_cast<HNodeTest*>(app->shvTree()->cd(shv_path.toStdString()));
+				if(nd) {
+					nd->runTestSafe();
+				}
 			}
 		}
 	}
@@ -235,3 +231,91 @@ void Telegram::sendNodeStatus(int peer_id, const NodeStatus &status, const std::
 	sendMessage(peer_id, text);
 }
 
+//================================================================
+// LsState
+//================================================================
+LsState::LsState()
+{
+	//setObjectName(QString::number(chat_id));
+	//m_autoDestroyTimer = new QTimer(this);
+	//connect(m_autoDestroyTimer, &QTimer::timeout, this, &QObject::deleteLater);
+	//m_autoDestroyTimer->start(60 * 60 * 1000);
+}
+
+QVariantMap LsState::paramsForShvPath(const QString &shv_path)
+{
+	//m_autoDestroyTimer->start();
+
+	SendMessage ret;
+	HScopeApp *app = HScopeApp::instance();
+	shv::iotqt::node::ShvNode *nd = qobject_cast<shv::iotqt::node::ShvNode*>(app->shvTree()->cd(shv_path.toStdString()));
+	HNode *hnd = qobject_cast<HNode*>(nd);
+	//shv::iotqt::node::ShvNode *nd = app->shvTree()->cd("brokers");
+	if(!nd) {
+		ret.set_text("Invalid path: `" + shv_path + "`");
+		return QVariantMap(ret);
+	}
+
+	static const auto key_text = QStringLiteral("text");
+	static const auto key_callback_data = QStringLiteral("callback_data");
+
+	QVariantList keyboard;
+	for(const std::string &name : nd->childNames()) {
+		if(name.empty())
+			continue;
+		if(name[0] == '.')
+			continue;
+
+		HNode *chnd = qobject_cast<HNode*>(nd->childNode(name, !shv::core::Exception::Throw));
+		if(!chnd)
+			continue;
+
+		NodeStatus st = chnd->overallStatus();
+		const char *st_abbr = NodeStatus::valueToStringAbbr(st.value);
+
+		QVariantList row;
+		row << QVariantMap {
+					{key_text, QStringLiteral("[%1] %2").arg(st_abbr).arg(name.c_str())},
+					{key_callback_data, "/ls " + shv_path + (shv_path.isEmpty()? "": "/") + name.c_str()},
+				};
+		keyboard.insert(keyboard.length(), row);
+	}
+	if(qobject_cast<HNodeTest*>(nd)) {
+		QVariantList row;
+		row << QVariantMap {
+					{key_text, QStringLiteral("Run")},
+					{key_callback_data, "/run " + shv_path},
+				};
+		keyboard.insert(keyboard.length(), row);
+	}
+	if(!shv_path.isEmpty()) {
+		QString parent_shv_path = shv_path.section('/', 0, -2);
+		QVariantList row;
+		row << QVariantMap {
+					{key_text, QStringLiteral("..")},
+					{key_callback_data, "/ls " + parent_shv_path},
+				};
+		keyboard.insert(keyboard.length(), row);
+	}
+	const auto key_inline_keyboard = QStringLiteral("inline_keyboard");
+	QVariantMap reply_markup {
+		{key_inline_keyboard, keyboard}
+	};
+	//QJsonDocument doc(QJsonObject::fromVariantMap(reply_markup));
+	//ret.set_reply_markup(QString::fromUtf8(doc.toJson(QJsonDocument::Compact)));
+	ret.set_reply_markup(reply_markup);
+	ret.set_parse_mode(QStringLiteral("Markdown"));
+
+	if(hnd) {
+		const NodeStatus node_status = hnd->status();
+		ret.set_text(tr("Status of node: _%1:_ [%2] %3")
+					 .arg(shv_path)
+					 .arg(NodeStatus::valueToStringAbbr(node_status.value))
+					 .arg(node_status.message.c_str())
+					 );
+	}
+	else {
+		ret.set_text(tr("Holy Root"));
+	}
+	return QVariantMap(ret);
+}
