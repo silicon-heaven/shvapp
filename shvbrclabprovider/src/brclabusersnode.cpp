@@ -148,6 +148,7 @@ bool BrclabUsersNode::addUser(const cp::RpcValue &params)
 	const cp::RpcValue grants = map.value("grants");
 	user["grants"] = (grants.isList()) ? grants.toList() : cp::RpcValue::List();
 	user["password"] = map.value("password").toStdString();
+	users_config[user_name] = user;
 
 	setUsersConfig(users_config);
 	return true;
