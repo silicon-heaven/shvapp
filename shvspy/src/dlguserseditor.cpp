@@ -47,7 +47,7 @@ DlgUsersEditor::~DlgUsersEditor()
 
 void DlgUsersEditor::init(const std::string &path)
 {
-	m_usersNodePath = path + "/etc/acl/users";
+	m_aclEtcUsersNodePath = path + "/etc/acl/users";
 	listUsers();
 }
 
@@ -85,7 +85,7 @@ void DlgUsersEditor::listUsers()
 		}
 	});
 
-	m_rpcConection->callShvMethod(rqid, m_usersNodePath, shv::chainpack::Rpc::METH_LS);
+	m_rpcConection->callShvMethod(rqid, m_aclEtcUsersNodePath, shv::chainpack::Rpc::METH_LS);
 }
 
 QString DlgUsersEditor::selectedUser()
@@ -95,7 +95,7 @@ QString DlgUsersEditor::selectedUser()
 
 void DlgUsersEditor::onAddUserClicked()
 {
-	DlgAddEditUser dlg(this, m_rpcConection, m_usersNodePath, DlgAddEditUser::DtAddUser);
+	DlgAddEditUser dlg(this, m_rpcConection, m_aclEtcUsersNodePath, DlgAddEditUser::DtAddUser);
 	if (dlg.exec() == QDialog::Accepted){
 		listUsers();
 	}
@@ -130,7 +130,7 @@ void DlgUsersEditor::onDelUserClicked()
 			}
 		});
 
-		m_rpcConection->callShvMethod(rqid, m_usersNodePath, "delUser", shv::chainpack::RpcValue::String(user.toStdString()));
+		m_rpcConection->callShvMethod(rqid, m_aclEtcUsersNodePath, "delUser", shv::chainpack::RpcValue::String(user.toStdString()));
 	}
 }
 
@@ -145,7 +145,7 @@ void DlgUsersEditor::onEditUserClicked()
 
 	ui->lblStatus->setText("");
 
-	DlgAddEditUser dlg(this, m_rpcConection, m_usersNodePath, DlgAddEditUser::DtEditUser);
+	DlgAddEditUser dlg(this, m_rpcConection, m_aclEtcUsersNodePath, DlgAddEditUser::DtEditUser);
 	dlg.setUser(user);
 
 	if (dlg.exec() == QDialog::Accepted){

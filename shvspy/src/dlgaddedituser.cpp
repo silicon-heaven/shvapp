@@ -6,10 +6,10 @@
 #include <QCryptographicHash>
 
 
-DlgAddEditUser::DlgAddEditUser(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &usersNodePath, DlgAddEditUser::DialogType dt) :
+DlgAddEditUser::DlgAddEditUser(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_users_node_path, DlgAddEditUser::DialogType dt) :
 	QDialog(parent),
 	ui(new Ui::DlgAddEditUser),
-	m_usersNodePath(usersNodePath)
+	m_aclEtcUsersNodePath(acl_etc_users_node_path)
 {
 	ui->setupUi(this);
 	m_dialogType = dt;
@@ -79,7 +79,7 @@ void DlgAddEditUser::accept()
 		}
 	}
 	else if (dialogType() == DtEditUser){
-		ui->lblStatus->setText(tr("Updating user ...") + QString::fromStdString(m_usersNodePath));
+		ui->lblStatus->setText(tr("Updating user ...") + QString::fromStdString(m_aclEtcUsersNodePath));
 		if (!password().isEmpty()){
 			callChangePassword();
 		}
@@ -122,8 +122,8 @@ void DlgAddEditUser::callAddUser()
 		}
 	});
 
-	ui->lblStatus->setText(QString::fromStdString(m_usersNodePath));
-	m_rpcConection->callShvMethod(rqid, m_usersNodePath, "addUser", params);
+	ui->lblStatus->setText(QString::fromStdString(m_aclEtcUsersNodePath));
+	m_rpcConection->callShvMethod(rqid, m_aclEtcUsersNodePath, "addUser", params);
 }
 
 void DlgAddEditUser::callChangePassword()
@@ -230,13 +230,13 @@ void DlgAddEditUser::callCommitChanges()
 			}
 		});
 
-		m_rpcConection->callShvMethod(rqid, m_usersNodePath, "commitChanges");
+		m_rpcConection->callShvMethod(rqid, m_aclEtcUsersNodePath, "commitChanges");
 	}
 }
 
 std::string DlgAddEditUser::userShvPath()
 {
-	return m_usersNodePath + '/' + user().toStdString() + "/";
+	return m_aclEtcUsersNodePath + '/' + user().toStdString() + "/";
 }
 
 void DlgAddEditUser::showPasswordItems(bool visible)

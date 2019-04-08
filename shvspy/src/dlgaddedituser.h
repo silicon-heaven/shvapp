@@ -45,7 +45,7 @@ private:
 	DialogType m_dialogType;
 	int m_requestedRpcCallsCount = 0;
 	shv::iotqt::rpc::ClientConnection *m_rpcConection = nullptr;
-	const std::string &m_usersNodePath;
+	const std::string &m_aclEtcUsersNodePath;
 };
 
 #endif // DLGEDITUSER_H

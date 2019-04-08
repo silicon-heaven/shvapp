@@ -30,7 +30,7 @@ private:
 	void onTableUsersDoubleClicked(QModelIndex ix);
 
 	shv::iotqt::rpc::ClientConnection *m_rpcConection = nullptr;
-	std::string m_usersNodePath;
+	std::string m_aclEtcUsersNodePath;
 };
 
 #endif // DLGUSERSEDITOR_H
