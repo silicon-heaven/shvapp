@@ -47,7 +47,6 @@ DlgUsersEditor::~DlgUsersEditor()
 
 void DlgUsersEditor::init(const std::string &path)
 {
-	shvInfo() << path;
 	m_usersNodePath = path + "/etc/acl/users";
 	listUsers();
 }

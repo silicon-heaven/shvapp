@@ -123,6 +123,7 @@ bool BrokerUsersConfigFileNode::addUser(const shv::chainpack::RpcValue &params)
 	const cp::RpcValue grants = map.value("grants");
 	user["grants"] = (grants.isList()) ? grants.toList() : cp::RpcValue::List();
 	user["password"] = map.value("password").toStdString();
+	user["passwordFormat"] = "sha1";
 	users_config[user_name] = user;
 
 	m_values.set(user_name, user);
