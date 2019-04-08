@@ -295,6 +295,10 @@ QVariantMap LsState::paramsForShvPath(const QString &shv_path)
 					{key_text, QStringLiteral("..")},
 					{key_callback_data, "/ls " + parent_shv_path},
 				};
+		row << QVariantMap {
+					{key_text, QStringLiteral("/")},
+					{key_callback_data, "/ls"},
+				};
 		keyboard.insert(keyboard.length(), row);
 	}
 	const auto key_inline_keyboard = QStringLiteral("inline_keyboard");
