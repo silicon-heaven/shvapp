@@ -122,7 +122,8 @@ void DlgAddEditUser::callAddUser()
 		}
 	});
 
-//	m_rpcConection->callShvMethod(rqid, Application::BRCLAB_PROVIDER_USERS_PATH, "addUser", params);
+	ui->lblStatus->setText(QString::fromStdString(m_usersNodePath));
+	m_rpcConection->callShvMethod(rqid, m_usersNodePath, "addUser", params);
 }
 
 void DlgAddEditUser::callChangePassword()
