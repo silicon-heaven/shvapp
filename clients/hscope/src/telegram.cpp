@@ -297,7 +297,7 @@ QVariantMap LsState::paramsForShvPath(const QString &shv_path)
 				};
 		row << QVariantMap {
 					{key_text, QStringLiteral("/")},
-					{key_callback_data, "/ls"},
+					{key_callback_data, "/ls "},
 				};
 		keyboard.insert(keyboard.length(), row);
 	}
