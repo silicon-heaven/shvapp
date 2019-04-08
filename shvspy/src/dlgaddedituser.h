@@ -9,7 +9,7 @@
 #include <shv/iotqt/rpc/clientconnection.h>
 
 namespace Ui {
-class AddEditUserDialog;
+class DlgAddEditUser;
 }
 
 class DlgAddEditUser : public QDialog
@@ -18,7 +18,7 @@ class DlgAddEditUser : public QDialog
 
 public:
 	enum DialogType {DtAddUser = 0, DtEditUser, DtCount};
-	explicit DlgAddEditUser(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection,  DlgAddEditUser::DialogType dt = DialogType::DtAddUser);
+	explicit DlgAddEditUser(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &usersNodePath, DlgAddEditUser::DialogType dt = DialogType::DtAddUser);
 	~DlgAddEditUser() override;
 
 	DialogType dialogType();
@@ -37,13 +37,15 @@ private:
 	void callSetGrants();
 	void callGetGrants();
 	void callCommitChanges();
+	std::string userShvPath();
 
 	shv::chainpack::RpcValue::List grants();
 	void setGrants(const shv::chainpack::RpcValue::List &grants);
-	Ui::AddEditUserDialog *ui;
+	Ui::DlgAddEditUser *ui;
 	DialogType m_dialogType;
 	int m_requestedRpcCallsCount = 0;
 	shv::iotqt::rpc::ClientConnection *m_rpcConection = nullptr;
+	const std::string &m_usersNodePath;
 };
 
 #endif // DLGEDITUSER_H

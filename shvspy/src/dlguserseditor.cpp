@@ -1,11 +1,12 @@
 #include "dlguserseditor.h"
-#include "ui_userseditordialog.h"
+#include "ui_dlguserseditor.h"
 
 #include "dlgaddedituser.h"
 #include "theapp.h"
 
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
 #include <shv/chainpack/rpcvalue.h>
+#include <shv/core/log.h>
 
 #include <QDialogButtonBox>
 #include <QMessageBox>
@@ -13,7 +14,7 @@
 
 DlgUsersEditor::DlgUsersEditor(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection) :
 	QDialog(parent),
-	ui(new Ui::UsersEditorDialog)
+	ui(new Ui::DlgUsersEditor)
 {
 	ui->setupUi(this);
 
@@ -44,8 +45,10 @@ DlgUsersEditor::~DlgUsersEditor()
 	delete ui;
 }
 
-void DlgUsersEditor::init()
+void DlgUsersEditor::init(const std::string &path)
 {
+	shvInfo() << path;
+	m_usersNodePath = path + "/etc/acl/users";
 	listUsers();
 }
 
@@ -83,7 +86,7 @@ void DlgUsersEditor::listUsers()
 		}
 	});
 
-//	m_rpcConection->callShvMethod(rqid, Application::BRCLAB_PROVIDER_USERS_PATH, shv::chainpack::Rpc::METH_LS);
+	m_rpcConection->callShvMethod(rqid, m_usersNodePath, shv::chainpack::Rpc::METH_LS);
 }
 
 QString DlgUsersEditor::selectedUser()
@@ -93,7 +96,7 @@ QString DlgUsersEditor::selectedUser()
 
 void DlgUsersEditor::onAddUserClicked()
 {
-	DlgAddEditUser dlg(this, m_rpcConection, DlgAddEditUser::DtAddUser);
+	DlgAddEditUser dlg(this, m_rpcConection, m_usersNodePath, DlgAddEditUser::DtAddUser);
 	if (dlg.exec() == QDialog::Accepted){
 		listUsers();
 	}
@@ -128,7 +131,7 @@ void DlgUsersEditor::onDelUserClicked()
 			}
 		});
 
-//		m_rpcConection->callShvMethod(rqid, Application::BRCLAB_PROVIDER_USERS_PATH, "delUser", shv::chainpack::RpcValue::String(user.toStdString()));
+		m_rpcConection->callShvMethod(rqid, m_usersNodePath, "delUser", shv::chainpack::RpcValue::String(user.toStdString()));
 	}
 }
 
@@ -143,7 +146,7 @@ void DlgUsersEditor::onEditUserClicked()
 
 	ui->lblStatus->setText("");
 
-	DlgAddEditUser dlg(this, m_rpcConection, DlgAddEditUser::DtEditUser);
+	DlgAddEditUser dlg(this, m_rpcConection, m_usersNodePath, DlgAddEditUser::DtEditUser);
 	dlg.setUser(user);
 
 	if (dlg.exec() == QDialog::Accepted){

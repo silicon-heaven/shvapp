@@ -196,6 +196,10 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 		m.addAction(a_reloadNode);
 		m.addAction(a_subscribeNode);
 		m.addAction(a_callShvMethod);
+
+		if (nd->nodeId() == ".broker"){
+			m.addAction(a_usersEditor);
+		}
 	}
 	if(!m.actions().isEmpty()) {
 		QAction *a = m.exec(ui->treeServers->viewport()->mapToGlobal(pos));
@@ -226,8 +230,8 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 				if(nd) {
 					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
 
-					DlgCallShvMethod dlg(cc, this);
-					dlg.setShvPath(nd->shvPath());
+					DlgUsersEditor dlg(this, cc);
+					dlg.init(nd->shvPath());
 					dlg.exec();
 				}
 			}

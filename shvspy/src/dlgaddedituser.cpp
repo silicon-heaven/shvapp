@@ -1,12 +1,15 @@
 #include "dlgaddedituser.h"
-#include "ui_addedituserdialog.h"
+#include "ui_dlgaddedituser.h"
 
 #include "theapp.h"
 
+#include <QCryptographicHash>
 
-DlgAddEditUser::DlgAddEditUser(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, DlgAddEditUser::DialogType dt) :
+
+DlgAddEditUser::DlgAddEditUser(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &usersNodePath, DlgAddEditUser::DialogType dt) :
 	QDialog(parent),
-	ui(new Ui::AddEditUserDialog)
+	ui(new Ui::DlgAddEditUser),
+	m_usersNodePath(usersNodePath)
 {
 	ui->setupUi(this);
 	m_dialogType = dt;
@@ -34,6 +37,13 @@ DlgAddEditUser::DlgAddEditUser(QWidget *parent, shv::iotqt::rpc::ClientConnectio
 DlgAddEditUser::~DlgAddEditUser()
 {
 	delete ui;
+}
+
+static std::string sha1_hex(const std::string &s)
+{
+	QCryptographicHash hash(QCryptographicHash::Algorithm::Sha1);
+	hash.addData(s.data(), s.length());
+	return std::string(hash.result().toHex().constData());
 }
 
 DlgAddEditUser::DialogType DlgAddEditUser::dialogType()
@@ -69,7 +79,7 @@ void DlgAddEditUser::accept()
 		}
 	}
 	else if (dialogType() == DtEditUser){
-		ui->lblStatus->setText(tr("Updating user ..."));
+		ui->lblStatus->setText(tr("Updating user ...") + QString::fromStdString(m_usersNodePath));
 		if (!password().isEmpty()){
 			callChangePassword();
 		}
@@ -82,7 +92,7 @@ void DlgAddEditUser::onShowPasswordClicked()
 {
 	bool password_mode = (ui->lePassword->echoMode() == QLineEdit::EchoMode::Password);
 	ui->lePassword->setEchoMode((password_mode) ? QLineEdit::EchoMode::Normal : QLineEdit::EchoMode::Password);
-	ui->tbShowPassword->setIcon((password_mode) ? QIcon(":/images/hide.svg") : QIcon(":/images/show.svg"));
+	ui->tbShowPassword->setIcon((password_mode) ? QIcon(":/shvspy/images/hide.svg") : QIcon(":/shvspy/images/show.svg"));
 }
 
 void DlgAddEditUser::callAddUser()
@@ -92,7 +102,7 @@ void DlgAddEditUser::callAddUser()
 
 	shv::chainpack::RpcValue::Map params;
 	params["user"] = user().toStdString();
-	params["password"] = "";//TheApp::sha1Hex(password().toStdString());
+	params["password"] = sha1_hex(password().toStdString());
 	params["grants"] = grants();
 
 	int rqid = m_rpcConection->nextRequestId();
@@ -140,8 +150,7 @@ void DlgAddEditUser::callChangePassword()
 		}
 	});
 
-//	std::string path = Application::BRCLAB_PROVIDER_USERS_PATH + '/' + user().toStdString() + "/";
-//	m_rpcConection->callShvMethod(rqid, path + "password", "set", Application::sha1Hex(password().toStdString()));
+	m_rpcConection->callShvMethod(rqid, userShvPath() + "password", "set", sha1_hex(password().toStdString()));
 }
 
 void DlgAddEditUser::callSetGrants()
@@ -169,9 +178,7 @@ void DlgAddEditUser::callSetGrants()
 		}
 	});
 
-//	std::string path = Application::BRCLAB_PROVIDER_USERS_PATH + '/' + user().toStdString() + "/";
-//	m_rpcConection->callShvMethod(rqid, path + "grants", "set", grants());
-
+	m_rpcConection->callShvMethod(rqid, userShvPath() + "grants", "set", grants());
 }
 
 void DlgAddEditUser::callGetGrants()
@@ -199,8 +206,7 @@ void DlgAddEditUser::callGetGrants()
 		}
 	});
 
-//	std::string path = Application::BRCLAB_PROVIDER_USERS_PATH + '/' + user().toStdString() + "/";
-//	m_rpcConection->callShvMethod(rqid, path + "grants", "get");
+	m_rpcConection->callShvMethod(rqid, userShvPath() + "grants", "get");
 }
 
 void DlgAddEditUser::callCommitChanges()
@@ -223,8 +229,13 @@ void DlgAddEditUser::callCommitChanges()
 			}
 		});
 
-//		m_rpcConection->callShvMethod(rqid, Application::BRCLAB_PROVIDER_USERS_PATH, "commitChanges");
+		m_rpcConection->callShvMethod(rqid, m_usersNodePath, "commitChanges");
 	}
+}
+
+std::string DlgAddEditUser::userShvPath()
+{
+	return m_usersNodePath + '/' + user().toStdString() + "/";
 }
 
 void DlgAddEditUser::showPasswordItems(bool visible)

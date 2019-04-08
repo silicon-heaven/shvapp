@@ -74,12 +74,25 @@
         <item>
          <layout class="QVBoxLayout" name="verticalLayout">
           <item>
-           <widget class="QLineEdit" name="leUserName"/>
+           <widget class="QLineEdit" name="leUserName">
+            <property name="font">
+             <font>
+              <weight>50</weight>
+              <bold>false</bold>
+             </font>
+            </property>
+           </widget>
           </item>
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout">
             <item>
              <widget class="QLineEdit" name="lePassword">
+              <property name="font">
+               <font>
+                <weight>50</weight>
+                <bold>false</bold>
+               </font>
+              </property>
               <property name="echoMode">
                <enum>QLineEdit::Password</enum>
               </property>
@@ -94,8 +107,8 @@
                <string/>
               </property>
               <property name="icon">
-               <iconset>
-                <normaloff>:/images/show.svg</normaloff>:/images/show.svg</iconset>
+               <iconset resource="../shvspy.qrc">
+                <normaloff>:/shvspy/images/show.svg</normaloff>:/shvspy/images/show.svg</iconset>
               </property>
              </widget>
             </item>
@@ -115,7 +128,14 @@
            </layout>
           </item>
           <item>
-           <widget class="QLineEdit" name="leGrants"/>
+           <widget class="QLineEdit" name="leGrants">
+            <property name="font">
+             <font>
+              <weight>50</weight>
+              <bold>false</bold>
+             </font>
+            </property>
+           </widget>
           </item>
          </layout>
         </item>
@@ -136,6 +156,12 @@
       </item>
       <item>
        <widget class="QLabel" name="lblStatus">
+        <property name="font">
+         <font>
+          <weight>50</weight>
+          <bold>false</bold>
+         </font>
+        </property>
         <property name="text">
          <string/>
         </property>
@@ -156,7 +182,9 @@
    </item>
   </layout>
  </widget>
- <resources/>
+ <resources>
+  <include location="../shvspy.qrc"/>
+ </resources>
  <connections>
   <connection>
    <sender>buttonBox</sender>

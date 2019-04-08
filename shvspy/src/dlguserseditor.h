@@ -6,7 +6,7 @@
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
 
 namespace Ui {
-class UsersEditorDialog;
+class DlgUsersEditor;
 }
 
 class DlgUsersEditor : public QDialog
@@ -16,10 +16,10 @@ class DlgUsersEditor : public QDialog
 public:
 	explicit DlgUsersEditor(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection);
 	~DlgUsersEditor();
-	void init();
+	void init(const std::string &path);
 
 private:
-	Ui::UsersEditorDialog *ui;
+	Ui::DlgUsersEditor *ui;
 
 	void listUsers();
 	QString selectedUser();
@@ -30,6 +30,7 @@ private:
 	void onTableUsersDoubleClicked(QModelIndex ix);
 
 	shv::iotqt::rpc::ClientConnection *m_rpcConection = nullptr;
+	std::string m_usersNodePath;
 };
 
 #endif // DLGUSERSEDITOR_H
