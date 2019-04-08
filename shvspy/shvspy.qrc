@@ -21,5 +21,9 @@
 		<file>images/fit-width.svg</file>
 
 		<file>images/shvspy.svg</file>
+
+		<file>images/hide.svg</file>
+		<file>images/show.svg</file>
+
 	</qresource>
 </RCC>
