@@ -18,7 +18,7 @@ class DlgAddEditUser : public QDialog
 
 public:
 	enum DialogType {DtAddUser = 0, DtEditUser, DtCount};
-	explicit DlgAddEditUser(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &usersNodePath, DlgAddEditUser::DialogType dt = DialogType::DtAddUser);
+	explicit DlgAddEditUser(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_users_node_path, DlgAddEditUser::DialogType dt = DialogType::DtAddUser);
 	~DlgAddEditUser() override;
 
 	DialogType dialogType();

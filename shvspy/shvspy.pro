@@ -53,3 +53,9 @@ RESOURCES += \
 	$${TARGET}.qrc \
 
 include (src/src.pri)
+
+FORMS +=
+
+HEADERS +=
+
+SOURCES +=
