@@ -312,11 +312,29 @@ QVariantMap LsState::paramsForShvPath(const QString &shv_path)
 
 	if(hnd) {
 		const NodeStatus node_status = hnd->status();
-		ret.set_text(tr("Status of node: _%1:_ [%2] %3")
-					 .arg(shv_path)
-					 .arg(NodeStatus::valueToStringAbbr(node_status.value))
-					 .arg(node_status.message.c_str())
-					 );
+		if(HNodeTest *ndtst = qobject_cast<HNodeTest*>(hnd)) {
+			ret.set_text(tr("Status of test: _%1:_ [%2] %3\nrecent run: %4\nnext run: %5")
+						 .arg(shv_path)
+						 .arg(NodeStatus::valueToStringAbbr(node_status.value))
+						 .arg(node_status.message.c_str())
+						 .arg(ndtst->recentRun().toCpon().c_str())
+						 .arg(ndtst->nextRun().toCpon().c_str())
+						 );
+		}
+		else {
+			if(node_status.value == NodeStatus::Value::Unknown) {
+				ret.set_text(tr("Node: _%1:_")
+							 .arg(shv_path)
+							 );
+			}
+			else {
+				ret.set_text(tr("Status of node: _%1:_ [%2] %3")
+							 .arg(shv_path)
+							 .arg(NodeStatus::valueToStringAbbr(node_status.value))
+							 .arg(node_status.message.c_str())
+							 );
+			}
+		}
 	}
 	else {
 		ret.set_text(tr("Holy Root"));

@@ -136,7 +136,7 @@ cp::RpcValue AppRootNode::callMethod(const StringViewList &shv_path, const std::
 		return true;
 	}
 	else if (method == METH_SITES_TIME) {
-		return toRpcDateTime(m_sitesTime);
+		return cp::RpcValue::fromValue(m_sitesTime);
 	}
 	return Super::callMethod(shv_path, method, params);
 }
@@ -264,7 +264,7 @@ cp::RpcValue AppRootNode::ls(const shv::core::StringViewList &shv_path, size_t i
 				items.push_back(file_info.fileName().toStdString());
 			}
 		}
-		return items;
+		return cp::RpcValue(items);
 	}
 	std::string key = shv_path[index].toString();
 	if (object.hasKey(key)) {

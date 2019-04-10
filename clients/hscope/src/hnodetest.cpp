@@ -8,7 +8,9 @@
 #include <shv/iotqt/utils/shvpath.h>
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
+#include <shv/iotqt/rpc/rpc.h>
 
+#include <QDateTime>
 #include <QCryptographicHash>
 #include <QFile>
 #include <QTimer>
@@ -23,6 +25,8 @@ static const char KEY_SCRIPT[] = "script";
 static const char KEY_ENV[] = "env";
 
 static const char METH_RUN_TEST[] = "runTest";
+static const char METH_RECENT_RUN[] = "recentRun";
+static const char METH_NEXT_RUN[] = "nextRun";
 
 static std::vector<cp::MetaMethod> meta_methods;
 static std::vector<cp::MetaMethod> meta_methods_extra {
@@ -59,6 +63,7 @@ void HNodeTest::load()
 	m_disabled = configValueOnPath(KEY_DISABLED).toBool();
 	if(m_disabled) {
 		logTest() << "\t" << "disabled";
+		m_nextRun = cp::RpcValue();
 		m_runTimer->stop();
 		setStatus(NodeStatus{NodeStatus::Value::Ok, "Test disabled"});
 		return;
@@ -85,9 +90,13 @@ void HNodeTest::load()
 	logTest() << "\t" << "setting interval to:" << interval << "sec";
 	if(interval == 0) {
 		/// run test just once
+		m_nextRun = cp::RpcValue();
 		m_runTimer->stop();
 	}
 	else {
+		cp::RpcValue::DateTime dt = cp::RpcValue::fromValue(QDateTime::currentDateTime()).toDateTime();
+		dt.setMsecsSinceEpoch(dt.msecsSinceEpoch() + interval * 1000);
+		m_nextRun = dt;
 		m_runTimer->start(interval * 1000);
 	}
 	QTimer::singleShot(0, this, &HNodeTest::runTestFirstTime);
@@ -101,6 +110,12 @@ shv::chainpack::RpcValue HNodeTest::callMethodRq(const shv::chainpack::RpcReques
 		if(method == METH_RUN_TEST) {
 			runTest(rq, USE_SCRIPT_CACHE);
 			return cp::RpcValue();
+		}
+		if(method == METH_RECENT_RUN) {
+			return m_recentRun.isValid()? m_recentRun: cp::RpcValue(nullptr);
+		}
+		if(method == METH_NEXT_RUN) {
+			return m_nextRun.isValid()? m_nextRun: cp::RpcValue(nullptr);
 		}
 	}
 	return Super::callMethodRq(rq);
@@ -137,11 +152,9 @@ void HNodeTest::runTestSafe()
 
 void HNodeTest::runTest(const shv::chainpack::RpcRequest &rq, bool use_script_cache)
 {
-	static int s_test_no = 0;
-	int test_no = ++s_test_no;
-
+	int test_no = m_runCount++;
+	m_recentRun = cp::RpcValue::fromValue(QDateTime::currentDateTime());
 	logTest() << test_no << "Running test:" << shvPath() << "use_script_cache:" << use_script_cache << "rq:" << rq.toCpon();
-	m_runCount++;
 	HNodeAgent *agnd = agentNode();
 	if(!agnd)
 		SHV_EXCEPTION("Parent agent node missing!");
