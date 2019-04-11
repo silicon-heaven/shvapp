@@ -2,6 +2,7 @@
 #include "hscopeapp.h"
 #include "appclioptions.h"
 #include "hnodebroker.h"
+#include "hnodeagent.h"
 #include "confignode.h"
 
 #include <shv/coreqt/log.h>
@@ -194,6 +195,11 @@ shv::iotqt::rpc::DeviceConnection *HNode::appRpcConnection()
 HNodeBroker *HNode::parentBrokerNode()
 {
 	return findParent<HNodeBroker *>();
+}
+
+HNodeAgent *HNode::parentAgentNode()
+{
+	return findParent<HNodeAgent *>();
 }
 
 std::vector<std::string> HNode::lsConfigDir()

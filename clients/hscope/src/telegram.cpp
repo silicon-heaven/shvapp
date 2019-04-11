@@ -3,11 +3,13 @@
 #include "appclioptions.h"
 #include "hnode.h"
 #include "hnodetest.h"
+#include "hnodeagent.h"
 
 #include <shv/chainpack/rpcvalue.h>
 #include <shv/coreqt/log.h>
 #include <shv/iotqt/node/shvnodetree.h>
 #include <shv/iotqt/node/shvnode.h>
+#include <shv/iotqt/rpc/rpc.h>
 
 #include <QNetworkReply>
 #include <QNetworkRequest>
@@ -16,6 +18,7 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QVariantMap>
+#include <QTimeZone>
 
 #define logTelegram() shvCDebug("Telegram")
 
@@ -64,6 +67,13 @@ void Telegram::onAlertStatusChanged(const std::string &shv_path, const NodeStatu
 QString Telegram::apiToken()
 {
 	return QString::fromStdString(m_configNode->valueOnPath("apiToken", !shv::core::Exception::Throw).toString());
+}
+
+QTimeZone Telegram::peerTimeZone(int peer_id) const
+{
+	Q_UNUSED(peer_id);
+	static QTimeZone tz("Europe/Prague");
+	return tz;
 }
 
 
@@ -161,7 +171,7 @@ void Telegram::processUpdates(const QJsonValue &response)
 				sendNodeStatus(peer_id, st, "brokers");
 			}
 			else if(text == QLatin1String("/ls")) {
-				LsState ls_state;
+				LsState ls_state(peerTimeZone(peer_id));
 				QString shv_path = text.section(' ', 1).trimmed();
 				SendMessage msg(ls_state.paramsForShvPath(shv_path));
 				msg.set_chat_id(peer_id);
@@ -174,6 +184,8 @@ void Telegram::processUpdates(const QJsonValue &response)
 			const auto key_callback_query_id = QStringLiteral("callback_query_id");
 			QString callback_query_id = callback_query.value(QStringLiteral("id")).toString();
 			QJsonValue data = callback_query.value("data");
+			QJsonObject from = callback_query.value("from").toObject();
+			int peer_id = from.value("id").toInt();
 			logTelegram() << "callback_query_id:" << callback_query_id << "data:" << data.toString();
 			{
 				QVariantMap params;
@@ -186,7 +198,7 @@ void Telegram::processUpdates(const QJsonValue &response)
 				QString shv_path = command.mid(4);
 				while(shv_path.startsWith('/'))
 					shv_path = shv_path.mid(1);
-				LsState ls_state;
+				LsState ls_state(peerTimeZone(peer_id));
 				QVariantMap params = ls_state.paramsForShvPath(shv_path);
 				QJsonObject message = callback_query.value("message").toObject();
 				QJsonObject chat = message.value("chat").toObject();
@@ -234,7 +246,8 @@ void Telegram::sendNodeStatus(int peer_id, const NodeStatus &status, const std::
 //================================================================
 // LsState
 //================================================================
-LsState::LsState()
+LsState::LsState(const QTimeZone &time_zone)
+	: m_timeZone(time_zone)
 {
 	//setObjectName(QString::number(chat_id));
 	//m_autoDestroyTimer = new QTimer(this);
@@ -313,12 +326,13 @@ QVariantMap LsState::paramsForShvPath(const QString &shv_path)
 	if(hnd) {
 		const NodeStatus node_status = hnd->status();
 		if(HNodeTest *ndtst = qobject_cast<HNodeTest*>(hnd)) {
+			shv::chainpack::RpcValue rec_run = ndtst->recentRun();
 			ret.set_text(tr("Status of test: _%1:_ [%2] %3\nrecent run: %4\nnext run: %5")
 						 .arg(shv_path)
 						 .arg(NodeStatus::valueToStringAbbr(node_status.value))
 						 .arg(node_status.message.c_str())
-						 .arg(ndtst->recentRun().toCpon().c_str())
-						 .arg(ndtst->nextRun().toCpon().c_str())
+						 .arg(formatDateTime(ndtst->recentRun()))
+						 .arg(formatDateTime(ndtst->nextRun()))
 						 );
 		}
 		else {
@@ -340,4 +354,17 @@ QVariantMap LsState::paramsForShvPath(const QString &shv_path)
 		ret.set_text(tr("Holy Root"));
 	}
 	return QVariantMap(ret);
+}
+
+QString LsState::formatDateTime(const shv::chainpack::RpcValue &rpcdt)
+{
+	if(rpcdt.isDateTime()) {
+		shv::chainpack::RpcValue::DateTime rt = rpcdt.toDateTime();
+		QDateTime qdt = QDateTime::fromMSecsSinceEpoch(rt.msecsSinceEpoch(), m_timeZone);
+		rt.setUtcOffsetMin(qdt.offsetFromUtc() / 60);
+		return QString::fromStdString(rt.toIsoString(cp::RpcValue::DateTime::MsecPolicy::Never, true));
+	}
+	else {
+		return QString();
+	}
 }

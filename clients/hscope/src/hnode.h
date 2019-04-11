@@ -6,7 +6,7 @@
 namespace shv { namespace iotqt { namespace rpc { class DeviceConnection; }}}
 
 class ConfigNode;
-//class HNodeAgent;
+class HNodeAgent;
 class HNodeBroker;
 
 struct NodeStatus
@@ -55,10 +55,10 @@ public:
 
 	shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params) override;
 	//using Super::callMethod;
+	HNodeAgent* parentAgentNode();
 protected:
 	shv::iotqt::rpc::DeviceConnection *appRpcConnection();
 	HNodeBroker* parentBrokerNode();
-	//HNodeAgent* agentNode();
 	template<class T>
 	T findParent()
 	{

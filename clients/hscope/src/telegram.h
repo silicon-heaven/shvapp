@@ -6,6 +6,7 @@
 
 #include <QObject>
 #include <QCoreApplication>
+#include <QTimeZone>
 
 class QNetworkAccessManager;
 class QNetworkReply;
@@ -45,6 +46,8 @@ public:
 private:
 	QString apiToken();
 
+	QTimeZone peerTimeZone(int peer_id) const;
+
 	void getUpdates();
 	void processUpdates(const QJsonValue &response);
 
@@ -67,9 +70,13 @@ class LsState
 {
 	Q_DECLARE_TR_FUNCTIONS(LsState)
 public:
-	explicit LsState();
+	explicit LsState(const QTimeZone &time_zone);
 
 	QVariantMap paramsForShvPath(const QString &shv_path);
+private:
+	QString formatDateTime(const shv::chainpack::RpcValue &rpcdt);
+private:
+	QTimeZone m_timeZone;
 };
 
 #endif // TELEGRAM_H
