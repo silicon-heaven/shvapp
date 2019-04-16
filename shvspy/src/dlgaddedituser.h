@@ -44,7 +44,7 @@ private:
 	Ui::DlgAddEditUser *ui;
 	DialogType m_dialogType;
 	int m_requestedRpcCallsCount = 0;
-	shv::iotqt::rpc::ClientConnection *m_rpcConection = nullptr;
+	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
 	const std::string &m_aclEtcUsersNodePath;
 };
 

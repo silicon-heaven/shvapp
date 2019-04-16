@@ -54,8 +54,3 @@ RESOURCES += \
 
 include (src/src.pri)
 
-FORMS +=
-
-HEADERS +=
-
-SOURCES +=

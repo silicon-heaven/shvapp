@@ -74,7 +74,7 @@ void DlgGrantsEditor::onDelGrantClicked()
 		cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 			if(response.isValid()){
 				if(response.isError()) {
-					ui->lblStatus->setText(tr("Failed to delete user.") + " " + QString::fromStdString(response.error().toString()));
+					ui->lblStatus->setText(tr("Failed to delete grant.") + " " + QString::fromStdString(response.error().toString()));
 				}
 				else{
 					listGrants();
@@ -129,7 +129,7 @@ void DlgGrantsEditor::listGrants()
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if(response.isValid()){
 			if(response.isError()) {
-				ui->lblStatus->setText(tr("Failed to load users.") + " " + QString::fromStdString(response.error().toString()));
+				ui->lblStatus->setText(tr("Failed to load grants.") + " " + QString::fromStdString(response.error().toString()));
 			}
 			else{
 				if (response.result().isList()){

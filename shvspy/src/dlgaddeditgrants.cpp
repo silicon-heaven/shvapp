@@ -17,11 +17,11 @@ DlgAddEditGrants::DlgAddEditGrants(QWidget *parent, shv::iotqt::rpc::ClientConne
 
 	ui->leGrantName->setEnabled(!edit_mode);
 	ui->groupBox->setTitle(edit_mode ? tr("Edit grant") : tr("New grant"));
-	setWindowTitle(edit_mode ? tr("Edit grants dialog") : tr("New grant dialog"));
+	setWindowTitle(edit_mode ? tr("Edit grant dialog") : tr("New grant dialog"));
 
-	m_rpcConection = rpc_connection;
+	m_rpcConnection = rpc_connection;
 
-	if(m_rpcConection == nullptr){
+	if(m_rpcConnection == nullptr){
 		ui->lblStatus->setText(tr("Connection to shv does not exist."));
 	}
 }
@@ -38,10 +38,14 @@ DlgAddEditGrants::DialogType DlgAddEditGrants::dialogType()
 
 void DlgAddEditGrants::init(const QString &grant_name)
 {
+	if(m_rpcConnection == nullptr){
+		return;
+	}
+
 	ui->leGrantName->setText(grant_name);
 
-	int rqid = m_rpcConection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConection, rqid, this);
+	int rqid = m_rpcConnection->nextRequestId();
+	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if (response.isValid()){
@@ -68,7 +72,7 @@ void DlgAddEditGrants::init(const QString &grant_name)
 		}
 	});
 
-	m_rpcConection->callShvMethod(rqid, grantNameShvPath(), "ls");
+	m_rpcConnection->callShvMethod(rqid, grantNameShvPath(), "ls");
 }
 
 QString DlgAddEditGrants::grantName()
@@ -88,19 +92,19 @@ void DlgAddEditGrants::accept()
 		}
 	}
 	else if (dialogType() == DtEdit){
-		callEditUser();
+		callEditGrant();
 	}
 }
 
 void DlgAddEditGrants::callAddGrant()
 {
-	if (m_rpcConection == nullptr)
+	if (m_rpcConnection == nullptr)
 		return;
 
 	shv::chainpack::RpcValue::Map params = createParamsMap();
 
-	int rqid = m_rpcConection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConection, rqid, this);
+	int rqid = m_rpcConnection->nextRequestId();
+	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if (response.isValid()){
@@ -117,18 +121,18 @@ void DlgAddEditGrants::callAddGrant()
 	});
 
 	ui->lblStatus->setText(QString::fromStdString(m_aclEtcGrantsNodePath));
-	m_rpcConection->callShvMethod(rqid, m_aclEtcGrantsNodePath, "addGrant", params);
+	m_rpcConnection->callShvMethod(rqid, m_aclEtcGrantsNodePath, "addGrant", params);
 }
 
 void DlgAddEditGrants::callGetGrants()
 {
-	if (m_rpcConection == nullptr)
+	if (m_rpcConnection == nullptr)
 		return;
 
 	ui->lblStatus->setText(tr("Getting settings ..."));
 
-	int rqid = m_rpcConection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConection, rqid, this);
+	int rqid = m_rpcConnection->nextRequestId();
+	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if(response.isValid()){
@@ -145,18 +149,18 @@ void DlgAddEditGrants::callGetGrants()
 		}
 	});
 
-	m_rpcConection->callShvMethod(rqid, grantNameShvPath() + GRANTS, "get");
+	m_rpcConnection->callShvMethod(rqid, grantNameShvPath() + GRANTS, "get");
 }
 
 void DlgAddEditGrants::callGetWeight()
 {
-	if (m_rpcConection == nullptr)
+	if (m_rpcConnection == nullptr)
 		return;
 
 	ui->lblStatus->setText(tr("Getting settings ..."));
 
-	int rqid = m_rpcConection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConection, rqid, this);
+	int rqid = m_rpcConnection->nextRequestId();
+	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if(response.isValid()){
@@ -173,18 +177,18 @@ void DlgAddEditGrants::callGetWeight()
 		}
 	});
 
-	m_rpcConection->callShvMethod(rqid, grantNameShvPath() + WEIGHT, "get");
+	m_rpcConnection->callShvMethod(rqid, grantNameShvPath() + WEIGHT, "get");
 }
 
-void DlgAddEditGrants::callEditUser()
+void DlgAddEditGrants::callEditGrant()
 {
-	if (m_rpcConection == nullptr)
+	if (m_rpcConnection == nullptr)
 		return;
 
 	shv::chainpack::RpcValue::Map params = createParamsMap();
 
-	int rqid = m_rpcConection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConection, rqid, this);
+	int rqid = m_rpcConnection->nextRequestId();
+	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if (response.isValid()){
@@ -201,7 +205,7 @@ void DlgAddEditGrants::callEditUser()
 	});
 
 	ui->lblStatus->setText(QString::fromStdString(m_aclEtcGrantsNodePath));
-	m_rpcConection->callShvMethod(rqid, m_aclEtcGrantsNodePath, "editGrant", params);
+	m_rpcConnection->callShvMethod(rqid, m_aclEtcGrantsNodePath, "editGrant", params);
 }
 
 std::string DlgAddEditGrants::grantNameShvPath()

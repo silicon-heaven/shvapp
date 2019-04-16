@@ -34,7 +34,7 @@ private:
 	void callGetGrants();
 	void callSetWeight();
 	void callGetWeight();
-	void callEditUser();
+	void callEditGrant();
 	std::string grantNameShvPath();
 
 	shv::chainpack::RpcValue::Map createParamsMap();
@@ -42,7 +42,7 @@ private:
 	void setGrants(const shv::chainpack::RpcValue::List &grants);
 	Ui::DlgAddEditGrants *ui;
 	DialogType m_dialogType;
-	shv::iotqt::rpc::ClientConnection *m_rpcConection = nullptr;
+	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
 	const std::string &m_aclEtcGrantsNodePath;
 };
 

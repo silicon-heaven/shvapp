@@ -20,9 +20,9 @@ DlgAddEditUser::DlgAddEditUser(QWidget *parent, shv::iotqt::rpc::ClientConnectio
 	ui->groupBox->setTitle(edit_mode ? tr("Edit user") : tr("New user"));
 	setWindowTitle(edit_mode ? tr("Edit user dialog") : tr("New user dialog"));
 
-	m_rpcConection = rpc_connection;
+	m_rpcConnection = rpc_connection;
 
-	if(m_rpcConection == nullptr){
+	if(m_rpcConnection == nullptr){
 		ui->lblStatus->setText(tr("Connection to shv does not exist."));
 	}
 
@@ -97,7 +97,7 @@ void DlgAddEditUser::onShowPasswordClicked()
 
 void DlgAddEditUser::callAddUser()
 {
-	if (m_rpcConection == nullptr)
+	if (m_rpcConnection == nullptr)
 		return;
 
 	shv::chainpack::RpcValue::Map params;
@@ -105,8 +105,8 @@ void DlgAddEditUser::callAddUser()
 	params["password"] = sha1_hex(password().toStdString());
 	params["grants"] = grants();
 
-	int rqid = m_rpcConection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConection, rqid, this);
+	int rqid = m_rpcConnection->nextRequestId();
+	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if (response.isValid()){
@@ -123,18 +123,18 @@ void DlgAddEditUser::callAddUser()
 	});
 
 	ui->lblStatus->setText(QString::fromStdString(m_aclEtcUsersNodePath));
-	m_rpcConection->callShvMethod(rqid, m_aclEtcUsersNodePath, "addUser", params);
+	m_rpcConnection->callShvMethod(rqid, m_aclEtcUsersNodePath, "addUser", params);
 }
 
 void DlgAddEditUser::callChangePassword()
 {
-	if (m_rpcConection == nullptr)
+	if (m_rpcConnection == nullptr)
 		return;
 
 	m_requestedRpcCallsCount++;
 
-	int rqid = m_rpcConection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConection, rqid, this);
+	int rqid = m_rpcConnection->nextRequestId();
+	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if (response.isValid()){
@@ -151,18 +151,18 @@ void DlgAddEditUser::callChangePassword()
 		}
 	});
 
-	m_rpcConection->callShvMethod(rqid, userShvPath() + "password", "set", sha1_hex(password().toStdString()));
+	m_rpcConnection->callShvMethod(rqid, userShvPath() + "password", "set", sha1_hex(password().toStdString()));
 }
 
 void DlgAddEditUser::callSetGrants()
 {
-	if (m_rpcConection == nullptr)
+	if (m_rpcConnection == nullptr)
 		return;
 
 	m_requestedRpcCallsCount++;
 
-	int rqid = m_rpcConection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConection, rqid, this);
+	int rqid = m_rpcConnection->nextRequestId();
+	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if (response.isValid()){
@@ -179,18 +179,18 @@ void DlgAddEditUser::callSetGrants()
 		}
 	});
 
-	m_rpcConection->callShvMethod(rqid, userShvPath() + "grants", "set", grants());
+	m_rpcConnection->callShvMethod(rqid, userShvPath() + "grants", "set", grants());
 }
 
 void DlgAddEditUser::callGetGrants()
 {
-	if (m_rpcConection == nullptr)
+	if (m_rpcConnection == nullptr)
 		return;
 
 	ui->lblStatus->setText(tr("Getting settings ..."));
 
-	int rqid = m_rpcConection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConection, rqid, this);
+	int rqid = m_rpcConnection->nextRequestId();
+	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if(response.isValid()){
@@ -207,14 +207,14 @@ void DlgAddEditUser::callGetGrants()
 		}
 	});
 
-	m_rpcConection->callShvMethod(rqid, userShvPath() + "grants", "get");
+	m_rpcConnection->callShvMethod(rqid, userShvPath() + "grants", "get");
 }
 
 void DlgAddEditUser::callCommitChanges()
 {
-	if ((m_requestedRpcCallsCount == 0) && (m_rpcConection != nullptr)){
-		int rqid = m_rpcConection->nextRequestId();
-		shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConection, rqid, this);
+	if ((m_requestedRpcCallsCount == 0) && (m_rpcConnection != nullptr)){
+		int rqid = m_rpcConnection->nextRequestId();
+		shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 		cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 			if(response.isValid()){
@@ -230,7 +230,7 @@ void DlgAddEditUser::callCommitChanges()
 			}
 		});
 
-		m_rpcConection->callShvMethod(rqid, m_aclEtcUsersNodePath, "commitChanges");
+		m_rpcConnection->callShvMethod(rqid, m_aclEtcUsersNodePath, "commitChanges");
 	}
 }
 

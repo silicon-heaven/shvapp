@@ -29,7 +29,7 @@ private:
 	void onEditUserClicked();
 	void onTableUsersDoubleClicked(QModelIndex ix);
 
-	shv::iotqt::rpc::ClientConnection *m_rpcConection = nullptr;
+	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
 	std::string m_aclEtcUsersNodePath;
 };
 

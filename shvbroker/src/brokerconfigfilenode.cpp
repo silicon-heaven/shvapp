@@ -9,6 +9,11 @@
 
 namespace cp = shv::chainpack;
 
+static const std::string GRANTS = "grants";
+static const std::string WEIGHT = "weight";
+static const std::string GRANT_NAME = "grantName";
+
+
 //========================================================
 // EtcAclNode
 //========================================================
@@ -122,12 +127,12 @@ shv::chainpack::RpcValue BrokerGrantsConfigFileNode::callMethod(const shv::iotqt
 
 bool BrokerGrantsConfigFileNode::addGrant(const shv::chainpack::RpcValue &params)
 {
-	if (!params.isMap() || !params.toMap().hasKey("grantName")){
-		SHV_EXCEPTION("Invalid parameters format. Params must be a map and it must contains key: grantName.");
+	if (!params.isMap() || !params.toMap().hasKey(GRANT_NAME)){
+		SHV_EXCEPTION("Invalid parameters format. Params must be a RpcValue::Map and it must contains key: grantName.");
 	}
 
 	cp::RpcValue::Map map = params.toMap();
-	std::string grant_name = map.value("grantName").toStdString();
+	std::string grant_name = map.value(GRANT_NAME).toStdString();
 
 	cp::RpcValue::Map grants_config = values().toMap();
 
@@ -137,16 +142,22 @@ bool BrokerGrantsConfigFileNode::addGrant(const shv::chainpack::RpcValue &params
 
 	cp::RpcValue::Map new_grant;
 
-	if (map.hasKey("grants")){
-		const cp::RpcValue grants = map.value("grants");
+	if (map.hasKey(GRANTS)){
+		const cp::RpcValue grants = map.value(GRANTS);
 		if (grants.isList()){
-			new_grant["grants"] = grants;
+			new_grant[GRANTS] = grants;
+		}
+		else{
+			SHV_EXCEPTION("Invalid parameters format. Param grants must be a RpcValue::List.");
 		}
 	}
-	if (map.hasKey("weight")){
-		const cp::RpcValue weight = map.value("weight");
+	if (map.hasKey(WEIGHT)){
+		const cp::RpcValue weight = map.value(WEIGHT);
 		if (weight.isInt()){
-			new_grant["weight"] = weight;
+			new_grant[WEIGHT] = weight;
+		}
+		else{
+			SHV_EXCEPTION("Invalid parameters format. Param weight must be a RpcValue::Int.");
 		}
 	}
 
@@ -158,12 +169,12 @@ bool BrokerGrantsConfigFileNode::addGrant(const shv::chainpack::RpcValue &params
 
 bool BrokerGrantsConfigFileNode::editGrant(const shv::chainpack::RpcValue &params)
 {
-	if (!params.isMap() || !params.toMap().hasKey("grantName")){
+	if (!params.isMap() || !params.toMap().hasKey(GRANT_NAME)){
 		SHV_EXCEPTION("Invalid parameters format. Params must be a RpcValue::Map and it must contains key: grantName.");
 	}
 
 	cp::RpcValue::Map params_map = params.toMap();
-	std::string grant_name = params_map.value("grantName").toStdString();
+	std::string grant_name = params_map.value(GRANT_NAME).toStdString();
 
 	cp::RpcValue::Map grants_config = values().toMap();
 
@@ -173,19 +184,19 @@ bool BrokerGrantsConfigFileNode::editGrant(const shv::chainpack::RpcValue &param
 
 	cp::RpcValue::Map new_grant;
 
-	if (params_map.hasKey("grants")){
-		const cp::RpcValue grants = params_map.value("grants");
+	if (params_map.hasKey(GRANTS)){
+		const cp::RpcValue grants = params_map.value(GRANTS);
 		if (grants.isList()){
-			new_grant["grants"] = grants;
+			new_grant[GRANTS] = grants;
 		}
 		else{
 			SHV_EXCEPTION("Invalid parameters format. Param grants must be a RpcValue::List.");
 		}
 	}
-	if (params_map.hasKey("weight")){
-		const cp::RpcValue weight = params_map.value("weight");
+	if (params_map.hasKey(WEIGHT)){
+		const cp::RpcValue weight = params_map.value(WEIGHT);
 		if (weight.isInt()){
-			new_grant["weight"] = weight;
+			new_grant[WEIGHT] = weight;
 		}
 		else{
 			SHV_EXCEPTION("Invalid parameters format. Param weight must be a RpcValue::Int.");
@@ -201,7 +212,7 @@ bool BrokerGrantsConfigFileNode::editGrant(const shv::chainpack::RpcValue &param
 bool BrokerGrantsConfigFileNode::delGrant(const shv::chainpack::RpcValue &params)
 {
 	if (!params.isString() || params.toString().empty()){
-		SHV_EXCEPTION("Invalid parameters format. Param must be non empty string.");
+		SHV_EXCEPTION("Invalid parameters format. Param must be non empty RpcValue::String.");
 	}
 
 	std::string grant_name = params.toString();
@@ -263,7 +274,7 @@ shv::chainpack::RpcValue BrokerUsersConfigFileNode::callMethod(const shv::iotqt:
 bool BrokerUsersConfigFileNode::addUser(const shv::chainpack::RpcValue &params)
 {
 	if (!params.isMap() || !params.toMap().hasKey("user") || !params.toMap().hasKey("password")){
-		SHV_EXCEPTION("Invalid parameters format. Params must be a map and it must contains keys: user, password.");
+		SHV_EXCEPTION("Invalid parameters format. Params must be a RpcValue::Map and it must contains keys: user, password.");
 	}
 
 	cp::RpcValue::Map map = params.toMap();
@@ -276,8 +287,8 @@ bool BrokerUsersConfigFileNode::addUser(const shv::chainpack::RpcValue &params)
 	}
 
 	cp::RpcValue::Map user;
-	const cp::RpcValue grants = map.value("grants");
-	user["grants"] = (grants.isList()) ? grants.toList() : cp::RpcValue::List();
+	const cp::RpcValue grants = map.value(GRANTS);
+	user[GRANTS] = (grants.isList()) ? grants.toList() : cp::RpcValue::List();
 	user["password"] = map.value("password").toStdString();
 	user["passwordFormat"] = "sha1";
 
