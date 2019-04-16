@@ -13,7 +13,7 @@ DlgAddEditUser::DlgAddEditUser(QWidget *parent, shv::iotqt::rpc::ClientConnectio
 {
 	ui->setupUi(this);
 	m_dialogType = dt;
-	bool edit_mode = (m_dialogType == DialogType::DtEditUser);
+	bool edit_mode = (m_dialogType == DialogType::Edit);
 
 	showPasswordItems(!edit_mode);
 	ui->leUserName->setReadOnly(edit_mode);
@@ -69,7 +69,7 @@ QString DlgAddEditUser::password()
 
 void DlgAddEditUser::accept()
 {
-	if (dialogType() == DtAddUser){
+	if (dialogType() == DialogType::Add){
 		if ((!user().isEmpty()) && (!password().isEmpty())){
 			ui->lblStatus->setText(tr("Adding new user ..."));
 			callAddUser();
@@ -78,7 +78,7 @@ void DlgAddEditUser::accept()
 			ui->lblStatus->setText(tr("User name or password is empty."));
 		}
 	}
-	else if (dialogType() == DtEditUser){
+	else if (dialogType() == DialogType::Edit){
 		ui->lblStatus->setText(tr("Updating user ...") + QString::fromStdString(m_aclEtcUsersNodePath));
 		if (!password().isEmpty()){
 			callChangePassword();

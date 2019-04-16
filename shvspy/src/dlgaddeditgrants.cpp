@@ -13,7 +13,7 @@ DlgAddEditGrants::DlgAddEditGrants(QWidget *parent, shv::iotqt::rpc::ClientConne
 {
 	ui->setupUi(this);
 	m_dialogType = dt;
-	bool edit_mode = (m_dialogType == DialogType::DtEdit);
+	bool edit_mode = (m_dialogType == DialogType::Edit);
 
 	ui->leGrantName->setEnabled(!edit_mode);
 	ui->groupBox->setTitle(edit_mode ? tr("Edit grant") : tr("New grant"));
@@ -82,7 +82,7 @@ QString DlgAddEditGrants::grantName()
 
 void DlgAddEditGrants::accept()
 {
-	if (dialogType() == DtAdd){
+	if (dialogType() == DialogType::Add){
 		if ((!grantName().isEmpty())){
 			ui->lblStatus->setText(tr("Adding new grant ..."));
 			callAddGrant();
@@ -91,7 +91,7 @@ void DlgAddEditGrants::accept()
 			ui->lblStatus->setText(tr("Grant name or grants is empty."));
 		}
 	}
-	else if (dialogType() == DtEdit){
+	else if (dialogType() == DialogType::Edit){
 		callEditGrant();
 	}
 }
@@ -129,7 +129,7 @@ void DlgAddEditGrants::callGetGrants()
 	if (m_rpcConnection == nullptr)
 		return;
 
-	ui->lblStatus->setText(tr("Getting settings ..."));
+	ui->lblStatus->setText(tr("Loading grants ..."));
 
 	int rqid = m_rpcConnection->nextRequestId();
 	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
@@ -157,7 +157,7 @@ void DlgAddEditGrants::callGetWeight()
 	if (m_rpcConnection == nullptr)
 		return;
 
-	ui->lblStatus->setText(tr("Getting settings ..."));
+	ui->lblStatus->setText(tr("Loading weight ..."));
 
 	int rqid = m_rpcConnection->nextRequestId();
 	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);

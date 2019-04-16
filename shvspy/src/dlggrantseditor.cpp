@@ -2,7 +2,7 @@
 #include "ui_dlggrantseditor.h"
 
 #include "dlgaddeditgrants.h"
-
+#include "shv/core/assert.h"
 #include <QMessageBox>
 
 DlgGrantsEditor::DlgGrantsEditor(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection) :
@@ -10,6 +10,9 @@ DlgGrantsEditor::DlgGrantsEditor(QWidget *parent, shv::iotqt::rpc::ClientConnect
 	ui(new Ui::DlgGrantsEditor)
 {
 	ui->setupUi(this);
+
+	SHV_ASSERT_EX(rpc_connection != nullptr, "Internal error");
+
 	m_rpcConnection = rpc_connection;
 
 	static constexpr double ROW_HEIGHT_RATIO = 1.3;
@@ -21,15 +24,10 @@ DlgGrantsEditor::DlgGrantsEditor(QWidget *parent, shv::iotqt::rpc::ClientConnect
 	ui->twGrants->verticalHeader()->setDefaultSectionSize(ui->twGrants->fontMetrics().height() * ROW_HEIGHT_RATIO);
 	ui->twGrants->verticalHeader()->setVisible(false);
 
-	if(m_rpcConnection != nullptr){
-		connect(ui->pbAddGrant, &QPushButton::clicked, this, &DlgGrantsEditor::onAddGrantClicked);
-		connect(ui->pbDeleteGrant, &QPushButton::clicked, this, &DlgGrantsEditor::onDelGrantClicked);
-		connect(ui->pbEditGrant, &QPushButton::clicked, this, &DlgGrantsEditor::onEditGrantClicked);
-		connect(ui->twGrants, &QTableWidget::doubleClicked, this, &DlgGrantsEditor::onTableGrantDoubleClicked);
-	}
-	else{
-		ui->lblStatus->setText(tr("Connection to shv does not exist."));
-	}
+	connect(ui->pbAddGrant, &QPushButton::clicked, this, &DlgGrantsEditor::onAddGrantClicked);
+	connect(ui->pbDeleteGrant, &QPushButton::clicked, this, &DlgGrantsEditor::onDelGrantClicked);
+	connect(ui->pbEditGrant, &QPushButton::clicked, this, &DlgGrantsEditor::onEditGrantClicked);
+	connect(ui->twGrants, &QTableWidget::doubleClicked, this, &DlgGrantsEditor::onTableGrantDoubleClicked);
 }
 
 DlgGrantsEditor::~DlgGrantsEditor()
@@ -50,7 +48,7 @@ QString DlgGrantsEditor::selectedGrant()
 
 void DlgGrantsEditor::onAddGrantClicked()
 {
-	DlgAddEditGrants dlg(this, m_rpcConnection, m_aclEtcGrantsNodePath, DlgAddEditGrants::DtAdd);
+	DlgAddEditGrants dlg(this, m_rpcConnection, m_aclEtcGrantsNodePath, DlgAddEditGrants::DialogType::Add);
 	if (dlg.exec() == QDialog::Accepted){
 		listGrants();
 	}
@@ -100,13 +98,12 @@ void DlgGrantsEditor::onEditGrantClicked()
 
 	ui->lblStatus->setText("");
 
-	DlgAddEditGrants dlg(this, m_rpcConnection, m_aclEtcGrantsNodePath, DlgAddEditGrants::DtEdit);
+	DlgAddEditGrants dlg(this, m_rpcConnection, m_aclEtcGrantsNodePath, DlgAddEditGrants::DialogType::Edit);
 	dlg.init(grant);
 
 	if (dlg.exec() == QDialog::Accepted){
 		listGrants();
 	}
-
 }
 
 void DlgGrantsEditor::onTableGrantDoubleClicked(QModelIndex ix)

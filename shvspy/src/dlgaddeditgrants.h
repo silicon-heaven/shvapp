@@ -17,9 +17,9 @@ class DlgAddEditGrants : public QDialog
 	Q_OBJECT
 
 public:
-	enum DialogType {DtAdd = 0, DtEdit, DtCount};
+	enum class DialogType {Add = 0, Edit, Count};
 
-	explicit DlgAddEditGrants(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_grants_node_path, DlgAddEditGrants::DialogType dt = DialogType::DtAdd);
+	explicit DlgAddEditGrants(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_grants_node_path, DlgAddEditGrants::DialogType dt = DialogType::Add);
 	~DlgAddEditGrants() override;
 
 	DialogType dialogType();
