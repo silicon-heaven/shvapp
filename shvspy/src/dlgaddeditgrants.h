@@ -19,27 +19,29 @@ class DlgAddEditGrants : public QDialog
 public:
 	enum DialogType {DtAdd = 0, DtEdit, DtCount};
 
-	explicit DlgAddEditGrants(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_users_node_path, DlgAddEditGrants::DialogType dt = DialogType::DtAdd);
+	explicit DlgAddEditGrants(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_grants_node_path, DlgAddEditGrants::DialogType dt = DialogType::DtAdd);
 	~DlgAddEditGrants() override;
 
 	DialogType dialogType();
-	QString grantName();
-	void setGrantName(const QString &grant_name);
-
+	void init(const QString &grant_name);
 	void accept() Q_DECL_OVERRIDE;
 
 private:
+	QString grantName();
+
 	void callAddGrant();
 	void callSeGrants();
 	void callGetGrants();
-	void callCommitChanges();
-	std::string grantsShvPath();
+	void callSetWeight();
+	void callGetWeight();
+	void callEditUser();
+	std::string grantNameShvPath();
 
+	shv::chainpack::RpcValue::Map createParamsMap();
 	shv::chainpack::RpcValue::List grants();
 	void setGrants(const shv::chainpack::RpcValue::List &grants);
 	Ui::DlgAddEditGrants *ui;
 	DialogType m_dialogType;
-	int m_requestedRpcCallsCount = 0;
 	shv::iotqt::rpc::ClientConnection *m_rpcConection = nullptr;
 	const std::string &m_aclEtcGrantsNodePath;
 };

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>481</width>
-    <height>223</height>
+    <height>214</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -52,7 +52,7 @@
              </font>
             </property>
             <property name="text">
-             <string>Subgrants</string>
+             <string>Grants</string>
             </property>
            </widget>
           </item>
@@ -65,7 +65,7 @@
              </font>
             </property>
             <property name="text">
-             <string>Grant weight</string>
+             <string>Weight</string>
             </property>
            </widget>
           </item>
@@ -84,7 +84,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="leSubgrants">
+           <widget class="QLineEdit" name="leGrants">
             <property name="font">
              <font>
               <weight>50</weight>
@@ -94,12 +94,27 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="leGrantWeight">
+           <widget class="QSpinBox" name="sbWeight">
             <property name="font">
              <font>
               <weight>50</weight>
               <bold>false</bold>
              </font>
+            </property>
+            <property name="specialValueText">
+             <string>Not set</string>
+            </property>
+            <property name="minimum">
+             <number>-1</number>
+            </property>
+            <property name="maximum">
+             <number>10000</number>
+            </property>
+            <property name="singleStep">
+             <number>1</number>
+            </property>
+            <property name="value">
+             <number>-1</number>
             </property>
            </widget>
           </item>
@@ -155,5 +170,38 @@
   </layout>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>accepted()</signal>
+   <receiver>DlgAddEditGrants</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>240</x>
+     <y>189</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>240</x>
+     <y>111</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>DlgAddEditGrants</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>240</x>
+     <y>189</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>240</x>
+     <y>111</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>

@@ -3,6 +3,8 @@
 
 #include "dlgaddeditgrants.h"
 
+#include <QMessageBox>
+
 DlgGrantsEditor::DlgGrantsEditor(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection) :
 	QDialog(parent),
 	ui(new Ui::DlgGrantsEditor)
@@ -48,12 +50,43 @@ QString DlgGrantsEditor::selectedGrant()
 
 void DlgGrantsEditor::onAddGrantClicked()
 {
-
+	DlgAddEditGrants dlg(this, m_rpcConnection, m_aclEtcGrantsNodePath, DlgAddEditGrants::DtAdd);
+	if (dlg.exec() == QDialog::Accepted){
+		listGrants();
+	}
 }
 
 void DlgGrantsEditor::onDelGrantClicked()
 {
+	QString grant = selectedGrant();
 
+	if (grant.isEmpty()){
+		ui->lblStatus->setText(tr("Select grant in the table above."));
+		return;
+	}
+
+	ui->lblStatus->setText("");
+
+	if (QMessageBox::question(this, tr("Delete grant"), tr("Do you really want to delete grant") + " " + grant + "?") == QMessageBox::Yes){
+		int rqid = m_rpcConnection->nextRequestId();
+		shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
+
+		cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
+			if(response.isValid()){
+				if(response.isError()) {
+					ui->lblStatus->setText(tr("Failed to delete user.") + " " + QString::fromStdString(response.error().toString()));
+				}
+				else{
+					listGrants();
+				}
+			}
+			else{
+				ui->lblStatus->setText(tr("Request timeout expired"));
+			}
+		});
+
+		m_rpcConnection->callShvMethod(rqid, m_aclEtcGrantsNodePath, "delGrant", shv::chainpack::RpcValue::String(grant.toStdString()));
+	}
 }
 
 void DlgGrantsEditor::onEditGrantClicked()
@@ -68,7 +101,7 @@ void DlgGrantsEditor::onEditGrantClicked()
 	ui->lblStatus->setText("");
 
 	DlgAddEditGrants dlg(this, m_rpcConnection, m_aclEtcGrantsNodePath, DlgAddEditGrants::DtEdit);
-	dlg.setGrantName(grant);
+	dlg.init(grant);
 
 	if (dlg.exec() == QDialog::Accepted){
 		listGrants();

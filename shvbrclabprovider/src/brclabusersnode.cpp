@@ -89,7 +89,7 @@ void BrclabUsersNode::loadValues()
 	rd.read(m_values);
 
 	if (!m_values.isMap()){
-		SHV_EXCEPTION("Config file " + m_usersConfigFileName + " must be a Map!");
+		SHV_EXCEPTION("Config file " + m_usersConfigFileName + " must be a RpcValue::Map!");
 	}
 
 	m_valuesLoaded = true;
@@ -114,7 +114,7 @@ void BrclabUsersNode::setUsersConfig(const shv::chainpack::RpcValue &data)
 		wr << data;
 	}
 	else{
-		SHV_EXCEPTION("Config file must be a Map, config name: " + m_usersConfigFileName);
+		SHV_EXCEPTION("Config file must be a RpcValue::Map, config name: " + m_usersConfigFileName);
 	}
 
 	loadValues();
@@ -132,7 +132,7 @@ const shv::chainpack::RpcValue &BrclabUsersNode::usersConfig()
 bool BrclabUsersNode::addUser(const cp::RpcValue &params)
 {
 	if (!params.isMap() || !params.toMap().hasKey("user") || !params.toMap().hasKey("password")){
-		SHV_EXCEPTION("Invalid parameters format. Params must be a map and it must contains keys: user, password.");
+		SHV_EXCEPTION("Invalid parameters format. Params must be a RpcValue::Map and it must contains keys: user, password.");
 	}
 
 	cp::RpcValue::Map map = params.toMap();
@@ -157,7 +157,7 @@ bool BrclabUsersNode::addUser(const cp::RpcValue &params)
 bool BrclabUsersNode::delUser(const shv::chainpack::RpcValue &params)
 {
 	if (!params.isString() || params.toString().empty()){
-		SHV_EXCEPTION("Invalid parameters format. Param must be non empty string.");
+		SHV_EXCEPTION("Invalid parameters format. Param must be non empty RpcValue::String.");
 	}
 
 	std::string user_name = params.toString();
@@ -175,7 +175,7 @@ bool BrclabUsersNode::delUser(const shv::chainpack::RpcValue &params)
 bool BrclabUsersNode::changePassword(const cp::RpcValue &params)
 {
 	if (!params.isMap() || !params.toMap().hasKey("user") || !params.toMap().hasKey("newPassword")){
-		SHV_EXCEPTION("Invalid parameters format. Params must be a map and it must contains keys: user, newPassword.");
+		SHV_EXCEPTION("Invalid parameters format. Params must be a RpcValue::Map and it must contains keys: user, newPassword.");
 	}
 
 	cp::RpcValue::Map map = params.toMap();
@@ -201,7 +201,7 @@ bool BrclabUsersNode::changePassword(const cp::RpcValue &params)
 shv::chainpack::RpcValue BrclabUsersNode::getUserGrants(const cp::RpcValue &params)
 {
 	if (!params.isMap() || !params.toMap().hasKey("user") || !params.toMap().hasKey("password")){
-		SHV_EXCEPTION("Invalid parameters format. Params must be a map and it must contains keys: user, password.");
+		SHV_EXCEPTION("Invalid parameters format. Params must be a RpcValue::Map and it must contains keys: user, password.");
 	}
 
 	cp::RpcValue::Map map = params.toMap();

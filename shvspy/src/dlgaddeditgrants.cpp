@@ -3,12 +3,14 @@
 
 #include "shv/core/log.h"
 
-DlgAddEditGrants::DlgAddEditGrants(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_users_node_path, DlgAddEditGrants::DialogType dt) :
+static const std::string WEIGHT = "weight";
+static const std::string GRANTS = "grants";
+
+DlgAddEditGrants::DlgAddEditGrants(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_grants_node_path, DlgAddEditGrants::DialogType dt) :
 	QDialog(parent),
 	ui(new Ui::DlgAddEditGrants),
-	m_aclEtcGrantsNodePath(acl_etc_users_node_path)
+	m_aclEtcGrantsNodePath(acl_etc_grants_node_path)
 {
-	shvInfo() << m_aclEtcGrantsNodePath;
 	ui->setupUi(this);
 	m_dialogType = dt;
 	bool edit_mode = (m_dialogType == DialogType::DtEdit);
@@ -29,10 +31,44 @@ DlgAddEditGrants::~DlgAddEditGrants()
 	delete ui;
 }
 
-
 DlgAddEditGrants::DialogType DlgAddEditGrants::dialogType()
 {
-return m_dialogType;
+	return m_dialogType;
+}
+
+void DlgAddEditGrants::init(const QString &grant_name)
+{
+	ui->leGrantName->setText(grant_name);
+
+	int rqid = m_rpcConection->nextRequestId();
+	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConection, rqid, this);
+
+	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
+		if (response.isValid()){
+			if (response.isError()) {
+				ui->lblStatus->setText(tr("Failed to call method ls.") + QString::fromStdString(response.error().toString()));
+			}
+			else{
+				if (response.result().isList()){
+					shv::chainpack::RpcValue::List nodes = response.result().toList();
+
+					for (size_t i = 0; i < nodes.size(); i++){
+						if (nodes.at(i).toStdString() == GRANTS){
+							callGetGrants();
+						}
+						if (nodes.at(i).toStdString() == WEIGHT){
+							callGetWeight();
+						}
+					}
+				}
+			}
+		}
+		else{
+			ui->lblStatus->setText(tr("Request timeout expired"));
+		}
+	});
+
+	m_rpcConection->callShvMethod(rqid, grantNameShvPath(), "ls");
 }
 
 QString DlgAddEditGrants::grantName()
@@ -40,25 +76,19 @@ QString DlgAddEditGrants::grantName()
 	return ui->leGrantName->text();
 }
 
-void DlgAddEditGrants::setGrantName(const QString &grant_name)
-{
-	ui->leGrantName->setText(grant_name);
-	callGetGrants();
-}
-
 void DlgAddEditGrants::accept()
 {
 	if (dialogType() == DtAdd){
 		if ((!grantName().isEmpty())){
-			ui->lblStatus->setText(tr("Adding new user ..."));
+			ui->lblStatus->setText(tr("Adding new grant ..."));
 			callAddGrant();
 		}
 		else {
-			ui->lblStatus->setText(tr("User name or password is empty."));
+			ui->lblStatus->setText(tr("Grant name or grants is empty."));
 		}
 	}
 	else if (dialogType() == DtEdit){
-		callSeGrants();
+		callEditUser();
 	}
 }
 
@@ -67,9 +97,7 @@ void DlgAddEditGrants::callAddGrant()
 	if (m_rpcConection == nullptr)
 		return;
 
-	shv::chainpack::RpcValue::Map params;
-/*	params["user"] = grant().toStdString();
-	params["grants"] = subgrants();
+	shv::chainpack::RpcValue::Map params = createParamsMap();
 
 	int rqid = m_rpcConection->nextRequestId();
 	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConection, rqid, this);
@@ -77,7 +105,7 @@ void DlgAddEditGrants::callAddGrant()
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if (response.isValid()){
 			if(response.isError()) {
-				ui->lblStatus->setText(tr("Failed to add user.") + QString::fromStdString(response.error().toString()));
+				ui->lblStatus->setText(tr("Failed to add grant.") + QString::fromStdString(response.error().toString()));
 			}
 			else{
 				QDialog::accept();
@@ -88,36 +116,8 @@ void DlgAddEditGrants::callAddGrant()
 		}
 	});
 
-	ui->lblStatus->setText(QString::fromStdString(m_aclEtcUsersNodePath));
-	m_rpcConection->callShvMethod(rqid, m_aclEtcUsersNodePath, "addUser", params);*/
-}
-
-void DlgAddEditGrants::callSeGrants()
-{
-	if (m_rpcConection == nullptr)
-		return;
-
-	m_requestedRpcCallsCount++;
-
-	int rqid = m_rpcConection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConection, rqid, this);
-
-	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
-		if (response.isValid()){
-			if(response.isError()) {
-				ui->lblStatus->setText(QString::fromStdString(response.error().toString()));
-			}
-			else{
-				m_requestedRpcCallsCount--;
-				callCommitChanges();
-			}
-		}
-		else{
-			ui->lblStatus->setText(tr("Request timeout expired"));
-		}
-	});
-
-	m_rpcConection->callShvMethod(rqid, grantsShvPath() + "grants", "set", grants());
+	ui->lblStatus->setText(QString::fromStdString(m_aclEtcGrantsNodePath));
+	m_rpcConection->callShvMethod(rqid, m_aclEtcGrantsNodePath, "addGrant", params);
 }
 
 void DlgAddEditGrants::callGetGrants()
@@ -145,42 +145,91 @@ void DlgAddEditGrants::callGetGrants()
 		}
 	});
 
-	m_rpcConection->callShvMethod(rqid, grantsShvPath() + "grants", "get");
+	m_rpcConection->callShvMethod(rqid, grantNameShvPath() + GRANTS, "get");
 }
 
-void DlgAddEditGrants::callCommitChanges()
+void DlgAddEditGrants::callGetWeight()
 {
-	if ((m_requestedRpcCallsCount == 0) && (m_rpcConection != nullptr)){
-		int rqid = m_rpcConection->nextRequestId();
-		shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConection, rqid, this);
+	if (m_rpcConection == nullptr)
+		return;
 
-		cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
-			if(response.isValid()){
-				if(response.isError()) {
-					ui->lblStatus->setText(QString::fromStdString(response.error().toString()));
-				}
-				else{
-					QDialog::accept();
-				}
-			}
-			else {
-				ui->lblStatus->setText(tr("Request timeout expired"));
-			}
-		});
+	ui->lblStatus->setText(tr("Getting settings ..."));
 
-		m_rpcConection->callShvMethod(rqid, m_aclEtcGrantsNodePath, "commitChanges");
-	}
+	int rqid = m_rpcConection->nextRequestId();
+	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConection, rqid, this);
+
+	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
+		if(response.isValid()){
+			if(response.isError()) {
+				ui->lblStatus->setText(QString::fromStdString(response.error().toString()));
+			}
+			else{
+				ui->sbWeight->setValue((response.result().isInt())? response.result().toInt() : -1);
+				ui->lblStatus->setText("");
+			}
+		}
+		else{
+			ui->lblStatus->setText(tr("Request timeout expired"));
+		}
+	});
+
+	m_rpcConection->callShvMethod(rqid, grantNameShvPath() + WEIGHT, "get");
 }
 
-std::string DlgAddEditGrants::grantsShvPath()
+void DlgAddEditGrants::callEditUser()
+{
+	if (m_rpcConection == nullptr)
+		return;
+
+	shv::chainpack::RpcValue::Map params = createParamsMap();
+
+	int rqid = m_rpcConection->nextRequestId();
+	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConection, rqid, this);
+
+	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
+		if (response.isValid()){
+			if(response.isError()) {
+				ui->lblStatus->setText(tr("Failed to edit grant.") + QString::fromStdString(response.error().toString()));
+			}
+			else{
+				QDialog::accept();
+			}
+		}
+		else{
+			ui->lblStatus->setText(tr("Request timeout expired"));
+		}
+	});
+
+	ui->lblStatus->setText(QString::fromStdString(m_aclEtcGrantsNodePath));
+	m_rpcConection->callShvMethod(rqid, m_aclEtcGrantsNodePath, "editGrant", params);
+}
+
+std::string DlgAddEditGrants::grantNameShvPath()
 {
 	return m_aclEtcGrantsNodePath + '/' + grantName().toStdString() + "/";
+}
+
+shv::chainpack::RpcValue::Map DlgAddEditGrants::createParamsMap()
+{
+	shv::chainpack::RpcValue::Map params;
+	params["grantName"] = grantName().toStdString();
+
+	shv::chainpack::RpcValue::List g = grants();
+	if(!g.empty()){
+		params[GRANTS] = g;
+	}
+
+	int weight = ui->sbWeight->value();
+	if (weight > -1){
+		params[WEIGHT] = weight;
+	}
+	return params;
 }
 
 shv::chainpack::RpcValue::List DlgAddEditGrants::grants()
 {
 	shv::chainpack::RpcValue::List grants;
-	QStringList lst = ui->leSubgrants->text().split(",", QString::SplitBehavior::SkipEmptyParts);
+	QStringList lst = ui->leGrants->text().split(",", QString::SplitBehavior::SkipEmptyParts);
 
 	for (int i = 0; i < lst.count(); i++){
 		grants.push_back(shv::chainpack::RpcValue::String(lst.at(i).trimmed().toStdString()));
@@ -199,5 +248,5 @@ void DlgAddEditGrants::setGrants(const shv::chainpack::RpcValue::List &grants)
 		g += QString::fromStdString(grants[i].toStdString());
 	}
 
-	ui->leSubgrants->setText(g);
+	ui->leGrants->setText(g);
 }
