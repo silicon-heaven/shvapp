@@ -24,6 +24,21 @@ protected:
 	void saveValues() override;
 };
 
+class BrokerGrantsConfigFileNode : public BrokerConfigFileNode
+{
+	using Super = BrokerConfigFileNode;
+public:
+	BrokerGrantsConfigFileNode(const std::string &config_name, shv::iotqt::node::ShvNode *parent = nullptr);
+
+	size_t methodCount(const StringViewList &shv_path) override;
+	const shv::chainpack::MetaMethod* metaMethod(const StringViewList &shv_path, size_t ix) override;
+	shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params) override;
+
+	bool addGrant(const shv::chainpack::RpcValue &params);
+	bool editGrant(const shv::chainpack::RpcValue &params);
+	bool delGrant(const shv::chainpack::RpcValue &params);
+};
+
 class BrokerUsersConfigFileNode : public BrokerConfigFileNode
 {
 	using Super = BrokerConfigFileNode;

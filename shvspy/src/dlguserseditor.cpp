@@ -7,6 +7,7 @@
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
 #include <shv/chainpack/rpcvalue.h>
 #include <shv/core/log.h>
+#include <shv/core/assert.h>
 
 #include <QDialogButtonBox>
 #include <QMessageBox>
@@ -18,6 +19,8 @@ DlgUsersEditor::DlgUsersEditor(QWidget *parent, shv::iotqt::rpc::ClientConnectio
 {
 	ui->setupUi(this);
 
+	SHV_ASSERT_EX(rpc_connection != nullptr, "Internal error");
+
 	static constexpr double ROW_HEIGHT_RATIO = 1.3;
 	static QStringList INFO_HEADER_NAMES {{ tr("User") }};
 
@@ -27,17 +30,12 @@ DlgUsersEditor::DlgUsersEditor(QWidget *parent, shv::iotqt::rpc::ClientConnectio
 	ui->twUsers->verticalHeader()->setDefaultSectionSize(ui->twUsers->fontMetrics().height() * ROW_HEIGHT_RATIO);
 	ui->twUsers->verticalHeader()->setVisible(false);
 
-	m_rpcConection = rpc_connection;
+	m_rpcConnection = rpc_connection;
 
-	if(m_rpcConection != nullptr){
-		connect(ui->pbAddUser, &QPushButton::clicked, this, &DlgUsersEditor::onAddUserClicked);
-		connect(ui->pbDeleteUser, &QPushButton::clicked, this, &DlgUsersEditor::onDelUserClicked);
-		connect(ui->pbEditUser, &QPushButton::clicked, this, &DlgUsersEditor::onEditUserClicked);
-		connect(ui->twUsers, &QTableWidget::doubleClicked, this, &DlgUsersEditor::onTableUsersDoubleClicked);
-	}
-	else{
-		ui->lblStatus->setText(tr("Connection to shv does not exist."));
-	}
+	connect(ui->pbAddUser, &QPushButton::clicked, this, &DlgUsersEditor::onAddUserClicked);
+	connect(ui->pbDeleteUser, &QPushButton::clicked, this, &DlgUsersEditor::onDelUserClicked);
+	connect(ui->pbEditUser, &QPushButton::clicked, this, &DlgUsersEditor::onEditUserClicked);
+	connect(ui->twUsers, &QTableWidget::doubleClicked, this, &DlgUsersEditor::onTableUsersDoubleClicked);
 }
 
 DlgUsersEditor::~DlgUsersEditor()
@@ -53,14 +51,14 @@ void DlgUsersEditor::init(const std::string &path)
 
 void DlgUsersEditor::listUsers()
 {
-	if (m_rpcConection == nullptr)
+	if (m_rpcConnection == nullptr)
 		return;
 
 	ui->twUsers->clearContents();
 	ui->twUsers->setRowCount(0);
 
-	int rqid = m_rpcConection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConection, rqid, this);
+	int rqid = m_rpcConnection->nextRequestId();
+	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if(response.isValid()){
@@ -85,7 +83,7 @@ void DlgUsersEditor::listUsers()
 		}
 	});
 
-	m_rpcConection->callShvMethod(rqid, m_aclEtcUsersNodePath, shv::chainpack::Rpc::METH_LS);
+	m_rpcConnection->callShvMethod(rqid, m_aclEtcUsersNodePath, shv::chainpack::Rpc::METH_LS);
 }
 
 QString DlgUsersEditor::selectedUser()
@@ -95,7 +93,7 @@ QString DlgUsersEditor::selectedUser()
 
 void DlgUsersEditor::onAddUserClicked()
 {
-	DlgAddEditUser dlg(this, m_rpcConection, m_aclEtcUsersNodePath, DlgAddEditUser::DtAddUser);
+	DlgAddEditUser dlg(this, m_rpcConnection, m_aclEtcUsersNodePath, DlgAddEditUser::DialogType::Add);
 	if (dlg.exec() == QDialog::Accepted){
 		listUsers();
 	}
@@ -113,8 +111,8 @@ void DlgUsersEditor::onDelUserClicked()
 	ui->lblStatus->setText("");
 
 	if (QMessageBox::question(this, tr("Delete user"), tr("Do you really want to delete user") + " " + user) == QMessageBox::Yes){
-		int rqid = m_rpcConection->nextRequestId();
-		shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConection, rqid, this);
+		int rqid = m_rpcConnection->nextRequestId();
+		shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 		cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 			if(response.isValid()){
@@ -130,7 +128,7 @@ void DlgUsersEditor::onDelUserClicked()
 			}
 		});
 
-		m_rpcConection->callShvMethod(rqid, m_aclEtcUsersNodePath, "delUser", shv::chainpack::RpcValue::String(user.toStdString()));
+		m_rpcConnection->callShvMethod(rqid, m_aclEtcUsersNodePath, "delUser", shv::chainpack::RpcValue::String(user.toStdString()));
 	}
 }
 
@@ -145,7 +143,7 @@ void DlgUsersEditor::onEditUserClicked()
 
 	ui->lblStatus->setText("");
 
-	DlgAddEditUser dlg(this, m_rpcConection, m_aclEtcUsersNodePath, DlgAddEditUser::DtEditUser);
+	DlgAddEditUser dlg(this, m_rpcConnection, m_aclEtcUsersNodePath, DlgAddEditUser::DialogType::Edit);
 	dlg.setUser(user);
 
 	if (dlg.exec() == QDialog::Accepted){

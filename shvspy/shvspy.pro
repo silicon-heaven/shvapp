@@ -53,3 +53,4 @@ RESOURCES += \
 	$${TARGET}.qrc \
 
 include (src/src.pri)
+

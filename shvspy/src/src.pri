@@ -17,7 +17,9 @@ HEADERS += \
     $$PWD/subscriptionsmodel/subscriptionsmodel.h \
     $$PWD/subscriptionsmodel/subscriptionstableitemdelegate.h \
     $$PWD/dlguserseditor.h \
-    $$PWD/dlgaddedituser.h
+    $$PWD/dlgaddedituser.h \
+    $$PWD/dlggrantseditor.h \
+    $$PWD/dlgaddeditgrants.h
 
 SOURCES += \
 	$$PWD/main.cpp\
@@ -39,7 +41,9 @@ SOURCES += \
     $$PWD/subscriptionsmodel/subscriptionsmodel.cpp \
     $$PWD/subscriptionsmodel/subscriptionstableitemdelegate.cpp \
     $$PWD/dlguserseditor.cpp \
-    $$PWD/dlgaddedituser.cpp
+    $$PWD/dlgaddedituser.cpp \
+    $$PWD/dlggrantseditor.cpp \
+    $$PWD/dlgaddeditgrants.cpp
 
 FORMS += \
 	$$PWD/mainwindow.ui \
@@ -51,6 +55,8 @@ FORMS += \
     $$PWD/subscriptionswidget.ui \
     $$PWD/dlgcallshvmethod.ui \
     $$PWD/dlgaddedituser.ui \
-    $$PWD/dlguserseditor.ui
+    $$PWD/dlguserseditor.ui \
+    $$PWD/dlggrantseditor.ui \
+    $$PWD/dlgaddeditgrants.ui
 
 include ( $$PWD/log/log.pri )
