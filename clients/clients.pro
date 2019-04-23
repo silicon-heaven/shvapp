@@ -10,6 +10,10 @@ SUBDIRS += \
     SUBDIRS += \
         shvsites \
     }
+    with-flatline {
+    SUBDIRS += \
+        flatline \
+    }
 }
 
 
