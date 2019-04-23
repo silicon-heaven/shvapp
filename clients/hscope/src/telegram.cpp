@@ -20,7 +20,7 @@
 #include <QVariantMap>
 #include <QTimeZone>
 
-#define logTelegram() shvCDebug("Telegram")
+#define logTelegram() shvCInfo("Telegram")
 
 namespace cp = shv::chainpack;
 
