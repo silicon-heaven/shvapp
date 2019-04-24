@@ -22,9 +22,6 @@ public:
 
 	void done(int res) Q_DECL_OVERRIDE;
 
-public slots:
-	void on_subscriptionDialogButton_clicked();
-
 private:
 	Ui::DlgServerProperties *ui;
 	QVariantList m_subscriptions;

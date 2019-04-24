@@ -34,4 +34,11 @@ Makefile*
 *.qmlproject.user
 *.qmlproject.user.*
 
+#SHV
+*.user.cpon
+
 .idea
+
+_build
+
+!clients/jn50view/doc/help/Makefile

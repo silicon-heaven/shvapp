@@ -67,9 +67,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.98994949"
-     inkscape:cx="546.3198"
-     inkscape:cy="797.49246"
+     inkscape:zoom="3.959798"
+     inkscape:cx="259.79073"
+     inkscape:cy="1331.7245"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -77,9 +77,9 @@
      fit-margin-left="0"
      fit-margin-right="0"
      fit-margin-bottom="0"
-     inkscape:window-width="2880"
-     inkscape:window-height="1527"
-     inkscape:window-x="0"
+     inkscape:window-width="3840"
+     inkscape:window-height="2061"
+     inkscape:window-x="2880"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
      showguides="false" />
@@ -91,7 +91,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title />
+        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -138,7 +138,7 @@
          sodipodi:nodetypes="cc"
          inkscape:connector-curvature="0"
          id="sw_ompag_off"
-         d="m 244.15462,202.76378 -4.76936,88.32612"
+         d="m 239.33319,202.76378 0.0521,88.32612"
          style="fill:none;stroke:#ffffff;stroke-width:5;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
          shvName="sw_off"
          chid="bar" />
@@ -214,7 +214,7 @@
          chid="bar"
          shvName="sw_off"
          style="fill:none;stroke:#ffffff;stroke-width:5;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-         d="m 244.15462,202.76378 -4.76936,88.32612"
+         d="m 239.24391,202.67449 0.14135,88.41541"
          id="path4544"
          inkscape:connector-curvature="0"
          sodipodi:nodetypes="cc" />
@@ -1376,7 +1376,7 @@
     </g>
     <g
        shvPath="status"
-       transform="translate(516.91739,254.87036)"
+       transform="translate(516.91739,203.75425)"
        shvType="statusbit"
        id="g5166"
        style="stroke-width:5;stroke-miterlimit:4;stroke-dasharray:none">
@@ -1422,15 +1422,15 @@
          shv_mask="1" />
       <text
          xml:space="preserve"
-         style="font-style:normal;font-weight:normal;font-size:40px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:5;stroke-miterlimit:4;stroke-dasharray:none"
-         x="459.18567"
-         y="564.56696"
+         style="font-style:normal;font-weight:normal;font-size:51.42711639px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:5.00000048;stroke-miterlimit:4;stroke-dasharray:none"
+         x="457.22607"
+         y="564.66541"
          id="text5228"><tspan
            id="tspan5226"
            sodipodi:role="line"
-           x="459.18567"
-           y="564.56696"
-           style="font-size:32px;text-align:center;text-anchor:middle;stroke-width:5;stroke-miterlimit:4;stroke-dasharray:none">Data připojena</tspan></text>
+           x="457.22607"
+           y="564.66541"
+           style="font-size:41.14169312px;text-align:center;text-anchor:middle;stroke-width:5.00000048;stroke-miterlimit:4;stroke-dasharray:none">Spojení</tspan></text>
     </g>
     <g
        style="stroke-width:5;stroke-miterlimit:4;stroke-dasharray:none"
@@ -1462,39 +1462,10 @@
            style="font-size:32px;text-align:center;text-anchor:middle;stroke-width:5;stroke-miterlimit:4;stroke-dasharray:none">Standby</tspan></text>
     </g>
     <g
-       shvPath="status"
-       transform="translate(516.91739,-0.12964)"
-       shvType="statusbit"
-       id="g5278"
-       style="stroke-width:5;stroke-miterlimit:4;stroke-dasharray:none">
-      <rect
-         shv_mask="8"
-         chid="box"
-         style="color:#000000;display:inline;overflow:visible;visibility:visible;opacity:1;fill:#808080;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;enable-background:accumulate"
-         id="rect5272"
-         width="257.14285"
-         height="51"
-         x="325.38251"
-         y="540.54187"
-         shv_colorOn="limegreen"
-         shv_colorOff="white" />
-      <text
-         id="text5276"
-         y="574.56696"
-         x="453.18567"
-         style="font-style:normal;font-weight:normal;font-size:40px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:5;stroke-miterlimit:4;stroke-dasharray:none"
-         xml:space="preserve"><tspan
-           style="font-size:32px;text-align:center;text-anchor:middle;stroke-width:5;stroke-miterlimit:4;stroke-dasharray:none"
-           y="574.56696"
-           x="453.18567"
-           sodipodi:role="line"
-           id="tspan5274">AC Ready</tspan></text>
-    </g>
-    <g
        style="stroke-width:5;stroke-miterlimit:4;stroke-dasharray:none"
        id="g5290"
        shvType="statusbit"
-       transform="translate(516.91739,50.87036)"
+       transform="translate(516.91739,-0.24575648)"
        shvPath="status">
       <rect
          shv_colorOff="white"
@@ -1523,7 +1494,7 @@
        style="stroke-width:5;stroke-miterlimit:4;stroke-dasharray:none"
        id="g5298"
        shvType="statusbit"
-       transform="translate(516.91739,101.87036)"
+       transform="translate(516.91739,50.754243)"
        shvPath="status">
       <rect
          y="540.54187"
@@ -1550,7 +1521,7 @@
     </g>
     <g
        shvPath="status"
-       transform="translate(516.91739,152.87036)"
+       transform="translate(516.91739,101.75425)"
        shvType="statusbit"
        id="g5306"
        style="stroke-width:5;stroke-miterlimit:4;stroke-dasharray:none">
@@ -1581,7 +1552,7 @@
        style="stroke-width:5;stroke-miterlimit:4;stroke-dasharray:none"
        id="g5314"
        shvType="statusbit"
-       transform="translate(516.91739,203.87036)"
+       transform="translate(516.91739,152.75425)"
        shvPath="status">
       <rect
          y="540.54187"
@@ -1610,7 +1581,7 @@
        style="stroke-width:5;stroke-miterlimit:4;stroke-dasharray:none"
        id="g5322"
        shvType="statusbit"
-       transform="translate(516.91739,305.87036)"
+       transform="translate(516.91739,254.75425)"
        shvPath="status">
       <rect
          y="540.54187"
@@ -1637,7 +1608,7 @@
     </g>
     <g
        shvPath="status"
-       transform="translate(516.91739,356.87036)"
+       transform="translate(516.91739,305.75425)"
        shvType="statusbit"
        id="g5330"
        style="stroke-width:5;stroke-miterlimit:4;stroke-dasharray:none">
@@ -1668,7 +1639,7 @@
        style="stroke-width:5;stroke-miterlimit:4;stroke-dasharray:none"
        id="g5338"
        shvType="statusbit"
-       transform="translate(516.91739,407.87036)"
+       transform="translate(516.91739,356.75425)"
        shvPath="status">
       <rect
          y="540.54187"
@@ -1695,7 +1666,7 @@
     </g>
     <g
        shvPath="status"
-       transform="translate(516.91739,458.87036)"
+       transform="translate(516.91739,407.75425)"
        shvType="statusbit"
        id="g5346"
        style="stroke-width:5;stroke-miterlimit:4;stroke-dasharray:none">

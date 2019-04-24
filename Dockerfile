@@ -1,4 +1,4 @@
-# docker run -it -v `pwd`:/src -v `pwd`/out:/opt/shv  <img> /src/build-docker.sh
+# docker run --rm -it -v `pwd`:/shv -v `pwd`/artifacts:/opt/shv <last-build-id> /shv/build-docker.sh
 
 FROM debian:jessie
 

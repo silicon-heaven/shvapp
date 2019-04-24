@@ -28,13 +28,14 @@ class QSocketNotifier;
 
 namespace shv { namespace iotqt { namespace node { class ShvNodeTree; }}}
 namespace shv { namespace chainpack { class RpcSignal; }}
-namespace rpc { class WebSocketServer; class TcpServer; class ServerConnection;  class MasterBrokerConnection; class CommonRpcClientHandle; }
+namespace rpc { class WebSocketServer; class TcpServer; class ClientBrokerConnection;  class MasterBrokerConnection; class CommonRpcClientHandle; }
 
 class BrokerApp : public QCoreApplication
 {
 	Q_OBJECT
 private:
 	typedef QCoreApplication Super;
+	friend class MountsNode;
 public:
 	BrokerApp(int &argc, char **argv, AppCliOptions* cli_opts);
 	~BrokerApp() Q_DECL_OVERRIDE;
@@ -48,6 +49,8 @@ public:
 	void onClientLogin(int connection_id);
 	void onConnectedToMasterBrokerChanged(int connection_id, bool is_connected);
 
+	rpc::MasterBrokerConnection* mainMasterBrokerConnection() { return masterBrokerConnections().value(0); }
+
 	void onRpcDataReceived(int connection_id, shv::chainpack::Rpc::ProtocolType protocol_type, shv::chainpack::RpcValue::MetaData &&meta, std::string &&data);
 
 	void addSubscription(int client_id, const std::string &path, const std::string &method);
@@ -55,7 +58,7 @@ public:
 	bool rejectNotSubscribedSignal(int client_id, const std::string &path, const std::string &method);
 
 	rpc::TcpServer* tcpServer();
-	rpc::ServerConnection* clientById(int client_id);
+	rpc::ClientBrokerConnection* clientById(int client_id);
 
 #ifdef WITH_SHV_WEBSOCKETS
 	rpc::WebSocketServer* webSocketServer();
@@ -93,7 +96,7 @@ private:
 
 	void startWebSocketServer();
 
-	rpc::ServerConnection* clientConnectionById(int connection_id);
+	rpc::ClientBrokerConnection* clientConnectionById(int connection_id);
 	std::vector<int> clientConnectionIds();
 
 	void createMasterBrokerConnections();
@@ -111,8 +114,8 @@ private:
 
 	void onClientMountedChanged(int client_id, const std::string &mount_point, bool is_mounted);
 
-	void sendNotifyToSubscribers(int sender_connection_id, const std::string &shv_path, const std::string &method, const shv::chainpack::RpcValue &params);
-	bool sendNotifyToSubscribers(int sender_connection_id, const shv::chainpack::RpcValue::MetaData &meta_data, const std::string &data);
+	void sendNotifyToSubscribers(const std::string &shv_path, const std::string &method, const shv::chainpack::RpcValue &params);
+	bool sendNotifyToSubscribers(const shv::chainpack::RpcValue::MetaData &meta_data, const std::string &data);
 
 	static std::string brokerClientDirPath(int client_id);
 	static std::string brokerClientAppPath(int client_id);
@@ -120,6 +123,8 @@ private:
 	const std::set<std::string>& userFlattenGrants(const std::string &user_name);
 
 	std::string primaryIPAddress(bool &is_public);
+
+	void propagateSubscriptionsToMasterBroker();
 private:
 	AppCliOptions *m_cliOptions;
 	rpc::TcpServer *m_tcpServer = nullptr;

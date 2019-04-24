@@ -13,11 +13,13 @@
 namespace cp = shv::chainpack;
 
 static const char M_ADD_USER[] = "addUser";
+static const char M_DEL_USER[] = "delUser";
 static const char M_CHANGE_USER_PASSWORD[] = "changeUserPassword";
 static const char M_GET_USER_GRANTS[] = "getUserGrants";
 
 static std::vector<cp::MetaMethod> meta_methods {
-	{M_ADD_USER, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_WRITE},
+	{M_ADD_USER, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_CONFIG},
+	{M_DEL_USER, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_CONFIG},
 	{M_CHANGE_USER_PASSWORD, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_WRITE},
 	{M_GET_USER_GRANTS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_WRITE}
 };
@@ -26,7 +28,7 @@ BrclabUsersNode::BrclabUsersNode(const std::string &node_id, const std::string &
 	: Super(node_id, parent)
 {
 	m_usersConfigFileName = fn;
-	m_usersConfig = loadUsersConfig();
+	loadValues();
 }
 
 size_t BrclabUsersNode::methodCount(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
@@ -56,6 +58,9 @@ shv::chainpack::RpcValue BrclabUsersNode::callMethod(const shv::iotqt::node::Shv
 		if(method == M_ADD_USER) {
 			return addUser(params);
 		}
+		else if(method == M_DEL_USER) {
+			return delUser(params);
+		}
 		else if(method == M_CHANGE_USER_PASSWORD) {
 			return changePassword(params);
 		}
@@ -67,21 +72,8 @@ shv::chainpack::RpcValue BrclabUsersNode::callMethod(const shv::iotqt::node::Shv
 	return Super::callMethod(shv_path, method, params);
 }
 
-shv::chainpack::RpcValue BrclabUsersNode::loadValues()
+void BrclabUsersNode::loadValues()
 {
-	return  loadUsersConfig();
-}
-
-bool BrclabUsersNode::saveValues(const shv::chainpack::RpcValue &vals)
-{
-	setUsersConfig(vals);
-	return  true;
-}
-
-shv::chainpack::RpcValue BrclabUsersNode::loadUsersConfig()
-{
-	shv::chainpack::RpcValue ret;
-
 	if (!QFile::exists(QString::fromStdString(m_usersConfigFileName))){
 		setUsersConfig(cp::RpcValue::Map());
 	}
@@ -94,13 +86,18 @@ shv::chainpack::RpcValue BrclabUsersNode::loadUsersConfig()
 	}
 
 	cp::CponReader rd(ifs);
-	rd.read(ret);
+	rd.read(m_values);
 
-	if (!ret.isMap()){
-		SHV_EXCEPTION("Config file " + m_usersConfigFileName + " must be a Map!");
+	if (!m_values.isMap()){
+		SHV_EXCEPTION("Config file " + m_usersConfigFileName + " must be a RpcValue::Map!");
 	}
 
-	return ret;
+	m_valuesLoaded = true;
+}
+
+void BrclabUsersNode::saveValues()
+{
+	setUsersConfig(m_values);
 }
 
 void BrclabUsersNode::setUsersConfig(const shv::chainpack::RpcValue &data)
@@ -110,31 +107,32 @@ void BrclabUsersNode::setUsersConfig(const shv::chainpack::RpcValue &data)
 		if (!ofs) {
 			SHV_EXCEPTION("Cannot open config file " + m_usersConfigFileName + " for writing");
 		}
+
 		shv::chainpack::CponWriterOptions opts;
 		opts.setIndent("  ");
 		shv::chainpack::CponWriter wr(ofs, opts);
 		wr << data;
 	}
 	else{
-		SHV_EXCEPTION("Config file must be a Map, config name: " + m_usersConfigFileName);
+		SHV_EXCEPTION("Config file must be a RpcValue::Map, config name: " + m_usersConfigFileName);
 	}
 
-	m_usersConfig = loadUsersConfig();
+	loadValues();
 }
 
 const shv::chainpack::RpcValue &BrclabUsersNode::usersConfig()
 {
-	if (!m_usersConfig.isMap()){
-		m_usersConfig = loadUsersConfig();
+	if (!m_values.isMap() || !m_valuesLoaded){
+		loadValues();
 	}
 
-	return m_usersConfig;
+	return m_values;
 }
 
 bool BrclabUsersNode::addUser(const cp::RpcValue &params)
 {
 	if (!params.isMap() || !params.toMap().hasKey("user") || !params.toMap().hasKey("password")){
-		SHV_EXCEPTION("Invalid parameters format. Params must be a map and it must contains keys: user, password.");
+		SHV_EXCEPTION("Invalid parameters format. Params must be a RpcValue::Map and it must contains keys: user, password.");
 	}
 
 	cp::RpcValue::Map map = params.toMap();
@@ -156,10 +154,28 @@ bool BrclabUsersNode::addUser(const cp::RpcValue &params)
 	return true;
 }
 
+bool BrclabUsersNode::delUser(const shv::chainpack::RpcValue &params)
+{
+	if (!params.isString() || params.toString().empty()){
+		SHV_EXCEPTION("Invalid parameters format. Param must be non empty RpcValue::String.");
+	}
+
+	std::string user_name = params.toString();
+	const cp::RpcValue::Map &users_config = usersConfig().toMap();
+
+	if (!users_config.hasKey(user_name)){
+		SHV_EXCEPTION("User " + user_name + " does not exist.");
+	}
+
+	m_values.set(user_name, cp::RpcValue());
+	setUsersConfig(m_values);
+	return true;
+}
+
 bool BrclabUsersNode::changePassword(const cp::RpcValue &params)
 {
 	if (!params.isMap() || !params.toMap().hasKey("user") || !params.toMap().hasKey("newPassword")){
-		SHV_EXCEPTION("Invalid parameters format. Params must be a map and it must contains keys: user, newPassword.");
+		SHV_EXCEPTION("Invalid parameters format. Params must be a RpcValue::Map and it must contains keys: user, newPassword.");
 	}
 
 	cp::RpcValue::Map map = params.toMap();
@@ -185,7 +201,7 @@ bool BrclabUsersNode::changePassword(const cp::RpcValue &params)
 shv::chainpack::RpcValue BrclabUsersNode::getUserGrants(const cp::RpcValue &params)
 {
 	if (!params.isMap() || !params.toMap().hasKey("user") || !params.toMap().hasKey("password")){
-		SHV_EXCEPTION("Invalid parameters format. Params must be a map and it must contains keys: user, password.");
+		SHV_EXCEPTION("Invalid parameters format. Params must be a RpcValue::Map and it must contains keys: user, password.");
 	}
 
 	cp::RpcValue::Map map = params.toMap();

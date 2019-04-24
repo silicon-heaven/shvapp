@@ -1,14 +1,19 @@
-isEmpty(QF_PROJECT_TOP_BUILDDIR) {
-        QF_PROJECT_TOP_BUILDDIR = $$OUT_PWD/..
+isEmpty(LIBSHV_SRC_DIR) {
+    LIBSHV_SRC_DIR=$$SHV_PROJECT_TOP_SRCDIR/3rdparty/libshv
+}
+message ( SHV_PROJECT_TOP_SRCDIR == '$$SHV_PROJECT_TOP_SRCDIR' )
+
+isEmpty(SHV_PROJECT_TOP_BUILDDIR) {
+        SHV_PROJECT_TOP_BUILDDIR = $$OUT_PWD/..
 }
 else {
-        message ( QF_PROJECT_TOP_BUILDDIR is not empty and set to $$QF_PROJECT_TOP_BUILDDIR )
-        message ( This is obviously done in file $$QF_PROJECT_TOP_SRCDIR/.qmake.conf )
+        message ( SHV_PROJECT_TOP_BUILDDIR is not empty and set to $$SHV_PROJECT_TOP_BUILDDIR )
+        message ( This is obviously done in file $$SHV_PROJECT_TOP_SRCDIR/.qmake.conf )
 }
-message ( QF_PROJECT_TOP_BUILDDIR == '$$QF_PROJECT_TOP_BUILDDIR' )
+message ( SHV_PROJECT_TOP_BUILDDIR == '$$SHV_PROJECT_TOP_BUILDDIR' )
 
 QT -= gui
-QT += core network sql
+QT += core network
 
 with-shvwebsockets {
 	QT += websockets
@@ -20,10 +25,10 @@ CONFIG += c++11
 TEMPLATE = app
 TARGET = shvbroker
 
-DESTDIR = $$QF_PROJECT_TOP_BUILDDIR/bin
+DESTDIR = $$SHV_PROJECT_TOP_BUILDDIR/bin
 
 LIBDIR = $$DESTDIR
-unix: LIBDIR = $$QF_PROJECT_TOP_BUILDDIR/lib
+unix: LIBDIR = $$SHV_PROJECT_TOP_BUILDDIR/lib
 
 LIBS += \
         -L$$LIBDIR \
@@ -40,19 +45,12 @@ unix {
                 -Wl,-rpath,\'\$\$ORIGIN/../lib\'
 }
 
-SHV_TOP_SRCDIR = $$PWD/..
-#QUICKBOX_HOME = $$PROJECT_TOP_SRCDIR/3rdparty/quickbox
-
-#include( $$PROJECT_TOP_SRCDIR/common.pri )
-
 INCLUDEPATH += \
-        ../3rdparty/libshv/3rdparty/necrolog/include \
-        ../3rdparty/libshv/libshvchainpack/include \
-        ../3rdparty/libshv/libshvcore/include \
-        ../3rdparty/libshv/libshvcoreqt/include \
-        ../3rdparty/libshv/libshviotqt/include \
-        ../libshviotqt/include \
-
+    $$LIBSHV_SRC_DIR/3rdparty/necrolog/include \
+    $$LIBSHV_SRC_DIR/libshvchainpack/include \
+    $$LIBSHV_SRC_DIR/libshvcore/include \
+    $$LIBSHV_SRC_DIR/libshvcoreqt/include \
+    $$LIBSHV_SRC_DIR/libshviotqt/include \
 
 RESOURCES += \
         #shvbroker.qrc \

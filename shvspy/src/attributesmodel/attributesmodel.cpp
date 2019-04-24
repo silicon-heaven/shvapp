@@ -162,7 +162,7 @@ bool AttributesModel::setData(const QModelIndex &ix, const QVariant &val, int ro
 					std::string err;
 					params = cp::RpcValue::fromCpon(cpon, &err);
 					if(!err.empty())
-						shvError() << "cannot set invalid cpon data";
+						shvError() << "cannot set invalid cpon data:" << cpon << "error:" << err;
 				}
 				m_shvTreeNodeItem->setMethodParams(ix.row(), params);
 				loadRow(ix.row());
@@ -241,7 +241,6 @@ QString AttributesModel::method(int row) const
 void AttributesModel::onMethodsLoaded()
 {
 	loadRows();
-	callGetters();
 }
 
 void AttributesModel::onRpcMethodCallFinished(int method_ix)
@@ -263,7 +262,7 @@ void AttributesModel::callGetters()
 	for (unsigned i = 0; i < m_rows.size(); ++i) {
 		const ShvMetaMethod *mm = metaMethodAt(i);
 		if(mm) {
-			if(mm->method == cp::Rpc::METH_GET || (mm->flags & cp::MetaMethod::Flag::IsGetter)) {
+			if(mm->method == cp::Rpc::METH_GET || ((mm->flags & cp::MetaMethod::Flag::IsGetter) && !(mm->flags & cp::MetaMethod::Flag::LargeResultHint))) {
 				callMethod(i);
 			}
 		}
@@ -317,6 +316,7 @@ void AttributesModel::loadRows()
 	}
 	emit layoutChanged();
 	emit reloaded();
+	callGetters();
 }
 
 /*

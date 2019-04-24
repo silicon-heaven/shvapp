@@ -22,6 +22,15 @@ int main(int argc, char *argv[])
 	QCoreApplication::setApplicationName("shvbroker");
 	QCoreApplication::setApplicationVersion("0.0.1");
 
+	NecroLog::registerTopic("Tunnel", "tunneling");
+	NecroLog::registerTopic("Acl", "users and grants resolving");
+	NecroLog::registerTopic("Access", "user access");
+	NecroLog::registerTopic("Subscr", "subscriptions creation and propagation");
+	NecroLog::registerTopic("SigRes", "signal resolution in client subscriptions");
+	NecroLog::registerTopic("RpcMsg", "dump RPC messages");
+	NecroLog::registerTopic("RpcRawMsg", "dump raw RPC messages"),
+	NecroLog::registerTopic("RpcData", "dump RPC mesages as HEX data");
+
 	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);
 
 	int ret = 0;

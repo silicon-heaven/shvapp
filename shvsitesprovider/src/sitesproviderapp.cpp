@@ -136,7 +136,7 @@ cp::RpcValue AppRootNode::callMethod(const StringViewList &shv_path, const std::
 		return true;
 	}
 	else if (method == METH_SITES_TIME) {
-		return toRpcDateTime(m_sitesTime);
+		return cp::RpcValue::fromValue(m_sitesTime);
 	}
 	return Super::callMethod(shv_path, method, params);
 }
@@ -264,7 +264,7 @@ cp::RpcValue AppRootNode::ls(const shv::core::StringViewList &shv_path, size_t i
 				items.push_back(file_info.fileName().toStdString());
 			}
 		}
-		return items;
+		return cp::RpcValue(items);
 	}
 	std::string key = shv_path[index].toString();
 	if (object.hasKey(key)) {
@@ -329,7 +329,7 @@ void AppRootNode::downloadSites(std::function<void ()> callback)
 {
 	if (m_downloadingSites) {
 		QMetaObject::Connection *connection = new QMetaObject::Connection();
-		*connection = connect(this, &AppRootNode::downloadFinished, [this, connection, callback]() {
+		*connection = connect(this, &AppRootNode::downloadFinished, [connection, callback]() {
 			disconnect(*connection);
 			delete connection;
 			callback();
@@ -392,7 +392,7 @@ shv::chainpack::RpcValue AppRootNode::getConfig(const QString &shv_path) const
 	in_file.open(file_name, std::ios::in | std::ios::binary);
 	if (in_file) {
 		std::string err;
-		cp::CponReader(in_file).read(result, err);
+		result = cp::CponReader(in_file).read(&err);
 		in_file.close();
 		if (!err.empty()) {
 			SHV_EXCEPTION(err);

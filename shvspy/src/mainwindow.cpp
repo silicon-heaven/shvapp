@@ -8,8 +8,9 @@
 #include "log/errorlogmodel.h"
 #include "dlgserverproperties.h"
 #include "dlgsubscriptionparameters.h"
-#include "dlgsubscriptions.h"
 #include "dlgcallshvmethod.h"
+#include "dlguserseditor.h"
+#include "dlggrantseditor.h"
 #include "methodparametersdialog.h"
 #include "texteditdialog.h"
 
@@ -49,6 +50,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui->menu_View->addAction(ui->dockAttributes->toggleViewAction());
 	ui->menu_View->addAction(ui->dockNotifications->toggleViewAction());
 	ui->menu_View->addAction(ui->dockErrors->toggleViewAction());
+	ui->menu_View->addAction(ui->dockSubscriptions->toggleViewAction());
 
 	ServerTreeModel *tree_model = TheApp::instance()->serverTreeModel();
 	ui->treeServers->setModel(tree_model);
@@ -66,6 +68,8 @@ MainWindow::MainWindow(QWidget *parent) :
 		}
 	});
 	connect(ui->treeServers->selectionModel(), &QItemSelectionModel::currentChanged, this, &MainWindow::onShvTreeViewCurrentSelectionChanged);
+	connect(tree_model, &ServerTreeModel::brokerConnectedChanged, ui->subscriptionsWidget, &SubscriptionsWidget::onBrokerConnectedChanged);
+	connect(tree_model, &ServerTreeModel::subscriptionAdded, ui->subscriptionsWidget, &SubscriptionsWidget::onSubscriptionAdded);
 
 	ui->tblAttributes->setModel(TheApp::instance()->attributesModel());
 	ui->tblAttributes->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
@@ -173,6 +177,9 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 	QAction *a_reloadNode = new QAction(tr("Reload"), &m);
 	QAction *a_subscribeNode = new QAction(tr("Subscribe"), &m);
 	QAction *a_callShvMethod = new QAction(tr("Call shv method"), &m);
+	QAction *a_usersEditor = new QAction(tr("Users editor"), &m);
+	QAction *a_grantsEditor = new QAction(tr("Grants editor"), &m);
+
 	//QAction *a_test = new QAction(tr("create test.txt"), &m);
 	if(!nd) {
 		m.addAction(ui->actAddServer);
@@ -191,6 +198,11 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 		m.addAction(a_reloadNode);
 		m.addAction(a_subscribeNode);
 		m.addAction(a_callShvMethod);
+
+		if (nd->nodeId() == ".broker"){
+			m.addAction(a_usersEditor);
+			m.addAction(a_grantsEditor);
+		}
 	}
 	if(!m.actions().isEmpty()) {
 		QAction *a = m.exec(ui->treeServers->viewport()->mapToGlobal(pos));
@@ -203,13 +215,7 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 			else if(a == a_subscribeNode) {
 				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 				if(nd) {
-					DlgSubscriptions dlg(this);
-					QVariantMap props = nd->serverNode()->serverProperties();
-					dlg.setSubscriptionsList(props.value(QStringLiteral("subscriptions")).toList());
-					dlg.setShvPath(nd->shvPath());
-					if (dlg.exec()){
-						nd->serverNode()->setSubscriptionList(dlg.subscriptionsList());
-					}
+					nd->serverNode()->addSubscription(nd->shvPath(), cp::Rpc::SIG_VAL_CHANGED);
 				}
 			}
 			else if(a == a_callShvMethod) {
@@ -219,6 +225,26 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 
 					DlgCallShvMethod dlg(cc, this);
 					dlg.setShvPath(nd->shvPath());
+					dlg.exec();
+				}
+			}
+			else if(a == a_usersEditor){
+				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
+				if(nd) {
+					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
+
+					DlgUsersEditor dlg(this, cc);
+					dlg.init(nd->shvPath());
+					dlg.exec();
+				}
+			}
+			else if(a == a_grantsEditor){
+				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
+				if(nd) {
+					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
+
+					DlgGrantsEditor dlg(this, cc);
+					dlg.init(nd->shvPath());
 					dlg.exec();
 				}
 			}
@@ -385,18 +411,20 @@ void MainWindow::editServer(ShvBrokerNodeItem *srv, bool copy_server)
 			TheApp::instance()->serverTreeModel()->createConnection(server_props);
 		else
 			srv->setServerProperties(server_props);
+		saveSettings();
 	}
 }
 
 void MainWindow::closeEvent(QCloseEvent *ev)
 {
+	saveSettings();
+	Super::closeEvent(ev);
+}
+
+void MainWindow::saveSettings()
+{
 	QSettings settings;
 	settings.setValue(QStringLiteral("ui/mainWindow/state"), saveState());
 	settings.setValue(QStringLiteral("ui/mainWindow/geometry"), saveGeometry());
 	TheApp::instance()->saveSettings(settings);
-	Super::closeEvent(ev);
 }
-
-
-
-

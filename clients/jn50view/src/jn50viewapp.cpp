@@ -80,8 +80,7 @@ bool Jn50ViewApp::isShvDeviceConnected() const
 
 void Jn50ViewApp::loadSettings()
 {
-	QSettings qsettings;
-	Settings settings(qsettings);
+	Settings settings;
 	AppCliOptions *cli_opts = cliOptions();
 	if(!cli_opts->serverHost_isset())
 		cli_opts->setServerHost(settings.shvBrokerHost().toStdString());
@@ -124,9 +123,9 @@ void Jn50ViewApp::reloadShvDeviceValue(const std::string &path)
 		return;
 	shvDebug() << "GET" << (cliOptions()->converterShvPath() + '/' + path);
 	shv::iotqt::rpc::ClientConnection *conn = rpcConnection();
-	int rq_id = conn->callShvMethod(cliOptions()->converterShvPath() + '/' + path, cp::Rpc::METH_GET);
+	int rq_id = conn->nextRequestId();
 	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(conn, rq_id, this);
-	connect(cb, &shv::iotqt::rpc::RpcResponseCallBack::finished, this, [this, path](const cp::RpcResponse &resp) {
+	cb->start(this, [this, path](const cp::RpcResponse &resp) {
 		if(resp.isValid()) {
 			if(resp.isError())
 				shvWarning() << "GET" << path << "RPC request error:" << resp.error().toString();
@@ -137,6 +136,7 @@ void Jn50ViewApp::reloadShvDeviceValue(const std::string &path)
 			shvWarning() << "RPC request timeout";
 		}
 	});
+	conn->callShvMethod(rq_id, cliOptions()->converterShvPath() + '/' + path, cp::Rpc::METH_GET);
 }
 
 static constexpr int PLC_CONNECTED_TIMOUT_MSEC = 10*1000;

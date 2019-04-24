@@ -130,6 +130,8 @@ private:
 	void checkPowerSwitchStatusFile();
 	void checkPlcConnected();
 	void sendGetStatusRequest();
+
+	const std::string& bfsStatusShvPath();
 private:
 	shv::iotqt::rpc::DeviceConnection *m_rpcConnection = nullptr;
 	AppCliOptions* m_cliOptions;
@@ -149,7 +151,7 @@ private:
 	QMap<QString, TS> m_powerSwitchStatus;
 
 	QTimer *m_plcConnectedCheckTimer = nullptr;
-	unsigned m_getStatusRpcId = std::numeric_limits<unsigned>::max();
+	int m_getStatusRpcId = std::numeric_limits<int>::max();
 
 };
 

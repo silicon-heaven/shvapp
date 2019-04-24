@@ -4,7 +4,7 @@
 
 namespace rpc {
 
-class ServerConnection;
+class ClientBrokerConnection;
 
 class TcpServer : public shv::iotqt::rpc::TcpServer
 {
@@ -13,7 +13,7 @@ class TcpServer : public shv::iotqt::rpc::TcpServer
 public:
 	TcpServer(QObject *parent = nullptr);
 
-	ServerConnection* connectionById(int connection_id);
+	ClientBrokerConnection* connectionById(int connection_id);
 protected:
 	shv::iotqt::rpc::ServerConnection* createServerConnection(QTcpSocket *socket, QObject *parent) override;
 };

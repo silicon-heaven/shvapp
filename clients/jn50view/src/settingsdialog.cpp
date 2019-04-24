@@ -12,8 +12,7 @@ SettingsDialog::SettingsDialog(QWidget *parent) :
 	ui->setupUi(this);
 
 	{
-		QSettings qsettings;
-		Settings settings(qsettings);
+		Settings settings;
 		ui->predatorShvPath->setText(settings.predatorShvPath());
 		ui->shvBrokerHost->setText(settings.shvBrokerHost());
 		ui->shvBrokerPort->setValue(settings.shvBrokerPort());
@@ -43,8 +42,7 @@ int SettingsDialog::checkInterval()
 void SettingsDialog::done(int status)
 {
 	if(status == Accepted) {
-		QSettings qsettings;
-		Settings settings(qsettings);
+		Settings settings;
 		settings.setPredatorShvPath(ui->predatorShvPath->text());
 		settings.setShvBrokerHost(ui->shvBrokerHost->text());
 		settings.setShvBrokerPort(ui->shvBrokerPort->value());

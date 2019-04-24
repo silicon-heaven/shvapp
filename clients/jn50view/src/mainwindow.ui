@@ -230,12 +230,16 @@
     <addaction name="actResetOutputEnergy"/>
     <addaction name="separator"/>
     <addaction name="menuNastaven"/>
+    <addaction name="separator"/>
+    <addaction name="actChangePassword"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
      <string>Help</string>
     </property>
     <addaction name="actHelpAbout"/>
+    <addaction name="actHelpHelp"/>
+    <addaction name="separator"/>
     <addaction name="actHelpAppLog"/>
    </widget>
    <addaction name="menuM_ni"/>
@@ -274,6 +278,16 @@
   <action name="actHelpAppLog">
    <property name="text">
     <string>Aplikačni log</string>
+   </property>
+  </action>
+  <action name="actHelpHelp">
+   <property name="text">
+    <string>Help</string>
+   </property>
+  </action>
+  <action name="actChangePassword">
+   <property name="text">
+    <string>Změnit heslo</string>
    </property>
   </action>
  </widget>

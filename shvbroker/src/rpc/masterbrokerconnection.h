@@ -29,10 +29,12 @@ public:
 	void sendMessage(const shv::chainpack::RpcMessage &rpc_msg) override;
 
 	unsigned addSubscription(const std::string &rel_path, const std::string &method) override;
+	bool removeSubscription(const std::string &rel_path, const std::string &method) override;
 	std::string toSubscribedPath(const Subscription &subs, const std::string &abs_path) const override;
 
-	std::string masterPathToSlave(const std::string &master_path) const;
-	std::string slavePathToMaster(const std::string &slave_path) const;
+	std::string masterExportedToLocalPath(const std::string &master_path) const;
+	std::string localPathToMasterExported(const std::string &local_path) const;
+	const std::string& exportedShvPath() const {return m_exportedShvPath;}
 
 	void setOptions(const shv::chainpack::RpcValue &slave_broker_options) override;
 	shv::chainpack::RpcValue options() {return m_options;}

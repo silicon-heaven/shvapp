@@ -85,5 +85,3 @@ void LogTableModelBase::addLogRow(const LogTableModelRow &row)
 	}
 }
 
-
-

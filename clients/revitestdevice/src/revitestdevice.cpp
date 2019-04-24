@@ -10,6 +10,8 @@
 #include <shv/chainpack/rpcmessage.h>
 #include <shv/chainpack/metamethod.h>
 #include <shv/core/string.h>
+#include "appclioptions.h"
+
 #include <shv/core/stringview.h>
 #include <shv/core/exception.h>
 
@@ -28,7 +30,7 @@ RevitestDevice::RevitestDevice(QObject *parent)
 
 void RevitestDevice::createDevices()
 {
-	for (size_t i = 0; i < RevitestApp::LUB_CNT; ++i) {
+	for (int i = 0; i < RevitestApp::instance()->cliOptions()->deviceCount(); ++i) {
 		auto *nd = new Lublicator(std::to_string(i+1), m_shvTree->root());
 		connect(nd, &Lublicator::propertyValueChanged, this, &RevitestDevice::onLublicatorPropertyValueChanged);
 	}
@@ -39,18 +41,18 @@ void RevitestDevice::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 	shvLogFuncFrame() << msg.toCpon();
 	if(msg.isRequest()) {
 		cp::RpcRequest rq(msg);
-		shvInfo() << "RPC request received:" << rq.toPrettyString();
+		shvDebug() << "RPC request received:" << rq.toPrettyString();
 		if(m_shvTree->root()) {
 			m_shvTree->root()->handleRpcRequest(rq);
 		}
 	}
 	else if(msg.isResponse()) {
 		cp::RpcResponse rp(msg);
-		shvInfo() << "RPC response received:" << rp.toCpon();
+		shvDebug() << "RPC response received:" << rp.toCpon();
 	}
 	else if(msg.isSignal()) {
 		cp::RpcSignal nt(msg);
-		shvInfo() << "RPC notify received:" << nt.toCpon();
+		shvDebug() << "RPC signal received:" << nt.toCpon();
 	}
 }
 

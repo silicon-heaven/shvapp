@@ -6,6 +6,7 @@ HEADERS += \
     $$PWD/visuwidget.h \
     $$PWD/settingsdialog.h \
     $$PWD/settings.h
+    $$PWD/version.h
 
 SOURCES += \
     $$PWD/main.cpp\
