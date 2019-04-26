@@ -135,7 +135,7 @@ ShvBrclabProviderApp::ShvBrclabProviderApp(int &argc, char **argv, AppCliOptions
 	QString root_dir = QString::fromStdString(cli_opts->fsRootDir());
 	m_root = new AppRootNode(root_dir);
 
-	connect(m_root, &shv::iotqt::node::ShvNode::sendRpcMesage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
+	connect(m_root, &shv::iotqt::node::ShvNode::sendRpcMessage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
 	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
 }
 

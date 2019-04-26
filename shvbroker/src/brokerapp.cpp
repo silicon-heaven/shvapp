@@ -185,7 +185,7 @@ BrokerApp::BrokerApp(int &argc, char **argv, AppCliOptions *cli_opts)
 	m_sqlConnectionWatchDog->start(SQL_RECONNECT_INTERVAL);
 	*/
 	m_nodesTree = new shv::iotqt::node::ShvNodeTree(this);
-	connect(m_nodesTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, this, &BrokerApp::onRootNodeSendRpcMesage);
+	connect(m_nodesTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMessage, this, &BrokerApp::onRootNodeSendRpcMesage);
 	BrokerNode *bn = new BrokerNode();
 	m_nodesTree->mount(cp::Rpc::DIR_BROKER_APP, bn);
 	m_nodesTree->mount(std::string(cp::Rpc::DIR_BROKER) + "/clients", new ClientsNode());

@@ -128,7 +128,7 @@ ShvRExecApp::ShvRExecApp(int &argc, char **argv, AppCliOptions* cli_opts)
 
 	AppRootNode *root = new AppRootNode();
 	m_shvTree = new shv::iotqt::node::ShvNodeTree(root, this);
-	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
+	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
 
 	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
 

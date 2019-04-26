@@ -118,7 +118,7 @@ HScopeApp::HScopeApp(int &argc, char **argv, AppCliOptions* cli_opts)
 
 	AppRootNode *root = new AppRootNode();
 	m_shvTree = new si::node::ShvNodeTree(root, this);
-	connect(m_shvTree->root(), &si::node::ShvRootNode::sendRpcMesage, m_rpcConnection, &si::rpc::ClientConnection::sendMessage);
+	connect(m_shvTree->root(), &si::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &si::rpc::ClientConnection::sendMessage);
 }
 
 HScopeApp::~HScopeApp()

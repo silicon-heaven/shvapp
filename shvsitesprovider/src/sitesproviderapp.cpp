@@ -149,7 +149,7 @@ void AppRootNode::handleRpcRequest(const shv::chainpack::RpcRequest &rq)
 				shvError() << m_downloadSitesError;
 				cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
 				resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, m_downloadSitesError));
-				sendRpcMesage(resp);
+				sendRpcMessage(resp);
 			}
 			else {
 				Super::handleRpcRequest(rq);
@@ -526,7 +526,7 @@ SitesProviderApp::SitesProviderApp(int &argc, char **argv, AppCliOptions* cli_op
 	m_rootNode = new AppRootNode();
 	m_shvTree = new shv::iotqt::node::ShvNodeTree(m_rootNode, this);
 
-	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
+	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
 
 	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
 }

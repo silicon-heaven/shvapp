@@ -212,7 +212,7 @@ BfsViewApp::BfsViewApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	m_shvTree = new shv::iotqt::node::ShvNodeTree(root, this);
 	m_pwrStatusNode = new PwrStatusNode();
 	m_shvTree->mount(BFS1_PWR_STATUS, m_pwrStatusNode);
-	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, m_rpcConnection, &shv::iotqt::rpc::DeviceConnection::sendMessage);
+	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &shv::iotqt::rpc::DeviceConnection::sendMessage);
 
 	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
 	if(cli_opts->pwrStatusPublishInterval() > 0) {
