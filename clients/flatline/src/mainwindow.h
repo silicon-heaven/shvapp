@@ -20,7 +20,7 @@ class MainWindow : public QMainWindow
 
 public:
 	explicit MainWindow(QWidget *parent = nullptr);
-	~MainWindow();
+	~MainWindow() override;
 
 private slots:
 	void on_action_Open_triggered();
@@ -33,6 +33,10 @@ private:
 private:
 	//void on_action_Open_triggered();
 	void addLogEntries(const shv::chainpack::RpcValue::List &data);
+protected:
+	//void paintEvent(QPaintEvent *event) override;
+private:
+	void generateRandomSamples();
 private:
 	Ui::MainWindow *ui;
 

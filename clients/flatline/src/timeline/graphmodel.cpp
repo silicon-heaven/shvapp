@@ -10,6 +10,12 @@ GraphModel::GraphModel(QObject *parent)
 
 }
 
+void GraphModel::clear()
+{
+	m_samples.clear();
+	m_channelsData.clear();
+}
+
 QVariant GraphModel::channelData(int channel, GraphModel::ChannelDataRole::Enum role) const
 {
 	if(channel < 0 || channel > channelCount()) {
@@ -111,7 +117,7 @@ void GraphModel::appendValue(int channel, GraphModel::Sample &&value)
 	}
 	ChannelSamples &dat = m_samples[channel];
 	if(!dat.isEmpty() && dat.last().time > value.time) {
-		shvWarning() << "ignoring value with lower timestamp than last value:" << value.time;
+		shvWarning() << "ignoring value with lower timestamp than last value:" << dat.last().time << "val:" << value.time;
 		return;
 	}
 	m_appendSince = qMin(value.time, m_appendSince);
@@ -122,6 +128,7 @@ void GraphModel::appendValue(int channel, GraphModel::Sample &&value)
 void GraphModel::appendChannel()
 {
 	m_channelsData.append(ChannelData());
+	m_samples.append(ChannelSamples());
 }
 
 } // namespace timeline

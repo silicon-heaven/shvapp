@@ -31,6 +31,8 @@ public:
 	};
 public:
 	explicit GraphModel(QObject *parent = nullptr);
+
+	void clear();
 public: // API
 	virtual int channelCount() const { return qMin(m_channelsData.count(), m_samples.count()); }
 	virtual QVariant channelData(int channel, ChannelDataRole::Enum role) const;

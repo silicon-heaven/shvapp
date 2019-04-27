@@ -4,6 +4,7 @@
 #include "flatlineapp.h"
 #include "appclioptions.h"
 #include "timeline/graphmodel.h"
+#include "timeline/graphwidget.h"
 
 #include <shv/chainpack/chainpackreader.h>
 #include <shv/chainpack/cponreader.h>
@@ -15,6 +16,8 @@
 
 #include <QFileDialog>
 
+#include <QRandomGenerator>
+#include <QTimer>
 #include <fstream>
 //#include <iostream>
 
@@ -24,12 +27,17 @@ MainWindow::MainWindow(QWidget *parent) :
 	QMainWindow(parent),
 	ui(new Ui::MainWindow)
 {
+	m_dataModel = new timeline::GraphModel(this);
+
 	ui->setupUi(this);
+	//ui->graphView->viewport()->show();
+	ui->graphView->setWidget(new timeline::GraphWidget());
+	shvInfo() << qobject_cast<QWidget*>(ui->graphView->widget());
 	{
 		// scan tab
+		/*
 		QColor grid_color(Qt::darkGreen);
 		QColor label_color(grid_color.lighter(200));
-	/*
 		ui->graphView->settings.xAxis.description.text = tr("Time [MSec]");
 		ui->graphView->settings.xAxis.rangeType = ui->graphView->settings.xAxis.Fixed;
 		ui->graphView->settings.xAxisType = shv::coreqt::data::ValueType::Int;
@@ -79,11 +87,77 @@ MainWindow::MainWindow(QWidget *parent) :
 	if(!app->cliOptions()->logFile().empty()) {
 		openLogFile(app->cliOptions()->logFile());
 	}
+
+	connect(ui->btGenerateSamples, &QPushButton::clicked, this, &MainWindow::generateRandomSamples);
+	QTimer::singleShot(0, this, &MainWindow::generateRandomSamples);
 }
 
 MainWindow::~MainWindow()
 {
 	delete ui;
+}
+
+void MainWindow::generateRandomSamples()
+{
+	timeline::GraphView *view = ui->graphView;
+	timeline::GraphModel *model = m_dataModel;
+
+	model->clear();
+	model->appendChannel();
+	model->setChannelData(0, "TC", timeline::GraphModel::ChannelDataRole::Name);
+	model->appendChannel();
+	model->setChannelData(1, "ADC", timeline::GraphModel::ChannelDataRole::Name);
+	model->appendChannel();
+	model->setChannelData(2, "Temp", timeline::GraphModel::ChannelDataRole::Name);
+	model->beginAppendValues();
+	int cnt = ui->edSamplesCount->value();
+	int interval_msec = ui->edTimeInterval->value();
+	int64_t time = 0;
+	QRandomGenerator *rnd = QRandomGenerator::global();
+	for (int i = 0; i < cnt; ++i) {
+		int t = rnd->bounded(interval_msec);
+		int v = rnd->bounded(2);
+		model->appendValue(0, timeline::GraphModel::Sample{time + t, v});
+		time += t;
+	}
+	time = 0;
+	for (int i = 0; i < cnt; ++i) {
+		int t = rnd->bounded(interval_msec);
+		int v = rnd->bounded(-2048, 2048);
+		model->appendValue(1, timeline::GraphModel::Sample{time + t, v});
+		time += t;
+	}
+	time = 0;
+	for (int i = 0; i < cnt; ++i) {
+		int t = rnd->bounded(interval_msec);
+		double v = rnd->generateDouble() * 60 - 30;
+		model->appendValue(2, timeline::GraphModel::Sample{time + t, v});
+		time += t;
+	}
+	model->endAppendValues();
+
+	view->clearChannels();
+	{
+		view->appendChannel();
+		timeline::GraphView::Channel &ch = view->channelAt(0);
+		ch.style.setColor(Qt::magenta);
+		ch.style.setHeightMin(1);
+		ch.style.setHeightMax(1);
+	}
+	{
+		view->appendChannel();
+		timeline::GraphView::Channel &ch = view->channelAt(1);
+		ch.style.setColor(Qt::cyan);
+		ch.style.setHeightMax(6);
+	}
+	{
+		view->appendChannel();
+		timeline::GraphView::Channel &ch = view->channelAt(2);
+		ch.style.setColor(Qt::yellow);
+		//ch.style.setHeightMax(6);
+	}
+
+	ui->graphView->makeLayout();
 }
 
 void MainWindow::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
@@ -173,6 +247,12 @@ void MainWindow::addLogEntries(const shv::chainpack::RpcValue::List &data)
 }
 
 #if 0
+void MainWindow::paintEvent(QPaintEvent *event)
+{
+	shvLogFuncFrame();
+	QMainWindow::paintEvent(event);
+}
+
 void MainWindow::on_action_Open_triggered()
 {
 	QString fn = QFileDialog::getOpenFileName(this, tr("Open data"), "~/t", tr("Data Files (*.dat)"));

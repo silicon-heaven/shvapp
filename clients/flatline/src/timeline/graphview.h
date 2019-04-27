@@ -23,10 +23,10 @@ public:
 	class GraphStyle : public QVariantMap
 	{
 		SHV_VARIANTMAP_FIELD2(double, l, setL, eftMargin, 0.3) // units
-		SHV_VARIANTMAP_FIELD2(double, r, setR, ightMargin, 0.1) // units
-		SHV_VARIANTMAP_FIELD2(double, t, setT, opMargin, 0.1) // units
-		SHV_VARIANTMAP_FIELD2(double, b, setb, ottomMargin, 0.1) // units
-		SHV_VARIANTMAP_FIELD2(double, c, setC, hannelSpacing, 1) // units
+		SHV_VARIANTMAP_FIELD2(double, r, setR, ightMargin, 0.3) // units
+		SHV_VARIANTMAP_FIELD2(double, t, setT, opMargin, 0.3) // units
+		SHV_VARIANTMAP_FIELD2(double, b, setb, ottomMargin, 0.3) // units
+		SHV_VARIANTMAP_FIELD2(double, c, setC, hannelSpacing, 0.3) // units
 		SHV_VARIANTMAP_FIELD2(double, x, setX, AxisHeight, 1) // units
 		SHV_VARIANTMAP_FIELD2(double, y, setY, AxisWidth, 2) // units
 		SHV_VARIANTMAP_FIELD2(double, n, setN, avigationBarHeight, 2) // units
@@ -77,44 +77,51 @@ public:
 
 		struct
 		{
-			QRect graphRect;
-			QRect verticalHeaderRect;
-			QRect yAxisRect;
 			double yRangeDisplMin = 0;
 			double yRangeDisplMax = 0;
 		} state;
-	};
-	struct State
-	{
-		timemsec_t xRangeMin = 0;
-		timemsec_t xRangeMax = 0;
-		double xRange() const { return xRangeMax - xRangeMin; }
-		timemsec_t xRangeDisplMin = 0;
-		timemsec_t xRangeDisplMax = 0;
 
-		QRect navigationBarRect;
-		QRect xAxisRect;
+		struct
+		{
+			QRect graphRect;
+			QRect verticalHeaderRect;
+			QRect yAxisRect;
+		} layout;
 	};
-
 public:
 	GraphView(QWidget *parent = nullptr);
+
+	//void init();
 
 	void setModel(GraphModel *model);
 	GraphModel *model();
 	void createChannelsFromModel();
+
+	void clearChannels();
+	void appendChannel();
+	Channel& channelAt(int ix);
+	const Channel& channelAt(int ix) const;
+
+	void makeLayout();
 protected:
 	QVariantMap mergeMaps(const QVariantMap &base, const QVariantMap &overlay) const;
-	int u2px(double unit) { return static_cast<int>(m_options.unitToPx * unit); }
-	void makeLayout();
+	void makeLayout(int unit_size, const QSize &widget_size);
 
-	virtual void draw(QPainter *painter);
+	void drawMockup(QPainter *painter, const QRect &rect, const QString &text, const QFont &font, const QColor &color);
 
-	virtual void drawBackground(QPainter *painter);
-	virtual void drawNavigationBar(QPainter *painter);
-	virtual void drawXAxis(QPainter *painter);
+	struct DrawOptions
+	{
+		QFont font;
+	};
+	virtual void draw(QPainter *painter, const DrawOptions &options);
+
+	virtual void drawBackground(QPainter *painter, const DrawOptions &options);
+	virtual void drawNavigationBar(QPainter *painter, const DrawOptions &options);
+	virtual void drawXAxis(QPainter *painter, const DrawOptions &options);
 
 	struct DrawChannelOptions
 	{
+		QFont font;
 		QRect rect;
 		ChannelStyle channelStyle;
 		GraphStyle graphStyle;
@@ -125,14 +132,26 @@ protected:
 	virtual void drawGrid(QPainter *painter, int channel, const DrawChannelOptions &options);
 	virtual void drawYAxis(QPainter *painter, int channel, const DrawChannelOptions &options);
 	virtual void drawSamples(QPainter *painter, int channel, const DrawChannelOptions &options);
-
-	// QWidget interface
 protected:
 	void paintEvent(QPaintEvent *event) override;
 protected:
 	QVector<Channel> m_channels;
 	Options m_options;
-	State m_state;
+
+	struct State
+	{
+		timemsec_t xRangeMin = 0;
+		timemsec_t xRangeMax = 0;
+		double xRange() const { return xRangeMax - xRangeMin; }
+		timemsec_t xRangeDisplMin = 0;
+		timemsec_t xRangeDisplMax = 0;
+	} state;
+
+	struct
+	{
+		QRect navigationBarRect;
+		QRect xAxisRect;
+	} layout;
 
 	QPointer<GraphModel> m_model;
 };

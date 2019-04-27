@@ -1,16 +1,35 @@
 #include "graphview.h"
 #include "graphmodel.h"
+#include "graphwidget.h"
+
+#include <shv/core/exception.h>
+#include <shv/coreqt/log.h>
 
 #include <QPainter>
+#include <QFontMetrics>
+#include <QLabel>
 
 namespace timeline {
 
 GraphView::GraphView(QWidget *parent)
 	: Super(parent)
 {
-
+	//setBackgroundRole(QPalette::Dark);
+	//setWidget(new GraphWidget(this));
+	//init();
 }
-
+/*
+void GraphView::init()
+{
+	setBackgroundRole(QPalette::Dark);
+	QLabel *lbl = new QLabel("ahoj");
+	QImage image("/home/fanda/t/1.png");
+	lbl->setPixmap(QPixmap::fromImage(image));
+	lbl->setMinimumSize({100, 100});
+	setWidget(lbl);
+	shvInfo() << qobject_cast<QWidget*>(lbl) << qobject_cast<QWidget*>(widget());
+}
+*/
 void GraphView::setModel(GraphModel *model)
 {
 	m_model = model;
@@ -30,6 +49,30 @@ void GraphView::createChannelsFromModel()
 	}
 }
 
+void GraphView::clearChannels()
+{
+	m_channels.clear();
+}
+
+void GraphView::appendChannel()
+{
+	m_channels.append(Channel());
+}
+
+GraphView::Channel &GraphView::channelAt(int ix)
+{
+	if(ix < 0 || ix >= m_channels.count())
+		SHV_EXCEPTION("Index out of range.");
+	return m_channels[ix];
+}
+
+const GraphView::Channel &GraphView::channelAt(int ix) const
+{
+	if(ix < 0 || ix >= m_channels.count())
+		SHV_EXCEPTION("Index out of range.");
+	return m_channels[ix];
+}
+
 QVariantMap GraphView::mergeMaps(const QVariantMap &base, const QVariantMap &overlay) const
 {
 	QVariantMap ret = base;
@@ -43,23 +86,35 @@ QVariantMap GraphView::mergeMaps(const QVariantMap &base, const QVariantMap &ove
 
 void GraphView::makeLayout()
 {
-	QSize viewport_size;
-	viewport_size.setWidth(geometry().width());
-	int ch_w = viewport_size.width();
-	int gr_left = 0;
-	gr_left += u2px(m_options.style.leftMargin());
-	gr_left += u2px(m_options.style.verticalHeaderWidth());
-	gr_left += u2px(m_options.style.yAxisWidth());
-	ch_w -= gr_left;
-	ch_w -= u2px(m_options.style.rightMargin());
-	m_state.navigationBarRect.setBottom(u2px(m_options.style.bottomMargin()));
-	m_state.navigationBarRect.setHeight(u2px(m_options.style.navigationBarHeight()));
-	m_state.navigationBarRect.setLeft(gr_left);
-	m_state.navigationBarRect.setWidth(ch_w);
+	static int unit_size = 0;
+	if(unit_size == 0) {
+		QFontMetrics fm(font());
+		unit_size = fm.lineSpacing();
+	}
+	makeLayout(unit_size, geometry().size() - QSize(2, 2));
+}
 
-	m_state.xAxisRect = m_state.navigationBarRect;
-	m_state.xAxisRect.moveBottom(m_state.navigationBarRect.top());
-	m_state.xAxisRect.setHeight(u2px(m_options.style.xAxisHeight()));
+void GraphView::makeLayout(int unit_size, const QSize &widget_size)
+{
+	shvLogFuncFrame() << widget();
+	auto u2px = [unit_size](double unit) -> int { return static_cast<int>(unit_size * unit); };
+	QSize viewport_size;
+	viewport_size.setWidth(widget_size.width());
+	int grid_w = viewport_size.width();
+	int x_axis_pos = 0;
+	x_axis_pos += u2px(m_options.style.leftMargin());
+	x_axis_pos += u2px(m_options.style.verticalHeaderWidth());
+	x_axis_pos += u2px(m_options.style.yAxisWidth());
+	grid_w -= x_axis_pos;
+	grid_w -= u2px(m_options.style.rightMargin());
+	//layout.navigationBarRect.setBottom(u2px(m_options.style.bottomMargin()));
+	layout.navigationBarRect.setHeight(u2px(m_options.style.navigationBarHeight()));
+	layout.navigationBarRect.setLeft(x_axis_pos);
+	layout.navigationBarRect.setWidth(grid_w);
+
+	layout.xAxisRect = layout.navigationBarRect;
+	//layout.xAxisRect.moveBottom(layout.navigationBarRect.top());
+	layout.xAxisRect.setHeight(u2px(m_options.style.xAxisHeight()));
 
 	int sum_h_min = 0;
 	struct Rest { int index; int rest; ChannelStyle style;};
@@ -69,15 +124,16 @@ void GraphView::makeLayout()
 		ChannelStyle style = mergeMaps(m_options.defaultChannelStyle, ch.style);
 		int ch_h = u2px(style.heightMin());
 		rests << Rest{i, u2px(style.heightRange()), style};
-		ch.state.graphRect.setWidth(ch_w);
-		ch.state.graphRect.setHeight(ch_h);
+		ch.layout.graphRect.setLeft(x_axis_pos);
+		ch.layout.graphRect.setWidth(grid_w);
+		ch.layout.graphRect.setHeight(ch_h);
 		sum_h_min += ch_h;
 		if(i > 0)
 			sum_h_min += u2px(m_options.style.channelSpacing());
 	}
 	sum_h_min += u2px(m_options.style.xAxisHeight());
 	sum_h_min += u2px(m_options.style.navigationBarHeight());
-	int h_rest = geometry().height();
+	int h_rest = widget_size.height();
 	h_rest -= sum_h_min;
 	h_rest -= u2px(m_options.style.topMargin());
 	h_rest -= u2px(m_options.style.bottomMargin());
@@ -93,96 +149,128 @@ void GraphView::makeLayout()
 			int h = u2px(r.style.heightRange());
 			if(h > fair_rest)
 				h = fair_rest;
-			ch.state.graphRect.setHeight(ch.state.graphRect.height() + h);
+			ch.layout.graphRect.setHeight(ch.layout.graphRect.height() + h);
 			h_rest -= h;
 		}
 	}
 	// shift channel rects
-	int ch_rect_bottom = 0;
-	ch_rect_bottom += u2px(m_options.style.bottomMargin());
-	ch_rect_bottom += u2px(m_options.style.xAxisHeight());
-	ch_rect_bottom += u2px(m_options.style.navigationBarHeight());
-	for (int i = 0; i < m_channels.count(); ++i) {
+	int widget_height = 0;
+	widget_height += u2px(m_options.style.topMargin());
+	for (int i = m_channels.count() - 1; i >= 0; --i) {
 		Channel &ch = m_channels[i];
-		ch.state.graphRect.moveBottom(ch_rect_bottom);
 
-		ch.state.verticalHeaderRect = ch.state.graphRect;
-		ch.state.verticalHeaderRect.setX(u2px(m_options.style.leftMargin()));
-		ch.state.verticalHeaderRect.setWidth(u2px(m_options.style.verticalHeaderWidth()));
+		ch.layout.graphRect.moveTop(widget_height);
+		//ch.layout.graphRect.setWidth(layout.navigationBarRect.width());
 
-		ch_rect_bottom += ch.state.graphRect.height();
-		ch_rect_bottom += u2px(m_options.style.channelSpacing());
+		ch.layout.verticalHeaderRect = ch.layout.graphRect;
+		ch.layout.verticalHeaderRect.setX(u2px(m_options.style.leftMargin()));
+		ch.layout.verticalHeaderRect.setWidth(u2px(m_options.style.verticalHeaderWidth()));
+
+		ch.layout.yAxisRect = ch.layout.verticalHeaderRect;
+		ch.layout.yAxisRect.moveLeft(ch.layout.verticalHeaderRect.right());
+		ch.layout.yAxisRect.setWidth(u2px(m_options.style.yAxisWidth()));
+
+		widget_height += ch.layout.graphRect.height();
+		if(i > 0)
+			widget_height += u2px(m_options.style.channelSpacing());
 	}
-	if(m_channels.count())
-		ch_rect_bottom -= u2px(m_options.style.channelSpacing());
-	viewport_size.setHeight(ch_rect_bottom);
-	widget()->setGeometry(QRect({0, 0}, viewport_size));
+	layout.xAxisRect.moveTop(widget_height);
+	widget_height += u2px(m_options.style.xAxisHeight());
+	layout.navigationBarRect.moveTop(widget_height);
+	widget_height += u2px(m_options.style.navigationBarHeight());
+	widget_height += u2px(m_options.style.bottomMargin());
+
+	viewport_size.setHeight(widget_height);
+	shvDebug() << "\tw:" << viewport_size.width() << "h:" << viewport_size.height();
+	widget()->setMinimumSize(viewport_size);
+	widget()->setMaximumSize(viewport_size);
 }
 
-void GraphView::paintEvent(QPaintEvent *event)
+void GraphView::drawMockup(QPainter *painter, const QRect &rect, const QString &text, const QFont &font, const QColor &color)
 {
-	Q_UNUSED(event)
-	QPainter painter(viewport());
-	draw(&painter);
+	painter->save();
+	//QColor bc = color.lighter();
+	//painter->fillRect(rect, bc);
+	QPen pen;
+	pen.setColor(color);
+	painter->setPen(pen);
+	painter->drawRect(rect);
+	painter->setFont(font);
+	QFontMetrics fm(font);
+	painter->drawText(rect.left() + fm.width('i'), rect.top() + fm.leading() + fm.ascent(), text);
+	painter->restore();
 }
 
-void GraphView::draw(QPainter *painter)
+void GraphView::draw(QPainter *painter, const DrawOptions &options)
 {
-	drawBackground(painter);
-	drawNavigationBar(painter);
-	drawXAxis(painter);
+	shvLogFuncFrame();
+	drawBackground(painter, options);
+	drawNavigationBar(painter, options);
+	drawXAxis(painter, options);
 	for (int i = 0; i < m_channels.count(); ++i) {
 		const Channel &ch = m_channels[i];
 		ChannelStyle style = mergeMaps(m_options.defaultChannelStyle, ch.style);
-		DrawChannelOptions options{ch.state.graphRect, style, m_options.style};
-		drawBackground(painter, i, options);
-		drawGrid(painter, i, options);
-		drawYAxis(painter, i, options);
-		drawSamples(painter, i, options);
+		DrawChannelOptions ch_options{options.font, ch.layout.graphRect, style, m_options.style};
+		drawVerticalHeader(painter, i, ch_options);
+		drawYAxis(painter, i, ch_options);
+		drawBackground(painter, i, ch_options);
+		drawGrid(painter, i, ch_options);
+		drawSamples(painter, i, ch_options);
 	}
 }
 
-void GraphView::drawBackground(QPainter *painter)
+void GraphView::drawBackground(QPainter *painter, const DrawOptions &options)
 {
-	painter->fillRect(viewport()->geometry(), m_options.style.colorBackground());
+	painter->fillRect(QRect{QPoint(), widget()->geometry().size()}, m_options.style.colorBackground());
+	//painter->fillRect(QRect{QPoint(), widget()->geometry().size()}, Qt::blue);
 }
 
-void GraphView::drawNavigationBar(QPainter *painter)
+void GraphView::drawNavigationBar(QPainter *painter, const DrawOptions &options)
 {
-	painter->fillRect(m_state.navigationBarRect, Qt::blue);
+	drawMockup(painter, layout.navigationBarRect, "navigation bar", options.font, Qt::blue);
 }
 
-void GraphView::drawXAxis(QPainter *painter)
+void GraphView::drawXAxis(QPainter *painter, const DrawOptions &options)
 {
-	painter->fillRect(m_state.xAxisRect, Qt::darkGreen);
+	drawMockup(painter, layout.xAxisRect, "x-axis", options.font, Qt::green);
 }
 
 void GraphView::drawVerticalHeader(QPainter *painter, int channel, const GraphView::DrawChannelOptions &options)
 {
 	const Channel &ch = m_channels[channel];
-	painter->fillRect(ch.state.verticalHeaderRect, Qt::darkYellow);
+	drawMockup(painter, ch.layout.verticalHeaderRect, "header", options.font, Qt::yellow);
 }
 
 void GraphView::drawBackground(QPainter *painter, int channel, const GraphView::DrawChannelOptions &options)
 {
 	const Channel &ch = m_channels[channel];
-	painter->fillRect(ch.state.graphRect, options.channelStyle.colorBackground());
+	painter->fillRect(ch.layout.graphRect, options.channelStyle.colorBackground());
 }
 
 void GraphView::drawGrid(QPainter *painter, int channel, const GraphView::DrawChannelOptions &options)
 {
-	// NIY
+	const Channel &ch = m_channels[channel];
+	drawMockup(painter, ch.layout.graphRect, "grid", options.font, ch.style.colorGrid());
 }
 
 void GraphView::drawYAxis(QPainter *painter, int channel, const GraphView::DrawChannelOptions &options)
 {
 	const Channel &ch = m_channels[channel];
-	painter->fillRect(ch.state.yAxisRect, Qt::darkRed);
+	drawMockup(painter, ch.layout.yAxisRect, "y-axis", options.font, ch.style.color());
 }
 
 void GraphView::drawSamples(QPainter *painter, int channel, const GraphView::DrawChannelOptions &options)
 {
 	// NIY
+}
+
+void GraphView::paintEvent(QPaintEvent *event)
+{
+	shvLogFuncFrame();
+	Super::paintEvent(event);
+	QPainter painter(viewport());
+	DrawOptions options{font()};
+	draw(&painter, options);
 }
 
 } // namespace timeline
