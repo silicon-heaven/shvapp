@@ -32,6 +32,9 @@ public:
 public:
 	explicit GraphModel(QObject *parent = nullptr);
 
+	QPair<timemsec_t, timemsec_t> xRange() const;
+	QPair<timemsec_t, timemsec_t> xRange(int channel_ix) const;
+	QPair<double, double> yRange(int channel_ix) const;
 	void clear();
 public: // API
 	virtual int channelCount() const { return qMin(m_channelsData.count(), m_samples.count()); }
@@ -39,21 +42,24 @@ public: // API
 	virtual void setChannelData(int channel, const QVariant &v, ChannelDataRole::Enum role);
 
 	virtual int count(int channel) const;
-	virtual Sample value(int channel, int ix) const;
+	/// without bounds check
+	virtual Sample sampleAt(int channel, int ix) const;
+	/// returns Sample() if out of bounds
+	Sample sampleValue(int channel, int ix) const;
 	/// sometimes is needed to show samples in transformed time scale (hide empty areas without samples)
-	/// displayValue() returns original time and value
-	virtual Sample displayValue(int channel, int ix) const { return value(channel, ix); }
+	/// displaySampleValue() returns original time and value
+	virtual Sample displaySampleValue(int channel, int ix) const { return sampleValue(channel, ix); }
 
 	virtual int lessOrEqualIndex(int channel, timemsec_t time) const;
 
 	virtual void beginAppendValues();
 	virtual void endAppendValues();
-	virtual void appendValue(int channel, Sample &&value);
+	virtual void appendValue(int channel, Sample &&sampleAt);
 	Q_SIGNAL void valuesAppended(timemsec_t since, timemsec_t until);
 
 	void appendChannel();
 public:
-	//QPair<double, double> range(int channel);
+	static double valueToDouble(const QVariant v);
 protected:
 	using ChannelSamples = QVector<Sample>;
 	QVector<ChannelSamples> m_samples;

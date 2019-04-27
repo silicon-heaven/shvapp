@@ -32,54 +32,9 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui->setupUi(this);
 	//ui->graphView->viewport()->show();
 	ui->graphView->setWidget(new timeline::GraphWidget());
-	shvInfo() << qobject_cast<QWidget*>(ui->graphView->widget());
-	{
-		// scan tab
-		/*
-		QColor grid_color(Qt::darkGreen);
-		QColor label_color(grid_color.lighter(200));
-		ui->graphView->settings.xAxis.description.text = tr("Time [MSec]");
-		ui->graphView->settings.xAxis.rangeType = ui->graphView->settings.xAxis.Fixed;
-		ui->graphView->settings.xAxisType = shv::coreqt::data::ValueType::Int;
-		//ui->graphView->settings.xAxis.rangeMin = 15000;
-		//ui->graphView->settings.xAxis.rangeMax = 40000;
-		ui->graphView->settings.xAxis.color = label_color;
-
-		ui->graphView->settings.yAxis.description.text = tr("Value [bits]");
-		ui->graphView->settings.yAxis.rangeMin = -2048;
-		ui->graphView->settings.yAxis.rangeMax = 2048;
-		ui->graphView->settings.yAxis.color = label_color;
-
-		ui->graphView->settings.y2Axis.description.text = tr("Time 16 bit");
-		ui->graphView->settings.y2Axis.rangeMin = 0;
-		ui->graphView->settings.y2Axis.rangeMax = 65535;
-		ui->graphView->settings.y2Axis.show = true;
-		ui->graphView->settings.y2Axis.color = QColor("orange");//.lighter();
-
-		new shv::gui::graphview::IntSerie(DataSample::Voltage, "Voltage", DataSample::channelColor(DataSample::Voltage), ui->graphView);
-		new shv::gui::graphview::IntSerie(DataSample::Current, "Current", DataSample::channelColor(DataSample::Current), ui->graphView);
-		new shv::gui::graphview::IntSerie(DataSample::Power, "Power", DataSample::channelColor(DataSample::Power), ui->graphView);
-		auto *time_serie = new shv::gui::graphview::IntSerie(DataSample::Power + 1, "Raw time", DataSample::channelColor(DataSample::Power+1), ui->graphView);
-		time_serie->setRelatedAxis(shv::gui::graphview::Serie::YAxis::Y2);
-
-		ui->graphView->settings.verticalGrid.fixedCount = 3;
-		ui->graphView->settings.verticalGrid.color = grid_color;
-		ui->graphView->settings.horizontalGrid.fixedCount = 3;
-		ui->graphView->settings.horizontalGrid.color = grid_color;
-		ui->graphView->settings.rangeSelector.show = true;
-		ui->graphView->settings.backgroundColor = QColor(Qt::darkGray).darker(400);
-
-		//ui->graphView->settings.legend;
-		namespace sd = shv::coreqt::data;
-		m_scanSamples = new shv::gui::GraphModelData(this);
-		m_scanSamples->addSerie(sd::SerieData(sd::ValueType::Int, sd::ValueType::Int));
-		m_scanSamples->addSerie(sd::SerieData(sd::ValueType::Int, sd::ValueType::Int));
-		m_scanSamples->addSerie(sd::SerieData(sd::ValueType::Int, sd::ValueType::Int));
-		m_scanSamples->addSerie(sd::SerieData(sd::ValueType::Int, sd::ValueType::Int));
-		auto *m = new shv::gui::GraphModel(m_scanSamples, this);
-		ui->graphView->setModel(m);
-	*/
-	}
+	//shvInfo() << qobject_cast<QWidget*>(ui->graphView->widget());
+	ui->graphView->setModel(m_dataModel);
+	ui->graphView->style.setColorBackground(QColor(Qt::darkGray).darker(400));
 
 	FlatLineApp *app = FlatLineApp::instance();
 	connect(app->rpcConnection(), &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &MainWindow::onRpcMessageReceived);
@@ -137,24 +92,35 @@ void MainWindow::generateRandomSamples()
 	model->endAppendValues();
 
 	view->clearChannels();
+	view->setXRange(model->xRange());
 	{
+		int ix = 0;
 		view->appendChannel();
-		timeline::GraphView::Channel &ch = view->channelAt(0);
+		timeline::GraphView::Channel &ch = view->channelAt(ix);
+		ch.style.setLineWidth(0.2);
+		ch.style.setInterpolation(timeline::GraphView::Interpolation::Stepped);
 		ch.style.setColor(Qt::magenta);
-		ch.style.setHeightMin(1);
-		ch.style.setHeightMax(1);
+		ch.style.setHeightMin(2);
+		ch.style.setHeightMax(2);
+		ch.setYRange(model->yRange(ix));
+		ch.adjustYRange(ch.style.lineWidth() / 2);
 	}
 	{
+		int ix = 1;
 		view->appendChannel();
-		timeline::GraphView::Channel &ch = view->channelAt(1);
+		timeline::GraphView::Channel &ch = view->channelAt(ix);
+		ch.style.setInterpolation(timeline::GraphView::Interpolation::Stepped);
 		ch.style.setColor(Qt::cyan);
 		ch.style.setHeightMax(6);
+		ch.setYRange(model->yRange(ix));
 	}
 	{
+		int ix = 2;
 		view->appendChannel();
-		timeline::GraphView::Channel &ch = view->channelAt(2);
-		ch.style.setColor(Qt::yellow);
+		timeline::GraphView::Channel &ch = view->channelAt(ix);
+		ch.style.setColor("salmon");
 		//ch.style.setHeightMax(6);
+		ch.setYRange(model->yRange(ix));
 	}
 
 	ui->graphView->makeLayout();
