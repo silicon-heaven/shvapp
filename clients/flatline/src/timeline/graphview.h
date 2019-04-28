@@ -29,7 +29,7 @@ public:
 		SHV_VARIANTMAP_FIELD2(double, c, setC, hannelSpacing, 0.3) // units
 		SHV_VARIANTMAP_FIELD2(double, x, setX, AxisHeight, 1) // units
 		SHV_VARIANTMAP_FIELD2(double, y, setY, AxisWidth, 2) // units
-		SHV_VARIANTMAP_FIELD2(double, n, setN, avigationBarHeight, 2) // units
+		SHV_VARIANTMAP_FIELD2(double, m, setM, iniMapHeight, 2) // units
 		SHV_VARIANTMAP_FIELD2(double, v, setV, erticalHeaderWidth, 6) // units
 		SHV_VARIANTMAP_FIELD2(bool, s, setS, eparateChannels, true)
 
@@ -116,10 +116,14 @@ protected:
 
 	struct GraphDrawOptions
 	{
+		QRect rect;
 		QFont font;
 		int unitSize = 0;
 
-		GraphDrawOptions(const QFont &f, int unit_size) : font(f), unitSize(unit_size) {}
+		GraphDrawOptions(const QFont &f, int unit_size)
+			: font(f)
+			, unitSize(unit_size)
+		{}
 
 		int unitToPixels(double units) const { return static_cast<int>(unitSize * units); }
 
@@ -127,7 +131,7 @@ protected:
 	virtual void draw(QPainter *painter, const GraphDrawOptions &options);
 
 	virtual void drawBackground(QPainter *painter, const GraphDrawOptions &options);
-	virtual void drawNavigationBar(QPainter *painter, const GraphDrawOptions &options);
+	virtual void drawMiniMap(QPainter *painter, const GraphDrawOptions &gr_options);
 	virtual void drawXAxis(QPainter *painter, const GraphDrawOptions &options);
 
 	struct DrawChannelOptions
@@ -162,7 +166,7 @@ protected:
 
 	struct
 	{
-		QRect navigationBarRect;
+		QRect miniMapRect;
 		QRect xAxisRect;
 		int unitSize = 0;
 	} layout;

@@ -110,11 +110,11 @@ void GraphView::makeLayout(int unit_size, const QSize &widget_size)
 	x_axis_pos += u2px(style.yAxisWidth());
 	grid_w -= x_axis_pos;
 	grid_w -= u2px(style.rightMargin());
-	layout.navigationBarRect.setHeight(u2px(style.navigationBarHeight()));
-	layout.navigationBarRect.setLeft(x_axis_pos);
-	layout.navigationBarRect.setWidth(grid_w);
+	layout.miniMapRect.setHeight(u2px(style.miniMapHeight()));
+	layout.miniMapRect.setLeft(x_axis_pos);
+	layout.miniMapRect.setWidth(grid_w);
 
-	layout.xAxisRect = layout.navigationBarRect;
+	layout.xAxisRect = layout.miniMapRect;
 	layout.xAxisRect.setHeight(u2px(style.xAxisHeight()));
 
 	int sum_h_min = 0;
@@ -133,7 +133,7 @@ void GraphView::makeLayout(int unit_size, const QSize &widget_size)
 			sum_h_min += u2px(style.channelSpacing());
 	}
 	sum_h_min += u2px(style.xAxisHeight());
-	sum_h_min += u2px(style.navigationBarHeight());
+	sum_h_min += u2px(style.miniMapHeight());
 	int h_rest = widget_size.height();
 	h_rest -= sum_h_min;
 	h_rest -= u2px(style.topMargin());
@@ -177,8 +177,8 @@ void GraphView::makeLayout(int unit_size, const QSize &widget_size)
 	}
 	layout.xAxisRect.moveTop(widget_height);
 	widget_height += u2px(style.xAxisHeight());
-	layout.navigationBarRect.moveTop(widget_height);
-	widget_height += u2px(style.navigationBarHeight());
+	layout.miniMapRect.moveTop(widget_height);
+	widget_height += u2px(style.miniMapHeight());
 	widget_height += u2px(style.bottomMargin());
 
 	viewport_size.setHeight(widget_height);
@@ -217,7 +217,7 @@ void GraphView::draw(QPainter *painter, const GraphDrawOptions &gr_options)
 		drawGrid(painter, i, ch_options);
 		drawSamples(painter, i, ch_options);
 	}
-	drawNavigationBar(painter, gr_options);
+	drawMiniMap(painter, gr_options);
 	drawXAxis(painter, gr_options);
 }
 
@@ -227,9 +227,17 @@ void GraphView::drawBackground(QPainter *painter, const GraphDrawOptions &option
 	//painter->fillRect(QRect{QPoint(), widget()->geometry().size()}, Qt::blue);
 }
 
-void GraphView::drawNavigationBar(QPainter *painter, const GraphDrawOptions &options)
+void GraphView::drawMiniMap(QPainter *painter, const GraphDrawOptions &gr_options)
 {
-	drawRectText(painter, layout.navigationBarRect, "navigation bar", options.font, Qt::blue);
+	//drawRectText(painter, layout.miniMapRect, "navigation bar", options.font, Qt::blue);
+	//DrawChannelOptions ch_options{gr_options, layout.miniMapRect, ch_style, style};
+	for (int i = 0; i < m_channels.count(); ++i) {
+		const Channel &ch = m_channels[i];
+		ChannelStyle ch_style = mergeMaps(channelStyle, ch.style);
+		DrawChannelOptions ch_options{gr_options, layout.miniMapRect, ch_style, style};
+		//drawBackground(painter, i, ch_options);
+		drawSamples(painter, i, ch_options);
+	}
 }
 
 void GraphView::drawXAxis(QPainter *painter, const GraphDrawOptions &options)
@@ -253,20 +261,20 @@ void GraphView::drawVerticalHeader(QPainter *painter, int channel, const GraphVi
 
 void GraphView::drawBackground(QPainter *painter, int channel, const GraphView::DrawChannelOptions &options)
 {
-	const Channel &ch = m_channels[channel];
-	painter->fillRect(ch.layout.graphRect, options.channelStyle.colorBackground());
+	//const Channel &ch = m_channels[channel];
+	painter->fillRect(options.rect, options.channelStyle.colorBackground());
 }
 
 void GraphView::drawGrid(QPainter *painter, int channel, const GraphView::DrawChannelOptions &options)
 {
-	const Channel &ch = m_channels[channel];
-	drawRectText(painter, ch.layout.graphRect, "grid", options.graphOptions.font, ch.style.colorGrid());
+	//const Channel &ch = m_channels[channel];
+	drawRectText(painter, options.rect, "grid", options.graphOptions.font, options.channelStyle.colorGrid());
 }
 
 void GraphView::drawYAxis(QPainter *painter, int channel, const GraphView::DrawChannelOptions &options)
 {
-	const Channel &ch = m_channels[channel];
-	drawRectText(painter, ch.layout.yAxisRect, "y-axis", options.graphOptions.font, ch.style.colorYAxis());
+	//const Channel &ch = m_channels[channel];
+	drawRectText(painter, options.rect, "y-axis", options.graphOptions.font, options.channelStyle.colorYAxis());
 }
 
 void GraphView::drawSamples(QPainter *painter, int channel, const GraphView::DrawChannelOptions &options)
