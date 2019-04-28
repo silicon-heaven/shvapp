@@ -19,6 +19,8 @@ GraphView::GraphView(QWidget *parent)
 	//setBackgroundRole(QPalette::Dark);
 	//setWidget(new GraphWidget(this));
 	//init();
+	style.setFont(font());
+	//channelStyle.setFont(style.font());
 }
 /*
 void GraphView::init()
@@ -203,90 +205,98 @@ void GraphView::drawRectText(QPainter *painter, const QRect &rect, const QString
 	painter->restore();
 }
 
-void GraphView::draw(QPainter *painter, const GraphDrawOptions &gr_options)
+void GraphView::draw(QPainter *painter, const QRect &rect, const DrawGraphOptions &gr_options)
 {
 	shvLogFuncFrame();
-	drawBackground(painter, gr_options);
+	drawBackground(painter, rect, gr_options);
 	for (int i = 0; i < m_channels.count(); ++i) {
 		const Channel &ch = m_channels[i];
 		ChannelStyle ch_style = mergeMaps(channelStyle, ch.style);
-		DrawChannelOptions ch_options{gr_options, ch.layout.graphRect, ch_style, style};
-		drawVerticalHeader(painter, i, ch_options);
-		drawYAxis(painter, i, ch_options);
-		drawBackground(painter, i, ch_options);
-		drawGrid(painter, i, ch_options);
-		drawSamples(painter, i, ch_options);
+		DrawChannelOptions ch_options{ch_style, gr_options};
+		drawVerticalHeader(painter, ch.layout.verticalHeaderRect, i, ch_options);
+		drawYAxis(painter, ch.layout.yAxisRect, i, ch_options);
+		drawBackground(painter, ch.layout.graphRect, i, ch_options);
+		drawGrid(painter, ch.layout.graphRect, i, ch_options);
+		drawSamples(painter, ch.layout.graphRect, i, ch_options);
 	}
-	drawMiniMap(painter, gr_options);
-	drawXAxis(painter, gr_options);
+	drawMiniMap(painter, layout.miniMapRect, gr_options);
+	drawXAxis(painter, layout.xAxisRect, gr_options);
 }
 
-void GraphView::drawBackground(QPainter *painter, const GraphDrawOptions &options)
+void GraphView::drawBackground(QPainter *painter, const QRect &rect, const DrawGraphOptions &options)
 {
-	painter->fillRect(QRect{QPoint(), widget()->geometry().size()}, style.colorBackground());
+	painter->fillRect(rect, options.style.colorBackground());
 	//painter->fillRect(QRect{QPoint(), widget()->geometry().size()}, Qt::blue);
 }
 
-void GraphView::drawMiniMap(QPainter *painter, const GraphDrawOptions &gr_options)
+void GraphView::drawMiniMap(QPainter *painter, const QRect &rect, const DrawGraphOptions &gr_options)
 {
 	//drawRectText(painter, layout.miniMapRect, "navigation bar", options.font, Qt::blue);
 	//DrawChannelOptions ch_options{gr_options, layout.miniMapRect, ch_style, style};
+	DrawGraphOptions opts = gr_options;
+	opts.style.setColorBackground(Qt::black);
+	drawBackground(painter, layout.miniMapRect, opts);
 	for (int i = 0; i < m_channels.count(); ++i) {
 		const Channel &ch = m_channels[i];
 		ChannelStyle ch_style = mergeMaps(channelStyle, ch.style);
-		DrawChannelOptions ch_options{gr_options, layout.miniMapRect, ch_style, style};
-		//drawBackground(painter, i, ch_options);
-		drawSamples(painter, i, ch_options);
+		ch_style.setLineAreaStyle(ChannelStyle::LineAreaStyle::Filled);
+		//ch_style.setColor(Qt::green);
+		DrawChannelOptions ch_options{ch_style, gr_options};
+		//ch_options.samplesValueCorrection = [](double d) -> double { return std::abs(d); };
+		drawSamples(painter, rect, i, ch_options);
 	}
 }
 
-void GraphView::drawXAxis(QPainter *painter, const GraphDrawOptions &options)
+void GraphView::drawXAxis(QPainter *painter, const QRect &rect, const DrawGraphOptions &options)
 {
-	drawRectText(painter, layout.xAxisRect, "x-axis", options.font, Qt::green);
+	drawRectText(painter, rect, "x-axis", options.style.font(), Qt::green);
 }
 
-void GraphView::drawVerticalHeader(QPainter *painter, int channel, const GraphView::DrawChannelOptions &options)
+void GraphView::drawVerticalHeader(QPainter *painter, const QRect &rect, int channel, const GraphView::DrawChannelOptions &options)
 {
-	const Channel &ch = m_channels[channel];
-	QColor c = options.channelStyle.color();
+	//const Channel &ch = m_channels[channel];
+	QColor c = options.style.color();
 	QColor bc = c;
 	bc.setAlphaF(0.05);
 	QString text = model()->channelData(channel, GraphModel::ChannelDataRole::Name).toString();
 	if(text.isEmpty())
 		text = "<no name>";
-	QFont font = options.graphOptions.font;
+	QFont font = options.font();
 	font.setBold(true);
-	drawRectText(painter, ch.layout.verticalHeaderRect, text, font, c, bc);
+	drawRectText(painter, rect, text, font, c, bc);
 }
 
-void GraphView::drawBackground(QPainter *painter, int channel, const GraphView::DrawChannelOptions &options)
+void GraphView::drawBackground(QPainter *painter, const QRect &rect, int channel, const GraphView::DrawChannelOptions &options)
 {
+	Q_UNUSED(channel)
 	//const Channel &ch = m_channels[channel];
-	painter->fillRect(options.rect, options.channelStyle.colorBackground());
+	painter->fillRect(rect, options.style.colorBackground());
 }
 
-void GraphView::drawGrid(QPainter *painter, int channel, const GraphView::DrawChannelOptions &options)
+void GraphView::drawGrid(QPainter *painter, const QRect &rect, int channel, const GraphView::DrawChannelOptions &options)
 {
+	Q_UNUSED(channel)
 	//const Channel &ch = m_channels[channel];
-	drawRectText(painter, options.rect, "grid", options.graphOptions.font, options.channelStyle.colorGrid());
+	drawRectText(painter, rect, "grid", options.font(), options.style.colorGrid());
 }
 
-void GraphView::drawYAxis(QPainter *painter, int channel, const GraphView::DrawChannelOptions &options)
+void GraphView::drawYAxis(QPainter *painter, const QRect &rect, int channel, const GraphView::DrawChannelOptions &options)
 {
+	Q_UNUSED(channel)
 	//const Channel &ch = m_channels[channel];
-	drawRectText(painter, options.rect, "y-axis", options.graphOptions.font, options.channelStyle.colorYAxis());
+	drawRectText(painter, rect, "y-axis", options.font(), options.style.colorYAxis());
 }
 
-void GraphView::drawSamples(QPainter *painter, int channel, const GraphView::DrawChannelOptions &options)
+void GraphView::drawSamples(QPainter *painter, const QRect &rect, int channel, const GraphView::DrawChannelOptions &options)
 {
 	shvLogFuncFrame() << "channel:" << channel;
 	const Channel &ch = channelAt(channel);
 	QPair<timemsec_t, timemsec_t> xrange = xRange();
 	QPair<double, double> yrange = ch.yRange();
-	int le = options.rect.left();
-	int ri = options.rect.right();
-	int to = options.rect.top();
-	int bo = options.rect.bottom();
+	int le = rect.left();
+	int ri = rect.right();
+	int to = rect.top();
+	int bo = rect.bottom();
 	timemsec_t t1 = xrange.first;
 	timemsec_t t2 = xrange.second;
 	double d1 = yrange.first;
@@ -302,25 +312,31 @@ void GraphView::drawSamples(QPainter *painter, int channel, const GraphView::Dra
 
 	auto sample2point = [le, bo, kx, t1, d1, ky](const GraphModel::Sample &s) -> QPoint {
 		const timemsec_t t = s.time;
-		const double d = GraphModel::valueToDouble(s.value);
+		double d = GraphModel::valueToDouble(s.value);
 		double x = le + (t - t1) * kx;
 		double y = bo + (d - d1) * ky;
-		//shvDebug() << t << d << "->" << x << y;
 		return QPoint{static_cast<int>(x), static_cast<int>(y)};
 	};
 
-	int interpolation = options.channelStyle.interpolation();
+	int interpolation = options.style.interpolation();
 	painter->save();
 	QPen pen;
-	pen.setColor(options.channelStyle.color());
+	pen.setColor(options.style.color());
 	{
-		double d = options.channelStyle.lineWidth();
+		double d = options.style.lineWidth();
 		if(d > 0)
 			pen.setWidth(options.graphOptions.unitToPixels(d));
 		else
 			pen.setWidth(2);
 	}
 	painter->setPen(pen);
+	QColor line_area_color;
+	if(options.style.lineAreaStyle() == ChannelStyle::LineAreaStyle::Filled) {
+		line_area_color = painter->pen().color();
+		line_area_color.setAlphaF(0.4);
+		//line_area_color.setHsv(line_area_color.hslHue(), line_area_color.hsvSaturation() / 2, line_area_color.lightness());
+	}
+
 	GraphModel *m = model();
 	QPoint p1;
 	shvDebug() << "count:" << m->count(channel);
@@ -332,12 +348,26 @@ void GraphView::drawSamples(QPainter *painter, int channel, const GraphView::Dra
 		}
 		else {
 			if(p2.x() != p1.x()) {
-				if(interpolation == Interpolation::Stepped) {
+				if(interpolation == ChannelStyle::Interpolation::Stepped) {
+					if(line_area_color.isValid()) {
+						const QPoint p0 = sample2point(GraphModel::Sample{s.time, 0});
+						painter->fillRect(QRect{p1 + QPoint{1, 0}, p0}, line_area_color);
+					}
 					QPoint p3{p2.x(), p1.y()};
 					painter->drawLine(p1, p3);
 					painter->drawLine(p3, p2);
 				}
 				else {
+					if(line_area_color.isValid()) {
+						const QPoint p0 = sample2point(GraphModel::Sample{s.time, 0});
+						QPainterPath pp;
+						pp.moveTo(p1);
+						pp.lineTo(p2);
+						pp.lineTo(p0);
+						pp.lineTo(p1.x(), p0.y());
+						pp.closeSubpath();
+						painter->fillPath(pp, line_area_color);
+					}
 					painter->drawLine(p1, p2);
 				}
 				p1 = p2;
@@ -358,8 +388,10 @@ void GraphView::paintEvent(QPaintEvent *event)
 	shvLogFuncFrame();
 	Super::paintEvent(event);
 	QPainter painter(viewport());
-	GraphDrawOptions options{font(), layout.unitSize};
-	draw(&painter, options);
+	QRect r = widget()->geometry();
+	r.moveTopLeft({0, 0});
+	DrawGraphOptions options{style, layout.unitSize};
+	draw(&painter, r, options);
 }
 
 } // namespace timeline

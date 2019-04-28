@@ -98,7 +98,7 @@ void MainWindow::generateRandomSamples()
 		view->appendChannel();
 		timeline::GraphView::Channel &ch = view->channelAt(ix);
 		ch.style.setLineWidth(0.2);
-		ch.style.setInterpolation(timeline::GraphView::Interpolation::Stepped);
+		ch.style.setInterpolation(timeline::GraphView::ChannelStyle::Interpolation::Stepped);
 		ch.style.setColor(Qt::magenta);
 		ch.style.setHeightMin(2);
 		ch.style.setHeightMax(2);
@@ -109,7 +109,7 @@ void MainWindow::generateRandomSamples()
 		int ix = 1;
 		view->appendChannel();
 		timeline::GraphView::Channel &ch = view->channelAt(ix);
-		ch.style.setInterpolation(timeline::GraphView::Interpolation::Stepped);
+		ch.style.setInterpolation(timeline::GraphView::ChannelStyle::Interpolation::Stepped);
 		ch.style.setColor(Qt::cyan);
 		ch.style.setHeightMax(6);
 		ch.setYRange(model->yRange(ix));

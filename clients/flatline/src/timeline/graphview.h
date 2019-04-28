@@ -35,19 +35,28 @@ public:
 
 		SHV_VARIANTMAP_FIELD2(QColor, c, setC, olor, QColor(Qt::yellow))
 		SHV_VARIANTMAP_FIELD2(QColor, c, setC, olorBackground, QColor(Qt::darkGray))
+
+		SHV_VARIANTMAP_FIELD(QFont, f, setF, ont)
 	};
-	struct Interpolation { enum Enum {Line = 0, Stepped};};
-	static constexpr double CosmeticLineWidth = 0;
 	class ChannelStyle : public QVariantMap
 	{
+	public:
+		struct Interpolation { enum Enum {Line = 0, Stepped};};
+		struct LineAreaStyle { enum Enum {Unfilled = 0, Filled};};
+		static constexpr double CosmeticLineWidth = 0;
+
 		SHV_VARIANTMAP_FIELD2(double, h, setH, eightMin, 2) // units
 		SHV_VARIANTMAP_FIELD2(double, h, setH, eightMax, 2) // units
 		SHV_VARIANTMAP_FIELD2(QColor, c, setC, olor, QColor(Qt::magenta))
 		SHV_VARIANTMAP_FIELD2(QColor, c, setC, olorGrid, QColor(Qt::darkGreen))
 		SHV_VARIANTMAP_FIELD2(QColor, c, setC, olorYAxis, QColor(Qt::green))
 		SHV_VARIANTMAP_FIELD2(QColor, c, setC, olorBackground, QColor(Qt::black))
+
 		SHV_VARIANTMAP_FIELD2(int, i, setI, nterpolation, Interpolation::Line)
+		SHV_VARIANTMAP_FIELD2(int, l, setL, ineAreaStyle, LineAreaStyle::Filled)
 		SHV_VARIANTMAP_FIELD2(double, l, setL, ineWidth, CosmeticLineWidth)
+
+		//SHV_VARIANTMAP_FIELD(QFont, f, setF, ont)
 
 	public:
 		ChannelStyle() : QVariantMap() {}
@@ -114,39 +123,44 @@ protected:
 
 	void drawRectText(QPainter *painter, const QRect &rect, const QString &text, const QFont &font, const QColor &color, const QColor &background = QColor());
 
-	struct GraphDrawOptions
+	struct DrawGraphOptions
 	{
-		QRect rect;
-		QFont font;
+		GraphStyle style;
 		int unitSize = 0;
 
-		GraphDrawOptions(const QFont &f, int unit_size)
-			: font(f)
+		DrawGraphOptions(const GraphStyle &s, int unit_size)
+			: style(s)
 			, unitSize(unit_size)
 		{}
 
 		int unitToPixels(double units) const { return static_cast<int>(unitSize * units); }
+		QFont font() const { return style.font(); }
 
 	};
-	virtual void draw(QPainter *painter, const GraphDrawOptions &options);
+	virtual void draw(QPainter *painter, const QRect &rect, const DrawGraphOptions &options);
 
-	virtual void drawBackground(QPainter *painter, const GraphDrawOptions &options);
-	virtual void drawMiniMap(QPainter *painter, const GraphDrawOptions &gr_options);
-	virtual void drawXAxis(QPainter *painter, const GraphDrawOptions &options);
+	virtual void drawBackground(QPainter *painter, const QRect &rect, const DrawGraphOptions &options);
+	virtual void drawMiniMap(QPainter *painter, const QRect &rect, const DrawGraphOptions &gr_options);
+	virtual void drawXAxis(QPainter *painter, const QRect &rect, const DrawGraphOptions &options);
 
 	struct DrawChannelOptions
 	{
-		GraphDrawOptions graphOptions;
-		QRect rect;
-		ChannelStyle channelStyle;
-		GraphStyle graphStyle;
+		ChannelStyle style;
+		DrawGraphOptions graphOptions;
+
+		DrawChannelOptions(const ChannelStyle &s, const DrawGraphOptions &o)
+			: style(s)
+			, graphOptions(o)
+		{}
+
+		QFont font() const { return graphOptions.style.font(); }
 	};
 	//virtual void drawGraph(int channel);
-	virtual void drawVerticalHeader(QPainter *painter, int channel, const DrawChannelOptions &options);
-	virtual void drawBackground(QPainter *painter, int channel, const DrawChannelOptions &options);
-	virtual void drawGrid(QPainter *painter, int channel, const DrawChannelOptions &options);
-	virtual void drawYAxis(QPainter *painter, int channel, const DrawChannelOptions &options);
-	virtual void drawSamples(QPainter *painter, int channel, const DrawChannelOptions &options);
+	virtual void drawVerticalHeader(QPainter *painter, const QRect &rect, int channel, const DrawChannelOptions &options);
+	virtual void drawBackground(QPainter *painter, const QRect &rect, int channel, const DrawChannelOptions &options);
+	virtual void drawGrid(QPainter *painter, const QRect &rect, int channel, const DrawChannelOptions &options);
+	virtual void drawYAxis(QPainter *painter, const QRect &rect, int channel, const DrawChannelOptions &options);
+	virtual void drawSamples(QPainter *painter, const QRect &rect, int channel, const DrawChannelOptions &options);
 	// QWidget interface
 protected:
 	void resizeEvent(QResizeEvent *event) override;
