@@ -42,12 +42,12 @@ int GraphModel::count(int channel) const
 	return m_samples.at(channel).count();
 }
 
-GraphModel::Sample GraphModel::sampleAt(int channel, int ix) const
+Sample GraphModel::sampleAt(int channel, int ix) const
 {
 	return m_samples.at(channel).at(ix);
 }
 
-GraphModel::Sample GraphModel::sampleValue(int channel, int ix) const
+Sample GraphModel::sampleValue(int channel, int ix) const
 {
 	if(channel < 0 || channel >= channelCount())
 		return Sample();
@@ -143,33 +143,33 @@ int GraphModel::lessOrEqualIndex(int channel, GraphModel::timemsec_t time) const
 
 void GraphModel::beginAppendValues()
 {
-	m_appendSince = m_appendUntil = 0;
+	//m_appendSince = m_appendUntil = 0;
 }
 
 void GraphModel::endAppendValues()
 {
-	if(m_appendSince > 0)
-		emit valuesAppended(m_appendSince, m_appendUntil);
+	//if(m_appendSince > 0)
+	//	emit xRangeChanged(m_appendSince, m_appendUntil);
 }
 
-void GraphModel::appendValue(int channel, GraphModel::Sample &&sampleAt)
+void GraphModel::appendValue(int channel, Sample &&sample)
 {
 	if(channel < 0 || channel > channelCount()) {
 		shvError() << "Invalid channel index:" << channel;
 		return;
 	}
-	if(sampleAt.time <= 0) {
-		shvWarning() << "ignoring value with timestamp <= 0, timestamp:" << sampleAt.time;
+	if(sample.time <= 0) {
+		shvWarning() << "ignoring value with timestamp <= 0, timestamp:" << sample.time;
 		return;
 	}
 	ChannelSamples &dat = m_samples[channel];
-	if(!dat.isEmpty() && dat.last().time > sampleAt.time) {
-		shvWarning() << "ignoring value with lower timestamp than last value:" << dat.last().time << "val:" << sampleAt.time;
+	if(!dat.isEmpty() && dat.last().time > sample.time) {
+		shvWarning() << "ignoring value with lower timestamp than last value:" << dat.last().time << "val:" << sample.time;
 		return;
 	}
-	m_appendSince = qMin(sampleAt.time, m_appendSince);
-	m_appendUntil = qMax(sampleAt.time, m_appendUntil);
-	dat.push_back(std::move(sampleAt));
+	//m_appendSince = qMin(sampleAt.time, m_appendSince);
+	//m_appendUntil = qMax(sampleAt.time, m_appendUntil);
+	dat.push_back(std::move(sample));
 }
 
 void GraphModel::appendChannel()

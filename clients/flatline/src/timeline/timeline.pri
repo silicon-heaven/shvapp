@@ -1,11 +1,13 @@
 HEADERS += \
     $$PWD/graphmodel.h \
-    $$PWD/graphview.h \
     $$PWD/graph.h \
-    $$PWD/graphwidget.h
+    $$PWD/graphview.h \
+    $$PWD/graphwidget.h \
+    $$PWD/sample.h
 
 SOURCES += \
     $$PWD/graphmodel.cpp \
-    $$PWD/graphview.cpp \
     $$PWD/graph.cpp \
-    $$PWD/graphwidget.cpp
+    $$PWD/graphview.cpp \
+    $$PWD/graphwidget.cpp \
+    $$PWD/sample.cpp

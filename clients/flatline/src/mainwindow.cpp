@@ -31,10 +31,19 @@ MainWindow::MainWindow(QWidget *parent) :
 
 	ui->setupUi(this);
 	//ui->graphView->viewport()->show();
-	ui->graphView->setWidget(new timeline::GraphWidget());
+	m_graphWidget = new timeline::GraphWidget();
+
+	ui->graphView->setBackgroundRole(QPalette::Dark);
+	ui->graphView->setWidget(m_graphWidget);
+	ui->graphView->widget()->setBackgroundRole(QPalette::ToolTipBase);
+	ui->graphView->widget()->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+
 	//shvInfo() << qobject_cast<QWidget*>(ui->graphView->widget());
-	ui->graphView->setModel(m_dataModel);
-	ui->graphView->style.setColorBackground(QColor(Qt::darkGray).darker(400));
+	m_graphWidget->setModel(m_dataModel);
+
+	timeline::GraphWidget::GraphStyle style;
+	style.setColorBackground(QColor(Qt::darkGray).darker(400));
+	m_graphWidget->setStyle(style);
 
 	FlatLineApp *app = FlatLineApp::instance();
 	connect(app->rpcConnection(), &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &MainWindow::onRpcMessageReceived);
@@ -54,7 +63,6 @@ MainWindow::~MainWindow()
 
 void MainWindow::generateRandomSamples()
 {
-	timeline::GraphView *view = ui->graphView;
 	timeline::GraphModel *model = m_dataModel;
 
 	model->clear();
@@ -72,52 +80,52 @@ void MainWindow::generateRandomSamples()
 	for (int i = 0; i < cnt; ++i) {
 		int t = rnd->bounded(interval_msec);
 		int v = rnd->bounded(2);
-		model->appendValue(0, timeline::GraphModel::Sample{time + t, v});
+		model->appendValue(0, timeline::Sample{time + t, v});
 		time += t;
 	}
 	time = 0;
 	for (int i = 0; i < cnt; ++i) {
 		int t = rnd->bounded(interval_msec);
 		int v = rnd->bounded(-2048, 2048);
-		model->appendValue(1, timeline::GraphModel::Sample{time + t, v});
+		model->appendValue(1, timeline::Sample{time + t, v});
 		time += t;
 	}
 	time = 0;
 	for (int i = 0; i < cnt; ++i) {
 		int t = rnd->bounded(interval_msec);
 		double v = rnd->generateDouble() * 60 - 30;
-		model->appendValue(2, timeline::GraphModel::Sample{time + t, v});
+		model->appendValue(2, timeline::Sample{time + t, v});
 		time += t;
 	}
 	model->endAppendValues();
 
-	view->clearChannels();
-	view->setXRange(model->xRange());
+	m_graphWidget->clearChannels();
+	m_graphWidget->setXRange(model->xRange());
 	{
 		int ix = 0;
-		view->appendChannel();
-		timeline::GraphView::Channel &ch = view->channelAt(ix);
+		m_graphWidget->appendChannel();
+		timeline::GraphWidget::Channel &ch = m_graphWidget->channelAt(ix);
 		ch.style.setLineWidth(0.2);
-		ch.style.setInterpolation(timeline::GraphView::ChannelStyle::Interpolation::Stepped);
+		ch.style.setInterpolation(timeline::GraphWidget::ChannelStyle::Interpolation::Stepped);
 		ch.style.setColor(Qt::magenta);
 		ch.style.setHeightMin(2);
 		ch.style.setHeightMax(2);
 		ch.setYRange(model->yRange(ix));
-		ch.adjustYRange(ch.style.lineWidth() / 2);
+		ch.enlargeYRange(ch.style.lineWidth() / 2);
 	}
 	{
 		int ix = 1;
-		view->appendChannel();
-		timeline::GraphView::Channel &ch = view->channelAt(ix);
-		ch.style.setInterpolation(timeline::GraphView::ChannelStyle::Interpolation::Stepped);
+		m_graphWidget->appendChannel();
+		timeline::GraphWidget::Channel &ch = m_graphWidget->channelAt(ix);
+		ch.style.setInterpolation(timeline::GraphWidget::ChannelStyle::Interpolation::Stepped);
 		ch.style.setColor(Qt::cyan);
 		ch.style.setHeightMax(6);
 		ch.setYRange(model->yRange(ix));
 	}
 	{
 		int ix = 2;
-		view->appendChannel();
-		timeline::GraphView::Channel &ch = view->channelAt(ix);
+		m_graphWidget->appendChannel();
+		timeline::GraphWidget::Channel &ch = m_graphWidget->channelAt(ix);
 		ch.style.setColor("salmon");
 		//ch.style.setHeightMax(6);
 		ch.setYRange(model->yRange(ix));
@@ -178,7 +186,7 @@ void MainWindow::setLogData(const shv::chainpack::RpcValue &data)
 	if(m_dataModel)
 		delete m_dataModel;
 	m_dataModel = new timeline::GraphModel(this);
-	ui->graphView->setModel(m_dataModel);
+	m_graphWidget->setModel(m_dataModel);
 	if(data.isList()) {
 		addLogEntries(data.toList());
 	}
@@ -207,7 +215,7 @@ void MainWindow::addLogEntries(const shv::chainpack::RpcValue::List &data)
 			m_dataModel->appendChannel();
 		}
 		QVariant v = shv::iotqt::Utils::rpcValueToQVariant(val);
-		m_dataModel->appendValue(chix, timeline::GraphModel::Sample{dt.msecsSinceEpoch(), v});
+		m_dataModel->appendValue(chix, timeline::Sample{dt.msecsSinceEpoch(), v});
 	}
 	m_dataModel->endAppendValues();
 }

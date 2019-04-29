@@ -8,7 +8,6 @@ namespace timeline {
 class Graph
 {
 public:
-	using timemsec_t = int64_t;
 };
 
 } // namespace timeline
