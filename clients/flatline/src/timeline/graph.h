@@ -75,7 +75,7 @@ public:
 	class ChannelStyle : public QVariantMap
 	{
 	public:
-		struct Interpolation { enum Enum {Line = 0, Stepped};};
+		struct Interpolation { enum Enum {None = 0, Line, Stepped};};
 		struct LineAreaStyle { enum Enum {Unfilled = 0, Filled};};
 		static constexpr double CosmeticLineWidth = 0;
 
@@ -123,6 +123,9 @@ public:
 
 		const QRect& graphRect() const { return  m_layout.graphRect; }
 
+		//std::function<QPoint (const Sample&)> sampleToPointFn(const XRange &xrange);
+		//std::function<Sample (const QPoint &)> pointToSampleFn(const XRange &xrange);
+
 		struct
 		{
 			YRange yRange;
@@ -144,7 +147,7 @@ public:
 	virtual ~Graph() {}
 
 	void setModel(GraphModel *model);
-	GraphModel *model();
+	GraphModel *model() const;
 
 	void createChannelsFromModel();
 
@@ -155,12 +158,16 @@ public:
 	const Channel& channelAt(int ix) const;
 	DataRect dataRect(int channel_ix) const;
 
+	timemsec_t posToTime(const QPoint &pos) const;
+	Sample timeToSample(int channel_ix, timemsec_t time) const;
+
 	const QRect& rect() const { return  m_layout.rect; }
 	const QRect& miniMapRect() const { return  m_layout.miniMapRect; }
+	int setCrossBarPos(const QPoint &pos);
 
 	XRange xRange() const { return m_state.xRange; }
 	XRange xRangeZoom() const { return m_state.xRangeZoom; }
-	void setXRange(const XRange &r);
+	void setXRange(const XRange &r, bool keep_zoom = false);
 
 	const GraphStyle& style() const { return m_style; }
 	void setStyle(const GraphStyle &st);
@@ -169,8 +176,8 @@ public:
 	void makeLayout(const QRect &rect);
 	void draw(QPainter *painter);
 
-	static std::function<QPoint (const Sample&)> createSampleToPointFn(const DataRect &src, const QRect &dest);
-	static std::function<Sample (const QPoint &)> createPointToSampleFn(const QRect &src, const DataRect &dest);
+	static std::function<QPoint (const Sample&)> sampleToPointFn(const DataRect &src, const QRect &dest);
+	static std::function<Sample (const QPoint &)> pointToSampleFn(const QRect &src, const DataRect &dest);
 
 protected:
 	void drawRectText(QPainter *painter, const QRect &rect, const QString &text, const QFont &font, const QColor &color, const QColor &background = QColor());
@@ -205,6 +212,7 @@ protected:
 	{
 		XRange xRange;
 		XRange xRangeZoom;
+		QPoint crossBarPos;
 	} m_state;
 
 	struct

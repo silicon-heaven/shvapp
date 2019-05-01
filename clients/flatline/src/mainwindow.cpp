@@ -75,35 +75,56 @@ void MainWindow::generateRandomSamples()
 	model->beginAppendValues();
 	int cnt = ui->edSamplesCount->value();
 	int interval_msec = ui->edTimeInterval->value();
-	int64_t time = 0;
 	QRandomGenerator *rnd = QRandomGenerator::global();
-	for (int i = 0; i < cnt; ++i) {
-		int t = rnd->bounded(interval_msec);
-		int v = rnd->bounded(2);
-		model->appendValue(0, timeline::Sample{time + t, v});
-		time += t;
+	int ch_ix = 0;
+	{
+		int64_t time = 0;
+		for (int i = 0; i < cnt; ++i) {
+			int t = rnd->bounded(interval_msec);
+			int v = rnd->bounded(-2048, 2048);
+			model->appendValue(ch_ix, timeline::Sample{time + t, v});
+			time += t;
+		}
+		ch_ix++;
 	}
-	time = 0;
-	for (int i = 0; i < cnt; ++i) {
-		int t = rnd->bounded(interval_msec);
-		int v = rnd->bounded(-2048, 2048);
-		model->appendValue(1, timeline::Sample{time + t, v});
-		time += t;
+	{
+		int64_t time = 0;
+		for (int i = 0; i < cnt; ++i) {
+			int t = rnd->bounded(interval_msec);
+			int v = rnd->bounded(2);
+			model->appendValue(ch_ix, timeline::Sample{time + t, v});
+			time += t;
+		}
+		ch_ix++;
 	}
-	time = 0;
-	for (int i = 0; i < cnt; ++i) {
-		int t = rnd->bounded(interval_msec);
-		double v = rnd->generateDouble() * 60 - 30;
-		model->appendValue(2, timeline::Sample{time + t, v});
-		time += t;
+	{
+		int64_t time = 0;
+		for (int i = 0; i < cnt; ++i) {
+			int t = rnd->bounded(interval_msec);
+			double v = rnd->generateDouble() * 60 - 30;
+			model->appendValue(ch_ix, timeline::Sample{time + t, v});
+			time += t;
+		}
+		ch_ix++;
 	}
 	model->endAppendValues();
 
 	timeline::Graph *gr = m_graphWidget->graph();
 	gr->clearChannels();
 	gr->setXRange(model->xRange());
+	int ix = 0;
 	{
-		int ix = 0;
+		gr->appendChannel();
+		timeline::Graph::Channel &ch = gr->channelAt(ix);
+		timeline::Graph::ChannelStyle ch_style = ch.style();
+		ch_style.setInterpolation(timeline::Graph::ChannelStyle::Interpolation::Stepped);
+		ch_style.setColor(Qt::cyan);
+		ch_style.setHeightMax(6);
+		ch.setYRange(model->yRange(ix));
+		ch.setStyle(ch_style);
+		ix++;
+	}
+	{
 		gr->appendChannel();
 		timeline::Graph::Channel &ch = gr->channelAt(ix);
 		timeline::Graph::ChannelStyle ch_style = ch.style();
@@ -115,20 +136,9 @@ void MainWindow::generateRandomSamples()
 		ch.setYRange(model->yRange(ix));
 		ch.enlargeYRange(ch_style.lineWidth() / 2);
 		ch.setStyle(ch_style);
+		ix++;
 	}
 	{
-		int ix = 1;
-		gr->appendChannel();
-		timeline::Graph::Channel &ch = gr->channelAt(ix);
-		timeline::Graph::ChannelStyle ch_style = ch.style();
-		ch_style.setInterpolation(timeline::Graph::ChannelStyle::Interpolation::Stepped);
-		ch_style.setColor(Qt::cyan);
-		ch_style.setHeightMax(6);
-		ch.setYRange(model->yRange(ix));
-		ch.setStyle(ch_style);
-	}
-	{
-		int ix = 2;
 		gr->appendChannel();
 		timeline::Graph::Channel &ch = gr->channelAt(ix);
 		timeline::Graph::ChannelStyle ch_style = ch.style();
@@ -137,6 +147,7 @@ void MainWindow::generateRandomSamples()
 		ch.setYRange(model->yRange(ix));
 		ch_style.setLineAreaStyle(timeline::Graph::ChannelStyle::LineAreaStyle::Filled);
 		ch.setStyle(ch_style);
+		ix++;
 	}
 
 	ui->graphView->makeLayout();

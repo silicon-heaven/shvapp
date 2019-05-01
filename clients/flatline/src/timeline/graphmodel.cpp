@@ -130,15 +130,20 @@ int GraphModel::lessOrEqualIndex(int channel, GraphModel::timemsec_t time) const
 		int pivot = first + step;
 		if (sampleAt(channel, pivot).time <= time) {
 			first = pivot;
-			cnt = cnt - step;
+			if(step)
+				cnt -= step;
+			else
+				cnt = 0;
 			found = true;
 		}
 		else {
 			cnt = step;
 			found = false;
 		}
-	}
-	return found? first: -1;
+	};
+	int ret = found? first: -1;
+	//shvInfo() << time << "-->" << ret;
+	return ret;
 }
 
 void GraphModel::beginAppendValues()

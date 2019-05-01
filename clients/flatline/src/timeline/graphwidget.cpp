@@ -60,15 +60,11 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
 		shvDebug() << (vpos.x() - gr->miniMapRect().left()) << (vpos.y() - gr->miniMapRect().top());
 	}
 	else {
-		for (int i = 0; i < gr->channelCount(); ++i) {
-			const Graph::Channel &ch = gr->channelAt(i);
-			if(ch.graphRect().contains(vpos)) {
-				std::function<Sample (const QPoint &)> point2sample = Graph::createPointToSampleFn(ch.graphRect(), gr->dataRect(i));
-				Sample s = point2sample(vpos);
-				//shvDebug() << (vpos.x() - m_drawOptions.layout.miniMapRect.left()) << (vpos.y() - m_drawOptions.layout.miniMapRect.top());
-				shvDebug() << "time:" << s.time << "value:" << s.value.toDouble();
-				break;
-			}
+		int ch_ix = gr->setCrossBarPos(vpos);
+		if(ch_ix >= 0) {
+			Graph::timemsec_t t = gr->posToTime(vpos);
+			Sample s = gr->timeToSample(ch_ix, t);
+			shvDebug() << "time:" << s.time << "value:" << s.value.toDouble();
 		}
 	}
 }

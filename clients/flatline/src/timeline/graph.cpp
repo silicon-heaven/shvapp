@@ -14,6 +14,31 @@
 
 namespace timeline {
 
+//==========================================
+// Graph::Channel
+//==========================================
+void Graph::Channel::setYRange(const timeline::Graph::YRange &r)
+{
+	m_state.yRange = r;
+	resetZoom();
+}
+
+void Graph::Channel::enlargeYRange(double step)
+{
+	YRange r = m_state.yRange;
+	r.min -= step;
+	r.max += step;
+	setYRange(r);
+}
+
+void Graph::Channel::resetZoom()
+{
+	m_state.yRangeZoom = m_state.yRange;
+}
+
+//==========================================
+// Graph
+//==========================================
 void Graph::GraphStyle::init(QWidget *widget)
 {
 	QFont f = widget->font();
@@ -31,7 +56,7 @@ void Graph::setModel(GraphModel *model)
 	m_model = model;
 }
 
-GraphModel *Graph::model()
+GraphModel *Graph::model() const
 {
 	return m_model;
 }
@@ -76,35 +101,79 @@ Graph::DataRect Graph::dataRect(int channel_ix) const
 	return DataRect{xRangeZoom(), ch.yRangeZoom()};
 }
 
-void Graph::setXRange(const timeline::Graph::XRange &r)
+Graph::timemsec_t Graph::posToTime(const QPoint &pos) const
+{
+	int le = m_layout.xAxisRect.left();
+	int ri = m_layout.xAxisRect.right();
+	if(ri - le == 0)
+		return 0;
+	XRange xrange = xRangeZoom();
+	timemsec_t t1 = xrange.min;
+	timemsec_t t2 = xrange.max;
+	return static_cast<timemsec_t>(t1 + static_cast<double>(pos.x() - le) * (t2 - t1) / (ri - le));
+}
+
+Sample Graph::timeToSample(int channel_ix, Graph::timemsec_t time) const
+{
+	GraphModel *m = model();
+	int ix1 = m->lessOrEqualIndex(channel_ix, time);
+	if(ix1 < 0)
+		return Sample();
+	const Channel &ch = channelAt(channel_ix);
+	int interpolation = ch.effectiveStyle.interpolation();
+	if(interpolation == ChannelStyle::Interpolation::None) {
+		Sample s = m->sampleAt(channel_ix, ix1);
+		if(s.time == time)
+			return s;
+	}
+	else if(interpolation == ChannelStyle::Interpolation::Stepped) {
+		Sample s = m->sampleAt(channel_ix, ix1);
+		s.time = time;
+		return s;
+	}
+	else if(interpolation == ChannelStyle::Interpolation::Line) {
+		int ix2 = ix1 + 1;
+		if(ix2 >= m->count(channel_ix))
+			return Sample();
+		Sample s1 = m->sampleAt(channel_ix, ix1);
+		Sample s2 = m->sampleAt(channel_ix, ix2);
+		if(s1.time == s2.time)
+			return Sample();
+		double d = s1.value.toDouble() + (time - s1.time) * (s2.value.toDouble() - s1.value.toDouble()) / (s2.time - s1.time);
+		return Sample(time, d);
+	}
+	return Sample();
+
+	//auto sample2point = sampleToPointFn(DataRect{xRangeZoom(), ch.yRangeZoom()}, ch.graphRect());
+	//if(!sample2point)
+	//	return;
+
+
+}
+
+int Graph::setCrossBarPos(const QPoint &pos)
+{
+	for (int i = 0; i < channelCount(); ++i) {
+		const Channel &ch = channelAt(i);
+		if(ch.graphRect().contains(pos)) {
+			m_state.crossBarPos = pos;
+			return i;
+		}
+	}
+	m_state.crossBarPos = QPoint();
+	return -1;
+}
+
+void Graph::setXRange(const timeline::Graph::XRange &r, bool keep_zoom)
 {
 	m_state.xRange = r;
-	if(m_state.xRangeZoom.isNull()) {
+	if(m_state.xRangeZoom.isNull() || !keep_zoom) {
 		m_state.xRangeZoom = m_state.xRange;
 	}
 	if(m_state.xRangeZoom.min < m_state.xRange.min)
 		m_state.xRangeZoom.min = m_state.xRange.min;
 	if(m_state.xRangeZoom.max > m_state.xRange.max)
 		m_state.xRangeZoom.max = m_state.xRange.max;
-}
-
-void Graph::Channel::setYRange(const timeline::Graph::YRange &r)
-{
-	m_state.yRange = r;
-	resetZoom();
-}
-
-void Graph::Channel::enlargeYRange(double step)
-{
-	YRange r = m_state.yRange;
-	r.min -= step;
-	r.max += step;
-	setYRange(r);
-}
-
-void Graph::Channel::resetZoom()
-{
-	m_state.yRangeZoom = m_state.yRange;
 }
 
 void Graph::setStyle(const Graph::GraphStyle &st)
@@ -310,7 +379,7 @@ void Graph::drawYAxis(QPainter *painter, int channel)
 	drawRectText(painter, ch.m_layout.yAxisRect, "y-axis", effectiveStyle.font(), ch.effectiveStyle.colorYAxis());
 }
 
-std::function<QPoint (const Sample &)> Graph::createSampleToPointFn(const DataRect &src, const QRect &dest)
+std::function<QPoint (const Sample &)> Graph::sampleToPointFn(const DataRect &src, const QRect &dest)
 {
 	int le = dest.left();
 	int ri = dest.right();
@@ -339,7 +408,7 @@ std::function<QPoint (const Sample &)> Graph::createSampleToPointFn(const DataRe
 	};
 }
 
-std::function<Sample (const QPoint &)> Graph::createPointToSampleFn(const QRect &src, const DataRect &dest)
+std::function<Sample (const QPoint &)> Graph::pointToSampleFn(const QRect &src, const DataRect &dest)
 {
 	int le = src.left();
 	int ri = src.right();
@@ -383,7 +452,7 @@ void Graph::drawSamples(QPainter *painter, int channel, const QRect &dest_rect, 
 	double d1 = yrange.min;
 	double d2 = yrange.max;
 	*/
-	auto sample2point = createSampleToPointFn(DataRect{xrange, yrange}, rect);
+	auto sample2point = sampleToPointFn(DataRect{xrange, yrange}, rect);
 
 	if(!sample2point)
 		return;
