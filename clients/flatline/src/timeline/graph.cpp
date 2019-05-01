@@ -101,16 +101,38 @@ Graph::DataRect Graph::dataRect(int channel_ix) const
 	return DataRect{xRangeZoom(), ch.yRangeZoom()};
 }
 
-Graph::timemsec_t Graph::posToTime(const QPoint &pos) const
+Graph::timemsec_t Graph::posToTime(int pos) const
+{
+	auto pos2time = posToTimeFn(QPoint{m_layout.xAxisRect.left(), m_layout.xAxisRect.right()}, xRangeZoom());
+	return pos2time? pos2time(pos): 0;
+}
+
+Graph::timemsec_t Graph::miniMapPosToTime(int pos) const
+{
+	auto pos2time = posToTimeFn(QPoint{m_layout.miniMapRect.left(), m_layout.miniMapRect.right()}, xRange());
+	return pos2time? pos2time(pos): 0;
+}
+
+int Graph::miniMapTimeToPos(Graph::timemsec_t time) const
+{
+	auto time2pos = timeToPosFn(xRange(), QPoint{m_layout.miniMapRect.left(), m_layout.miniMapRect.right()});
+	return time2pos? time2pos(time): 0;
+}
+
+int Graph::timeToPos(Graph::timemsec_t time, const XRange &x_range) const
 {
 	int le = m_layout.xAxisRect.left();
 	int ri = m_layout.xAxisRect.right();
 	if(ri - le == 0)
 		return 0;
-	XRange xrange = xRangeZoom();
+	XRange xrange;
+	if(x_range.isNull())
+		xrange = xRangeZoom();
+	else
+		xrange = x_range;
 	timemsec_t t1 = xrange.min;
 	timemsec_t t2 = xrange.max;
-	return static_cast<timemsec_t>(t1 + static_cast<double>(pos.x() - le) * (t2 - t1) / (ri - le));
+	return static_cast<int>(le + static_cast<double>(time - t1) * (ri - le) / (t2 - t1));
 }
 
 Sample Graph::timeToSample(int channel_ix, Graph::timemsec_t time) const
@@ -170,6 +192,20 @@ void Graph::setXRange(const timeline::Graph::XRange &r, bool keep_zoom)
 	if(m_state.xRangeZoom.isNull() || !keep_zoom) {
 		m_state.xRangeZoom = m_state.xRange;
 	}
+	sanityXRangeZoom();
+}
+
+void Graph::setXRangeZoom(const Graph::XRange &r)
+{
+	if(r.min < m_state.xRange.min)
+		return;
+	if(r.max > m_state.xRange.max)
+		return;
+	m_state.xRangeZoom = r;
+}
+
+void Graph::sanityXRangeZoom()
+{
 	if(m_state.xRangeZoom.min < m_state.xRange.min)
 		m_state.xRangeZoom.min = m_state.xRange.min;
 	if(m_state.xRangeZoom.max > m_state.xRange.max)
@@ -314,7 +350,7 @@ void Graph::draw(QPainter *painter)
 	shvLogFuncFrame();
 	drawBackground(painter);
 	for (int i = 0; i < m_channels.count(); ++i) {
-		const Channel &ch = m_channels[i];
+		//const Channel &ch = m_channels[i];
 		drawVerticalHeader(painter, i);
 		drawYAxis(painter, i);
 		drawBackground(painter, i);
@@ -338,8 +374,31 @@ void Graph::drawMiniMap(QPainter *painter)
 		const Channel &ch = m_channels[i];
 		ChannelStyle ch_st = ch.effectiveStyle;
 		ch_st.setLineAreaStyle(ChannelStyle::LineAreaStyle::Filled);
-		drawSamples(painter, i, m_layout.miniMapRect, ch_st);
+		DataRect drect{xRange(), ch.yRange()};
+		drawSamples(painter, i, drect, m_layout.miniMapRect, ch_st);
 	}
+
+	int x1 = timeToPos(xRangeZoom().min, xRange());
+	int x2 = timeToPos(xRangeZoom().max, xRange());
+	painter->save();
+	QPen pen;
+	pen.setWidthF(u2px(0.2));
+	pen.setColor(Qt::white);
+	painter->setPen(pen);
+	QPoint p1{x1, m_layout.miniMapRect.top()};
+	QPoint p2{x1, m_layout.miniMapRect.bottom()};
+	QPoint p3{x2, m_layout.miniMapRect.bottom()};
+	QPoint p4{x2, m_layout.miniMapRect.top()};
+	QColor bc(Qt::black);
+	bc.setAlphaF(0.6);
+	painter->fillRect(QRect{m_layout.miniMapRect.topLeft(), p2}, bc);
+	painter->fillRect(QRect{p4, m_layout.miniMapRect.bottomRight()}, bc);
+	painter->drawLine(m_layout.miniMapRect.topLeft(), p1);
+	painter->drawLine(p1, p2);
+	painter->drawLine(p2, p3);
+	painter->drawLine(p3, p4);
+	painter->drawLine(p4, m_layout.miniMapRect.topRight());
+	painter->restore();
 }
 
 void Graph::drawXAxis(QPainter *painter)
@@ -437,21 +496,49 @@ std::function<Sample (const QPoint &)> Graph::pointToSampleFn(const QRect &src, 
 	};
 }
 
-void Graph::drawSamples(QPainter *painter, int channel, const QRect &dest_rect, const Graph::ChannelStyle &channel_style)
+std::function<Graph::timemsec_t (int)> Graph::posToTimeFn(const QPoint &src, const Graph::XRange &dest)
+{
+	int le = src.x();
+	int ri = src.y();
+	if(ri - le == 0)
+		return nullptr;
+	timemsec_t t1 = dest.min;
+	timemsec_t t2 = dest.max;
+	return [t1, t2, le, ri](int x) {
+		return static_cast<timemsec_t>(t1 + static_cast<double>(x - le) * (t2 - t1) / (ri - le));
+	};
+}
+
+std::function<int (Graph::timemsec_t)> Graph::timeToPosFn(const Graph::XRange &src, const QPoint &dest)
+{
+	timemsec_t t1 = src.min;
+	timemsec_t t2 = src.max;
+	if(t1 - t2 == 0)
+		return nullptr;
+	int le = dest.x();
+	int ri = dest.y();
+	return [t1, t2, le, ri](Graph::timemsec_t t) {
+		return static_cast<timemsec_t>(le + static_cast<double>(t - t1) * (ri - le) / (t2 - t1));
+	};
+}
+
+void Graph::drawSamples(QPainter *painter, int channel, const DataRect &src_rect, const QRect &dest_rect, const Graph::ChannelStyle &channel_style)
 {
 	//shvLogFuncFrame() << "channel:" << channel;
 	const Channel &ch = channelAt(channel);
 	QRect rect = dest_rect.isEmpty()? ch.m_layout.graphRect: dest_rect;
 	ChannelStyle ch_style = channel_style.isEmpty()? ch.effectiveStyle: channel_style;
 
-	XRange xrange = xRangeZoom();
-	YRange yrange = ch.yRangeZoom();
-	/*
-	timemsec_t t1 = xrange.min;
-	timemsec_t t2 = xrange.max;
-	double d1 = yrange.min;
-	double d2 = yrange.max;
-	*/
+	XRange xrange;
+	YRange yrange;
+	if(src_rect.isNull()) {
+		xrange = xRangeZoom();
+		yrange = ch.yRangeZoom();
+	}
+	else {
+		xrange = src_rect.xRange;
+		yrange = src_rect.yRange;
+	}
 	auto sample2point = sampleToPointFn(DataRect{xrange, yrange}, rect);
 
 	if(!sample2point)

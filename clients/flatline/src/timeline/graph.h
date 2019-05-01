@@ -40,6 +40,8 @@ public:
 		YRange() {}
 		YRange(double mn, double mx) : min(mn), max(mx) {}
 		YRange(const QPair<double, double> r) : min(r.first), max(r.second) {}
+
+		bool isNull() const { return min == 0 && max == 0; }
 	};
 
 	struct DataRect
@@ -49,6 +51,8 @@ public:
 
 		DataRect() {}
 		DataRect(const XRange &xr, const YRange &yr) : xRange(xr), yRange(yr) {}
+
+		bool isNull() const { return xRange.isNull() && yRange.isNull(); }
 	};
 
 	class GraphStyle : public QVariantMap
@@ -158,7 +162,10 @@ public:
 	const Channel& channelAt(int ix) const;
 	DataRect dataRect(int channel_ix) const;
 
-	timemsec_t posToTime(const QPoint &pos) const;
+	timemsec_t posToTime(int pos) const;
+	timemsec_t miniMapPosToTime(int pos) const;
+	int miniMapTimeToPos(timemsec_t time) const;
+	int timeToPos(timemsec_t time, const XRange &x_range = XRange()) const;
 	Sample timeToSample(int channel_ix, timemsec_t time) const;
 
 	const QRect& rect() const { return  m_layout.rect; }
@@ -168,6 +175,7 @@ public:
 	XRange xRange() const { return m_state.xRange; }
 	XRange xRangeZoom() const { return m_state.xRangeZoom; }
 	void setXRange(const XRange &r, bool keep_zoom = false);
+	void setXRangeZoom(const XRange &r);
 
 	const GraphStyle& style() const { return m_style; }
 	void setStyle(const GraphStyle &st);
@@ -175,11 +183,16 @@ public:
 
 	void makeLayout(const QRect &rect);
 	void draw(QPainter *painter);
+	int u2px(double u) const;
 
 	static std::function<QPoint (const Sample&)> sampleToPointFn(const DataRect &src, const QRect &dest);
 	static std::function<Sample (const QPoint &)> pointToSampleFn(const QRect &src, const DataRect &dest);
+	static std::function<timemsec_t (int)> posToTimeFn(const QPoint &src, const XRange &dest);
+	static std::function<int (timemsec_t)> timeToPosFn(const XRange &src, const QPoint &dest);
 
 protected:
+	void sanityXRangeZoom();
+
 	void drawRectText(QPainter *painter, const QRect &rect, const QString &text, const QFont &font, const QColor &color, const QColor &background = QColor());
 
 	virtual void drawBackground(QPainter *painter);
@@ -191,13 +204,13 @@ protected:
 	virtual void drawBackground(QPainter *painter, int channel);
 	virtual void drawGrid(QPainter *painter, int channel);
 	virtual void drawYAxis(QPainter *painter, int channel);
-	virtual void drawSamples(QPainter *painter, int channel, const QRect &dest_rect = QRect(), const ChannelStyle &channel_style = ChannelStyle());
+	virtual void drawSamples(QPainter *painter, int channel
+			, const DataRect &src_rect = DataRect()
+			, const QRect &dest_rect = QRect()
+			, const ChannelStyle &channel_style = ChannelStyle());
 	//virtual void drawCrossbar(QPainter *painter, const QRect &rect, int channel, const DrawGraphOptions &options);
 
 	QVariantMap mergeMaps(const QVariantMap &base, const QVariantMap &overlay) const;
-
-	int u2px(double u) const;
-
 protected:
 	QPointer<GraphModel> m_model;
 

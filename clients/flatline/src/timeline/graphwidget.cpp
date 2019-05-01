@@ -33,6 +33,11 @@ Graph *GraphWidget::graph()
 	return &m_graph;
 }
 
+const Graph *GraphWidget::graph() const
+{
+	return &m_graph;
+}
+
 void GraphWidget::makeLayout(const QRect &rect)
 {
 	shvLogFuncFrame();
@@ -50,22 +55,127 @@ void GraphWidget::paintEvent(QPaintEvent *event)
 	graph()->draw(&painter);
 }
 
+bool GraphWidget::isMouseAboveMiniMapHandle(const QPoint &mouse_pos, int handle_pos) const
+{
+	const Graph *gr = graph();
+	if(mouse_pos.y() < gr->miniMapRect().top() || mouse_pos.y() > gr->miniMapRect().bottom())
+		return false;
+	return std::abs(mouse_pos.x() - handle_pos) < gr->u2px(0.5);
+}
+
+bool GraphWidget::isMouseAboveLeftMiniMapHandle(const QPoint &pos) const
+{
+	const Graph *gr = graph();
+	int x = gr->timeToPos(gr->xRangeZoom().min, gr->xRange());
+	return isMouseAboveMiniMapHandle(pos, x);
+}
+
+bool GraphWidget::isMouseAboveRightMiniMapHandle(const QPoint &pos) const
+{
+	const Graph *gr = graph();
+	int x = gr->timeToPos(gr->xRangeZoom().max, gr->xRange());
+	return isMouseAboveMiniMapHandle(pos, x);
+}
+
+bool GraphWidget::isMouseAboveMiniMapSlider(const QPoint &pos) const
+{
+	const Graph *gr = graph();
+	if(pos.y() < gr->miniMapRect().top() || pos.y() > gr->miniMapRect().bottom())
+		return false;
+	int x1 = gr->timeToPos(gr->xRangeZoom().min, gr->xRange());
+	int x2 = gr->timeToPos(gr->xRangeZoom().max, gr->xRange());
+	return (x1 < pos.x()) && (pos.x() < x2);
+}
+
+void GraphWidget::mousePressEvent(QMouseEvent *event)
+{
+	QPoint pos = event->pos();
+	if(event->button() == Qt::LeftButton) {
+		if(isMouseAboveLeftMiniMapHandle(pos)) {
+			m_miniMapOperation = MiniMapOperation::LeftResize;
+			shvDebug() << "LEFT resize";
+			return;
+		}
+		else if(isMouseAboveRightMiniMapHandle(pos)) {
+			m_miniMapOperation = MiniMapOperation::RightResize;
+			return;
+		}
+		else if(isMouseAboveMiniMapSlider(pos)) {
+			m_miniMapOperation = MiniMapOperation::Scroll;
+			m_miniMapScrollPos = pos.x();
+			return;
+		}
+	}
+	Super::mousePressEvent(event);
+}
+
+void GraphWidget::mouseReleaseEvent(QMouseEvent *event)
+{
+	if(event->button() == Qt::LeftButton) {
+		m_miniMapOperation = MiniMapOperation::None;
+	}
+	Super::mouseReleaseEvent(event);
+}
+
 void GraphWidget::mouseMoveEvent(QMouseEvent *event)
 {
 	//shvDebug() << event->pos().x() << event->pos().y();
 	Super::mouseMoveEvent(event);
-	QPoint vpos = event->pos();
+	QPoint pos = event->pos();
 	Graph *gr = graph();
-	if(gr->miniMapRect().contains(vpos)) {
-		shvDebug() << (vpos.x() - gr->miniMapRect().left()) << (vpos.y() - gr->miniMapRect().top());
+	if(isMouseAboveLeftMiniMapHandle(pos) || isMouseAboveRightMiniMapHandle(pos)) {
+		//shvDebug() << (vpos.x() - gr->miniMapRect().left()) << (vpos.y() - gr->miniMapRect().top());
+		setCursor(QCursor(Qt::SplitHCursor));
+	}
+	else if(isMouseAboveMiniMapSlider(pos)) {
+		//shvDebug() << (vpos.x() - gr->miniMapRect().left()) << (vpos.y() - gr->miniMapRect().top());
+		setCursor(QCursor(Qt::SizeHorCursor));
 	}
 	else {
-		int ch_ix = gr->setCrossBarPos(vpos);
+		setCursor(QCursor(Qt::ArrowCursor));
+		int ch_ix = gr->setCrossBarPos(pos);
 		if(ch_ix >= 0) {
-			Graph::timemsec_t t = gr->posToTime(vpos);
+			Graph::timemsec_t t = gr->posToTime(pos.x());
 			Sample s = gr->timeToSample(ch_ix, t);
 			shvDebug() << "time:" << s.time << "value:" << s.value.toDouble();
 		}
+	}
+	switch (m_miniMapOperation) {
+	case MiniMapOperation::LeftResize: {
+		Graph::timemsec_t t = gr->miniMapPosToTime(pos.x());
+		Graph::XRange r = gr->xRangeZoom();
+		shvDebug() << r.min << "--->" << t;
+		r.min = t;
+		gr->setXRangeZoom(r);
+		update();
+		break;
+	}
+	case MiniMapOperation::RightResize: {
+		Graph::timemsec_t t = gr->miniMapPosToTime(pos.x());
+		Graph::XRange r = gr->xRangeZoom();
+		r.max = t;
+		gr->setXRangeZoom(r);
+		update();
+		break;
+	}
+	case MiniMapOperation::Scroll: {
+		Graph::timemsec_t t2 = gr->miniMapPosToTime(pos.x());
+		Graph::timemsec_t t1 = gr->miniMapPosToTime(m_miniMapScrollPos);
+		m_miniMapScrollPos = pos.x();
+		Graph::XRange r = gr->xRangeZoom();
+		shvDebug() << "r.min:" << r.min << "r.max:" << r.max;
+		Graph::timemsec_t dt = t2 - t1;
+		shvDebug() << dt << "r.min:" << r.min << "-->" << (r.min + dt);
+		r.min += dt;
+		r.max += dt;
+		gr->setXRangeZoom(r);
+		r = gr->xRangeZoom();
+		shvDebug() << "new r.min:" << r.min << "r.max:" << r.max;
+		update();
+		break;
+	}
+	case MiniMapOperation::None:
+		break;
 	}
 }
 
