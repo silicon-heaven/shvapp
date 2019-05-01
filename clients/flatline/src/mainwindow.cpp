@@ -142,10 +142,11 @@ void MainWindow::generateRandomSamples()
 		gr->appendChannel();
 		timeline::Graph::Channel &ch = gr->channelAt(ix);
 		timeline::Graph::ChannelStyle ch_style = ch.style();
-		ch_style.setColor("salmon");
+		ch_style.setColor("orange");
+		ch_style.setColorLineArea("orange");
 		//ch_style.setHeightMax(6);
 		ch.setYRange(model->yRange(ix));
-		ch_style.setInterpolation(timeline::Graph::ChannelStyle::Interpolation::Line);
+		ch_style.setInterpolation(timeline::Graph::ChannelStyle::Interpolation::None);
 		ch_style.setLineAreaStyle(timeline::Graph::ChannelStyle::LineAreaStyle::Filled);
 		ch.setStyle(ch_style);
 		ix++;
