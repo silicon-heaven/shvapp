@@ -63,9 +63,9 @@ bool GraphWidget::isMouseAboveMiniMapHandle(const QPoint &mouse_pos, bool left) 
 	int x = left
 			? gr->miniMapTimeToPos(gr->xRangeZoom().min)
 			: gr->miniMapTimeToPos(gr->xRangeZoom().max);
-	int w = gr->u2px(0.3);
-	int x1 = left ? x - w : x + w / 2;
-	int x2 = left ? x - w / 2 : x + w;
+	int w = gr->u2px(0.5);
+	int x1 = left ? x - w : x - w/2;
+	int x2 = left ? x + w/2 : x + w;
 	return mouse_pos.x() > x1 && mouse_pos.x() < x2;
 }
 
@@ -96,15 +96,18 @@ void GraphWidget::mousePressEvent(QMouseEvent *event)
 		if(isMouseAboveLeftMiniMapHandle(pos)) {
 			m_miniMapOperation = MiniMapOperation::LeftResize;
 			shvDebug() << "LEFT resize";
+			event->accept();
 			return;
 		}
 		else if(isMouseAboveRightMiniMapHandle(pos)) {
 			m_miniMapOperation = MiniMapOperation::RightResize;
+			event->accept();
 			return;
 		}
 		else if(isMouseAboveMiniMapSlider(pos)) {
 			m_miniMapOperation = MiniMapOperation::Scroll;
 			m_miniMapScrollPos = pos.x();
+			event->accept();
 			return;
 		}
 	}
@@ -146,18 +149,21 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
 	case MiniMapOperation::LeftResize: {
 		Graph::timemsec_t t = gr->miniMapPosToTime(pos.x());
 		Graph::XRange r = gr->xRangeZoom();
-		shvDebug() << r.min << "--->" << t;
 		r.min = t;
-		gr->setXRangeZoom(r);
-		update();
+		if(r.interval() > 0) {
+			gr->setXRangeZoom(r);
+			update();
+		}
 		break;
 	}
 	case MiniMapOperation::RightResize: {
 		Graph::timemsec_t t = gr->miniMapPosToTime(pos.x());
 		Graph::XRange r = gr->xRangeZoom();
 		r.max = t;
-		gr->setXRangeZoom(r);
-		update();
+		if(r.interval() > 0) {
+			gr->setXRangeZoom(r);
+			update();
+		}
 		break;
 	}
 	case MiniMapOperation::Scroll: {
@@ -170,15 +176,39 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
 		shvDebug() << dt << "r.min:" << r.min << "-->" << (r.min + dt);
 		r.min += dt;
 		r.max += dt;
-		gr->setXRangeZoom(r);
-		r = gr->xRangeZoom();
-		shvDebug() << "new r.min:" << r.min << "r.max:" << r.max;
-		update();
+		if(r.interval() > dt) {
+			gr->setXRangeZoom(r);
+			r = gr->xRangeZoom();
+			shvDebug() << "new r.min:" << r.min << "r.max:" << r.max;
+			update();
+		}
 		break;
 	}
 	case MiniMapOperation::None:
 		break;
 	}
+}
+
+void GraphWidget::wheelEvent(QWheelEvent *event)
+{
+	if(isMouseAboveMiniMapSlider(event->pos())) {
+		Graph *gr = graph();
+		double deg = event->angleDelta().y();
+		deg /= 120;
+		// 120 deg ~ 1/20 of range
+		Graph::timemsec_t dt = static_cast<Graph::timemsec_t>(deg * gr->xRange().interval() / 50);
+		Graph::XRange r = gr->xRangeZoom();
+		r.min -= dt;
+		r.max += dt;
+		if(r.interval() > dt) {
+			gr->setXRangeZoom(r);
+			r = gr->xRangeZoom();
+			update();
+		}
+		event->accept();
+		return;
+	}
+	Super::wheelEvent(event);
 }
 
 } // namespace timeline

@@ -30,6 +30,7 @@ public:
 		XRange(const QPair<timemsec_t, timemsec_t> r) : min(r.first), max(r.second) {}
 
 		bool isNull() const { return min == 0 && max == 0; }
+		timemsec_t interval() const {return max-  min;}
 	};
 
 	struct YRange
