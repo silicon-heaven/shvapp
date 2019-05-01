@@ -43,6 +43,7 @@ INCLUDEPATH += \
 	#$$SHV_PROJECT_TOP_SRCDIR/3rdparty/shvgui/libshvgui/include \
 
 RESOURCES += \
+	images/images.qrc
 
 
 TRANSLATIONS += \
