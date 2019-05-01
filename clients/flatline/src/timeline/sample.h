@@ -1,7 +1,5 @@
 #pragma once
 
-#include "graph.h"
-
 #include <QVariant>
 
 namespace timeline {

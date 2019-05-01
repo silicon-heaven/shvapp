@@ -41,9 +41,9 @@ MainWindow::MainWindow(QWidget *parent) :
 	//shvInfo() << qobject_cast<QWidget*>(ui->graphView->widget());
 	m_graphWidget->setModel(m_dataModel);
 
-	timeline::GraphWidget::GraphStyle style;
-	style.setColorBackground(QColor(Qt::darkGray).darker(400));
-	m_graphWidget->setStyle(style);
+	//timeline::Graph::GraphStyle style;
+	//style.setColorBackground(QColor(Qt::darkGray).darker(400));
+	//m_graphWidget->setStyle(style);
 
 	FlatLineApp *app = FlatLineApp::instance();
 	connect(app->rpcConnection(), &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &MainWindow::onRpcMessageReceived);
@@ -99,36 +99,44 @@ void MainWindow::generateRandomSamples()
 	}
 	model->endAppendValues();
 
-	m_graphWidget->clearChannels();
-	m_graphWidget->setXRange(model->xRange());
+	timeline::Graph *gr = m_graphWidget->graph();
+	gr->clearChannels();
+	gr->setXRange(model->xRange());
 	{
 		int ix = 0;
-		m_graphWidget->appendChannel();
-		timeline::GraphWidget::Channel &ch = m_graphWidget->channelAt(ix);
-		ch.style.setLineWidth(0.2);
-		ch.style.setInterpolation(timeline::GraphWidget::ChannelStyle::Interpolation::Stepped);
-		ch.style.setColor(Qt::magenta);
-		ch.style.setHeightMin(2);
-		ch.style.setHeightMax(2);
+		gr->appendChannel();
+		timeline::Graph::Channel &ch = gr->channelAt(ix);
+		timeline::Graph::ChannelStyle ch_style = ch.style();
+		ch_style.setLineWidth(0.2);
+		ch_style.setInterpolation(timeline::Graph::ChannelStyle::Interpolation::Stepped);
+		ch_style.setColor(Qt::magenta);
+		ch_style.setHeightMin(2);
+		ch_style.setHeightMax(2);
 		ch.setYRange(model->yRange(ix));
-		ch.enlargeYRange(ch.style.lineWidth() / 2);
+		ch.enlargeYRange(ch_style.lineWidth() / 2);
+		ch.setStyle(ch_style);
 	}
 	{
 		int ix = 1;
-		m_graphWidget->appendChannel();
-		timeline::GraphWidget::Channel &ch = m_graphWidget->channelAt(ix);
-		ch.style.setInterpolation(timeline::GraphWidget::ChannelStyle::Interpolation::Stepped);
-		ch.style.setColor(Qt::cyan);
-		ch.style.setHeightMax(6);
+		gr->appendChannel();
+		timeline::Graph::Channel &ch = gr->channelAt(ix);
+		timeline::Graph::ChannelStyle ch_style = ch.style();
+		ch_style.setInterpolation(timeline::Graph::ChannelStyle::Interpolation::Stepped);
+		ch_style.setColor(Qt::cyan);
+		ch_style.setHeightMax(6);
 		ch.setYRange(model->yRange(ix));
+		ch.setStyle(ch_style);
 	}
 	{
 		int ix = 2;
-		m_graphWidget->appendChannel();
-		timeline::GraphWidget::Channel &ch = m_graphWidget->channelAt(ix);
-		ch.style.setColor("salmon");
-		//ch.style.setHeightMax(6);
+		gr->appendChannel();
+		timeline::Graph::Channel &ch = gr->channelAt(ix);
+		timeline::Graph::ChannelStyle ch_style = ch.style();
+		ch_style.setColor("salmon");
+		//ch_style.setHeightMax(6);
 		ch.setYRange(model->yRange(ix));
+		ch_style.setLineAreaStyle(timeline::Graph::ChannelStyle::LineAreaStyle::Filled);
+		ch.setStyle(ch_style);
 	}
 
 	ui->graphView->makeLayout();
