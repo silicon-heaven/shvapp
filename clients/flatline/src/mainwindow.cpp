@@ -130,6 +130,7 @@ void MainWindow::generateRandomSamples()
 		timeline::Graph::ChannelStyle ch_style = ch.style();
 		ch_style.setLineWidth(0.2);
 		ch_style.setInterpolation(timeline::Graph::ChannelStyle::Interpolation::Stepped);
+		ch_style.setLineAreaStyle(timeline::Graph::ChannelStyle::LineAreaStyle::Filled);
 		ch_style.setColor(Qt::magenta);
 		ch_style.setHeightMin(2);
 		ch_style.setHeightMax(2);
@@ -146,7 +147,7 @@ void MainWindow::generateRandomSamples()
 		ch_style.setColorLineArea("orange");
 		//ch_style.setHeightMax(6);
 		ch.setYRange(model->yRange(ix));
-		ch_style.setInterpolation(timeline::Graph::ChannelStyle::Interpolation::None);
+		ch_style.setInterpolation(timeline::Graph::ChannelStyle::Interpolation::Line);
 		ch_style.setLineAreaStyle(timeline::Graph::ChannelStyle::LineAreaStyle::Filled);
 		ch.setStyle(ch_style);
 		ix++;

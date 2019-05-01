@@ -569,8 +569,7 @@ void Graph::drawSamples(QPainter *painter, int channel, const DataRect &src_rect
 	int ix2 = m->lessOrEqualIndex(channel, xrange.max) + 1;
 	//shvInfo() << channel << "range:" << xrange.min << xrange.max;
 	//shvInfo() << channel << ":" << ix1 << ix2;
-	QPoint p1;
-	Sample recent_sample, most_interesting_sample;
+	QPoint drawn_point, recent_point;
 	int cnt = m->count(channel);
 	//shvDebug() << "count:" << m->count(channel);
 	for (int i = ix1; i <= ix2 && i < cnt; ++i) {
@@ -578,24 +577,14 @@ void Graph::drawSamples(QPainter *painter, int channel, const DataRect &src_rect
 		const QPoint p2 = sample2point(s);
 		if(i == ix1) {
 			//shvInfo() << channel << "first sample:" << s.time << s.value.toDouble();
-			p1 = p2;
-			recent_sample = s;
+			drawn_point = p2;
+			recent_point = p2;
 		}
 		else {
-			if(most_interesting_sample.isValid()) {
-				if(std::abs(s.value.toDouble() - recent_sample.value.toDouble()) > std::abs(most_interesting_sample.value.toDouble() - recent_sample.value.toDouble())) {
-					// select sample with highest distance within one display pixel
-					// most interesting value is drawn when more samples are  in one pixel in x axes
-					most_interesting_sample = s;
-				}
-			}
-			else {
-				most_interesting_sample = s;
-			}
-			if(p2.x() != p1.x()) {
+			if(p2.x() != drawn_point.x()) {
 				if(interpolation == ChannelStyle::Interpolation::None) {
 					if(line_area_color.isValid()) {
-						const QPoint p0 = sample2point(Sample{most_interesting_sample.time, 0});
+						const QPoint p0 = sample2point(Sample{s.time, 0});
 						painter->fillRect(QRect{p2, p0}, line_area_color);
 					}
 					QRect r0{QPoint(), QSize{sample_point_size, sample_point_size}};
@@ -604,29 +593,29 @@ void Graph::drawSamples(QPainter *painter, int channel, const DataRect &src_rect
 				}
 				else if(interpolation == ChannelStyle::Interpolation::Stepped) {
 					if(line_area_color.isValid()) {
-						const QPoint p0 = sample2point(Sample{most_interesting_sample.time, 0});
-						painter->fillRect(QRect{p1 + QPoint{1, 0}, p0}, line_area_color);
+						const QPoint p0 = sample2point(Sample{s.time, 0});
+						painter->fillRect(QRect{drawn_point + QPoint{1, 0}, p0}, line_area_color);
 					}
-					QPoint p3{p2.x(), p1.y()};
-					painter->drawLine(p1, p3);
+					QPoint p3{p2.x(), recent_point.y()};
+					painter->drawLine(recent_point, p3);
 					painter->drawLine(p3, p2);
 				}
 				else {
 					if(line_area_color.isValid()) {
-						const QPoint p0 = sample2point(Sample{most_interesting_sample.time, 0});
+						const QPoint p0 = sample2point(Sample{s.time, 0});
 						QPainterPath pp;
-						pp.moveTo(p1);
+						pp.moveTo(recent_point);
 						pp.lineTo(p2);
 						pp.lineTo(p0);
-						pp.lineTo(p1.x(), p0.y());
+						pp.lineTo(recent_point.x(), p0.y());
 						pp.closeSubpath();
 						painter->fillPath(pp, line_area_color);
 					}
-					painter->drawLine(p1, p2);
+					painter->drawLine(recent_point, p2);
 				}
-				p1 = p2;
-				recent_sample = most_interesting_sample;
+				drawn_point = p2;
 			}
+			recent_point = p2;
 		}
 	}
 	painter->restore();
