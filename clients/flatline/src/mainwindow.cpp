@@ -145,6 +145,7 @@ void MainWindow::generateRandomSamples()
 		ch_style.setColor("salmon");
 		//ch_style.setHeightMax(6);
 		ch.setYRange(model->yRange(ix));
+		ch_style.setInterpolation(timeline::Graph::ChannelStyle::Interpolation::Line);
 		ch_style.setLineAreaStyle(timeline::Graph::ChannelStyle::LineAreaStyle::Filled);
 		ch.setStyle(ch_style);
 		ix++;

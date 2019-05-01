@@ -540,10 +540,13 @@ void Graph::drawSamples(QPainter *painter, int channel, const DataRect &src_rect
 
 	int interpolation = ch_style.interpolation();
 
+	int sample_point_size = u2px(0.2);
+
 	painter->save();
 	painter->setClipRect(rect);
 	QPen pen;
-	pen.setColor(ch_style.color());
+	QColor line_color = ch_style.color();
+	pen.setColor(line_color);
 	{
 		double d = ch_style.lineWidth();
 		if(d > 0)
@@ -567,6 +570,7 @@ void Graph::drawSamples(QPainter *painter, int channel, const DataRect &src_rect
 	//shvInfo() << channel << "range:" << xrange.min << xrange.max;
 	//shvInfo() << channel << ":" << ix1 << ix2;
 	QPoint p1;
+	Sample s1, s2;
 	int cnt = m->count(channel);
 	//shvDebug() << "count:" << m->count(channel);
 	for (int i = ix1; i <= ix2 && i < cnt; ++i) {
@@ -575,12 +579,31 @@ void Graph::drawSamples(QPainter *painter, int channel, const DataRect &src_rect
 		if(i == ix1) {
 			//shvInfo() << channel << "first sample:" << s.time << s.value.toDouble();
 			p1 = p2;
+			s1 = s;
 		}
 		else {
+			if(s2.isValid()) {
+				if(std::abs(s.value.toDouble() - s1.value.toDouble()) > std::abs(s2.value.toDouble() - s1.value.toDouble())) {
+					// select sample with highest distance within one display pixel
+					s2 = s;
+				}
+			}
+			else {
+				s2 = s;
+			}
 			if(p2.x() != p1.x()) {
-				if(interpolation == ChannelStyle::Interpolation::Stepped) {
+				if(interpolation == ChannelStyle::Interpolation::None) {
 					if(line_area_color.isValid()) {
-						const QPoint p0 = sample2point(Sample{s.time, 0});
+						const QPoint p0 = sample2point(Sample{s2.time, 0});
+						painter->fillRect(QRect{p2, p0}, line_area_color);
+					}
+					QRect r0{QPoint(), QSize{sample_point_size, sample_point_size}};
+					r0.moveCenter(p2);
+					painter->fillRect(r0, line_color);
+				}
+				else if(interpolation == ChannelStyle::Interpolation::Stepped) {
+					if(line_area_color.isValid()) {
+						const QPoint p0 = sample2point(Sample{s2.time, 0});
 						painter->fillRect(QRect{p1 + QPoint{1, 0}, p0}, line_area_color);
 					}
 					QPoint p3{p2.x(), p1.y()};
@@ -589,7 +612,7 @@ void Graph::drawSamples(QPainter *painter, int channel, const DataRect &src_rect
 				}
 				else {
 					if(line_area_color.isValid()) {
-						const QPoint p0 = sample2point(Sample{s.time, 0});
+						const QPoint p0 = sample2point(Sample{s2.time, 0});
 						QPainterPath pp;
 						pp.moveTo(p1);
 						pp.lineTo(p2);
@@ -601,6 +624,7 @@ void Graph::drawSamples(QPainter *painter, int channel, const DataRect &src_rect
 					painter->drawLine(p1, p2);
 				}
 				p1 = p2;
+				s1 = s2;
 			}
 		}
 	}

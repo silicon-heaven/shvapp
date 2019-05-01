@@ -16,7 +16,7 @@ struct Sample
 	Sample(timemsec_t t, const QVariant &v) : time(t), value(v) {}
 	Sample(timemsec_t t, QVariant &&v) : time(t), value(std::move(v)) {}
 
-	//inline timemsec_t displayTime() const {return origtime != 0? origtime: time;}
+	bool isValid() const {return value.isValid() && time > 0;}
 };
 
 } // namespace timeline
