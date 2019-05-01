@@ -101,12 +101,6 @@ Graph::DataRect Graph::dataRect(int channel_ix) const
 	return DataRect{xRangeZoom(), ch.yRangeZoom()};
 }
 
-Graph::timemsec_t Graph::posToTime(int pos) const
-{
-	auto pos2time = posToTimeFn(QPoint{m_layout.xAxisRect.left(), m_layout.xAxisRect.right()}, xRangeZoom());
-	return pos2time? pos2time(pos): 0;
-}
-
 Graph::timemsec_t Graph::miniMapPosToTime(int pos) const
 {
 	auto pos2time = posToTimeFn(QPoint{m_layout.miniMapRect.left(), m_layout.miniMapRect.right()}, xRange());
@@ -119,20 +113,16 @@ int Graph::miniMapTimeToPos(Graph::timemsec_t time) const
 	return time2pos? time2pos(time): 0;
 }
 
-int Graph::timeToPos(Graph::timemsec_t time, const XRange &x_range) const
+Graph::timemsec_t Graph::posToTime(int pos) const
 {
-	int le = m_layout.xAxisRect.left();
-	int ri = m_layout.xAxisRect.right();
-	if(ri - le == 0)
-		return 0;
-	XRange xrange;
-	if(x_range.isNull())
-		xrange = xRangeZoom();
-	else
-		xrange = x_range;
-	timemsec_t t1 = xrange.min;
-	timemsec_t t2 = xrange.max;
-	return static_cast<int>(le + static_cast<double>(time - t1) * (ri - le) / (t2 - t1));
+	auto pos2time = posToTimeFn(QPoint{m_layout.xAxisRect.left(), m_layout.xAxisRect.right()}, xRangeZoom());
+	return pos2time? pos2time(pos): 0;
+}
+
+int Graph::timeToPos(Graph::timemsec_t time) const
+{
+	auto time2pos = timeToPosFn(xRange(), QPoint{m_layout.xAxisRect.left(), m_layout.xAxisRect.right()});
+	return time2pos? time2pos(time): 0;
 }
 
 Sample Graph::timeToSample(int channel_ix, Graph::timemsec_t time) const
@@ -378,13 +368,11 @@ void Graph::drawMiniMap(QPainter *painter)
 		drawSamples(painter, i, drect, m_layout.miniMapRect, ch_st);
 	}
 
-	int x1 = timeToPos(xRangeZoom().min, xRange());
-	int x2 = timeToPos(xRangeZoom().max, xRange());
+	int x1 = miniMapTimeToPos(xRangeZoom().min);
+	int x2 = miniMapTimeToPos(xRangeZoom().max);
 	painter->save();
 	QPen pen;
 	pen.setWidthF(u2px(0.2));
-	pen.setColor(Qt::white);
-	painter->setPen(pen);
 	QPoint p1{x1, m_layout.miniMapRect.top()};
 	QPoint p2{x1, m_layout.miniMapRect.bottom()};
 	QPoint p3{x2, m_layout.miniMapRect.bottom()};
@@ -393,10 +381,16 @@ void Graph::drawMiniMap(QPainter *painter)
 	bc.setAlphaF(0.6);
 	painter->fillRect(QRect{m_layout.miniMapRect.topLeft(), p2}, bc);
 	painter->fillRect(QRect{p4, m_layout.miniMapRect.bottomRight()}, bc);
+	pen.setColor(Qt::gray);
+	painter->setPen(pen);
 	painter->drawLine(m_layout.miniMapRect.topLeft(), p1);
+	pen.setColor(Qt::white);
+	painter->setPen(pen);
 	painter->drawLine(p1, p2);
 	painter->drawLine(p2, p3);
 	painter->drawLine(p3, p4);
+	pen.setColor(Qt::gray);
+	painter->setPen(pen);
 	painter->drawLine(p4, m_layout.miniMapRect.topRight());
 	painter->restore();
 }
@@ -545,7 +539,9 @@ void Graph::drawSamples(QPainter *painter, int channel, const DataRect &src_rect
 		return;
 
 	int interpolation = ch_style.interpolation();
+
 	painter->save();
+	painter->setClipRect(rect);
 	QPen pen;
 	pen.setColor(ch_style.color());
 	{
@@ -564,12 +560,20 @@ void Graph::drawSamples(QPainter *painter, int channel, const DataRect &src_rect
 	}
 
 	GraphModel *m = model();
+	int ix1 = m->lessOrEqualIndex(channel, xrange.min);
+	if(ix1 < 0)
+		ix1 = 0;
+	int ix2 = m->lessOrEqualIndex(channel, xrange.max) + 1;
+	//shvInfo() << channel << "range:" << xrange.min << xrange.max;
+	//shvInfo() << channel << ":" << ix1 << ix2;
 	QPoint p1;
+	int cnt = m->count(channel);
 	//shvDebug() << "count:" << m->count(channel);
-	for (int i = 0; i < m->count(channel); ++i) {
+	for (int i = ix1; i <= ix2 && i < cnt; ++i) {
 		const Sample s = m->sampleAt(channel, i);
 		const QPoint p2 = sample2point(s);
-		if(i == 0) {
+		if(i == ix1) {
+			//shvInfo() << channel << "first sample:" << s.time << s.value.toDouble();
 			p1 = p2;
 		}
 		else {

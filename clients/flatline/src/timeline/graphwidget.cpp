@@ -49,32 +49,34 @@ void GraphWidget::makeLayout(const QRect &rect)
 
 void GraphWidget::paintEvent(QPaintEvent *event)
 {
-	shvLogFuncFrame();
+	//shvLogFuncFrame();
 	Super::paintEvent(event);
 	QPainter painter(this);
 	graph()->draw(&painter);
 }
 
-bool GraphWidget::isMouseAboveMiniMapHandle(const QPoint &mouse_pos, int handle_pos) const
+bool GraphWidget::isMouseAboveMiniMapHandle(const QPoint &mouse_pos, bool left) const
 {
 	const Graph *gr = graph();
 	if(mouse_pos.y() < gr->miniMapRect().top() || mouse_pos.y() > gr->miniMapRect().bottom())
 		return false;
-	return std::abs(mouse_pos.x() - handle_pos) < gr->u2px(0.5);
+	int x = left
+			? gr->miniMapTimeToPos(gr->xRangeZoom().min)
+			: gr->miniMapTimeToPos(gr->xRangeZoom().max);
+	int w = gr->u2px(0.3);
+	int x1 = left ? x - w : x + w / 2;
+	int x2 = left ? x - w / 2 : x + w;
+	return mouse_pos.x() > x1 && mouse_pos.x() < x2;
 }
 
 bool GraphWidget::isMouseAboveLeftMiniMapHandle(const QPoint &pos) const
 {
-	const Graph *gr = graph();
-	int x = gr->timeToPos(gr->xRangeZoom().min, gr->xRange());
-	return isMouseAboveMiniMapHandle(pos, x);
+	return isMouseAboveMiniMapHandle(pos, true);
 }
 
 bool GraphWidget::isMouseAboveRightMiniMapHandle(const QPoint &pos) const
 {
-	const Graph *gr = graph();
-	int x = gr->timeToPos(gr->xRangeZoom().max, gr->xRange());
-	return isMouseAboveMiniMapHandle(pos, x);
+	return isMouseAboveMiniMapHandle(pos, false);
 }
 
 bool GraphWidget::isMouseAboveMiniMapSlider(const QPoint &pos) const
@@ -82,8 +84,8 @@ bool GraphWidget::isMouseAboveMiniMapSlider(const QPoint &pos) const
 	const Graph *gr = graph();
 	if(pos.y() < gr->miniMapRect().top() || pos.y() > gr->miniMapRect().bottom())
 		return false;
-	int x1 = gr->timeToPos(gr->xRangeZoom().min, gr->xRange());
-	int x2 = gr->timeToPos(gr->xRangeZoom().max, gr->xRange());
+	int x1 = gr->miniMapTimeToPos(gr->xRangeZoom().min);
+	int x2 = gr->miniMapTimeToPos(gr->xRangeZoom().max);
 	return (x1 < pos.x()) && (pos.x() < x2);
 }
 

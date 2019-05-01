@@ -162,10 +162,11 @@ public:
 	const Channel& channelAt(int ix) const;
 	DataRect dataRect(int channel_ix) const;
 
-	timemsec_t posToTime(int pos) const;
 	timemsec_t miniMapPosToTime(int pos) const;
 	int miniMapTimeToPos(timemsec_t time) const;
-	int timeToPos(timemsec_t time, const XRange &x_range = XRange()) const;
+
+	timemsec_t posToTime(int pos) const;
+	int timeToPos(timemsec_t time) const;
 	Sample timeToSample(int channel_ix, timemsec_t time) const;
 
 	const QRect& rect() const { return  m_layout.rect; }
