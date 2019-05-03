@@ -66,17 +66,20 @@ void MainWindow::generateRandomSamples()
 	timeline::GraphModel *model = m_dataModel;
 
 	model->clear();
+	int ch_ix = 0;
 	model->appendChannel();
-	model->setChannelData(0, "TC", timeline::GraphModel::ChannelDataRole::Name);
+	model->setChannelData(ch_ix++, "TC", timeline::GraphModel::ChannelDataRole::Name);
 	model->appendChannel();
-	model->setChannelData(1, "ADC", timeline::GraphModel::ChannelDataRole::Name);
+	model->setChannelData(ch_ix++, "ADC", timeline::GraphModel::ChannelDataRole::Name);
 	model->appendChannel();
-	model->setChannelData(2, "Temp", timeline::GraphModel::ChannelDataRole::Name);
+	model->setChannelData(ch_ix++, "Temp", timeline::GraphModel::ChannelDataRole::Name);
+	model->appendChannel();
+	model->setChannelData(ch_ix++, "Něco", timeline::GraphModel::ChannelDataRole::Name);
 	model->beginAppendValues();
 	int cnt = ui->edSamplesCount->value();
 	int interval_msec = ui->edTimeInterval->value();
 	QRandomGenerator *rnd = QRandomGenerator::global();
-	int ch_ix = 0;
+	ch_ix = 0;
 	{
 		int64_t time = 0;
 		for (int i = 0; i < cnt; ++i) {
@@ -92,6 +95,16 @@ void MainWindow::generateRandomSamples()
 		for (int i = 0; i < cnt; ++i) {
 			int t = rnd->bounded(interval_msec);
 			int v = rnd->bounded(2);
+			model->appendValue(ch_ix, timeline::Sample{time + t, v});
+			time += t;
+		}
+		ch_ix++;
+	}
+	{
+		int64_t time = 0;
+		for (int i = 0; i < cnt; ++i) {
+			int t = rnd->bounded(interval_msec);
+			double v = rnd->generateDouble() * 60 - 30;
 			model->appendValue(ch_ix, timeline::Sample{time + t, v});
 			time += t;
 		}
@@ -145,6 +158,20 @@ void MainWindow::generateRandomSamples()
 		timeline::Graph::ChannelStyle ch_style = ch.style();
 		ch_style.setColor("orange");
 		ch_style.setColorLineArea("orange");
+		ch_style.setColorGrid(QColor());
+		//ch_style.setHeightMax(6);
+		ch.setYRange(model->yRange(ix));
+		ch_style.setInterpolation(timeline::Graph::ChannelStyle::Interpolation::None);
+		ch_style.setLineAreaStyle(timeline::Graph::ChannelStyle::LineAreaStyle::Filled);
+		ch.setStyle(ch_style);
+		ix++;
+	}
+	{
+		gr->appendChannel();
+		timeline::Graph::Channel &ch = gr->channelAt(ix);
+		timeline::Graph::ChannelStyle ch_style = ch.style();
+		ch_style.setColor("red");
+		//ch_style.setColorLineArea("red");
 		//ch_style.setHeightMax(6);
 		ch.setYRange(model->yRange(ix));
 		ch_style.setInterpolation(timeline::Graph::ChannelStyle::Interpolation::Line);

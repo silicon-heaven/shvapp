@@ -52,7 +52,7 @@ void GraphWidget::paintEvent(QPaintEvent *event)
 	//shvLogFuncFrame();
 	Super::paintEvent(event);
 	QPainter painter(this);
-	graph()->draw(&painter);
+	graph()->draw(&painter, event->rect());
 }
 
 bool GraphWidget::isMouseAboveMiniMapHandle(const QPoint &mouse_pos, bool left) const
@@ -138,12 +138,6 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
 	}
 	else {
 		setCursor(QCursor(Qt::ArrowCursor));
-		int ch_ix = gr->setCrossBarPos(pos);
-		if(ch_ix >= 0) {
-			Graph::timemsec_t t = gr->posToTime(pos.x());
-			Sample s = gr->timeToSample(ch_ix, t);
-			shvDebug() << "time:" << s.time << "value:" << s.value.toDouble();
-		}
 	}
 	switch (m_miniMapOperation) {
 	case MiniMapOperation::LeftResize: {
@@ -154,7 +148,7 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
 			gr->setXRangeZoom(r);
 			update();
 		}
-		break;
+		return;
 	}
 	case MiniMapOperation::RightResize: {
 		Graph::timemsec_t t = gr->miniMapPosToTime(pos.x());
@@ -164,7 +158,7 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
 			gr->setXRangeZoom(r);
 			update();
 		}
-		break;
+		return;
 	}
 	case MiniMapOperation::Scroll: {
 		Graph::timemsec_t t2 = gr->miniMapPosToTime(pos.x());
@@ -176,16 +170,23 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
 		shvDebug() << dt << "r.min:" << r.min << "-->" << (r.min + dt);
 		r.min += dt;
 		r.max += dt;
-		if(r.interval() > dt) {
+		if(std::abs(r.interval()) > dt) {
 			gr->setXRangeZoom(r);
 			r = gr->xRangeZoom();
 			shvDebug() << "new r.min:" << r.min << "r.max:" << r.max;
 			update();
 		}
-		break;
+		return;
 	}
 	case MiniMapOperation::None:
 		break;
+	}
+	int ch_ix = gr->crossBarChannel(pos);
+	if(ch_ix >= 0) {
+		gr->setCrossBarPos(pos);
+		Graph::timemsec_t t = gr->posToTime(pos.x());
+		Sample s = gr->timeToSample(ch_ix, t);
+		shvDebug() << "time:" << s.time << "value:" << s.value.toDouble();
 	}
 }
 

@@ -72,6 +72,8 @@ public:
 
 		SHV_VARIANTMAP_FIELD2(QColor, c, setC, olor, QColor(Qt::yellow))
 		SHV_VARIANTMAP_FIELD2(QColor, c, setC, olorBackground, QColor(Qt::darkGray).darker(400))
+		SHV_VARIANTMAP_FIELD2(QColor, c, setC, olorGrid, QColor(Qt::darkGreen))
+		SHV_VARIANTMAP_FIELD2(QColor, c, setC, olorAxis, QColor(Qt::green))
 
 		SHV_VARIANTMAP_FIELD(QFont, f, setF, ont)
 	public:
@@ -89,7 +91,7 @@ public:
 		SHV_VARIANTMAP_FIELD2(QColor, c, setC, olor, QColor(Qt::magenta))
 		SHV_VARIANTMAP_FIELD(QColor, c, setC, olorLineArea)
 		SHV_VARIANTMAP_FIELD2(QColor, c, setC, olorGrid, QColor(Qt::darkGreen))
-		SHV_VARIANTMAP_FIELD2(QColor, c, setC, olorYAxis, QColor(Qt::green))
+		SHV_VARIANTMAP_FIELD2(QColor, c, setC, olorAxis, QColor(Qt::green))
 		SHV_VARIANTMAP_FIELD2(QColor, c, setC, olorBackground, QColor(Qt::black))
 
 		SHV_VARIANTMAP_FIELD2(int, i, setI, nterpolation, Interpolation::Line)
@@ -128,6 +130,8 @@ public:
 		ChannelStyle effectiveStyle;
 
 		const QRect& graphRect() const { return  m_layout.graphRect; }
+		const QRect& verticalHeaderRect() const { return  m_layout.verticalHeaderRect; }
+		const QRect& yAxisRect() const { return  m_layout.yAxisRect; }
 
 		//std::function<QPoint (const Sample&)> sampleToPointFn(const XRange &xrange);
 		//std::function<Sample (const QPoint &)> pointToSampleFn(const XRange &xrange);
@@ -173,7 +177,8 @@ public:
 
 	const QRect& rect() const { return  m_layout.rect; }
 	const QRect& miniMapRect() const { return  m_layout.miniMapRect; }
-	int setCrossBarPos(const QPoint &pos);
+	void setCrossBarPos(const QPoint &pos);
+	int crossBarChannel(const QPoint &pos) const;
 
 	XRange xRange() const { return m_state.xRange; }
 	XRange xRangeZoom() const { return m_state.xRangeZoom; }
@@ -185,7 +190,7 @@ public:
 	void setDefaultChannelStyle(const ChannelStyle &st);
 
 	void makeLayout(const QRect &rect);
-	void draw(QPainter *painter);
+	void draw(QPainter *painter, const QRect &dirty_rect);
 	int u2px(double u) const;
 
 	static std::function<QPoint (const Sample&)> sampleToPointFn(const DataRect &src, const QRect &dest);
@@ -214,6 +219,7 @@ protected:
 	//virtual void drawCrossbar(QPainter *painter, const QRect &rect, int channel, const DrawGraphOptions &options);
 
 	QVariantMap mergeMaps(const QVariantMap &base, const QVariantMap &overlay) const;
+	void makeXAxis();
 protected:
 	QPointer<GraphModel> m_model;
 
@@ -236,6 +242,12 @@ protected:
 		QRect rect;
 		QRect miniMapRect;
 		QRect xAxisRect;
+		struct {
+			timemsec_t tick0;
+			timemsec_t tickInterval = 0;
+			timemsec_t labelTick0;
+			int labelTickEvery;
+		} axis;
 	} m_layout;
 };
 
