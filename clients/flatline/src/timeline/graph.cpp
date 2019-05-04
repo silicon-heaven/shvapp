@@ -17,27 +17,9 @@ namespace timeline {
 //==========================================
 // Graph::Channel
 //==========================================
-void Graph::Channel::setYRange(const timeline::Graph::YRange &r)
-{
-	m_state.yRange = r;
-	resetZoom();
-}
-
-void Graph::Channel::enlargeYRange(double step)
-{
-	YRange r = m_state.yRange;
-	r.min -= step;
-	r.max += step;
-	setYRange(r);
-}
-
-void Graph::Channel::resetZoom()
-{
-	m_state.yRangeZoom = m_state.yRange;
-}
 
 //==========================================
-// Graph
+// Graph::GraphStyle
 //==========================================
 void Graph::GraphStyle::init(QWidget *widget)
 {
@@ -47,7 +29,17 @@ void Graph::GraphStyle::init(QWidget *widget)
 	setUnitSize(fm.lineSpacing());
 }
 
-Graph::Graph()
+int Graph::Channel::valueToPos(double val) const
+{
+	auto val2pos = Graph::valueToPosFn(yRangeZoom(), QPoint{m_layout.yAxisRect.bottom(), m_layout.yAxisRect.top()});
+	return val2pos? val2pos(val): 0;
+}
+
+//==========================================
+// Graph
+//==========================================
+Graph::Graph(QObject *parent)
+	: QObject(parent)
 {
 }
 
@@ -64,7 +56,7 @@ GraphModel *Graph::model() const
 void Graph::createChannelsFromModel()
 {
 	m_channels.clear();
-	if(m_model.isNull())
+	if(!m_model)
 		return;
 	for (int i = 0; i < m_model->channelCount(); ++i) {
 		m_channels.append(Channel());
@@ -155,12 +147,6 @@ Sample Graph::timeToSample(int channel_ix, Graph::timemsec_t time) const
 		return Sample(time, d);
 	}
 	return Sample();
-
-	//auto sample2point = sampleToPointFn(DataRect{xRangeZoom(), ch.yRangeZoom()}, ch.graphRect());
-	//if(!sample2point)
-	//	return;
-
-
 }
 
 void Graph::setCrossBarPos(const QPoint &pos)
@@ -197,6 +183,40 @@ void Graph::setXRangeZoom(const Graph::XRange &r)
 		return;
 	m_state.xRangeZoom = r;
 	makeXAxis();
+}
+
+void Graph::setYRange(int channel_ix, const Graph::YRange &r)
+{
+	Channel &ch = m_channels[channel_ix];
+	ch.m_state.yRange = r;
+	resetZoom(channel_ix);
+}
+
+void Graph::enlargeYRange(int channel_ix, double step)
+{
+	Channel &ch = m_channels[channel_ix];
+	YRange r = ch.m_state.yRange;
+	r.min -= step;
+	r.max += step;
+	setYRange(channel_ix, r);
+}
+
+void Graph::setYRangeZoom(int channel_ix, const Graph::YRange &r)
+{
+	Channel &ch = m_channels[channel_ix];
+	ch.m_state.yRangeZoom = r;
+	if(ch.m_state.yRangeZoom.min < ch.m_state.yRange.min)
+		ch.m_state.yRangeZoom.min = ch.m_state.yRange.min;
+	if(ch.m_state.yRangeZoom.max > ch.m_state.yRange.max)
+		ch.m_state.yRangeZoom.max = ch.m_state.yRange.max;
+	makeYAxis(channel_ix);
+}
+
+void Graph::resetZoom(int channel_ix)
+{
+	Channel &ch = m_channels[channel_ix];
+	setYRangeZoom(channel_ix, ch.yRange());
+	makeYAxis(channel_ix);
 }
 
 void Graph::sanityXRangeZoom()
@@ -248,22 +268,66 @@ void Graph::makeXAxis()
 	}
 	// snap to closest 1, 2, 5
 	if(interval < 1.5)
-		m_layout.axis.labelTickEvery = 1;
+		m_state.axis.labelTickEvery = 1;
 	else if(interval < 3)
-		m_layout.axis.labelTickEvery = 2;
+		m_state.axis.labelTickEvery = 2;
 	else if(interval < 7)
-		m_layout.axis.labelTickEvery = 5;
-	timemsec_t lbl_tick_interval = m_layout.axis.labelTickEvery * pow;
-	m_layout.axis.tickInterval = lbl_tick_interval / m_layout.axis.labelTickEvery;
-	shvDebug() << "m_layout.axis.labelTickEvery:" << m_layout.axis.labelTickEvery << "pow:" << pow;
+		m_state.axis.labelTickEvery = 5;
+	else
+		shvWarning() << "snapping interval error, interval:" << interval;
+	timemsec_t lbl_tick_interval = m_state.axis.labelTickEvery * pow;
+	m_state.axis.tickInterval = lbl_tick_interval / m_state.axis.labelTickEvery;
+	shvDebug() << "m_state.axis.labelTickEvery:" << m_state.axis.labelTickEvery << "pow:" << pow;
 	shvDebug() << "lbl_tick_interval:" << lbl_tick_interval;
-	shvDebug() << "m_layout.axis.tickInterval:" << m_layout.axis.tickInterval ;
+	shvDebug() << "m_state.axis.tickInterval:" << m_state.axis.tickInterval ;
 	auto n = range.min / lbl_tick_interval;
 	auto r = range.min % lbl_tick_interval;
 	if(r > 0)
 		n++;
-	m_layout.axis.labelTick0 = n * lbl_tick_interval;
-	for(m_layout.axis.tick0 = m_layout.axis.labelTick0; m_layout.axis.tick0 > range.min + m_layout.axis.tickInterval; m_layout.axis.tick0 -= m_layout.axis.tickInterval);
+	m_state.axis.labelTick0 = n * lbl_tick_interval;
+	for(m_state.axis.tick0 = m_state.axis.labelTick0; m_state.axis.tick0 > range.min + m_state.axis.tickInterval; m_state.axis.tick0 -= m_state.axis.tickInterval);
+}
+
+void Graph::makeYAxis(int channel)
+{
+	shvLogFuncFrame();
+	Channel &ch = m_channels[channel];
+	YRange range = ch.yRangeZoom();
+	int label_tick_units = 1;
+	double interval = range.interval() / label_tick_units;
+	shvDebug() << channel << "interval:" << interval;
+	double pow = 1;
+	if( interval >= 1 ) {
+		while(interval >= 7) {
+			interval /= 10;
+			pow *= 10;
+		}
+	}
+	else {
+		while(interval < 1) {
+			interval *= 10;
+			pow /= 10;
+		}
+	}
+	// snap to closest 1, 2, 5
+	if(interval < 1.5)
+		ch.m_state.axis.labelTickEvery = 1;
+	else if(interval < 3)
+		ch.m_state.axis.labelTickEvery = 2;
+	else if(interval < 7)
+		ch.m_state.axis.labelTickEvery = 5;
+	else
+		shvWarning() << "snapping interval error, interval:" << interval;
+	double lbl_tick_interval = ch.m_state.axis.labelTickEvery * pow;
+	ch.m_state.axis.tickInterval = lbl_tick_interval / ch.m_state.axis.labelTickEvery;
+	shvDebug() << channel << "ch.m_state.axis.labelTickEvery:" << ch.m_state.axis.labelTickEvery << "pow:" << pow;
+	shvDebug() << channel << "ch.lbl_tick_interval:" << lbl_tick_interval;
+	shvDebug() << channel << "ch.m_state.axis.tickInterval:" << ch.m_state.axis.tickInterval ;
+	auto n = static_cast<int>(range.min / lbl_tick_interval);
+	ch.m_state.axis.labelTick0 = n * lbl_tick_interval;
+	if(ch.m_state.axis.labelTick0 < range.min)
+		ch.m_state.axis.labelTick0 += lbl_tick_interval;
+	for(ch.m_state.axis.tick0 = ch.m_state.axis.labelTick0; ch.m_state.axis.tick0 > range.min + ch.m_state.axis.tickInterval; ch.m_state.axis.tick0 -= ch.m_state.axis.tickInterval);
 }
 
 int Graph::u2px(double u) const
@@ -441,44 +505,6 @@ void Graph::drawMiniMap(QPainter *painter)
 	painter->restore();
 }
 
-void Graph::drawXAxis(QPainter *painter)
-{
-	if(m_layout.axis.tickInterval == 0) {
-		drawRectText(painter, m_layout.xAxisRect, "x-axis", effectiveStyle.font(), Qt::green);
-		return;
-	}
-	painter->save();
-	QFont font = effectiveStyle.font();
-	QPen pen;
-	pen.setWidth(u2px(0.1));
-	pen.setColor(effectiveStyle.colorAxis());
-	int tick_len = m_layout.xAxisRect.height() / 6;
-	painter->setPen(pen);
-	painter->drawLine(m_layout.xAxisRect.topLeft(), m_layout.xAxisRect.topRight());
-
-	int label_after = -1;
-	for (timemsec_t t = m_layout.axis.tick0; ; t += m_layout.axis.tickInterval) {
-		int x = timeToPos(t);
-		if(x > m_layout.xAxisRect.right())
-			break;
-		if(t == m_layout.axis.labelTick0)
-			label_after = 0;
-		QPoint p1{x, m_layout.xAxisRect.top()};
-		QPoint p2{p1.x(), p1.y() + tick_len};
-		if(label_after == 0) {
-			p2.setY(p2.y() + 2*tick_len);
-			painter->drawLine(p1, p2);
-			painter->drawText(p2 + QPoint{0, m_layout.xAxisRect.height() / 2}, QString::number(t));
-			label_after = m_layout.axis.labelTickEvery;
-		}
-		else {
-			painter->drawLine(p1, p2);
-		}
-		label_after--;
-	}
-	painter->restore();
-}
-
 void Graph::drawVerticalHeader(QPainter *painter, int channel)
 {
 	const Channel &ch = m_channels[channel];
@@ -502,7 +528,7 @@ void Graph::drawBackground(QPainter *painter, int channel)
 void Graph::drawGrid(QPainter *painter, int channel)
 {
 	const Channel &ch = m_channels[channel];
-	if(m_layout.axis.tickInterval == 0) {
+	if(m_state.axis.tickInterval == 0) {
 		drawRectText(painter, ch.m_layout.graphRect, "grid", effectiveStyle.font(), ch.effectiveStyle.colorGrid());
 		return;
 	}
@@ -519,29 +545,123 @@ void Graph::drawGrid(QPainter *painter, int channel)
 	{
 		// draw X-axis grid
 		int label_after = -1;
-		for (timemsec_t t = m_layout.axis.tick0; ; t += m_layout.axis.tickInterval) {
+		for (timemsec_t t = m_state.axis.tick0; ; t += m_state.axis.tickInterval) {
 			int x = timeToPos(t);
 			if(x > m_layout.xAxisRect.right())
 				break;
-			if(t == m_layout.axis.labelTick0)
+			if(t == m_state.axis.labelTick0)
 				label_after = 0;
-			QPoint p1{x, ch.graphRect().top()};
-			QPoint p2{x, ch.graphRect().bottom()};
 			if(label_after == 0) {
+				QPoint p1{x, ch.graphRect().top()};
+				QPoint p2{x, ch.graphRect().bottom()};
 				painter->drawLine(p1, p2);
-				label_after = m_layout.axis.labelTickEvery;
+				label_after = m_state.axis.labelTickEvery;
 			}
 			label_after--;
 		}
 	}
-	//painter->drawRect(ch.graphRect());
+	{
+		// draw Y-axis grid
+		int label_after = -1;
+		for (double d = ch.m_state.axis.tick0; ; d += ch.m_state.axis.tickInterval) {
+			int y = ch.valueToPos(d);
+			if(y < ch.m_layout.yAxisRect.top())
+				break;
+			if(qFuzzyCompare(d, ch.m_state.axis.labelTick0))
+				label_after = 0;
+			if(/*label_after == 0*/1) {
+				QPoint p1{ch.graphRect().left(), y};
+				QPoint p2{ch.graphRect().right(), y};
+				painter->drawLine(p1, p2);
+				label_after = ch.m_state.axis.labelTickEvery;
+			}
+			label_after--;
+		}
+	}
+	painter->restore();
+}
+
+void Graph::drawXAxis(QPainter *painter)
+{
+	if(m_state.axis.tickInterval == 0) {
+		drawRectText(painter, m_layout.xAxisRect, "x-axis", effectiveStyle.font(), Qt::green);
+		return;
+	}
+	painter->save();
+	QFont font = effectiveStyle.font();
+	QFontMetrics fm(font);
+	QPen pen;
+	pen.setWidth(u2px(0.1));
+	pen.setColor(effectiveStyle.colorAxis());
+	int tick_len = u2px(0.15);
+	painter->setPen(pen);
+	painter->drawLine(m_layout.xAxisRect.topLeft(), m_layout.xAxisRect.topRight());
+
+	int label_after = -1;
+	for (timemsec_t t = m_state.axis.tick0; ; t += m_state.axis.tickInterval) {
+		int x = timeToPos(t);
+		if(x > m_layout.xAxisRect.right())
+			break;
+		if(t == m_state.axis.labelTick0)
+			label_after = 0;
+		QPoint p1{x, m_layout.xAxisRect.top()};
+		QPoint p2{p1.x(), p1.y() + tick_len};
+		if(label_after == 0) {
+			p2.setY(p2.y() + tick_len);
+			painter->drawLine(p1, p2);
+			QString s = QString::number(t);
+			QRect r = fm.boundingRect(s);
+			painter->drawText(p2 + QPoint{-r.width() / 2, r.height()/2}, s);
+			label_after = m_state.axis.labelTickEvery;
+		}
+		else {
+			painter->drawLine(p1, p2);
+		}
+		label_after--;
+	}
 	painter->restore();
 }
 
 void Graph::drawYAxis(QPainter *painter, int channel)
 {
 	const Channel &ch = m_channels[channel];
-	drawRectText(painter, ch.m_layout.yAxisRect, "y-axis", effectiveStyle.font(), ch.effectiveStyle.colorAxis());
+	if(qFuzzyCompare(ch.m_state.axis.tickInterval, 0)) {
+		drawRectText(painter, ch.m_layout.yAxisRect, "y-axis", effectiveStyle.font(), ch.effectiveStyle.colorAxis());
+		return;
+	}
+	painter->save();
+	QFont font = effectiveStyle.font();
+	QFontMetrics fm(font);
+	QPen pen;
+	pen.setWidth(u2px(0.1));
+	pen.setColor(ch.effectiveStyle.colorAxis());
+	int tick_len = u2px(0.15);
+	painter->setPen(pen);
+	painter->drawLine(ch.m_layout.yAxisRect.bottomRight(), ch.m_layout.yAxisRect.topRight());
+
+	int label_after = -1;
+	for (double d = ch.m_state.axis.tick0; ; d += ch.m_state.axis.tickInterval) {
+		int y = ch.valueToPos(d);
+		if(y < ch.m_layout.yAxisRect.top())
+			break;
+		if(qFuzzyCompare(d, ch.m_state.axis.labelTick0))
+			label_after = 0;
+		QPoint p1{ch.m_layout.yAxisRect.right(), y};
+		QPoint p2{p1.x() - tick_len, p1.y()};
+		if(/*label_after == 0*/1) {
+			p2.setX(p2.x() - tick_len);
+			painter->drawLine(p1, p2);
+			QString s = QString::number(d);
+			QRect r = fm.boundingRect(s);
+			painter->drawText(QPoint{p2.x() - u2px(0.2) - r.width(), p1.y() + r.height()/4}, s);
+			label_after = ch.m_state.axis.labelTickEvery;
+		}
+		else {
+			painter->drawLine(p1, p2);
+		}
+		label_after--;
+	}
+	painter->restore();
 }
 
 std::function<QPoint (const Sample &)> Graph::sampleToPointFn(const DataRect &src, const QRect &dest)
@@ -625,6 +745,20 @@ std::function<int (Graph::timemsec_t)> Graph::timeToPosFn(const Graph::XRange &s
 	int ri = dest.y();
 	return [t1, t2, le, ri](Graph::timemsec_t t) {
 		return static_cast<timemsec_t>(le + static_cast<double>(t - t1) * (ri - le) / (t2 - t1));
+	};
+}
+
+std::function<int (double)> Graph::valueToPosFn(const Graph::YRange &src, const QPoint &dest)
+{
+	double d1 = src.min;
+	double d2 = src.max;
+	if(std::abs(d2 - d1) < 1e-6)
+		return nullptr;
+
+	int y1 = dest.x();
+	int y2 = dest.y();
+	return [d1, d2, y1, y2](double val) {
+		return static_cast<int>(y1 + static_cast<double>(val - d1) * (y2 - y1) / (d2 - d1));
 	};
 }
 

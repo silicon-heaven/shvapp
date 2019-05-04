@@ -6,7 +6,7 @@
 #include <QMainWindow>
 
 namespace shv { namespace chainpack { class RpcMessage; }}
-namespace timeline { class GraphWidget; class GraphModel; }
+namespace timeline { class GraphWidget; class GraphModel; class Graph; }
 
 namespace Ui {
 class MainWindow;
@@ -40,6 +40,7 @@ private:
 private:
 	Ui::MainWindow *ui;
 
+	timeline::Graph *m_graph = nullptr;
 	timeline::GraphWidget *m_graphWidget = nullptr;
 	timeline::GraphModel *m_dataModel = nullptr;
 	bool m_paused = false;

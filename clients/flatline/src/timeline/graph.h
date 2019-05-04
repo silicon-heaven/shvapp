@@ -4,7 +4,7 @@
 
 #include <shv/coreqt/utils.h>
 
-#include <QPointer>
+#include <QObject>
 #include <QVector>
 #include <QVariantMap>
 #include <QColor>
@@ -15,8 +15,9 @@ namespace timeline {
 
 class GraphModel;
 
-class Graph
+class Graph : public QObject
 {
+	Q_OBJECT
 public:
 	using timemsec_t = Sample::timemsec_t;
 
@@ -43,6 +44,7 @@ public:
 		YRange(const QPair<double, double> r) : min(r.first), max(r.second) {}
 
 		bool isNull() const { return min == 0 && max == 0; }
+		double interval() const {return max-  min;}
 	};
 
 	struct DataRect
@@ -119,11 +121,8 @@ public:
 	{
 		//int metaTypeId = 0;
 	public:
-		void setYRange(const YRange &r);
-		void enlargeYRange(double step);
 		YRange yRange() const { return m_state.yRange; }
 		YRange yRangeZoom() const { return m_state.yRangeZoom; }
-		void resetZoom();
 
 		const ChannelStyle& style() const {return m_style;}
 		void setStyle(const ChannelStyle& st) { m_style = st; }
@@ -133,13 +132,18 @@ public:
 		const QRect& verticalHeaderRect() const { return  m_layout.verticalHeaderRect; }
 		const QRect& yAxisRect() const { return  m_layout.yAxisRect; }
 
-		//std::function<QPoint (const Sample&)> sampleToPointFn(const XRange &xrange);
-		//std::function<Sample (const QPoint &)> pointToSampleFn(const XRange &xrange);
+		int valueToPos(double val) const;
 
 		struct
 		{
 			YRange yRange;
 			YRange yRangeZoom;
+			struct {
+				double tick0;
+				double tickInterval = 0;
+				double labelTick0;
+				int labelTickEvery;
+			} axis;
 		} m_state;
 
 		struct
@@ -153,7 +157,7 @@ public:
 		ChannelStyle m_style;
 	};
 public:
-	Graph();
+	Graph(QObject *parent = nullptr);
 	virtual ~Graph() {}
 
 	void setModel(GraphModel *model);
@@ -185,6 +189,11 @@ public:
 	void setXRange(const XRange &r, bool keep_zoom = false);
 	void setXRangeZoom(const XRange &r);
 
+	void setYRange(int channel_ix, const YRange &r);
+	void enlargeYRange(int channel_ix, double step);
+	void setYRangeZoom(int channel_ix, const YRange &r);
+	void resetZoom(int channel_ix);
+
 	const GraphStyle& style() const { return m_style; }
 	void setStyle(const GraphStyle &st);
 	void setDefaultChannelStyle(const ChannelStyle &st);
@@ -197,6 +206,7 @@ public:
 	static std::function<Sample (const QPoint &)> pointToSampleFn(const QRect &src, const DataRect &dest);
 	static std::function<timemsec_t (int)> posToTimeFn(const QPoint &src, const XRange &dest);
 	static std::function<int (timemsec_t)> timeToPosFn(const XRange &src, const QPoint &dest);
+	static std::function<int (double)> valueToPosFn(const YRange &src, const QPoint &dest);
 
 protected:
 	void sanityXRangeZoom();
@@ -220,8 +230,9 @@ protected:
 
 	QVariantMap mergeMaps(const QVariantMap &base, const QVariantMap &overlay) const;
 	void makeXAxis();
+	void makeYAxis(int channel);
 protected:
-	QPointer<GraphModel> m_model;
+	GraphModel *m_model = nullptr;
 
 	GraphStyle effectiveStyle;
 
@@ -235,6 +246,12 @@ protected:
 		XRange xRange;
 		XRange xRangeZoom;
 		QPoint crossBarPos;
+		struct {
+			timemsec_t tick0;
+			timemsec_t tickInterval = 0;
+			timemsec_t labelTick0;
+			int labelTickEvery;
+		} axis;
 	} m_state;
 
 	struct
@@ -242,12 +259,6 @@ protected:
 		QRect rect;
 		QRect miniMapRect;
 		QRect xAxisRect;
-		struct {
-			timemsec_t tick0;
-			timemsec_t tickInterval = 0;
-			timemsec_t labelTick0;
-			int labelTickEvery;
-		} axis;
 	} m_layout;
 };
 

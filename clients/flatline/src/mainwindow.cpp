@@ -39,7 +39,9 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui->graphView->widget()->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
 
 	//shvInfo() << qobject_cast<QWidget*>(ui->graphView->widget());
-	m_graphWidget->setModel(m_dataModel);
+	m_graph = new timeline::Graph(this);
+	m_graph->setModel(m_dataModel);
+	m_graphWidget->setGraph(m_graph);
 
 	//timeline::Graph::GraphStyle style;
 	//style.setColorBackground(QColor(Qt::darkGray).darker(400));
@@ -128,17 +130,18 @@ void MainWindow::generateRandomSamples()
 	int ix = 0;
 	{
 		gr->appendChannel();
+		gr->setYRange(ix, model->yRange(ix));
 		timeline::Graph::Channel &ch = gr->channelAt(ix);
 		timeline::Graph::ChannelStyle ch_style = ch.style();
 		ch_style.setInterpolation(timeline::Graph::ChannelStyle::Interpolation::Stepped);
 		ch_style.setColor(Qt::cyan);
 		ch_style.setHeightMax(6);
-		ch.setYRange(model->yRange(ix));
 		ch.setStyle(ch_style);
 		ix++;
 	}
 	{
 		gr->appendChannel();
+		gr->setYRange(ix, model->yRange(ix));
 		timeline::Graph::Channel &ch = gr->channelAt(ix);
 		timeline::Graph::ChannelStyle ch_style = ch.style();
 		ch_style.setLineWidth(0.2);
@@ -147,20 +150,19 @@ void MainWindow::generateRandomSamples()
 		ch_style.setColor(Qt::magenta);
 		ch_style.setHeightMin(2);
 		ch_style.setHeightMax(2);
-		ch.setYRange(model->yRange(ix));
-		ch.enlargeYRange(ch_style.lineWidth() / 2);
 		ch.setStyle(ch_style);
+		gr->enlargeYRange(ix, ch_style.lineWidth() / 2);
 		ix++;
 	}
 	{
 		gr->appendChannel();
+		gr->setYRange(ix, model->yRange(ix));
 		timeline::Graph::Channel &ch = gr->channelAt(ix);
 		timeline::Graph::ChannelStyle ch_style = ch.style();
 		ch_style.setColor("orange");
 		ch_style.setColorLineArea("orange");
 		ch_style.setColorGrid(QColor());
 		//ch_style.setHeightMax(6);
-		ch.setYRange(model->yRange(ix));
 		ch_style.setInterpolation(timeline::Graph::ChannelStyle::Interpolation::None);
 		ch_style.setLineAreaStyle(timeline::Graph::ChannelStyle::LineAreaStyle::Filled);
 		ch.setStyle(ch_style);
@@ -168,12 +170,12 @@ void MainWindow::generateRandomSamples()
 	}
 	{
 		gr->appendChannel();
+		gr->setYRange(ix, model->yRange(ix));
 		timeline::Graph::Channel &ch = gr->channelAt(ix);
 		timeline::Graph::ChannelStyle ch_style = ch.style();
 		ch_style.setColor("red");
 		//ch_style.setColorLineArea("red");
 		//ch_style.setHeightMax(6);
-		ch.setYRange(model->yRange(ix));
 		ch_style.setInterpolation(timeline::Graph::ChannelStyle::Interpolation::Line);
 		ch_style.setLineAreaStyle(timeline::Graph::ChannelStyle::LineAreaStyle::Filled);
 		ch.setStyle(ch_style);
@@ -235,7 +237,7 @@ void MainWindow::setLogData(const shv::chainpack::RpcValue &data)
 	if(m_dataModel)
 		delete m_dataModel;
 	m_dataModel = new timeline::GraphModel(this);
-	m_graphWidget->setModel(m_dataModel);
+	m_graph->setModel(m_dataModel);
 	if(data.isList()) {
 		addLogEntries(data.toList());
 	}

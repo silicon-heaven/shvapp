@@ -18,24 +18,24 @@ GraphWidget::GraphWidget(QWidget *parent)
 	: Super(parent)
 {
 	setMouseTracking(true);
+}
+
+void GraphWidget::setGraph(Graph *g)
+{
+	m_graph = g;
 	Graph::GraphStyle style = graph()->style();
 	style.init(this);
 	graph()->setStyle(style);
 }
 
-void GraphWidget::setModel(GraphModel *m)
-{
-	m_graph.setModel(m);
-}
-
 Graph *GraphWidget::graph()
 {
-	return &m_graph;
+	return m_graph;
 }
 
 const Graph *GraphWidget::graph() const
 {
-	return &m_graph;
+	return m_graph;
 }
 
 void GraphWidget::makeLayout(const QRect &rect)

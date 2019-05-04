@@ -19,7 +19,7 @@ class GraphWidget : public QWidget
 public:
 	GraphWidget(QWidget *parent = nullptr);
 
-	void setModel(GraphModel *m);
+	void setGraph(Graph *g);
 	Graph *graph();
 	const Graph *graph() const;
 
@@ -38,7 +38,7 @@ protected:
 	bool isMouseAboveRightMiniMapHandle(const QPoint &pos) const;
 	bool isMouseAboveMiniMapSlider(const QPoint &pos) const;
 protected:
-	Graph m_graph;
+	Graph *m_graph = nullptr;
 
 	enum class MiniMapOperation { None, LeftResize, RightResize, Scroll };
 	MiniMapOperation m_miniMapOperation = MiniMapOperation::None;
