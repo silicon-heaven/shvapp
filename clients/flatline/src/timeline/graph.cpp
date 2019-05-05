@@ -827,54 +827,76 @@ void Graph::drawSamples(QPainter *painter, int channel, const DataRect &src_rect
 	//shvInfo() << channel << "range:" << xrange.min << xrange.max;
 	shvDebug() << "\t" << m->channelData(channel, GraphModel::ChannelDataRole::Name).toString()
 			   << "from:" << ix1 << "to:" << ix2 << "cnt:" << (ix2 - ix1);
-	QPoint drawn_point, recent_point;
+	struct DrawPoints {
+		int x = 0;
+		int lastY = 0;
+		int minY = std::numeric_limits<int>::max();
+		int maxY = std::numeric_limits<int>::min();
+	};
+	DrawPoints current, recent;
 	int cnt = m->count(channel);
 	//shvDebug() << "count:" << m->count(channel);
 	for (int i = ix1; i <= ix2 && i < cnt; ++i) {
 		const Sample s = m->sampleAt(channel, i);
 		const QPoint p2 = sample2point(s);
-		if(i == ix1) {
-			//shvInfo() << channel << "first sample:" << s.time << s.value.toDouble();
-			drawn_point = p2;
-			recent_point = p2;
+		if(p2.x() == current.x) {
+			current.minY = qMin(current.minY, p2.y());
+			current.maxY = qMin(current.maxY, p2.y());
 		}
 		else {
-			if(p2.x() != drawn_point.x()) {
+			if(current.x > 0) {
+				// draw recent point
+				QPoint drawn_point(current.x, current.lastY);
+				if(current.maxY != current.minY) {
+					drawn_point = QPoint{current.x, (current.minY + current.maxY) / 2};
+					painter->drawLine(current.x, current.minY, current.x, current.maxY);
+				}
 				if(interpolation == ChannelStyle::Interpolation::None) {
 					if(line_area_color.isValid()) {
-						const QPoint p0 = sample2point(Sample{s.time, 0});
-						painter->fillRect(QRect{p2, p0}, line_area_color);
+						QPoint p0 = sample2point(Sample{s.time, 0}); // <- this can be computed ahead
+						p0.setX(drawn_point.x());
+						painter->fillRect(QRect{drawn_point, p0}, line_area_color);
 					}
 					QRect r0{QPoint(), QSize{sample_point_size, sample_point_size}};
-					r0.moveCenter(p2);
+					r0.moveCenter(drawn_point);
 					painter->fillRect(r0, line_color);
 				}
 				else if(interpolation == ChannelStyle::Interpolation::Stepped) {
-					if(line_area_color.isValid()) {
-						const QPoint p0 = sample2point(Sample{s.time, 0});
-						painter->fillRect(QRect{drawn_point + QPoint{1, 0}, p0}, line_area_color);
+					if(recent.x > 0) {
+						QPoint pa{recent.x, recent.lastY};
+						if(line_area_color.isValid()) {
+							QPoint p0 = sample2point(Sample{s.time, 0}); // <- this can be computed ahead
+							p0.setX(drawn_point.x());
+							painter->fillRect(QRect{pa + QPoint{1, 0}, p0}, line_area_color);
+						}
+						QPoint pb{drawn_point.x(), recent.lastY};
+						painter->drawLine(pa, pb);
+						painter->drawLine(pb, drawn_point);
 					}
-					QPoint p3{p2.x(), recent_point.y()};
-					painter->drawLine(recent_point, p3);
-					painter->drawLine(p3, p2);
 				}
 				else {
-					if(line_area_color.isValid()) {
-						const QPoint p0 = sample2point(Sample{s.time, 0});
-						QPainterPath pp;
-						pp.moveTo(recent_point);
-						pp.lineTo(p2);
-						pp.lineTo(p0);
-						pp.lineTo(recent_point.x(), p0.y());
-						pp.closeSubpath();
-						painter->fillPath(pp, line_area_color);
+					if(recent.x > 0) {
+						QPoint pa{recent.x, recent.lastY};
+						if(line_area_color.isValid()) {
+							QPoint p0 = sample2point(Sample{s.time, 0});
+							p0.setX(drawn_point.x());
+							QPainterPath pp;
+							pp.moveTo(pa);
+							pp.lineTo(drawn_point);
+							pp.lineTo(p0);
+							pp.lineTo(pa.x(), p0.y());
+							pp.closeSubpath();
+							painter->fillPath(pp, line_area_color);
+						}
+						painter->drawLine(pa, drawn_point);
 					}
-					painter->drawLine(recent_point, p2);
 				}
-				drawn_point = p2;
+				recent = current;
 			}
-			recent_point = p2;
+			current.x = p2.x();
+			current.minY = current.maxY = p2.y();
 		}
+		current.lastY = p2.y();
 	}
 	painter->restore();
 }
