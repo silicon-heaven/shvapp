@@ -49,12 +49,24 @@ void GraphWidget::makeLayout(const QRect &rect)
 
 void GraphWidget::paintEvent(QPaintEvent *event)
 {
-	//shvLogFuncFrame();
 	Super::paintEvent(event);
 	QPainter painter(this);
 	graph()->draw(&painter, event->rect());
 }
+/*
+void GraphWidget::keyPressEvent(QKeyEvent *event)
+{
+	shvDebug() << event->key();
+	//if(event->key() == Qt::)
+	Super::keyPressEvent(event);
+}
 
+void GraphWidget::keyReleaseEvent(QKeyEvent *event)
+{
+	shvLogFuncFrame();
+	Super::keyReleaseEvent(event);
+}
+*/
 bool GraphWidget::isMouseAboveMiniMapHandle(const QPoint &mouse_pos, bool left) const
 {
 	const Graph *gr = graph();
@@ -89,24 +101,37 @@ bool GraphWidget::isMouseAboveMiniMapSlider(const QPoint &pos) const
 	return (x1 < pos.x()) && (pos.x() < x2);
 }
 
+int GraphWidget::isMouseAboveGraphArea(const QPoint &pos) const
+{
+	const Graph *gr = graph();
+	int ch_ix = gr->posToChannel(pos);
+	return ch_ix >= 0;
+}
+
 void GraphWidget::mousePressEvent(QMouseEvent *event)
 {
 	QPoint pos = event->pos();
 	if(event->button() == Qt::LeftButton) {
 		if(isMouseAboveLeftMiniMapHandle(pos)) {
-			m_miniMapOperation = MiniMapOperation::LeftResize;
+			m_mouseOperation = MouseOperation::MiniMapLeftResize;
 			shvDebug() << "LEFT resize";
 			event->accept();
 			return;
 		}
 		else if(isMouseAboveRightMiniMapHandle(pos)) {
-			m_miniMapOperation = MiniMapOperation::RightResize;
+			m_mouseOperation = MouseOperation::MiniMapRightResize;
 			event->accept();
 			return;
 		}
 		else if(isMouseAboveMiniMapSlider(pos)) {
-			m_miniMapOperation = MiniMapOperation::Scroll;
-			m_miniMapScrollPos = pos.x();
+			m_mouseOperation = MouseOperation::MiniMapScrollZoom;
+			m_recentMousePos = pos;
+			event->accept();
+			return;
+		}
+		else if(isMouseAboveGraphArea(pos) && event->modifiers() == Qt::ControlModifier) {
+			m_mouseOperation = MouseOperation::GraphAreaMoveOrZoom;
+			m_recentMousePos = pos;
 			event->accept();
 			return;
 		}
@@ -117,7 +142,7 @@ void GraphWidget::mousePressEvent(QMouseEvent *event)
 void GraphWidget::mouseReleaseEvent(QMouseEvent *event)
 {
 	if(event->button() == Qt::LeftButton) {
-		m_miniMapOperation = MiniMapOperation::None;
+		m_mouseOperation = MouseOperation::None;
 	}
 	Super::mouseReleaseEvent(event);
 }
@@ -139,8 +164,8 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
 	else {
 		setCursor(QCursor(Qt::ArrowCursor));
 	}
-	switch (m_miniMapOperation) {
-	case MiniMapOperation::LeftResize: {
+	switch (m_mouseOperation) {
+	case MouseOperation::MiniMapLeftResize: {
 		Graph::timemsec_t t = gr->miniMapPosToTime(pos.x());
 		Graph::XRange r = gr->xRangeZoom();
 		r.min = t;
@@ -150,7 +175,7 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
 		}
 		return;
 	}
-	case MiniMapOperation::RightResize: {
+	case MouseOperation::MiniMapRightResize: {
 		Graph::timemsec_t t = gr->miniMapPosToTime(pos.x());
 		Graph::XRange r = gr->xRangeZoom();
 		r.max = t;
@@ -160,10 +185,10 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
 		}
 		return;
 	}
-	case MiniMapOperation::Scroll: {
+	case MouseOperation::MiniMapScrollZoom: {
 		Graph::timemsec_t t2 = gr->miniMapPosToTime(pos.x());
-		Graph::timemsec_t t1 = gr->miniMapPosToTime(m_miniMapScrollPos);
-		m_miniMapScrollPos = pos.x();
+		Graph::timemsec_t t1 = gr->miniMapPosToTime(m_recentMousePos.x());
+		m_recentMousePos = pos;
 		Graph::XRange r = gr->xRangeZoom();
 		shvDebug() << "r.min:" << r.min << "r.max:" << r.max;
 		Graph::timemsec_t dt = t2 - t1;
@@ -178,10 +203,22 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
 		}
 		return;
 	}
-	case MiniMapOperation::None:
+	case MouseOperation::GraphAreaMoveOrZoom: {
+		Graph::timemsec_t t0 = gr->posToTime(m_recentMousePos.x());
+		Graph::timemsec_t t1 = gr->posToTime(pos.x());
+		Graph::timemsec_t dt = t0 - t1;
+		Graph::XRange r = gr->xRangeZoom();
+		r.min += dt;
+		r.max += dt;
+		gr->setXRangeZoom(r);
+		m_recentMousePos = pos;
+		update();
+		return;
+	}
+	case MouseOperation::None:
 		break;
 	}
-	int ch_ix = gr->crossBarChannel(pos);
+	int ch_ix = gr->posToChannel(pos);
 	if(ch_ix >= 0) {
 		gr->setCrossBarPos(pos);
 		Graph::timemsec_t t = gr->posToTime(pos.x());
@@ -192,18 +229,41 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
 
 void GraphWidget::wheelEvent(QWheelEvent *event)
 {
-	if(isMouseAboveMiniMapSlider(event->pos())) {
+	bool is_zoom_on_slider = isMouseAboveMiniMapSlider(event->pos());
+	bool is_zoom_on_graph = (event->modifiers() == Qt::ControlModifier) && isMouseAboveGraphArea(event->pos());
+	constexpr int ZOOM_STEP = 10;
+	if(is_zoom_on_slider) {
 		Graph *gr = graph();
 		double deg = event->angleDelta().y();
-		deg /= 120;
+		//deg /= 120;
 		// 120 deg ~ 1/20 of range
-		Graph::timemsec_t dt = static_cast<Graph::timemsec_t>(deg * gr->xRange().interval() / 50);
+		Graph::timemsec_t dt = static_cast<Graph::timemsec_t>(deg * gr->xRange().interval() / 120 / ZOOM_STEP);
 		Graph::XRange r = gr->xRangeZoom();
-		r.min -= dt;
-		r.max += dt;
-		if(r.interval() > dt) {
+		r.min += dt;
+		r.max -= dt;
+		if(r.interval() > 1) {
 			gr->setXRangeZoom(r);
-			r = gr->xRangeZoom();
+			update();
+		}
+		event->accept();
+		return;
+	}
+	if(is_zoom_on_graph) {
+		Graph *gr = graph();
+		double deg = event->angleDelta().y();
+		//deg /= 120;
+		// 120 deg ~ 1/20 of range
+		Graph::timemsec_t dt = static_cast<Graph::timemsec_t>(deg * gr->xRangeZoom().interval() / 120 / ZOOM_STEP);
+		Graph::XRange r = gr->xRangeZoom();
+		double ratio = 0.5;
+		// shift new zoom to center it horizontally on the mouse position
+		Graph::timemsec_t t_mouse = gr->posToTime(event->pos().x());
+		ratio = static_cast<double>(t_mouse - r.min) / r.interval();
+		r.min += ratio * dt;
+		r.max -= (1 - ratio) * dt;
+		if(r.interval() > 1) {
+			gr->setXRangeZoom(r);
+			//r = gr->xRangeZoom();
 			update();
 		}
 		event->accept();

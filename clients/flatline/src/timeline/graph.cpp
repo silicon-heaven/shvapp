@@ -58,8 +58,10 @@ void Graph::createChannelsFromModel()
 	m_channels.clear();
 	if(!m_model)
 		return;
+	setXRange(m_model->xRange());
 	for (int i = 0; i < m_model->channelCount(); ++i) {
 		m_channels.append(Channel());
+		setYRange(i, m_model->yRange(i));
 	}
 }
 
@@ -154,7 +156,7 @@ void Graph::setCrossBarPos(const QPoint &pos)
 	m_state.crossBarPos = pos;
 }
 
-int Graph::crossBarChannel(const QPoint &pos) const
+int Graph::posToChannel(const QPoint &pos) const
 {
 	for (int i = 0; i < channelCount(); ++i) {
 		const Channel &ch = channelAt(i);
@@ -177,11 +179,12 @@ void Graph::setXRange(const timeline::Graph::XRange &r, bool keep_zoom)
 
 void Graph::setXRangeZoom(const Graph::XRange &r)
 {
-	if(r.min < m_state.xRange.min)
-		return;
-	if(r.max > m_state.xRange.max)
-		return;
-	m_state.xRangeZoom = r;
+	Graph::XRange new_r = r;
+	if(new_r.min < m_state.xRange.min)
+		new_r.min = m_state.xRange.min;
+	if(new_r.max > m_state.xRange.max)
+		new_r.max = m_state.xRange.max;
+	m_state.xRangeZoom = new_r;
 	makeXAxis();
 }
 
@@ -295,6 +298,10 @@ void Graph::makeYAxis(int channel)
 	YRange range = ch.yRangeZoom();
 	int label_tick_units = 1;
 	double interval = range.interval() / label_tick_units;
+	if(qFuzzyIsNull(interval)) {
+		shvError() << "channel:" << channel << "Y axis interval == 0";
+		return;
+	}
 	shvDebug() << channel << "interval:" << interval;
 	double pow = 1;
 	if( interval >= 1 ) {
@@ -611,7 +618,7 @@ void Graph::drawXAxis(QPainter *painter)
 			painter->drawLine(p1, p2);
 			QString s = QString::number(t);
 			QRect r = fm.boundingRect(s);
-			painter->drawText(p2 + QPoint{-r.width() / 2, r.height()/2}, s);
+			painter->drawText(p2 + QPoint{-r.width() / 2, r.height()/2 + u2px(0.2)}, s);
 			label_after = m_state.axis.labelTickEvery;
 		}
 		else {

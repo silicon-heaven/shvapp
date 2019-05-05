@@ -50,12 +50,14 @@ MainWindow::MainWindow(QWidget *parent) :
 	FlatLineApp *app = FlatLineApp::instance();
 	connect(app->rpcConnection(), &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &MainWindow::onRpcMessageReceived);
 	//connect(this, &MainWindow::sendRpcMessage, app->rpcConnection(), &shv::iotqt::rpc::ClientConnection::sendMessage);
-	if(!app->cliOptions()->logFile().empty()) {
-		openLogFile(app->cliOptions()->logFile());
-	}
 
 	connect(ui->btGenerateSamples, &QPushButton::clicked, this, &MainWindow::generateRandomSamples);
-	QTimer::singleShot(0, this, &MainWindow::generateRandomSamples);
+	if(app->cliOptions()->logFile().empty()) {
+		QTimer::singleShot(0, this, &MainWindow::generateRandomSamples);
+	}
+	else {
+		openLogFile(app->cliOptions()->logFile());
+	}
 }
 
 MainWindow::~MainWindow()
@@ -213,6 +215,7 @@ void MainWindow::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 void MainWindow::openLogFile(const std::string &fn)
 {
 	try {
+		LogDataType type = LogDataType::General;
 		std::ifstream file_is;
 		file_is.open(fn, std::ios::binary);
 		shv::chainpack::AbstractStreamReader *rd;
@@ -220,27 +223,102 @@ void MainWindow::openLogFile(const std::string &fn)
 			rd = new shv::chainpack::ChainPackReader(file_is);
 		else if(shv::core::String::endsWith(fn, ".cpon"))
 			rd = new shv::chainpack::CponReader(file_is);
+		else if(shv::core::String::endsWith(fn, ".brclab")) {
+			rd = new shv::chainpack::ChainPackReader(file_is);
+			type = LogDataType::BrcLab;
+		}
 		else
 			SHV_EXCEPTION("Unknown extension");
 		shv::chainpack::RpcValue rv = rd->read();
 		file_is.close();
 		delete rd;
-		setLogData(rv);
+		setLogData(rv, type);
 	}
 	catch (shv::core::Exception &e) {
 		shvError() << "Error reading file:" << fn << e.message();
 	}
 }
 
-void MainWindow::setLogData(const shv::chainpack::RpcValue &data)
+void MainWindow::setLogData(const shv::chainpack::RpcValue &data, LogDataType type)
 {
 	if(m_dataModel)
 		delete m_dataModel;
 	m_dataModel = new timeline::GraphModel(this);
 	m_graph->setModel(m_dataModel);
-	if(data.isList()) {
-		addLogEntries(data.toList());
+	m_dataModel->beginAppendValues();
+	if(type == LogDataType::General) {
+		if(data.isList()) {
+			addLogEntries(data.toList());
+		}
 	}
+	else if(type == LogDataType::BrcLab) {
+		shvDebug() << data.metaData().toPrettyString();
+		if(data.metaData().value("compression").toString() == "qCompress") {
+			shvDebug() << "uncompressing started ...";
+			const shv::chainpack::RpcValue::String &s = data.toString();
+			QByteArray ba = qUncompress((const uchar*)s.data(), (int)s.size());
+			shvDebug() << "decoding started ...";
+			shv::chainpack::RpcValue body = cp::RpcValue::fromChainPack(ba.toStdString());
+			//shvDebug() << body.toPrettyString();
+			const shv::chainpack::RpcValue::List &devices = body.toMap().value("devices").toList();
+			for (shv::chainpack::RpcValue devicerv : devices) {
+				const shv::chainpack::RpcValue::Map &device = devicerv.toMap();
+				const cp::RpcValue::Map &scanning = device.value("scanning").toMap();
+				const cp::RpcValue::List &scanning_series = scanning.value("series").toList();
+				static const char *data_type_names[] = {
+					"Amp",
+					"Cos",
+					"Sin",
+					"P3",
+					"P4",
+					"Osc",
+					"BlockedAmp",
+					"BlockedCos",
+					"BlockedSin",
+					"BlockedP3",
+					"BlockedP4",
+					"BlockedOsc",
+					"DataMissing",
+					"VehicleEvent",
+					"ScanningVehicleType",
+					"ComputedBlockedAmp",
+					"ComputedBlockedCos",
+					"ComputedBlockedSin",
+					"ComputedBlockedP3",
+					"ComputedBlockedP4",
+					"ComputedBlockedOsc",
+				};
+				constexpr int types_cnt = sizeof (data_type_names) / sizeof (char*);
+				int data_type = 0;
+				for (const cp::RpcValue &serie_data : scanning_series) {
+					if (data_type >= types_cnt) {
+						shvError() << "Invalid chainpack format, too much series";
+						break;
+					}
+					m_dataModel->appendChannel();
+					QString name = data_type_names[data_type];
+					m_dataModel->setChannelData(m_dataModel->channelCount() - 1, name, timeline::GraphModel::ChannelDataRole::Name);
+					const cp::RpcValue::Map &serie = serie_data.toMap();
+					const cp::RpcValue::List &value_x = serie.value("x").toList();
+					const cp::RpcValue::List &value_y = serie.value("y").toList();
+					if (value_x.size() != value_y.size()) {
+						shvError() << "x-y values have to have same count";
+						break;
+					}
+					for (size_t i = 0; i < value_x.size(); ++i) {
+						timeline::Sample sample;
+						sample.time = value_x[i].toDateTime().msecsSinceEpoch();
+						sample.value = shv::iotqt::Utils::rpcValueToQVariant(value_y[i]);
+						m_dataModel->appendValue(m_dataModel->channelCount() - 1, std::move(sample));
+					}
+					++data_type;
+				}
+			}
+		}
+	}
+	m_dataModel->endAppendValues();
+	m_graph->createChannelsFromModel();
+	m_graph->makeLayout(ui->graphView->widget()->rect());
 }
 
 void MainWindow::addLogEntries(const shv::chainpack::RpcValue::List &data)

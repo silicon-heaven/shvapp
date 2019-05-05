@@ -28,6 +28,8 @@ public:
 	// QWidget interface
 protected:
 	void paintEvent(QPaintEvent *event) override;
+	//void keyPressEvent(QKeyEvent *event) override;
+	//void keyReleaseEvent(QKeyEvent *event) override;
 	void mousePressEvent(QMouseEvent *event) override;
 	void mouseReleaseEvent(QMouseEvent *event) override;
 	void mouseMoveEvent(QMouseEvent *event) override;
@@ -37,12 +39,13 @@ protected:
 	bool isMouseAboveLeftMiniMapHandle(const QPoint &pos) const;
 	bool isMouseAboveRightMiniMapHandle(const QPoint &pos) const;
 	bool isMouseAboveMiniMapSlider(const QPoint &pos) const;
+	int isMouseAboveGraphArea(const QPoint &pos) const;
 protected:
 	Graph *m_graph = nullptr;
 
-	enum class MiniMapOperation { None, LeftResize, RightResize, Scroll };
-	MiniMapOperation m_miniMapOperation = MiniMapOperation::None;
-	int m_miniMapScrollPos = 0;
+	enum class MouseOperation { None, MiniMapLeftResize, MiniMapRightResize, MiniMapScrollZoom, GraphAreaMoveOrZoom };
+	MouseOperation m_mouseOperation = MouseOperation::None;
+	QPoint m_recentMousePos;
 };
 
 } // namespace timeline

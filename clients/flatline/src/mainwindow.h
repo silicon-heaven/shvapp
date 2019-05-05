@@ -19,6 +19,8 @@ class MainWindow : public QMainWindow
 	Q_OBJECT
 
 public:
+	enum class LogDataType {General, BrcLab};
+public:
 	explicit MainWindow(QWidget *parent = nullptr);
 	~MainWindow() override;
 
@@ -29,7 +31,7 @@ private slots:
 private:
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	void openLogFile(const std::string &fn);
-	void setLogData(const shv::chainpack::RpcValue &data);
+	void setLogData(const shv::chainpack::RpcValue &data, LogDataType type);
 private:
 	//void on_action_Open_triggered();
 	void addLogEntries(const shv::chainpack::RpcValue::List &data);

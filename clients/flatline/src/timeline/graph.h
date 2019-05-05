@@ -96,7 +96,7 @@ public:
 		SHV_VARIANTMAP_FIELD2(QColor, c, setC, olorAxis, QColor(Qt::green))
 		SHV_VARIANTMAP_FIELD2(QColor, c, setC, olorBackground, QColor(Qt::black))
 
-		SHV_VARIANTMAP_FIELD2(int, i, setI, nterpolation, Interpolation::Line)
+		SHV_VARIANTMAP_FIELD2(int, i, setI, nterpolation, Interpolation::Stepped)
 		SHV_VARIANTMAP_FIELD2(int, l, setL, ineAreaStyle, LineAreaStyle::Unfilled)
 		SHV_VARIANTMAP_FIELD2(double, l, setL, ineWidth, CosmeticLineWidth)
 
@@ -182,7 +182,7 @@ public:
 	const QRect& rect() const { return  m_layout.rect; }
 	const QRect& miniMapRect() const { return  m_layout.miniMapRect; }
 	void setCrossBarPos(const QPoint &pos);
-	int crossBarChannel(const QPoint &pos) const;
+	int posToChannel(const QPoint &pos) const;
 
 	XRange xRange() const { return m_state.xRange; }
 	XRange xRangeZoom() const { return m_state.xRangeZoom; }
