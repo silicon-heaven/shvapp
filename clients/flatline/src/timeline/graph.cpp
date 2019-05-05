@@ -323,6 +323,10 @@ void Graph::makeYAxis(int channel)
 		ch.m_state.axis.labelTickEvery = 2;
 	else if(interval < 7)
 		ch.m_state.axis.labelTickEvery = 5;
+	else if(interval < 10) {
+		ch.m_state.axis.labelTickEvery = 1;
+		pow *= 10;
+	}
 	else
 		shvWarning() << "snapping interval error, interval:" << interval;
 	double lbl_tick_interval = ch.m_state.axis.labelTickEvery * pow;
@@ -771,7 +775,7 @@ std::function<int (double)> Graph::valueToPosFn(const Graph::YRange &src, const 
 
 void Graph::drawSamples(QPainter *painter, int channel, const DataRect &src_rect, const QRect &dest_rect, const Graph::ChannelStyle &channel_style)
 {
-	//shvLogFuncFrame() << "channel:" << channel;
+	shvLogFuncFrame() << "channel:" << channel;
 	const Channel &ch = channelAt(channel);
 	QRect rect = dest_rect.isEmpty()? ch.m_layout.graphRect: dest_rect;
 	ChannelStyle ch_style = channel_style.isEmpty()? ch.effectiveStyle: channel_style;
@@ -821,7 +825,8 @@ void Graph::drawSamples(QPainter *painter, int channel, const DataRect &src_rect
 		ix1 = 0;
 	int ix2 = m->lessOrEqualIndex(channel, xrange.max) + 1;
 	//shvInfo() << channel << "range:" << xrange.min << xrange.max;
-	//shvInfo() << channel << ":" << ix1 << ix2;
+	shvDebug() << "\t" << m->channelData(channel, GraphModel::ChannelDataRole::Name).toString()
+			   << "from:" << ix1 << "to:" << ix2 << "cnt:" << (ix2 - ix1);
 	QPoint drawn_point, recent_point;
 	int cnt = m->count(channel);
 	//shvDebug() << "count:" << m->count(channel);
