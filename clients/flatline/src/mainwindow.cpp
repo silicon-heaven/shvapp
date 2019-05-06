@@ -119,7 +119,8 @@ void MainWindow::generateRandomSamples()
 		for (int i = 0; i < cnt; ++i) {
 			int t = rnd->bounded(interval_msec);
 			double v = rnd->generateDouble() * 60 - 30;
-			model->appendValue(ch_ix, timeline::Sample{time + t, v});
+			//if((i < 5) || (i >= cnt / 2 && i < cnt / 2 + 20) || (i > cnt -5) )
+				model->appendValue(ch_ix, timeline::Sample{time + t, v});
 			time += t;
 		}
 		ch_ix++;
