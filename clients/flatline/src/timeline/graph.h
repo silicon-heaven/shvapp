@@ -9,6 +9,7 @@
 #include <QVariantMap>
 #include <QColor>
 #include <QFont>
+#include <QPixmap>
 #include <QRect>
 
 namespace timeline {
@@ -260,6 +261,8 @@ protected:
 		QRect miniMapRect;
 		QRect xAxisRect;
 	} m_layout;
+
+	QPixmap m_miniMapCache;
 };
 
 } // namespace timeline

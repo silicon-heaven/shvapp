@@ -349,6 +349,8 @@ int Graph::u2px(double u) const
 
 void Graph::makeLayout(const QRect &rect)
 {
+	m_miniMapCache = QPixmap();
+
 	QSize viewport_size;
 	viewport_size.setWidth(rect.width());
 	int grid_w = viewport_size.width();
@@ -480,15 +482,23 @@ void Graph::drawBackground(QPainter *painter)
 
 void Graph::drawMiniMap(QPainter *painter)
 {
-	painter->fillRect(m_layout.miniMapRect, m_channelStyle.colorBackground());
-	for (int i = 0; i < m_channels.count(); ++i) {
-		const Channel &ch = m_channels[i];
-		ChannelStyle ch_st = ch.effectiveStyle;
-		ch_st.setLineAreaStyle(ChannelStyle::LineAreaStyle::Filled);
-		DataRect drect{xRange(), ch.yRange()};
-		drawSamples(painter, i, drect, m_layout.miniMapRect, ch_st);
-	}
+	if(m_miniMapCache.isNull()) {
+		shvInfo() << "creating minimap cache";
+		m_miniMapCache = QPixmap(m_layout.miniMapRect.width(), m_layout.miniMapRect.height());
+		QRect mm_rect(QPoint(), m_layout.miniMapRect.size());
+		QPainter p(&m_miniMapCache);
+		QPainter *painter2 = &p;
+		painter2->fillRect(mm_rect, m_channelStyle.colorBackground());
+		for (int i = 0; i < m_channels.count(); ++i) {
+			const Channel &ch = m_channels[i];
+			ChannelStyle ch_st = ch.effectiveStyle;
+			ch_st.setLineAreaStyle(ChannelStyle::LineAreaStyle::Filled);
+			DataRect drect{xRange(), ch.yRange()};
+			drawSamples(painter2, i, drect, mm_rect, ch_st);
+		}
 
+	}
+	painter->drawPixmap(m_layout.miniMapRect.topLeft(), m_miniMapCache);
 	int x1 = miniMapTimeToPos(xRangeZoom().min);
 	int x2 = miniMapTimeToPos(xRangeZoom().max);
 	painter->save();
