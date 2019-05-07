@@ -32,7 +32,7 @@ public:
 		XRange(const QPair<timemsec_t, timemsec_t> r) : min(r.first), max(r.second) {}
 
 		bool isNull() const { return min == 0 && max == 0; }
-		timemsec_t interval() const {return max-  min;}
+		timemsec_t interval() const {return max - min;}
 	};
 
 	struct YRange
@@ -45,7 +45,7 @@ public:
 		YRange(const QPair<double, double> r) : min(r.first), max(r.second) {}
 
 		bool isNull() const { return min == 0 && max == 0; }
-		double interval() const {return max-  min;}
+		double interval() const {return max - min;}
 	};
 
 	struct DataRect
@@ -57,6 +57,18 @@ public:
 		DataRect(const XRange &xr, const YRange &yr) : xRange(xr), yRange(yr) {}
 
 		bool isNull() const { return xRange.isNull() && yRange.isNull(); }
+	};
+
+	struct WidgetRange
+	{
+		int min = 0;
+		int max = 0;
+
+		WidgetRange() {}
+		WidgetRange(int mn, int mx) : min(mn), max(mx) {}
+
+		bool isNull() const { return min == 0 && max == 0; }
+		double interval() const {return max - min;}
 	};
 
 	class GraphStyle : public QVariantMap
@@ -206,8 +218,8 @@ public:
 	static std::function<QPoint (const Sample&)> sampleToPointFn(const DataRect &src, const QRect &dest);
 	static std::function<Sample (const QPoint &)> pointToSampleFn(const QRect &src, const DataRect &dest);
 	static std::function<timemsec_t (int)> posToTimeFn(const QPoint &src, const XRange &dest);
-	static std::function<int (timemsec_t)> timeToPosFn(const XRange &src, const QPoint &dest);
-	static std::function<int (double)> valueToPosFn(const YRange &src, const QPoint &dest);
+	static std::function<int (timemsec_t)> timeToPosFn(const XRange &src, const WidgetRange &dest);
+	static std::function<int (double)> valueToPosFn(const YRange &src, const WidgetRange &dest);
 
 protected:
 	void sanityXRangeZoom();

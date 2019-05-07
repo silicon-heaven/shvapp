@@ -195,7 +195,7 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
 		shvDebug() << dt << "r.min:" << r.min << "-->" << (r.min + dt);
 		r.min += dt;
 		r.max += dt;
-		if(std::abs(r.interval()) > dt) {
+		if(std::abs(r.interval()) > std::abs(dt)) {
 			gr->setXRangeZoom(r);
 			r = gr->xRangeZoom();
 			shvDebug() << "new r.min:" << r.min << "r.max:" << r.max;

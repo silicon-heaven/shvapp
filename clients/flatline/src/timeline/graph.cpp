@@ -31,7 +31,7 @@ void Graph::GraphStyle::init(QWidget *widget)
 
 int Graph::Channel::valueToPos(double val) const
 {
-	auto val2pos = Graph::valueToPosFn(yRangeZoom(), QPoint{m_layout.yAxisRect.bottom(), m_layout.yAxisRect.top()});
+	auto val2pos = Graph::valueToPosFn(yRangeZoom(), WidgetRange{m_layout.yAxisRect.bottom(), m_layout.yAxisRect.top()});
 	return val2pos? val2pos(val): 0;
 }
 
@@ -103,7 +103,7 @@ Graph::timemsec_t Graph::miniMapPosToTime(int pos) const
 
 int Graph::miniMapTimeToPos(Graph::timemsec_t time) const
 {
-	auto time2pos = timeToPosFn(xRange(), QPoint{m_layout.miniMapRect.left(), m_layout.miniMapRect.right()});
+	auto time2pos = timeToPosFn(xRange(), WidgetRange{m_layout.miniMapRect.left(), m_layout.miniMapRect.right()});
 	return time2pos? time2pos(time): 0;
 }
 
@@ -115,7 +115,7 @@ Graph::timemsec_t Graph::posToTime(int pos) const
 
 int Graph::timeToPos(Graph::timemsec_t time) const
 {
-	auto time2pos = timeToPosFn(xRangeZoom(), QPoint{m_layout.xAxisRect.left(), m_layout.xAxisRect.right()});
+	auto time2pos = timeToPosFn(xRangeZoom(), WidgetRange{m_layout.xAxisRect.left(), m_layout.xAxisRect.right()});
 	return time2pos? time2pos(time): 0;
 }
 
@@ -568,7 +568,7 @@ void Graph::drawGrid(QPainter *painter, int channel)
 		int label_after = -1;
 		for (timemsec_t t = m_state.axis.tick0; ; t += m_state.axis.tickInterval) {
 			int x = timeToPos(t);
-			if(x > m_layout.xAxisRect.right())
+			if(x <= 0 || x > m_layout.xAxisRect.right())
 				break;
 			if(t == m_state.axis.labelTick0)
 				label_after = 0;
@@ -586,7 +586,7 @@ void Graph::drawGrid(QPainter *painter, int channel)
 		int label_after = -1;
 		for (double d = ch.m_state.axis.tick0; ; d += ch.m_state.axis.tickInterval) {
 			int y = ch.valueToPos(d);
-			if(y < ch.m_layout.yAxisRect.top())
+			if(y <= 0 || y < ch.m_layout.yAxisRect.top())
 				break;
 			if(qFuzzyCompare(d, ch.m_state.axis.labelTick0))
 				label_after = 0;
@@ -621,7 +621,7 @@ void Graph::drawXAxis(QPainter *painter)
 	int label_after = -1;
 	for (timemsec_t t = m_state.axis.tick0; ; t += m_state.axis.tickInterval) {
 		int x = timeToPos(t);
-		if(x > m_layout.xAxisRect.right())
+		if(x <= 0 || x > m_layout.xAxisRect.right())
 			break;
 		if(t == m_state.axis.labelTick0)
 			label_after = 0;
@@ -756,28 +756,28 @@ std::function<Graph::timemsec_t (int)> Graph::posToTimeFn(const QPoint &src, con
 	};
 }
 
-std::function<int (Graph::timemsec_t)> Graph::timeToPosFn(const Graph::XRange &src, const QPoint &dest)
+std::function<int (Graph::timemsec_t)> Graph::timeToPosFn(const Graph::XRange &src, const timeline::Graph::WidgetRange &dest)
 {
 	timemsec_t t1 = src.min;
 	timemsec_t t2 = src.max;
-	if(t1 - t2 == 0)
+	if(t2 - t1 <= 0)
 		return nullptr;
-	int le = dest.x();
-	int ri = dest.y();
+	int le = dest.min;
+	int ri = dest.max;
 	return [t1, t2, le, ri](Graph::timemsec_t t) {
 		return static_cast<timemsec_t>(le + static_cast<double>(t - t1) * (ri - le) / (t2 - t1));
 	};
 }
 
-std::function<int (double)> Graph::valueToPosFn(const Graph::YRange &src, const QPoint &dest)
+std::function<int (double)> Graph::valueToPosFn(const Graph::YRange &src, const timeline::Graph::WidgetRange &dest)
 {
 	double d1 = src.min;
 	double d2 = src.max;
 	if(std::abs(d2 - d1) < 1e-6)
 		return nullptr;
 
-	int y1 = dest.x();
-	int y2 = dest.y();
+	int y1 = dest.min;
+	int y2 = dest.max;
 	return [d1, d2, y1, y2](double val) {
 		return static_cast<int>(y1 + static_cast<double>(val - d1) * (y2 - y1) / (d2 - d1));
 	};
@@ -831,9 +831,11 @@ void Graph::drawSamples(QPainter *painter, int channel, const DataRect &src_rect
 
 	GraphModel *m = model();
 	int ix1 = m->lessOrEqualIndex(channel, xrange.min);
+	ix1--; // draw one more sample to correctly display connection line to the first one in the zoom window
 	if(ix1 < 0)
 		ix1 = 0;
 	int ix2 = m->lessOrEqualIndex(channel, xrange.max) + 1;
+	ix2++; // draw one more sample to correctly display (n-1)th one
 	//shvInfo() << channel << "range:" << xrange.min << xrange.max;
 	shvDebug() << "\t" << m->channelData(channel, GraphModel::ChannelDataRole::Name).toString()
 			   << "from:" << ix1 << "to:" << ix2 << "cnt:" << (ix2 - ix1);
