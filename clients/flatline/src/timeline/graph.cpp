@@ -700,7 +700,7 @@ std::function<QPoint (const Sample &)> Graph::sampleToPointFn(const DataRect &sr
 	if(t2 - t1 == 0)
 		return nullptr;
 	double kx = static_cast<double>(ri - le) / (t2 - t1);
-	//shvDebug() << d1 << d2;
+	//shvInfo() << "t1:" << t1 << "t2:" << t2 << "le:" << le << "ri:" << ri << "kx:" << kx;
 	if(std::abs(d2 - d1) < 1e-6)
 		return nullptr;
 	double ky = (to - bo) / (d2 - d1);
@@ -831,7 +831,7 @@ void Graph::drawSamples(QPainter *painter, int channel, const DataRect &src_rect
 
 	GraphModel *m = model();
 	int ix1 = m->lessOrEqualIndex(channel, xrange.min);
-	ix1--; // draw one more sample to correctly display connection line to the first one in the zoom window
+	//ix1--; // draw one more sample to correctly display connection line to the first one in the zoom window
 	if(ix1 < 0)
 		ix1 = 0;
 	int ix2 = m->lessOrEqualIndex(channel, xrange.max) + 1;
@@ -839,24 +839,26 @@ void Graph::drawSamples(QPainter *painter, int channel, const DataRect &src_rect
 	//shvInfo() << channel << "range:" << xrange.min << xrange.max;
 	shvDebug() << "\t" << m->channelData(channel, GraphModel::ChannelDataRole::Name).toString()
 			   << "from:" << ix1 << "to:" << ix2 << "cnt:" << (ix2 - ix1);
+	constexpr int NO_X = std::numeric_limits<int>::min();
 	struct OnePixelPoints {
-		int x = 0;
+		int x = NO_X;
 		int lastY = 0;
 		int minY = std::numeric_limits<int>::max();
 		int maxY = std::numeric_limits<int>::min();
 	};
 	OnePixelPoints current_px, recent_px;
 	int cnt = m->count(channel);
-	//shvDebug() << "count:" << m->count(channel);
 	for (int i = ix1; i <= ix2 && i < cnt; ++i) {
 		const Sample s = m->sampleAt(channel, i);
 		const QPoint sample_point = sample2point(s);
+		shvDebug() << i << "t:" << s.time << "x:" << sample_point.x() << "y:" << sample_point.y();
+		shvDebug() << "\t recent x:" << recent_px.x << " current x:" << current_px.x;
 		if(sample_point.x() == current_px.x) {
 			current_px.minY = qMin(current_px.minY, sample_point.y());
 			current_px.maxY = qMax(current_px.maxY, sample_point.y());
 		}
 		else {
-			if(current_px.x > 0) {
+			if(current_px.x != NO_X) {
 				// draw recent point
 				QPoint drawn_point(current_px.x, current_px.lastY);
 				if(current_px.maxY != current_px.minY) {
@@ -874,7 +876,7 @@ void Graph::drawSamples(QPainter *painter, int channel, const DataRect &src_rect
 					painter->fillRect(r0, line_color);
 				}
 				else if(interpolation == ChannelStyle::Interpolation::Stepped) {
-					if(recent_px.x > 0) {
+					if(recent_px.x != NO_X) {
 						QPoint pa{recent_px.x, recent_px.lastY};
 						if(line_area_color.isValid()) {
 							QPoint p0 = sample2point(Sample{s.time, 0}); // <- this can be computed ahead
@@ -887,7 +889,7 @@ void Graph::drawSamples(QPainter *painter, int channel, const DataRect &src_rect
 					}
 				}
 				else {
-					if(recent_px.x > 0) {
+					if(recent_px.x != NO_X) {
 						QPoint pa{recent_px.x, recent_px.lastY};
 						if(line_area_color.isValid()) {
 							QPoint p0 = sample2point(Sample{s.time, 0});
