@@ -561,7 +561,7 @@ void Graph::drawVerticalHeader(QPainter *painter, int channel)
 	QColor c = effectiveStyle.color();
 	QColor bc = c;
 	bc.setAlphaF(0.05);
-	QString text = model()->channelData(channel, GraphModel::ChannelDataRole::Name).toString();
+	QString text = model()->channelData(ch.modelIndex(), GraphModel::ChannelDataRole::Name).toString();
 	if(text.isEmpty())
 		text = "<no name>";
 	QFont font = effectiveStyle.font();
@@ -986,10 +986,14 @@ void Graph::drawCrossBar(QPainter *painter, int channel_ix)
 		focus_rect = QRect(0, 0, d, d);
 		focus_rect.moveCenter(m_state.crossBarPos);
 	}
-	QPen pen;
-	pen.setColor(effectiveStyle.colorCrossBar());
-	pen.setStyle(Qt::DashLine);
-	painter->setPen(pen);
+	QPen pen_solid;
+	pen_solid.setColor(effectiveStyle.colorCrossBar());
+	QPen pen_dash = pen_solid;
+	QColor c50 = pen_solid.color();
+	c50.setAlphaF(0.5);
+	pen_dash.setColor(c50);
+	pen_dash.setStyle(Qt::DashLine);
+	painter->setPen(pen_dash);
 	{
 		/// draw vertical line
 		if(focus_rect.isNull()) {
@@ -1015,9 +1019,9 @@ void Graph::drawCrossBar(QPainter *painter, int channel_ix)
 		QPoint p4{ch.graphRect().right(), m_state.crossBarPos.y()};
 		painter->drawLine(p1, p2);
 		painter->drawLine(p3, p4);
+
 		/// draw point
-		pen.setStyle(Qt::SolidLine);
-		painter->setPen(pen);
+		painter->setPen(pen_solid);
 		painter->drawRect(focus_rect);
 
 		//Graph::timemsec_t t = posToTime(m_state.crossBarPos.x());

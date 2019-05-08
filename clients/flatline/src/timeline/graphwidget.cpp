@@ -4,13 +4,17 @@
 
 #include <shv/core/exception.h>
 #include <shv/coreqt/log.h>
+#include <shv/chainpack/rpcvalue.h>
 
 #include <QPainter>
 #include <QFontMetrics>
 #include <QLabel>
 #include <QMouseEvent>
+#include <QToolTip>
 
 #include <cmath>
+
+namespace cp = shv::chainpack;
 
 namespace timeline {
 
@@ -224,13 +228,26 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
 		gr->setCrossBarPos(pos);
 		Graph::timemsec_t t = gr->posToTime(pos.x());
 		Sample s = gr->timeToSample(ch_ix, t);
-		shvDebug() << "time:" << s.time << "value:" << s.value.toDouble();
+		if(s.isValid()) {
+			const Graph::Channel &ch = gr->channelAt(ch_ix);
+			shvDebug() << "time:" << s.time << "value:" << s.value.toDouble();
+			cp::RpcValue::DateTime dt = cp::RpcValue::DateTime::fromMSecsSinceEpoch(s.time);
+			QString text = QStringLiteral("%1\n%2: %3")
+					.arg(QString::fromStdString(dt.toIsoString()))
+					.arg(gr->model()->channelData(ch.modelIndex(), timeline::GraphModel::ChannelDataRole::Name).toString())
+					.arg(s.value.toDouble());
+			QToolTip::showText(mapToGlobal(pos + QPoint{gr->u2px(0.8), 0}), text, this);
+		}
+		else {
+			QToolTip::showText(QPoint(), QString());
+		}
 		update();
 	}
 	else {
 		if(!gr->crossBarPos().isNull()) {
 			gr->setCrossBarPos(QPoint());
 			setCursor(Qt::ArrowCursor);
+			QToolTip::showText(QPoint(), QString());
 			update();
 		}
 	}
