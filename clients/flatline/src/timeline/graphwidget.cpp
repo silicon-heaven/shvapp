@@ -220,10 +220,19 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
 	}
 	int ch_ix = gr->posToChannel(pos);
 	if(ch_ix >= 0) {
+		setCursor(Qt::BlankCursor);
 		gr->setCrossBarPos(pos);
 		Graph::timemsec_t t = gr->posToTime(pos.x());
 		Sample s = gr->timeToSample(ch_ix, t);
 		shvDebug() << "time:" << s.time << "value:" << s.value.toDouble();
+		update();
+	}
+	else {
+		if(!gr->crossBarPos().isNull()) {
+			gr->setCrossBarPos(QPoint());
+			setCursor(Qt::ArrowCursor);
+			update();
+		}
 	}
 }
 
@@ -237,7 +246,7 @@ void GraphWidget::wheelEvent(QWheelEvent *event)
 		double deg = event->angleDelta().y();
 		//deg /= 120;
 		// 120 deg ~ 1/20 of range
-		Graph::timemsec_t dt = static_cast<Graph::timemsec_t>(deg * gr->xRange().interval() / 120 / ZOOM_STEP);
+		Graph::timemsec_t dt = static_cast<Graph::timemsec_t>(deg * gr->xRangeZoom().interval() / 120 / ZOOM_STEP);
 		Graph::XRange r = gr->xRangeZoom();
 		r.min += dt;
 		r.max -= dt;

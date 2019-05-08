@@ -89,6 +89,7 @@ public:
 		SHV_VARIANTMAP_FIELD2(QColor, c, setC, olorBackground, QColor(Qt::darkGray).darker(400))
 		SHV_VARIANTMAP_FIELD2(QColor, c, setC, olorGrid, QColor(Qt::darkGreen))
 		SHV_VARIANTMAP_FIELD2(QColor, c, setC, olorAxis, QColor(Qt::green))
+		SHV_VARIANTMAP_FIELD2(QColor, c, setC, olorCrossBar, QColor(Qt::yellow))
 
 		SHV_VARIANTMAP_FIELD(QFont, f, setF, ont)
 	public:
@@ -195,11 +196,14 @@ public:
 	timemsec_t posToTime(int pos) const;
 	int timeToPos(timemsec_t time) const;
 	Sample timeToSample(int channel_ix, timemsec_t time) const;
+	int posToChannel(const QPoint &pos) const;
+	Sample posToData(const QPoint &pos) const;
+	QPoint dataToPos(int ch_ix, const Sample &s) const;
 
 	const QRect& rect() const { return  m_layout.rect; }
 	const QRect& miniMapRect() const { return  m_layout.miniMapRect; }
+	QPoint crossBarPos() const {return m_state.crossBarPos;}
 	void setCrossBarPos(const QPoint &pos);
-	int posToChannel(const QPoint &pos) const;
 
 	XRange xRange() const { return m_state.xRange; }
 	XRange xRangeZoom() const { return m_state.xRangeZoom; }
@@ -217,10 +221,11 @@ public:
 
 	void makeLayout(const QRect &rect);
 	void draw(QPainter *painter, const QRect &dirty_rect);
+
 	int u2px(double u) const;
 
-	static std::function<QPoint (const Sample&)> sampleToPointFn(const DataRect &src, const QRect &dest);
-	static std::function<Sample (const QPoint &)> pointToSampleFn(const QRect &src, const DataRect &dest);
+	static std::function<QPoint (const Sample&)> dataToPointFn(const DataRect &src, const QRect &dest);
+	static std::function<Sample (const QPoint &)> pointToDataFn(const QRect &src, const DataRect &dest);
 	static std::function<timemsec_t (int)> posToTimeFn(const QPoint &src, const XRange &dest);
 	static std::function<int (timemsec_t)> timeToPosFn(const XRange &src, const WidgetRange &dest);
 	static std::function<int (double)> valueToPosFn(const YRange &src, const WidgetRange &dest);
@@ -243,7 +248,7 @@ protected:
 			, const DataRect &src_rect = DataRect()
 			, const QRect &dest_rect = QRect()
 			, const ChannelStyle &channel_style = ChannelStyle());
-	//virtual void drawCrossbar(QPainter *painter, const QRect &rect, int channel, const DrawGraphOptions &options);
+	virtual void drawCrossBar(QPainter *painter, int channel_ix);
 
 	QVariantMap mergeMaps(const QVariantMap &base, const QVariantMap &overlay) const;
 	void makeXAxis();
