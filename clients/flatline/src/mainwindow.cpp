@@ -104,6 +104,7 @@ void MainWindow::generateRandomSamples()
 		}
 		ch_ix++;
 	}
+	/*
 	{
 		//int64_t time = 0;
 		for (int i = 0; i < model->count(ch_ix - 1); ++i) {
@@ -114,6 +115,7 @@ void MainWindow::generateRandomSamples()
 		}
 		ch_ix++;
 	}
+	*/
 	{
 		int64_t time = 0;
 		for (int i = 0; i < cnt; ++i) {
@@ -130,22 +132,22 @@ void MainWindow::generateRandomSamples()
 	timeline::Graph *gr = m_graphWidget->graph();
 	gr->clearChannels();
 	gr->setXRange(model->xRange());
-	int ix = 0;
+	int model_ix = 0;
 	{
-		gr->appendChannel();
-		gr->setYRange(ix, model->yRange(ix));
-		timeline::Graph::Channel &ch = gr->channelAt(ix);
+		timeline::Graph::Channel &ch = gr->appendChannel();
+		ch.setModelIndex(model_ix);
+		gr->setYRange(gr->channelCount() - 1, model->yRange(ch.modelIndex()));
 		timeline::Graph::ChannelStyle ch_style = ch.style();
 		ch_style.setInterpolation(timeline::Graph::ChannelStyle::Interpolation::Stepped);
 		ch_style.setColor(Qt::cyan);
 		ch_style.setHeightMax(6);
 		ch.setStyle(ch_style);
-		ix++;
+		model_ix++;
 	}
 	{
-		gr->appendChannel();
-		gr->setYRange(ix, model->yRange(ix));
-		timeline::Graph::Channel &ch = gr->channelAt(ix);
+		timeline::Graph::Channel &ch = gr->appendChannel();
+		ch.setModelIndex(model_ix);
+		gr->setYRange(gr->channelCount() - 1, model->yRange(ch.modelIndex()));
 		timeline::Graph::ChannelStyle ch_style = ch.style();
 		ch_style.setColor("orange");
 		ch_style.setColorLineArea("orange");
@@ -154,12 +156,12 @@ void MainWindow::generateRandomSamples()
 		ch_style.setInterpolation(timeline::Graph::ChannelStyle::Interpolation::None);
 		ch_style.setLineAreaStyle(timeline::Graph::ChannelStyle::LineAreaStyle::Filled);
 		ch.setStyle(ch_style);
-		ix++;
+		//ix++;
 	}
 	{
-		gr->appendChannel();
-		gr->setYRange(ix, model->yRange(ix));
-		timeline::Graph::Channel &ch = gr->channelAt(ix);
+		timeline::Graph::Channel &ch = gr->appendChannel();
+		ch.setModelIndex(model_ix);
+		gr->setYRange(gr->channelCount() - 1, model->yRange(ch.modelIndex()));
 		timeline::Graph::ChannelStyle ch_style = ch.style();
 		ch_style.setLineWidth(0.2);
 		ch_style.setInterpolation(timeline::Graph::ChannelStyle::Interpolation::Stepped);
@@ -168,13 +170,13 @@ void MainWindow::generateRandomSamples()
 		ch_style.setHeightMin(2);
 		ch_style.setHeightMax(2);
 		ch.setStyle(ch_style);
-		gr->enlargeYRange(ix, ch_style.lineWidth() / 2);
-		ix++;
+		gr->enlargeYRange(model_ix, ch_style.lineWidth() / 2);
+		model_ix++;
 	}
 	{
-		gr->appendChannel();
-		gr->setYRange(ix, model->yRange(ix));
-		timeline::Graph::Channel &ch = gr->channelAt(ix);
+		timeline::Graph::Channel &ch = gr->appendChannel();
+		ch.setModelIndex(model_ix);
+		gr->setYRange(gr->channelCount() - 1, model->yRange(ch.modelIndex()));
 		timeline::Graph::ChannelStyle ch_style = ch.style();
 		ch_style.setColor("red");
 		//ch_style.setColorLineArea("red");
@@ -182,7 +184,7 @@ void MainWindow::generateRandomSamples()
 		ch_style.setInterpolation(timeline::Graph::ChannelStyle::Interpolation::Line);
 		ch_style.setLineAreaStyle(timeline::Graph::ChannelStyle::LineAreaStyle::Filled);
 		ch.setStyle(ch_style);
-		ix++;
+		model_ix++;
 	}
 
 	ui->graphView->makeLayout();

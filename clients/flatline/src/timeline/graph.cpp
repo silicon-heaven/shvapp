@@ -70,22 +70,27 @@ void Graph::clearChannels()
 	m_channels.clear();
 }
 
-void Graph::appendChannel()
+timeline::Graph::Channel &Graph::appendChannel()
 {
 	m_channels.append(Channel());
+	Channel &ch = m_channels.last();
+	ch.setModelIndex(m_channels.count() - 1);
+	return ch;
 }
 
 Graph::Channel &Graph::channelAt(int ix)
 {
-	if(ix < 0 || ix >= m_channels.count())
-		SHV_EXCEPTION("Index out of range.");
+	/// seg fault is better than exception in this case
+	//if(ix < 0 || ix >= m_channels.count())
+	//	SHV_EXCEPTION("Index out of range.");
 	return m_channels[ix];
 }
 
 const Graph::Channel &Graph::channelAt(int ix) const
 {
-	if(ix < 0 || ix >= m_channels.count())
-		SHV_EXCEPTION("Index out of range.");
+	/// seg fault is better than exception in this case
+	//if(ix < 0 || ix >= m_channels.count())
+	//	SHV_EXCEPTION("Index out of range.");
 	return m_channels[ix];
 }
 
@@ -128,12 +133,12 @@ Sample Graph::timeToSample(int channel_ix, Graph::timemsec_t time) const
 	const Channel &ch = channelAt(channel_ix);
 	int interpolation = ch.effectiveStyle.interpolation();
 	if(interpolation == ChannelStyle::Interpolation::None) {
-		Sample s = m->sampleAt(channel_ix, ix1);
+		Sample s = m->sampleAt(ch.modelIndex(), ix1);
 		if(s.time == time)
 			return s;
 	}
 	else if(interpolation == ChannelStyle::Interpolation::Stepped) {
-		Sample s = m->sampleAt(channel_ix, ix1);
+		Sample s = m->sampleAt(ch.modelIndex(), ix1);
 		s.time = time;
 		return s;
 	}
@@ -141,8 +146,8 @@ Sample Graph::timeToSample(int channel_ix, Graph::timemsec_t time) const
 		int ix2 = ix1 + 1;
 		if(ix2 >= m->count(channel_ix))
 			return Sample();
-		Sample s1 = m->sampleAt(channel_ix, ix1);
-		Sample s2 = m->sampleAt(channel_ix, ix2);
+		Sample s1 = m->sampleAt(ch.modelIndex(), ix1);
+		Sample s2 = m->sampleAt(ch.modelIndex(), ix2);
 		if(s1.time == s2.time)
 			return Sample();
 		double d = s1.value.toDouble() + (time - s1.time) * (s2.value.toDouble() - s1.value.toDouble()) / (s2.time - s1.time);
@@ -483,7 +488,7 @@ void Graph::drawBackground(QPainter *painter)
 void Graph::drawMiniMap(QPainter *painter)
 {
 	if(m_miniMapCache.isNull()) {
-		shvInfo() << "creating minimap cache";
+		shvDebug() << "creating minimap cache";
 		m_miniMapCache = QPixmap(m_layout.miniMapRect.width(), m_layout.miniMapRect.height());
 		QRect mm_rect(QPoint(), m_layout.miniMapRect.size());
 		QPainter p(&m_miniMapCache);
@@ -783,10 +788,11 @@ std::function<int (double)> Graph::valueToPosFn(const Graph::YRange &src, const 
 	};
 }
 
-void Graph::drawSamples(QPainter *painter, int channel, const DataRect &src_rect, const QRect &dest_rect, const Graph::ChannelStyle &channel_style)
+void Graph::drawSamples(QPainter *painter, int channel_ix, const DataRect &src_rect, const QRect &dest_rect, const Graph::ChannelStyle &channel_style)
 {
-	shvLogFuncFrame() << "channel:" << channel;
-	const Channel &ch = channelAt(channel);
+	shvLogFuncFrame() << "channel:" << channel_ix;
+	const Channel &ch = channelAt(channel_ix);
+	int model_ix = ch.modelIndex();
 	QRect rect = dest_rect.isEmpty()? ch.m_layout.graphRect: dest_rect;
 	ChannelStyle ch_style = channel_style.isEmpty()? ch.effectiveStyle: channel_style;
 
@@ -830,14 +836,14 @@ void Graph::drawSamples(QPainter *painter, int channel, const DataRect &src_rect
 	}
 
 	GraphModel *m = model();
-	int ix1 = m->lessOrEqualIndex(channel, xrange.min);
+	int ix1 = m->lessOrEqualIndex(model_ix, xrange.min);
 	//ix1--; // draw one more sample to correctly display connection line to the first one in the zoom window
 	if(ix1 < 0)
 		ix1 = 0;
-	int ix2 = m->lessOrEqualIndex(channel, xrange.max) + 1;
+	int ix2 = m->lessOrEqualIndex(model_ix, xrange.max) + 1;
 	ix2++; // draw one more sample to correctly display (n-1)th one
 	//shvInfo() << channel << "range:" << xrange.min << xrange.max;
-	shvDebug() << "\t" << m->channelData(channel, GraphModel::ChannelDataRole::Name).toString()
+	shvDebug() << "\t" << m->channelData(model_ix, GraphModel::ChannelDataRole::Name).toString()
 			   << "from:" << ix1 << "to:" << ix2 << "cnt:" << (ix2 - ix1);
 	constexpr int NO_X = std::numeric_limits<int>::min();
 	struct OnePixelPoints {
@@ -847,12 +853,12 @@ void Graph::drawSamples(QPainter *painter, int channel, const DataRect &src_rect
 		int maxY = std::numeric_limits<int>::min();
 	};
 	OnePixelPoints current_px, recent_px;
-	int cnt = m->count(channel);
+	int cnt = m->count(model_ix);
 	for (int i = ix1; i <= ix2 && i < cnt; ++i) {
-		const Sample s = m->sampleAt(channel, i);
+		const Sample s = m->sampleAt(model_ix, i);
 		const QPoint sample_point = sample2point(s);
-		shvDebug() << i << "t:" << s.time << "x:" << sample_point.x() << "y:" << sample_point.y();
-		shvDebug() << "\t recent x:" << recent_px.x << " current x:" << current_px.x;
+		//shvDebug() << i << "t:" << s.time << "x:" << sample_point.x() << "y:" << sample_point.y();
+		//shvDebug() << "\t recent x:" << recent_px.x << " current x:" << current_px.x;
 		if(sample_point.x() == current_px.x) {
 			current_px.minY = qMin(current_px.minY, sample_point.y());
 			current_px.maxY = qMax(current_px.maxY, sample_point.y());

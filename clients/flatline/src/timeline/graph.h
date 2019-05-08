@@ -134,6 +134,9 @@ public:
 	{
 		//int metaTypeId = 0;
 	public:
+		inline int modelIndex() const {return m_modelIndex;}
+		void setModelIndex(int ix) {m_modelIndex = ix;}
+
 		YRange yRange() const { return m_state.yRange; }
 		YRange yRangeZoom() const { return m_state.yRangeZoom; }
 
@@ -168,6 +171,7 @@ public:
 		} m_layout;
 	protected:
 		ChannelStyle m_style;
+		int m_modelIndex = 0;
 	};
 public:
 	Graph(QObject *parent = nullptr);
@@ -180,7 +184,7 @@ public:
 
 	int channelCount() const { return  m_channels.count(); }
 	void clearChannels();
-	void appendChannel();
+	Channel& appendChannel();
 	Channel& channelAt(int ix);
 	const Channel& channelAt(int ix) const;
 	DataRect dataRect(int channel_ix) const;
@@ -235,7 +239,7 @@ protected:
 	virtual void drawBackground(QPainter *painter, int channel);
 	virtual void drawGrid(QPainter *painter, int channel);
 	virtual void drawYAxis(QPainter *painter, int channel);
-	virtual void drawSamples(QPainter *painter, int channel
+	virtual void drawSamples(QPainter *painter, int channel_ix
 			, const DataRect &src_rect = DataRect()
 			, const QRect &dest_rect = QRect()
 			, const ChannelStyle &channel_style = ChannelStyle());
