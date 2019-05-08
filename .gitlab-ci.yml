@@ -37,7 +37,7 @@ linux-bb:
     - rm -rf build-bb
     - mkdir -p build-bb
     - cd build-bb
-    - /opt/qt5bbb/bin/qmake -r CONFIG+=no-libshv-gui CONFIG+=beaglebone ../shv.pro DEFINES+=GIT_COMMIT=${CI_BUILD_REF}
+    - /opt/qt512-bbb/bin/qmake -r CONFIG+=no-libshv-gui CONFIG+=beaglebone ../shv.pro DEFINES+=GIT_COMMIT=${CI_BUILD_REF}
     - make -j2
 
 production-deploy:
