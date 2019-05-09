@@ -150,17 +150,18 @@ public:
 		const QRect& yAxisRect() const { return  m_layout.yAxisRect; }
 
 		int valueToPos(double val) const;
+		double posToValue(int y) const;
+
+		struct YAxis {
+			double tickInterval = 0;
+			int subtickEvery = 1;
+		};
 
 		struct
 		{
 			YRange yRange;
 			YRange yRangeZoom;
-			struct {
-				double tick0;
-				double tickInterval = 0;
-				double labelTick0;
-				int labelTickEvery;
-			} axis;
+			YAxis axis;
 		} m_state;
 
 		struct
@@ -198,6 +199,7 @@ public:
 	Sample timeToSample(int channel_ix, timemsec_t time) const;
 	int posToChannel(const QPoint &pos) const;
 	Sample posToData(const QPoint &pos) const;
+	//QVariant posToValue(const QPoint &pos) const;
 	QPoint dataToPos(int ch_ix, const Sample &s) const;
 
 	const QRect& rect() const { return  m_layout.rect; }
@@ -229,6 +231,7 @@ public:
 	static std::function<timemsec_t (int)> posToTimeFn(const QPoint &src, const XRange &dest);
 	static std::function<int (timemsec_t)> timeToPosFn(const XRange &src, const WidgetRange &dest);
 	static std::function<int (double)> valueToPosFn(const YRange &src, const WidgetRange &dest);
+	static std::function<double (int)> posToValueFn(const WidgetRange &src, const YRange &dest);
 
 protected:
 	void sanityXRangeZoom();
@@ -263,17 +266,25 @@ protected:
 
 	QVector<Channel> m_channels;
 
+	struct XAxis {
+		enum class LabelFormat {MSec, Sec, Min, Hour, Day, Month, Year};
+		timemsec_t tickInterval = 0;
+		int subtickEvery = 1;
+		LabelFormat labelFormat = LabelFormat::MSec;
+
+		XAxis() {}
+		XAxis(timemsec_t t, int se, LabelFormat f)
+			: tickInterval(t)
+			, subtickEvery(se)
+			, labelFormat(f)
+		{}
+	};
 	struct
 	{
 		XRange xRange;
 		XRange xRangeZoom;
 		QPoint crossBarPos;
-		struct {
-			timemsec_t tick0;
-			timemsec_t tickInterval = 0;
-			timemsec_t labelTick0;
-			int labelTickEvery;
-		} axis;
+		XAxis axis;
 	} m_state;
 
 	struct

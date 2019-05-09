@@ -38,6 +38,12 @@ int Graph::Channel::valueToPos(double val) const
 	return val2pos? val2pos(val): 0;
 }
 
+double Graph::Channel::posToValue(int y) const
+{
+	auto pos2val = Graph::posToValueFn(WidgetRange{m_layout.yAxisRect.bottom(), m_layout.yAxisRect.top()}, yRangeZoom());
+	return pos2val? pos2val(y): 0;
+}
+
 //==========================================
 // Graph
 //==========================================
@@ -63,7 +69,7 @@ void Graph::createChannelsFromModel()
 		return;
 	setXRange(m_model->xRange());
 	for (int i = 0; i < m_model->channelCount(); ++i) {
-		m_channels.append(Channel());
+		appendChannel();
 		setYRange(i, m_model->yRange(i));
 	}
 }
@@ -285,38 +291,76 @@ QVariantMap Graph::mergeMaps(const QVariantMap &base, const QVariantMap &overlay
 void Graph::makeXAxis()
 {
 	shvLogFuncFrame();
-	XRange range = m_state.xRangeZoom;
+	static constexpr int64_t MSec = 1;
+	static constexpr int64_t Sec = 1000 * MSec;
+	static constexpr int64_t Min = 60 * Sec;
+	static constexpr int64_t Hour = 60 * Min;
+	static constexpr int64_t Day = 24 * Hour;
+	static constexpr int64_t Month = 30 * Day;
+	static constexpr int64_t Year = 365 * Day;
+	static const std::map<int64_t, XAxis> intervals
+	{
+		{1 * MSec, {0, 1, XAxis::LabelFormat::MSec}},
+		{2 * MSec, {0, 2, XAxis::LabelFormat::MSec}},
+		{5 * MSec, {0, 5, XAxis::LabelFormat::MSec}},
+		{10 * MSec, {0, 5, XAxis::LabelFormat::MSec}},
+		{20 * MSec, {0, 5, XAxis::LabelFormat::MSec}},
+		{50 * MSec, {0, 5, XAxis::LabelFormat::MSec}},
+		{100 * MSec, {0, 5, XAxis::LabelFormat::MSec}},
+		{200 * MSec, {0, 5, XAxis::LabelFormat::MSec}},
+		{500 * MSec, {0, 5, XAxis::LabelFormat::MSec}},
+		{1 * Sec, {0, 1, XAxis::LabelFormat::Sec}},
+		{2 * Sec, {0, 2, XAxis::LabelFormat::Sec}},
+		{5 * Sec, {0, 5, XAxis::LabelFormat::Sec}},
+		{10 * Sec, {0, 5, XAxis::LabelFormat::Sec}},
+		{20 * Sec, {0, 5, XAxis::LabelFormat::Sec}},
+		{30 * Sec, {0, 3, XAxis::LabelFormat::Sec}},
+		{1 * Min, {0, 1, XAxis::LabelFormat::Min}},
+		{2 * Min, {0, 2, XAxis::LabelFormat::Min}},
+		{5 * Min, {0, 5, XAxis::LabelFormat::Min}},
+		{10 * Min, {0, 5, XAxis::LabelFormat::Min}},
+		{20 * Min, {0, 5, XAxis::LabelFormat::Min}},
+		{30 * Min, {0, 3, XAxis::LabelFormat::Min}},
+		{1 * Hour, {0, 1, XAxis::LabelFormat::Hour}},
+		{2 * Hour, {0, 2, XAxis::LabelFormat::Hour}},
+		{3 * Hour, {0, 3, XAxis::LabelFormat::Hour}},
+		{6 * Hour, {0, 6, XAxis::LabelFormat::Hour}},
+		{12 * Hour, {0, 6, XAxis::LabelFormat::Hour}},
+		{1 * Day, {0, 1, XAxis::LabelFormat::Day}},
+		{2 * Day, {0, 2, XAxis::LabelFormat::Day}},
+		{5 * Day, {0, 5, XAxis::LabelFormat::Day}},
+		{10 * Day, {0, 5, XAxis::LabelFormat::Day}},
+		{20 * Day, {0, 5, XAxis::LabelFormat::Day}},
+		{1 * Month, {0, 1, XAxis::LabelFormat::Month}},
+		{3 * Month, {0, 1, XAxis::LabelFormat::Month}},
+		{6 * Month, {0, 1, XAxis::LabelFormat::Month}},
+		{1 * Year, {0, 1, XAxis::LabelFormat::Year}},
+		{2 * Year, {0, 1, XAxis::LabelFormat::Year}},
+		{5 * Year, {0, 1, XAxis::LabelFormat::Year}},
+		{10 * Year, {0, 1, XAxis::LabelFormat::Year}},
+		{20 * Year, {0, 1, XAxis::LabelFormat::Year}},
+		{50 * Year, {0, 1, XAxis::LabelFormat::Year}},
+		{100 * Year, {0, 1, XAxis::LabelFormat::Year}},
+		{200 * Year, {0, 1, XAxis::LabelFormat::Year}},
+		{500 * Year, {0, 1, XAxis::LabelFormat::Year}},
+		{1000 * Year, {0, 1, XAxis::LabelFormat::Year}},
+	};
+	//XRange range = xRangeZoom();
 	//int x0 = m_layout.xAxisRect.left();
-	int label_tick_units = 10;
+	int tick_units = 5;
+	int tick_px = u2px(tick_units);
+	timemsec_t t1 = posToTime(0);
+	timemsec_t t2 = posToTime(tick_px);
 	//timemsec_t label_tick_interval = posToTime(m_layout.xAxisRect.left() + u2px(label_tick_units)) - range.min;
 	//int label_every = 5;
-	double interval = range.interval() / label_tick_units;
-	shvDebug() << "interval:" << interval;
-	int pow = 1;
-	while(interval >= 7) {
-		interval /= 10;
-		pow *= 10;
-	}
-	// snap to closest 1, 2, 5
-	if(interval < 1.5)
-		m_state.axis.labelTickEvery = 1;
-	else if(interval < 3)
-		m_state.axis.labelTickEvery = 2;
-	else if(interval < 7)
-		m_state.axis.labelTickEvery = 5;
-	else
-		shvWarning() << "snapping interval error, interval:" << interval;
-	timemsec_t lbl_tick_interval = m_state.axis.labelTickEvery * pow;
-	m_state.axis.tickInterval = lbl_tick_interval / m_state.axis.labelTickEvery;
-	shvDebug() << "m_state.axis.labelTickEvery:" << m_state.axis.labelTickEvery << "pow:" << pow;
-	shvDebug() << "lbl_tick_interval:" << lbl_tick_interval;
-	shvDebug() << "m_state.axis.tickInterval:" << m_state.axis.tickInterval ;
-	auto n = range.min / lbl_tick_interval;
-	auto r = range.min % lbl_tick_interval;
-	if(r > 0)
-		n++;
-	m_state.axis.labelTick0 = n * lbl_tick_interval;
-	for(m_state.axis.tick0 = m_state.axis.labelTick0; m_state.axis.tick0 > range.min + m_state.axis.tickInterval; m_state.axis.tick0 -= m_state.axis.tickInterval);
+	int64_t interval = t2 - t1;
+	auto lb = intervals.lower_bound(interval);
+	if(lb == intervals.end())
+		lb = --intervals.end();
+	XAxis &axis = m_state.axis;
+	axis = lb->second;
+	axis.tickInterval = lb->first;
+	shvDebug() << "interval:" << axis.tickInterval;
 }
 
 void Graph::makeYAxis(int channel)
@@ -324,13 +368,16 @@ void Graph::makeYAxis(int channel)
 	shvLogFuncFrame();
 	Channel &ch = m_channels[channel];
 	YRange range = ch.yRangeZoom();
-	int label_tick_units = 1;
-	double interval = range.interval() / label_tick_units;
+	int tick_units = 1;
+	int tick_px = u2px(tick_units);
+	double d1 = ch.posToValue(0);
+	double d2 = ch.posToValue(tick_px);
+	double interval = d1 - d2;
 	if(qFuzzyIsNull(interval)) {
 		shvError() << "channel:" << channel << "Y axis interval == 0";
 		return;
 	}
-	shvDebug() << channel << "interval:" << interval;
+	shvDebug() << channel << "tick interval:" << interval << "range interval:" << range.interval();
 	double pow = 1;
 	if( interval >= 1 ) {
 		while(interval >= 7) {
@@ -339,34 +386,34 @@ void Graph::makeYAxis(int channel)
 		}
 	}
 	else {
-		while(interval < 1) {
+		while(interval > 0 && interval < 1) {
 			interval *= 10;
 			pow /= 10;
 		}
 	}
+
+	Channel::YAxis &axis = ch.m_state.axis;
 	// snap to closest 1, 2, 5
-	if(interval < 1.5)
-		ch.m_state.axis.labelTickEvery = 1;
-	else if(interval < 3)
-		ch.m_state.axis.labelTickEvery = 2;
-	else if(interval < 7)
-		ch.m_state.axis.labelTickEvery = 5;
+	if(interval < 1.5) {
+		axis.tickInterval = 1 * pow;
+		axis.subtickEvery = tick_units;
+	}
+	else if(interval < 3) {
+		axis.tickInterval = 2 * pow;
+		axis.subtickEvery = tick_units;
+	}
+	else if(interval < 7) {
+		axis.tickInterval = 5 * pow;
+		axis.subtickEvery = tick_units;
+	}
 	else if(interval < 10) {
-		ch.m_state.axis.labelTickEvery = 1;
-		pow *= 10;
+		axis.tickInterval = 5 * pow * 10;
+		axis.subtickEvery = tick_units;
 	}
 	else
 		shvWarning() << "snapping interval error, interval:" << interval;
-	double lbl_tick_interval = ch.m_state.axis.labelTickEvery * pow;
-	ch.m_state.axis.tickInterval = lbl_tick_interval / ch.m_state.axis.labelTickEvery;
-	shvDebug() << channel << "ch.m_state.axis.labelTickEvery:" << ch.m_state.axis.labelTickEvery << "pow:" << pow;
-	shvDebug() << channel << "ch.lbl_tick_interval:" << lbl_tick_interval;
-	shvDebug() << channel << "ch.m_state.axis.tickInterval:" << ch.m_state.axis.tickInterval ;
-	auto n = static_cast<int>(range.min / lbl_tick_interval);
-	ch.m_state.axis.labelTick0 = n * lbl_tick_interval;
-	if(ch.m_state.axis.labelTick0 < range.min)
-		ch.m_state.axis.labelTick0 += lbl_tick_interval;
-	for(ch.m_state.axis.tick0 = ch.m_state.axis.labelTick0; ch.m_state.axis.tick0 > range.min + ch.m_state.axis.tickInterval; ch.m_state.axis.tick0 -= ch.m_state.axis.tickInterval);
+	//axis.tickInterval = axis.subtickEvery * pow;
+	shvDebug() << channel << "axis.tickInterval:" << axis.tickInterval << "subtickEvery:" << axis.subtickEvery;
 }
 
 int Graph::u2px(double u) const
@@ -463,6 +510,11 @@ void Graph::makeLayout(const QRect &rect)
 	shvDebug() << "\tw:" << viewport_size.width() << "h:" << viewport_size.height();
 	m_layout.rect = rect;
 	m_layout.rect.setSize(viewport_size);
+
+	makeXAxis();
+	for (int i = m_channels.count() - 1; i >= 0; --i) {
+		makeYAxis(i);
+	}
 }
 
 void Graph::drawRectText(QPainter *painter, const QRect &rect, const QString &text, const QFont &font, const QColor &color, const QColor &background)
@@ -482,7 +534,7 @@ void Graph::drawRectText(QPainter *painter, const QRect &rect, const QString &te
 
 void Graph::draw(QPainter *painter, const QRect &dirty_rect)
 {
-	shvLogFuncFrame();
+	//shvLogFuncFrame();
 	drawBackground(painter);
 	for (int i = 0; i < m_channels.count(); ++i) {
 		const Channel &ch = m_channels[i];
@@ -578,7 +630,8 @@ void Graph::drawBackground(QPainter *painter, int channel)
 void Graph::drawGrid(QPainter *painter, int channel)
 {
 	const Channel &ch = m_channels[channel];
-	if(m_state.axis.tickInterval == 0) {
+	const XAxis &x_axis = m_state.axis;
+	if(x_axis.tickInterval == 0) {
 		drawRectText(painter, ch.m_layout.graphRect, "grid", effectiveStyle.font(), ch.effectiveStyle.colorGrid());
 		return;
 	}
@@ -597,45 +650,38 @@ void Graph::drawGrid(QPainter *painter, int channel)
 	painter->setPen(pen_dot);
 	{
 		// draw X-axis grid
-		int label_after = -1;
-		for (timemsec_t t = m_state.axis.tick0; ; t += m_state.axis.tickInterval) {
+		const XRange range = xRangeZoom();
+		timemsec_t t1 = range.min / x_axis.tickInterval;
+		t1 *= x_axis.tickInterval;
+		if(t1 < range.min)
+			t1 += x_axis.tickInterval;
+		for (timemsec_t t = t1; t <= range.max; t += x_axis.tickInterval) {
 			int x = timeToPos(t);
-			if(x <= 0 || x > m_layout.xAxisRect.right())
-				break;
-			if(t == m_state.axis.labelTick0)
-				label_after = 0;
-			if(label_after == 0) {
-				QPoint p1{x, ch.graphRect().top()};
-				QPoint p2{x, ch.graphRect().bottom()};
-				painter->drawLine(p1, p2);
-				label_after = m_state.axis.labelTickEvery;
-			}
-			label_after--;
+			QPoint p1{x, ch.graphRect().top()};
+			QPoint p2{x, ch.graphRect().bottom()};
+			painter->drawLine(p1, p2);
 		}
 	}
 	{
 		// draw Y-axis grid
-		int label_after = -1;
-		for (double d = ch.m_state.axis.tick0; ; d += ch.m_state.axis.tickInterval) {
+		const YRange range = ch.yRangeZoom();
+		const Channel::YAxis &y_axis = ch.m_state.axis;
+		double d1 = std::ceil(range.min / y_axis.tickInterval);
+		d1 *= y_axis.tickInterval;
+		if(d1 < range.min)
+			d1 += y_axis.tickInterval;
+		for (double d = d1; d <= range.max; d += y_axis.tickInterval) {
 			int y = ch.valueToPos(d);
-			if(y <= 0 || y < ch.m_layout.yAxisRect.top())
-				break;
-			if(qFuzzyCompare(d, ch.m_state.axis.labelTick0))
-				label_after = 0;
-			if(/*label_after == 0*/1) {
-				QPoint p1{ch.graphRect().left(), y};
-				QPoint p2{ch.graphRect().right(), y};
-				if(qFuzzyIsNull(d)) {
-					painter->setPen(pen_solid);
-					painter->drawLine(p1, p2);
-					painter->setPen(pen_dot);
-				}
-				else {
-					painter->drawLine(p1, p2);
-				}
-				label_after = ch.m_state.axis.labelTickEvery;
+			QPoint p1{ch.graphRect().left(), y};
+			QPoint p2{ch.graphRect().right(), y};
+			if(qFuzzyIsNull(d)) {
+				painter->setPen(pen_solid);
+				painter->drawLine(p1, p2);
+				painter->setPen(pen_dot);
 			}
-			label_after--;
+			else {
+				painter->drawLine(p1, p2);
+			}
 		}
 	}
 	painter->restore();
@@ -643,7 +689,8 @@ void Graph::drawGrid(QPainter *painter, int channel)
 
 void Graph::drawXAxis(QPainter *painter)
 {
-	if(m_state.axis.tickInterval == 0) {
+	const XAxis &axis = m_state.axis;
+	if(axis.tickInterval == 0) {
 		drawRectText(painter, m_layout.xAxisRect, "x-axis", effectiveStyle.font(), Qt::green);
 		return;
 	}
@@ -657,27 +704,61 @@ void Graph::drawXAxis(QPainter *painter)
 	painter->setPen(pen);
 	painter->drawLine(m_layout.xAxisRect.topLeft(), m_layout.xAxisRect.topRight());
 
-	int label_after = -1;
-	for (timemsec_t t = m_state.axis.tick0; ; t += m_state.axis.tickInterval) {
+	const XRange range = xRangeZoom();
+	if(axis.subtickEvery > 1) {
+		timemsec_t subtick_interval = axis.tickInterval / axis.subtickEvery;
+		timemsec_t t0 = range.min / subtick_interval;
+		t0 *= subtick_interval;
+		if(t0 < range.min)
+			t0 += subtick_interval;
+		for (timemsec_t t = t0; t <= range.max; t += subtick_interval) {
+			int x = timeToPos(t);
+			QPoint p1{x, m_layout.xAxisRect.top()};
+			QPoint p2{p1.x(), p1.y() + tick_len};
+			painter->drawLine(p1, p2);
+		}
+	}
+	timemsec_t t1 = range.min / axis.tickInterval;
+	t1 *= axis.tickInterval;
+	if(t1 < range.min)
+		t1 += axis.tickInterval;
+	for (timemsec_t t = t1; t <= range.max; t += axis.tickInterval) {
 		int x = timeToPos(t);
-		if(x <= 0 || x > m_layout.xAxisRect.right())
-			break;
-		if(t == m_state.axis.labelTick0)
-			label_after = 0;
 		QPoint p1{x, m_layout.xAxisRect.top()};
-		QPoint p2{p1.x(), p1.y() + tick_len};
-		if(label_after == 0) {
-			p2.setY(p2.y() + tick_len);
-			painter->drawLine(p1, p2);
-			QString s = QString::number(t);
-			QRect r = fm.boundingRect(s);
-			painter->drawText(p2 + QPoint{-r.width() / 2, r.height()/2 + u2px(0.2)}, s);
-			label_after = m_state.axis.labelTickEvery;
+		QPoint p2{p1.x(), p1.y() + 2*tick_len};
+		painter->drawLine(p1, p2);
+		QString text;
+		switch (axis.labelFormat) {
+		case XAxis::LabelFormat::MSec:
+			text = QStringLiteral("0.%1").arg(t % 1000, 3, 10, QChar('0'));
+			break;
+		case XAxis::LabelFormat::Sec:
+			text = QString::number((t / 1000) % 1000);
+			break;
+		case XAxis::LabelFormat::Min:
+		case XAxis::LabelFormat::Hour: {
+			QTime tm = QDateTime::fromMSecsSinceEpoch(t).time();
+			text = QStringLiteral("%1:%2").arg(tm.hour()).arg(tm.minute(), 2, 10, QChar('0'));
+			break;
 		}
-		else {
-			painter->drawLine(p1, p2);
+		case XAxis::LabelFormat::Day: {
+			QDate dt = QDateTime::fromMSecsSinceEpoch(t).date();
+			text = QStringLiteral("%1/%2").arg(dt.month()).arg(dt.day(), 2, 10, QChar('0'));
+			break;
 		}
-		label_after--;
+		case XAxis::LabelFormat::Month: {
+			QDate dt = QDateTime::fromMSecsSinceEpoch(t).date();
+			text = QStringLiteral("%1-%2").arg(dt.year()).arg(dt.month(), 2, 10, QChar('0'));
+			break;
+		}
+		case XAxis::LabelFormat::Year: {
+			QDate dt = QDateTime::fromMSecsSinceEpoch(t).date();
+			text = QStringLiteral("%1").arg(dt.year());
+			break;
+		}
+		}
+		QRect r = fm.boundingRect(text);
+		painter->drawText(p2 + QPoint{-r.width() / 2, r.height()/2 + u2px(0.2)}, text);
 	}
 	painter->restore();
 }
@@ -685,7 +766,8 @@ void Graph::drawXAxis(QPainter *painter)
 void Graph::drawYAxis(QPainter *painter, int channel)
 {
 	const Channel &ch = m_channels[channel];
-	if(qFuzzyCompare(ch.m_state.axis.tickInterval, 0)) {
+	const Channel::YAxis &axis = ch.m_state.axis;
+	if(qFuzzyCompare(axis.tickInterval, 0)) {
 		drawRectText(painter, ch.m_layout.yAxisRect, "y-axis", effectiveStyle.font(), ch.effectiveStyle.colorAxis());
 		return;
 	}
@@ -699,27 +781,32 @@ void Graph::drawYAxis(QPainter *painter, int channel)
 	painter->setPen(pen);
 	painter->drawLine(ch.m_layout.yAxisRect.bottomRight(), ch.m_layout.yAxisRect.topRight());
 
-	int label_after = -1;
-	for (double d = ch.m_state.axis.tick0; ; d += ch.m_state.axis.tickInterval) {
+	const YRange range = ch.yRangeZoom();
+	if(axis.subtickEvery > 1) {
+		double subtick_interval = axis.tickInterval / axis.subtickEvery;
+		double d0 = std::ceil(range.min / subtick_interval);
+		d0 *= subtick_interval;
+		if(d0 < range.min)
+			d0 += subtick_interval;
+		for (double d = d0; d <= range.max; d += subtick_interval) {
+			int y = ch.valueToPos(d);
+			QPoint p1{ch.m_layout.yAxisRect.right(), y};
+			QPoint p2{p1.x() - tick_len, p1.y()};
+			painter->drawLine(p1, p2);
+		}
+	}
+	double d1 = std::ceil(range.min / axis.tickInterval);
+	d1 *= axis.tickInterval;
+	if(d1 < range.min)
+		d1 += axis.tickInterval;
+	for (double d = d1; d <= range.max; d += axis.tickInterval) {
 		int y = ch.valueToPos(d);
-		if(y < ch.m_layout.yAxisRect.top())
-			break;
-		if(qFuzzyCompare(d, ch.m_state.axis.labelTick0))
-			label_after = 0;
 		QPoint p1{ch.m_layout.yAxisRect.right(), y};
-		QPoint p2{p1.x() - tick_len, p1.y()};
-		if(/*label_after == 0*/1) {
-			p2.setX(p2.x() - tick_len);
-			painter->drawLine(p1, p2);
-			QString s = QString::number(d);
-			QRect r = fm.boundingRect(s);
-			painter->drawText(QPoint{p2.x() - u2px(0.2) - r.width(), p1.y() + r.height()/4}, s);
-			label_after = ch.m_state.axis.labelTickEvery;
-		}
-		else {
-			painter->drawLine(p1, p2);
-		}
-		label_after--;
+		QPoint p2{p1.x() - 2*tick_len, p1.y()};
+		painter->drawLine(p1, p2);
+		QString s = QString::number(d);
+		QRect r = fm.boundingRect(s);
+		painter->drawText(QPoint{p2.x() - u2px(0.2) - r.width(), p1.y() + r.height()/4}, s);
 	}
 	painter->restore();
 }
@@ -822,9 +909,23 @@ std::function<int (double)> Graph::valueToPosFn(const Graph::YRange &src, const 
 	};
 }
 
+std::function<double (int)> Graph::posToValueFn(const Graph::WidgetRange &src, const Graph::YRange &dest)
+{
+	int bo = src.min;
+	int to = src.max;
+	if(bo == to)
+		return nullptr;
+
+	double d1 = dest.min;
+	double d2 = dest.max;
+	return [d1, d2, to, bo](int y) {
+		return d1 + (y - bo) * (d2 - d1) / (to - bo);
+	};
+}
+
 void Graph::drawSamples(QPainter *painter, int channel_ix, const DataRect &src_rect, const QRect &dest_rect, const Graph::ChannelStyle &channel_style)
 {
-	shvLogFuncFrame() << "channel:" << channel_ix;
+	//shvLogFuncFrame() << "channel:" << channel_ix;
 	const Channel &ch = channelAt(channel_ix);
 	int model_ix = ch.modelIndex();
 	QRect rect = dest_rect.isEmpty()? ch.m_layout.graphRect: dest_rect;
@@ -877,8 +978,8 @@ void Graph::drawSamples(QPainter *painter, int channel_ix, const DataRect &src_r
 	int ix2 = m->lessOrEqualIndex(model_ix, xrange.max) + 1;
 	ix2++; // draw one more sample to correctly display (n-1)th one
 	//shvInfo() << channel << "range:" << xrange.min << xrange.max;
-	shvDebug() << "\t" << m->channelData(model_ix, GraphModel::ChannelDataRole::Name).toString()
-			   << "from:" << ix1 << "to:" << ix2 << "cnt:" << (ix2 - ix1);
+	//shvDebug() << "\t" << m->channelData(model_ix, GraphModel::ChannelDataRole::Name).toString()
+	//		   << "from:" << ix1 << "to:" << ix2 << "cnt:" << (ix2 - ix1);
 	constexpr int NO_X = std::numeric_limits<int>::min();
 	struct OnePixelPoints {
 		int x = NO_X;

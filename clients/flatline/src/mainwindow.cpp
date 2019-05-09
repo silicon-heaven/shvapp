@@ -403,7 +403,7 @@ void MainWindow::setDataFile(const QString &fn)
 
 void MainWindow::on_action_Open_triggered()
 {
-	QString qfn = QFileDialog::getOpenFileName(this, tr("Open File"), QString(), tr("Data (*.chainpack *.cpon)"));
+	QString qfn = QFileDialog::getOpenFileName(this, tr("Open File"), QString(), tr("Data (*.chainpack *.cpon *.brclab)"));
 	if(!qfn.isEmpty()) {
 #ifdef Q_OS_WIN
 		std::string fn = qfn.toLocal8Bit().constData();
