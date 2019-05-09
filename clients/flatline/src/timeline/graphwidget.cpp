@@ -4,13 +4,14 @@
 
 #include <shv/core/exception.h>
 #include <shv/coreqt/log.h>
-#include <shv/chainpack/rpcvalue.h>
+//#include <shv/chainpack/rpcvalue.h>
 
 #include <QPainter>
 #include <QFontMetrics>
 #include <QLabel>
 #include <QMouseEvent>
 #include <QToolTip>
+#include <QDateTime>
 
 #include <cmath>
 
@@ -231,9 +232,10 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
 		if(s.isValid()) {
 			const Graph::Channel &ch = gr->channelAt(ch_ix);
 			shvDebug() << "time:" << s.time << "value:" << s.value.toDouble();
-			cp::RpcValue::DateTime dt = cp::RpcValue::DateTime::fromMSecsSinceEpoch(s.time);
+			QDateTime dt = QDateTime::fromMSecsSinceEpoch(s.time);
+			//cp::RpcValue::DateTime dt = cp::RpcValue::DateTime::fromMSecsSinceEpoch(s.time);
 			QString text = QStringLiteral("%1\n%2: %3")
-					.arg(QString::fromStdString(dt.toIsoString()))
+					.arg(dt.toString(Qt::ISODateWithMs))
 					.arg(gr->model()->channelData(ch.modelIndex(), timeline::GraphModel::ChannelDataRole::Name).toString())
 					.arg(s.value.toDouble());
 			QToolTip::showText(mapToGlobal(pos + QPoint{gr->u2px(0.8), 0}), text, this);
