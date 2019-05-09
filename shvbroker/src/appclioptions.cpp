@@ -9,8 +9,7 @@ AppCliOptions::AppCliOptions()
 	//addOption("server.websocket.enabled").setType(cp::RpcValue::Type::Bool).setNames("--ws", "--server-ws-enabled").setComment("Server web socket enabled").setDefaultValue(3777);
 #ifdef WITH_SHV_WEBSOCKETS
 	addOption("server.websocket.port").setType(cp::RpcValue::Type::Int).setNames("--server-ws-port")
-			.setComment("Server web socket port, websocket server is disabled if port == 0")
-			.setDefaultValue(3777);
+			.setComment("Server web socket port, websocket server is disabled by default, default port is 3777");
 #endif
 	addOption("server.publicIP").setType(cp::RpcValue::Type::String).setNames("--pip", "--server-public-ip").setComment("Server public IP address");
 	//addOption("sql.host").setType(cp::RpcValue::Type::String).setNames("-s", "--sql-host").setComment("SQL server host");

@@ -369,6 +369,9 @@ void BrokerApp::startWebSocketServer()
 			SHV_EXCEPTION("Cannot start WebSocket server!");
 		}
 	}
+	else {
+		shvInfo() << "Websocket server port is not set, it will not be started.";
+	}
 #else
 	shvWarning() << "Websocket server is not included in this build";
 #endif
