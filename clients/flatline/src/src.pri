@@ -5,6 +5,7 @@ HEADERS += \
     $$PWD/graphframe.h \
     $$PWD/datasample.h \
     $$PWD/flatlineapp.h
+    $$PWD/version.h
 
 SOURCES += \
     $$PWD/main.cpp \
