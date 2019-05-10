@@ -26,6 +26,8 @@ public:
 	QPair<timemsec_t, timemsec_t> xRange(int channel_ix) const;
 	QPair<double, double> yRange(int channel_ix) const;
 	void clear();
+	void appendChannel();
+	virtual int guessMetaType(int channel_ix);
 public: // API
 	virtual int channelCount() const { return qMin(m_channelsData.count(), m_samples.count()); }
 	virtual QVariant channelData(int channel, ChannelDataRole::Enum role) const;
@@ -46,8 +48,6 @@ public: // API
 	virtual void endAppendValues();
 	virtual void appendValue(int channel, Sample &&sample);
 	Q_SIGNAL void xRangeChanged(timemsec_t since, timemsec_t until);
-
-	void appendChannel();
 public:
 	static double valueToDouble(const QVariant v);
 protected:

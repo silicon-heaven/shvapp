@@ -80,6 +80,7 @@ void Graph::createChannelsFromModel()
 		ChannelStyle style = ch.style();
 		style.setColor(colors.value(i % colors.count()));
 		ch.setStyle(style);
+		ch.setMetaTypeId(m_model->guessMetaType(i));
 		setYRange(i, m_model->yRange(i));
 	}
 }

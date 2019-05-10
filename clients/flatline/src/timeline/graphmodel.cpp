@@ -183,4 +183,10 @@ void GraphModel::appendChannel()
 	m_samples.append(ChannelSamples());
 }
 
+int GraphModel::guessMetaType(int channel_ix)
+{
+	Sample s = sampleValue(channel_ix, 0);
+	return s.value.userType();
+}
+
 } // namespace timeline
