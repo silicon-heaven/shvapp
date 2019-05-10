@@ -167,7 +167,8 @@ void Telegram::processUpdates(const QJsonValue &response)
 			}
 			if(text == QLatin1String("/restart")) {
 				HScopeApp *app = HScopeApp::instance();
-				app->quit();
+				sendMessage(peer_id, "Restarting service after 3 sec.");
+				QTimer::singleShot(3000, app, &QCoreApplication::quit);
 			}
 			else if(text == QLatin1String("/ls")) {
 				LsState ls_state(peerTimeZone(peer_id));

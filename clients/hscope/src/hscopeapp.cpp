@@ -123,7 +123,7 @@ HScopeApp::HScopeApp(int &argc, char **argv, AppCliOptions* cli_opts)
 
 HScopeApp::~HScopeApp()
 {
-	shvInfo() << "destroying shv agent application";
+	shvInfo() << "destroying hscope application";
 }
 
 HScopeApp *HScopeApp::instance()
