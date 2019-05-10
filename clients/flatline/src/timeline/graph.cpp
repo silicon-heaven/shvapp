@@ -730,7 +730,7 @@ void Graph::drawXAxis(QPainter *painter)
 		QString text;
 		switch (axis.labelFormat) {
 		case XAxis::LabelFormat::MSec:
-			text = QStringLiteral("0.%1").arg(t % 1000, 3, 10, QChar('0'));
+			text = QStringLiteral("%1.%2").arg((t / 1000) % 1000).arg(t % 1000, 3, 10, QChar('0'));
 			break;
 		case XAxis::LabelFormat::Sec:
 			text = QString::number((t / 1000) % 1000);
@@ -758,7 +758,39 @@ void Graph::drawXAxis(QPainter *painter)
 		}
 		}
 		QRect r = fm.boundingRect(text);
-		painter->drawText(p2 + QPoint{-r.width() / 2, r.height()/2 + u2px(0.2)}, text);
+		r.moveTopLeft(p2 + QPoint{-r.width() / 2, 0});
+		painter->drawText(r, text);
+	}
+	{
+		QString text;
+		switch (axis.labelFormat) {
+		case XAxis::LabelFormat::MSec:
+		case XAxis::LabelFormat::Sec:
+			text = QStringLiteral("sec");
+			break;
+		case XAxis::LabelFormat::Min:
+		case XAxis::LabelFormat::Hour: {
+			text = QStringLiteral("hour:min");
+			break;
+		}
+		case XAxis::LabelFormat::Day: {
+			text = QStringLiteral("month/day");
+			break;
+		}
+		case XAxis::LabelFormat::Month: {
+			text = QStringLiteral("year-month");
+			break;
+		}
+		case XAxis::LabelFormat::Year: {
+			text = QStringLiteral("year");
+			break;
+		}
+		}
+		text = '[' + text + ']';
+		QRect r = fm.boundingRect(text);
+		r.moveTopLeft(m_layout.xAxisRect.topRight() + QPoint{-r.width() - u2px(0.2), 2*tick_len});
+		painter->fillRect(r, effectiveStyle.colorBackground());
+		painter->drawText(r, text);
 	}
 	painter->restore();
 }

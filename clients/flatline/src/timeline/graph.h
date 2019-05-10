@@ -79,8 +79,8 @@ public:
 		SHV_VARIANTMAP_FIELD2(double, t, setT, opMargin, 0.3) // units
 		SHV_VARIANTMAP_FIELD2(double, b, setb, ottomMargin, 0.3) // units
 		SHV_VARIANTMAP_FIELD2(double, c, setC, hannelSpacing, 0.3) // units
-		SHV_VARIANTMAP_FIELD2(double, x, setX, AxisHeight, 1) // units
-		SHV_VARIANTMAP_FIELD2(double, y, setY, AxisWidth, 2) // units
+		SHV_VARIANTMAP_FIELD2(double, x, setX, AxisHeight, 1.5) // units
+		SHV_VARIANTMAP_FIELD2(double, y, setY, AxisWidth, 2.5) // units
 		SHV_VARIANTMAP_FIELD2(double, m, setM, iniMapHeight, 2) // units
 		SHV_VARIANTMAP_FIELD2(double, v, setV, erticalHeaderWidth, 6) // units
 		SHV_VARIANTMAP_FIELD2(bool, s, setS, eparateChannels, true)
