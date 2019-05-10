@@ -19,7 +19,7 @@ linux:
     - rm -rf build
     - mkdir -p build
     - cd build
-    - /opt/qt/5.12.0/gcc_64/bin/qmake -r CONFIG+=no-libshv-gui CONFIG+=with-shvwebsockets ../shv.pro DEFINES+=GIT_COMMIT=${CI_BUILD_REF}
+    - /opt/qt/5.12.0/gcc_64/bin/qmake -r CONFIG+=no-libshv-gui CONFIG+=with-flatline CONFIG+=with-shvwebsockets ../shv.pro DEFINES+=GIT_COMMIT=${CI_BUILD_REF}
     - make -j2
     #- ../make-linux-artifacts.sh
 
