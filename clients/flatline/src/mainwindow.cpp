@@ -15,9 +15,10 @@
 #include <shv/core/string.h>
 
 #include <QFileDialog>
-
+#include <QMessageBox>
 #include <QRandomGenerator>
 #include <QTimer>
+
 #include <fstream>
 //#include <iostream>
 
@@ -27,9 +28,24 @@ MainWindow::MainWindow(QWidget *parent) :
 	QMainWindow(parent),
 	ui(new Ui::MainWindow)
 {
-	m_dataModel = new timeline::GraphModel(this);
-
 	ui->setupUi(this);
+	ui->frmTest->setVisible(false);
+
+	connect(ui->actHelpAbout, &QAction::triggered, [this]() {
+		QMessageBox::about(this
+						   , tr("Flat Line")
+						   , tr("<p><b>Flat Line</b></p>"
+							 "<p>ver. %1</p>"
+							 "<p>2019 Elektroline a.s.</p>"
+							 "<p><a href=\"www.elektroline.cz\">www.elektroline.cz</a></p>")
+						   .arg(QCoreApplication::applicationVersion())
+						   );
+	});
+	connect(ui->actViewTest, &QAction::toggled, [this](bool is_checked) {
+		ui->frmTest->setVisible(is_checked);
+	});
+
+	m_dataModel = new timeline::GraphModel(this);
 	//ui->graphView->viewport()->show();
 	m_graphWidget = new timeline::GraphWidget();
 
@@ -250,8 +266,49 @@ void MainWindow::setLogData(const shv::chainpack::RpcValue &data, LogDataType ty
 	m_graph->setModel(m_dataModel);
 	m_dataModel->beginAppendValues();
 	if(type == LogDataType::General) {
-		if(data.isList()) {
-			addLogEntries(data.toList());
+		const shv::chainpack::RpcValue::IMap &paths_dict = data.metaValue("pathsDict").toIMap();
+		QMap<std::string, int> path_to_channel;
+		int max_path_id = -1;
+		auto channel_index = [&path_to_channel, &max_path_id](const std::string &path) -> int {
+			int ix = path_to_channel.value(path, -1);
+			if(ix >= 0)
+				return ix;
+			ix = ++max_path_id;
+			path_to_channel[path] = ix;
+			return ix;
+		};
+		const shv::chainpack::RpcValue::List &log = data.toList();
+		for(const cp::RpcValue &entry : log) {
+			const cp::RpcValue::List &row = entry.toList();
+			const cp::RpcValue::DateTime &dt = row.value(0).toDateTime();
+			const cp::RpcValue path = row.value(1);
+			const cp::RpcValue val = row.value(2);
+			int chix;
+			shvInfo() << chix << "path:" << path.toCpon();
+			if(path.isString())
+				chix = channel_index(path.toString());
+			else if((path.isInt() || path.isUInt()) && !paths_dict.empty())
+				chix = channel_index(paths_dict.value(path.toInt()).toString());
+			else
+				chix = -1;
+			if(chix >= 0) {
+				while (m_dataModel->channelCount() <= chix)
+					m_dataModel->appendChannel();
+				QVariant v = shv::iotqt::Utils::rpcValueToQVariant(val);
+				m_dataModel->appendValue(chix, timeline::Sample{dt.msecsSinceEpoch(), v});
+			}
+			else {
+				shvWarning() << "Skipping invalid path:" << path.toPrettyString();
+			}
+		}
+		QMapIterator<std::string, int> it(path_to_channel);
+		while(it.hasNext()) {
+			it.next();
+			QString shv_path = QString::fromStdString(it.key());
+			QString name = shv_path.section('/', -1, -1);
+			int chix = it.value();
+			m_dataModel->setChannelData(chix, shv_path, timeline::GraphModel::ChannelDataRole::ShvPath);
+			m_dataModel->setChannelData(chix, name, timeline::GraphModel::ChannelDataRole::Name);
 		}
 	}
 	else if(type == LogDataType::BrcLab) {

@@ -64,12 +64,22 @@ GraphModel *Graph::model() const
 
 void Graph::createChannelsFromModel()
 {
+	static QVector<QColor> colors {
+		Qt::magenta,
+		Qt::cyan,
+		Qt::blue,
+		Qt::red,
+		QColor("orange"),
+	};
 	m_channels.clear();
 	if(!m_model)
 		return;
 	setXRange(m_model->xRange());
 	for (int i = 0; i < m_model->channelCount(); ++i) {
-		appendChannel();
+		Channel &ch = appendChannel();
+		ChannelStyle style = ch.style();
+		style.setColor(colors.value(i % colors.count()));
+		ch.setStyle(style);
 		setYRange(i, m_model->yRange(i));
 	}
 }
@@ -175,14 +185,14 @@ Sample Graph::posToData(const QPoint &pos) const
 		return Sample();
 	const Channel &ch = channelAt(ch_ix);
 	auto point2data = pointToDataFn(ch.graphRect(), DataRect{xRangeZoom(), ch.yRangeZoom()});
-	return point2data(pos);
+	return point2data? point2data(pos): Sample();
 }
 
 QPoint Graph::dataToPos(int ch_ix, const Sample &s) const
 {
 	const Channel &ch = channelAt(ch_ix);
 	auto data2point = dataToPointFn(DataRect{xRangeZoom(), ch.yRangeZoom()}, ch.graphRect());
-	return data2point(s);
+	return data2point? data2point(s): QPoint();
 }
 
 void Graph::setCrossBarPos(const QPoint &pos)
@@ -367,7 +377,11 @@ void Graph::makeYAxis(int channel)
 {
 	shvLogFuncFrame();
 	Channel &ch = m_channels[channel];
+	if(ch.yAxisRect().height() == 0)
+		return;
 	YRange range = ch.yRangeZoom();
+	if(qFuzzyIsNull(range.interval()))
+		return;
 	int tick_units = 1;
 	int tick_px = u2px(tick_units);
 	double d1 = ch.posToValue(0);
@@ -613,12 +627,36 @@ void Graph::drawVerticalHeader(QPainter *painter, int channel)
 	QColor c = effectiveStyle.color();
 	QColor bc = c;
 	bc.setAlphaF(0.05);
-	QString text = model()->channelData(ch.modelIndex(), GraphModel::ChannelDataRole::Name).toString();
-	if(text.isEmpty())
-		text = "<no name>";
+	QString name = model()->channelData(ch.modelIndex(), GraphModel::ChannelDataRole::Name).toString();
+	if(name.isEmpty())
+		name = "<no name>";
+	QString shv_path = model()->channelData(ch.modelIndex(), GraphModel::ChannelDataRole::ShvPath).toString();
+	if(shv_path.isEmpty())
+		shv_path = "<no path>";
+	//shvInfo() << channel << shv_path << name;
 	QFont font = effectiveStyle.font();
+	//drawRectText(painter, ch.m_layout.verticalHeaderRect, name, font, c, bc);
+	painter->save();
+	painter->fillRect(ch.m_layout.verticalHeaderRect, bc);
+	QPen pen;
+	pen.setColor(c);
+	painter->setPen(pen);
+	painter->drawRect(ch.m_layout.verticalHeaderRect);
+
+	painter->setClipRect(ch.m_layout.verticalHeaderRect);
+
 	font.setBold(true);
-	drawRectText(painter, ch.m_layout.verticalHeaderRect, text, font, c, bc);
+	QFontMetrics fm(font);
+	painter->setFont(font);
+	QRect text_rect = ch.m_layout.verticalHeaderRect;
+	painter->drawText(text_rect, name);
+
+	font.setBold(false);
+	painter->setFont(font);
+	text_rect.moveTop(text_rect.top() + fm.lineSpacing());
+	painter->drawText(text_rect, shv_path);
+
+	painter->restore();
 }
 
 void Graph::drawBackground(QPainter *painter, int channel)
@@ -1115,7 +1153,7 @@ void Graph::drawCrossBar(QPainter *painter, int channel_ix)
 	}
 	int d = u2px(0.4);
 	QRect focus_rect;
-	if(ch.graphRect().top() < m_state.crossBarPos.x() && ch.graphRect().bottom() > m_state.crossBarPos.y()) {
+	if(ch.graphRect().top() < m_state.crossBarPos.y() && ch.graphRect().bottom() > m_state.crossBarPos.y()) {
 		focus_rect = QRect(0, 0, d, d);
 		focus_rect.moveCenter(m_state.crossBarPos);
 	}

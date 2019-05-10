@@ -233,11 +233,10 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
 			const Graph::Channel &ch = gr->channelAt(ch_ix);
 			shvDebug() << "time:" << s.time << "value:" << s.value.toDouble();
 			QDateTime dt = QDateTime::fromMSecsSinceEpoch(s.time);
-			//cp::RpcValue::DateTime dt = cp::RpcValue::DateTime::fromMSecsSinceEpoch(s.time);
 			QString text = QStringLiteral("%1\n%2: %3")
 					.arg(dt.toString(Qt::ISODateWithMs))
 					.arg(gr->model()->channelData(ch.modelIndex(), timeline::GraphModel::ChannelDataRole::Name).toString())
-					.arg(s.value.toDouble());
+					.arg(s.value.toString());
 			QToolTip::showText(mapToGlobal(pos + QPoint{gr->u2px(0.8), 0}), text, this);
 		}
 		else {

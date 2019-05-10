@@ -50,6 +50,8 @@ TRANSLATIONS += \
 
 include (src/src.pri)
 
-FORMS +=
+win32 {
+RC_ICONS = flatline.ico
+}
 
 

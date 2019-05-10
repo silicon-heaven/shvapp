@@ -44,7 +44,7 @@ public:
 		YRange(double mn, double mx) : min(mn), max(mx) {}
 		YRange(const QPair<double, double> r) : min(r.first), max(r.second) {}
 
-		bool isNull() const { return min == 0 && max == 0; }
+		bool isNull() const { return qFuzzyIsNull(min) && qFuzzyIsNull(max); }
 		double interval() const {return max - min;}
 	};
 
@@ -82,7 +82,7 @@ public:
 		SHV_VARIANTMAP_FIELD2(double, x, setX, AxisHeight, 1.5) // units
 		SHV_VARIANTMAP_FIELD2(double, y, setY, AxisWidth, 2.5) // units
 		SHV_VARIANTMAP_FIELD2(double, m, setM, iniMapHeight, 2) // units
-		SHV_VARIANTMAP_FIELD2(double, v, setV, erticalHeaderWidth, 6) // units
+		SHV_VARIANTMAP_FIELD2(double, v, setV, erticalHeaderWidth, 10) // units
 		SHV_VARIANTMAP_FIELD2(bool, s, setS, eparateChannels, true)
 
 		SHV_VARIANTMAP_FIELD2(QColor, c, setC, olor, QColor(Qt::yellow))
