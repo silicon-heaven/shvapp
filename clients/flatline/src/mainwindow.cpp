@@ -13,6 +13,7 @@
 #include <shv/chainpack/rpcmessage.h>
 #include <shv/iotqt/rpc/clientconnection.h>
 #include <shv/core/string.h>
+#include <shv/core/stringview.h>
 
 #include <QFileDialog>
 #include <QMessageBox>
@@ -235,9 +236,10 @@ void MainWindow::openLogFile(const std::string &fn)
 {
 	try {
 		LogDataType type = LogDataType::General;
+		shv::chainpack::RpcValue rv;
 		std::ifstream file_is;
 		file_is.open(fn, std::ios::binary);
-		shv::chainpack::AbstractStreamReader *rd;
+		shv::chainpack::AbstractStreamReader *rd = nullptr;
 		if(shv::core::String::endsWith(fn, ".chainpack"))
 			rd = new shv::chainpack::ChainPackReader(file_is);
 		else if(shv::core::String::endsWith(fn, ".cpon"))
@@ -246,11 +248,63 @@ void MainWindow::openLogFile(const std::string &fn)
 			rd = new shv::chainpack::ChainPackReader(file_is);
 			type = LogDataType::BrcLab;
 		}
+		else if(shv::core::String::endsWith(fn, ".log")) {
+			QFile f(QString::fromStdString(fn));
+			if (!f.open(QIODevice::ReadOnly))
+				SHV_EXCEPTION("Cannot open file for reading.");
+			struct Column { enum Enum { Timestamp = 0, Uptime, Path, Value, }; };
+			bool values_with_time = f.fileName().endsWith("andi.log");
+			int64_t msec = 0;
+			unsigned prev_short_time = 0;
+			cp::RpcValue::List log;
+			while (!f.atEnd()) {
+				QByteArray ba = f.readLine();
+				std::string line(ba.constData(), (size_t)ba.size());
+				shv::core::StringView sv(line);
+				shv::core::StringViewList lst = sv.split('\t', shv::core::StringView::KeepEmptyParts);
+				if(lst.empty()) {
+					continue; // skip empty line
+				}
+				std::string dtstr = lst[Column::Timestamp].toString();
+				std::string path = lst.value(Column::Path).toString();
+				size_t len;
+				cp::RpcValue::DateTime dt = cp::RpcValue::DateTime::fromUtcString(dtstr, &len);
+				if(len == 0) {
+					shvWarning() << fn << "invalid date time string:" << dtstr;
+					continue;
+				}
+				std::string err;
+				cp::RpcValue::List rec;
+				shv::chainpack::RpcValue val = cp::RpcValue::fromCpon(lst.value(Column::Value).toString(), &err);
+				if(values_with_time) {
+					if(msec == 0)
+						msec = dt.msecsSinceEpoch();
+					unsigned short_time = val.toList().value(1).toUInt();
+					val = val.toList().value(0);
+					if(short_time < prev_short_time)
+						msec += 65536;
+					prev_short_time = short_time;
+					int64_t ms = msec + short_time;
+					rec.push_back(cp::RpcValue::DateTime::fromMSecsSinceEpoch(ms));
+				}
+				else {
+					rec.push_back(dt);
+				}
+				//logDShvJournal() << "\t FIELDS:" << dtstr << '\t' << path << "vals:" << lst.join('|');
+				rec.push_back(path);
+				rec.push_back(val);
+				//logDShvJournal() << "\t LOG:" << rec[Column::Timestamp].toDateTime().toIsoString() << '\t' << path << '\t' << rec[2].toCpon();
+				log.push_back(rec);
+			}
+			rv = log;
+		}
 		else
 			SHV_EXCEPTION("Unknown extension");
-		shv::chainpack::RpcValue rv = rd->read();
-		file_is.close();
-		delete rd;
+		if(rd) {
+			rv = rd->read();
+			file_is.close();
+			delete rd;
+		}
 		setLogData(rv, type);
 	}
 	catch (shv::core::Exception &e) {
@@ -284,7 +338,7 @@ void MainWindow::setLogData(const shv::chainpack::RpcValue &data, LogDataType ty
 			const cp::RpcValue path = row.value(1);
 			const cp::RpcValue val = row.value(2);
 			int chix;
-			shvInfo() << chix << "path:" << path.toCpon();
+			//shvInfo() << chix << "path:" << path.toCpon();
 			if(path.isString())
 				chix = channel_index(path.toString());
 			else if((path.isInt() || path.isUInt()) && !paths_dict.empty())

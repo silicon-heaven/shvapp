@@ -100,6 +100,8 @@ QPair<double, double> GraphModel::yRange(int channel_ix) const
 double GraphModel::valueToDouble(const QVariant v)
 {
 	switch (v.type()) {
+	case QVariant::Invalid:
+		return 0;
 	case QVariant::Double:
 		return v.toDouble();
 	case QVariant::LongLong:
