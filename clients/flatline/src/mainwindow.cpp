@@ -236,6 +236,16 @@ void MainWindow::openLogFile(const std::string &fn)
 {
 	try {
 		LogDataType type = LogDataType::General;
+		m_deviceType = DeviceType::General;
+		{
+			shv::core::StringViewList lst1 = shv::core::StringView(fn).split('/', shv::core::StringView::KeepEmptyParts);
+			shv::core::StringViewList lst = lst1.value(-1).split('.', shv::core::StringView::KeepEmptyParts);
+			std::string s = lst.value(-2).toString();
+			if(lst.value(-2) == "andi")
+				m_deviceType = DeviceType::Andi;
+			else if(lst.value(-2) == "anca")
+				m_deviceType = DeviceType::Anca;
+		}
 		shv::chainpack::RpcValue rv;
 		std::ifstream file_is;
 		file_is.open(fn, std::ios::binary);
@@ -253,9 +263,6 @@ void MainWindow::openLogFile(const std::string &fn)
 			if (!f.open(QIODevice::ReadOnly))
 				SHV_EXCEPTION("Cannot open file for reading.");
 			struct Column { enum Enum { Timestamp = 0, Uptime, Path, Value, }; };
-			bool values_with_time = f.fileName().endsWith("andi.log");
-			int64_t msec = 0;
-			unsigned prev_short_time = 0;
 			cp::RpcValue::List log;
 			while (!f.atEnd()) {
 				QByteArray ba = f.readLine();
@@ -276,24 +283,9 @@ void MainWindow::openLogFile(const std::string &fn)
 				std::string err;
 				cp::RpcValue::List rec;
 				shv::chainpack::RpcValue val = cp::RpcValue::fromCpon(lst.value(Column::Value).toString(), &err);
-				if(values_with_time) {
-					if(msec == 0)
-						msec = dt.msecsSinceEpoch();
-					unsigned short_time = val.toList().value(1).toUInt();
-					val = val.toList().value(0);
-					if(short_time < prev_short_time)
-						msec += 65536;
-					prev_short_time = short_time;
-					int64_t ms = msec + short_time;
-					rec.push_back(cp::RpcValue::DateTime::fromMSecsSinceEpoch(ms));
-				}
-				else {
-					rec.push_back(dt);
-				}
-				//logDShvJournal() << "\t FIELDS:" << dtstr << '\t' << path << "vals:" << lst.join('|');
+				rec.push_back(dt);
 				rec.push_back(path);
 				rec.push_back(val);
-				//logDShvJournal() << "\t LOG:" << rec[Column::Timestamp].toDateTime().toIsoString() << '\t' << path << '\t' << rec[2].toCpon();
 				log.push_back(rec);
 			}
 			rv = log;
@@ -314,56 +306,19 @@ void MainWindow::openLogFile(const std::string &fn)
 
 void MainWindow::setLogData(const shv::chainpack::RpcValue &data, LogDataType type)
 {
+	m_pathsDict.clear();
+	m_pathToChannelIndex.clear();
+	m_shortTimePrev = 0;
+	m_msecTime = 0;
+
 	if(m_dataModel)
 		delete m_dataModel;
 	m_dataModel = new timeline::GraphModel(this);
 	m_graph->setModel(m_dataModel);
 	m_dataModel->beginAppendValues();
 	if(type == LogDataType::General) {
-		const shv::chainpack::RpcValue::IMap &paths_dict = data.metaValue("pathsDict").toIMap();
-		QMap<std::string, int> path_to_channel;
-		int max_path_id = -1;
-		auto channel_index = [&path_to_channel, &max_path_id](const std::string &path) -> int {
-			int ix = path_to_channel.value(path, -1);
-			if(ix >= 0)
-				return ix;
-			ix = ++max_path_id;
-			path_to_channel[path] = ix;
-			return ix;
-		};
-		const shv::chainpack::RpcValue::List &log = data.toList();
-		for(const cp::RpcValue &entry : log) {
-			const cp::RpcValue::List &row = entry.toList();
-			const cp::RpcValue::DateTime &dt = row.value(0).toDateTime();
-			const cp::RpcValue path = row.value(1);
-			const cp::RpcValue val = row.value(2);
-			int chix;
-			//shvInfo() << chix << "path:" << path.toCpon();
-			if(path.isString())
-				chix = channel_index(path.toString());
-			else if((path.isInt() || path.isUInt()) && !paths_dict.empty())
-				chix = channel_index(paths_dict.value(path.toInt()).toString());
-			else
-				chix = -1;
-			if(chix >= 0) {
-				while (m_dataModel->channelCount() <= chix)
-					m_dataModel->appendChannel();
-				QVariant v = shv::iotqt::Utils::rpcValueToQVariant(val);
-				m_dataModel->appendValue(chix, timeline::Sample{dt.msecsSinceEpoch(), v});
-			}
-			else {
-				shvWarning() << "Skipping invalid path:" << path.toPrettyString();
-			}
-		}
-		QMapIterator<std::string, int> it(path_to_channel);
-		while(it.hasNext()) {
-			it.next();
-			QString shv_path = QString::fromStdString(it.key());
-			QString name = shv_path.section('/', -1, -1);
-			int chix = it.value();
-			m_dataModel->setChannelData(chix, shv_path, timeline::GraphModel::ChannelDataRole::ShvPath);
-			m_dataModel->setChannelData(chix, name, timeline::GraphModel::ChannelDataRole::Name);
-		}
+		m_pathsDict = data.metaValue("pathsDict").toIMap();
+		addLogEntries(data.toList());
 	}
 	else if(type == LogDataType::BrcLab) {
 		shvDebug() << data.metaData().toPrettyString();
@@ -437,30 +392,89 @@ void MainWindow::setLogData(const shv::chainpack::RpcValue &data, LogDataType ty
 
 void MainWindow::addLogEntries(const shv::chainpack::RpcValue::List &data)
 {
-	m_dataModel->beginAppendValues();
-	QMap<std::string, int> path_cache;
-	int max_path_id = -1;
-	auto channel_index = [&path_cache, &max_path_id](const std::string &path) -> int {
-		int ix = path_cache.value(path, -1);
-		if(ix >= 0)
-			return ix;
-		ix = ++max_path_id;
-		path_cache[path] = ix;
-		return ix;
-	};
 	for(const cp::RpcValue &entry : data) {
-		const cp::RpcValue::List &row = entry.toList();
-		const cp::RpcValue::DateTime &dt = row.value(0).toDateTime();
-		const cp::RpcValue::String &path = row.value(1).toString();
-		const cp::RpcValue val = row.value(2);
-		int chix = channel_index(path);
-		while (m_dataModel->channelCount() <= chix) {
-			m_dataModel->appendChannel();
-		}
-		QVariant v = shv::iotqt::Utils::rpcValueToQVariant(val);
-		m_dataModel->appendValue(chix, timeline::Sample{dt.msecsSinceEpoch(), v});
+		addLogEntry(entry);
 	}
-	m_dataModel->endAppendValues();
+}
+
+void MainWindow::addLogEntry(const shv::chainpack::RpcValue &entry)
+{
+	const cp::RpcValue::List &row = entry.toList();
+
+	cp::RpcValue::DateTime dt = row.value(0).toDateTime();
+	cp::RpcValue rv_path = row.value(1);
+	if(rv_path.isUInt() || rv_path.isInt())
+		rv_path = m_pathsDict.value(rv_path.toInt());
+	const shv::chainpack::RpcValue::String &path = rv_path.toString();
+	if(path.empty()) {
+		shvError() << "invalid entry path:" << entry.toCpon();
+		return;
+	}
+	cp::RpcValue val = row.value(2);
+
+	if(m_msecTime == 0)
+		m_msecTime = dt.msecsSinceEpoch();
+	if(m_deviceType == DeviceType::Andi) {
+		if(val.isList()) {
+			unsigned short_time = val.toList().value(1).toUInt();
+			int64_t msec = convertShortTime(short_time);
+			val = val.toList().value(0);
+			appendModelValue(path, msec, val);
+		}
+	}
+	else if(m_deviceType == DeviceType::Anca) {
+		if(path == "data") {
+			if(val.isList()) {
+				const shv::chainpack::RpcValue::List &rec = val.toList();
+				unsigned short_time = rec.value(0).toUInt();
+				int64_t msec = convertShortTime(short_time);
+				cp::RpcValue volt = rec.value(1);
+				cp::RpcValue curr = rec.value(2);
+				cp::RpcValue pow = rec.value(3);
+				appendModelValue("voltage", msec, volt);
+				appendModelValue("current", msec, curr);
+				appendModelValue("power", msec, pow);
+			}
+		}
+	}
+	else {
+		appendModelValue(path, dt.msecsSinceEpoch(), val);
+	}
+}
+
+void MainWindow::appendModelValue(const std::string &path, int64_t msec, const shv::chainpack::RpcValue &rv)
+{
+	int chix = pathToChannelIndex(path);
+	bool channel_exists = chix < m_dataModel->channelCount();
+	while (m_dataModel->channelCount() <= chix) {
+		m_dataModel->appendChannel();
+	}
+	if(!channel_exists) {
+		m_dataModel->setChannelData(chix, QString::fromStdString(path), timeline::GraphModel::ChannelDataRole::Name);
+		m_dataModel->setChannelData(chix, QString::fromStdString(path), timeline::GraphModel::ChannelDataRole::ShvPath);
+	}
+	QVariant v = shv::iotqt::Utils::rpcValueToQVariant(rv);
+	if(v.isValid())
+		m_dataModel->appendValue(chix, timeline::Sample{msec, v});
+}
+
+int MainWindow::pathToChannelIndex(const std::string &path)
+{
+	auto it = m_pathToChannelIndex.find(path);
+	if(it == m_pathToChannelIndex.end()) {
+		m_pathToChannelIndex[path] = (int)m_pathToChannelIndex.size();
+		return (int)(m_pathToChannelIndex.size() - 1);
+	}
+	return it->second;
+}
+
+int64_t MainWindow::convertShortTime(unsigned short_time)
+{
+	if(short_time < m_shortTimePrev) {
+		m_msecTime += 65536;
+	}
+	m_shortTimePrev = short_time;
+	return m_msecTime + short_time;
 }
 
 #if 0
@@ -514,7 +528,7 @@ void MainWindow::setDataFile(const QString &fn)
 
 void MainWindow::on_action_Open_triggered()
 {
-	QString qfn = QFileDialog::getOpenFileName(this, tr("Open File"), QString(), tr("Data (*.chainpack *.cpon *.brclab)"));
+	QString qfn = QFileDialog::getOpenFileName(this, tr("Open File"), QString(), tr("Data (*.chainpack *.cpon *.log *.brclab)"));
 	if(!qfn.isEmpty()) {
 #ifdef Q_OS_WIN
 		std::string fn = qfn.toLocal8Bit().constData();

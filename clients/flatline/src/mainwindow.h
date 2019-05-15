@@ -20,6 +20,7 @@ class MainWindow : public QMainWindow
 
 public:
 	enum class LogDataType {General, BrcLab};
+	enum class DeviceType {General, Andi, Anca};
 public:
 	explicit MainWindow(QWidget *parent = nullptr);
 	~MainWindow() override;
@@ -35,6 +36,10 @@ private:
 private:
 	//void on_action_Open_triggered();
 	void addLogEntries(const shv::chainpack::RpcValue::List &data);
+	void addLogEntry(const shv::chainpack::RpcValue &entry);
+	void appendModelValue(const std::string &path, int64_t msec, const shv::chainpack::RpcValue &rv);
+	int pathToChannelIndex(const std::string &path);
+	int64_t convertShortTime(unsigned short_time);
 protected:
 	//void paintEvent(QPaintEvent *event) override;
 private:
@@ -46,6 +51,14 @@ private:
 	timeline::GraphWidget *m_graphWidget = nullptr;
 	timeline::GraphModel *m_dataModel = nullptr;
 	bool m_paused = false;
+
+	std::map<std::string, int> m_pathToChannelIndex;
+	shv::chainpack::RpcValue::IMap m_pathsDict;
+
+
+	DeviceType m_deviceType = DeviceType::General;
+	unsigned m_shortTimePrev = 0;
+	int64_t m_msecTime = 0;
 };
 
 #endif // MAINWINDOW_H
