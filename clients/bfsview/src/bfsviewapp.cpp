@@ -173,7 +173,7 @@ void PwrStatusNode::sendPwrStatusChangedDeferred()
 	ntf.setMethod(cp::Rpc::SIG_VAL_CHANGED);
 	ntf.setParams((unsigned)m_pwrStatusToSendDeferred);
 	ntf.setShvPath(BFS1_PWR_STATUS);
-	rootNode()->emitSendRpcMesage(ntf);
+	rootNode()->emitSendRpcMessage(ntf);
 #endif
 }
 

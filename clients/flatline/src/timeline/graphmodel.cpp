@@ -56,43 +56,40 @@ Sample GraphModel::sampleValue(int channel, int ix) const
 	return sampleAt(channel, ix);
 }
 
-QPair<GraphModel::timemsec_t, GraphModel::timemsec_t> GraphModel::xRange() const
+XRange GraphModel::xRange() const
 {
-	QPair<GraphModel::timemsec_t, GraphModel::timemsec_t> ret{0, 0};
+	XRange ret;
 	for (int i = 0; i < channelCount(); ++i) {
 		if(i == 0) {
 			ret = xRange(i);
 		}
 		else {
-			QPair<timemsec_t, timemsec_t> r = xRange(i);
-			ret.first = qMin(ret.first, r.first);
-			ret.second = qMax(ret.second, r.second);
+			XRange r = xRange(i);
+			ret.min = qMin(ret.min, r.min);
+			ret.max = qMax(ret.max, r.max);
 		}
 	}
 	return ret;
 }
 
-QPair<GraphModel::timemsec_t, GraphModel::timemsec_t> GraphModel::xRange(int channel_ix) const
+XRange GraphModel::xRange(int channel_ix) const
 {
-	QPair<GraphModel::timemsec_t, GraphModel::timemsec_t> ret{0, 0};
+	XRange ret;
 	if(count(channel_ix) > 0) {
-		ret.first = sampleAt(channel_ix, 0).time;
-		ret.second = sampleAt(channel_ix, count(channel_ix) - 1).time;
+		ret.min = sampleAt(channel_ix, 0).time;
+		ret.max = sampleAt(channel_ix, count(channel_ix) - 1).time;
 	}
 	return ret;
 }
 
-QPair<double, double> GraphModel::yRange(int channel_ix) const
+YRange GraphModel::yRange(int channel_ix) const
 {
-	//QPair<double, double> ret{std::numeric_limits<double>::max(), std::numeric_limits<double>::min()};
-	QPair<double, double> ret{0, 0};
+	YRange ret;
 	for (int i = 0; i < count(channel_ix); ++i) {
 		QVariant v = sampleAt(channel_ix, i).value;
 		double d = valueToDouble(v);
-		if(d < ret.first)
-			ret.first = d;
-		if(d > ret.second)
-			ret.second = d;
+		ret.min = qMin(ret.min, d);
+		ret.max = qMax(ret.max, d);
 	}
 	return ret;
 }
@@ -119,7 +116,7 @@ double GraphModel::valueToDouble(const QVariant v)
 	}
 }
 
-int GraphModel::lessOrEqualIndex(int channel, GraphModel::timemsec_t time) const
+int GraphModel::lessOrEqualIndex(int channel, timemsec_t time) const
 {
 	if(channel < 0 || channel > channelCount())
 		return -1;
@@ -150,13 +147,15 @@ int GraphModel::lessOrEqualIndex(int channel, GraphModel::timemsec_t time) const
 
 void GraphModel::beginAppendValues()
 {
-	//m_appendSince = m_appendUntil = 0;
+	m_begginAppendXRange = xRange();
 }
 
 void GraphModel::endAppendValues()
 {
-	//if(m_appendSince > 0)
-	//	emit xRangeChanged(m_appendSince, m_appendUntil);
+	XRange xr = xRange();
+	if(xr.max > m_begginAppendXRange.max)
+		emit xRangeChanged(xr);
+	m_begginAppendXRange = XRange();
 }
 
 void GraphModel::appendValue(int channel, Sample &&sample)
@@ -171,7 +170,8 @@ void GraphModel::appendValue(int channel, Sample &&sample)
 	}
 	ChannelSamples &dat = m_samples[channel];
 	if(!dat.isEmpty() && dat.last().time > sample.time) {
-		shvWarning() << "ignoring value with lower timestamp than last value:" << dat.last().time << "val:" << sample.time;
+		shvWarning() << channelData(channel, ChannelDataRole::ShvPath).toString() << "channel:" << channel
+					 << "ignoring value with lower timestamp than last value:" << dat.last().time << "val:" << sample.time;
 		return;
 	}
 	//m_appendSince = qMin(sampleAt.time, m_appendSince);

@@ -27,10 +27,16 @@ GraphWidget::GraphWidget(QWidget *parent)
 
 void GraphWidget::setGraph(Graph *g)
 {
+	if(m_graph)
+		m_graph->disconnect(this);
 	m_graph = g;
 	Graph::GraphStyle style = graph()->style();
 	style.init(this);
 	graph()->setStyle(style);
+	update();
+	connect(m_graph, &Graph::presentationDirty, this, [this]() {
+		update();
+	});
 }
 
 Graph *GraphWidget::graph()
@@ -171,8 +177,8 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
 	}
 	switch (m_mouseOperation) {
 	case MouseOperation::MiniMapLeftResize: {
-		Graph::timemsec_t t = gr->miniMapPosToTime(pos.x());
-		Graph::XRange r = gr->xRangeZoom();
+		timemsec_t t = gr->miniMapPosToTime(pos.x());
+		XRange r = gr->xRangeZoom();
 		r.min = t;
 		if(r.interval() > 0) {
 			gr->setXRangeZoom(r);
@@ -181,8 +187,8 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
 		return;
 	}
 	case MouseOperation::MiniMapRightResize: {
-		Graph::timemsec_t t = gr->miniMapPosToTime(pos.x());
-		Graph::XRange r = gr->xRangeZoom();
+		timemsec_t t = gr->miniMapPosToTime(pos.x());
+		XRange r = gr->xRangeZoom();
 		r.max = t;
 		if(r.interval() > 0) {
 			gr->setXRangeZoom(r);
@@ -191,12 +197,12 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
 		return;
 	}
 	case MouseOperation::MiniMapScrollZoom: {
-		Graph::timemsec_t t2 = gr->miniMapPosToTime(pos.x());
-		Graph::timemsec_t t1 = gr->miniMapPosToTime(m_recentMousePos.x());
+		timemsec_t t2 = gr->miniMapPosToTime(pos.x());
+		timemsec_t t1 = gr->miniMapPosToTime(m_recentMousePos.x());
 		m_recentMousePos = pos;
-		Graph::XRange r = gr->xRangeZoom();
+		XRange r = gr->xRangeZoom();
 		shvDebug() << "r.min:" << r.min << "r.max:" << r.max;
-		Graph::timemsec_t dt = t2 - t1;
+		timemsec_t dt = t2 - t1;
 		shvDebug() << dt << "r.min:" << r.min << "-->" << (r.min + dt);
 		r.min += dt;
 		r.max += dt;
@@ -209,10 +215,10 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
 		return;
 	}
 	case MouseOperation::GraphAreaMoveOrZoom: {
-		Graph::timemsec_t t0 = gr->posToTime(m_recentMousePos.x());
-		Graph::timemsec_t t1 = gr->posToTime(pos.x());
-		Graph::timemsec_t dt = t0 - t1;
-		Graph::XRange r = gr->xRangeZoom();
+		timemsec_t t0 = gr->posToTime(m_recentMousePos.x());
+		timemsec_t t1 = gr->posToTime(pos.x());
+		timemsec_t dt = t0 - t1;
+		XRange r = gr->xRangeZoom();
 		r.min += dt;
 		r.max += dt;
 		gr->setXRangeZoom(r);
@@ -227,7 +233,7 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
 	if(ch_ix >= 0) {
 		setCursor(Qt::BlankCursor);
 		gr->setCrossBarPos(pos);
-		Graph::timemsec_t t = gr->posToTime(pos.x());
+		timemsec_t t = gr->posToTime(pos.x());
 		Sample s = gr->timeToSample(ch_ix, t);
 		if(s.isValid()) {
 			const Graph::Channel &ch = gr->channelAt(ch_ix);
@@ -264,8 +270,8 @@ void GraphWidget::wheelEvent(QWheelEvent *event)
 		double deg = event->angleDelta().y();
 		//deg /= 120;
 		// 120 deg ~ 1/20 of range
-		Graph::timemsec_t dt = static_cast<Graph::timemsec_t>(deg * gr->xRangeZoom().interval() / 120 / ZOOM_STEP);
-		Graph::XRange r = gr->xRangeZoom();
+		timemsec_t dt = static_cast<timemsec_t>(deg * gr->xRangeZoom().interval() / 120 / ZOOM_STEP);
+		XRange r = gr->xRangeZoom();
 		r.min += dt;
 		r.max -= dt;
 		if(r.interval() > 1) {
@@ -280,11 +286,11 @@ void GraphWidget::wheelEvent(QWheelEvent *event)
 		double deg = event->angleDelta().y();
 		//deg /= 120;
 		// 120 deg ~ 1/20 of range
-		Graph::timemsec_t dt = static_cast<Graph::timemsec_t>(deg * gr->xRangeZoom().interval() / 120 / ZOOM_STEP);
-		Graph::XRange r = gr->xRangeZoom();
+		timemsec_t dt = static_cast<timemsec_t>(deg * gr->xRangeZoom().interval() / 120 / ZOOM_STEP);
+		XRange r = gr->xRangeZoom();
 		double ratio = 0.5;
 		// shift new zoom to center it horizontally on the mouse position
-		Graph::timemsec_t t_mouse = gr->posToTime(event->pos().x());
+		timemsec_t t_mouse = gr->posToTime(event->pos().x());
 		ratio = static_cast<double>(t_mouse - r.min) / r.interval();
 		r.min += ratio * dt;
 		r.max -= (1 - ratio) * dt;

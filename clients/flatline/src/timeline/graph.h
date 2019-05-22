@@ -20,34 +20,6 @@ class Graph : public QObject
 {
 	Q_OBJECT
 public:
-	using timemsec_t = Sample::timemsec_t;
-
-	struct XRange
-	{
-		timemsec_t min = 0;
-		timemsec_t max = 0;
-
-		XRange() {}
-		XRange(timemsec_t mn, timemsec_t mx) : min(mn), max(mx) {}
-		XRange(const QPair<timemsec_t, timemsec_t> r) : min(r.first), max(r.second) {}
-
-		bool isNull() const { return min == 0 && max == 0; }
-		timemsec_t interval() const {return max - min;}
-	};
-
-	struct YRange
-	{
-		double min = 0;
-		double max = 0;
-
-		YRange() {}
-		YRange(double mn, double mx) : min(mn), max(mx) {}
-		YRange(const QPair<double, double> r) : min(r.first), max(r.second) {}
-
-		bool isNull() const { return qFuzzyIsNull(min) && qFuzzyIsNull(max); }
-		double interval() const {return max - min;}
-	};
-
 	struct DataRect
 	{
 		XRange xRange;
@@ -56,20 +28,11 @@ public:
 		DataRect() {}
 		DataRect(const XRange &xr, const YRange &yr) : xRange(xr), yRange(yr) {}
 
-		bool isNull() const { return xRange.isNull() && yRange.isNull(); }
+		bool isValid() const { return xRange.isValid() && yRange.isValid(); }
+		//bool isNull() const { return xRange.isNull() && yRange.isNull(); }
 	};
 
-	struct WidgetRange
-	{
-		int min = 0;
-		int max = 0;
-
-		WidgetRange() {}
-		WidgetRange(int mn, int mx) : min(mn), max(mx) {}
-
-		bool isNull() const { return min == 0 && max == 0; }
-		double interval() const {return max - min;}
-	};
+	using WidgetRange = Range<int>;
 
 	class GraphStyle : public QVariantMap
 	{
@@ -236,8 +199,10 @@ public:
 	static std::function<int (double)> valueToPosFn(const YRange &src, const WidgetRange &dest);
 	static std::function<double (int)> posToValueFn(const WidgetRange &src, const YRange &dest);
 
+	Q_SIGNAL void presentationDirty();
 protected:
 	void sanityXRangeZoom();
+	void onXRangeChanged(const timeline::XRange &range);
 
 	void drawRectText(QPainter *painter, const QRect &rect, const QString &text, const QFont &font, const QColor &color, const QColor &background = QColor());
 

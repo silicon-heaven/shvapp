@@ -1,12 +1,14 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include "timeline/sample.h"
+
 #include <shv/chainpack/rpcvalue.h>
 
 #include <QMainWindow>
 
 namespace shv { namespace chainpack { class RpcMessage; }}
-namespace timeline { class GraphWidget; class GraphModel; class Graph; }
+namespace timeline { class GraphWidget; class GraphModel; class Graph;}
 
 namespace Ui {
 class MainWindow;
@@ -38,12 +40,13 @@ private:
 	void addLogEntries(const shv::chainpack::RpcValue::List &data);
 	void addLogEntry(const shv::chainpack::RpcValue &entry);
 	void appendModelValue(const std::string &path, int64_t msec, const shv::chainpack::RpcValue &rv);
-	int pathToChannelIndex(const std::string &path);
+	int pathToModelIndex(const std::string &path);
 	int64_t convertShortTime(unsigned short_time);
-protected:
-	//void paintEvent(QPaintEvent *event) override;
 private:
+	void onGraphXRangeChanged(const timeline::XRange &range);
+
 	void generateRandomSamples();
+	void runLiveSamples(bool on);
 private:
 	Ui::MainWindow *ui;
 
@@ -52,9 +55,10 @@ private:
 	timeline::GraphModel *m_dataModel = nullptr;
 	bool m_paused = false;
 
-	std::map<std::string, int> m_pathToChannelIndex;
+	std::map<std::string, int> m_pathToModelIndex;
 	shv::chainpack::RpcValue::IMap m_pathsDict;
 
+	QTimer *m_liveSamplesTimer = nullptr;
 
 	DeviceType m_deviceType = DeviceType::General;
 	unsigned m_shortTimePrev = 0;

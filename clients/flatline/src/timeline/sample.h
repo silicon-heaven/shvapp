@@ -2,11 +2,14 @@
 
 #include <QVariant>
 
+#include <limits>
+
 namespace timeline {
+
+using timemsec_t = int64_t;
 
 struct Sample
 {
-	using timemsec_t = int64_t;
 
 	timemsec_t time = 0;
 	QVariant value;
@@ -18,6 +21,24 @@ struct Sample
 
 	bool isValid() const {return value.isValid() && time > 0;}
 };
+
+template<typename T>
+struct Range
+{
+	T min = std::numeric_limits<T>::max();
+	T max = std::numeric_limits<T>::min();
+
+	Range() {}
+	Range(T mn, T mx) : min(mn), max(mx) {}
+	//XRange(const QPair<timemsec_t, timemsec_t> r) : min(r.first), max(r.second) {}
+
+	//bool operator==(const T &o) const { return min == o.min && max == o.max; }
+	bool isValid() const { return min <= max; }
+	T interval() const {return max - min;}
+};
+
+using XRange = Range<timemsec_t>;
+using YRange = Range<double>;
 
 } // namespace timeline
 

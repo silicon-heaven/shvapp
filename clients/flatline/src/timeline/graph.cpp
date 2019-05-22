@@ -54,7 +54,10 @@ Graph::Graph(QObject *parent)
 
 void Graph::setModel(GraphModel *model)
 {
+	if(m_model)
+		m_model->disconnect(this);
 	m_model = model;
+	connect(m_model, &GraphModel::xRangeChanged, this, &Graph::onXRangeChanged);
 }
 
 GraphModel *Graph::model() const
@@ -120,31 +123,31 @@ Graph::DataRect Graph::dataRect(int channel_ix) const
 	return DataRect{xRangeZoom(), ch.yRangeZoom()};
 }
 
-Graph::timemsec_t Graph::miniMapPosToTime(int pos) const
+timemsec_t Graph::miniMapPosToTime(int pos) const
 {
 	auto pos2time = posToTimeFn(QPoint{m_layout.miniMapRect.left(), m_layout.miniMapRect.right()}, xRange());
 	return pos2time? pos2time(pos): 0;
 }
 
-int Graph::miniMapTimeToPos(Graph::timemsec_t time) const
+int Graph::miniMapTimeToPos(timemsec_t time) const
 {
 	auto time2pos = timeToPosFn(xRange(), WidgetRange{m_layout.miniMapRect.left(), m_layout.miniMapRect.right()});
 	return time2pos? time2pos(time): 0;
 }
 
-Graph::timemsec_t Graph::posToTime(int pos) const
+timemsec_t Graph::posToTime(int pos) const
 {
 	auto pos2time = posToTimeFn(QPoint{m_layout.xAxisRect.left(), m_layout.xAxisRect.right()}, xRangeZoom());
 	return pos2time? pos2time(pos): 0;
 }
 
-int Graph::timeToPos(Graph::timemsec_t time) const
+int Graph::timeToPos(timemsec_t time) const
 {
 	auto time2pos = timeToPosFn(xRangeZoom(), WidgetRange{m_layout.xAxisRect.left(), m_layout.xAxisRect.right()});
 	return time2pos? time2pos(time): 0;
 }
 
-Sample Graph::timeToSample(int channel_ix, Graph::timemsec_t time) const
+Sample Graph::timeToSample(int channel_ix, timemsec_t time) const
 {
 	GraphModel *m = model();
 	const Channel &ch = channelAt(channel_ix);
@@ -212,28 +215,48 @@ int Graph::posToChannel(const QPoint &pos) const
 	return -1;
 }
 
-void Graph::setXRange(const timeline::Graph::XRange &r, bool keep_zoom)
+void Graph::setXRange(const XRange &r, bool keep_zoom)
 {
+	const auto old_r = m_state.xRange;
 	m_state.xRange = r;
-	if(m_state.xRangeZoom.isNull() || !keep_zoom) {
+	if(!m_state.xRangeZoom.isValid() || !keep_zoom) {
 		m_state.xRangeZoom = m_state.xRange;
+	}
+	else {
+		if(m_state.xRangeZoom.max == old_r.max) {
+			const auto old_zr = m_state.xRangeZoom;
+			m_state.xRangeZoom = m_state.xRange;
+			m_state.xRangeZoom.min = m_state.xRangeZoom.max - old_zr.interval();
+		}
 	}
 	sanityXRangeZoom();
 	makeXAxis();
+	m_miniMapCache = QPixmap();
+	emit presentationDirty();
 }
 
-void Graph::setXRangeZoom(const Graph::XRange &r)
+void Graph::setXRangeZoom(const XRange &r)
 {
-	Graph::XRange new_r = r;
+	XRange prev_r = m_state.xRangeZoom;
+	XRange new_r = r;
 	if(new_r.min < m_state.xRange.min)
 		new_r.min = m_state.xRange.min;
 	if(new_r.max > m_state.xRange.max)
 		new_r.max = m_state.xRange.max;
+	if(prev_r.max < new_r.max) {
+		/// if zoom is moved right, snap to xrange max
+		const auto diff = m_state.xRange.max - new_r.max;
+		if(diff < m_state.xRange.interval() / 20) {
+			new_r.min += diff;
+			new_r.max += diff;
+		}
+		//shvInfo() << "diff:" << (m_state.xRange.max - new_r.max) << (m_state.xRange.interval() / 20);
+	}
 	m_state.xRangeZoom = new_r;
 	makeXAxis();
 }
 
-void Graph::setYRange(int channel_ix, const Graph::YRange &r)
+void Graph::setYRange(int channel_ix, const YRange &r)
 {
 	Channel &ch = m_channels[channel_ix];
 	ch.m_state.yRange = r;
@@ -249,7 +272,7 @@ void Graph::enlargeYRange(int channel_ix, double step)
 	setYRange(channel_ix, r);
 }
 
-void Graph::setYRangeZoom(int channel_ix, const Graph::YRange &r)
+void Graph::setYRangeZoom(int channel_ix, const YRange &r)
 {
 	Channel &ch = m_channels[channel_ix];
 	ch.m_state.yRangeZoom = r;
@@ -429,6 +452,11 @@ void Graph::makeYAxis(int channel)
 		shvWarning() << "snapping interval error, interval:" << interval;
 	//axis.tickInterval = axis.subtickEvery * pow;
 	shvDebug() << channel << "axis.tickInterval:" << axis.tickInterval << "subtickEvery:" << axis.subtickEvery;
+}
+
+void Graph::onXRangeChanged(const XRange &range)
+{
+	setXRange(range, true);
 }
 
 int Graph::u2px(double u) const
@@ -940,7 +968,7 @@ std::function<Sample (const QPoint &)> Graph::pointToDataFn(const QRect &src, co
 	};
 }
 
-std::function<Graph::timemsec_t (int)> Graph::posToTimeFn(const QPoint &src, const Graph::XRange &dest)
+std::function<timemsec_t (int)> Graph::posToTimeFn(const QPoint &src, const XRange &dest)
 {
 	int le = src.x();
 	int ri = src.y();
@@ -953,7 +981,7 @@ std::function<Graph::timemsec_t (int)> Graph::posToTimeFn(const QPoint &src, con
 	};
 }
 
-std::function<int (Graph::timemsec_t)> Graph::timeToPosFn(const Graph::XRange &src, const timeline::Graph::WidgetRange &dest)
+std::function<int (timemsec_t)> Graph::timeToPosFn(const XRange &src, const timeline::Graph::WidgetRange &dest)
 {
 	timemsec_t t1 = src.min;
 	timemsec_t t2 = src.max;
@@ -961,12 +989,12 @@ std::function<int (Graph::timemsec_t)> Graph::timeToPosFn(const Graph::XRange &s
 		return nullptr;
 	int le = dest.min;
 	int ri = dest.max;
-	return [t1, t2, le, ri](Graph::timemsec_t t) {
+	return [t1, t2, le, ri](timemsec_t t) {
 		return static_cast<timemsec_t>(le + static_cast<double>(t - t1) * (ri - le) / (t2 - t1));
 	};
 }
 
-std::function<int (double)> Graph::valueToPosFn(const Graph::YRange &src, const timeline::Graph::WidgetRange &dest)
+std::function<int (double)> Graph::valueToPosFn(const YRange &src, const Graph::WidgetRange &dest)
 {
 	double d1 = src.min;
 	double d2 = src.max;
@@ -980,7 +1008,7 @@ std::function<int (double)> Graph::valueToPosFn(const Graph::YRange &src, const 
 	};
 }
 
-std::function<double (int)> Graph::posToValueFn(const Graph::WidgetRange &src, const Graph::YRange &dest)
+std::function<double (int)> Graph::posToValueFn(const Graph::WidgetRange &src, const YRange &dest)
 {
 	int bo = src.min;
 	int to = src.max;
@@ -1004,7 +1032,7 @@ void Graph::drawSamples(QPainter *painter, int channel_ix, const DataRect &src_r
 
 	XRange xrange;
 	YRange yrange;
-	if(src_rect.isNull()) {
+	if(!src_rect.isValid()) {
 		xrange = xRangeZoom();
 		yrange = ch.yRangeZoom();
 	}
@@ -1060,8 +1088,9 @@ void Graph::drawSamples(QPainter *painter, int channel_ix, const DataRect &src_r
 	};
 	OnePixelPoints current_px, recent_px;
 	int cnt = m->count(model_ix);
-	for (int i = ix1; i <= ix2 && i < cnt; ++i) {
-		const Sample s = m->sampleAt(model_ix, i);
+	for (int i = ix1; i <= ix2 && i <= cnt; ++i) {
+		// sample is drawn one step behind, so one more loop is needed
+		const Sample s = (i < cnt)? m->sampleAt(model_ix, i): Sample();
 		const QPoint sample_point = sample2point(s);
 		//shvDebug() << i << "t:" << s.time << "x:" << sample_point.x() << "y:" << sample_point.y();
 		//shvDebug() << "\t recent x:" << recent_px.x << " current x:" << current_px.x;
@@ -1196,7 +1225,7 @@ void Graph::drawCrossBar(QPainter *painter, int channel_ix)
 		painter->setPen(pen_solid);
 		painter->drawRect(focus_rect);
 
-		//Graph::timemsec_t t = posToTime(m_state.crossBarPos.x());
+		//timemsec_t t = posToTime(m_state.crossBarPos.x());
 		Sample s = posToData(m_state.crossBarPos);
 		//shvDebug() << "time:" << s.time << "value:" << s.value.toDouble();
 		cp::RpcValue::DateTime dt = cp::RpcValue::DateTime::fromMSecsSinceEpoch(s.time);

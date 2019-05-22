@@ -17,14 +17,12 @@ class GraphModel : public QObject
 public:
 	struct ChannelDataRole {enum Enum {ShvPath, Name, UserData = 64};};
 	//struct ValueRole {enum Enum {Display, Label, UserData = 64};};
-
-	using timemsec_t = Sample::timemsec_t;
 public:
 	explicit GraphModel(QObject *parent = nullptr);
 
-	QPair<timemsec_t, timemsec_t> xRange() const;
-	QPair<timemsec_t, timemsec_t> xRange(int channel_ix) const;
-	QPair<double, double> yRange(int channel_ix) const;
+	XRange xRange() const;
+	XRange xRange(int channel_ix) const;
+	YRange yRange(int channel_ix) const;
 	void clear();
 	void appendChannel();
 	virtual int guessMetaType(int channel_ix);
@@ -47,7 +45,7 @@ public: // API
 	virtual void beginAppendValues();
 	virtual void endAppendValues();
 	virtual void appendValue(int channel, Sample &&sample);
-	Q_SIGNAL void xRangeChanged(timemsec_t since, timemsec_t until);
+	Q_SIGNAL void xRangeChanged(XRange range);
 public:
 	static double valueToDouble(const QVariant v);
 protected:
@@ -55,7 +53,7 @@ protected:
 	QVector<ChannelSamples> m_samples;
 	using ChannelData = QMap<int, QVariant>;
 	QVector<ChannelData> m_channelsData;
-	//timemsec_t m_appendSince, m_appendUntil;
+	XRange m_begginAppendXRange;
 };
 /*
 class GraphModel : public AbstractGraphModel
