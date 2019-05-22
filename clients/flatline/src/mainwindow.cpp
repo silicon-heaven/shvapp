@@ -517,6 +517,7 @@ void MainWindow::appendModelValue(const std::string &path, int64_t msec, const s
 	bool channel_exists = mix < m_dataModel->channelCount();
 	while (m_dataModel->channelCount() <= mix) {
 		m_dataModel->appendChannel();
+		//shvInfo() << "model cnt:" << m_dataModel->channelCount();
 	}
 	if(!channel_exists) {
 		m_dataModel->setChannelData(mix, QString::fromStdString(path), timeline::GraphModel::ChannelDataRole::Name);
@@ -531,10 +532,13 @@ int MainWindow::pathToModelIndex(const std::string &path)
 {
 	auto it = m_pathToModelIndex.find(path);
 	if(it == m_pathToModelIndex.end()) {
-		m_pathToModelIndex[path] = (int)m_pathToModelIndex.size();
-		//shvDebug() << path << "missing -------------- model index cache:";
-		//for(auto kv : m_pathToModelIndex)
-		//	shvDebug() << "\t" << kv.first << "->" << kv.second;
+		int cnt = (int)m_pathToModelIndex.size();
+		m_pathToModelIndex[path] = cnt;
+		/*
+		shvDebug() << path << "missing -------------- model index cache:";
+		for(auto kv : m_pathToModelIndex)
+			shvDebug() << "\t" << kv.first << "->" << kv.second << "return:" << (m_pathToModelIndex.size() - 1);
+			*/
 		return (int)(m_pathToModelIndex.size() - 1);
 	}
 	return it->second;
