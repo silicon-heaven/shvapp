@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
-	//shv::chainpack::RpcMessage::setMetaTypeExplicit(cli_opts.isMetaTypeExplicit());
+	shv::chainpack::RpcMessage::registerMetaTypes();
 
 	shvInfo() << "======================================================================================";
 	shvInfo() << "Starting ShvSpy, PID:" << QCoreApplication::applicationPid() << "build:" << __DATE__ << __TIME__;
