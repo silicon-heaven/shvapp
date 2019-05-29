@@ -80,7 +80,9 @@ MainWindow::MainWindow(QWidget *parent)
 	});
 	connect(ui->actSettingsConnection, &QAction::triggered, [this]() {
 		SettingsDialog dlg(this);
-		dlg.exec();
+		if(dlg.exec()) {
+			QMessageBox::information(this, "JN50 View", "Změny se projeví až po restartu aplikace");
+		}
 	});
 	connect(ui->actSettingsTresholds, &QAction::triggered, [this]() {
 		ThresholdsDialog dlg(this);

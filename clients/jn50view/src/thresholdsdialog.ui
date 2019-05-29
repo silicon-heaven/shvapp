@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>314</height>
+    <width>405</width>
+    <height>359</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -47,7 +47,7 @@
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
         </property>
         <property name="readOnly">
-         <bool>true</bool>
+         <bool>false</bool>
         </property>
         <property name="specialValueText">
          <string>Nahrává se ...</string>
@@ -63,7 +63,7 @@
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
         </property>
         <property name="readOnly">
-         <bool>true</bool>
+         <bool>false</bool>
         </property>
         <property name="specialValueText">
          <string>Nahrává se ...</string>
@@ -79,7 +79,7 @@
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
         </property>
         <property name="readOnly">
-         <bool>true</bool>
+         <bool>false</bool>
         </property>
         <property name="specialValueText">
          <string>Nahrává se ...</string>
@@ -125,7 +125,7 @@
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
         </property>
         <property name="readOnly">
-         <bool>true</bool>
+         <bool>false</bool>
         </property>
         <property name="specialValueText">
          <string>Nahrává se ...</string>
@@ -138,6 +138,13 @@
      </layout>
     </widget>
    </item>
+   <item>
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Apply|QDialogButtonBox::Cancel</set>
+     </property>
+    </widget>
+   </item>
   </layout>
  </widget>
  <tabstops>
@@ -148,5 +155,38 @@
   <tabstop>spinBox_4</tabstop>
  </tabstops>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>accepted()</signal>
+   <receiver>ThresholdsDialog</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>178</x>
+     <y>327</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>100</x>
+     <y>346</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>ThresholdsDialog</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>127</x>
+     <y>325</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>226</x>
+     <y>353</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>
