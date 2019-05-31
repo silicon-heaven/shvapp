@@ -17,6 +17,9 @@ class GraphModel : public QObject
 public:
 	struct ChannelDataRole {enum Enum {ShvPath, Name, UserData = 64};};
 	//struct ValueRole {enum Enum {Display, Label, UserData = 64};};
+
+	SHV_FIELD_BOOL_IMPL2(a, A, utoCreateChannels, true)
+
 public:
 	explicit GraphModel(QObject *parent = nullptr);
 
@@ -24,7 +27,8 @@ public:
 	XRange xRange(int channel_ix) const;
 	YRange yRange(int channel_ix) const;
 	void clear();
-	void appendChannel();
+	void appendChannel() {appendChannel(std::string(), std::string());}
+	void appendChannel(const std::string &shv_path, const std::string &name);
 	virtual int guessMetaType(int channel_ix);
 public: // API
 	virtual int channelCount() const { return qMin(m_channelsData.count(), m_samples.count()); }
@@ -45,7 +49,12 @@ public: // API
 	virtual void beginAppendValues();
 	virtual void endAppendValues();
 	virtual void appendValue(int channel, Sample &&sample);
+	void appendValueShvPath(const std::string &shv_path, Sample &&sample);
+
+	int pathToChannel(const std::string &path) const;
+
 	Q_SIGNAL void xRangeChanged(XRange range);
+	Q_SIGNAL void channelCountChanged(int cnt);
 public:
 	static double valueToDouble(const QVariant v);
 protected:
@@ -54,6 +63,8 @@ protected:
 	using ChannelData = QMap<int, QVariant>;
 	QVector<ChannelData> m_channelsData;
 	XRange m_begginAppendXRange;
+
+	mutable std::map<std::string, int> m_pathToChannelCache;
 };
 /*
 class GraphModel : public AbstractGraphModel

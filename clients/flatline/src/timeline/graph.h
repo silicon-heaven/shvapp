@@ -141,6 +141,8 @@ public:
 		int m_modelIndex = 0;
 		int m_metaTypeId = 0;
 	};
+
+	//SHV_FIELD_BOOL_IMPL2(a, A, utoCreateChannels, true)
 public:
 	Graph(QObject *parent = nullptr);
 	virtual ~Graph() {}
@@ -199,10 +201,10 @@ public:
 	static std::function<int (double)> valueToPosFn(const YRange &src, const WidgetRange &dest);
 	static std::function<double (int)> posToValueFn(const WidgetRange &src, const YRange &dest);
 
-	Q_SIGNAL void presentationDirty();
+	Q_SIGNAL void presentationDirty(const QRect &rect);
 protected:
 	void sanityXRangeZoom();
-	void onXRangeChanged(const timeline::XRange &range);
+	//void onModelXRangeChanged(const timeline::XRange &range);
 
 	void drawRectText(QPainter *painter, const QRect &rect, const QString &text, const QFont &font, const QColor &color, const QColor &background = QColor());
 

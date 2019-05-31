@@ -2,7 +2,6 @@
 HEADERS += \
     $$PWD/mainwindow.h\
     $$PWD/appclioptions.h \
-    $$PWD/graphframe.h \
     $$PWD/datasample.h \
     $$PWD/flatlineapp.h
     $$PWD/version.h
@@ -11,7 +10,6 @@ SOURCES += \
     $$PWD/main.cpp \
     $$PWD/mainwindow.cpp \
     $$PWD/appclioptions.cpp \
-    $$PWD/graphframe.cpp \
     $$PWD/datasample.cpp \
     $$PWD/flatlineapp.cpp
 

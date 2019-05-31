@@ -57,7 +57,7 @@ void Graph::setModel(GraphModel *model)
 	if(m_model)
 		m_model->disconnect(this);
 	m_model = model;
-	connect(m_model, &GraphModel::xRangeChanged, this, &Graph::onXRangeChanged);
+	//connect(m_model, &GraphModel::xRangeChanged, this, &Graph::onModelXRangeChanged);
 }
 
 GraphModel *Graph::model() const
@@ -84,7 +84,10 @@ void Graph::createChannelsFromModel()
 		style.setColor(colors.value(i % colors.count()));
 		ch.setStyle(style);
 		ch.setMetaTypeId(m_model->guessMetaType(i));
-		setYRange(i, m_model->yRange(i));
+		YRange yrange = m_model->yRange(i);
+		if(yrange.isEmpty())
+			yrange = YRange{0, 1};
+		setYRange(i, yrange);
 	}
 }
 
@@ -232,7 +235,7 @@ void Graph::setXRange(const XRange &r, bool keep_zoom)
 	sanityXRangeZoom();
 	makeXAxis();
 	m_miniMapCache = QPixmap();
-	emit presentationDirty();
+	emit presentationDirty(rect());
 }
 
 void Graph::setXRangeZoom(const XRange &r)
@@ -243,8 +246,8 @@ void Graph::setXRangeZoom(const XRange &r)
 		new_r.min = m_state.xRange.min;
 	if(new_r.max > m_state.xRange.max)
 		new_r.max = m_state.xRange.max;
-	if(prev_r.max < new_r.max) {
-		/// if zoom is moved right, snap to xrange max
+	if(prev_r.max < new_r.max && prev_r.interval() == new_r.interval()) {
+		/// if zoom is just moved right (not scaled), snap to xrange max
 		const auto diff = m_state.xRange.max - new_r.max;
 		if(diff < m_state.xRange.interval() / 20) {
 			new_r.min += diff;
@@ -261,6 +264,7 @@ void Graph::setYRange(int channel_ix, const YRange &r)
 	Channel &ch = m_channels[channel_ix];
 	ch.m_state.yRange = r;
 	resetZoom(channel_ix);
+	makeYAxis(channel_ix);
 }
 
 void Graph::enlargeYRange(int channel_ix, double step)
@@ -454,10 +458,10 @@ void Graph::makeYAxis(int channel)
 	shvDebug() << channel << "axis.tickInterval:" << axis.tickInterval << "subtickEvery:" << axis.subtickEvery;
 }
 
-void Graph::onXRangeChanged(const XRange &range)
-{
-	setXRange(range, true);
-}
+//void Graph::onModelXRangeChanged(const XRange &range)
+//{
+//	setXRange(range, true);
+//}
 
 int Graph::u2px(double u) const
 {

@@ -12,6 +12,7 @@
 #include <QMouseEvent>
 #include <QToolTip>
 #include <QDateTime>
+#include <QMenu>
 
 #include <cmath>
 
@@ -23,6 +24,7 @@ GraphWidget::GraphWidget(QWidget *parent)
 	: Super(parent)
 {
 	setMouseTracking(true);
+	setContextMenuPolicy(Qt::DefaultContextMenu);
 }
 
 void GraphWidget::setGraph(Graph *g)
@@ -49,13 +51,18 @@ const Graph *GraphWidget::graph() const
 	return m_graph;
 }
 
-void GraphWidget::makeLayout(const QRect &rect)
+void GraphWidget::makeLayout(const QSize &pref_size)
 {
 	shvLogFuncFrame();
-	graph()->makeLayout(rect);
+	graph()->makeLayout(QRect(QPoint(), pref_size));
 	setMinimumSize(graph()->rect().size());
 	setMaximumSize(graph()->rect().size());
 	update();
+}
+
+void GraphWidget::makeLayout()
+{
+	makeLayout(graph()->rect().size());
 }
 
 void GraphWidget::paintEvent(QPaintEvent *event)
@@ -303,6 +310,30 @@ void GraphWidget::wheelEvent(QWheelEvent *event)
 		return;
 	}
 	Super::wheelEvent(event);
+}
+
+void GraphWidget::contextMenuEvent(QContextMenuEvent *event)
+{
+	if(!m_graph)
+		return;
+	QMenu menu(this);
+	const QPoint pos = event->pos();
+	for (int i = 0; i < m_graph->channelCount(); ++i) {
+		const Graph::Channel &ch = m_graph->channelAt(i);
+		if(ch.verticalHeaderRect().contains(pos)) {
+			menu.addAction(tr("Reset Y-range"), [this, ch, i]() {
+				//shvInfo() << "settings";
+				timeline::GraphModel *m = m_graph->model();
+				if(!m)
+					return;
+				timeline::YRange rng = m->yRange(ch.modelIndex());
+				m_graph->setYRange(i, rng);
+				this->update();
+			});
+		}
+	}
+	if(menu.actions().count())
+		menu.exec(mapToGlobal(pos));
 }
 
 } // namespace timeline

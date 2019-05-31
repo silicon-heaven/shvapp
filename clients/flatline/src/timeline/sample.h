@@ -34,6 +34,7 @@ struct Range
 
 	//bool operator==(const T &o) const { return min == o.min && max == o.max; }
 	bool isValid() const { return min <= max; }
+	bool isEmpty() const { return min >= max; }
 	T interval() const {return max - min;}
 };
 

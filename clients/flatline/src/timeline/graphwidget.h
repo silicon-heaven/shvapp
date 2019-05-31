@@ -23,7 +23,8 @@ public:
 	Graph *graph();
 	const Graph *graph() const;
 
-	void makeLayout(const QRect &rect);
+	void makeLayout(const QSize &pref_size);
+	void makeLayout();
 
 	// QWidget interface
 protected:
@@ -34,6 +35,7 @@ protected:
 	void mouseReleaseEvent(QMouseEvent *event) override;
 	void mouseMoveEvent(QMouseEvent *event) override;
 	void wheelEvent(QWheelEvent *event) override;
+	void contextMenuEvent(QContextMenuEvent *event) override;
 protected:
 	bool isMouseAboveMiniMapHandle(const QPoint &mouse_pos, bool left) const;
 	bool isMouseAboveLeftMiniMapHandle(const QPoint &pos) const;

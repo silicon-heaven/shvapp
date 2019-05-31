@@ -12,8 +12,7 @@ GraphView::GraphView(QWidget *parent)
 void GraphView::makeLayout()
 {
 	if(GraphWidget *w = qobject_cast<GraphWidget*>(widget())) {
-		QRect rect = {QPoint(), geometry().size() - QSize(2, 2)};
-		w->makeLayout(rect);
+		w->makeLayout(geometry().size() - QSize(2, 2));
 	}
 }
 

@@ -67,6 +67,15 @@ MainWindow::MainWindow(QWidget *parent) :
 	m_graph->setModel(m_dataModel);
 	m_graphWidget->setGraph(m_graph);
 
+	connect(m_dataModel, &timeline::GraphModel::channelCountChanged, [this]() {
+		m_graph->createChannelsFromModel();
+		ui->graphView->makeLayout();
+	});
+	connect(m_dataModel, &timeline::GraphModel::xRangeChanged, [this](timeline::XRange range) {
+		m_graph->setXRange(range);
+		m_graphWidget->update();
+	});
+
 	//timeline::Graph::GraphStyle style;
 	//style.setColorBackground(QColor(Qt::darkGray).darker(400));
 	//m_graphWidget->setStyle(style);
@@ -98,22 +107,18 @@ void MainWindow::generateRandomSamples()
 	model->appendChannel();
 	model->setChannelData(ch_ix, "TC", timeline::GraphModel::ChannelDataRole::ShvPath);
 	model->setChannelData(ch_ix, model->channelData(ch_ix, timeline::GraphModel::ChannelDataRole::ShvPath), timeline::GraphModel::ChannelDataRole::Name);
-	m_pathToModelIndex[model->channelData(ch_ix, timeline::GraphModel::ChannelDataRole::ShvPath).toString().toStdString()] = ch_ix;
 	ch_ix++;
 	model->appendChannel();
 	model->setChannelData(ch_ix, "ADC", timeline::GraphModel::ChannelDataRole::ShvPath);
 	model->setChannelData(ch_ix, model->channelData(ch_ix, timeline::GraphModel::ChannelDataRole::ShvPath), timeline::GraphModel::ChannelDataRole::Name);
-	m_pathToModelIndex[model->channelData(ch_ix, timeline::GraphModel::ChannelDataRole::ShvPath).toString().toStdString()] = ch_ix;
 	ch_ix++;
 	model->appendChannel();
 	model->setChannelData(ch_ix, "Temp", timeline::GraphModel::ChannelDataRole::ShvPath);
 	model->setChannelData(ch_ix, model->channelData(ch_ix, timeline::GraphModel::ChannelDataRole::ShvPath), timeline::GraphModel::ChannelDataRole::Name);
-	m_pathToModelIndex[model->channelData(ch_ix, timeline::GraphModel::ChannelDataRole::ShvPath).toString().toStdString()] = ch_ix;
 	ch_ix++;
 	model->appendChannel();
 	model->setChannelData(ch_ix, "Něco", timeline::GraphModel::ChannelDataRole::ShvPath);
 	model->setChannelData(ch_ix, model->channelData(ch_ix, timeline::GraphModel::ChannelDataRole::ShvPath), timeline::GraphModel::ChannelDataRole::Name);
-	m_pathToModelIndex[model->channelData(ch_ix, timeline::GraphModel::ChannelDataRole::ShvPath).toString().toStdString()] = ch_ix;
 	ch_ix++;
 	model->beginAppendValues();
 	int cnt = ui->edSamplesCount->value();
@@ -234,22 +239,35 @@ void MainWindow::runLiveSamples(bool on)
 			connect(m_liveSamplesTimer, &QTimer::timeout, [this]() {
 				timeline::Graph *gr = m_graphWidget->graph();
 				QRandomGenerator *rnd = QRandomGenerator::global();
-				int ch_ix = rnd->bounded(gr->channelCount());
-				const timeline::Graph::Channel &ch = gr->channelAt(ch_ix);
-				const auto yrange = ch.yRange();
-				double val = rnd->bounded(yrange.interval()) + yrange.min;
-				int m_ix = ch.modelIndex();
 				timeline::XRange xrange = m_dataModel->xRange();
 				int64_t msec = xrange.isValid()? xrange.max: 0;
 				msec += rnd->bounded(ui->edTimeInterval->value());
 				m_dataModel->beginAppendValues();
-				cp::RpcValue::List entry;
-				entry.push_back(cp::RpcValue::DateTime::fromMSecsSinceEpoch(msec));
-				std::string shv_path = m_dataModel->channelData(m_ix, timeline::GraphModel::ChannelDataRole::ShvPath).toString().toStdString();
-				entry.push_back(shv_path);
-				entry.push_back(val);
-				shvDebug() << shv_path << "channel:" << m_ix << cp::RpcValue(entry).toCpon();
-				addLogEntry(entry);
+				if(ui->edExtraChannelsCount->value() > 0) {
+					int ix = rnd->bounded(ui->edExtraChannelsCount->value());
+					cp::RpcValue::List entry;
+					entry.push_back(cp::RpcValue::DateTime::fromMSecsSinceEpoch(msec));
+					std::string shv_path = QString("Cha_%1").arg(ix+1).toStdString();
+					entry.push_back(shv_path);
+					double val = rnd->bounded((ix+1) * 100) - ((ix+1) * 100/2);
+					entry.push_back(val);
+					shvDebug() << shv_path << "->" << cp::RpcValue(entry).toCpon();
+					addLogEntry(entry);
+				}
+				else {
+					int ch_ix = rnd->bounded(gr->channelCount());
+					const timeline::Graph::Channel &ch = gr->channelAt(ch_ix);
+					const auto yrange = ch.yRange();
+					double val = rnd->bounded(yrange.interval()) + yrange.min;
+					cp::RpcValue::List entry;
+					entry.push_back(cp::RpcValue::DateTime::fromMSecsSinceEpoch(msec));
+					int m_ix = ch.modelIndex();
+					std::string shv_path = m_dataModel->channelData(m_ix, timeline::GraphModel::ChannelDataRole::ShvPath).toString().toStdString();
+					entry.push_back(shv_path);
+					entry.push_back(val);
+					shvDebug() << shv_path << "->" << cp::RpcValue(entry).toCpon();
+					addLogEntry(entry);
+				}
 				m_dataModel->endAppendValues();
 			});
 		}
@@ -268,8 +286,8 @@ void MainWindow::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 		shvDebug() << "SIG:" << ntf.toCpon();
 		if(shv::core::String::endsWith(ntf.shvPath().toString(), "/data") && ntf.method() == cp::Rpc::SIG_VAL_CHANGED) {
 			if(!m_paused) {
+				/*
 				const cp::RpcValue::List& data = ntf.params().toList();
-/*
 				DataSample sample;
 				sample.time = data.value(0).toUInt();
 				sample.values[0] = data.value(1).toInt();
@@ -360,14 +378,10 @@ void MainWindow::openLogFile(const std::string &fn)
 void MainWindow::setLogData(const shv::chainpack::RpcValue &data, LogDataType type)
 {
 	m_pathsDict.clear();
-	m_pathToModelIndex.clear();
 	m_shortTimePrev = 0;
 	m_msecTime = 0;
 
-	if(m_dataModel)
-		delete m_dataModel;
-	m_dataModel = new timeline::GraphModel(this);
-	m_graph->setModel(m_dataModel);
+	m_dataModel->clear();
 	m_dataModel->beginAppendValues();
 	if(type == LogDataType::General) {
 		m_pathsDict = data.metaValue("pathsDict").toIMap();
@@ -513,35 +527,9 @@ void MainWindow::addLogEntry(const shv::chainpack::RpcValue &entry)
 
 void MainWindow::appendModelValue(const std::string &path, int64_t msec, const shv::chainpack::RpcValue &rv)
 {
-	int mix = pathToModelIndex(path);
-	bool channel_exists = mix < m_dataModel->channelCount();
-	while (m_dataModel->channelCount() <= mix) {
-		m_dataModel->appendChannel();
-		//shvInfo() << "model cnt:" << m_dataModel->channelCount();
-	}
-	if(!channel_exists) {
-		m_dataModel->setChannelData(mix, QString::fromStdString(path), timeline::GraphModel::ChannelDataRole::Name);
-		m_dataModel->setChannelData(mix, QString::fromStdString(path), timeline::GraphModel::ChannelDataRole::ShvPath);
-	}
 	QVariant v = shv::iotqt::Utils::rpcValueToQVariant(rv);
 	if(v.isValid())
-		m_dataModel->appendValue(mix, timeline::Sample{msec, v});
-}
-
-int MainWindow::pathToModelIndex(const std::string &path)
-{
-	auto it = m_pathToModelIndex.find(path);
-	if(it == m_pathToModelIndex.end()) {
-		int cnt = (int)m_pathToModelIndex.size();
-		m_pathToModelIndex[path] = cnt;
-		/*
-		shvDebug() << path << "missing -------------- model index cache:";
-		for(auto kv : m_pathToModelIndex)
-			shvDebug() << "\t" << kv.first << "->" << kv.second << "return:" << (m_pathToModelIndex.size() - 1);
-			*/
-		return (int)(m_pathToModelIndex.size() - 1);
-	}
-	return it->second;
+		m_dataModel->appendValueShvPath(path, timeline::Sample{msec, v});
 }
 
 int64_t MainWindow::convertShortTime(unsigned short_time)

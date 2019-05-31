@@ -12,6 +12,7 @@ GraphModel::GraphModel(QObject *parent)
 
 void GraphModel::clear()
 {
+	m_pathToChannelCache.clear();
 	m_samples.clear();
 	m_channelsData.clear();
 }
@@ -179,10 +180,50 @@ void GraphModel::appendValue(int channel, Sample &&sample)
 	dat.push_back(std::move(sample));
 }
 
-void GraphModel::appendChannel()
+void GraphModel::appendValueShvPath(const std::string &shv_path, Sample &&sample)
 {
+	int ch_ix = pathToChannel(shv_path);
+	if(ch_ix < 0) {
+		if(isAutoCreateChannels()) {
+			appendChannel(shv_path, std::string());
+			ch_ix = channelCount() - 1;
+		}
+		else {
+			shvWarning() << "Cannot find channel with shv path:" << shv_path;
+			return;
+		}
+	}
+	appendValue(ch_ix, std::move(sample));
+}
+
+int GraphModel::pathToChannel(const std::string &path) const
+{
+	auto it = m_pathToChannelCache.find(path);
+	if(it == m_pathToChannelCache.end()) {
+		for (int i = 0; i < m_channelsData.count(); ++i) {
+			const ChannelData &chd = m_channelsData.at(i);
+			QString p = chd.value(ChannelDataRole::ShvPath).toString();
+			if(p == QLatin1String(path.data(), (int)path.size())) {
+				m_pathToChannelCache[path] = i;
+				return i;
+			}
+		}
+		return -1;
+	}
+	return it->second;
+}
+
+void GraphModel::appendChannel(const std::string &shv_path, const std::string &name)
+{
+	m_pathToChannelCache.clear();
 	m_channelsData.append(ChannelData());
 	m_samples.append(ChannelSamples());
+	int ix = channelCount() - 1;
+	if(!shv_path.empty())
+		setChannelData(ix, QString::fromStdString(shv_path), ChannelDataRole::ShvPath);
+	if(!name.empty())
+		setChannelData(ix, QString::fromStdString(name), ChannelDataRole::Name);
+	emit channelCountChanged(channelCount());
 }
 
 int GraphModel::guessMetaType(int channel_ix)
