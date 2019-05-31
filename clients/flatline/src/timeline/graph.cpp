@@ -469,6 +469,12 @@ int Graph::u2px(double u) const
 	return static_cast<int>(sz * u);
 }
 
+double Graph::px2u(int px) const
+{
+	double sz = effectiveStyle.unitSize();
+	return (px / sz);
+}
+
 void Graph::makeLayout(const QRect &rect)
 {
 	m_miniMapCache = QPixmap();

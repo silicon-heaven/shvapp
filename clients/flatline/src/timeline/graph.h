@@ -193,6 +193,7 @@ public:
 	void draw(QPainter *painter, const QRect &dirty_rect);
 
 	int u2px(double u) const;
+	double px2u(int px) const;
 
 	static std::function<QPoint (const Sample&)> dataToPointFn(const DataRect &src, const QRect &dest);
 	static std::function<Sample (const QPoint &)> pointToDataFn(const QRect &src, const DataRect &dest);

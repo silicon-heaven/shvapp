@@ -271,7 +271,7 @@ void GraphWidget::wheelEvent(QWheelEvent *event)
 {
 	bool is_zoom_on_slider = isMouseAboveMiniMapSlider(event->pos());
 	bool is_zoom_on_graph = (event->modifiers() == Qt::ControlModifier) && isMouseAboveGraphArea(event->pos());
-	constexpr int ZOOM_STEP = 10;
+	static constexpr int ZOOM_STEP = 10;
 	if(is_zoom_on_slider) {
 		Graph *gr = graph();
 		double deg = event->angleDelta().y();
@@ -308,6 +308,23 @@ void GraphWidget::wheelEvent(QWheelEvent *event)
 		}
 		event->accept();
 		return;
+	}
+	for (int i = 0; i < m_graph->channelCount(); ++i) {
+		Graph::Channel &ch = m_graph->channelAt(i);
+		if(ch.verticalHeaderRect().contains(event->pos())) {
+			static constexpr int STEP = 2;
+			timeline::Graph::ChannelStyle ch_style = ch.style();
+			double deg = event->angleDelta().y();
+			int new_h = static_cast<int>(deg * ch.verticalHeaderRect().height() / 120 / STEP);
+			new_h = ch.verticalHeaderRect().height() + new_h;
+			double new_u = m_graph->px2u(new_h);
+			//shvInfo() << i << ch.verticalHeaderRect().height() << new_h << new_u;
+			ch_style.setHeightMax(new_u);
+			ch_style.setHeightMin(new_u);
+			ch.setStyle(ch_style);
+			makeLayout();
+			return;
+		}
 	}
 	Super::wheelEvent(event);
 }
