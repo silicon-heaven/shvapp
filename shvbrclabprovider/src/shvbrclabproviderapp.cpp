@@ -26,6 +26,7 @@ const std::string AppRootNode::BRCLAB_NODE = ".brclab";
 static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false, cp::Rpc::GRANT_READ},
 	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_READ},
+	{cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_BROWSE},
 };
 
 AppRootNode::AppRootNode(const QString &root_path, AppRootNode::Super *parent):
@@ -103,6 +104,9 @@ shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path,
 			const cp::RpcValue::Map& opts = app->rpcConnection()->connectionOptions().toMap();
 			const cp::RpcValue::Map& dev = opts.value(cp::Rpc::KEY_DEVICE).toMap();
 			return dev.value(cp::Rpc::KEY_DEVICE_ID).toString();
+		}
+		if(method == cp::Rpc::METH_DEVICE_TYPE) {
+			return "BrclabProvider";
 		}
 	}
 
