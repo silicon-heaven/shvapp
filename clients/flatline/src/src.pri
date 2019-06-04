@@ -16,7 +16,6 @@ SOURCES += \
 FORMS += \
     $$PWD/mainwindow.ui\
 
-include ($$PWD/timeline/timeline.pri)
 
 
 

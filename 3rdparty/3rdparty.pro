@@ -7,8 +7,9 @@ SUBDIRS += \
 	libshv/libshvchainpack \
 	libshv/libshvcore \
 	libshv/libshvcoreqt \
-	libshv/libshviotqt \
-	libshv/utils \
+    libshv/libshviotqt \
+    libshv/libshvvisu \
+    libshv/utils \
 	libshv/tests \
 
 }

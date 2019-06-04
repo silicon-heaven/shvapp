@@ -3,17 +3,17 @@
 
 #include "flatlineapp.h"
 #include "appclioptions.h"
-#include "timeline/graphmodel.h"
-#include "timeline/graphwidget.h"
 
 #include <shv/chainpack/chainpackreader.h>
 #include <shv/chainpack/cponreader.h>
 #include <shv/coreqt/log.h>
 #include <shv/iotqt/utils.h>
 #include <shv/chainpack/rpcmessage.h>
-#include <shv/iotqt/rpc/clientconnection.h>
 #include <shv/core/string.h>
 #include <shv/core/stringview.h>
+#include <shv/iotqt/rpc/clientconnection.h>
+#include <shv/visu/timeline/graphmodel.h>
+#include <shv/visu/timeline/graphwidget.h>
 
 #include <QFileDialog>
 #include <QMessageBox>
@@ -24,6 +24,7 @@
 //#include <iostream>
 
 namespace cp = shv::chainpack;
+namespace tl = shv::visu::timeline;
 
 MainWindow::MainWindow(QWidget *parent) :
 	QMainWindow(parent),
@@ -52,10 +53,10 @@ MainWindow::MainWindow(QWidget *parent) :
 		runLiveSamples(ui->btLiveSamples->isChecked());
 	});
 
-	m_dataModel = new timeline::GraphModel(this);
-	connect(m_dataModel, &timeline::GraphModel::xRangeChanged, this, &MainWindow::onGraphXRangeChanged);
+	m_dataModel = new tl::GraphModel(this);
+	connect(m_dataModel, &tl::GraphModel::xRangeChanged, this, &MainWindow::onGraphXRangeChanged);
 	//ui->graphView->viewport()->show();
-	m_graphWidget = new timeline::GraphWidget();
+	m_graphWidget = new tl::GraphWidget();
 
 	ui->graphView->setBackgroundRole(QPalette::Dark);
 	ui->graphView->setWidget(m_graphWidget);
@@ -63,20 +64,20 @@ MainWindow::MainWindow(QWidget *parent) :
 	ui->graphView->widget()->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
 
 	//shvInfo() << qobject_cast<QWidget*>(ui->graphView->widget());
-	m_graph = new timeline::Graph(this);
+	m_graph = new tl::Graph(this);
 	m_graph->setModel(m_dataModel);
 	m_graphWidget->setGraph(m_graph);
 
-	connect(m_dataModel, &timeline::GraphModel::channelCountChanged, [this]() {
+	connect(m_dataModel, &tl::GraphModel::channelCountChanged, [this]() {
 		m_graph->createChannelsFromModel();
 		ui->graphView->makeLayout();
 	});
-	connect(m_dataModel, &timeline::GraphModel::xRangeChanged, [this](timeline::XRange range) {
+	connect(m_dataModel, &tl::GraphModel::xRangeChanged, [this](tl::XRange range) {
 		m_graph->setXRange(range);
 		m_graphWidget->update();
 	});
 
-	//timeline::Graph::GraphStyle style;
+	//tl::Graph::GraphStyle style;
 	//style.setColorBackground(QColor(Qt::darkGray).darker(400));
 	//m_graphWidget->setStyle(style);
 
@@ -100,25 +101,25 @@ MainWindow::~MainWindow()
 
 void MainWindow::generateRandomSamples()
 {
-	timeline::GraphModel *model = m_dataModel;
+	tl::GraphModel *model = m_dataModel;
 
 	model->clear();
 	int ch_ix = 0;
 	model->appendChannel();
-	model->setChannelData(ch_ix, "TC", timeline::GraphModel::ChannelDataRole::ShvPath);
-	model->setChannelData(ch_ix, model->channelData(ch_ix, timeline::GraphModel::ChannelDataRole::ShvPath), timeline::GraphModel::ChannelDataRole::Name);
+	model->setChannelData(ch_ix, "TC", tl::GraphModel::ChannelDataRole::ShvPath);
+	model->setChannelData(ch_ix, model->channelData(ch_ix, tl::GraphModel::ChannelDataRole::ShvPath), tl::GraphModel::ChannelDataRole::Name);
 	ch_ix++;
 	model->appendChannel();
-	model->setChannelData(ch_ix, "ADC", timeline::GraphModel::ChannelDataRole::ShvPath);
-	model->setChannelData(ch_ix, model->channelData(ch_ix, timeline::GraphModel::ChannelDataRole::ShvPath), timeline::GraphModel::ChannelDataRole::Name);
+	model->setChannelData(ch_ix, "ADC", tl::GraphModel::ChannelDataRole::ShvPath);
+	model->setChannelData(ch_ix, model->channelData(ch_ix, tl::GraphModel::ChannelDataRole::ShvPath), tl::GraphModel::ChannelDataRole::Name);
 	ch_ix++;
 	model->appendChannel();
-	model->setChannelData(ch_ix, "Temp", timeline::GraphModel::ChannelDataRole::ShvPath);
-	model->setChannelData(ch_ix, model->channelData(ch_ix, timeline::GraphModel::ChannelDataRole::ShvPath), timeline::GraphModel::ChannelDataRole::Name);
+	model->setChannelData(ch_ix, "Temp", tl::GraphModel::ChannelDataRole::ShvPath);
+	model->setChannelData(ch_ix, model->channelData(ch_ix, tl::GraphModel::ChannelDataRole::ShvPath), tl::GraphModel::ChannelDataRole::Name);
 	ch_ix++;
 	model->appendChannel();
-	model->setChannelData(ch_ix, "Něco", timeline::GraphModel::ChannelDataRole::ShvPath);
-	model->setChannelData(ch_ix, model->channelData(ch_ix, timeline::GraphModel::ChannelDataRole::ShvPath), timeline::GraphModel::ChannelDataRole::Name);
+	model->setChannelData(ch_ix, "Něco", tl::GraphModel::ChannelDataRole::ShvPath);
+	model->setChannelData(ch_ix, model->channelData(ch_ix, tl::GraphModel::ChannelDataRole::ShvPath), tl::GraphModel::ChannelDataRole::Name);
 	ch_ix++;
 	model->beginAppendValues();
 	int cnt = ui->edSamplesCount->value();
@@ -130,7 +131,7 @@ void MainWindow::generateRandomSamples()
 		for (int i = 0; i < cnt; ++i) {
 			int t = rnd->bounded(interval_msec);
 			int v = rnd->bounded(-2048, 2048);
-			model->appendValue(ch_ix, timeline::Sample{time + t, v});
+			model->appendValue(ch_ix, tl::Sample{time + t, v});
 			time += t;
 		}
 		ch_ix++;
@@ -140,7 +141,7 @@ void MainWindow::generateRandomSamples()
 		for (int i = 0; i < cnt; ++i) {
 			int t = rnd->bounded(interval_msec);
 			double v = rnd->generateDouble() * 60 - 30;
-			model->appendValue(ch_ix, timeline::Sample{time + t, v});
+			model->appendValue(ch_ix, tl::Sample{time + t, v});
 			time += t;
 		}
 		ch_ix++;
@@ -149,7 +150,7 @@ void MainWindow::generateRandomSamples()
 	{
 		//int64_t time = 0;
 		for (int i = 0; i < model->count(ch_ix - 1); ++i) {
-			timeline::Sample s = model->sampleAt(ch_ix - 1, i);
+			tl::Sample s = model->sampleAt(ch_ix - 1, i);
 			s.value = s.value.toDouble() > 0? true: false;
 			model->appendValue(ch_ix, std::move(s));
 			//time += t;
@@ -163,50 +164,50 @@ void MainWindow::generateRandomSamples()
 			int t = rnd->bounded(interval_msec);
 			double v = rnd->generateDouble() * 60 - 30;
 			//if((i < 5) || (i >= cnt / 2 && i < cnt / 2 + 20) || (i > cnt -5) )
-				model->appendValue(ch_ix, timeline::Sample{time + t, v});
+				model->appendValue(ch_ix, tl::Sample{time + t, v});
 			time += t;
 		}
 		ch_ix++;
 	}
 	model->endAppendValues();
 
-	timeline::Graph *gr = m_graphWidget->graph();
+	tl::Graph *gr = m_graphWidget->graph();
 	gr->clearChannels();
 	gr->setXRange(model->xRange());
 	int model_ix = 0;
 	{
-		timeline::Graph::Channel &ch = gr->appendChannel();
+		tl::Graph::Channel &ch = gr->appendChannel();
 		ch.setModelIndex(model_ix);
 		gr->setYRange(gr->channelCount() - 1, model->yRange(ch.modelIndex()));
-		timeline::Graph::ChannelStyle ch_style = ch.style();
-		ch_style.setInterpolation(timeline::Graph::ChannelStyle::Interpolation::Stepped);
+		tl::Graph::ChannelStyle ch_style = ch.style();
+		ch_style.setInterpolation(tl::Graph::ChannelStyle::Interpolation::Stepped);
 		ch_style.setColor(Qt::cyan);
 		ch_style.setHeightMax(6);
 		ch.setStyle(ch_style);
 		model_ix++;
 	}
 	{
-		timeline::Graph::Channel &ch = gr->appendChannel();
+		tl::Graph::Channel &ch = gr->appendChannel();
 		ch.setModelIndex(model_ix);
 		gr->setYRange(gr->channelCount() - 1, model->yRange(ch.modelIndex()));
-		timeline::Graph::ChannelStyle ch_style = ch.style();
+		tl::Graph::ChannelStyle ch_style = ch.style();
 		ch_style.setColor("orange");
 		ch_style.setColorLineArea("orange");
 		//ch_style.setColorGrid(QColor());
 		//ch_style.setHeightMax(6);
-		ch_style.setInterpolation(timeline::Graph::ChannelStyle::Interpolation::None);
-		ch_style.setLineAreaStyle(timeline::Graph::ChannelStyle::LineAreaStyle::Filled);
+		ch_style.setInterpolation(tl::Graph::ChannelStyle::Interpolation::None);
+		ch_style.setLineAreaStyle(tl::Graph::ChannelStyle::LineAreaStyle::Filled);
 		ch.setStyle(ch_style);
 		//ix++;
 	}
 	{
-		timeline::Graph::Channel &ch = gr->appendChannel();
+		tl::Graph::Channel &ch = gr->appendChannel();
 		ch.setModelIndex(model_ix);
 		gr->setYRange(gr->channelCount() - 1, model->yRange(ch.modelIndex()));
-		timeline::Graph::ChannelStyle ch_style = ch.style();
+		tl::Graph::ChannelStyle ch_style = ch.style();
 		ch_style.setLineWidth(0.2);
-		ch_style.setInterpolation(timeline::Graph::ChannelStyle::Interpolation::Stepped);
-		ch_style.setLineAreaStyle(timeline::Graph::ChannelStyle::LineAreaStyle::Filled);
+		ch_style.setInterpolation(tl::Graph::ChannelStyle::Interpolation::Stepped);
+		ch_style.setLineAreaStyle(tl::Graph::ChannelStyle::LineAreaStyle::Filled);
 		ch_style.setColor(Qt::magenta);
 		ch_style.setHeightMin(2);
 		ch_style.setHeightMax(2);
@@ -215,15 +216,15 @@ void MainWindow::generateRandomSamples()
 		model_ix++;
 	}
 	{
-		timeline::Graph::Channel &ch = gr->appendChannel();
+		tl::Graph::Channel &ch = gr->appendChannel();
 		ch.setModelIndex(model_ix);
 		gr->setYRange(gr->channelCount() - 1, model->yRange(ch.modelIndex()));
-		timeline::Graph::ChannelStyle ch_style = ch.style();
+		tl::Graph::ChannelStyle ch_style = ch.style();
 		ch_style.setColor("red");
 		//ch_style.setColorLineArea("red");
 		//ch_style.setHeightMax(6);
-		ch_style.setInterpolation(timeline::Graph::ChannelStyle::Interpolation::Line);
-		ch_style.setLineAreaStyle(timeline::Graph::ChannelStyle::LineAreaStyle::Filled);
+		ch_style.setInterpolation(tl::Graph::ChannelStyle::Interpolation::Line);
+		ch_style.setLineAreaStyle(tl::Graph::ChannelStyle::LineAreaStyle::Filled);
 		ch.setStyle(ch_style);
 		model_ix++;
 	}
@@ -237,9 +238,9 @@ void MainWindow::runLiveSamples(bool on)
 		if(!m_liveSamplesTimer) {
 			m_liveSamplesTimer = new QTimer(this);
 			connect(m_liveSamplesTimer, &QTimer::timeout, [this]() {
-				timeline::Graph *gr = m_graphWidget->graph();
+				tl::Graph *gr = m_graphWidget->graph();
 				QRandomGenerator *rnd = QRandomGenerator::global();
-				timeline::XRange xrange = m_dataModel->xRange();
+				tl::XRange xrange = m_dataModel->xRange();
 				int64_t msec = xrange.isValid()? xrange.max: 0;
 				msec += rnd->bounded(ui->edTimeInterval->value());
 				m_dataModel->beginAppendValues();
@@ -256,13 +257,13 @@ void MainWindow::runLiveSamples(bool on)
 				}
 				else {
 					int ch_ix = rnd->bounded(gr->channelCount());
-					const timeline::Graph::Channel &ch = gr->channelAt(ch_ix);
+					const tl::Graph::Channel &ch = gr->channelAt(ch_ix);
 					const auto yrange = ch.yRange();
 					double val = rnd->bounded(yrange.interval()) + yrange.min;
 					cp::RpcValue::List entry;
 					entry.push_back(cp::RpcValue::DateTime::fromMSecsSinceEpoch(msec));
 					int m_ix = ch.modelIndex();
-					std::string shv_path = m_dataModel->channelData(m_ix, timeline::GraphModel::ChannelDataRole::ShvPath).toString().toStdString();
+					std::string shv_path = m_dataModel->channelData(m_ix, tl::GraphModel::ChannelDataRole::ShvPath).toString().toStdString();
 					entry.push_back(shv_path);
 					entry.push_back(val);
 					shvDebug() << shv_path << "->" << cp::RpcValue(entry).toCpon();
@@ -433,7 +434,7 @@ void MainWindow::setLogData(const shv::chainpack::RpcValue &data, LogDataType ty
 					}
 					m_dataModel->appendChannel();
 					QString name = data_type_names[data_type];
-					m_dataModel->setChannelData(m_dataModel->channelCount() - 1, name, timeline::GraphModel::ChannelDataRole::Name);
+					m_dataModel->setChannelData(m_dataModel->channelCount() - 1, name, tl::GraphModel::ChannelDataRole::Name);
 					const cp::RpcValue::Map &serie = serie_data.toMap();
 					const cp::RpcValue::List &value_x = serie.value("x").toList();
 					const cp::RpcValue::List &value_y = serie.value("y").toList();
@@ -442,7 +443,7 @@ void MainWindow::setLogData(const shv::chainpack::RpcValue &data, LogDataType ty
 						break;
 					}
 					for (size_t i = 0; i < value_x.size(); ++i) {
-						timeline::Sample sample;
+						tl::Sample sample;
 						sample.time = value_x[i].toDateTime().msecsSinceEpoch();
 						sample.value = shv::iotqt::Utils::rpcValueToQVariant(value_y[i]);
 						m_dataModel->appendValue(m_dataModel->channelCount() - 1, std::move(sample));
@@ -529,7 +530,7 @@ void MainWindow::appendModelValue(const std::string &path, int64_t msec, const s
 {
 	QVariant v = shv::iotqt::Utils::rpcValueToQVariant(rv);
 	if(v.isValid())
-		m_dataModel->appendValueShvPath(path, timeline::Sample{msec, v});
+		m_dataModel->appendValueShvPath(path, tl::Sample{msec, v});
 }
 
 int64_t MainWindow::convertShortTime(unsigned short_time)
@@ -541,7 +542,7 @@ int64_t MainWindow::convertShortTime(unsigned short_time)
 	return m_msecTime + short_time;
 }
 
-void MainWindow::onGraphXRangeChanged(const timeline::XRange &range)
+void MainWindow::onGraphXRangeChanged(const tl::XRange &range)
 {
 	shvDebug() << "from:" << range.min << "to:" << range.max;
 }

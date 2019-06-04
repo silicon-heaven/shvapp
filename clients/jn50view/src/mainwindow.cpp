@@ -6,6 +6,7 @@
 #include "dlgapplog.h"
 #include "thresholdsdialog.h"
 #include "settings.h"
+#include "logview/dlglogview.h"
 
 #include <shv/coreqt/log.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
@@ -97,6 +98,12 @@ MainWindow::MainWindow(QWidget *parent)
 				settings.setPassword(pwd);
 			}
 		}
+	});
+	connect(ui->actShowLog, &QAction::triggered, [this]() {
+		DlgLogView dlg(this);
+		Jn50ViewApp *app = Jn50ViewApp::instance();
+		dlg.setShvPath(QString::fromStdString(app->cliOptions()->converterShvPath()));
+		dlg.exec();
 	});
 	connect(ui->actHelpAbout, &QAction::triggered, [this]() {
 		QMessageBox::about(this

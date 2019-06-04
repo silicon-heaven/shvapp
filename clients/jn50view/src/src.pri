@@ -33,6 +33,7 @@ FORMS += \
 
 
 include ($$PWD/svgscene/svgscene.pri)
+include ($$PWD/logview/logview.pri)
 
 
 

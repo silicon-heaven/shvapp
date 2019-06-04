@@ -25,6 +25,7 @@ LIBS += \
     -lshvcore \
     -lshvcoreqt \
     -lshviotqt \
+    -lshvvisu \
 
 unix {
         LIBS += \
@@ -41,8 +42,7 @@ INCLUDEPATH += \
         ../../3rdparty/libshv/libshvcore/include \
         ../../3rdparty/libshv/libshvcoreqt/include \
         ../../3rdparty/libshv/libshviotqt/include \
-        ../../libshviotqt/include \
-
+        ../../3rdparty/libshv/libshvvisu/include \
 
 RESOURCES += \
         jn50view.qrc \

@@ -232,6 +232,9 @@
     <addaction name="menuNastaven"/>
     <addaction name="separator"/>
     <addaction name="actChangePassword"/>
+    <addaction name="separator"/>
+    <addaction name="separator"/>
+    <addaction name="actShowLog"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -288,6 +291,19 @@
   <action name="actChangePassword">
    <property name="text">
     <string>Změnit heslo</string>
+   </property>
+  </action>
+  <action name="actShowLog">
+   <property name="text">
+    <string>Zobrazit log</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+L</string>
+   </property>
+  </action>
+  <action name="actionneco">
+   <property name="text">
+    <string>neco</string>
    </property>
   </action>
  </widget>

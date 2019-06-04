@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1258</width>
-    <height>702</height>
+    <width>1287</width>
+    <height>734</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -139,7 +139,7 @@
      </widget>
     </item>
     <item>
-     <widget class="timeline::GraphView" name="graphView">
+     <widget class="shv::visu::timeline::GraphView" name="graphView">
       <property name="widgetResizable">
        <bool>false</bool>
       </property>
@@ -162,7 +162,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1258</width>
+     <width>1287</width>
      <height>32</height>
     </rect>
    </property>
@@ -233,9 +233,9 @@
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
   <customwidget>
-   <class>timeline::GraphView</class>
+   <class>shv::visu::timeline::GraphView</class>
    <extends>QScrollArea</extends>
-   <header>src/timeline/graphview.h</header>
+   <header location="global">shv/visu/timeline/graphview.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

@@ -1,14 +1,13 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include "timeline/sample.h"
-
 #include <shv/chainpack/rpcvalue.h>
+#include <shv/visu/timeline/sample.h>
 
 #include <QMainWindow>
 
 namespace shv { namespace chainpack { class RpcMessage; }}
-namespace timeline { class GraphWidget; class GraphModel; class Graph;}
+namespace shv { namespace visu { namespace timeline { class GraphWidget; class GraphModel; class Graph;}}}
 
 namespace Ui {
 class MainWindow;
@@ -43,16 +42,16 @@ private:
 	//int pathToModelIndex(const std::string &path);
 	int64_t convertShortTime(unsigned short_time);
 private:
-	void onGraphXRangeChanged(const timeline::XRange &range);
+	void onGraphXRangeChanged(const shv::visu::timeline::XRange &range);
 
 	void generateRandomSamples();
 	void runLiveSamples(bool on);
 private:
 	Ui::MainWindow *ui;
 
-	timeline::Graph *m_graph = nullptr;
-	timeline::GraphWidget *m_graphWidget = nullptr;
-	timeline::GraphModel *m_dataModel = nullptr;
+	shv::visu::timeline::Graph *m_graph = nullptr;
+	shv::visu::timeline::GraphWidget *m_graphWidget = nullptr;
+	shv::visu::timeline::GraphModel *m_dataModel = nullptr;
 	bool m_paused = false;
 
 	shv::chainpack::RpcValue::IMap m_pathsDict;
