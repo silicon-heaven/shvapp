@@ -13,6 +13,8 @@ SUBDIRS += \
 
 }
 
-!no-libshv-gui {
+qtHaveModule(gui) {
+SUBDIRS += \
     libshv/libshvvisu \
+
 }
