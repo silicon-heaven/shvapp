@@ -8,9 +8,11 @@ SUBDIRS += \
 	libshv/libshvcore \
 	libshv/libshvcoreqt \
     libshv/libshviotqt \
-    libshv/libshvvisu \
     libshv/utils \
 	libshv/tests \
 
 }
 
+!no-libshv-gui {
+    libshv/libshvvisu \
+}
