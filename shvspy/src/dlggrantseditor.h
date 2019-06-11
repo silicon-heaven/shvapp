@@ -22,6 +22,7 @@ public:
 	void init(const std::string &path);
 
 private:
+	std::string aclEtcGrantsNodePath();
 	QString selectedGrant();
 	void listGrants();
 
@@ -31,7 +32,7 @@ private:
 	void onTableGrantDoubleClicked(QModelIndex ix);
 
 	Ui::DlgGrantsEditor *ui;
-	std::string m_aclEtcGrantsNodePath;
+	std::string m_aclEtcNodePath;
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
 };
 

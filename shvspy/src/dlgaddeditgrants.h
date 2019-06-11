@@ -19,7 +19,7 @@ class DlgAddEditGrants : public QDialog
 public:
 	enum class DialogType {Add = 0, Edit, Count};
 
-	explicit DlgAddEditGrants(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_grants_node_path, DlgAddEditGrants::DialogType dt = DialogType::Add);
+	explicit DlgAddEditGrants(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, DlgAddEditGrants::DialogType dt = DialogType::Add);
 	~DlgAddEditGrants() override;
 
 	DialogType dialogType();
@@ -37,13 +37,18 @@ private:
 	void callEditGrant();
 	std::string grantNameShvPath();
 
+	std::string aclEtcGrantsNodePath();
+	std::string aclEtcPathsNodePath();
+
+	void onEditPathsClicked();
+
 	shv::chainpack::RpcValue::Map createParamsMap();
 	shv::chainpack::RpcValue::List grants();
 	void setGrants(const shv::chainpack::RpcValue::List &grants);
 	Ui::DlgAddEditGrants *ui;
 	DialogType m_dialogType;
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
-	const std::string &m_aclEtcGrantsNodePath;
+	std::string m_aclEtcNodePath;
 };
 
 #endif // DLGADDEDITGRANTS_H

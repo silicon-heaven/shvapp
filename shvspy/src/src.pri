@@ -19,7 +19,8 @@ HEADERS += \
     $$PWD/dlguserseditor.h \
     $$PWD/dlgaddedituser.h \
     $$PWD/dlggrantseditor.h \
-    $$PWD/dlgaddeditgrants.h
+    $$PWD/dlgaddeditgrants.h \
+    $$PWD/dlgpathseditor.h
 
 SOURCES += \
 	$$PWD/main.cpp\
@@ -43,7 +44,8 @@ SOURCES += \
     $$PWD/dlguserseditor.cpp \
     $$PWD/dlgaddedituser.cpp \
     $$PWD/dlggrantseditor.cpp \
-    $$PWD/dlgaddeditgrants.cpp
+    $$PWD/dlgaddeditgrants.cpp \
+    $$PWD/dlgpathseditor.cpp
 
 FORMS += \
 	$$PWD/mainwindow.ui \
@@ -57,6 +59,7 @@ FORMS += \
     $$PWD/dlgaddedituser.ui \
     $$PWD/dlguserseditor.ui \
     $$PWD/dlggrantseditor.ui \
-    $$PWD/dlgaddeditgrants.ui
+    $$PWD/dlgaddeditgrants.ui \
+    $$PWD/dlgpathseditor.ui
 
 include ( $$PWD/log/log.pri )

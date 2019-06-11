@@ -3,13 +3,15 @@
 
 #include "shv/core/log.h"
 
+#include "dlgpathseditor.h"
+
 static const std::string WEIGHT = "weight";
 static const std::string GRANTS = "grants";
 
-DlgAddEditGrants::DlgAddEditGrants(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_grants_node_path, DlgAddEditGrants::DialogType dt) :
+DlgAddEditGrants::DlgAddEditGrants(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, DlgAddEditGrants::DialogType dt) :
 	QDialog(parent),
 	ui(new Ui::DlgAddEditGrants),
-	m_aclEtcGrantsNodePath(acl_etc_grants_node_path)
+	m_aclEtcNodePath(acl_etc_node_path)
 {
 	ui->setupUi(this);
 	m_dialogType = dt;
@@ -24,6 +26,8 @@ DlgAddEditGrants::DlgAddEditGrants(QWidget *parent, shv::iotqt::rpc::ClientConne
 	if(m_rpcConnection == nullptr){
 		ui->lblStatus->setText(tr("Connection to shv does not exist."));
 	}
+
+	connect(ui->pbEditPaths, &QPushButton::clicked, this, &DlgAddEditGrants::onEditPathsClicked);
 }
 
 DlgAddEditGrants::~DlgAddEditGrants()
@@ -80,6 +84,16 @@ QString DlgAddEditGrants::grantName()
 	return ui->leGrantName->text();
 }
 
+std::string DlgAddEditGrants::aclEtcGrantsNodePath()
+{
+	return m_aclEtcNodePath + "grants";
+}
+
+std::string DlgAddEditGrants::aclEtcPathsNodePath()
+{
+	return m_aclEtcNodePath + "paths";
+}
+
 void DlgAddEditGrants::accept()
 {
 	if (dialogType() == DialogType::Add){
@@ -120,8 +134,8 @@ void DlgAddEditGrants::callAddGrant()
 		}
 	});
 
-	ui->lblStatus->setText(QString::fromStdString(m_aclEtcGrantsNodePath));
-	m_rpcConnection->callShvMethod(rqid, m_aclEtcGrantsNodePath, "addGrant", params);
+	ui->lblStatus->setText(QString::fromStdString(m_aclEtcNodePath));
+	m_rpcConnection->callShvMethod(rqid, m_aclEtcNodePath, "addGrant", params);
 }
 
 void DlgAddEditGrants::callGetGrants()
@@ -204,13 +218,22 @@ void DlgAddEditGrants::callEditGrant()
 		}
 	});
 
-	ui->lblStatus->setText(QString::fromStdString(m_aclEtcGrantsNodePath));
-	m_rpcConnection->callShvMethod(rqid, m_aclEtcGrantsNodePath, "editGrant", params);
+	ui->lblStatus->setText(QString::fromStdString(aclEtcGrantsNodePath()));
+	m_rpcConnection->callShvMethod(rqid, aclEtcGrantsNodePath(), "editGrant", params);
 }
 
 std::string DlgAddEditGrants::grantNameShvPath()
 {
-	return m_aclEtcGrantsNodePath + '/' + grantName().toStdString() + "/";
+	return aclEtcGrantsNodePath() + '/' + grantName().toStdString() + "/";
+}
+
+void DlgAddEditGrants::onEditPathsClicked()
+{
+	DlgPathsEditor dlg(this, m_rpcConnection, m_aclEtcNodePath);
+	dlg.init(grantName());
+
+	if (dlg.exec() == QDialog::Accepted){
+	}
 }
 
 shv::chainpack::RpcValue::Map DlgAddEditGrants::createParamsMap()

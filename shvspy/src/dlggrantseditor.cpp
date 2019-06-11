@@ -37,8 +37,13 @@ DlgGrantsEditor::~DlgGrantsEditor()
 
 void DlgGrantsEditor::init(const std::string &path)
 {
-	m_aclEtcGrantsNodePath = path + "/etc/acl/grants";
+	m_aclEtcNodePath = path + "/etc/acl/";
 	listGrants();
+}
+
+std::string DlgGrantsEditor::aclEtcGrantsNodePath()
+{
+	return m_aclEtcNodePath + "grants";
 }
 
 QString DlgGrantsEditor::selectedGrant()
@@ -48,7 +53,7 @@ QString DlgGrantsEditor::selectedGrant()
 
 void DlgGrantsEditor::onAddGrantClicked()
 {
-	DlgAddEditGrants dlg(this, m_rpcConnection, m_aclEtcGrantsNodePath, DlgAddEditGrants::DialogType::Add);
+	DlgAddEditGrants dlg(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditGrants::DialogType::Add);
 	if (dlg.exec() == QDialog::Accepted){
 		listGrants();
 	}
@@ -83,7 +88,7 @@ void DlgGrantsEditor::onDelGrantClicked()
 			}
 		});
 
-		m_rpcConnection->callShvMethod(rqid, m_aclEtcGrantsNodePath, "delGrant", shv::chainpack::RpcValue::String(grant.toStdString()));
+		m_rpcConnection->callShvMethod(rqid, aclEtcGrantsNodePath(), "delGrant", shv::chainpack::RpcValue::String(grant.toStdString()));
 	}
 }
 
@@ -98,7 +103,7 @@ void DlgGrantsEditor::onEditGrantClicked()
 
 	ui->lblStatus->setText("");
 
-	DlgAddEditGrants dlg(this, m_rpcConnection, m_aclEtcGrantsNodePath, DlgAddEditGrants::DialogType::Edit);
+	DlgAddEditGrants dlg(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditGrants::DialogType::Edit);
 	dlg.init(grant);
 
 	if (dlg.exec() == QDialog::Accepted){
@@ -146,5 +151,5 @@ void DlgGrantsEditor::listGrants()
 		}
 	});
 
-	m_rpcConnection->callShvMethod(rqid, m_aclEtcGrantsNodePath, shv::chainpack::Rpc::METH_LS);
+	m_rpcConnection->callShvMethod(rqid, aclEtcGrantsNodePath(), shv::chainpack::Rpc::METH_LS);
 }
