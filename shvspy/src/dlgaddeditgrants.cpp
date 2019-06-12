@@ -3,8 +3,6 @@
 
 #include "shv/core/log.h"
 
-#include "dlgpathseditor.h"
-
 static const std::string WEIGHT = "weight";
 static const std::string GRANTS = "grants";
 
@@ -21,13 +19,24 @@ DlgAddEditGrants::DlgAddEditGrants(QWidget *parent, shv::iotqt::rpc::ClientConne
 	ui->groupBox->setTitle(edit_mode ? tr("Edit grant") : tr("New grant"));
 	setWindowTitle(edit_mode ? tr("Edit grant dialog") : tr("New grant dialog"));
 
+	static constexpr double ROW_HEIGHT_RATIO = 1.3;
+	static QStringList INFO_HEADER_NAMES {{ tr("Path"), tr("Grant"), tr("Weight")}};
+
+	ui->twPaths->setColumnCount(INFO_HEADER_NAMES.count());
+	ui->twPaths->setHorizontalHeaderLabels(INFO_HEADER_NAMES);
+	ui->twPaths->horizontalHeader()->setStretchLastSection(true);
+	ui->twPaths->horizontalHeader()->resizeSection(0, static_cast<int>(width() * 0.7));
+	ui->twPaths->verticalHeader()->setDefaultSectionSize(static_cast<int>(ui->twPaths->fontMetrics().height() * ROW_HEIGHT_RATIO));
+	ui->twPaths->verticalHeader()->setVisible(false);
+
+	connect(ui->tbAddRow, &QToolButton::clicked, this, &DlgAddEditGrants::onAddRowClicked);
+	connect(ui->tbDeleteRow, &QToolButton::clicked, this, &DlgAddEditGrants::onDeleteRowClicked);
+
 	m_rpcConnection = rpc_connection;
 
 	if(m_rpcConnection == nullptr){
 		ui->lblStatus->setText(tr("Connection to shv does not exist."));
 	}
-
-	connect(ui->pbEditPaths, &QPushButton::clicked, this, &DlgAddEditGrants::onEditPathsClicked);
 }
 
 DlgAddEditGrants::~DlgAddEditGrants()
@@ -42,41 +51,9 @@ DlgAddEditGrants::DialogType DlgAddEditGrants::dialogType()
 
 void DlgAddEditGrants::init(const QString &grant_name)
 {
-	if(m_rpcConnection == nullptr){
-		return;
-	}
-
 	ui->leGrantName->setText(grant_name);
-
-	int rqid = m_rpcConnection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
-
-	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
-		if (response.isValid()){
-			if (response.isError()) {
-				ui->lblStatus->setText(tr("Failed to call method ls.") + QString::fromStdString(response.error().toString()));
-			}
-			else{
-				if (response.result().isList()){
-					shv::chainpack::RpcValue::List nodes = response.result().toList();
-
-					for (size_t i = 0; i < nodes.size(); i++){
-						if (nodes.at(i).toStdString() == GRANTS){
-							callGetGrants();
-						}
-						if (nodes.at(i).toStdString() == WEIGHT){
-							callGetWeight();
-						}
-					}
-				}
-			}
-		}
-		else{
-			ui->lblStatus->setText(tr("Request timeout expired"));
-		}
-	});
-
-	m_rpcConnection->callShvMethod(rqid, grantNameShvPath(), "ls");
+	callGetGrantInfo();
+	callGetPaths();
 }
 
 QString DlgAddEditGrants::grantName()
@@ -100,6 +77,7 @@ void DlgAddEditGrants::accept()
 		if ((!grantName().isEmpty())){
 			ui->lblStatus->setText(tr("Adding new grant ..."));
 			callAddGrant();
+			callSetPaths();
 		}
 		else {
 			ui->lblStatus->setText(tr("Grant name or grants is empty."));
@@ -107,6 +85,7 @@ void DlgAddEditGrants::accept()
 	}
 	else if (dialogType() == DialogType::Edit){
 		callEditGrant();
+		callSetPaths();
 	}
 }
 
@@ -222,18 +201,148 @@ void DlgAddEditGrants::callEditGrant()
 	m_rpcConnection->callShvMethod(rqid, aclEtcGrantsNodePath(), "editGrant", params);
 }
 
+void DlgAddEditGrants::callGetGrantInfo()
+{
+	if(m_rpcConnection == nullptr){
+		return;
+	}
+
+	int rqid = m_rpcConnection->nextRequestId();
+	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
+
+	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
+		if (response.isValid()){
+			if (response.isError()) {
+				ui->lblStatus->setText(tr("Failed to call method ls.") + QString::fromStdString(response.error().toString()));
+			}
+			else{
+				if (response.result().isList()){
+					shv::chainpack::RpcValue::List nodes = response.result().toList();
+
+					for (size_t i = 0; i < nodes.size(); i++){
+						if (nodes.at(i).toStdString() == GRANTS){
+							callGetGrants();
+						}
+						if (nodes.at(i).toStdString() == WEIGHT){
+							callGetWeight();
+						}
+					}
+				}
+			}
+		}
+		else{
+			ui->lblStatus->setText(tr("Request timeout expired"));
+		}
+	});
+
+	m_rpcConnection->callShvMethod(rqid, grantNameShvPath(), "ls");
+}
+
 std::string DlgAddEditGrants::grantNameShvPath()
 {
 	return aclEtcGrantsNodePath() + '/' + grantName().toStdString() + "/";
 }
 
-void DlgAddEditGrants::onEditPathsClicked()
+void DlgAddEditGrants::callGetPaths()
 {
-	DlgPathsEditor dlg(this, m_rpcConnection, m_aclEtcNodePath);
-	dlg.init(grantName());
+	if (m_rpcConnection == nullptr)
+		return;
 
-	if (dlg.exec() == QDialog::Accepted){
+	ui->lblStatus->setText(tr("Getting paths ..."));
+
+	int rqid = m_rpcConnection->nextRequestId();
+	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
+
+	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
+		if(response.isValid()){
+			if(response.isError()) {
+				ui->lblStatus->setText(QString::fromStdString(response.error().toString()));
+			}
+			else{
+				(response.result().isMap())? setPaths(response.result().toMap()) : setPaths(shv::chainpack::RpcValue::Map());
+			}
+		}
+		else{
+			ui->lblStatus->setText(tr("Request timeout expired"));
+		}
+	});
+
+	m_rpcConnection->callShvMethod(rqid, aclEtcPathsNodePath(), "getPaths", shv::chainpack::RpcValue(grantName().toStdString()));
+}
+
+void DlgAddEditGrants::callSetPaths()
+{
+	if (m_rpcConnection == nullptr)
+		return;
+
+	ui->lblStatus->setText(tr("Updating paths ..."));
+
+	int rqid = m_rpcConnection->nextRequestId();
+	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
+
+	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
+		if(response.isValid()){
+			if(response.isError()) {
+				ui->lblStatus->setText(QString::fromStdString(response.error().toString()));
+			}
+			else{
+
+			}
+		}
+		else{
+			ui->lblStatus->setText(tr("Request timeout expired"));
+		}
+	});
+
+	m_rpcConnection->callShvMethod(rqid, aclEtcPathsNodePath(), "setPaths", paths());
+}
+
+void DlgAddEditGrants::setPaths(const shv::chainpack::RpcValue::Map &paths)
+{
+	ui->twPaths->clearContents();
+	ui->twPaths->setRowCount(0);
+
+	std::vector<std::string> keys = paths.keys();
+
+	for (size_t i = 0; i < keys.size(); i++){
+		int row = ui->twPaths->rowCount();
+		const shv::chainpack::RpcValue::Map &path = paths.value(keys[i]).toMap();
+		ui->twPaths->insertRow(row);
+		ui->twPaths->setItem(row, ColPath, new QTableWidgetItem(QString::fromStdString((keys[i]))));
+		ui->twPaths->setItem(row, ColGrant, new QTableWidgetItem(QString::fromStdString((path.value("grant").toStdString()))));
+		ui->twPaths->setItem(row, ColWeight, new QTableWidgetItem(path.hasKey("weight") ? QString::number(path.value("weight").toInt()) : ""));
 	}
+
+	ui->lblStatus->setText("");
+}
+
+shv::chainpack::RpcValue::Map DlgAddEditGrants::paths()
+{
+	shv::chainpack::RpcValue::Map paths;
+
+	for(int row = 0; row < ui->twPaths->rowCount(); row++){
+		std::string path = ui->twPaths->item(row, ColPath)->data(Qt::DisplayRole).toString().toStdString();
+		std::string grant = ui->twPaths->item(row, ColGrant)->data(Qt::DisplayRole).toString().toStdString();
+		QString weight_str = ui->twPaths->item(row, ColWeight)->data(Qt::DisplayRole).toString();
+
+		if (!path.empty() && !grant.empty()){
+			shv::chainpack::RpcValue::Map path_info;
+			path_info["grant"] = shv::chainpack::RpcValue(grant);
+
+			if (!weight_str.isEmpty()){
+				bool ok;
+				int weight = weight_str.toInt(&ok);
+
+				if(ok){
+					path_info["weight"] = weight;
+				}
+			}
+
+			paths[path] = path_info;
+		}
+	}
+
+	return shv::chainpack::RpcValue::Map({{grantName().toStdString(), paths}});
 }
 
 shv::chainpack::RpcValue::Map DlgAddEditGrants::createParamsMap()
@@ -276,4 +385,22 @@ void DlgAddEditGrants::setGrants(const shv::chainpack::RpcValue::List &grants)
 	}
 
 	ui->leGrants->setText(g);
+}
+
+void DlgAddEditGrants::onAddRowClicked()
+{
+	int ix = ui->twPaths->rowCount();
+	ui->twPaths->insertRow(ix);
+	ui->twPaths->setItem(ix, ColPath, new QTableWidgetItem(""));
+	ui->twPaths->setItem(ix, ColGrant, new QTableWidgetItem(""));
+	ui->twPaths->setItem(ix, ColWeight, new QTableWidgetItem(""));
+}
+
+void DlgAddEditGrants::onDeleteRowClicked()
+{
+	int current_row = ui->twPaths->currentRow();
+
+	if (current_row >= 0){
+		ui->twPaths->removeRow(current_row);
+	}
 }

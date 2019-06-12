@@ -18,6 +18,7 @@ class DlgAddEditGrants : public QDialog
 
 public:
 	enum class DialogType {Add = 0, Edit, Count};
+	enum Columns {ColPath, ColGrant, ColWeight};
 
 	explicit DlgAddEditGrants(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, DlgAddEditGrants::DialogType dt = DialogType::Add);
 	~DlgAddEditGrants() override;
@@ -35,16 +36,25 @@ private:
 	void callSetWeight();
 	void callGetWeight();
 	void callEditGrant();
+	void callGetGrantInfo();
 	std::string grantNameShvPath();
+
+	void callSetPaths();
+	void callGetPaths();
+
+	void setPaths(const shv::chainpack::RpcValue::Map &paths);
+	shv::chainpack::RpcValue::Map paths();
 
 	std::string aclEtcGrantsNodePath();
 	std::string aclEtcPathsNodePath();
 
-	void onEditPathsClicked();
-
 	shv::chainpack::RpcValue::Map createParamsMap();
 	shv::chainpack::RpcValue::List grants();
 	void setGrants(const shv::chainpack::RpcValue::List &grants);
+
+	void onAddRowClicked();
+	void onDeleteRowClicked();
+
 	Ui::DlgAddEditGrants *ui;
 	DialogType m_dialogType;
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;

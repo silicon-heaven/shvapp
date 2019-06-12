@@ -32,10 +32,9 @@ static const char M_ADD_GRANT[] = "addGrant";
 static const char M_EDIT_GRANT[] = "editGrant";
 static const char M_DEL_GRANT[] = "delGrant";
 
-static const char M_ADD_PATH[] = "addPath";
-static const char M_EDIT_PATH[] = "editPath";
-static const char M_DEL_PATH[] = "delPath";
-static const char M_GET_PATH[] = "getPath";
+static const char M_SET_PATHS[] = "setPaths";
+static const char M_DEL_PATHS[] = "delPaths";
+static const char M_GET_PATHS[] = "getPaths";
 
 static std::vector<cp::MetaMethod> meta_methods_acl_users {
 	{M_ADD_USER, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_CONFIG},
@@ -49,10 +48,9 @@ static std::vector<cp::MetaMethod> meta_methods_acl_grants {
 };
 
 static std::vector<cp::MetaMethod> meta_methods_acl_paths {
-	{M_ADD_PATH, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_CONFIG},
-	{M_EDIT_PATH, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_CONFIG},
-	{M_DEL_PATH, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_CONFIG},
-	{M_GET_PATH, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_CONFIG}
+	{M_SET_PATHS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_CONFIG},
+	{M_DEL_PATHS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_CONFIG},
+	{M_GET_PATHS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_CONFIG}
 };
 
 EtcAclNode::EtcAclNode(shv::iotqt::node::ShvNode *parent)
@@ -208,6 +206,7 @@ bool BrokerGrantsConfigFileNode::editGrant(const shv::chainpack::RpcValue &param
 			SHV_EXCEPTION("Invalid parameters format. Param grants must be a RpcValue::List.");
 		}
 	}
+
 	if (params_map.hasKey(WEIGHT)){
 		const cp::RpcValue weight = params_map.value(WEIGHT);
 		if (weight.isInt()){
@@ -366,16 +365,13 @@ const shv::chainpack::MetaMethod *BrokerPathsConfigFileNode::metaMethod(const sh
 shv::chainpack::RpcValue BrokerPathsConfigFileNode::callMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
 {
 	if(shv_path.empty()) {
-		if(method == M_ADD_PATH) {
-			return addPath(params);
+		if(method == M_SET_PATHS) {
+			return setPaths(params);
 		}
-		else if(method == M_EDIT_PATH) {
-			return editPath(params);
-		}
-		else if(method == M_DEL_PATH) {
+		else if(method == M_DEL_PATHS) {
 			return delPath(params);
 		}
-		else if(method == M_GET_PATH) {
+		else if(method == M_GET_PATHS) {
 			return getPath(params);
 		}
 	}
@@ -383,85 +379,18 @@ shv::chainpack::RpcValue BrokerPathsConfigFileNode::callMethod(const shv::iotqt:
 	return Super::callMethod(shv_path, method, params);
 }
 
-bool BrokerPathsConfigFileNode::addPath(const shv::chainpack::RpcValue &params)
+bool BrokerPathsConfigFileNode::setPaths(const shv::chainpack::RpcValue &params)
 {
-	if (!params.isMap() || !params.toMap().hasKey(PATH_NAME)){
-		SHV_EXCEPTION("Invalid parameters format. Params must be a RpcValue::Map and it must contains key: pathName.");
+	if ((!params.isMap()) && (!params.toMap().empty())){
+		SHV_EXCEPTION("Invalid parameters format. Params must be a non empty RpcValue::Map");
 	}
 
-	cp::RpcValue::Map map = params.toMap();
-	std::string path_name = map.value(PATH_NAME).toStdString();
+	cp::RpcValue::Map data = params.toMap();
 
-	cp::RpcValue::Map paths_config = values().toMap();
+	std::string grant_name = (!data.empty()) ?  data.keys().at(0) : "";
+	shvInfo() << "path name" <<grant_name;
 
-	if (paths_config.hasKey(path_name)){
-		SHV_EXCEPTION("Path " + path_name+ " already exists");
-	}
-
-	cp::RpcValue::Map new_path;
-
-	if (map.hasKey(PATHS)){/*
-		const cp::RpcValue paths = map.value(PATHS);
-		if (paths.isList()){
-			new_path[PATHS] = paths;
-		}
-		else{
-			SHV_EXCEPTION("Invalid parameters format. Param paths must be a RpcValue::List.");
-		}
-	}
-	if (map.hasKey(WEIGHT)){
-		const cp::RpcValue weight = map.value(WEIGHT);
-		if (weight.isInt()){
-			new_path[WEIGHT] = weight;
-		}
-		else{
-			SHV_EXCEPTION("Invalid parameters format. Param weight must be a RpcValue::Int.");
-		}*/
-	}
-
-	m_values.set(path_name, new_path);
-	commitChanges();
-
-	return true;
-}
-
-bool BrokerPathsConfigFileNode::editPath(const shv::chainpack::RpcValue &params)
-{
-	if (!params.isMap() || !params.toMap().hasKey(PATH_NAME)){
-		SHV_EXCEPTION("Invalid parameters format. Params must be a RpcValue::Map and it must contains key: pathName.");
-	}
-
-	cp::RpcValue::Map params_map = params.toMap();
-	std::string path_name = params_map.value(PATH_NAME).toStdString();
-
-	cp::RpcValue::Map paths_config = values().toMap();
-
-	if (!paths_config.hasKey(path_name)){
-		SHV_EXCEPTION("Path " + path_name + " does not exist.");
-	}
-
-	cp::RpcValue::Map new_path;
-
-	if (params_map.hasKey(PATHS)){
-		const cp::RpcValue paths = params_map.value(PATHS);
-		if (paths.isList()){
-			new_path[PATHS] = paths;
-		}
-		else{
-			SHV_EXCEPTION("Invalid parameters format. Param paths must be a RpcValue::Map.");
-		}
-	}
-	if (params_map.hasKey(WEIGHT)){
-		const cp::RpcValue weight = params_map.value(WEIGHT);
-		if (weight.isInt()){
-			new_path[WEIGHT] = weight;
-		}
-		else{
-			SHV_EXCEPTION("Invalid parameters format. Param weight must be a RpcValue::Int.");
-		}
-	}
-
-	m_values.set(path_name, new_path);
+	m_values.set(grant_name, data.value(grant_name));
 	commitChanges();
 
 	return true;
