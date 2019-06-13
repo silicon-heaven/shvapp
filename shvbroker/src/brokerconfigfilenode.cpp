@@ -377,7 +377,7 @@ shv::chainpack::RpcValue BrokerPathsConfigFileNode::callMethod(const shv::iotqt:
 
 bool BrokerPathsConfigFileNode::setGrantPaths(const shv::chainpack::RpcValue &params)
 {
-	if ((!params.isMap()) && (!params.toMap().empty())){
+	if (!params.isMap() || params.toMap().empty()){
 		SHV_EXCEPTION("Invalid parameters format. Params must be a non empty RpcValue::Map");
 	}
 
@@ -398,11 +398,11 @@ bool BrokerPathsConfigFileNode::delGrantPaths(const shv::chainpack::RpcValue &pa
 	std::string grant_name = params.toString();
 	const cp::RpcValue::Map &paths_config = values().toMap();
 
-	if (!paths_config.hasKey( grant_name)){
+	if (!paths_config.hasKey(grant_name)){
 		SHV_EXCEPTION("Grant " +  grant_name + " does not exist in paths.");
 	}
 
-	m_values.set( grant_name, cp::RpcValue());
+	m_values.set(grant_name, cp::RpcValue());
 	commitChanges();
 
 	return true;

@@ -160,7 +160,7 @@ void DlgGrantsEditor::listGrants()
 	m_rpcConnection->callShvMethod(rqid, aclEtcGrantsNodePath(), shv::chainpack::Rpc::METH_LS);
 }
 
-void DlgGrantsEditor::callDeleteGrantPaths(const std::string &gran_name)
+void DlgGrantsEditor::callDeleteGrantPaths(const std::string &grant_name)
 {
 	if (m_rpcConnection == nullptr)
 		return;
@@ -184,5 +184,5 @@ void DlgGrantsEditor::callDeleteGrantPaths(const std::string &gran_name)
 		}
 	});
 
-	m_rpcConnection->callShvMethod(rqid, aclEtcPathsNodePath(), "delGrantPaths", shv::chainpack::RpcValue::String(gran_name));
+	m_rpcConnection->callShvMethod(rqid, aclEtcPathsNodePath(), "delGrantPaths", shv::chainpack::RpcValue::String(grant_name));
 }

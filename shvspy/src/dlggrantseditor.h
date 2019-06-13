@@ -27,7 +27,7 @@ private:
 
 	QString selectedGrant();
 	void listGrants();
-	void callDeleteGrantPaths(const std::string &gran_name);
+	void callDeleteGrantPaths(const std::string &grant_name);
 
 	void onAddGrantClicked();
 	void onDelGrantClicked();

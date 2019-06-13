@@ -326,19 +326,19 @@ shv::chainpack::RpcValue::Map DlgAddEditGrants::paths()
 		QString weight_str = ui->twPaths->item(row, ColWeight)->data(Qt::DisplayRole).toString();
 
 		if (!path.empty() && !grant.empty()){
-			shv::chainpack::RpcValue::Map path_info;
-			path_info["grant"] = shv::chainpack::RpcValue(grant);
+			shv::chainpack::RpcValue::Map path_settings;
+			path_settings["grant"] = shv::chainpack::RpcValue(grant);
 
 			if (!weight_str.isEmpty()){
 				bool ok;
 				int weight = weight_str.toInt(&ok);
 
 				if(ok){
-					path_info["weight"] = weight;
+					path_settings["weight"] = weight;
 				}
 			}
 
-			paths[path] = path_info;
+			paths[path] = path_settings;
 		}
 	}
 
