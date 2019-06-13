@@ -39,8 +39,8 @@ private:
 	void callGetGrantInfo();
 	std::string grantNameShvPath();
 
-	void callSetPaths();
-	void callGetPaths();
+	void callSetGrantPaths();
+	void callGetGrantPaths();
 
 	void setPaths(const shv::chainpack::RpcValue::Map &paths);
 	shv::chainpack::RpcValue::Map paths();

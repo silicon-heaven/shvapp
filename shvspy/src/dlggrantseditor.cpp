@@ -46,6 +46,11 @@ std::string DlgGrantsEditor::aclEtcGrantsNodePath()
 	return m_aclEtcNodePath + "grants";
 }
 
+std::string DlgGrantsEditor::aclEtcPathsNodePath()
+{
+	return m_aclEtcNodePath + "paths";
+}
+
 QString DlgGrantsEditor::selectedGrant()
 {
 	return (ui->twGrants->currentIndex().isValid()) ? ui->twGrants->currentItem()->text() : QString();
@@ -70,16 +75,17 @@ void DlgGrantsEditor::onDelGrantClicked()
 
 	ui->lblStatus->setText("");
 
-	if (QMessageBox::question(this, tr("Delete grant"), tr("Do you really want to delete grant") + " " + grant + "?") == QMessageBox::Yes){
+	if (QMessageBox::question(this, tr("Delete grant"), tr("Do you really want to delete data and associated paths for grant ") + " " + grant + "?") == QMessageBox::Yes){
 		int rqid = m_rpcConnection->nextRequestId();
 		shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
-		cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
+		cb->start(this, [this, grant](const shv::chainpack::RpcResponse &response) {
 			if(response.isValid()){
 				if(response.isError()) {
 					ui->lblStatus->setText(tr("Failed to delete grant.") + " " + QString::fromStdString(response.error().toString()));
 				}
 				else{
+					callDeleteGrantPaths(grant.toStdString());
 					listGrants();
 				}
 			}
@@ -152,4 +158,31 @@ void DlgGrantsEditor::listGrants()
 	});
 
 	m_rpcConnection->callShvMethod(rqid, aclEtcGrantsNodePath(), shv::chainpack::Rpc::METH_LS);
+}
+
+void DlgGrantsEditor::callDeleteGrantPaths(const std::string &gran_name)
+{
+	if (m_rpcConnection == nullptr)
+		return;
+
+	ui->lblStatus->setText("Deleting grant paths.");
+
+	int rqid = m_rpcConnection->nextRequestId();
+	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
+
+	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
+		if (response.isValid()){
+			if(response.isError()) {
+				ui->lblStatus->setText(tr("Failed to delete grant paths.") + QString::fromStdString(response.error().toString()));
+			}
+			else{
+				ui->lblStatus->setText("");
+			}
+		}
+		else{
+			ui->lblStatus->setText(tr("Request timeout expired"));
+		}
+	});
+
+	m_rpcConnection->callShvMethod(rqid, aclEtcPathsNodePath(), "delGrantPaths", shv::chainpack::RpcValue::String(gran_name));
 }

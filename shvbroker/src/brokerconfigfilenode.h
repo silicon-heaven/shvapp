@@ -64,9 +64,9 @@ public:
 	shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params) override;
 	StringList childNames(const ShvNode::StringViewList &shv_path) override;
 
-	bool setPaths(const shv::chainpack::RpcValue &params);
-	bool delPath(const shv::chainpack::RpcValue &params);
-	shv::chainpack::RpcValue getPath(const shv::chainpack::RpcValue &params);
+	bool setGrantPaths(const shv::chainpack::RpcValue &params);
+	bool delGrantPaths(const shv::chainpack::RpcValue &params);
+	shv::chainpack::RpcValue getGrantPaths(const shv::chainpack::RpcValue &params);
 
 	//shv::chainpack::RpcValue hasChildren(const StringViewList &shv_path) override {return Super::hasChildren(rewriteShvPath(shv_path));}
 protected:

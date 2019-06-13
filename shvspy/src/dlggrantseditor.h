@@ -23,8 +23,11 @@ public:
 
 private:
 	std::string aclEtcGrantsNodePath();
+	std::string aclEtcPathsNodePath();
+
 	QString selectedGrant();
 	void listGrants();
+	void callDeleteGrantPaths(const std::string &gran_name);
 
 	void onAddGrantClicked();
 	void onDelGrantClicked();

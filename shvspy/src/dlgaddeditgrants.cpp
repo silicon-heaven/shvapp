@@ -53,7 +53,7 @@ void DlgAddEditGrants::init(const QString &grant_name)
 {
 	ui->leGrantName->setText(grant_name);
 	callGetGrantInfo();
-	callGetPaths();
+	callGetGrantPaths();
 }
 
 QString DlgAddEditGrants::grantName()
@@ -77,7 +77,7 @@ void DlgAddEditGrants::accept()
 		if ((!grantName().isEmpty())){
 			ui->lblStatus->setText(tr("Adding new grant ..."));
 			callAddGrant();
-			callSetPaths();
+			callSetGrantPaths();
 		}
 		else {
 			ui->lblStatus->setText(tr("Grant name or grants is empty."));
@@ -85,7 +85,7 @@ void DlgAddEditGrants::accept()
 	}
 	else if (dialogType() == DialogType::Edit){
 		callEditGrant();
-		callSetPaths();
+		callSetGrantPaths();
 	}
 }
 
@@ -113,8 +113,7 @@ void DlgAddEditGrants::callAddGrant()
 		}
 	});
 
-	ui->lblStatus->setText(QString::fromStdString(m_aclEtcNodePath));
-	m_rpcConnection->callShvMethod(rqid, m_aclEtcNodePath, "addGrant", params);
+	m_rpcConnection->callShvMethod(rqid, aclEtcGrantsNodePath(), "addGrant", params);
 }
 
 void DlgAddEditGrants::callGetGrants()
@@ -180,6 +179,8 @@ void DlgAddEditGrants::callEditGrant()
 
 	shv::chainpack::RpcValue::Map params = createParamsMap();
 
+	ui->lblStatus->setText("Updating grant");
+
 	int rqid = m_rpcConnection->nextRequestId();
 	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
@@ -197,7 +198,6 @@ void DlgAddEditGrants::callEditGrant()
 		}
 	});
 
-	ui->lblStatus->setText(QString::fromStdString(aclEtcGrantsNodePath()));
 	m_rpcConnection->callShvMethod(rqid, aclEtcGrantsNodePath(), "editGrant", params);
 }
 
@@ -243,7 +243,7 @@ std::string DlgAddEditGrants::grantNameShvPath()
 	return aclEtcGrantsNodePath() + '/' + grantName().toStdString() + "/";
 }
 
-void DlgAddEditGrants::callGetPaths()
+void DlgAddEditGrants::callGetGrantPaths()
 {
 	if (m_rpcConnection == nullptr)
 		return;
@@ -267,10 +267,10 @@ void DlgAddEditGrants::callGetPaths()
 		}
 	});
 
-	m_rpcConnection->callShvMethod(rqid, aclEtcPathsNodePath(), "getPaths", shv::chainpack::RpcValue(grantName().toStdString()));
+	m_rpcConnection->callShvMethod(rqid, aclEtcPathsNodePath(), "getGrantPaths", shv::chainpack::RpcValue(grantName().toStdString()));
 }
 
-void DlgAddEditGrants::callSetPaths()
+void DlgAddEditGrants::callSetGrantPaths()
 {
 	if (m_rpcConnection == nullptr)
 		return;
@@ -294,7 +294,7 @@ void DlgAddEditGrants::callSetPaths()
 		}
 	});
 
-	m_rpcConnection->callShvMethod(rqid, aclEtcPathsNodePath(), "setPaths", paths());
+	m_rpcConnection->callShvMethod(rqid, aclEtcPathsNodePath(), "setGrantPaths", paths());
 }
 
 void DlgAddEditGrants::setPaths(const shv::chainpack::RpcValue::Map &paths)
