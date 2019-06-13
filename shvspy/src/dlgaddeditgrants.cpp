@@ -77,7 +77,6 @@ void DlgAddEditGrants::accept()
 		if ((!grantName().isEmpty())){
 			ui->lblStatus->setText(tr("Adding new grant ..."));
 			callAddGrant();
-			callSetGrantPaths();
 		}
 		else {
 			ui->lblStatus->setText(tr("Grant name or grants is empty."));
@@ -85,7 +84,6 @@ void DlgAddEditGrants::accept()
 	}
 	else if (dialogType() == DialogType::Edit){
 		callEditGrant();
-		callSetGrantPaths();
 	}
 }
 
@@ -105,7 +103,7 @@ void DlgAddEditGrants::callAddGrant()
 				ui->lblStatus->setText(tr("Failed to add grant.") + QString::fromStdString(response.error().toString()));
 			}
 			else{
-				QDialog::accept();
+				callSetGrantPaths();
 			}
 		}
 		else{
@@ -190,7 +188,7 @@ void DlgAddEditGrants::callEditGrant()
 				ui->lblStatus->setText(tr("Failed to edit grant.") + QString::fromStdString(response.error().toString()));
 			}
 			else{
-				QDialog::accept();
+				callSetGrantPaths();
 			}
 		}
 		else{
@@ -286,7 +284,7 @@ void DlgAddEditGrants::callSetGrantPaths()
 				ui->lblStatus->setText(QString::fromStdString(response.error().toString()));
 			}
 			else{
-
+				QDialog::accept();
 			}
 		}
 		else{
