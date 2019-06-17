@@ -1,7 +1,10 @@
-#ifndef DLGADDEDITGRANTS_H
-#define DLGADDEDITGRANTS_H
+#ifndef DLGADDEDITGRANT_H
+#define DLGADDEDITGRANT_H
 
 #include <QDialog>
+
+#include "pathsmodel/pathsmodel.h"
+#include "pathsmodel/pathstableitemdelegate.h"
 
 #include "shv/chainpack/rpcvalue.h"
 
@@ -9,7 +12,7 @@
 #include <shv/iotqt/rpc/clientconnection.h>
 
 namespace Ui {
-class DlgAddEditGrants;
+class DlgAddEditGrant;
 }
 
 class DlgAddEditGrant : public QDialog
@@ -18,7 +21,7 @@ class DlgAddEditGrant : public QDialog
 
 public:
 	enum class DialogType {Add = 0, Edit, Count};
-	enum Columns {ColPath, ColGrant, ColWeight};
+
 
 	explicit DlgAddEditGrant(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, DlgAddEditGrant::DialogType dt = DialogType::Add);
 	~DlgAddEditGrant() override;
@@ -42,9 +45,6 @@ private:
 	void callSetGrantPaths();
 	void callGetGrantPaths();
 
-	void setPaths(const shv::chainpack::RpcValue::Map &paths);
-	shv::chainpack::RpcValue::List paths();
-
 	std::string aclEtcGrantsNodePath();
 	std::string aclEtcPathsNodePath();
 
@@ -55,10 +55,11 @@ private:
 	void onAddRowClicked();
 	void onDeleteRowClicked();
 
-	Ui::DlgAddEditGrants *ui;
+	Ui::DlgAddEditGrant *ui;
 	DialogType m_dialogType;
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
 	std::string m_aclEtcNodePath;
+	PathsModel m_pathsModel;
 };
 
-#endif // DLGADDEDITGRANTS_H
+#endif // DLGADDEDITGRANT_H

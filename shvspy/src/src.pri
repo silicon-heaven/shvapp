@@ -19,7 +19,9 @@ HEADERS += \
     $$PWD/dlguserseditor.h \
     $$PWD/dlgaddedituser.h \
     $$PWD/dlggrantseditor.h \
-    $$PWD/dlgaddeditgrant.h
+    $$PWD/dlgaddeditgrant.h \
+    $$PWD/pathsmodel/pathsmodel.h \
+    $$PWD/pathsmodel/pathstableitemdelegate.h
 
 SOURCES += \
 	$$PWD/main.cpp\
@@ -43,7 +45,9 @@ SOURCES += \
     $$PWD/dlguserseditor.cpp \
     $$PWD/dlgaddedituser.cpp \
     $$PWD/dlggrantseditor.cpp \
-    $$PWD/dlgaddeditgrant.cpp
+    $$PWD/dlgaddeditgrant.cpp \
+    $$PWD/pathsmodel/pathsmodel.cpp \
+    $$PWD/pathsmodel/pathstableitemdelegate.cpp \
 
 FORMS += \
 	$$PWD/mainwindow.ui \
