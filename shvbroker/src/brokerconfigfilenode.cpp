@@ -377,13 +377,20 @@ shv::chainpack::RpcValue BrokerPathsConfigFileNode::callMethod(const shv::iotqt:
 
 bool BrokerPathsConfigFileNode::setGrantPaths(const shv::chainpack::RpcValue &params)
 {
-	if (!params.isMap() || params.toMap().empty()){
-		SHV_EXCEPTION("Invalid parameters format. Params must be a non empty RpcValue::Map");
+	if (!params.isList() || (params.toList().size() != 2)){
+		SHV_EXCEPTION("Invalid parameters format. Params must be RpcValue::List with 2 items [grant_name, paths]");
 	}
 
-	cp::RpcValue::Map params_map = params.toMap();
-	std::string grant_name = params_map.keys().at(0);
-	m_values.set(grant_name, params_map.value(grant_name));
+	const cp::RpcValue::List &params_lst = params.toList();
+
+	if (!params_lst.value(0).isString() || (!params_lst.value(1).isMap())){
+		SHV_EXCEPTION("Invalid parameters format. Types for items must be [RpcValue::String, RpcValue::Map]");
+	}
+
+	std::string grant_name = params_lst.value(0).toStdString();
+	const cp::RpcValue::Map &paths = params_lst.value(1).toMap();
+
+	m_values.set(grant_name, !paths.empty() ? paths : cp::RpcValue());
 	commitChanges();
 
 	return true;
@@ -398,12 +405,10 @@ bool BrokerPathsConfigFileNode::delGrantPaths(const shv::chainpack::RpcValue &pa
 	std::string grant_name = params.toString();
 	const cp::RpcValue::Map &paths_config = values().toMap();
 
-	if (!paths_config.hasKey(grant_name)){
-		SHV_EXCEPTION("Grant " +  grant_name + " does not exist in paths.");
+	if (paths_config.hasKey(grant_name)){
+		m_values.set(grant_name, cp::RpcValue());
+		commitChanges();
 	}
-
-	m_values.set(grant_name, cp::RpcValue());
-	commitChanges();
 
 	return true;
 }
@@ -417,11 +422,7 @@ shv::chainpack::RpcValue BrokerPathsConfigFileNode::getGrantPaths(const shv::cha
 	std::string grant_name = params.toString();
 	const cp::RpcValue::Map &paths_config = values().toMap();
 
-	if (!paths_config.hasKey(grant_name)){
-		SHV_EXCEPTION("Grant " + grant_name + " does not exist in paths.");
-	}
-
-	return paths_config.value(grant_name);
+	return (paths_config.hasKey(grant_name)) ? paths_config.value(grant_name) : cp::RpcValue::Map();
 }
 
 shv::iotqt::node::ShvNode::StringList BrokerPathsConfigFileNode::childNames(const shv::iotqt::node::ShvNode::StringViewList &shv_path)

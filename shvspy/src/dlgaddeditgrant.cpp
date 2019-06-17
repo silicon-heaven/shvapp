@@ -1,4 +1,4 @@
-#include "dlgaddeditgrants.h"
+#include "dlgaddeditgrant.h"
 #include "ui_dlgaddeditgrants.h"
 
 #include "shv/core/log.h"
@@ -6,7 +6,7 @@
 static const std::string WEIGHT = "weight";
 static const std::string GRANTS = "grants";
 
-DlgAddEditGrants::DlgAddEditGrants(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, DlgAddEditGrants::DialogType dt) :
+DlgAddEditGrant::DlgAddEditGrant(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, DlgAddEditGrant::DialogType dt) :
 	QDialog(parent),
 	ui(new Ui::DlgAddEditGrants),
 	m_aclEtcNodePath(acl_etc_node_path)
@@ -29,8 +29,8 @@ DlgAddEditGrants::DlgAddEditGrants(QWidget *parent, shv::iotqt::rpc::ClientConne
 	ui->twPaths->verticalHeader()->setDefaultSectionSize(static_cast<int>(ui->twPaths->fontMetrics().height() * ROW_HEIGHT_RATIO));
 	ui->twPaths->verticalHeader()->setVisible(false);
 
-	connect(ui->tbAddRow, &QToolButton::clicked, this, &DlgAddEditGrants::onAddRowClicked);
-	connect(ui->tbDeleteRow, &QToolButton::clicked, this, &DlgAddEditGrants::onDeleteRowClicked);
+	connect(ui->tbAddRow, &QToolButton::clicked, this, &DlgAddEditGrant::onAddRowClicked);
+	connect(ui->tbDeleteRow, &QToolButton::clicked, this, &DlgAddEditGrant::onDeleteRowClicked);
 
 	m_rpcConnection = rpc_connection;
 
@@ -39,39 +39,39 @@ DlgAddEditGrants::DlgAddEditGrants(QWidget *parent, shv::iotqt::rpc::ClientConne
 	}
 }
 
-DlgAddEditGrants::~DlgAddEditGrants()
+DlgAddEditGrant::~DlgAddEditGrant()
 {
 	delete ui;
 }
 
-DlgAddEditGrants::DialogType DlgAddEditGrants::dialogType()
+DlgAddEditGrant::DialogType DlgAddEditGrant::dialogType()
 {
 	return m_dialogType;
 }
 
-void DlgAddEditGrants::init(const QString &grant_name)
+void DlgAddEditGrant::init(const QString &grant_name)
 {
 	ui->leGrantName->setText(grant_name);
 	callGetGrantInfo();
 	callGetGrantPaths();
 }
 
-QString DlgAddEditGrants::grantName()
+QString DlgAddEditGrant::grantName()
 {
 	return ui->leGrantName->text();
 }
 
-std::string DlgAddEditGrants::aclEtcGrantsNodePath()
+std::string DlgAddEditGrant::aclEtcGrantsNodePath()
 {
 	return m_aclEtcNodePath + "grants";
 }
 
-std::string DlgAddEditGrants::aclEtcPathsNodePath()
+std::string DlgAddEditGrant::aclEtcPathsNodePath()
 {
 	return m_aclEtcNodePath + "paths";
 }
 
-void DlgAddEditGrants::accept()
+void DlgAddEditGrant::accept()
 {
 	if (dialogType() == DialogType::Add){
 		if ((!grantName().isEmpty())){
@@ -87,7 +87,7 @@ void DlgAddEditGrants::accept()
 	}
 }
 
-void DlgAddEditGrants::callAddGrant()
+void DlgAddEditGrant::callAddGrant()
 {
 	if (m_rpcConnection == nullptr)
 		return;
@@ -114,7 +114,7 @@ void DlgAddEditGrants::callAddGrant()
 	m_rpcConnection->callShvMethod(rqid, aclEtcGrantsNodePath(), "addGrant", params);
 }
 
-void DlgAddEditGrants::callGetGrants()
+void DlgAddEditGrant::callGetGrants()
 {
 	if (m_rpcConnection == nullptr)
 		return;
@@ -142,7 +142,7 @@ void DlgAddEditGrants::callGetGrants()
 	m_rpcConnection->callShvMethod(rqid, grantNameShvPath() + GRANTS, "get");
 }
 
-void DlgAddEditGrants::callGetWeight()
+void DlgAddEditGrant::callGetWeight()
 {
 	if (m_rpcConnection == nullptr)
 		return;
@@ -170,7 +170,7 @@ void DlgAddEditGrants::callGetWeight()
 	m_rpcConnection->callShvMethod(rqid, grantNameShvPath() + WEIGHT, "get");
 }
 
-void DlgAddEditGrants::callEditGrant()
+void DlgAddEditGrant::callEditGrant()
 {
 	if (m_rpcConnection == nullptr)
 		return;
@@ -199,7 +199,7 @@ void DlgAddEditGrants::callEditGrant()
 	m_rpcConnection->callShvMethod(rqid, aclEtcGrantsNodePath(), "editGrant", params);
 }
 
-void DlgAddEditGrants::callGetGrantInfo()
+void DlgAddEditGrant::callGetGrantInfo()
 {
 	if(m_rpcConnection == nullptr){
 		return;
@@ -215,7 +215,7 @@ void DlgAddEditGrants::callGetGrantInfo()
 			}
 			else{
 				if (response.result().isList()){
-					shv::chainpack::RpcValue::List nodes = response.result().toList();
+					const shv::chainpack::RpcValue::List &nodes = response.result().toList();
 
 					for (size_t i = 0; i < nodes.size(); i++){
 						if (nodes.at(i).toStdString() == GRANTS){
@@ -236,12 +236,12 @@ void DlgAddEditGrants::callGetGrantInfo()
 	m_rpcConnection->callShvMethod(rqid, grantNameShvPath(), "ls");
 }
 
-std::string DlgAddEditGrants::grantNameShvPath()
+std::string DlgAddEditGrant::grantNameShvPath()
 {
 	return aclEtcGrantsNodePath() + '/' + grantName().toStdString() + "/";
 }
 
-void DlgAddEditGrants::callGetGrantPaths()
+void DlgAddEditGrant::callGetGrantPaths()
 {
 	if (m_rpcConnection == nullptr)
 		return;
@@ -268,10 +268,11 @@ void DlgAddEditGrants::callGetGrantPaths()
 	m_rpcConnection->callShvMethod(rqid, aclEtcPathsNodePath(), "getGrantPaths", shv::chainpack::RpcValue(grantName().toStdString()));
 }
 
-void DlgAddEditGrants::callSetGrantPaths()
+void DlgAddEditGrant::callSetGrantPaths()
 {
 	if (m_rpcConnection == nullptr)
 		return;
+	
 
 	ui->lblStatus->setText(tr("Updating paths ..."));
 
@@ -295,7 +296,7 @@ void DlgAddEditGrants::callSetGrantPaths()
 	m_rpcConnection->callShvMethod(rqid, aclEtcPathsNodePath(), "setGrantPaths", paths());
 }
 
-void DlgAddEditGrants::setPaths(const shv::chainpack::RpcValue::Map &paths)
+void DlgAddEditGrant::setPaths(const shv::chainpack::RpcValue::Map &paths)
 {
 	ui->twPaths->clearContents();
 	ui->twPaths->setRowCount(0);
@@ -314,7 +315,7 @@ void DlgAddEditGrants::setPaths(const shv::chainpack::RpcValue::Map &paths)
 	ui->lblStatus->setText("");
 }
 
-shv::chainpack::RpcValue::Map DlgAddEditGrants::paths()
+shv::chainpack::RpcValue::List DlgAddEditGrant::paths()
 {
 	shv::chainpack::RpcValue::Map paths;
 
@@ -340,10 +341,10 @@ shv::chainpack::RpcValue::Map DlgAddEditGrants::paths()
 		}
 	}
 
-	return shv::chainpack::RpcValue::Map({{grantName().toStdString(), paths}});
+	return shv::chainpack::RpcValue::List({grantName().toStdString(), paths});
 }
 
-shv::chainpack::RpcValue::Map DlgAddEditGrants::createParamsMap()
+shv::chainpack::RpcValue::Map DlgAddEditGrant::createParamsMap()
 {
 	shv::chainpack::RpcValue::Map params;
 	params["grantName"] = grantName().toStdString();
@@ -360,7 +361,7 @@ shv::chainpack::RpcValue::Map DlgAddEditGrants::createParamsMap()
 	return params;
 }
 
-shv::chainpack::RpcValue::List DlgAddEditGrants::grants()
+shv::chainpack::RpcValue::List DlgAddEditGrant::grants()
 {
 	shv::chainpack::RpcValue::List grants;
 	QStringList lst = ui->leGrants->text().split(",", QString::SplitBehavior::SkipEmptyParts);
@@ -372,7 +373,7 @@ shv::chainpack::RpcValue::List DlgAddEditGrants::grants()
 	return grants;
 }
 
-void DlgAddEditGrants::setGrants(const shv::chainpack::RpcValue::List &grants)
+void DlgAddEditGrant::setGrants(const shv::chainpack::RpcValue::List &grants)
 {
 	QString g;
 
@@ -385,7 +386,7 @@ void DlgAddEditGrants::setGrants(const shv::chainpack::RpcValue::List &grants)
 	ui->leGrants->setText(g);
 }
 
-void DlgAddEditGrants::onAddRowClicked()
+void DlgAddEditGrant::onAddRowClicked()
 {
 	int ix = ui->twPaths->rowCount();
 	ui->twPaths->insertRow(ix);
@@ -394,7 +395,7 @@ void DlgAddEditGrants::onAddRowClicked()
 	ui->twPaths->setItem(ix, ColWeight, new QTableWidgetItem(""));
 }
 
-void DlgAddEditGrants::onDeleteRowClicked()
+void DlgAddEditGrant::onDeleteRowClicked()
 {
 	int current_row = ui->twPaths->currentRow();
 

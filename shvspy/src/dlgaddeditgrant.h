@@ -12,7 +12,7 @@ namespace Ui {
 class DlgAddEditGrants;
 }
 
-class DlgAddEditGrants : public QDialog
+class DlgAddEditGrant : public QDialog
 {
 	Q_OBJECT
 
@@ -20,8 +20,8 @@ public:
 	enum class DialogType {Add = 0, Edit, Count};
 	enum Columns {ColPath, ColGrant, ColWeight};
 
-	explicit DlgAddEditGrants(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, DlgAddEditGrants::DialogType dt = DialogType::Add);
-	~DlgAddEditGrants() override;
+	explicit DlgAddEditGrant(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, DlgAddEditGrant::DialogType dt = DialogType::Add);
+	~DlgAddEditGrant() override;
 
 	DialogType dialogType();
 	void init(const QString &grant_name);
@@ -43,7 +43,7 @@ private:
 	void callGetGrantPaths();
 
 	void setPaths(const shv::chainpack::RpcValue::Map &paths);
-	shv::chainpack::RpcValue::Map paths();
+	shv::chainpack::RpcValue::List paths();
 
 	std::string aclEtcGrantsNodePath();
 	std::string aclEtcPathsNodePath();

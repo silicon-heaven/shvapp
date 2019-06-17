@@ -1,7 +1,7 @@
 #include "dlggrantseditor.h"
 #include "ui_dlggrantseditor.h"
 
-#include "dlgaddeditgrants.h"
+#include "dlgaddeditgrant.h"
 #include "shv/core/assert.h"
 #include <QMessageBox>
 
@@ -58,7 +58,7 @@ QString DlgGrantsEditor::selectedGrant()
 
 void DlgGrantsEditor::onAddGrantClicked()
 {
-	DlgAddEditGrants dlg(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditGrants::DialogType::Add);
+	DlgAddEditGrant dlg(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditGrant::DialogType::Add);
 	if (dlg.exec() == QDialog::Accepted){
 		listGrants();
 	}
@@ -109,7 +109,7 @@ void DlgGrantsEditor::onEditGrantClicked()
 
 	ui->lblStatus->setText("");
 
-	DlgAddEditGrants dlg(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditGrants::DialogType::Edit);
+	DlgAddEditGrant dlg(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditGrant::DialogType::Edit);
 	dlg.init(grant);
 
 	if (dlg.exec() == QDialog::Accepted){
