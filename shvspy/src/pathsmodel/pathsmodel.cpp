@@ -9,6 +9,12 @@
 
 namespace cp = shv::chainpack;
 
+static const std::string PATH = "path";
+static const std::string GRANT = "grant";
+static const std::string WEIGHT = "weight";
+static const std::string FORWARD_GRANT = "forwardGrant";
+static const int INVALID = -1;
+
 PathsModel::PathsModel(QObject *parent)
 	: Super(parent)
 {
@@ -26,7 +32,7 @@ void PathsModel::setPaths(const shv::chainpack::RpcValue::Map &paths)
 
 	for (size_t i = 0; i < keys.size(); i++){
 		shv::chainpack::RpcValue::Map path = paths.value(keys[i]).toMap();
-		path["path"] = keys[i];
+		path[PATH] = keys[i];
 		m_paths.push_back(path);
 	}
 
@@ -41,20 +47,20 @@ shv::chainpack::RpcValue::Map PathsModel::paths()
 		const shv::chainpack::RpcValue::Map &p = m_paths.at(i);
 		shv::chainpack::RpcValue::Map path_settings;
 
-		if (p.hasKey("grant")){
-			path_settings["grant"] = p.value("grant");
+		if (p.hasKey(GRANT)){
+			path_settings[GRANT] = p.value(GRANT);
 		}
 
-		if (p.hasKey("weight")){
-			path_settings["weight"] = p.value("weight");
+		if (p.hasKey(WEIGHT)){
+			path_settings[WEIGHT] = p.value(WEIGHT);
 		}
 
-		if (p.hasKey("forwardGrant")){
-			path_settings["forwardGrant"] = p.value("forwardGrant");
+		if (p.hasKey(FORWARD_GRANT)){
+			path_settings[FORWARD_GRANT] = p.value(FORWARD_GRANT);
 		}
 
 		if (!path_settings.empty()){
-			std::string path_name = p.value("path").toStdString();
+			std::string path_name = p.value(PATH).toStdString();
 			paths[path_name] = path_settings;
 		}
 	}
@@ -80,9 +86,8 @@ Qt::ItemFlags PathsModel::flags(const QModelIndex &ix) const
 	if (!ix.isValid()){
 		return Qt::NoItemFlags;
 	}
-
-	if (ix.column() == Columns::ColForwardGrant){
-		return Super::flags(ix) |= Qt::ItemIsUserCheckable;
+	else if (ix.column() == Columns::ColForwardGrant){
+		return Super::flags(ix) |= Qt::ItemIsUserCheckable | Qt::ItemIsUserTristate;
 	}
 
 	return  Super::flags(ix) |= Qt::ItemIsEditable;
@@ -99,20 +104,18 @@ QVariant PathsModel::data(const QModelIndex &ix, int role) const
 	if(role == Qt::DisplayRole) {
 		switch (ix.column()) {
 		case Columns::ColPath:
-			return QString::fromStdString(path.value("path").toStdString());
+			return QString::fromStdString(path.value(PATH).toStdString());
 		case Columns::ColGrant:
-			return QString::fromStdString(path.value("grant").toStdString());
+			return QString::fromStdString(path.value(GRANT).toStdString());
 		case Columns::ColWeight:
-			return QString::fromStdString(path.value("weight").toStdString());
-		case Columns::ColForwardGrant:
-			return QString::fromStdString(path.value("forwardGrant").toStdString());
+			return QString::fromStdString(path.value(WEIGHT).toStdString());
 		}
 	}
 	else if(role == Qt::CheckStateRole) {
 		switch (ix.column()) {
 			case Columns::ColForwardGrant:{
-				if (path.hasKey("forwardGrant")){
-					return (path.value("forwardGrant").toBool()) ? Qt::Checked : Qt::Unchecked;
+				if (path.hasKey(FORWARD_GRANT)){
+					return (path.value(FORWARD_GRANT).toBool()) ? Qt::Checked : Qt::Unchecked;
 				}
 				else{
 					return Qt::PartiallyChecked;
@@ -123,14 +126,14 @@ QVariant PathsModel::data(const QModelIndex &ix, int role) const
 	else if(role == Qt::EditRole){
 		switch (ix.column()) {
 		case Columns::ColPath:
-			return QString::fromStdString(path.value("path").toStdString());
+			return QString::fromStdString(path.value(PATH).toStdString());
 		case Columns::ColGrant:
-			return QString::fromStdString(path.value("grant").toStdString());
+			return QString::fromStdString(path.value(GRANT).toStdString());
 		case Columns::ColWeight:
-			return (path.hasKey("weight")) ? path.value("weight").toInt() : -1;
+			return (path.hasKey(WEIGHT)) ? path.value(WEIGHT).toInt() : INVALID;
 		case Columns::ColForwardGrant:
-			if (path.hasKey("forwardGrant")){
-				return (path.value("forwardGrant").toBool()) ? Qt::Checked : Qt::Unchecked;
+			if (path.hasKey(FORWARD_GRANT)){
+				return (path.value(FORWARD_GRANT).toBool()) ? Qt::Checked : Qt::Unchecked;
 			}
 			else{
 				return Qt::PartiallyChecked;
@@ -148,47 +151,44 @@ bool PathsModel::setData(const QModelIndex &ix, const QVariant &val, int role)
 	}
 
 	if (role == Qt::CheckStateRole){
-/*		shv::chainpack::RpcValue::Map &path = m_paths[ix.row()];
+		shv::chainpack::RpcValue::Map &path = m_paths[ix.row()];
 		int col = ix.column();
-		bool v = (val == Qt::Checked) ? true : false;
 
-		if (col == Columns::ColPermanent || col == Columns::ColEnabled){
-			ShvBrokerNodeItem *nd = TheApp::instance()->serverTreeModel()->brokerById(sub.brokerId());
-			if (nd == nullptr){
-				return false;
+		if (col == Columns::ColForwardGrant){
+			if (val.toInt() != Qt::CheckState::PartiallyChecked){
+				path[FORWARD_GRANT] = (val.toInt() == Qt::CheckState::Checked);
 			}
-
-			if (col == Columns::ColPermanent){
-				sub.setIsPermanent(v);
+			else{
+				path.erase(FORWARD_GRANT);
 			}
-			else if (col == Columns::ColEnabled){
-				sub.setIsEnabled(v);
-				nd->enableSubscription(sub.shvPath().toStdString(), sub.method().toStdString(), v);
-			}
-
-			QVariantList new_subs = brokerSubscriptions(sub.brokerId());
-			nd->setSubscriptionList(new_subs);
 
 			return true;
-		}*/
+		}
 	}
 	else if (role == Qt::EditRole){
-	/*	if (ix.column() == Columns::ColMethod){
-			Subscription &sub = m_subscriptions[ix.row()];
+		shv::chainpack::RpcValue::Map &path = m_paths[ix.row()];
 
-			ShvBrokerNodeItem *nd = TheApp::instance()->serverTreeModel()->brokerById(sub.brokerId());
-			if (nd == nullptr){
-				return false;
+		if (ix.column() == Columns::ColPath){
+			path[PATH] = (!val.toString().isEmpty()) ? val.toString().toStdString() : "";
+		}
+		else if (ix.column() == Columns::ColGrant){
+			if (!val.toString().isEmpty()) {
+				path[GRANT] = val.toString().toStdString();
+			}
+			else{
+				path.erase(GRANT);
+			}
+		}
+		else if (ix.column() == Columns::ColWeight){
+			if (val.toInt() > INVALID) {
+				path[WEIGHT] = val.toInt();
+			}
+			else {
+				path.erase(WEIGHT);
 			}
 
-			nd->enableSubscription(sub.shvPath().toStdString(), sub.method().toStdString(), false);
-			sub.setMethod(val.toString());
-			nd->enableSubscription(sub.shvPath().toStdString(), sub.method().toStdString(), true);
-
-			QVariantList new_subs = brokerSubscriptions(sub.brokerId());
-			nd->setSubscriptionList(new_subs);
 			return true;
-		}*/
+		}
 	}
 
 	return false;
@@ -205,7 +205,7 @@ QVariant PathsModel::headerData(int section, Qt::Orientation orientation, int ro
 			case Columns::ColGrant:
 				return tr("Grant");
 			case Columns::ColWeight:
-				 return tr("Weight");
+				return tr("Grant weight");
 			case Columns::ColForwardGrant:
 				return tr("Forward grant");
 			default:
@@ -213,6 +213,7 @@ QVariant PathsModel::headerData(int section, Qt::Orientation orientation, int ro
 			}
 		}
 	}
+
 	return ret;
 }
 
@@ -231,7 +232,7 @@ void PathsModel::addPath()
 
 void PathsModel::deletePath(int index)
 {
-	if ((index > 0) && (index < m_paths.count())){
+	if ((index >= 0) && (index < m_paths.count())){
 		m_paths.remove(index);
 		reload();
 	}

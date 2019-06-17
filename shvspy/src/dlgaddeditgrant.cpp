@@ -23,6 +23,7 @@ DlgAddEditGrant::DlgAddEditGrant(QWidget *parent, shv::iotqt::rpc::ClientConnect
 	ui->tvPaths->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
 	ui->tvPaths->verticalHeader()->setDefaultSectionSize(static_cast<int>(fontMetrics().height() * 1.3));
 	ui->tvPaths->setItemDelegate(new PathsTableItemDelegate(this));
+	ui->tvPaths->setColumnWidth(PathsModel::Columns::ColPath, frameGeometry().width() * 0.6);
 
 	connect(ui->tbAddRow, &QToolButton::clicked, this, &DlgAddEditGrant::onAddRowClicked);
 	connect(ui->tbDeleteRow, &QToolButton::clicked, this, &DlgAddEditGrant::onDeleteRowClicked);
@@ -49,6 +50,7 @@ void DlgAddEditGrant::init(const QString &grant_name)
 	ui->leGrantName->setText(grant_name);
 	callGetGrantInfo();
 	callGetGrantPaths();
+	shvInfo() << "width" << ui->tvPaths->width();
 }
 
 QString DlgAddEditGrant::grantName()
@@ -253,7 +255,6 @@ void DlgAddEditGrant::callGetGrantPaths()
 			}
 			else{
 				(response.result().isMap())? m_pathsModel.setPaths(response.result().toMap()) : m_pathsModel.setPaths(shv::chainpack::RpcValue::Map());
-				ui->tvPaths->resizeColumnsToContents();
 				ui->lblStatus->setText("");
 			}
 		}
