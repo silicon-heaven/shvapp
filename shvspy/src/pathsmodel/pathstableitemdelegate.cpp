@@ -3,10 +3,8 @@
 #include "pathsmodel.h"
 
 #include <QCheckBox>
-#include <QComboBox>
 #include <QSpinBox>
 #include <shv/chainpack/rpcvalue.h>
-#include <shv/core/log.h>
 
 PathsTableItemDelegate::PathsTableItemDelegate(QObject *parent):
 	Super(parent)
@@ -16,7 +14,6 @@ PathsTableItemDelegate::PathsTableItemDelegate(QObject *parent):
 
 QWidget *PathsTableItemDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
-	shvInfo() << "create editor";
 	if (index.column() == PathsModel::Columns::ColWeight){
 		QSpinBox *editor = new QSpinBox(parent);
 		editor->setFrame(false);
@@ -25,23 +22,25 @@ QWidget *PathsTableItemDelegate::createEditor(QWidget *parent, const QStyleOptio
 		editor->setSpecialValueText("Not used");
 		return editor;
 	}
-	/*
-	else if (index.column() == PathsModel::Columns::ColForwardGrant){
-		QCheckBox *editor = new QCheckBox(parent);
-		editor->setTristate();
-		return editor;
-	}*/
 
 	return Super::createEditor(parent, option, index);
 }
 
 void PathsTableItemDelegate::setEditorData(QWidget *editor, const QModelIndex &index) const
 {
+	if (qobject_cast<QSpinBox*>(editor)) {
+		qobject_cast<QSpinBox*>(editor)->setValue(index.data(Qt::EditRole).toInt());
+	}
+
 	Super::setEditorData(editor, index);
 }
 
 void PathsTableItemDelegate::setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const
 {
+	if (qobject_cast<QSpinBox*>(editor)) {
+		model->setData(index, qobject_cast<QSpinBox*>(editor)->value(), Qt::EditRole);
+	}
+
 	Super::setModelData(editor, model, index);
 }
 

@@ -5,6 +5,8 @@
 
 static const std::string WEIGHT = "weight";
 static const std::string GRANTS = "grants";
+static const std::string GRANT_NAME = "grantName";
+
 
 DlgAddEditGrant::DlgAddEditGrant(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, DlgAddEditGrant::DialogType dt) :
 	QDialog(parent),
@@ -50,7 +52,6 @@ void DlgAddEditGrant::init(const QString &grant_name)
 	ui->leGrantName->setText(grant_name);
 	callGetGrantInfo();
 	callGetGrantPaths();
-	shvInfo() << "width" << ui->tvPaths->width();
 }
 
 QString DlgAddEditGrant::grantName()
@@ -298,7 +299,7 @@ void DlgAddEditGrant::callSetGrantPaths()
 shv::chainpack::RpcValue::Map DlgAddEditGrant::createParamsMap()
 {
 	shv::chainpack::RpcValue::Map params;
-	params["grantName"] = grantName().toStdString();
+	params[GRANT_NAME] = grantName().toStdString();
 
 	shv::chainpack::RpcValue::List g = grants();
 	if(!g.empty()){
