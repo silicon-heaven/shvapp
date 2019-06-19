@@ -2,7 +2,6 @@
 
 #include "pathsmodel.h"
 
-#include <QCheckBox>
 #include <QSpinBox>
 #include <shv/chainpack/rpcvalue.h>
 

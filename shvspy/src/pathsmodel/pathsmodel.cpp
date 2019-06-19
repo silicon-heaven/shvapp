@@ -26,6 +26,7 @@ PathsModel::~PathsModel()
 
 void PathsModel::setPaths(const shv::chainpack::RpcValue::Map &paths)
 {
+	beginResetModel();
 	m_paths.clear();
 
 	std::vector<std::string> keys = paths.keys();
@@ -36,7 +37,7 @@ void PathsModel::setPaths(const shv::chainpack::RpcValue::Map &paths)
 		m_paths.push_back(path);
 	}
 
-	reload();
+	endResetModel();
 }
 
 shv::chainpack::RpcValue::Map PathsModel::paths()
@@ -217,12 +218,6 @@ QVariant PathsModel::headerData(int section, Qt::Orientation orientation, int ro
 	return ret;
 }
 
-void PathsModel::reload()
-{
-	beginResetModel();
-	endResetModel();
-}
-
 void PathsModel::addPath()
 {
 	beginInsertRows(QModelIndex(), m_paths.count(), m_paths.count());
@@ -233,8 +228,9 @@ void PathsModel::addPath()
 void PathsModel::deletePath(int index)
 {
 	if ((index >= 0) && (index < m_paths.count())){
+		beginResetModel();
 		m_paths.remove(index);
-		reload();
+		endResetModel();
 	}
 }
 
