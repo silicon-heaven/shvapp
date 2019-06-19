@@ -29,6 +29,7 @@ static std::vector<cp::MetaMethod> meta_methods_root {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0},
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0},
 	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, 0},
+	{cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_BROWSE},
 	{cp::Rpc::METH_MOUNT_POINT, cp::MetaMethod::Signature::RetVoid, 0},
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, 0},
 	{METH_APP_LOG, cp::MetaMethod::Signature::RetVoid, 0},
@@ -59,12 +60,9 @@ shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path,
 		if(method == cp::Rpc::METH_DEVICE_ID) {
 			return BfsViewApp::instance()->cliOptions()->deviceId();
 		}
-		//if(method == cp::Rpc::METH_MOUNT_POINT) {
-		//	return BfsViewApp::instance()->rpcConnection()->brokerMountPoint();
-		//}
-		//if(method == cp::Rpc::METH_CONNECTION_TYPE) {
-		//	return BfsViewApp::instance()->rpcConnection()->connectionType();
-		//}
+		if(method == cp::Rpc::METH_DEVICE_TYPE) {
+			return "BfsView";
+		}
 		if(method == METH_APP_LOG) {
 			// read entire file into string
 			std::ifstream is{BfsViewApp::logFilePath(), std::ios::binary | std::ios::ate};
@@ -173,7 +171,7 @@ void PwrStatusNode::sendPwrStatusChangedDeferred()
 	ntf.setMethod(cp::Rpc::SIG_VAL_CHANGED);
 	ntf.setParams((unsigned)m_pwrStatusToSendDeferred);
 	ntf.setShvPath(BFS1_PWR_STATUS);
-	rootNode()->emitSendRpcMesage(ntf);
+	rootNode()->emitSendRpcMessage(ntf);
 #endif
 }
 
@@ -212,7 +210,7 @@ BfsViewApp::BfsViewApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	m_shvTree = new shv::iotqt::node::ShvNodeTree(root, this);
 	m_pwrStatusNode = new PwrStatusNode();
 	m_shvTree->mount(BFS1_PWR_STATUS, m_pwrStatusNode);
-	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, m_rpcConnection, &shv::iotqt::rpc::DeviceConnection::sendMessage);
+	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &shv::iotqt::rpc::DeviceConnection::sendMessage);
 
 	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
 	if(cli_opts->pwrStatusPublishInterval() > 0) {

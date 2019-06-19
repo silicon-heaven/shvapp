@@ -6,8 +6,6 @@
 #include <shv/coreqt/log.h>
 #include <shv/iotqt/utils/shvpath.h>
 
-#define logRpcMsg() shvCDebug("RpcMsg")
-
 namespace cp = shv::chainpack;
 
 namespace rpc {

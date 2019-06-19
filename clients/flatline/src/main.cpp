@@ -1,6 +1,7 @@
 #include "flatlineapp.h"
 #include "appclioptions.h"
 #include "mainwindow.h"
+#include "version.h"
 
 #include <shv/core/utils.h>
 #include <shv/coreqt/log.h>
@@ -16,8 +17,8 @@ int main(int argc, char *argv[])
 {
 	QCoreApplication::setOrganizationName("Elektroline");
 	QCoreApplication::setOrganizationDomain("elektroline.cz");
-	QCoreApplication::setApplicationName("ancaview");
-	QCoreApplication::setApplicationVersion("0.0.1");
+	QCoreApplication::setApplicationName("flatline");
+	QCoreApplication::setApplicationVersion(APP_VERSION);
 
 	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);
 

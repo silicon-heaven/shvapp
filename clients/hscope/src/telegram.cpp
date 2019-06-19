@@ -165,10 +165,10 @@ void Telegram::processUpdates(const QJsonValue &response)
 				m_configNode->setValueOnPath(PEER_IDS, lst);
 				m_configNode->commitChanges();
 			}
-			if(text == QLatin1String("/status")) {
+			if(text == QLatin1String("/restart")) {
 				HScopeApp *app = HScopeApp::instance();
-				NodeStatus st = app->overallNodesStatus();
-				sendNodeStatus(peer_id, st, "brokers");
+				sendMessage(peer_id, "Restarting service after 3 sec.");
+				QTimer::singleShot(3000, app, &QCoreApplication::quit);
 			}
 			else if(text == QLatin1String("/ls")) {
 				LsState ls_state(peerTimeZone(peer_id));
@@ -214,6 +214,16 @@ void Telegram::processUpdates(const QJsonValue &response)
 				HNodeTest *nd = qobject_cast<HNodeTest*>(app->shvTree()->cd(shv_path.toStdString()));
 				if(nd) {
 					nd->runTestSafe();
+				}
+			}
+			else if(command.startsWith(QLatin1String("/reload "))) {
+				QString shv_path = command.mid(8);
+				while(shv_path.startsWith('/'))
+					shv_path = shv_path.mid(1);
+				HScopeApp *app = HScopeApp::instance();
+				HNodeTest *nd = qobject_cast<HNodeTest*>(app->shvTree()->cd(shv_path.toStdString()));
+				if(nd) {
+					nd->reload();
 				}
 			}
 		}
@@ -311,6 +321,10 @@ QVariantMap LsState::paramsForShvPath(const QString &shv_path)
 		row << QVariantMap {
 					{key_text, QStringLiteral("/")},
 					{key_callback_data, "/ls "},
+				};
+		row << QVariantMap {
+					{key_text, QStringLiteral("reload")},
+					{key_callback_data, "/reload " + shv_path},
 				};
 		keyboard.insert(keyboard.length(), row);
 	}

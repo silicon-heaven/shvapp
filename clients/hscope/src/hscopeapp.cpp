@@ -30,6 +30,7 @@ static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_BROWSE},
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_BROWSE},
 	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_BROWSE},
+	{cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_BROWSE},
 	{cp::Rpc::METH_CLIENT_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_READ},
 	{cp::Rpc::METH_GET_LOG, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::GRANT_READ},
 };
@@ -59,6 +60,9 @@ shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path,
 		}
 		if(method == cp::Rpc::METH_DEVICE_ID) {
 			return HScopeApp::instance()->cliOptions()->deviceId();
+		}
+		if(method == cp::Rpc::METH_DEVICE_TYPE) {
+			return "HolyScope";
 		}
 		if(method == cp::Rpc::METH_CLIENT_ID) {
 			return HScopeApp::instance()->rpcConnection()->loginResult().value(cp::Rpc::KEY_CLIENT_ID);
@@ -118,12 +122,12 @@ HScopeApp::HScopeApp(int &argc, char **argv, AppCliOptions* cli_opts)
 
 	AppRootNode *root = new AppRootNode();
 	m_shvTree = new si::node::ShvNodeTree(root, this);
-	connect(m_shvTree->root(), &si::node::ShvRootNode::sendRpcMesage, m_rpcConnection, &si::rpc::ClientConnection::sendMessage);
+	connect(m_shvTree->root(), &si::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &si::rpc::ClientConnection::sendMessage);
 }
 
 HScopeApp::~HScopeApp()
 {
-	shvInfo() << "destroying shv agent application";
+	shvInfo() << "destroying hscope application";
 }
 
 HScopeApp *HScopeApp::instance()

@@ -36,6 +36,7 @@ static std::vector<cp::MetaMethod> root_meta_methods {
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::GRANT_BROWSE },
 	{ cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::GRANT_READ },
 	{ cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::GRANT_READ },
+	{ cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_BROWSE},
 	{ METH_GET_SITES, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::GRANT_READ },
 	{ METH_GET_CONFIG, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::GRANT_READ },
 	{ METH_SAVE_CONFIG, cp::MetaMethod::Signature::VoidParam, false, shv::chainpack::Rpc::GRANT_ADMIN },
@@ -129,6 +130,9 @@ cp::RpcValue AppRootNode::callMethod(const StringViewList &shv_path, const std::
 		cp::RpcValue::Map dev = opts.value(cp::Rpc::KEY_DEVICE).toMap();
 		return dev.value(cp::Rpc::KEY_DEVICE_ID).toString();
 	}
+	else if(method == cp::Rpc::METH_DEVICE_TYPE) {
+		return "SitesProvider";
+	}
 	else if (method == METH_RELOAD_SITES) {
 		if (m_sitesTime.secsTo(QDateTime::currentDateTime()) > 5) {
 			downloadSites([](){});
@@ -149,7 +153,7 @@ void AppRootNode::handleRpcRequest(const shv::chainpack::RpcRequest &rq)
 				shvError() << m_downloadSitesError;
 				cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
 				resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, m_downloadSitesError));
-				sendRpcMesage(resp);
+				sendRpcMessage(resp);
 			}
 			else {
 				Super::handleRpcRequest(rq);
@@ -526,7 +530,7 @@ SitesProviderApp::SitesProviderApp(int &argc, char **argv, AppCliOptions* cli_op
 	m_rootNode = new AppRootNode();
 	m_shvTree = new shv::iotqt::node::ShvNodeTree(m_rootNode, this);
 
-	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMesage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
+	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
 
 	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
 }

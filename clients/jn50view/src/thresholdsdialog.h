@@ -18,8 +18,11 @@ public:
 	~ThresholdsDialog();
 private:
 	void loadTreshold(const std::string &shv_name, QSpinBox *editor);
+	void saveTresholdIfEdited(const std::string &shv_name, QSpinBox *editor);
 private:
 	Ui::ThresholdsDialog *ui;
+
+	std::map<std::string, int> m_origTresholds;
 };
 
 #endif // THRESHOLDSDIALOG_H

@@ -7,9 +7,14 @@ SUBDIRS += \
 	libshv/libshvchainpack \
 	libshv/libshvcore \
 	libshv/libshvcoreqt \
-	libshv/libshviotqt \
-	libshv/utils \
+    libshv/libshviotqt \
+    libshv/utils \
 	libshv/tests \
 
 }
 
+qtHaveModule(gui) {
+SUBDIRS += \
+    libshv/libshvvisu \
+
+}

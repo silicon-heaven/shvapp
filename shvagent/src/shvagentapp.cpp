@@ -44,6 +44,7 @@ static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_BROWSE},
 	//{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_BROWSE},
 	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_BROWSE},
+	{cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_BROWSE},
 	{cp::Rpc::METH_HELP, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_BROWSE},
 	{cp::Rpc::METH_RUN_CMD, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_COMMAND},
 	{cp::Rpc::METH_RUN_SCRIPT, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_COMMAND},
@@ -104,6 +105,9 @@ shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::Rp
 			const cp::RpcValue::Map& dev = opts.value(cp::Rpc::KEY_DEVICE).toMap();
 			//shvInfo() << dev[cp::Rpc::KEY_DEVICE_ID].toString();
 			return dev.value(cp::Rpc::KEY_DEVICE_ID).toString();
+		}
+		if(rq.method() == cp::Rpc::METH_DEVICE_TYPE) {
+			return "ShvAgent";
 		}
 		if(rq.method() == cp::Rpc::METH_RUN_CMD) {
 			ShvAgentApp *app = ShvAgentApp::instance();
@@ -272,7 +276,7 @@ ShvAgentApp::ShvAgentApp(int &argc, char **argv, AppCliOptions* cli_opts)
 
 	AppRootNode *root = new AppRootNode();
 	m_shvTree = new si::node::ShvNodeTree(root, this);
-	connect(m_shvTree->root(), &si::node::ShvRootNode::sendRpcMesage, m_rpcConnection, &si::rpc::ClientConnection::sendMessage);
+	connect(m_shvTree->root(), &si::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &si::rpc::ClientConnection::sendMessage);
 	//m_shvTree->mkdir("sys/rproc");
 	QString sys_fs_root_dir = QString::fromStdString(cli_opts->sysFsRootDir());
 	if(!sys_fs_root_dir.isEmpty() && QDir(sys_fs_root_dir).exists()) {

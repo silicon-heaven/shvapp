@@ -6,6 +6,7 @@
 #include "dlgapplog.h"
 #include "thresholdsdialog.h"
 #include "settings.h"
+#include "logview/dlglogview.h"
 
 #include <shv/coreqt/log.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
@@ -80,7 +81,9 @@ MainWindow::MainWindow(QWidget *parent)
 	});
 	connect(ui->actSettingsConnection, &QAction::triggered, [this]() {
 		SettingsDialog dlg(this);
-		dlg.exec();
+		if(dlg.exec()) {
+			QMessageBox::information(this, "JN50 View", "Změny se projeví až po restartu aplikace");
+		}
 	});
 	connect(ui->actSettingsTresholds, &QAction::triggered, [this]() {
 		ThresholdsDialog dlg(this);
@@ -95,6 +98,12 @@ MainWindow::MainWindow(QWidget *parent)
 				settings.setPassword(pwd);
 			}
 		}
+	});
+	connect(ui->actShowLog, &QAction::triggered, [this]() {
+		DlgLogView dlg(this);
+		Jn50ViewApp *app = Jn50ViewApp::instance();
+		dlg.setShvPath(QString::fromStdString(app->cliOptions()->converterShvPath()));
+		dlg.exec();
 	});
 	connect(ui->actHelpAbout, &QAction::triggered, [this]() {
 		QMessageBox::about(this

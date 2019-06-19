@@ -222,6 +222,10 @@ void SubscriptionsModel::addSubscription(Subscription sub)
 		m_subscriptions.append(sub);
 		endInsertRows();
 	}
+	else{
+		m_subscriptions[sub_ix].setIsEnabled(true);
+		emit dataChanged(createIndex(sub_ix, Columns::ColEnabled), createIndex(sub_ix, Columns::ColEnabled), QVector<int>() << Qt::CheckStateRole);
+	}
 }
 
 int SubscriptionsModel::subscriptionIndex(int broker_id, const QString &shv_path, const QString &method)

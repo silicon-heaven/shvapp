@@ -25,7 +25,7 @@ LIBS += \
 	-lshvcore \
 	-lshvcoreqt \
 	-lshviotqt \
-	#-lshvgui \
+    -lshvvisu \
 
 unix {
 	LIBS += \
@@ -39,16 +39,19 @@ INCLUDEPATH += \
 	$$SHV_PROJECT_TOP_SRCDIR/3rdparty/libshv/libshvchainpack/include \
 	$$SHV_PROJECT_TOP_SRCDIR/3rdparty/libshv/libshvcore/include \
 	$$SHV_PROJECT_TOP_SRCDIR/3rdparty/libshv/libshvcoreqt/include \
-	$$SHV_PROJECT_TOP_SRCDIR/3rdparty/libshv/libshviotqt/include \
-	#$$SHV_PROJECT_TOP_SRCDIR/3rdparty/shvgui/libshvgui/include \
+    $$SHV_PROJECT_TOP_SRCDIR/3rdparty/libshv/libshviotqt/include \
+    $$SHV_PROJECT_TOP_SRCDIR/3rdparty/libshv/libshvvisu/include \
 
 RESOURCES += \
+	images/images.qrc
 
 
 TRANSLATIONS += \
 
 include (src/src.pri)
 
-FORMS +=
+win32 {
+RC_ICONS = flatline.ico
+}
 
 

@@ -1,5 +1,6 @@
 
 HEADERS += \
+    $$PWD/version.h \
     $$PWD/appclioptions.h \
     $$PWD/brokerapp.h \
     $$PWD/brokernode.h \
