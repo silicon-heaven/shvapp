@@ -13,7 +13,6 @@
 #include <QTcpSocket>
 #include <QTimer>
 
-#define logRpcMsg() shvCDebug("RpcMsg")
 #define logSubscriptionsD() nCDebug("Subscr").color(NecroLog::Color::Yellow)
 #define logSubsResolveD() nCDebug("SubsRes").color(NecroLog::Color::LightGreen)
 
@@ -74,7 +73,9 @@ void ClientBrokerConnection::setIdleWatchDogTimeOut(int sec)
 		if(!m_idleWatchDogTimer) {
 			m_idleWatchDogTimer = new QTimer(this);
 			connect(m_idleWatchDogTimer, &QTimer::timeout, [this]() {
-				shvError() << "Connection was idle for more than" << m_idleWatchDogTimer->interval()/1000 << "sec. It will be aborted.";
+				std::string mount_points = shv::core::String::join(mountPoints(), ", ");
+				shvError() << "Connection id:" << connectionId() << "device id:" << deviceId().toCpon() << "mount points:" << mount_points
+						   << "was idle for more than" << m_idleWatchDogTimer->interval()/1000 << "sec. It will be aborted.";
 				this->abort();
 			});
 		}

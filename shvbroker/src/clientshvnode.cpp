@@ -6,8 +6,6 @@
 
 #include <shv/coreqt/log.h>
 
-#define logRpcMsg() shvCDebug("RpcMsg")
-
 namespace cp = shv::chainpack;
 
 //======================================================================

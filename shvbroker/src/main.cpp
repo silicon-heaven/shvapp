@@ -1,4 +1,5 @@
 #include "brokerapp.h"
+#include "version.h"
 #include "appclioptions.h"
 #include "utils/network.h"
 
@@ -20,7 +21,7 @@ int main(int argc, char *argv[])
 	QCoreApplication::setOrganizationName("Elektroline");
 	QCoreApplication::setOrganizationDomain("elektroline.cz");
 	QCoreApplication::setApplicationName("shvbroker");
-	QCoreApplication::setApplicationVersion("0.0.1");
+	QCoreApplication::setApplicationVersion(APP_VERSION);
 
 	NecroLog::registerTopic("Tunnel", "tunneling");
 	NecroLog::registerTopic("Acl", "users and grants resolving");
@@ -59,7 +60,9 @@ int main(int argc, char *argv[])
 	shv::chainpack::RpcMessage::registerMetaTypes();
 
 	shvInfo() << "======================================================================================";
-	shvInfo() << "Starting SHV BROKER server, PID:" << QCoreApplication::applicationPid() << "build:" << __DATE__ << __TIME__;
+	shvInfo() << "Starting SHV BROKER server ver:" << APP_VERSION
+				 << "PID:" << QCoreApplication::applicationPid()
+				 << "build:" << __DATE__ << __TIME__;
 #ifdef GIT_COMMIT
 	shvInfo() << "GIT commit:" << SHV_EXPAND_AND_QUOTE(GIT_COMMIT);
 #endif
