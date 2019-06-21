@@ -1,4 +1,5 @@
 HEADERS += \
+	$$PWD/version.h \
 	$$PWD/mainwindow.h \
 	$$PWD/dlgserverproperties.h \
 	$$PWD/theapp.h \

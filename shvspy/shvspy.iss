@@ -4,8 +4,9 @@
 #define APP_NAME "SHVSPY"
 #define APP_NAME_LOWER "shvspy"
 #define COMPANY "elektroline"
-#define VERSION "0.1"
-
+#ifndef VERSION
+#define VERSION "0.0.1"
+#endif
 #define QT_DIR "C:\Qt\5.12.0\mingw73_64"
 #define MINGW_DIR "C:\Qt\Tools\mingw730_64"
 ;#define PSQL_DIR "C:\app\pgsql32"

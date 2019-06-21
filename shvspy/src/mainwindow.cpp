@@ -18,8 +18,7 @@
 #include <shv/chainpack/chainpackwriter.h>
 #include <shv/chainpack/cponreader.h>
 #include <shv/chainpack/cponwriter.h>
-
-//#include <qfopcua/client.h>
+#include <shv/visu/logview/dlgloginspector.h>
 
 #include <shv/coreqt/log.h>
 
@@ -71,12 +70,26 @@ MainWindow::MainWindow(QWidget *parent) :
 	connect(tree_model, &ServerTreeModel::brokerConnectedChanged, ui->subscriptionsWidget, &SubscriptionsWidget::onBrokerConnectedChanged);
 	connect(tree_model, &ServerTreeModel::subscriptionAdded, ui->subscriptionsWidget, &SubscriptionsWidget::onSubscriptionAdded);
 
-	ui->tblAttributes->setModel(TheApp::instance()->attributesModel());
+	AttributesModel *attr_model = TheApp::instance()->attributesModel();
+	ui->tblAttributes->setModel(attr_model);
 	ui->tblAttributes->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
-	ui->tblAttributes->verticalHeader()->setDefaultSectionSize(fontMetrics().height() * 1.3);
+	ui->tblAttributes->verticalHeader()->setDefaultSectionSize(static_cast<int>(fontMetrics().height() * 1.3));
 	ui->tblAttributes->setContextMenuPolicy(Qt::CustomContextMenu);
 
-	connect(TheApp::instance()->attributesModel(), &AttributesModel::reloaded, this, &MainWindow::resizeAttributesViewSectionsToFit);
+	connect(attr_model, &AttributesModel::reloaded, [this]() {
+		ui->btLogInspector->setEnabled(false);
+		ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
+		if(nd) {
+			for(const auto &mm : nd->methods()) {
+				if(mm.method == cp::Rpc::METH_GET_LOG) {
+					ui->btLogInspector->setEnabled(true);
+					break;
+				}
+			}
+		}
+	});
+
+	connect(attr_model, &AttributesModel::reloaded, this, &MainWindow::resizeAttributesViewSectionsToFit);
 	connect(TheApp::instance()->attributesModel(), &AttributesModel::methodCallResultChanged, this, [this](int method_ix) {
 		Q_UNUSED(method_ix)
 		this->resizeAttributesViewSectionsToFit();
@@ -96,6 +109,7 @@ MainWindow::MainWindow(QWidget *parent) :
 		}
 	}, Qt::QueuedConnection);
 
+	connect(ui->btLogInspector, &QPushButton::clicked, this, &MainWindow::openLogInspector);
 
 	ui->notificationsLogWidget->setLogTableModel(TheApp::instance()->rpcNotificationsModel());
 	ui->errorLogWidget->setLogTableModel(TheApp::instance()->errorLogModel());
@@ -380,7 +394,7 @@ void MainWindow::onShvTreeViewCurrentSelectionChanged(const QModelIndex &curr_ix
 {
 	Q_UNUSED(prev_ix)
 	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(curr_ix);
-	{
+	if(nd) {
 		AttributesModel *m = TheApp::instance()->attributesModel();
 		ui->edAttributesShvPath->setText(QString::fromStdString(nd->shvPath()));
 		ShvBrokerNodeItem *bnd = qobject_cast<ShvBrokerNodeItem*>(nd);
@@ -427,4 +441,31 @@ void MainWindow::saveSettings()
 	settings.setValue(QStringLiteral("ui/mainWindow/state"), saveState());
 	settings.setValue(QStringLiteral("ui/mainWindow/geometry"), saveGeometry());
 	TheApp::instance()->saveSettings(settings);
+}
+
+void MainWindow::openLogInspector()
+{
+	ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
+	if(nd) {
+		shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
+		shv::visu::logview::DlgLogInspector dlg(this);
+		dlg.setRpcConnection(cc);
+		dlg.setShvPath(ui->edAttributesShvPath->text());
+		dlg.exec();
+	}
+}
+
+void MainWindow::on_actHelpAbout_triggered()
+{
+	QMessageBox::about(this
+					   , QCoreApplication::applicationName()
+					   , "<p><b>" + QCoreApplication::applicationName() + "</b></p>"
+						 "<p>ver. " + QCoreApplication::applicationVersion() + "</p>"
+				   #ifdef GIT_COMMIT
+						 "<p>git commit: " + SHV_EXPAND_AND_QUOTE(GIT_COMMIT) + "</p>"
+				   #endif
+						 "<p>Silicon Heaven Swiss Knife</p>"
+						 "<p>2019 Elektroline a.s.</p>"
+						 "<p><a href=\"https://github.com/silicon-heaven\">github.com/silicon-heaven</a></p>"
+					   );
 }
