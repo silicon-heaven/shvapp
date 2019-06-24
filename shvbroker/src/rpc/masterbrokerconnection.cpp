@@ -4,7 +4,7 @@
 #include <shv/chainpack/rpcmessage.h>
 #include <shv/core/string.h>
 #include <shv/coreqt/log.h>
-#include <shv/iotqt/utils/shvpath.h>
+#include <shv/core/utils/shvpath.h>
 
 namespace cp = shv::chainpack;
 
@@ -43,7 +43,7 @@ void MasterBrokerConnection::sendMessage(const shv::chainpack::RpcMessage &rpc_m
 
 unsigned MasterBrokerConnection::addSubscription(const std::string &rel_path, const std::string &method)
 {
-	if(shv::iotqt::utils::ShvPath::isRelativePath(rel_path))
+	if(shv::core::utils::ShvPath::isRelativePath(rel_path))
 		SHV_EXCEPTION("This could never happen by SHV design logic, master broker tries to subscribe relative path: "  + rel_path);
 	Subscription subs(masterExportedToLocalPath(rel_path), std::string(), method);
 	return CommonRpcClientHandle::addSubscription(subs);
@@ -51,7 +51,7 @@ unsigned MasterBrokerConnection::addSubscription(const std::string &rel_path, co
 
 bool MasterBrokerConnection::removeSubscription(const std::string &rel_path, const std::string &method)
 {
-	if(shv::iotqt::utils::ShvPath::isRelativePath(rel_path))
+	if(shv::core::utils::ShvPath::isRelativePath(rel_path))
 		SHV_EXCEPTION("This could never happen by SHV design logic, master broker tries to subscribe relative path: "  + rel_path);
 	Subscription subs(masterExportedToLocalPath(rel_path), std::string(), method);
 	return CommonRpcClientHandle::removeSubscription(subs);
@@ -67,7 +67,7 @@ std::string MasterBrokerConnection::masterExportedToLocalPath(const std::string 
 {
 	if(m_exportedShvPath.empty())
 		return master_path;
-	if(shv::iotqt::utils::ShvPath::startsWithPath(master_path, cp::Rpc::DIR_BROKER))
+	if(shv::core::utils::ShvPath::startsWithPath(master_path, cp::Rpc::DIR_BROKER))
 		return master_path;
 	return m_exportedShvPath + '/' + master_path;
 }
@@ -77,7 +77,7 @@ std::string MasterBrokerConnection::localPathToMasterExported(const std::string 
 	if(m_exportedShvPath.empty())
 		return local_path;
 	size_t pos;
-	if(shv::iotqt::utils::ShvPath::startsWithPath(local_path, m_exportedShvPath, &pos))
+	if(shv::core::utils::ShvPath::startsWithPath(local_path, m_exportedShvPath, &pos))
 		return local_path.substr(pos);
 	return local_path;
 }

@@ -5,7 +5,7 @@
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/node/shvnodetree.h>
 #include <shv/iotqt/node/localfsnode.h>
-#include <shv/iotqt/utils/shvpath.h>
+#include <shv/core/utils/shvpath.h>
 #include <shv/coreqt/log.h>
 #include <shv/chainpack/metamethod.h>
 
@@ -346,7 +346,7 @@ const std::string &BfsViewApp::bfsStatusShvPath()
 	if(shv_path.empty()) {
 		QSettings qsettings;
 		Settings settings(qsettings);
-		shv_path = shv::iotqt::utils::ShvPath::join(settings.bfsShvPath().toStdString(), "status");
+		shv_path = shv::core::utils::ShvPath::join(settings.bfsShvPath().toStdString(), "status");
 	}
 	return shv_path;
 }

@@ -4,7 +4,7 @@
 #include <shv/chainpack/metamethod.h>
 #include <shv/chainpack/rpcvalue.h>
 #include <shv/chainpack/rpc.h>
-#include <shv/iotqt/utils/fileshvjournal.h>
+#include <shv/core/utils/fileshvjournal.h>
 
 namespace cp = shv::chainpack;
 namespace iot = shv::iotqt;
@@ -42,7 +42,7 @@ shv::chainpack::RpcValue HistoryNode::callMethod(const shv::iotqt::node::ShvNode
 {
 	if(shv_path.empty()) {
 		if(method == cp::Rpc::METH_GET_LOG) {
-			return RevitestApp::instance()->shvJournal()->getLog(shv::iotqt::utils::ShvJournalGetLogParams(params));
+			return RevitestApp::instance()->shvJournal()->getLog(shv::core::utils::ShvJournalGetLogParams(params));
 		}
 	}
 	return Super::callMethod(shv_path, method, params);

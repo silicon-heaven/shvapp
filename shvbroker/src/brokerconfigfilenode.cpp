@@ -1,7 +1,7 @@
 #include "brokerconfigfilenode.h"
 #include "brokerapp.h"
 
-#include <shv/iotqt/utils/shvpath.h>
+#include <shv/core/utils/shvpath.h>
 #include <shv/chainpack/metamethod.h>
 #include <shv/chainpack/rpc.h>
 #include <shv/core/string.h>
@@ -430,7 +430,7 @@ shv::iotqt::node::ShvNode::StringList BrokerPathsConfigFileNode::childNames(cons
 	if(shv_path.size() == 1) {
 		std::vector<std::string> keys = values().at(shv_path[0].toString()).toMap().keys();
 		for (size_t i = 0; i < keys.size(); ++i)
-			keys[i] = shv::iotqt::utils::ShvPath::SHV_PATH_QUOTE + keys[i] + shv::iotqt::utils::ShvPath::SHV_PATH_QUOTE;
+			keys[i] = shv::core::utils::ShvPath::SHV_PATH_QUOTE + keys[i] + shv::core::utils::ShvPath::SHV_PATH_QUOTE;
 
 		return keys;
 	}

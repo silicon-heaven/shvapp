@@ -5,7 +5,7 @@
 #include <shv/coreqt/log.h>
 #include <shv/iotqt/rpc/clientappclioptions.h>
 #include <shv/iotqt/rpc/clientconnection.h>
-#include <shv/iotqt/utils/shvpath.h>
+#include <shv/core/utils/shvpath.h>
 
 #include <QTimer>
 

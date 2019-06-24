@@ -6,7 +6,7 @@
 #include <shv/chainpack/cponwriter.h>
 #include <shv/coreqt/log.h>
 #include <shv/core/stringview.h>
-#include <shv/iotqt/utils/shvpath.h>
+#include <shv/core/utils/shvpath.h>
 #include <shv/iotqt/rpc/socket.h>
 
 #include <QCryptographicHash>
@@ -136,7 +136,7 @@ void ClientBrokerConnection::sendRawData(const shv::chainpack::RpcValue::MetaDat
 
 std::string ClientBrokerConnection::resolveLocalPath(const std::string rel_path)
 {
-	if(!shv::iotqt::utils::ShvPath::isRelativePath(rel_path))
+	if(!shv::core::utils::ShvPath::isRelativePath(rel_path))
 		return rel_path;
 
 	const std::vector<std::string> &mps = mountPoints();
@@ -151,19 +151,19 @@ std::string ClientBrokerConnection::resolveLocalPath(const std::string rel_path)
 		/// then relative path must be resolved with respect to it
 		mount_point = mbconn->localPathToMasterExported(mount_point);
 	}
-	std::string local_path = shv::iotqt::utils::ShvPath::joinAndClean(mount_point, rel_path);
-	if(!shv::iotqt::utils::ShvPath::isRelativePath(local_path) && mbconn) {
+	std::string local_path = shv::core::utils::ShvPath::joinAndClean(mount_point, rel_path);
+	if(!shv::core::utils::ShvPath::isRelativePath(local_path) && mbconn) {
 		/// not relative path after join
 		/// no need to send it to the master broker, still local path,
 		/// prepend exported path
-		local_path = shv::iotqt::utils::ShvPath::join(mbconn->exportedShvPath(), local_path);
+		local_path = shv::core::utils::ShvPath::join(mbconn->exportedShvPath(), local_path);
 	}
 	return local_path;
 }
 
 unsigned ClientBrokerConnection::addSubscription(const std::string &rel_path, const std::string &method)
 {
-	Subscription subs = shv::iotqt::utils::ShvPath::isRelativePath(rel_path)?
+	Subscription subs = shv::core::utils::ShvPath::isRelativePath(rel_path)?
 				Subscription{resolveLocalPath(rel_path), rel_path, method}:
 				Subscription{rel_path, std::string(), method};
 	return CommonRpcClientHandle::addSubscription(subs);
@@ -171,7 +171,7 @@ unsigned ClientBrokerConnection::addSubscription(const std::string &rel_path, co
 
 bool ClientBrokerConnection::removeSubscription(const std::string &rel_path, const std::string &method)
 {
-	Subscription subs = shv::iotqt::utils::ShvPath::isRelativePath(rel_path)?
+	Subscription subs = shv::core::utils::ShvPath::isRelativePath(rel_path)?
 				Subscription{resolveLocalPath(rel_path), rel_path, method}:
 				Subscription{rel_path, std::string(), method};
 	return CommonRpcClientHandle::removeSubscription(subs);
@@ -232,14 +232,14 @@ void ClientBrokerConnection::propagateSubscriptionToSlaveBroker(const CommonRpcC
 	if(!isSlaveBrokerConnection())
 		return;
 	for(const std::string &mount_point : mountPoints()) {
-		if(shv::iotqt::utils::ShvPath(subs.absolutePath).startsWithPath(mount_point)) {
+		if(shv::core::utils::ShvPath(subs.absolutePath).startsWithPath(mount_point)) {
 			std::string slave_path = subs.absolutePath.substr(mount_point.size());
 			if(!slave_path.empty() && slave_path[0] == '/')
 				slave_path = slave_path.substr(1);
 			callMethodSubscribe(slave_path, subs.method, cp::Rpc::GRANT_MASTER_BROKER);
 			return;
 		}
-		if(shv::iotqt::utils::ShvPath(mount_point).startsWithPath(subs.absolutePath)) {
+		if(shv::core::utils::ShvPath(mount_point).startsWithPath(subs.absolutePath)) {
 			callMethodSubscribe(std::string(), subs.method, cp::Rpc::GRANT_MASTER_BROKER);
 			return;
 		}

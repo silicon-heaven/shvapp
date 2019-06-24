@@ -16,7 +16,7 @@
 #include <shv/iotqt/node/shvnode.h>
 #include <shv/iotqt/node/shvnodetree.h>
 #include <shv/iotqt/rpc/brokerconnection.h>
-#include <shv/iotqt/utils/shvpath.h>
+#include <shv/core/utils/shvpath.h>
 
 #include <shv/coreqt/log.h>
 
@@ -122,7 +122,7 @@ public:
 			for(int id : app->clientConnectionIds()) {
 				rpc::ClientBrokerConnection *conn = app->clientConnectionById(id);
 				for(const std::string &mp : conn->mountPoints()) {
-					lst.push_back(shv::iotqt::utils::ShvPath::SHV_PATH_QUOTE + mp + shv::iotqt::utils::ShvPath::SHV_PATH_QUOTE);
+					lst.push_back(shv::core::utils::ShvPath::SHV_PATH_QUOTE + mp + shv::core::utils::ShvPath::SHV_PATH_QUOTE);
 				}
 			}
 			return lst;
@@ -575,7 +575,7 @@ std::string BrokerApp::resolveMountPoint(const shv::chainpack::RpcValue::Map &de
 		mount_point = mountPointForDevice(device_id);
 	if(mount_point.empty()) {
 		mount_point = device_opts.value(cp::Rpc::KEY_MOUT_POINT).toString();
-		std::vector<shv::core::StringView> path = shv::iotqt::utils::ShvPath::split(mount_point);
+		std::vector<shv::core::StringView> path = shv::core::utils::ShvPath::split(mount_point);
 		if(path.size() && !(path[0] == "test")) {
 			shvWarning() << "Mount point can be explicitly specified to test/ dir only, dev id:" << device_id.toCpon();
 			mount_point.clear();
@@ -667,7 +667,7 @@ void BrokerApp::propagateSubscriptionsToMasterBroker()
 		rpc::ClientBrokerConnection *conn = clientConnectionById(id);
 		for (size_t i = 0; i < conn->subscriptionCount(); ++i) {
 			const rpc::CommonRpcClientHandle::Subscription &subs = conn->subscriptionAt(i);
-			if(shv::iotqt::utils::ShvPath::isRelativePath(subs.absolutePath)) {
+			if(shv::core::utils::ShvPath::isRelativePath(subs.absolutePath)) {
 				logSubscriptionsD() << "client id:" << id << "propagating subscription for path:" << subs.absolutePath << "method:" << subs.method;
 				mbrconn->callMethodSubscribe(subs.absolutePath, subs.method);
 			}
@@ -702,7 +702,7 @@ cp::Rpc::AccessGrant BrokerApp::accessGrantForRequest(rpc::CommonRpcClientHandle
 #endif
 	cp::Rpc::AccessGrant ret;
 	//shv::chainpack::RpcValue user = usersConfig().toMap().value(user_name);
-	shv::iotqt::node::ShvNode::StringViewList shv_path_lst = shv::iotqt::utils::ShvPath::split(rq_shv_path);
+	shv::iotqt::node::ShvNode::StringViewList shv_path_lst = shv::core::utils::ShvPath::split(rq_shv_path);
 	const std::set<std::string> &user_flattent_grants = conn->isMasterBrokerConnection()
 			? (rq_grant.empty()? std::set<std::string>{cp::Rpc::GRANT_MASTER_BROKER}: std::set<std::string>{rq_grant, cp::Rpc::GRANT_MASTER_BROKER}) // master broker has allways grant masterBroker
 			: userFlattenGrants(conn->loggedUserName());
@@ -713,7 +713,7 @@ cp::Rpc::AccessGrant BrokerApp::accessGrantForRequest(rpc::CommonRpcClientHandle
 			const std::string &p = kv.first;
 			logAclD().nospace() << "\t checking if path: '" << rq_shv_path << "' match granted path: '" << p << "'";
 			//logAclD().nospace() << "\t cheking if path: '" << shv_path << "' starts with granted path: '" << p << "' ,result:" << shv::core::String::startsWith(shv_path, p);
-			shv::iotqt::node::ShvNode::StringViewList grant_path_pattern = shv::iotqt::utils::ShvPath::split(p);
+			shv::iotqt::node::ShvNode::StringViewList grant_path_pattern = shv::core::utils::ShvPath::split(p);
 			/*
 			for(size_t i=0; i<grant_path_pattern.size(); i++) {
 				if(grant_path_pattern[i] == "{{rq.shvPath}}")
@@ -723,7 +723,7 @@ cp::Rpc::AccessGrant BrokerApp::accessGrantForRequest(rpc::CommonRpcClientHandle
 			}
 			*/
 			do {
-				if(!shv::iotqt::utils::ShvPath::matchWild(shv_path_lst, grant_path_pattern))
+				if(!shv::core::utils::ShvPath::matchWild(shv_path_lst, grant_path_pattern))
 					break;
 				const cp::RpcValue::Map &path_grant = kv.second.toMap();
 				std::string gn = path_grant.value("grant").toString();
@@ -912,12 +912,12 @@ void BrokerApp::onRpcDataReceived(int connection_id, shv::chainpack::Rpc::Protoc
 				connection_handle = broker_connection;
 			std::string shv_path = cp::RpcMessage::shvPath(meta).toString();
 			if(connection_handle) {
-				if(shv::iotqt::utils::ShvPath::isRelativePath(shv_path)) {
+				if(shv::core::utils::ShvPath::isRelativePath(shv_path)) {
 					rpc::MasterBrokerConnection *master_broker_conn = mainMasterBrokerConnection();
 					if(client_connection) {
 						shv_path = client_connection->resolveLocalPath(shv_path);
 					}
-					if(shv::iotqt::utils::ShvPath::isRelativePath(shv_path)) {
+					if(shv::core::utils::ShvPath::isRelativePath(shv_path)) {
 						/// still relative path, it should be forwarded to mater broker
 						if(master_broker_conn == nullptr)
 							SHV_EXCEPTION("Cannot resolve relative path " + cp::RpcMessage::shvPath(meta).toString() + ", there is no master broker to forward the request.");
@@ -1040,7 +1040,7 @@ void BrokerApp::onRpcDataReceived(int connection_id, shv::chainpack::Rpc::Protoc
 		}
 		const std::string sig_shv_path = cp::RpcMessage::shvPath(meta).toString();
 		for(const std::string &mp : mount_points) {
-			std::string full_shv_path = shv::iotqt::utils::ShvPath::join(mp, sig_shv_path);
+			std::string full_shv_path = shv::core::utils::ShvPath::join(mp, sig_shv_path);
 			if(full_shv_path.empty()) {
 				shvError() << "SIGNAL with empty shv path received from master broker connection.";
 			}
@@ -1171,7 +1171,7 @@ void BrokerApp::addSubscription(int client_id, const std::string &shv_path, cons
 	//logSubscriptionsD() << "addSubscription connection id:" << client_id << "path:" << path << "method:" << method;
 	auto subs_ix = conn->addSubscription(shv_path, method);
 	const rpc::CommonRpcClientHandle::Subscription &subs = conn->subscriptionAt(subs_ix);
-	if(shv::iotqt::utils::ShvPath::isRelativePath(subs.absolutePath)) {
+	if(shv::core::utils::ShvPath::isRelativePath(subs.absolutePath)) {
 		/// still relative path, should be propagated to the master broker
 		rpc::MasterBrokerConnection *mbrconn = mainMasterBrokerConnection();
 		if(mbrconn) {

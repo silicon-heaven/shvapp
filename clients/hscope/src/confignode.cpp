@@ -5,7 +5,7 @@
 #include <shv/chainpack/cponwriter.h>
 #include <shv/core/exception.h>
 #include <shv/coreqt/log.h>
-#include <shv/iotqt/utils/shvpath.h>
+#include <shv/core/utils/shvpath.h>
 
 #include <fstream>
 

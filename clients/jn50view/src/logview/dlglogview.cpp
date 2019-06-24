@@ -6,7 +6,7 @@
 #include "../jn50viewapp.h"
 
 #include <shv/chainpack/rpcvalue.h>
-#include <shv/iotqt/utils/shvjournalgetlogparams.h>
+#include <shv/core/utils/shvjournalgetlogparams.h>
 #include <shv/iotqt/rpc/clientconnection.h>
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
 #include <shv/iotqt/utils.h>
@@ -97,7 +97,7 @@ shv::iotqt::rpc::ClientConnection *DlgLogView::rpcConnection()
 
 shv::chainpack::RpcValue DlgLogView::getLogParams()
 {
-	shv::iotqt::utils::ShvJournalGetLogParams params;
+	shv::core::utils::ShvJournalGetLogParams params;
 	auto get_dt = [](QDateTimeEdit *ed) {
 		QDateTime dt = ed->dateTime();
 		return dt == ed->minimumDateTime()?  cp::RpcValue():  cp::RpcValue::DateTime::fromMSecsSinceEpoch(ed->dateTime().toMSecsSinceEpoch());
@@ -110,13 +110,13 @@ shv::chainpack::RpcValue DlgLogView::getLogParams()
 	params.withSnapshot = ui->chkWithSnapshot->isChecked();
 	unsigned header_opts = 0;
 	if(ui->chkBasicInfo->isChecked())
-		header_opts |= static_cast<unsigned>(shv::iotqt::utils::ShvJournalGetLogParams::HeaderOptions::BasicInfo);
+		header_opts |= static_cast<unsigned>(shv::core::utils::ShvJournalGetLogParams::HeaderOptions::BasicInfo);
 	if(ui->chkFieldInfo->isChecked())
-		header_opts |= static_cast<unsigned>(shv::iotqt::utils::ShvJournalGetLogParams::HeaderOptions::FieldInfo);
+		header_opts |= static_cast<unsigned>(shv::core::utils::ShvJournalGetLogParams::HeaderOptions::FieldInfo);
 	if(ui->chkTypeInfo->isChecked())
-		header_opts |= static_cast<unsigned>(shv::iotqt::utils::ShvJournalGetLogParams::HeaderOptions::TypeInfo);
+		header_opts |= static_cast<unsigned>(shv::core::utils::ShvJournalGetLogParams::HeaderOptions::TypeInfo);
 	if(ui->chkPathsDict->isChecked())
-		header_opts |= static_cast<unsigned>(shv::iotqt::utils::ShvJournalGetLogParams::HeaderOptions::PathsDict);
+		header_opts |= static_cast<unsigned>(shv::core::utils::ShvJournalGetLogParams::HeaderOptions::PathsDict);
 	params.headerOptions = header_opts;
 	return params.toRpcValue();
 }

@@ -4,7 +4,7 @@
 #include "hnodebroker.h"
 
 #include <shv/coreqt/log.h>
-#include <shv/iotqt/utils/shvpath.h>
+#include <shv/core/utils/shvpath.h>
 
 #include <QDirIterator>
 

@@ -9,8 +9,8 @@
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
 #include <shv/iotqt/node/shvnodetree.h>
-#include <shv/iotqt/utils/fileshvjournal.h>
-#include <shv/iotqt/utils/shvpath.h>
+#include <shv/core/utils/fileshvjournal.h>
+#include <shv/core/utils/shvpath.h>
 #include <shv/coreqt/log.h>
 
 #include <QTimer>
@@ -68,7 +68,7 @@ shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path,
 			return HScopeApp::instance()->rpcConnection()->loginResult().value(cp::Rpc::KEY_CLIENT_ID);
 		}
 		if(method == cp::Rpc::METH_GET_LOG) {
-			return HScopeApp::instance()->shvJournal()->getLog(shv::iotqt::utils::ShvJournalGetLogParams(params));
+			return HScopeApp::instance()->shvJournal()->getLog(shv::core::utils::ShvJournalGetLogParams(params));
 		}
 	}
 	return Super::callMethod(shv_path, method, params);
@@ -81,7 +81,7 @@ HScopeApp::HScopeApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
 {
-	m_shvJournal = new shv::iotqt::utils::FileShvJournal([this](std::vector<shv::iotqt::utils::ShvJournalEntry> &s) { this->getSnapshot(s); });
+	m_shvJournal = new shv::core::utils::FileShvJournal(applicationName().toStdString(), [this](std::vector<shv::core::utils::ShvJournalEntry> &s) { this->getSnapshot(s); });
 	if(cli_opts->shvJournalDir_isset())
 		m_shvJournal->setJournalDir(cli_opts->shvJournalDir());
 	m_shvJournal->setFileSizeLimit(cli_opts->shvJournalFileSizeLimit());
@@ -181,11 +181,11 @@ void HScopeApp::createNodes()
 	m_brokersNode->load();
 }
 
-void HScopeApp::getSnapshot(std::vector<shv::iotqt::utils::ShvJournalEntry> &snapshot)
+void HScopeApp::getSnapshot(std::vector<shv::core::utils::ShvJournalEntry> &snapshot)
 {
 	auto lst = m_shvTree->root()->findChildren<HNodeTest*>(QString(), Qt::FindChildrenRecursively);
 	for(const HNodeTest *nd : lst) {
-		shv::iotqt::utils::ShvJournalEntry e;
+		shv::core::utils::ShvJournalEntry e;
 		e.path = nd->shvPath() + "/status";
 		e.value = nd->status().toRpcValue();
 		snapshot.push_back(std::move(e));

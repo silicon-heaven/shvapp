@@ -6,7 +6,7 @@
 #include "confignode.h"
 
 #include <shv/coreqt/log.h>
-#include <shv/iotqt/utils/shvpath.h>
+#include <shv/core/utils/shvpath.h>
 
 #include <QDirIterator>
 
@@ -267,7 +267,7 @@ NodeStatus HNode::overallChildrenStatus()
 
 shv::chainpack::RpcValue HNode::configValueOnPath(const std::string &shv_path, const shv::chainpack::RpcValue &default_val) const
 {
-	shv::core::StringViewList lst = shv::iotqt::utils::ShvPath::split(shv_path);
+	shv::core::StringViewList lst = shv::core::utils::ShvPath::split(shv_path);
 	shv::chainpack::RpcValue val = m_confignode->valueOnPath(lst, !shv::core::Exception::Throw);
 	if(val.isValid())
 		return val;

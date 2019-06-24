@@ -4,7 +4,7 @@
 
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
-#include <shv/iotqt/utils/fileshvjournal.h>
+#include <shv/core/utils/fileshvjournal.h>
 #include <shv/iotqt/node/shvnodetree.h>
 #include <shv/core/log.h>
 #include <shv/chainpack/rpcdriver.h>
@@ -26,7 +26,7 @@ RevitestApp::RevitestApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
 {
-	m_shvJournal = new shv::iotqt::utils::FileShvJournal([this](std::vector<shv::iotqt::utils::ShvJournalEntry> &s) { this->getSnapshot(s); });
+	m_shvJournal = new shv::core::utils::FileShvJournal(applicationName().toStdString(), [this](std::vector<shv::core::utils::ShvJournalEntry> &s) { this->getSnapshot(s); });
 	if(cli_opts->shvJournalDir_isset())
 		m_shvJournal->setJournalDir(cli_opts->shvJournalDir());
 	m_shvJournal->setFileSizeLimit(cli_opts->shvJournalFileSizeLimit());
@@ -121,7 +121,7 @@ void RevitestApp::onBrokerConnectedChanged(bool is_connected)
 	}
 }
 
-void RevitestApp::getSnapshot(std::vector<shv::iotqt::utils::ShvJournalEntry> &snapshot)
+void RevitestApp::getSnapshot(std::vector<shv::core::utils::ShvJournalEntry> &snapshot)
 {
 	m_revitest->getSnapshot(snapshot);
 }

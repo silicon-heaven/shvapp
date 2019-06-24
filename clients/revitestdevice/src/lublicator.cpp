@@ -3,7 +3,7 @@
 #include "appclioptions.h"
 
 #include <shv/iotqt/node/shvnodetree.h>
-#include <shv/iotqt/utils/fileshvjournal.h>
+#include <shv/core/utils/fileshvjournal.h>
 
 #include <shv/chainpack/rpcmessage.h>
 #include <shv/chainpack/metamethod.h>
@@ -222,7 +222,7 @@ shv::chainpack::RpcValue Lublicator::callMethod(const StringViewList &shv_path, 
 
 shv::chainpack::RpcValue Lublicator::getLog(const shv::chainpack::RpcValue &params)
 {
-	shv::iotqt::utils::ShvJournalGetLogParams p(params);
+	shv::core::utils::ShvJournalGetLogParams p(params);
 	if(p.pathPattern.empty())
 		p.pathPattern = nodeId() + "/**";
 	else

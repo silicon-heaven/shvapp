@@ -3,7 +3,7 @@
 #include "historynode.h"
 #include "revitestapp.h"
 
-#include <shv/iotqt/utils/fileshvjournal.h>
+#include <shv/core/utils/fileshvjournal.h>
 #include <shv/iotqt/node//shvnodetree.h>
 #include <shv/coreqt/log.h>
 
@@ -56,20 +56,20 @@ void RevitestDevice::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 	}
 }
 
-void RevitestDevice::getSnapshot(std::vector<shv::iotqt::utils::ShvJournalEntry> &snapshot)
+void RevitestDevice::getSnapshot(std::vector<shv::core::utils::ShvJournalEntry> &snapshot)
 {
 	for(const auto &id : m_shvTree->root()->childNames()) {
 		Lublicator *nd = qobject_cast<Lublicator*>(m_shvTree->root()->childNode(id));
 		if(!nd)
 			continue;
 		{
-			shv::iotqt::utils::ShvJournalEntry e;
+			shv::core::utils::ShvJournalEntry e;
 			e.path = id + '/' + Lublicator::PROP_STATUS;
 			e.value = nd->callMethod(shv::iotqt::node::ShvNode::StringViewList{shv::iotqt::node::ShvNode::StringView(Lublicator::PROP_STATUS)}, cp::Rpc::METH_GET, cp::RpcValue());
 			snapshot.emplace_back(std::move(e));
 		}
 		{
-			shv::iotqt::utils::ShvJournalEntry e;
+			shv::core::utils::ShvJournalEntry e;
 			e.path = id + '/' + Lublicator::PROP_BATTERY_VOLTAGE;
 			e.value = nd->callMethod(shv::iotqt::node::ShvNode::StringViewList{}, Lublicator::PROP_BATTERY_VOLTAGE, cp::RpcValue());
 			snapshot.emplace_back(std::move(e));
