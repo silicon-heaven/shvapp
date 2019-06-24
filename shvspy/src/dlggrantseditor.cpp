@@ -1,7 +1,7 @@
 #include "dlggrantseditor.h"
 #include "ui_dlggrantseditor.h"
 
-#include "dlgaddeditgrants.h"
+#include "dlgaddeditgrant.h"
 #include "shv/core/assert.h"
 #include <QMessageBox>
 
@@ -37,8 +37,18 @@ DlgGrantsEditor::~DlgGrantsEditor()
 
 void DlgGrantsEditor::init(const std::string &path)
 {
-	m_aclEtcGrantsNodePath = path + "/etc/acl/grants";
+	m_aclEtcNodePath = path + "/etc/acl/";
 	listGrants();
+}
+
+std::string DlgGrantsEditor::aclEtcGrantsNodePath()
+{
+	return m_aclEtcNodePath + "grants";
+}
+
+std::string DlgGrantsEditor::aclEtcPathsNodePath()
+{
+	return m_aclEtcNodePath + "paths";
 }
 
 QString DlgGrantsEditor::selectedGrant()
@@ -48,7 +58,7 @@ QString DlgGrantsEditor::selectedGrant()
 
 void DlgGrantsEditor::onAddGrantClicked()
 {
-	DlgAddEditGrants dlg(this, m_rpcConnection, m_aclEtcGrantsNodePath, DlgAddEditGrants::DialogType::Add);
+	DlgAddEditGrant dlg(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditGrant::DialogType::Add);
 	if (dlg.exec() == QDialog::Accepted){
 		listGrants();
 	}
@@ -65,16 +75,17 @@ void DlgGrantsEditor::onDelGrantClicked()
 
 	ui->lblStatus->setText("");
 
-	if (QMessageBox::question(this, tr("Delete grant"), tr("Do you really want to delete grant") + " " + grant + "?") == QMessageBox::Yes){
+	if (QMessageBox::question(this, tr("Delete grant"), tr("Do you really want to delete data and associated paths for grant ") + " " + grant + "?") == QMessageBox::Yes){
 		int rqid = m_rpcConnection->nextRequestId();
 		shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
-		cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
+		cb->start(this, [this, grant](const shv::chainpack::RpcResponse &response) {
 			if(response.isValid()){
 				if(response.isError()) {
 					ui->lblStatus->setText(tr("Failed to delete grant.") + " " + QString::fromStdString(response.error().toString()));
 				}
 				else{
+					callDeleteGrantPaths(grant.toStdString());
 					listGrants();
 				}
 			}
@@ -83,7 +94,7 @@ void DlgGrantsEditor::onDelGrantClicked()
 			}
 		});
 
-		m_rpcConnection->callShvMethod(rqid, m_aclEtcGrantsNodePath, "delGrant", shv::chainpack::RpcValue::String(grant.toStdString()));
+		m_rpcConnection->callShvMethod(rqid, aclEtcGrantsNodePath(), "delGrant", shv::chainpack::RpcValue::String(grant.toStdString()));
 	}
 }
 
@@ -98,7 +109,7 @@ void DlgGrantsEditor::onEditGrantClicked()
 
 	ui->lblStatus->setText("");
 
-	DlgAddEditGrants dlg(this, m_rpcConnection, m_aclEtcGrantsNodePath, DlgAddEditGrants::DialogType::Edit);
+	DlgAddEditGrant dlg(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditGrant::DialogType::Edit);
 	dlg.init(grant);
 
 	if (dlg.exec() == QDialog::Accepted){
@@ -146,5 +157,32 @@ void DlgGrantsEditor::listGrants()
 		}
 	});
 
-	m_rpcConnection->callShvMethod(rqid, m_aclEtcGrantsNodePath, shv::chainpack::Rpc::METH_LS);
+	m_rpcConnection->callShvMethod(rqid, aclEtcGrantsNodePath(), shv::chainpack::Rpc::METH_LS);
+}
+
+void DlgGrantsEditor::callDeleteGrantPaths(const std::string &grant_name)
+{
+	if (m_rpcConnection == nullptr)
+		return;
+
+	ui->lblStatus->setText("Deleting grant paths.");
+
+	int rqid = m_rpcConnection->nextRequestId();
+	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
+
+	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
+		if (response.isValid()){
+			if(response.isError()) {
+				ui->lblStatus->setText(tr("Failed to delete grant paths.") + QString::fromStdString(response.error().toString()));
+			}
+			else{
+				ui->lblStatus->setText("");
+			}
+		}
+		else{
+			ui->lblStatus->setText(tr("Request timeout expired"));
+		}
+	});
+
+	m_rpcConnection->callShvMethod(rqid, aclEtcPathsNodePath(), "delGrantPaths", shv::chainpack::RpcValue::String(grant_name));
 }

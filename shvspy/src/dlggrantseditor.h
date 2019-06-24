@@ -22,8 +22,12 @@ public:
 	void init(const std::string &path);
 
 private:
+	std::string aclEtcGrantsNodePath();
+	std::string aclEtcPathsNodePath();
+
 	QString selectedGrant();
 	void listGrants();
+	void callDeleteGrantPaths(const std::string &grant_name);
 
 	void onAddGrantClicked();
 	void onDelGrantClicked();
@@ -31,7 +35,7 @@ private:
 	void onTableGrantDoubleClicked(QModelIndex ix);
 
 	Ui::DlgGrantsEditor *ui;
-	std::string m_aclEtcGrantsNodePath;
+	std::string m_aclEtcNodePath;
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
 };
 
