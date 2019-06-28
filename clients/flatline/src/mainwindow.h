@@ -21,14 +21,15 @@ class MainWindow : public QMainWindow
 
 public:
 	enum class LogDataType {General, BrcLab};
-	enum class DeviceType {General, Andi, Anca};
 public:
 	explicit MainWindow(QWidget *parent = nullptr);
 	~MainWindow() override;
 
 private slots:
-	void on_action_Open_triggered();
+	void on_acOpenFile_triggered();
+	void on_actOpenRawFiles_triggered();
 	void on_actPause_triggered(bool checked);
+	void on_actFileSaveAs_triggered();
 
 private:
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
@@ -55,10 +56,10 @@ private:
 	bool m_paused = false;
 
 	shv::chainpack::RpcValue::IMap m_pathsDict;
+	shv::chainpack::RpcValue m_logData;
 
 	QTimer *m_liveSamplesTimer = nullptr;
 
-	DeviceType m_deviceType = DeviceType::General;
 	unsigned m_shortTimePrev = 0;
 	int64_t m_msecTime = 0;
 };
