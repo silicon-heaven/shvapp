@@ -8,6 +8,7 @@
 #include <shv/chainpack/cponreader.h>
 #include <shv/chainpack/chainpackwriter.h>
 #include <shv/chainpack/cponwriter.h>
+#include <shv/chainpack/valuechange.h>
 #include <shv/coreqt/log.h>
 #include <shv/iotqt/utils.h>
 #include <shv/chainpack/rpcmessage.h>
@@ -595,7 +596,7 @@ void MainWindow::on_actOpenRawFiles_triggered()
 				if(lst.empty()) {
 					continue; // skip empty line
 				}
-				std::string dtstr = lst[Column::Timestamp].toString();
+				std::string dtstr = lst.value(Column::Timestamp).toString();
 				std::string path = lst.value(Column::Path).toString();
 				size_t len;
 				cp::RpcValue::DateTime dt = cp::RpcValue::DateTime::fromUtcString(dtstr, &len);
@@ -606,9 +607,20 @@ void MainWindow::on_actOpenRawFiles_triggered()
 				std::string err;
 				cp::RpcValue::List rec;
 				shv::chainpack::RpcValue val = cp::RpcValue::fromCpon(lst.value(Column::Value).toString(), &err);
+				shv::chainpack::RpcValue short_time;
+				if(val.metaTypeId() == cp::meta::GlobalNS::MetaTypeId::ValueChange) {
+					cp::ValueChange vc(val);
+					val = vc.value();
+					short_time = vc.shortTime();
+				}
+				else {
+					short_time = cp::RpcValue::fromCpon(lst.value(Column::ShortTime).toString(), &err);
+				}
 				rec.push_back(dt);
 				rec.push_back(path);
 				rec.push_back(val);
+				if(short_time.isValid())
+					rec.push_back(short_time);
 				log.push_back(rec);
 			}
 		}
