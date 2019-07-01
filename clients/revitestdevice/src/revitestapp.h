@@ -10,7 +10,7 @@ class AppCliOptions;
 class RevitestDevice;
 namespace shv { namespace chainpack { class RpcMessage; }}
 namespace shv { namespace iotqt { namespace rpc { class DeviceConnection; }}}
-namespace shv { namespace core { namespace utils { class FileShvJournal; struct ShvJournalEntry; }}}
+namespace shv { namespace core { namespace utils { class FileShvJournal2; struct ShvJournalEntry; }}}
 
 class RevitestApp : public QCoreApplication
 {
@@ -25,7 +25,7 @@ public:
 
 	AppCliOptions* cliOptions() {return m_cliOptions;}
 
-	shv::core::utils::FileShvJournal *shvJournal() {return m_shvJournal;}
+	shv::core::utils::FileShvJournal2 *shvJournal() {return m_shvJournal;}
 private:
 	void onBrokerConnectedChanged(bool is_connected);
 	//void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
@@ -35,7 +35,7 @@ private:
 private:
 	RevitestDevice *m_revitest;
 	shv::iotqt::rpc::DeviceConnection *m_rpcConnection = nullptr;
-	shv::core::utils::FileShvJournal *m_shvJournal = nullptr;
+	shv::core::utils::FileShvJournal2 *m_shvJournal = nullptr;
 	AppCliOptions* m_cliOptions;
 	shv::chainpack::RpcValue::List m_shvCalls;
 };

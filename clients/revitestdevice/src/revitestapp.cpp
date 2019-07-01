@@ -26,7 +26,7 @@ RevitestApp::RevitestApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
 {
-	m_shvJournal = new shv::core::utils::FileShvJournal(applicationName().toStdString(), [this](std::vector<shv::core::utils::ShvJournalEntry> &s) { this->getSnapshot(s); });
+	m_shvJournal = new shv::core::utils::FileShvJournal2(applicationName().toStdString(), [this](std::vector<shv::core::utils::ShvJournalEntry> &s) { this->getSnapshot(s); });
 	if(cli_opts->shvJournalDir_isset())
 		m_shvJournal->setJournalDir(cli_opts->shvJournalDir());
 	m_shvJournal->setFileSizeLimit(cli_opts->shvJournalFileSizeLimit());
@@ -104,7 +104,7 @@ void RevitestApp::onBrokerConnectedChanged(bool is_connected)
 			if(!f.open(QFile::ReadOnly))
 				SHV_EXCEPTION("Cannot oprn file " + f.fileName().toStdString() + " for reading");
 			QByteArray ba = f.readAll();
-			cpon = std::string(ba.data(), ba.length());
+			cpon = std::string(ba.data(), (unsigned)ba.length());
 		}
 		else if(cliOptions()->callFile_isset()) {
 			cpon = cliOptions()->callMethods();
