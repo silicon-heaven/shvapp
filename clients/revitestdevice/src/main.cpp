@@ -1,6 +1,7 @@
 #include "revitestapp.h"
 #include "appclioptions.h"
 
+#include <shv/chainpack/rpcmessage.h>
 #include <shv/core/utils.h>
 #include <shv/coreqt/log.h>
 #include <shv/core/utils/fileshvjournal.h>
@@ -48,22 +49,25 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
+	shv::chainpack::RpcMessage::registerMetaTypes();
+
 	shvInfo() << "======================================================================================";
-	shvInfo() << "Starting revidestdevice, PID:" << QCoreApplication::applicationPid() << "build:" << __DATE__ << __TIME__;
+	shvInfo() << "Starting application" << QCoreApplication::applicationName()
+			  << "ver:" << QCoreApplication::applicationVersion()
+			  << "PID:" << QCoreApplication::applicationPid()
+			  << "build:" << __DATE__ << __TIME__;
 #ifdef GIT_COMMIT
 	shvInfo() << "GIT commit:" << SHV_EXPAND_AND_QUOTE(GIT_COMMIT);
 #endif
 	shvInfo() << QDateTime::currentDateTime().toString(Qt::ISODate).toStdString() << "UTC:" << QDateTime::currentDateTimeUtc().toString(Qt::ISODate).toStdString();
 	shvInfo() << "======================================================================================";
 	shvInfo() << "Log tresholds:" << NecroLog::tresholdsLogInfo();
-	//shvInfo() << NecroLog::instantiationInfo();
+	shvInfo() << "SHV Journal dir:" << cli_opts.shvJournalDir();
+	shvInfo() << "SHV Journal size limit:" << cli_opts.shvJournalSizeLimit();
+	shvInfo() << "SHV Journal file size limit:" << cli_opts.shvJournalFileSizeLimit();
+	shvInfo() << "--------------------------------------------------------------------------------------";
 
 	RevitestApp a(argc, argv, &cli_opts);
-
-	shvInfo() << "Shv journal dir:" << a.shvJournal()->journalDir();
-	shvInfo() << "Shv journal file size limit:" << a.shvJournal()->fileSizeLimit();
-	shvInfo() << "Shv journal dir size limit:" << a.shvJournal()->journalSizeLimit();
-	shvInfo() << "--------------------------------------------------------------------------------------";
 
 	shvInfo() << "starting main thread event loop";
 	ret = a.exec();
