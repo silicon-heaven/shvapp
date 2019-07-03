@@ -54,7 +54,7 @@ Lublicator::Lublicator(const std::string &node_id, ShvNode *parent)
 				sim_setBateryVoltage(bv);
 			}
 		});
-		bat_voltage_sim->start(1000);
+		bat_voltage_sim->start(100);
 	}
 
 	connect(this, &Lublicator::valueChanged, this, &Lublicator::addLogEntry);
