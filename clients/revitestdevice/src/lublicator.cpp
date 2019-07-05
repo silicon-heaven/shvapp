@@ -58,6 +58,7 @@ Lublicator::Lublicator(const std::string &node_id, ShvNode *parent)
 	}
 
 	connect(this, &Lublicator::valueChanged, this, &Lublicator::addLogEntry);
+	connect(this, &Lublicator::fastValueChanged, this, &Lublicator::addFastLogEntry);
 }
 
 unsigned Lublicator::status() const
@@ -236,6 +237,13 @@ void Lublicator::addLogEntry(const std::string &key, const shv::chainpack::RpcVa
 	RevitestApp::instance()->shvJournal()->append({nodeId() + '/' + key, value});
 }
 
+void Lublicator::addFastLogEntry(const std::string &key, const shv::chainpack::RpcValue &value)
+{
+	RevitestApp::instance()->shvJournal()->append({nodeId() + '/' + key
+												   , value
+												   , shv::core::utils::ShvJournalEntry::DOMAIN_VAL_FASTCHANGE});
+}
+
 void Lublicator::checkBatteryTresholds()
 {
 	unsigned s = status();
@@ -255,7 +263,7 @@ void Lublicator::sim_setBateryVoltage(unsigned v)
 	if(m_batteryVoltage == v)
 		return;
 	m_batteryVoltage = v;
-	emit valueChanged(PROP_BATTERY_VOLTAGE, v);
+	emit fastValueChanged(PROP_BATTERY_VOLTAGE, v);
 	checkBatteryTresholds();
 }
 

@@ -49,6 +49,7 @@ public:
 	bool setStatus(unsigned stat);
 
 	Q_SIGNAL void valueChanged(const std::string &key, const shv::chainpack::RpcValue &val);
+	Q_SIGNAL void fastValueChanged(const std::string &key, const shv::chainpack::RpcValue &val);
 	Q_SIGNAL void propertyValueChanged(const std::string &property_name, const shv::chainpack::RpcValue &new_val);
 
 	size_t methodCount(const StringViewList &shv_path) override;
@@ -56,12 +57,12 @@ public:
 
 	shv::chainpack::RpcValue hasChildren(const StringViewList &shv_path) override;
 	StringList childNames(const StringViewList &shv_path) override;
-	//shv::chainpack::RpcValue lsAttributes(const std::string &node_id, unsigned attributes, const std::string &shv_path) override;
 
 	shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params) override;
 private:
 	shv::chainpack::RpcValue getLog(const shv::chainpack::RpcValue &params);
 	void addLogEntry(const std::string &key, const shv::chainpack::RpcValue &value);
+	void addFastLogEntry(const std::string &key, const shv::chainpack::RpcValue &value);
 	void checkBatteryTresholds();
 	void sim_setBateryVoltage(unsigned v);
 private:
