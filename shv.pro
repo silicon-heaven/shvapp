@@ -1,9 +1,12 @@
 TEMPLATE = subdirs
 CONFIG += ordered
 
+!debpkg {
 SUBDIRS += \
     3rdparty \
     clients \
+
+}
 
 qtHaveModule(gui) {
 SUBDIRS += \
