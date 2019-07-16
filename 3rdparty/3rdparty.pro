@@ -11,10 +11,10 @@ SUBDIRS += \
     libshv/utils \
 	libshv/tests \
 
-}
-
 qtHaveModule(gui) {
 SUBDIRS += \
     libshv/libshvvisu \
 
 }
+}
+
