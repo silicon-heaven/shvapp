@@ -123,8 +123,8 @@ void Telegram::callTgApiMethod(QString method, const QVariantMap &_params, Teleg
 void Telegram::getUpdates()
 {
 	if(!m_getUdatesTimer) {
-		QTimer *tm = new QTimer(this);
-		connect(tm, &QTimer::timeout, [this]() {
+		m_getUdatesTimer = new QTimer(this);
+		connect(m_getUdatesTimer, &QTimer::timeout, [this]() {
 			shvWarning() << "Get updates timeout after:" << (m_getUdatesTimer->interval() / 1000) << "secs.";
 			m_getUdatesTimer->stop();
 			QTimer::singleShot(0, this, &Telegram::getUpdates);
