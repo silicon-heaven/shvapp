@@ -94,10 +94,7 @@ void Telegram::callTgApiMethod(QString method, const QVariantMap &_params, Teleg
 	QNetworkRequest req(url);
 	req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 	QNetworkReply *rpl = m_netManager->post(req, params_data);
-	connect(rpl, QOverload<QNetworkReply::NetworkError>::of(&QNetworkReply::error), [](QNetworkReply::NetworkError code) {
-		shvError() << "TG getUpdates network reply error:" << code;
-	});
-	connect(rpl, &QNetworkReply::finished, this, [this, rpl, call_cnt, method, call_back]() {
+	auto reply_handler = [rpl, call_cnt, method, call_back]() {
 		QJsonDocument doc = QJsonDocument::fromJson(rpl->readAll());
 		logTelegram() << call_cnt << "<==" << method << "response:" << format_json_for_log(doc);
 		QJsonObject rv = doc.object();
@@ -110,30 +107,41 @@ void Telegram::callTgApiMethod(QString method, const QVariantMap &_params, Teleg
 			shvError() << "TG method call error, method:" << method;
 		}
 		rpl->deleteLater();
-		QTimer::singleShot(0, this, &Telegram::getUpdates);
-	});
-	/*
-	QTimer::singleShot((timeout + 1) * 1000, rpl, [this, rpl]() {
-		shvError() << "TG getUpdates network reply timeout!";
-		rpl->deleteLater();
-		QTimer::singleShot(0, this, &Telegram::getUpdates);
-	});
-	*/
+	};
+	if(rpl->isFinished()) {
+		shvError() << "HTTP reply finished too unexpected" << rpl->errorString();
+		reply_handler();
+	}
+	else {
+		connect(rpl, QOverload<QNetworkReply::NetworkError>::of(&QNetworkReply::error), [](QNetworkReply::NetworkError code) {
+			shvError() << "TG getUpdates network reply error:" << code;
+		});
+		connect(rpl, &QNetworkReply::finished, this, reply_handler);
+	}
 }
 
 void Telegram::getUpdates()
 {
-	if(m_isGetUpdateRunning)
+	if(!m_getUdatesTimer) {
+		QTimer *tm = new QTimer(this);
+		connect(tm, &QTimer::timeout, [this]() {
+			shvWarning() << "Get updates timeout after:" << (m_getUdatesTimer->interval() / 1000) << "secs.";
+			m_getUdatesTimer->stop();
+			QTimer::singleShot(0, this, &Telegram::getUpdates);
+		});
+	}
+	if(m_getUdatesTimer->isActive())
 		return;
-	m_isGetUpdateRunning = true;
 
 	QVariantMap params;
 	params["offset"] = m_getUpdateId + 1;
 	int timeout = 600; // seconds
 	params["timeout"] = timeout;
+	m_getUdatesTimer->start((timeout + 1) * 1000);
 	callTgApiMethod("getUpdates", params, [this](const QJsonValue &result) {
 		processUpdates(result);
-		m_isGetUpdateRunning = false;
+		m_getUdatesTimer->stop();
+		QTimer::singleShot(0, this, &Telegram::getUpdates);
 	});
 }
 
