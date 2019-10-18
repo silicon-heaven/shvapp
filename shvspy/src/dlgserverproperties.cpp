@@ -51,6 +51,7 @@ QVariantMap DlgServerProperties::serverProperties() const
 	ret["device.id"] = ui->device_id->text().trimmed();
 	ret["device.mountPoint"] = ui->device_mountPoint->text().trimmed();
 	ret["subscriptions"] = m_subscriptions;
+	ret["muteHeartBeats"] = ui->chkMuteHeartBeats->isChecked();
 	return ret;
 }
 
@@ -106,6 +107,7 @@ void DlgServerProperties::setServerProperties(const QVariantMap &props)
 			break;
 		}
 	}
+	ui->chkMuteHeartBeats->setChecked(props.value("muteHeartBeats").toBool());
 }
 
 void DlgServerProperties::done(int res)

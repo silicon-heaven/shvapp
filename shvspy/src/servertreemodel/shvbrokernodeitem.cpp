@@ -348,6 +348,10 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 	}
 	else if(msg.isSignal()) {
 		shvDebug() << msg.toCpon();
+		if(serverProperties().value(QStringLiteral("muteHeartBeats")).toBool()) {
+			if(msg.method().toString() == "appserver.heartBeat")
+				return;
+		}
 		RpcNotificationsModel *m = TheApp::instance()->rpcNotificationsModel();
 		m->addLogRow(nodeId(), msg);
 	}

@@ -438,9 +438,9 @@ void MainWindow::closeEvent(QCloseEvent *ev)
 void MainWindow::saveSettings()
 {
 	QSettings settings;
+	TheApp::instance()->saveSettings(settings);
 	settings.setValue(QStringLiteral("ui/mainWindow/state"), saveState());
 	settings.setValue(QStringLiteral("ui/mainWindow/geometry"), saveGeometry());
-	TheApp::instance()->saveSettings(settings);
 }
 
 void MainWindow::openLogInspector()

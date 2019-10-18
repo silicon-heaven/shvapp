@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>613</width>
-    <height>632</height>
+    <height>663</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -231,6 +231,16 @@
       </widget>
      </item>
     </layout>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="chkMuteHeartBeats">
+     <property name="toolTip">
+      <string>Mute heart beats notificcations for known types of clients, like Eyas </string>
+     </property>
+     <property name="text">
+      <string>Mute heart beats</string>
+     </property>
+    </widget>
    </item>
    <item>
     <spacer name="verticalSpacer">

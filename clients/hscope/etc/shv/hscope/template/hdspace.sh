@@ -1,9 +1,11 @@
 #!/bin/bash
 
-if [[ ! -z $DEVICE_NAME ]]; then
-	DF_VAL=`df | grep "^${DEVICE_NAME}\s" | sed 's/ \+/ /g; s/%//g' | cut -d ' ' -f 5 `
-elif [[ ! -z $MOUNT_POINT ]]; then
+if [[ ! -z $MOUNT_POINT ]]; then
+	DEV=$MOUNT_POINT
 	DF_VAL=`df | grep "${MOUNT_POINT}$" | sed 's/ \+/ /g; s/%//g' | cut -d ' ' -f 5 `
+elif [[ ! -z $DEVICE_NAME ]]; then
+	DEV=$DEVICE_NAME
+	DF_VAL=`df | grep "^${DEVICE_NAME}\s" | sed 's/ \+/ /g; s/%//g' | cut -d ' ' -f 5 `
 fi
 
 # DF_VAL=90
@@ -21,7 +23,7 @@ fi
 if [[ -z $DF_VAL ]]; then
 	MSG="Invalid input parameters."
 else
-	MSG="Disc fill is ${DF_VAL}%"
+	MSG="Disc fill on ${DEV} is ${DF_VAL}%"
 fi
 
 echo "{\"val\":\"$VAL\", \"msg\":\"$MSG\"}"
