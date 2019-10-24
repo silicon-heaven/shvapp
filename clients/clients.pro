@@ -5,6 +5,7 @@ qtHaveModule(gui) {
 SUBDIRS += \
     bfsview \
     jn50view \
+    ams005ycp \
 
     with-shvsites {
     SUBDIRS += \
