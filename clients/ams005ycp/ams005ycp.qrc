@@ -1,6 +1,6 @@
 <RCC>
     <qresource prefix="/">
-		<file>images/visu.svg</file>
+		<file>images/zoneD.svg</file>
 		<file>images/eline.svg</file>
     </qresource>
 </RCC>

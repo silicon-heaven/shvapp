@@ -31,7 +31,7 @@ QGraphicsItem *SvgHandler::createGroupItem(const svgscene::SaxHandler::SvgElemen
 		shvDebug() << "creating:" << item->metaObject()->className();
 	}
 	if(item) {
-		QObject::connect(Ams005YcpApp::instance(), &Ams005YcpApp::shvDeviceValueChanged, item, &VisuController::onShvDeviceValueChanged);
+		QObject::connect(Ams005YcpApp::instance(), &Ams005YcpApp::opcValueChanged, item, &VisuController::onOpcValueChanged);
 		return item;
 	}
 	return Super::createGroupItem(el);

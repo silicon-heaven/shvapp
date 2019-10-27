@@ -8,9 +8,7 @@ HEADERS += \
     $$PWD/settingsdialog.h \
     $$PWD/settings.h \
     $$PWD/visucontroller.h \
-    $$PWD/svghandler.h \
-    $$PWD/dlgapplog.h \
-    $$PWD/thresholdsdialog.h
+    $$PWD/svghandler.h
 
 SOURCES += \
     $$PWD/main.cpp\
@@ -21,15 +19,11 @@ SOURCES += \
     $$PWD/settingsdialog.cpp \
     $$PWD/settings.cpp \
     $$PWD/visucontroller.cpp \
-    $$PWD/svghandler.cpp \
-    $$PWD/dlgapplog.cpp \
-    $$PWD/thresholdsdialog.cpp
+    $$PWD/svghandler.cpp
 
 FORMS += \
 	$$PWD/mainwindow.ui \
-    $$PWD/settingsdialog.ui \
-    $$PWD/dlgapplog.ui \
-    $$PWD/thresholdsdialog.ui
+    $$PWD/settingsdialog.ui
 
 
 

@@ -42,26 +42,26 @@ VisuController::VisuController(QGraphicsItem *parent)
 void VisuController::updateValue()
 {
 	Ams005YcpApp *app = Ams005YcpApp::instance();
-	shv::chainpack::RpcValue val = app->shvDeviceValue(shvPath());
-	onShvDeviceValueChanged(shvPath(), val);
+	QVariant val = app->opcValue(opcPath());
+	onOpcValueChanged(opcPath(), val);
 }
 
 void VisuController::reload()
 {
 	updateValue();
 	Ams005YcpApp *app = Ams005YcpApp::instance();
-	app->reloadShvDeviceValue(shvPath());
+	app->reloadOpcValue(opcPath());
 }
 
-const std::string &VisuController::shvPath()
+const std::string &VisuController::opcPath()
 {
-	return m_shvPath;
+	return m_opcPath;
 }
 
 void VisuController::init()
 {
 	svgscene::XmlAttributes attrs = qvariant_cast<svgscene::XmlAttributes>(data(svgscene::XmlAttributesKey));
-	m_shvPath = attrs.value(ATTR_SHV_PATH).toStdString();
+	m_opcPath = attrs.value(ATTR_SHV_PATH).toStdString();
 }
 
 //===========================================================================
@@ -96,10 +96,10 @@ StatusBitVisuController::StatusBitVisuController(QGraphicsItem *parent)
 
 }
 
-void StatusBitVisuController::onShvDeviceValueChanged(const std::string &path, const shv::chainpack::RpcValue &val)
+void StatusBitVisuController::onOpcValueChanged(const std::string &path, const QVariant &val)
 {
-	if(shvPath() == path) {
-		shvDebug() << __FUNCTION__ << shvPath() << "<<<" << path << "-->" << val.toCpon();
+	if(opcPath() == path) {
+		shvDebug() << __FUNCTION__ << opcPath() << "<<<" << path << "-->" << val.toString();
 		if(auto *box = findChild<QGraphicsRectItem*>(ATTR_CHILD_ID, QStringLiteral("box"))) {
 			if(val.isValid()) {
 				unsigned status = val.toUInt();
@@ -122,10 +122,10 @@ SwitchVisuController::SwitchVisuController(QGraphicsItem *parent)
 	shvLogFuncFrame();
 }
 
-void SwitchVisuController::onShvDeviceValueChanged(const std::string &path, const shv::chainpack::RpcValue &val)
+void SwitchVisuController::onOpcValueChanged(const std::string &path, const QVariant &val)
 {
-	if(shvPath() == path) {
-		shvDebug() << __FUNCTION__ << shvPath() << "<<<" << path << "-->" << val.toCpon();
+	if(opcPath() == path) {
+		shvDebug() << __FUNCTION__ << opcPath() << "<<<" << path << "-->" << val.toString();
 		unsigned status = val.toUInt();
 		bool is_on = status & m_bitMask;
 		shvDebug() << "OCL on:" << is_on;
@@ -197,15 +197,15 @@ MultimeterVisuController::MultimeterVisuController(QGraphicsItem *parent)
 {
 }
 
-void MultimeterVisuController::onShvDeviceValueChanged(const std::string &path, const shv::chainpack::RpcValue &val)
+void MultimeterVisuController::onOpcValueChanged(const std::string &path, const QVariant &val)
 {
-	if(shvPath() == path) {
-		shvDebug() << __FUNCTION__ << shvPath() << "<<<" << path << "-->" << val.toCpon() << findChild<QGraphicsSimpleTextItem*>(ATTR_CHILD_ID, QStringLiteral("value"));
+	if(opcPath() == path) {
+		shvDebug() << __FUNCTION__ << opcPath() << "<<<" << path << "-->" << val.toString() << findChild<QGraphicsSimpleTextItem*>(ATTR_CHILD_ID, QStringLiteral("value"));
 		if(auto *value_item = findChild<svgscene::SimpleTextItem*>(ATTR_CHILD_ID, QStringLiteral("value"))) {
 			if(val.isValid()) {
 				//value_item->setPen(QPen(Qt::green));
 				value_item->setBrush(QBrush(Qt::magenta));
-				QString txt = QString::fromStdString(val.toCpon());
+				QString txt = val.toString();
 				if(!m_suffix.isEmpty())
 					txt += ' ' + m_suffix;
 				value_item->setText(txt);

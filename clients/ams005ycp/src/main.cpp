@@ -32,6 +32,7 @@ void copy_to_file_message_handler(NecroLog::Level level, const NecroLog::LogCont
 
 void init_log_environment()
 {
+	/*
 	std::string log_file_path = Ams005YcpApp::logFilePath();
 	{
 		// keep log file smaller than max_size
@@ -55,6 +56,7 @@ void init_log_environment()
 	}
 	log_file_stream.open(log_file_path, std::ios::binary | std::ios::out | std::ios::app);
 	old_message_handler = NecroLog::setMessageHandler(copy_to_file_message_handler);
+	*/
 }
 
 }
@@ -63,7 +65,7 @@ int main(int argc, char *argv[])
 {
 	QCoreApplication::setOrganizationName("Elektroline");
 	QCoreApplication::setOrganizationDomain("elektroline.cz");
-	QCoreApplication::setApplicationName("jn50view");
+	QCoreApplication::setApplicationName("ams005ycp");
 	QCoreApplication::setApplicationVersion(APP_VERSION);
 
 	init_log_environment();
@@ -101,7 +103,7 @@ int main(int argc, char *argv[])
 	shvInfo() << QDateTime::currentDateTime().toString(Qt::ISODate).toStdString() << "UTC:" << QDateTime::currentDateTimeUtc().toString(Qt::ISODate).toStdString();
 	shvInfo() << "======================================================================================";
 	shvInfo() << "Log tresholds:" << NecroLog::tresholdsLogInfo();
-	shvInfo() << "Log file:" << Ams005YcpApp::logFilePath();
+	//shvInfo() << "Log file:" << Ams005YcpApp::logFilePath();
 	shvInfo() << "--------------------------------------------------------------------------------------";
 
 	Ams005YcpApp a(argc, argv, &cli_opts);

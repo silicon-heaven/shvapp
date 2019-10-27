@@ -20,11 +20,11 @@ public:
 public:
 	VisuController(QGraphicsItem *parent = nullptr);
 
-	virtual void onShvDeviceValueChanged(const std::string &shvPath, const shv::chainpack::RpcValue &val) = 0;
+	virtual void onOpcValueChanged(const std::string &opcPath, const QVariant &val) = 0;
 	virtual void updateValue();
 	virtual void reload();
 
-	const std::string& shvPath();
+	const std::string& opcPath();
 	virtual void init();
 protected:
 	template<typename T>
@@ -53,7 +53,7 @@ protected:
 		return nullptr;
 	}
 protected:
-	std::string m_shvPath;
+	std::string m_opcPath;
 };
 
 class StatusVisuController : public VisuController
@@ -77,7 +77,7 @@ class StatusBitVisuController : public StatusVisuController
 public:
 	StatusBitVisuController(QGraphicsItem *parent = nullptr);
 
-	void onShvDeviceValueChanged(const std::string &shvPath, const shv::chainpack::RpcValue &val) override;
+	void onOpcValueChanged(const std::string &opcPath, const QVariant &val) override;
 };
 
 class SwitchVisuController : public StatusVisuController
@@ -87,7 +87,7 @@ class SwitchVisuController : public StatusVisuController
 public:
 	SwitchVisuController(QGraphicsItem *parent = nullptr);
 
-	void onShvDeviceValueChanged(const std::string &shvPath, const shv::chainpack::RpcValue &val) override;
+	void onOpcValueChanged(const std::string &opcPath, const QVariant &val) override;
 
 	void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
 protected:
@@ -103,7 +103,7 @@ class MultimeterVisuController : public VisuController
 public:
 	MultimeterVisuController(QGraphicsItem *parent = nullptr);
 
-	void onShvDeviceValueChanged(const std::string &shvPath, const shv::chainpack::RpcValue &val) override;
+	void onOpcValueChanged(const std::string &opcPath, const QVariant &val) override;
 protected:
 	void init() override;
 protected:

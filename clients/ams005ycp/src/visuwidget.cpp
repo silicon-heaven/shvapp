@@ -1,5 +1,6 @@
 #include "visuwidget.h"
 #include "ams005ycpapp.h"
+#include "appclioptions.h"
 #include "settingsdialog.h"
 #include "svghandler.h"
 #include "visucontroller.h"
@@ -27,7 +28,7 @@ VisuWidget::VisuWidget(QWidget *parent)
 	connect(m_scaleToFitTimer, &QTimer::timeout, this, &VisuWidget::zoomToFit);
 
 	Ams005YcpApp *app = Ams005YcpApp::instance();
-	connect(app, &Ams005YcpApp::shvDeviceConnectedChanged, [this](bool ) {
+	connect(app, &Ams005YcpApp::opcDeviceConnectedChanged, [this](bool ) {
 		for(VisuController *vc : findVisuControllers()) {
 			vc->reload();
 		}
@@ -35,7 +36,8 @@ VisuWidget::VisuWidget(QWidget *parent)
 
 	m_scene = new QGraphicsScene(this);
 	setScene(m_scene);
-	load(":/images/visu.svg");
+	QString img_name = QStringLiteral(":/images/zone%1.svg").arg(QString::fromStdString(app->cliOptions()->zoneName()));
+	load(img_name);
 	for(VisuController *vc : findVisuControllers()) {
 		vc->updateValue();
 	}
