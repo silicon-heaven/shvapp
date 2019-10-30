@@ -25,12 +25,14 @@ MainWindow::MainWindow(QWidget *parent)
 	setWindowIcon(QIcon(":/images/eline"));
 	setWindowTitle(tr("Yard Control Panel"));
 
+	setGeometry(0, 0, 1280, 800);
+
 	connect(ui->actHelpAbout, &QAction::triggered, [this]() {
 		QMessageBox::about(this
 						   , "JN50 View"
-						   , "<p><b>JN50 View</b></p>"
+						   , "<p><b>Yard Control Panel</b></p>"
 							 "<p>ver. " + QCoreApplication::applicationVersion() + "</p>"
-							 "<p>Program pro vizualizaci měniče JN 50</p>"
+							 "<p>Yard control panel and route status visualization</p>"
 							 "<p>2019 Elektroline a.s.</p>"
 							 "<p><a href=\"www.elektroline.cz\">www.elektroline.cz</a></p>"
 						   );
@@ -49,23 +51,6 @@ MainWindow::MainWindow(QWidget *parent)
 MainWindow::~MainWindow()
 {
 	delete ui;
-}
-
-bool MainWindow::checkPassword()
-{
-	bool ok;
-	QString pwd = QInputDialog::getText(this, tr("Dialog"), tr("Heslo:"), QLineEdit::Password, QString(), &ok);
-	if (ok && !pwd.isEmpty()) {
-		Settings settings;
-		QString correct_pwd = settings.password();
-		if(pwd == correct_pwd) {
-			return true;
-		}
-		else {
-			QMessageBox::warning(this, tr("Message"), tr("Nesprávné heslo!"));
-		}
-	}
-	return false;
 }
 
 void MainWindow::resizeEvent(QResizeEvent *event)

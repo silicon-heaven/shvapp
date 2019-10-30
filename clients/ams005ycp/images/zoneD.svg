@@ -61,14 +61,14 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="2880"
-     inkscape:window-height="1527"
+     inkscape:window-width="3840"
+     inkscape:window-height="2061"
      id="namedview4"
      showgrid="false"
-     inkscape:zoom="0.7375"
-     inkscape:cx="562.64278"
-     inkscape:cy="251.61079"
-     inkscape:window-x="0"
+     inkscape:zoom="1.475"
+     inkscape:cx="313.94384"
+     inkscape:cy="300.76482"
+     inkscape:window-x="2880"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
      inkscape:current-layer="layer2"
@@ -118,7 +118,8 @@
 
 <g
    id="g921"
-   transform="rotate(-90,406.71337,422.71721)"><path
+   transform="rotate(-90,406.71337,422.71721)"
+   shvType="Route"><path
      style="display:inline;fill:#0000ff;fill-opacity:1;stroke:#a16214;stroke-width:17.10000038;stroke-linecap:butt;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.98319325"
      d="m 107.67325,671.28183 v -489.29892 0"
      id="path918"
@@ -172,14 +173,14 @@
      id="path932"
      d="m 619.54824,717.45064 v -485.46773 0"
      style="display:inline;fill:#0000ff;fill-opacity:1;stroke:#a16214;stroke-width:17.10000038;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.98319325"
-     sodipodi:nodetypes="ccc" /></g><g
-   id="g945"
-   transform="rotate(-90,406.71337,422.71721)"><path
-     style="display:inline;fill:#0000ff;fill-opacity:1;stroke:#a16214;stroke-width:17.10000038;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.98319325"
-     d="m 692.67324,660.77444 v -479.29892 0"
-     id="path934"
-     inkscape:connector-curvature="0"
-     sodipodi:nodetypes="ccc" /></g><g
+     sodipodi:nodetypes="ccc" /></g><path
+   shvType="Route"
+   shvPath="routes/0/status"
+   sodipodi:nodetypes="ccc"
+   inkscape:connector-curvature="0"
+   id="path934"
+   d="M 644.7706,136.75734 H 165.47168 v 0"
+   style="display:inline;fill:#0000ff;fill-opacity:1;stroke:#a16214;stroke-width:17.10000038;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.98319325" /><g
    id="g1018"
    shvType="PushButton"
    transform="rotate(-90,406.71337,422.71721)"

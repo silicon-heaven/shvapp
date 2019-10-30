@@ -15,31 +15,28 @@ SvgHandler::SvgHandler(QGraphicsScene *scene)
 QGraphicsItem *SvgHandler::createGroupItem(const svgscene::SaxHandler::SvgElement &el)
 {
 	shvLogFuncFrame() << el.name << el.xmlAttributes.value("shvType");
-	VisuController *item = nullptr;
+	/*
+	QGraphicsRectItem *item = nullptr;
 	const QString shv_type = el.xmlAttributes.value(QStringLiteral("shvType"));
 	const QString shv_path = el.xmlAttributes.value(QStringLiteral("shvPath"));
-	if(shv_type == QLatin1String("switch")) {
-		item = new SwitchVisuController();
-		shvDebug() << "creating:" << item->metaObject()->className();
+	if(shv_type == QLatin1String("PushButton")) {
+		item = new PushButtonVisuController();
 	}
-	else if(shv_type == QLatin1String("statusbit")) {
-		item = new StatusBitVisuController();
-		shvDebug() << "creating:" << item->metaObject()->className();
-	}
-	else if(shv_type == QLatin1String("multimeter")) {
-		item = new MultimeterVisuController();
-		shvDebug() << "creating:" << item->metaObject()->className();
+	else if(shv_type == QLatin1String("Route")) {
+		item = new RouteVisuController();
 	}
 	if(item) {
+		shvDebug() << "created:" << item->metaObject()->className();
 		QObject::connect(Ams005YcpApp::instance(), &Ams005YcpApp::opcValueChanged, item, &VisuController::onOpcValueChanged);
 		return item;
 	}
+	*/
 	return Super::createGroupItem(el);
 }
 
 void SvgHandler::setXmlAttributes(QGraphicsItem *git, const svgscene::SaxHandler::SvgElement &el)
 {
-	svgscene::XmlAttributes attrs = qvariant_cast<svgscene::XmlAttributes>(git->data(svgscene::XmlAttributesKey));
+	svgscene::XmlAttributes attrs = qvariant_cast<svgscene::XmlAttributes>(git->data(svgscene::Types::DataKey::XmlAttributes));
 	static QSet<QString> known_attrs {"shvPath", "shvType", "chid"};
 	QMapIterator<QString, QString> it(el.xmlAttributes);
 	while (it.hasNext()) {
@@ -49,5 +46,5 @@ void SvgHandler::setXmlAttributes(QGraphicsItem *git, const svgscene::SaxHandler
 		if(it.key().startsWith(QStringLiteral("shv_")))
 			attrs[it.key()] = it.value();
 	}
-	git->setData(svgscene::XmlAttributesKey, QVariant::fromValue(attrs));
+	git->setData(svgscene::Types::DataKey::XmlAttributes, QVariant::fromValue(attrs));
 }

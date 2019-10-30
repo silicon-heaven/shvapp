@@ -52,7 +52,7 @@ bool VisuWidget::load(const QString &file_name)
 	m_scene->clear();
 	QFile file(file_name);
 	if (!file.open(QIODevice::ReadOnly))
-		SHV_EXCEPTION("Cannot open file " + file.fileName().toStdString() + " for reading!");
+		SHV_EXCEPTION("Cannot open file " + file.fileName().toStdString() + " for reading!")
 	//shvInfo() << m_xDoc.toString();
 	QXmlStreamReader rd(&file);
 	SvgHandler h(m_scene);

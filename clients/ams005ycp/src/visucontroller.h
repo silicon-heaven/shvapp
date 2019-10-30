@@ -1,18 +1,20 @@
 #ifndef VISUCONTROLLER_H
 #define VISUCONTROLLER_H
 
+#include <shv/visu/svgscene/types.h>
 #include <shv/visu/svgscene/saxhandler.h>
+#include <shv/visu/svgscene/visucontroller.h>
 
 #include <QGraphicsItem>
 
 namespace shv { namespace chainpack { class RpcValue; }}
 namespace svgscene = shv::visu::svgscene;
 
-class VisuController : public QObject, public QGraphicsRectItem
+class VisuController : public svgscene::VisuController
 {
 	Q_OBJECT
 
-	using Super = QGraphicsRectItem;
+	using Super = svgscene::VisuController;
 public:
 	static const QString ATTR_CHILD_ID;
 	static const QString ATTR_SHV_PATH;
@@ -28,12 +30,12 @@ public:
 	virtual void init();
 protected:
 	template<typename T>
-	T findChild(const QString &attr_name = QString(), const QString &attr_value = QString()) const
+	T findChildGraphicsItem(const QString &attr_name = QString(), const QString &attr_value = QString()) const
 	{
-		return findChild<T>(this, attr_name, attr_value);
+		return findChildGraphicsItem<T>(m_graphicsItem, attr_name, attr_value);
 	}
 	template<typename T>
-	static T findChild(const QGraphicsItem *parent_it, const QString &attr_name, const QString &attr_value)
+	static T findChildGraphicsItem(const QGraphicsItem *parent_it, const QString &attr_name, const QString &attr_value)
 	{
 		for(QGraphicsItem *it : parent_it->childItems()) {
 			if(T tit = dynamic_cast<T>(it)) {
@@ -41,12 +43,12 @@ protected:
 					return tit;
 				}
 				else {
-					svgscene::XmlAttributes attrs = qvariant_cast<svgscene::XmlAttributes>(tit->data(svgscene::XmlAttributesKey));
+					svgscene::XmlAttributes attrs = qvariant_cast<svgscene::XmlAttributes>(tit->data(svgscene::Types::DataKey::XmlAttributes));
 					if(attrs.value(attr_name) == attr_value)
 						return tit;
 				}
 			}
-			T tit = findChild<T>(it, attr_name, attr_value);
+			T tit = findChildGraphicsItem<T>(it, attr_name, attr_value);
 			if(tit)
 				return tit;
 		}
@@ -56,59 +58,32 @@ protected:
 	std::string m_opcPath;
 };
 
-class StatusVisuController : public VisuController
+class RouteVisuController : public VisuController
 {
 	Q_OBJECT
 	using Super = VisuController;
 public:
-	StatusVisuController(QGraphicsItem *parent = nullptr);
+	RouteVisuController(QGraphicsItem *parent = nullptr);
 
 	void init() override;
+	void onOpcValueChanged(const std::string &opcPath, const QVariant &val) override;
 protected:
-	unsigned m_bitMask = 0;
 	QColor m_colorOn;
 	QColor m_colorOff;
 };
 
-class StatusBitVisuController : public StatusVisuController
-{
-	Q_OBJECT
-	using Super = StatusVisuController;
-public:
-	StatusBitVisuController(QGraphicsItem *parent = nullptr);
 
-	void onOpcValueChanged(const std::string &opcPath, const QVariant &val) override;
-};
-
-class SwitchVisuController : public StatusVisuController
-{
-	Q_OBJECT
-	using Super = StatusVisuController;
-public:
-	SwitchVisuController(QGraphicsItem *parent = nullptr);
-
-	void onOpcValueChanged(const std::string &opcPath, const QVariant &val) override;
-
-	void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
-protected:
-	void init() override;
-private:
-	QTransform m_originalTrasformation;
-};
-
-class MultimeterVisuController : public VisuController
+class PushButtonVisuController : public VisuController
 {
 	Q_OBJECT
 	using Super = VisuController;
 public:
-	MultimeterVisuController(QGraphicsItem *parent = nullptr);
+	PushButtonVisuController(QGraphicsItem *parent = nullptr);
 
 	void onOpcValueChanged(const std::string &opcPath, const QVariant &val) override;
 protected:
 	void init() override;
-protected:
-	bool m_lazyInitDone = false;
-	QString m_suffix;
+private:
 };
 
 #endif // VISUCONTROLLER_H
