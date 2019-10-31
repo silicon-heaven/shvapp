@@ -57,9 +57,6 @@ bool VisuWidget::load(const QString &file_name)
 	QXmlStreamReader rd(&file);
 	SvgHandler h(m_scene);
 	h.load(&rd);
-	for(VisuController *vc : findVisuControllers()) {
-		vc->init();
-	}
 	zoomToFitDeferred();
 	return true;
 }

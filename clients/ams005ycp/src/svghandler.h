@@ -10,8 +10,9 @@ public:
 	SvgHandler(QGraphicsScene *scene);
 
 protected:
-	QGraphicsItem *createGroupItem(const SvgElement &el) override;
-	void setXmlAttributes(QGraphicsItem *git, const SvgElement &el) override;
+	//QGraphicsItem *createGroupItem(const SvgElement &el) override;
+	//void setXmlAttributes(QGraphicsItem *git, const SvgElement &el) override;
+	void createVisuController(QGraphicsItem *it, const SvgElement &el) override;
 };
 
 #endif // SVGHANDLER_H

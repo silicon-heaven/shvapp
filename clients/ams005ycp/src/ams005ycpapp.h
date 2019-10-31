@@ -27,8 +27,8 @@ public:
 
 	Q_SIGNAL void opcDeviceConnectedChanged(bool is_connected);
 
-	QVariant reloadOpcValue(const std::string &path);
-	QVariant opcValue(const std::string &path);
+	QVariant reloadOpcValue(const QString &path);
+	QVariant opcValue(const QString &path);
 	Q_SIGNAL void opcValueChanged(const std::string &path, const QVariant &value);
 private:
 	AppCliOptions* m_cliOptions;

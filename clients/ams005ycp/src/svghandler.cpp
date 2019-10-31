@@ -5,6 +5,10 @@
 #include <shv/coreqt/log.h>
 
 #include <QSet>
+#include <QGraphicsScene>
+
+//#define logSvgM() nCMessage("svg")
+namespace svgscene = shv::visu::svgscene;
 
 SvgHandler::SvgHandler(QGraphicsScene *scene)
 	: Super(scene)
@@ -12,10 +16,23 @@ SvgHandler::SvgHandler(QGraphicsScene *scene)
 
 }
 
+void SvgHandler::createVisuController(QGraphicsItem *it, const svgscene::SaxHandler::SvgElement &el)
+{
+	const QString shv_type = el.xmlAttributes.value(shv::visu::svgscene::Types::ATTR_SHV_TYPE);
+	if(shv_type == QLatin1String("Route")) {
+		shvDebug() << it << el.name;
+	}
+	else if(shv_type == QLatin1String("PushButton")) {
+		shvDebug() << it << el.name;
+		new PushButtonVisuController(it, it->scene());
+		//vc->init();
+	}
+}
+
+/*
 QGraphicsItem *SvgHandler::createGroupItem(const svgscene::SaxHandler::SvgElement &el)
 {
 	shvLogFuncFrame() << el.name << el.xmlAttributes.value("shvType");
-	/*
 	QGraphicsRectItem *item = nullptr;
 	const QString shv_type = el.xmlAttributes.value(QStringLiteral("shvType"));
 	const QString shv_path = el.xmlAttributes.value(QStringLiteral("shvPath"));
@@ -30,7 +47,6 @@ QGraphicsItem *SvgHandler::createGroupItem(const svgscene::SaxHandler::SvgElemen
 		QObject::connect(Ams005YcpApp::instance(), &Ams005YcpApp::opcValueChanged, item, &VisuController::onOpcValueChanged);
 		return item;
 	}
-	*/
 	return Super::createGroupItem(el);
 }
 
@@ -48,3 +64,6 @@ void SvgHandler::setXmlAttributes(QGraphicsItem *git, const svgscene::SaxHandler
 	}
 	git->setData(svgscene::Types::DataKey::XmlAttributes, QVariant::fromValue(attrs));
 }
+*/
+
+

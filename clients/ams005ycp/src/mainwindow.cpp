@@ -21,6 +21,7 @@ MainWindow::MainWindow(QWidget *parent)
 	, ui(new Ui::MainWindow)
 {
 	ui->setupUi(this);
+	ui->menuBar->hide();
 
 	setWindowIcon(QIcon(":/images/eline"));
 	setWindowTitle(tr("Yard Control Panel"));
@@ -29,7 +30,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 	connect(ui->actHelpAbout, &QAction::triggered, [this]() {
 		QMessageBox::about(this
-						   , "JN50 View"
+						   , "Ams005Ycp"
 						   , "<p><b>Yard Control Panel</b></p>"
 							 "<p>ver. " + QCoreApplication::applicationVersion() + "</p>"
 							 "<p>Yard control panel and route status visualization</p>"

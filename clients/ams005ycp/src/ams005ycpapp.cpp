@@ -55,13 +55,13 @@ void Ams005YcpApp::loadSettings()
 	*/
 }
 
-QVariant Ams005YcpApp::reloadOpcValue(const std::string &path)
+QVariant Ams005YcpApp::reloadOpcValue(const QString &path)
 {
 #warning Ams005YcpApp::reloadOpcValue NIY
 	return QVariant();
 }
 
-QVariant Ams005YcpApp::opcValue(const std::string &path)
+QVariant Ams005YcpApp::opcValue(const QString &path)
 {
 #warning Ams005YcpApp::opcValue NIY
 	return QVariant();
