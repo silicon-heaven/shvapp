@@ -242,7 +242,7 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 					dlg.exec();
 				}
 			}
-			else if(a == a_usersEditor){
+			else if(a == a_usersEditor) {
 				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 				if(nd) {
 					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
@@ -252,7 +252,7 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 					dlg.exec();
 				}
 			}
-			else if(a == a_grantsEditor){
+			else if(a == a_grantsEditor) {
 				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 				if(nd) {
 					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();

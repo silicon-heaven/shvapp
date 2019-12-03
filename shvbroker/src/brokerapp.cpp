@@ -142,7 +142,7 @@ public:
 				BrokerApp *app = BrokerApp::instance();
 				ClientShvNode *nd = qobject_cast<ClientShvNode*>(app->m_nodesTree->cd(shv_path.at(0).toString()));
 				if(nd == nullptr)
-					SHV_EXCEPTION("Cannot find client node on path: " + shv_path.at(0).toString());
+					SHV_EXCEPTION("Cannot find client node on path: " + shv_path.at(0).toString())
 				cp::RpcValue::List lst;
 				for(rpc::ClientBrokerConnection *conn : nd->connections())
 					lst.push_back(conn->connectionId());

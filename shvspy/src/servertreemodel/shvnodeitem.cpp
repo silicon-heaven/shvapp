@@ -138,7 +138,7 @@ ShvNodeItem *ShvNodeItem::parentNode() const
 ShvNodeItem *ShvNodeItem::childAt(int ix) const
 {
 	if(ix < 0 || ix >= m_children.count())
-		SHV_EXCEPTION("Invalid child index");
+		SHV_EXCEPTION("Invalid child index")
 	return m_children[ix];
 }
 
@@ -181,7 +181,15 @@ std::string ShvNodeItem::shvPath() const
 	ShvBrokerNodeItem *srv_nd = serverNode();
 	const ShvNodeItem *nd = this;
 	while(nd) {
-		if(!nd || nd == srv_nd) {
+		if(!nd) {
+			break;
+		}
+		else if(nd == srv_nd) {
+			if(!srv_nd->shvRoot().empty()) {
+				if(!ret.empty())
+					ret = '/' + ret;
+				ret = srv_nd->shvRoot() + ret;
+			}
 			break;
 		}
 		else {

@@ -13,6 +13,15 @@ TheApp::TheApp(int &argc, char **argv, AppCliOptions *cli_opts)
 	, m_cliOptions(cli_opts)
 	, m_crypt(shv::core::utils::Crypt::createGenerator(17456, 3148, 2147483647))
 {
+#ifdef Q_OS_WIN
+	// set default style to fusion to overcome ugly look on some Windows installations
+	for(auto key : QStyleFactory::keys()) {
+		if(key == QLatin1String("Fusion")) {
+			setStyle(QStyleFactory::create(key));
+			break;
+		}
+	}
+#endif
 	m_serverTreeModel = new ServerTreeModel(this);
 	m_attributesModel = new AttributesModel(this);
 	m_rpcNotificationsModel = new RpcNotificationsModel(this);
