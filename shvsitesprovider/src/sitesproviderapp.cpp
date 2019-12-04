@@ -40,7 +40,7 @@ static std::vector<cp::MetaMethod> root_meta_methods {
 	{ METH_GET_SITES, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::GRANT_READ },
 	{ METH_GET_CONFIG, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::GRANT_READ },
 	{ METH_SAVE_CONFIG, cp::MetaMethod::Signature::VoidParam, false, shv::chainpack::Rpc::GRANT_ADMIN },
-	{ METH_RELOAD_SITES, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::GRANT_ADMIN },
+	{ METH_RELOAD_SITES, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::GRANT_COMMAND},
 	{ METH_SITES_TIME, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::GRANT_READ }
 };
 
