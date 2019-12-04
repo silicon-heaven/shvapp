@@ -6,8 +6,8 @@ DIST_BIN_DIR=bin
 rm $DIST_LIB_DIR/*.debug
 rm $DIST_BIN_DIR/*.debug
 
-QT_DIR=/opt/qt/5.12.0/gcc_64
-QT_LIB_DIR=/opt/qt/5.12.0/gcc_64/lib
+QT_DIR=/opt/qt/5.13.2/gcc_64
+QT_LIB_DIR=/opt/qt/5.13.2/gcc_64/lib
 
 rsync -av --exclude '*.debug' $QT_LIB_DIR/libQt5Core.so* $DIST_LIB_DIR
 rsync -av --exclude '*.debug' $QT_LIB_DIR/libQt5Gui.so* $DIST_LIB_DIR
