@@ -7,6 +7,9 @@
 #include <shv/coreqt/log.h>
 
 #include <QSettings>
+#ifdef Q_OS_WIN
+#include <QStyleFactory>
+#endif
 
 TheApp::TheApp(int &argc, char **argv, AppCliOptions *cli_opts)
 	: Super(argc, argv)
