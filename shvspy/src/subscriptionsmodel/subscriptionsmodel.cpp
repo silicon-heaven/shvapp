@@ -86,7 +86,7 @@ QVariant SubscriptionsModel::data(const QModelIndex &ix, int role) const
 	}
 	else if(role == Qt::BackgroundRole) {
 		if (ix.column() == Columns::ColServer) {
-			return QBrush(QColor::fromHsv(sub.brokerId() * 36, 45, 255));
+			return QBrush(QColor::fromHsv((sub.brokerId() * 36) % 360, 45, 255));
 		}
 	}
 
