@@ -19,15 +19,14 @@ struct ShvMetaMethod
 	std::string method;
 	shv::chainpack::MetaMethod::Signature signature = shv::chainpack::MetaMethod::Signature::VoidVoid;
 	unsigned flags = 0;
-	//int accessLevel = 0;
-	std::string accessGrant;
+	shv::chainpack::RpcValue accessGrant;
 	shv::chainpack::RpcValue params;
 	shv::chainpack::RpcResponse response;
 	int rpcRequestId = 0;
 
 	std::string signatureStr() const;
 	std::string flagsStr() const;
-	//std::string accessLevelStr() const;
+	std::string accessGrantStr() const;
 	bool isSignal() const;
 };
 

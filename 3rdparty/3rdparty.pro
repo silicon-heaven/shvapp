@@ -8,6 +8,7 @@ SUBDIRS += \
 	libshv/libshvcore \
 	libshv/libshvcoreqt \
     libshv/libshviotqt \
+    libshv/libshvbroker \
     libshv/utils \
 	libshv/tests \
 

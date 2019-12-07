@@ -29,7 +29,7 @@ static std::vector<cp::MetaMethod> meta_methods_root {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0},
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0},
 	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, 0},
-	{cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_BROWSE},
+	{cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
 	{cp::Rpc::METH_MOUNT_POINT, cp::MetaMethod::Signature::RetVoid, 0},
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, 0},
 	{METH_APP_LOG, cp::MetaMethod::Signature::RetVoid, 0},
