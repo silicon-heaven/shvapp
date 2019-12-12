@@ -39,43 +39,49 @@ std::string ShvMetaMethod::flagsStr() const
 		ret += (ret.empty()? "": ",") + std::string("S");
 	return ret;
 }
-/*
-std::string ShvMetaMethod::accessLevelStr() const
+
+std::string ShvMetaMethod::accessGrantStr() const
 {
-	std::string ret;
-	if(accessLevel <= cp::MetaMethod::AccessLevel::Browse)
-		ret = "None";
-	else if(accessLevel == cp::MetaMethod::AccessLevel::Browse)
-		ret = "Browse";
-	else if(accessLevel < cp::MetaMethod::AccessLevel::Read)
-		ret = "Browse+";
-	else if(accessLevel == cp::MetaMethod::AccessLevel::Read)
-		ret = "Read";
-	else if(accessLevel < cp::MetaMethod::AccessLevel::Write)
-		ret = "Read+";
-	else if(accessLevel == cp::MetaMethod::AccessLevel::Write)
-		ret = "Write";
-	else if(accessLevel < cp::MetaMethod::AccessLevel::Command)
-		ret = "Write+";
-	else if(accessLevel == cp::MetaMethod::AccessLevel::Command)
-		ret = "Command";
-	else if(accessLevel < cp::MetaMethod::AccessLevel::Config)
-		ret = "Command+";
-	else if(accessLevel == cp::MetaMethod::AccessLevel::Config)
-		ret = "Config";
-	else if(accessLevel < cp::MetaMethod::AccessLevel::Service)
-		ret = "Config+";
-	else if(accessLevel == cp::MetaMethod::AccessLevel::Service)
-		ret = "Service";
-	else if(accessLevel < cp::MetaMethod::AccessLevel::Admin)
-		ret = "Service+";
-	else if(accessLevel == cp::MetaMethod::AccessLevel::Admin)
-		ret = "Admin";
-	else
-		ret = "Admin+";
-	return ret;
+	cp::AccessGrant ag = cp::AccessGrant::fromRpcValue(accessGrant);
+	if(ag.isRole())
+		return ag.role;
+	if(ag.isAccessLevel()) {
+		std::string ret;
+		if(ag.accessLevel <= cp::MetaMethod::AccessLevel::Browse)
+			ret = "none";
+		else if(ag.accessLevel == cp::MetaMethod::AccessLevel::Browse)
+			ret = "bws";
+		else if(ag.accessLevel < cp::MetaMethod::AccessLevel::Read)
+			ret = "bws+";
+		else if(ag.accessLevel == cp::MetaMethod::AccessLevel::Read)
+			ret = "rd";
+		else if(ag.accessLevel < cp::MetaMethod::AccessLevel::Write)
+			ret = "rd+";
+		else if(ag.accessLevel == cp::MetaMethod::AccessLevel::Write)
+			ret = "wr";
+		else if(ag.accessLevel < cp::MetaMethod::AccessLevel::Command)
+			ret = "wr+";
+		else if(ag.accessLevel == cp::MetaMethod::AccessLevel::Command)
+			ret = "cmd";
+		else if(ag.accessLevel < cp::MetaMethod::AccessLevel::Config)
+			ret = "cmd+";
+		else if(ag.accessLevel == cp::MetaMethod::AccessLevel::Config)
+			ret = "cfg";
+		else if(ag.accessLevel < cp::MetaMethod::AccessLevel::Service)
+			ret = "cfg+";
+		else if(ag.accessLevel == cp::MetaMethod::AccessLevel::Service)
+			ret = "svc";
+		else if(ag.accessLevel < cp::MetaMethod::AccessLevel::Admin)
+			ret = "svc+";
+		else if(ag.accessLevel == cp::MetaMethod::AccessLevel::Admin)
+			ret = "su";
+		else
+			ret = "su+";
+		return ret;
+	}
+	return "N/A";
 }
-*/
+
 bool ShvMetaMethod::isSignal() const
 {
 	return flags & cp::MetaMethod::Flag::IsSignal;
@@ -241,7 +247,7 @@ void ShvNodeItem::processRpcMessage(const shv::chainpack::RpcMessage &msg)
 				mm.method = lst.value(0).toString();
 				mm.signature = (cp::MetaMethod::Signature) lst.value(1).toUInt();
 				mm.flags = lst.value(2).toUInt();
-				mm.accessGrant = lst.value(3).toString();
+				mm.accessGrant = lst.value(3);
 				m_methods.push_back(mm);
 			}
 			emit methodsLoaded();
