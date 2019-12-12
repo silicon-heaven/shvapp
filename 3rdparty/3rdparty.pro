@@ -9,8 +9,9 @@ SUBDIRS += \
 	libshv/libshvcoreqt \
     libshv/libshviotqt \
     libshv/libshvbroker \
+    libshv/samples \
     libshv/utils \
-	libshv/tests \
+    libshv/tests \
 
 qtHaveModule(gui) {
 SUBDIRS += \
