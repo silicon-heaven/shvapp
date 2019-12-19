@@ -30,6 +30,7 @@ static const char METH_GET_CONFIG[] = "getConfig";
 static const char METH_SAVE_CONFIG[] = "saveConfig";
 static const char METH_RELOAD_SITES[] = "reloadSites";
 static const char METH_SITES_TIME[] = "sitesSyncTime";
+static const char METH_SITES_RELOADED[] = "reloaded";
 
 static std::vector<cp::MetaMethod> root_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::ROLE_BROWSE },
@@ -41,7 +42,8 @@ static std::vector<cp::MetaMethod> root_meta_methods {
 	{ METH_GET_CONFIG, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::ROLE_READ },
 	{ METH_SAVE_CONFIG, cp::MetaMethod::Signature::VoidParam, false, shv::chainpack::Rpc::ROLE_ADMIN },
 	{ METH_RELOAD_SITES, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::ROLE_ADMIN },
-	{ METH_SITES_TIME, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::ROLE_READ }
+	{ METH_SITES_TIME, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::ROLE_READ },
+	{ METH_SITES_RELOADED, cp::MetaMethod::Signature::VoidParam, true, shv::chainpack::Rpc::ROLE_READ }
 };
 
 static std::vector<cp::MetaMethod> empty_leaf_meta_methods {
@@ -369,6 +371,11 @@ void AppRootNode::downloadSites(std::function<void ()> callback)
 			}
 			m_sites = shv_cp.toMap();
 			shvInfo() << "Downloaded sites.json";
+			if (SitesProviderApp::instance()->rpcConnection()->isBrokerConnected()) {
+				cp::RpcSignal ntf;
+				ntf.setMethod(METH_SITES_RELOADED);
+				rootNode()->emitSendRpcMessage(ntf);
+			}
 		}
 		catch (std::exception &e) {
 			m_downloadSitesError = e.what();
