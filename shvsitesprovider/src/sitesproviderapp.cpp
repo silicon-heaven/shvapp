@@ -43,7 +43,7 @@ static std::vector<cp::MetaMethod> root_meta_methods {
 	{ METH_SAVE_CONFIG, cp::MetaMethod::Signature::VoidParam, false, shv::chainpack::Rpc::ROLE_ADMIN },
 	{ METH_RELOAD_SITES, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::ROLE_ADMIN },
 	{ METH_SITES_TIME, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::ROLE_READ },
-	{ METH_SITES_RELOADED, cp::MetaMethod::Signature::VoidParam, true, shv::chainpack::Rpc::ROLE_READ }
+	{ METH_SITES_RELOADED, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::IsSignal, shv::chainpack::Rpc::ROLE_READ }
 };
 
 static std::vector<cp::MetaMethod> empty_leaf_meta_methods {
