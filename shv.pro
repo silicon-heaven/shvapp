@@ -21,5 +21,6 @@ SUBDIRS += \
     shvrsh \
     shvsitesprovider \
     shvbrclabprovider \
+    eyassrvctl \
 }
 

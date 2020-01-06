@@ -23,7 +23,7 @@ with-shvwebsockets {
 CONFIG += c++11
 
 TEMPLATE = app
-TARGET = shvbroker
+TARGET = eyassrvctl
 
 DESTDIR = $$SHV_PROJECT_TOP_BUILDDIR/bin
 

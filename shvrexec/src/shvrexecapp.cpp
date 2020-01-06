@@ -388,7 +388,7 @@ void ShvRExecApp::runPtyCmd(const shv::chainpack::RpcValue &params)
 		}
 	});
 	*/
-	connect(m_ptyCmdProc, QOverload<int>::of(&QProcess::finished), this, [this](int exit_code) {
+	connect(m_ptyCmdProc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, [this](int exit_code) {
 		shvInfo() << "Process" << m_ptyCmdProc->program() << "finished with exit code:" << exit_code;
 		m_ptyCmdProc->disconnect();
 		closeAndQuit();
