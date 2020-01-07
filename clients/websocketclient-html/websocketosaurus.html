@@ -14,6 +14,11 @@
 		<h1>WebSocketoSaurus</h1>
 		<h2>WebSocket Shv Broker test Client</h1>
 		<p>
+			Uri <input type="text" id="edUri"/>
+			user <input type="text" id="edUser"/>
+			password <input type="password" id="edPassword"/>
+		</p>
+		<p>
 			<button onClick="initWebSocket(true);">Connect ChainPack</button>
 			<button onClick="initWebSocket(false);">Connect Cpon</button>
 			<button onClick="stopWebSocket();">Disconnect</button>
@@ -34,6 +39,10 @@
 		</p>
 
 		<script type="text/javascript">
+			document.getElementById("edUri").value = "ws://localhost:3777";
+			document.getElementById("edUser").value = "iot";
+			document.getElementById("edPassword").value = "lub42DUB";
+
 			document.getElementById("edShvPath").value = ".broker/app";
 			document.getElementById("edMethod").value = "echo";
 			document.getElementById("edParams").value = "42";
@@ -62,7 +71,6 @@
 				}
 			}
 
-			let wsUri = "ws://localhost:3777";
 			let websocket = null;
 			let hello_phase = false;
 			let login_phase = false;
@@ -72,6 +80,11 @@
 
 			function initWebSocket(use_chainpack)
 			{
+				let wsUri = document.getElementById("edUri").value
+				let user = document.getElementById("edUser").value
+				let password = document.getElementById("edPassword").value
+
+
 				isUseCpon = !use_chainpack
 				let txtLog = document.getElementById("txtLog");
 				txtLog.value = "Connection to shvbroker using " + (isUseCpon? "Cpon": "ChainPack") + " serialization.";
@@ -108,7 +121,7 @@
 							let rqid = rpc_msg.requestId();
 							if(rqid == 1) {
 								// <T:RpcMessage,id:2,method:"login">i{params:{"login":{"password":"lub42DUB","type":"PLAIN","user":"iot"},"options":{"device":{"mountPoint":"test/agent1"},"idleWatchDogTimeOut":0}}}
-								let params = '{"login":{"password":"lub42DUB","type":"PLAIN","user":"iot"},"options":{"device":{"mountPoint":"test/agent1"},"idleWatchDogTimeOut":0}}'
+								let params = '{"login":{"password":"' + password + '","type":"PLAIN","user":"' + user + '"},"options":{"device":{"mountPoint":"test/websocketosaurus"},"idleWatchDogTimeOut":0}}'
 								callRpcMethod(null, "login", params)
 								hello_phase = false;
 								login_phase = true;
