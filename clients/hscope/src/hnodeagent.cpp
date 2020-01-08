@@ -91,6 +91,8 @@ void HNodeAgent::subscribeAgentMntChng()
 
 void HNodeAgent::checkAgentConnected()
 {
+	if(isDisabled())
+		return;
 	HNodeBroker *pbnd = parentBrokerNode();
 	if(pbnd) {
 		shv::iotqt::rpc::ClientConnection *conn = pbnd->rpcConnection();
