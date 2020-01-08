@@ -118,7 +118,7 @@
 						let rpc_msg = new RpcMessage(rpc_val);
 						if(hello_phase) {
 							// <1:1,8:1>i{2:{"nonce":"1805368699"}}
-							let rqid = rpc_msg.requestId();
+							let rqid = rpc_msg.requestId().toInt();
 							if(rqid == 1) {
 								// <T:RpcMessage,id:2,method:"login">i{params:{"login":{"password":"lub42DUB","type":"PLAIN","user":"iot"},"options":{"device":{"mountPoint":"test/agent1"},"idleWatchDogTimeOut":0}}}
 								let params = '{"login":{"password":"' + password + '","type":"PLAIN","user":"' + user + '"},"options":{"device":{"mountPoint":"test/websocketosaurus"},"idleWatchDogTimeOut":0}}'
@@ -129,7 +129,7 @@
 						}
 						else if(login_phase) {
 							// <T:RpcMessage,id:2>i{result:{"clientId":2}}
-							let rqid = rpc_msg.requestId();
+							let rqid = rpc_msg.requestId().toInt();
 							if(rqid == 2) {
 								login_phase = false;
 								broker_connected = true;
