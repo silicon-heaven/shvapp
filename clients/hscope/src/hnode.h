@@ -12,7 +12,7 @@ class HNodeBroker;
 struct NodeStatus
 {
 public:
-	enum class Value : int {Unknown = -1, Ok, Warning, Error};
+	enum class Value : int {Error, Warning, Ok, Disabled, Unknown};
 	Value value = Value::Unknown;
 	std::string message;
 

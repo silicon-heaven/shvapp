@@ -46,7 +46,7 @@ const shv::chainpack::MetaMethod *AppRootNode::metaMethod(const StringViewList &
 {
 	if(shv_path.empty()) {
 		if(meta_methods.size() <= ix)
-			SHV_EXCEPTION("Invalid method index: " + std::to_string(ix) + " of: " + std::to_string(meta_methods.size()));
+			SHV_EXCEPTION("Invalid method index: " + std::to_string(ix) + " of: " + std::to_string(meta_methods.size()))
 		return &(meta_methods[ix]);
 	}
 	return nullptr;

@@ -69,6 +69,7 @@ NodeStatus NodeStatus::fromRpcValue(const shv::chainpack::RpcValue &val)
 const char *NodeStatus::valueToString(NodeStatus::Value val)
 {
 	switch (val) {
+	case Value::Disabled: return "Disabled";
 	case Value::Unknown: return "Unknown";
 	case Value::Ok: return "Ok";
 	case Value::Warning: return "Warning";
@@ -81,6 +82,7 @@ const char *NodeStatus::valueToStringAbbr(NodeStatus::Value val)
 {
 	switch (val) {
 	case Value::Unknown: return "???";
+	case Value::Disabled: return "DIS";
 	case Value::Ok: return "OK";
 	case Value::Warning: return "WARN";
 	case Value::Error: return "ERR";
@@ -241,7 +243,7 @@ void HNode::updateOverallStatus()
 	shvLogFuncFrame() << shvPath() << "status:" << status().toString();
 	NodeStatus st = status();
 	NodeStatus chst = overallChildrenStatus();
-	if(chst.value > st.value) {
+	if(chst.value < st.value) {
 		st.value = chst.value;
 		st.message = chst.message;
 	}
@@ -257,7 +259,7 @@ NodeStatus HNode::overallChildrenStatus()
 	for(HNode *chnd : lst) {
 		const NodeStatus &chst = chnd->overallStatus();
 		shvDebug().color(NecroLog::Color::Yellow) << "\t child:" << chnd->shvPath() << "overall status" << chst.toString();
-		if(chst.value > ret.value) {
+		if(chst.value < ret.value) {
 			ret.value = chst.value;
 			ret.message = chst.message;
 		}
