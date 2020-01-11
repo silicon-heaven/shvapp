@@ -62,12 +62,13 @@ int main(int argc, char *argv[])
 	shvInfo() << QDateTime::currentDateTime().toString(Qt::ISODate).toStdString() << "UTC:" << QDateTime::currentDateTimeUtc().toString(Qt::ISODate).toStdString();
 	shvInfo() << "======================================================================================";
 	shvInfo() << "Log tresholds:" << NecroLog::tresholdsLogInfo();
-	shvInfo() << "SHV Journal dir:" << cli_opts.shvJournalDir();
-	shvInfo() << "SHV Journal size limit:" << cli_opts.shvJournalSizeLimit();
-	shvInfo() << "SHV Journal file size limit:" << cli_opts.shvJournalFileSizeLimit();
-	shvInfo() << "--------------------------------------------------------------------------------------";
 
 	RevitestApp a(argc, argv, &cli_opts);
+
+	shvInfo() << "SHV Journal dir:" << a.shvJournal()->journalDir();
+	shvInfo() << "SHV Journal size limit:" << a.shvJournal()->journalSizeLimit();
+	shvInfo() << "SHV Journal file size limit:" << a.shvJournal()->fileSizeLimit();
+	shvInfo() << "--------------------------------------------------------------------------------------";
 
 	shvInfo() << "starting main thread event loop";
 	ret = a.exec();
