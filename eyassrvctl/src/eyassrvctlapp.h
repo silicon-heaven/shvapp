@@ -24,6 +24,6 @@ public:
 protected:
 	std::set<std::string> aclUserFlattenRoles(const std::string &user_name) override;
 	shv::chainpack::AclRole aclRole(const std::string &role_name) override;
-	shv::chainpack::AclRolePaths aclRolePaths(const std::string &role_name) override;
+	shv::chainpack::AclRolePaths aclPathsRolePaths(const std::string &role_name) override;
 };
 
