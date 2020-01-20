@@ -327,7 +327,7 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 			//shvInfo() << "RPC request received:" << rq.toCpon();
 			cp::RpcValue shv_path = rq.shvPath();
 			if(!shv_path.toString().empty())
-				SHV_EXCEPTION("Invalid path: " + shv_path.toString())
+				SHV_EXCEPTION("Invalid path: " + shv_path.toString());
 			const cp::RpcValue method = rq.method();
 			if(method == cp::Rpc::METH_DIR) {
 				resp.setResult(cp::RpcValue::List{

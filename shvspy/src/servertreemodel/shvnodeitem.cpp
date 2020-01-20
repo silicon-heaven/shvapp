@@ -144,7 +144,7 @@ ShvNodeItem *ShvNodeItem::parentNode() const
 ShvNodeItem *ShvNodeItem::childAt(int ix) const
 {
 	if(ix < 0 || ix >= m_children.count())
-		SHV_EXCEPTION("Invalid child index")
+		SHV_EXCEPTION("Invalid child index");
 	return m_children[ix];
 }
 
