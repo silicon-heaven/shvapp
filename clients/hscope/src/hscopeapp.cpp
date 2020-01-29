@@ -68,7 +68,7 @@ shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path,
 			return HScopeApp::instance()->rpcConnection()->loginResult().value(cp::Rpc::KEY_CLIENT_ID);
 		}
 		if(method == cp::Rpc::METH_GET_LOG) {
-			return HScopeApp::instance()->shvJournal()->getLog(shv::core::utils::ShvJournalGetLogParams(params));
+			return HScopeApp::instance()->shvJournal()->getLog(shv::core::utils::ShvGetLogParams(params));
 		}
 	}
 	return Super::callMethod(shv_path, method, params);

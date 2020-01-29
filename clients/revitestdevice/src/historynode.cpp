@@ -42,7 +42,7 @@ shv::chainpack::RpcValue HistoryNode::callMethod(const shv::iotqt::node::ShvNode
 {
 	if(shv_path.empty()) {
 		if(method == cp::Rpc::METH_GET_LOG) {
-			return RevitestApp::instance()->shvJournal()->getLog(shv::core::utils::ShvJournalGetLogParams(params));
+			return RevitestApp::instance()->shvJournal()->getLog(shv::core::utils::ShvGetLogParams(params));
 		}
 	}
 	return Super::callMethod(shv_path, method, params);
