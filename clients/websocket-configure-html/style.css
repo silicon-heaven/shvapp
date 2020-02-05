@@ -1,0 +1,101 @@
+<style>
+body {
+  font: 16px Arial, sans-serif;
+}
+button {
+  background-color: gray;
+  border: none;
+  color: white;
+  padding: 4px 10px;
+  text-align: left;
+  font-size: 14px;
+  margin: 0px 2px 4px 0px;
+  cursor: pointer;
+}
+input {
+  background-color: white;
+  border: 1px solid gray;
+  color: black;
+  padding: 4px 10px;
+  text-align: left;
+  margin: 0px 2px 4px 0px;
+  font-size: 14px;
+}
+label {
+  border: none;
+  color: black;
+  text-align: left;
+  font-size: 12px;
+}
+span {
+  background-color: none;
+  border: none;
+  color: black;
+  text-align: left;
+  padding: 4px 10px;
+  font-size: 16px;
+  margin: 0px 2px 20px 0px;
+  cursor: pointer;
+}
+
+* {
+  box-sizing: border-box;
+}
+.column {
+  text-align: left;
+  float: left;
+  padding: 10px;
+  height: 30px;
+}
+
+.c1, .c2, .c3 {
+  width: 25%;
+}
+
+.c4 {
+  width: 10%;
+}
+
+.c5 {
+  width: 15%;
+}
+
+.c6 {
+  width: 10%;
+}
+
+.c7 {
+  width: 30%;
+}
+
+.c8 {
+  width: 40%;
+}
+
+.c9 {
+  width: 20%;
+}
+
+.c10 {
+  width: 100%;
+}
+
+.left {
+  width: 30%;
+}
+
+.right {
+  width: 40%;
+}
+
+.row:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+.nowrap {
+  white-space: nowrap ;
+}
+
+</style>
