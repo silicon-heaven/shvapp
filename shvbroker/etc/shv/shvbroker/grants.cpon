@@ -12,7 +12,7 @@
 	"observer": {"grants": ["client"]},
 	"client": {"grants": ["ping"]},
 	"device": {"grants": ["client"]},
-	"poland": {},
+	"poland": {"grants": ["client", "ping"]},
 	"ping": {},
 	"subscribe": {},
 	"slaveBroker": {"grants": ["ping"]},

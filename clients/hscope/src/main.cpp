@@ -2,7 +2,7 @@
 #include "hscopeapp.h"
 #include "appclioptions.h"
 
-#include <shv/core/utils/fileshvjournal.h>
+#include <shv/core/utils/shvfilejournal.h>
 #include <shv/core/utils.h>
 #include <shv/coreqt/log.h>
 

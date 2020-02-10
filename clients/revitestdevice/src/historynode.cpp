@@ -4,7 +4,7 @@
 #include <shv/chainpack/metamethod.h>
 #include <shv/chainpack/rpcvalue.h>
 #include <shv/chainpack/rpc.h>
-#include <shv/core/utils/fileshvjournal.h>
+#include <shv/core/utils/shvfilejournal.h>
 
 namespace cp = shv::chainpack;
 namespace iot = shv::iotqt;

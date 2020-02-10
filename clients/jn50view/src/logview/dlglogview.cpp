@@ -106,8 +106,9 @@ shv::chainpack::RpcValue DlgLogView::getLogParams()
 	params.until = get_dt(ui->edUntil);
 	if(ui->edMaxRecordCount->value() > ui->edMaxRecordCount->minimum())
 		params.maxRecordCount = ui->edMaxRecordCount->value();
-	params.withUptime = ui->chkWithUptime->isChecked();
+	//params.withUptime = ui->chkWithUptime->isChecked();
 	params.withSnapshot = ui->chkWithSnapshot->isChecked();
+	/*
 	unsigned header_opts = 0;
 	if(ui->chkBasicInfo->isChecked())
 		header_opts |= static_cast<unsigned>(shv::core::utils::ShvGetLogParams::HeaderOptions::BasicInfo);
@@ -118,6 +119,7 @@ shv::chainpack::RpcValue DlgLogView::getLogParams()
 	if(ui->chkPathsDict->isChecked())
 		header_opts |= static_cast<unsigned>(shv::core::utils::ShvGetLogParams::HeaderOptions::PathsDict);
 	params.headerOptions = header_opts;
+	*/
 	return params.toRpcValue();
 }
 

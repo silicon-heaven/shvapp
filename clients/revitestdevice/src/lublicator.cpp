@@ -3,7 +3,7 @@
 #include "appclioptions.h"
 
 #include <shv/iotqt/node/shvnodetree.h>
-#include <shv/core/utils/fileshvjournal.h>
+#include <shv/core/utils/shvfilejournal.h>
 
 #include <shv/chainpack/rpcmessage.h>
 #include <shv/chainpack/metamethod.h>
