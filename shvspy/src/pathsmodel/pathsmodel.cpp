@@ -3,6 +3,7 @@
 #include "../theapp.h"
 
 #include <shv/chainpack/rpcvalue.h>
+#include <shv/chainpack/accessgrant.h>
 #include <shv/coreqt/log.h>
 
 #include <QBrush>
@@ -12,7 +13,7 @@ namespace cp = shv::chainpack;
 static const std::string PATH = "path";
 static const std::string GRANT = "grant";
 static const std::string WEIGHT = "weight";
-static const std::string FORWARD_GRANT = "forwardGrant";
+//static const std::string FORWARD_GRANT = cp::PathAccessGrant::FORWARD_USER_LOGIN;
 static const int INVALID = -1;
 
 PathsModel::PathsModel(QObject *parent)
@@ -56,9 +57,9 @@ shv::chainpack::RpcValue::Map PathsModel::paths()
 			path_settings[WEIGHT] = p.value(WEIGHT);
 		}
 
-		if (p.hasKey(FORWARD_GRANT)){
-			path_settings[FORWARD_GRANT] = p.value(FORWARD_GRANT);
-		}
+		//if (p.hasKey(FORWARD_GRANT)){
+		//	path_settings[FORWARD_GRANT] = p.value(FORWARD_GRANT);
+		//}
 
 		if (!path_settings.empty()){
 			std::string path_name = p.value(PATH).toStdString();
@@ -87,9 +88,9 @@ Qt::ItemFlags PathsModel::flags(const QModelIndex &ix) const
 	if (!ix.isValid()){
 		return Qt::NoItemFlags;
 	}
-	else if (ix.column() == Columns::ColForwardGrant){
-		return Super::flags(ix) |= Qt::ItemIsUserCheckable | Qt::ItemIsUserTristate;
-	}
+	//else if (ix.column() == Columns::ColForwardGrant){
+	//	return Super::flags(ix) |= Qt::ItemIsUserCheckable | Qt::ItemIsUserTristate;
+	//}
 
 	return  Super::flags(ix) |= Qt::ItemIsEditable;
 }
@@ -113,6 +114,7 @@ QVariant PathsModel::data(const QModelIndex &ix, int role) const
 		}
 	}
 	else if(role == Qt::CheckStateRole) {
+		/*
 		switch (ix.column()) {
 			case Columns::ColForwardGrant:{
 				if (path.hasKey(FORWARD_GRANT)){
@@ -123,6 +125,7 @@ QVariant PathsModel::data(const QModelIndex &ix, int role) const
 				}
 			}
 		}
+		*/
 	}
 	else if(role == Qt::EditRole){
 		switch (ix.column()) {
@@ -132,6 +135,7 @@ QVariant PathsModel::data(const QModelIndex &ix, int role) const
 			return QString::fromStdString(path.value(GRANT).toStdString());
 		case Columns::ColWeight:
 			return (path.hasKey(WEIGHT)) ? path.value(WEIGHT).toInt() : INVALID;
+			/*
 		case Columns::ColForwardGrant:
 			if (path.hasKey(FORWARD_GRANT)){
 				return (path.value(FORWARD_GRANT).toBool()) ? Qt::Checked : Qt::Unchecked;
@@ -139,6 +143,7 @@ QVariant PathsModel::data(const QModelIndex &ix, int role) const
 			else{
 				return Qt::PartiallyChecked;
 			}
+			*/
 		}
 	}
 
@@ -152,9 +157,9 @@ bool PathsModel::setData(const QModelIndex &ix, const QVariant &val, int role)
 	}
 
 	if (role == Qt::CheckStateRole){
+		/*
 		shv::chainpack::RpcValue::Map &path = m_paths[ix.row()];
 		int col = ix.column();
-
 		if (col == Columns::ColForwardGrant){
 			if (val.toInt() != Qt::CheckState::PartiallyChecked){
 				path[FORWARD_GRANT] = (val.toInt() == Qt::CheckState::Checked);
@@ -165,6 +170,7 @@ bool PathsModel::setData(const QModelIndex &ix, const QVariant &val, int role)
 
 			return true;
 		}
+		*/
 	}
 	else if (role == Qt::EditRole){
 		shv::chainpack::RpcValue::Map &path = m_paths[ix.row()];
@@ -207,8 +213,8 @@ QVariant PathsModel::headerData(int section, Qt::Orientation orientation, int ro
 				return tr("Grant");
 			case Columns::ColWeight:
 				return tr("Grant weight");
-			case Columns::ColForwardGrant:
-				return tr("Forward grant");
+			//case Columns::ColForwardGrant:
+			//	return tr("Forward grant");
 			default:
 				return tr("Unknown");
 			}

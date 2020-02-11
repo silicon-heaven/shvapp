@@ -13,7 +13,7 @@ else {
 message ( SHV_PROJECT_TOP_BUILDDIR == '$$SHV_PROJECT_TOP_BUILDDIR' )
 
 QT -= gui
-QT += core network
+QT += core network sql
 
 with-shvwebsockets {
 	QT += websockets

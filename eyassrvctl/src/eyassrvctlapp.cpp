@@ -94,7 +94,7 @@ cp::AclRole EyasSrvCtlApp::aclRole(const std::string &role_name)
 	return ret;
 }
 
-cp::AclRolePaths EyasSrvCtlApp::aclRolePaths(const std::string &role_name)
+cp::AclRolePaths EyasSrvCtlApp::aclPathsRolePaths(const std::string &role_name)
 {
 	cp::AclRolePaths ret;
 	if(role_name == "eyas") {
