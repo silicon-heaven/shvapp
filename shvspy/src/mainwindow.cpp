@@ -258,7 +258,7 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
 
 					DlgGrantsEditor dlg(this, cc);
-					dlg.init(nd->shvPath());
+					dlg.init(nd->shvPath() + "/etc/acl/");
 					dlg.exec();
 				}
 			}

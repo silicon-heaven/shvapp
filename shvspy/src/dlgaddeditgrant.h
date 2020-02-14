@@ -27,30 +27,30 @@ public:
 	~DlgAddEditGrant() override;
 
 	DialogType dialogType();
-	void init(const QString &grant_name);
+	void init(const QString &role_name);
 	void accept() Q_DECL_OVERRIDE;
 
 private:
-	QString grantName();
 
 	void callAddGrant();
 	void callSeGrants();
-	void callGetGrants();
-	void callSetWeight();
-	void callGetWeight();
 	void callEditGrant();
-	void callGetGrantInfo();
-	std::string grantNameShvPath();
+	void callGetRoleSettings();
 
 	void callSetGrantPaths();
-	void callGetGrantPaths();
-
-	std::string aclEtcGrantsNodePath();
-	std::string aclEtcPathsNodePath();
+	void callGetPathsSettings();
 
 	shv::chainpack::RpcValue::Map createParamsMap();
-	shv::chainpack::RpcValue::List grants();
-	void setGrants(const shv::chainpack::RpcValue::List &grants);
+	shv::chainpack::RpcValue::List roles();
+	void setRoles(const shv::chainpack::RpcValue::List &roles);
+
+	QString roleName();
+	void setWeight(int weight);
+
+	std::string aclEtcRoleNodePath();
+	std::string aclEtcPathsNodePath();
+	std::string roleShvPath();
+	std::string pathShvPath();
 
 	void onAddRowClicked();
 	void onDeleteRowClicked();

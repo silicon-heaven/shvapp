@@ -9,7 +9,7 @@ class PathsModel : public QAbstractTableModel
 private:
 	typedef QAbstractTableModel Super;
 public:
-	enum Columns {ColPath = 0, ColGrant, ColWeight, /*ColForwardGrant,*/ ColCount};
+	enum Columns {ColPath = 0, ColGrant, ColCount};
 
 public:
 	PathsModel(QObject *parent = nullptr);

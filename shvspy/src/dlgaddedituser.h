@@ -22,7 +22,7 @@ public:
 	~DlgAddEditUser() override;
 
 	DialogType dialogType();
-	QString user();
+	std::string user();
 	void setUser(const QString &user);
 	QString password();
 
@@ -30,22 +30,21 @@ public:
 
 private:
 	void onShowPasswordClicked();
-	void showPasswordItems(bool visible);
 
-	void callAddUser();
-	void callChangePassword();
-	void callSetGrants();
-	void callGetGrants();
-	void callCommitChanges();
+	void callSetUserSettings();
+	void callGetUserSettings();
+
+	const std::string &aclUsersShvPath();
 	std::string userShvPath();
 
-	shv::chainpack::RpcValue::List grants();
-	void setGrants(const shv::chainpack::RpcValue::List &grants);
+	shv::chainpack::RpcValue::List roles();
+	void setRoles(const shv::chainpack::RpcValue::List &roles);
+
 	Ui::DlgAddEditUser *ui;
 	DialogType m_dialogType;
-	int m_requestedRpcCallsCount = 0;
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
 	const std::string &m_aclEtcUsersNodePath;
+	shv::chainpack::RpcValue::Map m_remoteUserSettings;
 };
 
 #endif // DLGEDITUSER_H

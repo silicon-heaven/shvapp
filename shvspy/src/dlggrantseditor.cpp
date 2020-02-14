@@ -35,15 +35,15 @@ DlgGrantsEditor::~DlgGrantsEditor()
 	delete ui;
 }
 
-void DlgGrantsEditor::init(const std::string &path)
+void DlgGrantsEditor::init(const std::string &acl_node_path)
 {
-	m_aclEtcNodePath = path + "/etc/acl/";
+	m_aclEtcNodePath = acl_node_path;
 	listGrants();
 }
 
-std::string DlgGrantsEditor::aclEtcGrantsNodePath()
+std::string DlgGrantsEditor::aclEtcRolesNodePath()
 {
-	return m_aclEtcNodePath + "grants";
+	return m_aclEtcNodePath + "roles";
 }
 
 std::string DlgGrantsEditor::aclEtcPathsNodePath()
@@ -94,7 +94,7 @@ void DlgGrantsEditor::onDelGrantClicked()
 			}
 		});
 
-		m_rpcConnection->callShvMethod(rqid, aclEtcGrantsNodePath(), "delGrant", shv::chainpack::RpcValue::String(grant.toStdString()));
+		m_rpcConnection->callShvMethod(rqid, aclEtcRolesNodePath(), "delGrant", shv::chainpack::RpcValue::String(grant.toStdString()));
 	}
 }
 
@@ -157,7 +157,7 @@ void DlgGrantsEditor::listGrants()
 		}
 	});
 
-	m_rpcConnection->callShvMethod(rqid, aclEtcGrantsNodePath(), shv::chainpack::Rpc::METH_LS);
+	m_rpcConnection->callShvMethod(rqid, aclEtcRolesNodePath(), shv::chainpack::Rpc::METH_LS);
 }
 
 void DlgGrantsEditor::callDeleteGrantPaths(const std::string &grant_name)

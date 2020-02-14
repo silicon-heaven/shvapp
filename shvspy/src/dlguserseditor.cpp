@@ -128,7 +128,8 @@ void DlgUsersEditor::onDelUserClicked()
 			}
 		});
 
-		m_rpcConnection->callShvMethod(rqid, m_aclEtcUsersNodePath, "delUser", shv::chainpack::RpcValue::String(user.toStdString()));
+		shv::chainpack::RpcValue::List params{shv::chainpack::RpcValue::String(user.toStdString()), {}};
+		m_rpcConnection->callShvMethod(rqid, m_aclEtcUsersNodePath, "setValue", params);
 	}
 }
 

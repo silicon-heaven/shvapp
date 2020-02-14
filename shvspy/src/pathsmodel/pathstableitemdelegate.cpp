@@ -13,15 +13,6 @@ PathsTableItemDelegate::PathsTableItemDelegate(QObject *parent):
 
 QWidget *PathsTableItemDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
-	if (index.column() == PathsModel::Columns::ColWeight){
-		QSpinBox *editor = new QSpinBox(parent);
-		editor->setFrame(false);
-		editor->setRange(-1, 100000);
-		editor->setSingleStep(1);
-		editor->setSpecialValueText("Not used");
-		return editor;
-	}
-
 	return Super::createEditor(parent, option, index);
 }
 

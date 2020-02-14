@@ -31,7 +31,7 @@
         <item>
          <layout class="QVBoxLayout" name="verticalLayout">
           <item>
-           <widget class="QLabel" name="lblGrantName">
+           <widget class="QLabel" name="lblRoleName">
             <property name="font">
              <font>
               <weight>50</weight>
@@ -39,12 +39,12 @@
              </font>
             </property>
             <property name="text">
-             <string>Grant name</string>
+             <string>Role name</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QLabel" name="label_2">
+           <widget class="QLabel" name="lblRoles">
             <property name="font">
              <font>
               <weight>50</weight>
@@ -52,7 +52,7 @@
              </font>
             </property>
             <property name="text">
-             <string>Grants</string>
+             <string>Roles</string>
             </property>
            </widget>
           </item>
@@ -74,17 +74,23 @@
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_2">
           <item>
-           <widget class="QLineEdit" name="leGrantName">
+           <widget class="QLineEdit" name="leRoleName">
+            <property name="enabled">
+             <bool>true</bool>
+            </property>
             <property name="font">
              <font>
               <weight>50</weight>
               <bold>false</bold>
              </font>
             </property>
+            <property name="readOnly">
+             <bool>false</bool>
+            </property>
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="leGrants">
+           <widget class="QLineEdit" name="leRoles">
             <property name="font">
              <font>
               <weight>50</weight>

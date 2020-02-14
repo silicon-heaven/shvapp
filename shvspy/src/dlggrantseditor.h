@@ -19,10 +19,10 @@ class DlgGrantsEditor : public QDialog
 public:
 	explicit DlgGrantsEditor(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection);
 	~DlgGrantsEditor();
-	void init(const std::string &path);
+	void init(const std::string &acl_node_path);
 
 private:
-	std::string aclEtcGrantsNodePath();
+	std::string aclEtcRolesNodePath();
 	std::string aclEtcPathsNodePath();
 
 	QString selectedGrant();
