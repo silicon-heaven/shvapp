@@ -1,6 +1,6 @@
 #!/bin/bash
 
-BINDIR=/home/fanda/proj/_build/shv/bin
+BINDIR=/home/fanda/proj/_build/shv-newacl/bin
 SRCDIR=/home/fanda/proj/shv
 
 BROKER_TOPICS=rpcmsg,subscr,acl #,sigres
