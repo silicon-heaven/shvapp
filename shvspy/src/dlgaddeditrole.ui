@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>DlgAddEditGrant</class>
- <widget class="QDialog" name="DlgAddEditGrant">
+ <class>DlgAddEditRole</class>
+ <widget class="QDialog" name="DlgAddEditRole">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -23,7 +23,7 @@
       </font>
      </property>
      <property name="title">
-      <string>New grant</string>
+      <string>New role</string>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_3">
       <item>
@@ -274,7 +274,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>accepted()</signal>
-   <receiver>DlgAddEditGrant</receiver>
+   <receiver>DlgAddEditRole</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -290,7 +290,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
-   <receiver>DlgAddEditGrant</receiver>
+   <receiver>DlgAddEditRole</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">

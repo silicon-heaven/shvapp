@@ -12,10 +12,10 @@
 #include <shv/iotqt/rpc/clientconnection.h>
 
 namespace Ui {
-class DlgAddEditGrant;
+class DlgAddEditRole;
 }
 
-class DlgAddEditGrant : public QDialog
+class DlgAddEditRole : public QDialog
 {
 	Q_OBJECT
 
@@ -23,8 +23,8 @@ public:
 	enum class DialogType {Add = 0, Edit, Count};
 
 
-	explicit DlgAddEditGrant(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, DlgAddEditGrant::DialogType dt = DialogType::Add);
-	~DlgAddEditGrant() override;
+	explicit DlgAddEditRole(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, DlgAddEditRole::DialogType dt = DialogType::Add);
+	~DlgAddEditRole() override;
 
 	DialogType dialogType();
 	void init(const QString &role_name);
@@ -55,7 +55,7 @@ private:
 	void onAddRowClicked();
 	void onDeleteRowClicked();
 
-	Ui::DlgAddEditGrant *ui;
+	Ui::DlgAddEditRole *ui;
 	DialogType m_dialogType;
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
 	std::string m_aclEtcNodePath;

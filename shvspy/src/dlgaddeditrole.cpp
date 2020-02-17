@@ -1,4 +1,4 @@
-#include "dlgaddeditgrant.h"
+#include "dlgaddeditrole.h"
 #include "ui_dlgaddeditgrant.h"
 
 #include "shv/core/log.h"
@@ -7,9 +7,9 @@ static const std::string WEIGHT = "weight";
 static const std::string ROLES = "roles";
 
 
-DlgAddEditGrant::DlgAddEditGrant(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, DlgAddEditGrant::DialogType dt) :
+DlgAddEditRole::DlgAddEditRole(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, DlgAddEditRole::DialogType dt) :
 	QDialog(parent),
-	ui(new Ui::DlgAddEditGrant),
+	ui(new Ui::DlgAddEditRole),
 	m_aclEtcNodePath(acl_etc_node_path)
 {
 	ui->setupUi(this);
@@ -17,8 +17,8 @@ DlgAddEditGrant::DlgAddEditGrant(QWidget *parent, shv::iotqt::rpc::ClientConnect
 	bool edit_mode = (m_dialogType == DialogType::Edit);
 
 	ui->leRoleName->setReadOnly(!edit_mode);
-	ui->groupBox->setTitle(edit_mode ? tr("Edit grant") : tr("New grant"));
-	setWindowTitle(edit_mode ? tr("Edit grant dialog") : tr("New grant dialog"));
+	ui->groupBox->setTitle(edit_mode ? tr("Edit role") : tr("New role"));
+	setWindowTitle(edit_mode ? tr("Edit role dialog") : tr("New role dialog"));
 
 	ui->tvPaths->setModel(&m_pathsModel);
 	ui->tvPaths->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
@@ -26,8 +26,8 @@ DlgAddEditGrant::DlgAddEditGrant(QWidget *parent, shv::iotqt::rpc::ClientConnect
 	ui->tvPaths->setItemDelegate(new PathsTableItemDelegate(this));
 	ui->tvPaths->setColumnWidth(PathsModel::Columns::ColPath, frameGeometry().width() * 0.6);
 
-	connect(ui->tbAddRow, &QToolButton::clicked, this, &DlgAddEditGrant::onAddRowClicked);
-	connect(ui->tbDeleteRow, &QToolButton::clicked, this, &DlgAddEditGrant::onDeleteRowClicked);
+	connect(ui->tbAddRow, &QToolButton::clicked, this, &DlgAddEditRole::onAddRowClicked);
+	connect(ui->tbDeleteRow, &QToolButton::clicked, this, &DlgAddEditRole::onDeleteRowClicked);
 
 	m_rpcConnection = rpc_connection;
 
@@ -36,24 +36,24 @@ DlgAddEditGrant::DlgAddEditGrant(QWidget *parent, shv::iotqt::rpc::ClientConnect
 	}
 }
 
-DlgAddEditGrant::~DlgAddEditGrant()
+DlgAddEditRole::~DlgAddEditRole()
 {
 	delete ui;
 }
 
-DlgAddEditGrant::DialogType DlgAddEditGrant::dialogType()
+DlgAddEditRole::DialogType DlgAddEditRole::dialogType()
 {
 	return m_dialogType;
 }
 
-void DlgAddEditGrant::init(const QString &role_name)
+void DlgAddEditRole::init(const QString &role_name)
 {
 	ui->leRoleName->setText(role_name);
 	callGetRoleSettings();
 	callGetPathsSettings();
 }
 
-void DlgAddEditGrant::accept()
+void DlgAddEditRole::accept()
 {
 	if (dialogType() == DialogType::Add){
 		if ((!roleName().isEmpty())){
@@ -69,7 +69,7 @@ void DlgAddEditGrant::accept()
 	}
 }
 
-void DlgAddEditGrant::callAddGrant()
+void DlgAddEditRole::callAddGrant()
 {
 	if (m_rpcConnection == nullptr)
 		return;
@@ -96,7 +96,7 @@ void DlgAddEditGrant::callAddGrant()
 	m_rpcConnection->callShvMethod(rqid, aclEtcRoleNodePath(), "addGrant", params);
 }
 
-void DlgAddEditGrant::callEditGrant()
+void DlgAddEditRole::callEditGrant()
 {
 	if (m_rpcConnection == nullptr)
 		return;
@@ -125,7 +125,7 @@ void DlgAddEditGrant::callEditGrant()
 	m_rpcConnection->callShvMethod(rqid, aclEtcRoleNodePath(), "editGrant", params);
 }
 
-void DlgAddEditGrant::callGetRoleSettings()
+void DlgAddEditRole::callGetRoleSettings()
 {
 	if(m_rpcConnection == nullptr){
 		return;
@@ -156,7 +156,7 @@ void DlgAddEditGrant::callGetRoleSettings()
 	m_rpcConnection->callShvMethod(rqid, roleShvPath(), "value");
 }
 
-void DlgAddEditGrant::callGetPathsSettings()
+void DlgAddEditRole::callGetPathsSettings()
 {
 	if (m_rpcConnection == nullptr)
 		return;
@@ -184,7 +184,7 @@ void DlgAddEditGrant::callGetPathsSettings()
 	m_rpcConnection->callShvMethod(rqid, pathShvPath(), "value");
 }
 
-void DlgAddEditGrant::callSetGrantPaths()
+void DlgAddEditRole::callSetGrantPaths()
 {
 	if (m_rpcConnection == nullptr)
 		return;
@@ -213,7 +213,7 @@ void DlgAddEditGrant::callSetGrantPaths()
 	m_rpcConnection->callShvMethod(rqid, aclEtcPathsNodePath(), "setGrantPaths", paths);
 }
 
-shv::chainpack::RpcValue::Map DlgAddEditGrant::createParamsMap()
+shv::chainpack::RpcValue::Map DlgAddEditRole::createParamsMap()
 {
 	shv::chainpack::RpcValue::Map params;
 
@@ -227,19 +227,19 @@ shv::chainpack::RpcValue::Map DlgAddEditGrant::createParamsMap()
 	return params;
 }
 
-shv::chainpack::RpcValue::List DlgAddEditGrant::roles()
+shv::chainpack::RpcValue::List DlgAddEditRole::roles()
 {
-	shv::chainpack::RpcValue::List grants;
+	shv::chainpack::RpcValue::List roles;
 	QStringList lst = ui->leRoles->text().split(",", QString::SplitBehavior::SkipEmptyParts);
 
 	for (int i = 0; i < lst.count(); i++){
-		grants.push_back(shv::chainpack::RpcValue::String(lst.at(i).trimmed().toStdString()));
+		roles.push_back(shv::chainpack::RpcValue::String(lst.at(i).trimmed().toStdString()));
 	}
 
-	return grants;
+	return roles;
 }
 
-void DlgAddEditGrant::setRoles(const shv::chainpack::RpcValue::List &roles)
+void DlgAddEditRole::setRoles(const shv::chainpack::RpcValue::List &roles)
 {
 	QString g;
 
@@ -252,42 +252,42 @@ void DlgAddEditGrant::setRoles(const shv::chainpack::RpcValue::List &roles)
 	ui->leRoles->setText(g);
 }
 
-QString DlgAddEditGrant::roleName()
+QString DlgAddEditRole::roleName()
 {
 	return ui->leRoleName->text();
 }
 
-void DlgAddEditGrant::setWeight(int weight)
+void DlgAddEditRole::setWeight(int weight)
 {
 	ui->sbWeight->setValue(weight);
 }
 
-std::string DlgAddEditGrant::aclEtcRoleNodePath()
+std::string DlgAddEditRole::aclEtcRoleNodePath()
 {
 	return m_aclEtcNodePath + "roles";
 }
 
-std::string DlgAddEditGrant::aclEtcPathsNodePath()
+std::string DlgAddEditRole::aclEtcPathsNodePath()
 {
 	return m_aclEtcNodePath + "paths";
 }
 
-std::string DlgAddEditGrant::roleShvPath()
+std::string DlgAddEditRole::roleShvPath()
 {
 	return aclEtcRoleNodePath() + '/' + roleName().toStdString() + "/";
 }
 
-std::string DlgAddEditGrant::pathShvPath()
+std::string DlgAddEditRole::pathShvPath()
 {
 	return aclEtcPathsNodePath() + '/' + roleName().toStdString() + "/";
 }
 
-void DlgAddEditGrant::onAddRowClicked()
+void DlgAddEditRole::onAddRowClicked()
 {
 	m_pathsModel.addPath();
 }
 
-void DlgAddEditGrant::onDeleteRowClicked()
+void DlgAddEditRole::onDeleteRowClicked()
 {
 	m_pathsModel.deletePath(ui->tvPaths->currentIndex().row());
 }

@@ -10,7 +10,7 @@
 #include "dlgsubscriptionparameters.h"
 #include "dlgcallshvmethod.h"
 #include "dlguserseditor.h"
-#include "dlggrantseditor.h"
+#include "dlgroleseditor.h"
 #include "methodparametersdialog.h"
 #include "texteditdialog.h"
 
@@ -257,7 +257,7 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 				if(nd) {
 					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
 
-					DlgGrantsEditor dlg(this, cc);
+					DlgRolesEditor dlg(this, cc);
 					dlg.init(nd->shvPath() + "/etc/acl/");
 					dlg.exec();
 				}
