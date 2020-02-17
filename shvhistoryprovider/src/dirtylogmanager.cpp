@@ -22,7 +22,7 @@ DirtyLogManager::DirtyLogManager(QObject *parent)
 	DeviceMonitor *monitor = app->deviceMonitor();
 
 	QMetaObject::Connection *connection = new QMetaObject::Connection;
-	*connection = connect(monitor, &DeviceMonitor::deviceScanFinished, [this, connection]() {
+	*connection = connect(monitor, &DeviceMonitor::sitesDownloadFinished, [this, connection]() {
 		disconnect(*connection);
 		delete connection;
 		setDirtyLogsDirty();
@@ -33,8 +33,9 @@ DirtyLogManager::DirtyLogManager(QObject *parent)
 		for (const QString &shv_path : monitor->onlineDevices()) {
 			onDeviceAppeared(shv_path);
 		}
-		connect(monitor, &DeviceMonitor::deviceAppeared, this, &DirtyLogManager::onDeviceAppeared);
-		connect(monitor, &DeviceMonitor::deviceDisappeared, this, &DirtyLogManager::onDeviceDisappeared);
+		connect(monitor, &DeviceMonitor::deviceConnectedToBroker, this, &DirtyLogManager::onDeviceAppeared);
+		connect(monitor, &DeviceMonitor::deviceDisconnectedFromBroker, this, &DirtyLogManager::onDeviceDisappeared);
+		connect(monitor, &DeviceMonitor::deviceRemovedFromSites, this, &DirtyLogManager::onDeviceDisappeared);
 	});
 }
 

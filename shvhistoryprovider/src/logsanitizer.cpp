@@ -18,7 +18,7 @@ LogSanitizer::LogSanitizer(QObject *parent)
 	connect(app, &Application::shvStateChanged, this, &LogSanitizer::onShvStateChanged);
 
 	DeviceMonitor *monitor = app->deviceMonitor();
-	connect(monitor, &DeviceMonitor::deviceAppeared, this, &LogSanitizer::onDeviceAppeared);
+	connect(monitor, &DeviceMonitor::deviceConnectedToBroker, this, &LogSanitizer::onDeviceAppeared);
 }
 
 void LogSanitizer::onShvStateChanged(shv::iotqt::rpc::ClientConnection::State state)

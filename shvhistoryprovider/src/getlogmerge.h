@@ -5,17 +5,17 @@
 
 #include <shv/core/utils/shvmemoryjournal.h>
 
-class GetLogRequest
+class GetLogMerge
 {
 public:
-	explicit GetLogRequest(const QString &shv_path, const shv::core::utils::ShvGetLogParams &log_params);
+	explicit GetLogMerge(const QString &shv_path, const shv::core::utils::ShvGetLogParams &log_params);
 
 	shv::core::utils::ShvMemoryJournal &getLog();
 
 private:
 	QString m_shvPath;
 	shv::core::utils::ShvGetLogParams m_logParams;
-	shv::core::utils::ShvMemoryJournal m_result;
+	shv::core::utils::ShvMemoryJournal m_mergedLog;
 };
 
 #endif // GETLOGREQUEST_H

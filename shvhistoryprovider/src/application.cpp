@@ -52,7 +52,7 @@ Application::Application(int &argc, char **argv, AppCliOptions* cli_opts)
 	Migration migration;
 	if (migration.isNeeded()) {
 		QMetaObject::Connection *connection = new QMetaObject::Connection;
-		*connection = connect(m_deviceMonitor, &DeviceMonitor::deviceScanFinished, [this, connection]() {
+		*connection = connect(m_deviceMonitor, &DeviceMonitor::sitesDownloadFinished, [this, connection]() {
 			disconnect(*connection);
 			delete connection;
 			disconnectFromShv();

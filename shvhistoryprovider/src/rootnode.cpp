@@ -1,7 +1,7 @@
 #include "application.h"
 #include "appclioptions.h"
 #include "devicemonitor.h"
-#include "getlogrequest.h"
+#include "getlogmerge.h"
 #include "rootnode.h"
 #include "siteitem.h"
 
@@ -164,8 +164,8 @@ cp::RpcValue RootNode::getLog(const QString &shv_path, const shv::chainpack::Rpc
 		log_params = params;
 	}
 
-	if (shv_path.isEmpty()) {
-		SHV_QT_EXCEPTION("shvPath must not be empty");
+	if (!Application::instance()->deviceMonitor()->monitoredDevices().startsWith(shv_path)) {
+		SHV_EXCEPTION("Invalid shv_path");
 	}
 	if (log_params.since.isValid() && log_params.until.isValid() && log_params.since.toDateTime() > log_params.until.toDateTime()) {
 		SHV_QT_EXCEPTION("since is after until");
@@ -175,7 +175,7 @@ cp::RpcValue RootNode::getLog(const QString &shv_path, const shv::chainpack::Rpc
 	QElapsedTimer tm;
 	tm.start();
 	shvInfo() << "got request" << request_no << "for log" << shv_path << "with params:\n" << log_params.toRpcValue().toCpon("    ");
-	GetLogRequest request(shv_path, log_params);
+	GetLogMerge request(shv_path, log_params);
 	try {
 		shv::core::utils::ShvMemoryJournal &result = request.getLog();
 		shvInfo() << "request number" << request_no << "finished in" << tm.elapsed() << "ms with" << result.entries().size() << "records";

@@ -2,8 +2,8 @@
 HEADERS += \
     $$PWD/appclioptions.h \
     $$PWD/application.h \
+    $$PWD/getlogmerge.h \
     $$PWD/rootnode.h \
-    $$PWD/getlogrequest.h \
     $$PWD/abstractrequest.h \
     $$PWD/devicelogrequest.h \
     $$PWD/devicemonitor.h \
@@ -17,11 +17,11 @@ HEADERS += \
     $$PWD/shvsubscription.h
 
 SOURCES += \
+    $$PWD/getlogmerge.cpp \
     $$PWD/main.cpp\
     $$PWD/appclioptions.cpp \
     $$PWD/application.cpp \
     $$PWD/rootnode.cpp \
-    $$PWD/getlogrequest.cpp \
     $$PWD/abstractrequest.cpp \
     $$PWD/devicelogrequest.cpp \
     $$PWD/devicemonitor.cpp \

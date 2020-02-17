@@ -24,15 +24,13 @@ public:
 	void downloadSites();
 	const SiteItem *sites() const { return m_sites; }
 
-	Q_SIGNAL void deviceAdded(const QString &device);
-	Q_SIGNAL void deviceRemoved(const QString &device);
-	Q_SIGNAL void deviceAppeared(const QString &device);
-	Q_SIGNAL void deviceDisappeared(const QString &device);
+	//Q_SIGNAL void deviceAddedToSites(const QString &device);
+	Q_SIGNAL void deviceRemovedFromSites(const QString &device);
+	Q_SIGNAL void deviceConnectedToBroker(const QString &device);
+	Q_SIGNAL void deviceDisconnectedFromBroker(const QString &device);
 
-	Q_SIGNAL void deviceScanFinished();
-
-private:
 	Q_SIGNAL void sitesDownloadFinished();
+private:
 
 	void onShvStateChanged();
 	void onDeviceMountChanged(const QString &path, const QString &method, const shv::chainpack::RpcValue &data);

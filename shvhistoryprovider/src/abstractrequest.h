@@ -29,15 +29,15 @@ public:
 protected:
 	void shvCall(const QString &shv_path, const QString &method, const shv::chainpack::RpcValue &params, ResultHandler callback);
 	void shvCall(const QString &shv_path, const QString &method, const shv::chainpack::RpcValue &params, ResponseHandler callback);
-	void execRequest(AbstractRequest *request, BoolCallback callback);
-	void execRequest(AbstractRequest *request, VoidCallback callback);
+	//void execRequest(AbstractRequest *request, BoolCallback callback);
+	//void execRequest(AbstractRequest *request, VoidCallback callback);
 
 	void cancelRunningShvCalls();
 	void cancelRunningRequests();
 	virtual void error(const QString &message);
 
-	QVector<shv::iotqt::rpc::RpcResponseCallBack*> m_runningShvCalls;
-	QVector<AbstractRequest*> m_runningRequest;
+	//QVector<shv::iotqt::rpc::RpcResponseCallBack*> m_runningShvCalls;
+	//QVector<AbstractRequest*> m_runningRequest;
 	QString m_error;
 };
 

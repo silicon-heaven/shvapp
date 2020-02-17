@@ -20,7 +20,6 @@ DeviceMonitor::DeviceMonitor(QObject *parent)
 	, m_downloadingSites(false)
 {
 	connect(Application::instance(), &Application::shvStateChanged, this, &DeviceMonitor::onShvStateChanged);
-	connect(this, &DeviceMonitor::sitesDownloadFinished, this, &DeviceMonitor::scanDevices, Qt::QueuedConnection);
 }
 
 DeviceMonitor::~DeviceMonitor()
@@ -113,7 +112,7 @@ void DeviceMonitor::downloadSites()
 			shvWarning() << "Error on parsing sites.json" << e.message();
 		}
 		m_downloadingSites = false;
-		Q_EMIT sitesDownloadFinished();
+		scanDevices();
 	});
 }
 
@@ -133,7 +132,7 @@ void DeviceMonitor::onDeviceMountChanged(const QString &path, const QString &met
 			if (shv_path.startsWith(p)) {
 				shvInfo() << "device" << shv_path << "appeared";
 				m_onlineDevices << shv_path;
-				Q_EMIT deviceAppeared(shv_path);
+				Q_EMIT deviceConnectedToBroker(shv_path);
 			}
 		}
 	}
@@ -142,7 +141,7 @@ void DeviceMonitor::onDeviceMountChanged(const QString &path, const QString &met
 			if (shv_path.startsWith(p)) {
 				shvInfo() << "device" << shv_path << "disappeared";
 				m_onlineDevices.removeOne(shv_path);
-				Q_EMIT deviceDisappeared(shv_path);
+				Q_EMIT deviceDisconnectedFromBroker(shv_path);
 			}
 		}
 	}
@@ -152,7 +151,7 @@ void DeviceMonitor::scanDevices()
 {
 	QString maintained_path = QString::fromStdString(Application::instance()->cliOptions()->maintainedPath());
 	QStringList old_monitores_devices = m_monitoredDevices;
-	QSharedPointer<int> online_tests(new int(1));
+	//QSharedPointer<int> online_test_cnt(new int(1));
 	for (const SitesHPDevice *device : m_sites->findChildren<SitesHPDevice*>()) {
 		QString shv_path = device->shvPath();
 		if (shv_path.startsWith(maintained_path)) {
@@ -162,15 +161,11 @@ void DeviceMonitor::scanDevices()
 			}
 			m_monitoredDevices << shv_path;
 //			checkLogs(shv_path);
-			Q_EMIT deviceAdded(shv_path);
-			++(*online_tests);
-			isDeviceOnline(shv_path, [this, shv_path, online_tests](bool is_online) {
+			//Q_EMIT deviceAddedToSites(shv_path);
+			isDeviceOnline(shv_path, [this, shv_path](bool is_online) {
 				if (is_online) {
 					m_onlineDevices << shv_path;
-					Q_EMIT deviceAppeared(shv_path);
-				}
-				if (--(*online_tests) == 0) {
-					Q_EMIT deviceScanFinished();
+					Q_EMIT deviceConnectedToBroker(shv_path);
 				}
 			});
 //			}
@@ -178,19 +173,18 @@ void DeviceMonitor::scanDevices()
 	}
 	for (const QString &shv_path : old_monitores_devices) {
 		m_monitoredDevices.removeOne(shv_path);
-		if (m_onlineDevices.contains(shv_path)) {
-			Q_EMIT deviceDisappeared(shv_path);
-		}
-		Q_EMIT deviceRemoved(shv_path);
+		m_onlineDevices.removeOne(shv_path);
+		//if (m_onlineDevices.contains(shv_path)) {
+		//	Q_EMIT deviceDisconnectedFromBroker(shv_path);
+		//}
+		Q_EMIT deviceRemovedFromSites(shv_path);
 	}
-	if (--(*online_tests) == 0) {
-		Q_EMIT deviceScanFinished();
-	}
+	Q_EMIT sitesDownloadFinished();
 }
 
 void DeviceMonitor::isDeviceOnline(const QString &shv_path, BoolCallback callback)
 {
-	Application::instance()->shvCall("shv/" + shv_path, "ls", [this, callback](const shv::chainpack::RpcResponse &response) {
+	Application::instance()->shvCall("shv/" + shv_path, cp::Rpc::METH_DIR, [callback](const shv::chainpack::RpcResponse &response) {
 		callback(!response.isError());
 	});
 }
