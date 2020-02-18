@@ -23,11 +23,11 @@ public:
 
 private:
 	std::string aclEtcRolesNodePath();
-	std::string aclEtcPathsNodePath();
+	std::string aclEtcAccessNodePath();
 
 	QString selectedRole();
 	void listRoles();
-	void callDeletePathsForRole(const std::string &role);
+	void callDeleteAccessForRole(const std::string &role);
 
 	void onAddRoleClicked();
 	void onDeleteRoleClicked();

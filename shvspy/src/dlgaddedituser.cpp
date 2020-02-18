@@ -72,7 +72,7 @@ void DlgAddEditUser::accept()
 {
 	if (dialogType() == DialogType::Add){
 		if ((!user().empty()) && (!password().isEmpty())){
-			ui->lblStatus->setText(tr("Adding new user ..."));
+			ui->lblStatus->setText(tr("Adding new user"));
 			callSetUserSettings();
 		}
 		else {
@@ -134,6 +134,9 @@ void DlgAddEditUser::callSetUserSettings()
 			if(response.isError()) {
 				ui->lblStatus->setText(QString::fromStdString(response.error().toString()));
 			}
+			else{
+				QDialog::accept();
+			}
 		}
 		else{
 			ui->lblStatus->setText(tr("Request timeout expired"));
@@ -153,7 +156,7 @@ void DlgAddEditUser::callSetUserSettings()
 	}
 
 	shv::chainpack::RpcValue::List params{user(), user_settings};
-	m_rpcConnection->callShvMethod(rqid, aclUsersShvPath(), SET_VALUE_METHOD,  params);
+	m_rpcConnection->callShvMethod(rqid, aclUsersShvPath(), SET_VALUE_METHOD, params);
 }
 
 const std::string &DlgAddEditUser::aclUsersShvPath()

@@ -3,7 +3,7 @@
 #include <shv/chainpack/rpcvalue.h>
 #include <QAbstractTableModel>
 
-class PathsModel : public QAbstractTableModel
+class AccessModel : public QAbstractTableModel
 {
 	Q_OBJECT
 private:
@@ -12,8 +12,8 @@ public:
 	enum Columns {ColPath = 0, ColGrant, ColCount};
 
 public:
-	PathsModel(QObject *parent = nullptr);
-	~PathsModel() Q_DECL_OVERRIDE;
+	AccessModel(QObject *parent = nullptr);
+	~AccessModel() Q_DECL_OVERRIDE;
 public:
 	void setPaths(const shv::chainpack::RpcValue::Map &paths);
 	shv::chainpack::RpcValue::Map paths();

@@ -1,4 +1,4 @@
-#include "pathsmodel.h"
+#include "accessmodel.h"
 
 #include "../theapp.h"
 
@@ -11,16 +11,16 @@ namespace cp = shv::chainpack;
 static const std::string PATH = "path";
 static const std::string GRANT = "grant";
 
-PathsModel::PathsModel(QObject *parent)
+AccessModel::AccessModel(QObject *parent)
 	: Super(parent)
 {
 }
 
-PathsModel::~PathsModel()
+AccessModel::~AccessModel()
 {
 }
 
-void PathsModel::setPaths(const shv::chainpack::RpcValue::Map &paths)
+void AccessModel::setPaths(const shv::chainpack::RpcValue::Map &paths)
 {
 	beginResetModel();
 	m_paths.clear();
@@ -37,7 +37,7 @@ void PathsModel::setPaths(const shv::chainpack::RpcValue::Map &paths)
 	endResetModel();
 }
 
-shv::chainpack::RpcValue::Map PathsModel::paths()
+shv::chainpack::RpcValue::Map AccessModel::paths()
 {
 	shv::chainpack::RpcValue::Map paths;
 
@@ -52,13 +52,13 @@ shv::chainpack::RpcValue::Map PathsModel::paths()
 	return paths;
 }
 
-int PathsModel::rowCount(const QModelIndex &parent) const
+int AccessModel::rowCount(const QModelIndex &parent) const
 {
 	Q_UNUSED(parent)
 	return m_paths.count();
 }
 
-int PathsModel::columnCount(const QModelIndex &parent) const
+int AccessModel::columnCount(const QModelIndex &parent) const
 {
 	if (parent.isValid())
 		return 0;
@@ -66,7 +66,7 @@ int PathsModel::columnCount(const QModelIndex &parent) const
 	return Columns::ColCount;
 }
 
-Qt::ItemFlags PathsModel::flags(const QModelIndex &ix) const
+Qt::ItemFlags AccessModel::flags(const QModelIndex &ix) const
 {
 	if (!ix.isValid()){
 		return Qt::NoItemFlags;
@@ -75,7 +75,7 @@ Qt::ItemFlags PathsModel::flags(const QModelIndex &ix) const
 	return  Super::flags(ix) |= Qt::ItemIsEditable;
 }
 
-QVariant PathsModel::data(const QModelIndex &ix, int role) const
+QVariant AccessModel::data(const QModelIndex &ix, int role) const
 {
 	if (m_paths.isEmpty() || ix.row() >= m_paths.count() || ix.row() < 0){
 		return QVariant();
@@ -103,7 +103,7 @@ QVariant PathsModel::data(const QModelIndex &ix, int role) const
 	return QVariant();
 }
 
-bool PathsModel::setData(const QModelIndex &ix, const QVariant &val, int role)
+bool AccessModel::setData(const QModelIndex &ix, const QVariant &val, int role)
 {
 	if (m_paths.isEmpty() || ix.row() >= m_paths.count() || ix.row() < 0){
 		return false;
@@ -128,7 +128,7 @@ bool PathsModel::setData(const QModelIndex &ix, const QVariant &val, int role)
 	return false;
 }
 
-QVariant PathsModel::headerData(int section, Qt::Orientation orientation, int role) const
+QVariant AccessModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
 	QVariant ret;
 	if(orientation == Qt::Horizontal) {
@@ -148,14 +148,14 @@ QVariant PathsModel::headerData(int section, Qt::Orientation orientation, int ro
 	return ret;
 }
 
-void PathsModel::addPath()
+void AccessModel::addPath()
 {
 	beginInsertRows(QModelIndex(), m_paths.count(), m_paths.count());
 	m_paths.append(shv::chainpack::RpcValue::Map());
 	endInsertRows();
 }
 
-void PathsModel::deletePath(int index)
+void AccessModel::deletePath(int index)
 {
 	if ((index >= 0) && (index < m_paths.count())){
 		beginResetModel();

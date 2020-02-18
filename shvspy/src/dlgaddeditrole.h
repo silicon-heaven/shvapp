@@ -3,8 +3,8 @@
 
 #include <QDialog>
 
-#include "pathsmodel/pathsmodel.h"
-#include "pathsmodel/pathstableitemdelegate.h"
+#include "accessmodel/accessmodel.h"
+#include "accessmodel/accesstableitemdelegate.h"
 
 #include "shv/chainpack/rpcvalue.h"
 
@@ -22,7 +22,6 @@ class DlgAddEditRole : public QDialog
 public:
 	enum class DialogType {Add = 0, Edit, Count};
 
-
 	explicit DlgAddEditRole(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, DlgAddEditRole::DialogType dt = DialogType::Add);
 	~DlgAddEditRole() override;
 
@@ -31,12 +30,11 @@ public:
 	void accept() Q_DECL_OVERRIDE;
 
 private:
-
 	void callAddRole();
 	void callEditRole();
 	void callGetRoleSettings();
 
-	void callSetPathsForRole();
+	void callSetAccessForRole();
 	void callGetPathsForRole();
 
 	shv::chainpack::RpcValue::Map paths();
@@ -49,9 +47,9 @@ private:
 	void setWeight(int weight);
 
 	std::string aclEtcRoleNodePath();
-	std::string aclEtcPathsNodePath();
+	std::string aclEtcAcessNodePath();
 	std::string roleShvPath();
-	std::string pathShvPath();
+	std::string accessShvPath();
 
 	void onAddRowClicked();
 	void onDeleteRowClicked();
@@ -60,7 +58,7 @@ private:
 	DialogType m_dialogType;
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
 	std::string m_aclEtcNodePath;
-	PathsModel m_pathsModel;
+	AccessModel m_accessModel;
 };
 
 #endif // DLGADDEDITROLE_H

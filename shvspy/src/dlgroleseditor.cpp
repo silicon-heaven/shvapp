@@ -49,9 +49,9 @@ std::string DlgRolesEditor::aclEtcRolesNodePath()
 	return m_aclEtcNodePath + "roles";
 }
 
-std::string DlgRolesEditor::aclEtcPathsNodePath()
+std::string DlgRolesEditor::aclEtcAccessNodePath()
 {
-	return m_aclEtcNodePath + "paths";
+	return m_aclEtcNodePath + "access";
 }
 
 QString DlgRolesEditor::selectedRole()
@@ -78,7 +78,7 @@ void DlgRolesEditor::onDeleteRoleClicked()
 
 	ui->lblStatus->setText("");
 
-	if (QMessageBox::question(this, tr("Delete role"), tr("Do you really want to delete data and associated paths for role ") + " " + QString::fromStdString(role) + "?") == QMessageBox::Yes){
+	if (QMessageBox::question(this, tr("Delete role"), tr("Do you really want to delete data and associated access pahts for role ") + " " + QString::fromStdString(role) + "?") == QMessageBox::Yes){
 		int rqid = m_rpcConnection->nextRequestId();
 		shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
@@ -88,7 +88,7 @@ void DlgRolesEditor::onDeleteRoleClicked()
 					ui->lblStatus->setText(tr("Failed to delete role.") + " " + QString::fromStdString(response.error().toString()));
 				}
 				else{
-					callDeletePathsForRole(role);
+					callDeleteAccessForRole(role);
 					listRoles();
 				}
 			}
@@ -164,12 +164,12 @@ void DlgRolesEditor::listRoles()
 	m_rpcConnection->callShvMethod(rqid, aclEtcRolesNodePath(), shv::chainpack::Rpc::METH_LS);
 }
 
-void DlgRolesEditor::callDeletePathsForRole(const std::string &role)
+void DlgRolesEditor::callDeleteAccessForRole(const std::string &role)
 {
 	if (m_rpcConnection == nullptr)
 		return;
 
-	ui->lblStatus->setText(tr("Deleting paths for role:") + " " + QString::fromStdString(role));
+	ui->lblStatus->setText(tr("Deleting access for role:") + " " + QString::fromStdString(role));
 
 	int rqid = m_rpcConnection->nextRequestId();
 	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
@@ -177,7 +177,7 @@ void DlgRolesEditor::callDeletePathsForRole(const std::string &role)
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if (response.isValid()){
 			if(response.isError()) {
-				ui->lblStatus->setText(tr("Failed to delete paths.") + " " + QString::fromStdString(response.error().toString()));
+				ui->lblStatus->setText(tr("Failed to delete access.") + " " + QString::fromStdString(response.error().toString()));
 			}
 			else{
 				ui->lblStatus->setText("");
@@ -189,5 +189,5 @@ void DlgRolesEditor::callDeletePathsForRole(const std::string &role)
 	});
 
 	shv::chainpack::RpcValue::List params{shv::chainpack::RpcValue::String(role), {}};
-	m_rpcConnection->callShvMethod(rqid, aclEtcPathsNodePath(), SET_VALUE_METHOD, params);
+	m_rpcConnection->callShvMethod(rqid, aclEtcAccessNodePath(), SET_VALUE_METHOD, params);
 }

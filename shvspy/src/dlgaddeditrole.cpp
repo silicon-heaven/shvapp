@@ -5,7 +5,9 @@
 
 static const std::string WEIGHT = "weight";
 static const std::string ROLES = "roles";
-static const std::string SET_VALUE = "setValue";
+
+static const std::string VALUE_METHOD = "value";
+static const std::string SET_VALUE_METHOD = "setValue";
 
 
 DlgAddEditRole::DlgAddEditRole(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, DlgAddEditRole::DialogType dt) :
@@ -17,15 +19,15 @@ DlgAddEditRole::DlgAddEditRole(QWidget *parent, shv::iotqt::rpc::ClientConnectio
 	m_dialogType = dt;
 	bool edit_mode = (m_dialogType == DialogType::Edit);
 
-	ui->leRoleName->setReadOnly(!edit_mode);
+	ui->leRoleName->setReadOnly(edit_mode);
 	ui->groupBox->setTitle(edit_mode ? tr("Edit role") : tr("New role"));
 	setWindowTitle(edit_mode ? tr("Edit role dialog") : tr("New role dialog"));
 
-	ui->tvPaths->setModel(&m_pathsModel);
+	ui->tvPaths->setModel(&m_accessModel);
 	ui->tvPaths->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
 	ui->tvPaths->verticalHeader()->setDefaultSectionSize(static_cast<int>(fontMetrics().height() * 1.3));
-	ui->tvPaths->setItemDelegate(new PathsTableItemDelegate(this));
-	ui->tvPaths->setColumnWidth(PathsModel::Columns::ColPath, frameGeometry().width() * 0.6);
+	ui->tvPaths->setItemDelegate(new AccessTableItemDelegate(this));
+	ui->tvPaths->setColumnWidth(AccessModel::Columns::ColPath, frameGeometry().width() * 0.6);
 
 	connect(ui->tbAddRow, &QToolButton::clicked, this, &DlgAddEditRole::onAddRowClicked);
 	connect(ui->tbDeleteRow, &QToolButton::clicked, this, &DlgAddEditRole::onDeleteRowClicked);
@@ -84,7 +86,7 @@ void DlgAddEditRole::callAddRole()
 				ui->lblStatus->setText(tr("Failed to add role.") + QString::fromStdString(response.error().toString()));
 			}
 			else{
-				callSetPathsForRole();
+				callSetAccessForRole();
 			}
 		}
 		else{
@@ -95,9 +97,9 @@ void DlgAddEditRole::callAddRole()
 	shv::chainpack::RpcValue::Map role_settings;
 	role_settings[ROLES] = roles();
 	role_settings[WEIGHT] = weight();
-	shv::chainpack::RpcValue::List params{roleName().toStdString(), role_settings};
 
-	m_rpcConnection->callShvMethod(rqid, aclEtcRoleNodePath(), SET_VALUE, params);
+	shv::chainpack::RpcValue::List params{roleName().toStdString(), role_settings};
+	m_rpcConnection->callShvMethod(rqid, aclEtcRoleNodePath(), SET_VALUE_METHOD, params);
 }
 
 void DlgAddEditRole::callEditRole()
@@ -116,7 +118,7 @@ void DlgAddEditRole::callEditRole()
 				ui->lblStatus->setText(tr("Failed to edit role.") + QString::fromStdString(response.error().toString()));
 			}
 			else{
-				callSetPathsForRole();
+				callSetAccessForRole();
 			}
 		}
 		else{
@@ -127,9 +129,9 @@ void DlgAddEditRole::callEditRole()
 	shv::chainpack::RpcValue::Map role_settings;
 	role_settings[ROLES] = roles();
 	role_settings[WEIGHT] = weight();
-	shv::chainpack::RpcValue::List params{roleName().toStdString(), role_settings};
 
-	m_rpcConnection->callShvMethod(rqid, aclEtcRoleNodePath(), SET_VALUE, params);
+	shv::chainpack::RpcValue::List params{roleName().toStdString(), role_settings};
+	m_rpcConnection->callShvMethod(rqid, aclEtcRoleNodePath(), SET_VALUE_METHOD, params);
 }
 
 void DlgAddEditRole::callGetRoleSettings()
@@ -150,8 +152,7 @@ void DlgAddEditRole::callGetRoleSettings()
 				if (response.result().isMap()){
 					shv::chainpack::RpcValue::Map res = response.result().toMap();
 					setRoles(res.value(ROLES).toList());
-					setWeight((res.value(WEIGHT).toInt() >= 0) ? res.value(WEIGHT).toInt() : 0);
-					shvInfo() << "result" << res.value(WEIGHT).toInt();
+					setWeight((res.value(WEIGHT).isValid() && res.value(WEIGHT).isInt()) ? res.value(WEIGHT).toInt() : 0);
 				}
 			}
 		}
@@ -160,7 +161,7 @@ void DlgAddEditRole::callGetRoleSettings()
 		}
 	});
 
-	m_rpcConnection->callShvMethod(rqid, roleShvPath(), "value");
+	m_rpcConnection->callShvMethod(rqid, roleShvPath(), VALUE_METHOD);
 }
 
 void DlgAddEditRole::callGetPathsForRole()
@@ -179,7 +180,7 @@ void DlgAddEditRole::callGetPathsForRole()
 				ui->lblStatus->setText(QString::fromStdString(response.error().toString()));
 			}
 			else{
-				(response.result().isMap())? m_pathsModel.setPaths(response.result().toMap()) : m_pathsModel.setPaths(shv::chainpack::RpcValue::Map());
+				(response.result().isMap())? m_accessModel.setPaths(response.result().toMap()) : m_accessModel.setPaths(shv::chainpack::RpcValue::Map());
 				ui->lblStatus->setText("");
 			}
 		}
@@ -188,19 +189,18 @@ void DlgAddEditRole::callGetPathsForRole()
 		}
 	});
 
-	m_rpcConnection->callShvMethod(rqid, pathShvPath(), "value");
+	m_rpcConnection->callShvMethod(rqid, accessShvPath(), VALUE_METHOD);
 }
 
 shv::chainpack::RpcValue::Map DlgAddEditRole::paths()
 {
-	return m_pathsModel.paths();
+	return m_accessModel.paths();
 }
 
-void DlgAddEditRole::callSetPathsForRole()
+void DlgAddEditRole::callSetAccessForRole()
 {
 	if (m_rpcConnection == nullptr)
 		return;
-	
 
 	ui->lblStatus->setText(tr("Updating paths ..."));
 
@@ -223,7 +223,7 @@ void DlgAddEditRole::callSetPathsForRole()
 
 
 	shv::chainpack::RpcValue::List params{roleName().toStdString(), paths()};
-	m_rpcConnection->callShvMethod(rqid, aclEtcPathsNodePath(), SET_VALUE, params);
+	m_rpcConnection->callShvMethod(rqid, aclEtcAcessNodePath(), SET_VALUE_METHOD, params);
 }
 
 shv::chainpack::RpcValue::List DlgAddEditRole::roles()
@@ -271,9 +271,9 @@ std::string DlgAddEditRole::aclEtcRoleNodePath()
 	return m_aclEtcNodePath + "roles";
 }
 
-std::string DlgAddEditRole::aclEtcPathsNodePath()
+std::string DlgAddEditRole::aclEtcAcessNodePath()
 {
-	return m_aclEtcNodePath + "paths";
+	return m_aclEtcNodePath + "access";
 }
 
 std::string DlgAddEditRole::roleShvPath()
@@ -281,17 +281,17 @@ std::string DlgAddEditRole::roleShvPath()
 	return aclEtcRoleNodePath() + '/' + roleName().toStdString() + "/";
 }
 
-std::string DlgAddEditRole::pathShvPath()
+std::string DlgAddEditRole::accessShvPath()
 {
-	return aclEtcPathsNodePath() + '/' + roleName().toStdString() + "/";
+	return aclEtcAcessNodePath() + '/' + roleName().toStdString() + "/";
 }
 
 void DlgAddEditRole::onAddRowClicked()
 {
-	m_pathsModel.addPath();
+	m_accessModel.addPath();
 }
 
 void DlgAddEditRole::onDeleteRowClicked()
 {
-	m_pathsModel.deletePath(ui->tvPaths->currentIndex().row());
+	m_accessModel.deletePath(ui->tvPaths->currentIndex().row());
 }
