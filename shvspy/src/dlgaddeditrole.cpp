@@ -1,10 +1,11 @@
 #include "dlgaddeditrole.h"
-#include "ui_dlgaddeditgrant.h"
+#include "ui_dlgaddeditrole.h"
 
 #include "shv/core/log.h"
 
 static const std::string WEIGHT = "weight";
 static const std::string ROLES = "roles";
+static const std::string SET_VALUE = "setValue";
 
 
 DlgAddEditRole::DlgAddEditRole(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_node_path, DlgAddEditRole::DialogType dt) :
@@ -50,31 +51,29 @@ void DlgAddEditRole::init(const QString &role_name)
 {
 	ui->leRoleName->setText(role_name);
 	callGetRoleSettings();
-	callGetPathsSettings();
+	callGetPathsForRole();
 }
 
 void DlgAddEditRole::accept()
 {
 	if (dialogType() == DialogType::Add){
-		if ((!roleName().isEmpty())){
-			ui->lblStatus->setText(tr("Adding new grant ..."));
-			callAddGrant();
+		if (!roleName().isEmpty()){
+			ui->lblStatus->setText(tr("Adding new role ..."));
+			callAddRole();
 		}
 		else {
-			ui->lblStatus->setText(tr("Grant name or grants is empty."));
+			ui->lblStatus->setText(tr("Role name is empty."));
 		}
 	}
 	else if (dialogType() == DialogType::Edit){
-		callEditGrant();
+		callEditRole();
 	}
 }
 
-void DlgAddEditRole::callAddGrant()
+void DlgAddEditRole::callAddRole()
 {
 	if (m_rpcConnection == nullptr)
 		return;
-
-	shv::chainpack::RpcValue::Map params = createParamsMap();
 
 	int rqid = m_rpcConnection->nextRequestId();
 	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
@@ -82,10 +81,10 @@ void DlgAddEditRole::callAddGrant()
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if (response.isValid()){
 			if(response.isError()) {
-				ui->lblStatus->setText(tr("Failed to add grant.") + QString::fromStdString(response.error().toString()));
+				ui->lblStatus->setText(tr("Failed to add role.") + QString::fromStdString(response.error().toString()));
 			}
 			else{
-				callSetGrantPaths();
+				callSetPathsForRole();
 			}
 		}
 		else{
@@ -93,17 +92,20 @@ void DlgAddEditRole::callAddGrant()
 		}
 	});
 
-	m_rpcConnection->callShvMethod(rqid, aclEtcRoleNodePath(), "addGrant", params);
+	shv::chainpack::RpcValue::Map role_settings;
+	role_settings[ROLES] = roles();
+	role_settings[WEIGHT] = weight();
+	shv::chainpack::RpcValue::List params{roleName().toStdString(), role_settings};
+
+	m_rpcConnection->callShvMethod(rqid, aclEtcRoleNodePath(), SET_VALUE, params);
 }
 
-void DlgAddEditRole::callEditGrant()
+void DlgAddEditRole::callEditRole()
 {
 	if (m_rpcConnection == nullptr)
 		return;
 
-	shv::chainpack::RpcValue::Map params = createParamsMap();
-
-	ui->lblStatus->setText("Updating grant");
+	ui->lblStatus->setText("Updating role");
 
 	int rqid = m_rpcConnection->nextRequestId();
 	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
@@ -111,10 +113,10 @@ void DlgAddEditRole::callEditGrant()
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if (response.isValid()){
 			if(response.isError()) {
-				ui->lblStatus->setText(tr("Failed to edit grant.") + QString::fromStdString(response.error().toString()));
+				ui->lblStatus->setText(tr("Failed to edit role.") + QString::fromStdString(response.error().toString()));
 			}
 			else{
-				callSetGrantPaths();
+				callSetPathsForRole();
 			}
 		}
 		else{
@@ -122,7 +124,12 @@ void DlgAddEditRole::callEditGrant()
 		}
 	});
 
-	m_rpcConnection->callShvMethod(rqid, aclEtcRoleNodePath(), "editGrant", params);
+	shv::chainpack::RpcValue::Map role_settings;
+	role_settings[ROLES] = roles();
+	role_settings[WEIGHT] = weight();
+	shv::chainpack::RpcValue::List params{roleName().toStdString(), role_settings};
+
+	m_rpcConnection->callShvMethod(rqid, aclEtcRoleNodePath(), SET_VALUE, params);
 }
 
 void DlgAddEditRole::callGetRoleSettings()
@@ -156,7 +163,7 @@ void DlgAddEditRole::callGetRoleSettings()
 	m_rpcConnection->callShvMethod(rqid, roleShvPath(), "value");
 }
 
-void DlgAddEditRole::callGetPathsSettings()
+void DlgAddEditRole::callGetPathsForRole()
 {
 	if (m_rpcConnection == nullptr)
 		return;
@@ -184,7 +191,12 @@ void DlgAddEditRole::callGetPathsSettings()
 	m_rpcConnection->callShvMethod(rqid, pathShvPath(), "value");
 }
 
-void DlgAddEditRole::callSetGrantPaths()
+shv::chainpack::RpcValue::Map DlgAddEditRole::paths()
+{
+	return m_pathsModel.paths();
+}
+
+void DlgAddEditRole::callSetPathsForRole()
 {
 	if (m_rpcConnection == nullptr)
 		return;
@@ -209,22 +221,9 @@ void DlgAddEditRole::callSetGrantPaths()
 		}
 	});
 
-	shv::chainpack::RpcValue::List paths{roleName().toStdString(), m_pathsModel.paths()};
-	m_rpcConnection->callShvMethod(rqid, aclEtcPathsNodePath(), "setGrantPaths", paths);
-}
 
-shv::chainpack::RpcValue::Map DlgAddEditRole::createParamsMap()
-{
-	shv::chainpack::RpcValue::Map params;
-
-	shv::chainpack::RpcValue::List g = roles();
-	params[ROLES] = g;
-
-	int weight = ui->sbWeight->value();
-	if (weight > -1){
-		params[WEIGHT] = weight;
-	}
-	return params;
+	shv::chainpack::RpcValue::List params{roleName().toStdString(), paths()};
+	m_rpcConnection->callShvMethod(rqid, aclEtcPathsNodePath(), SET_VALUE, params);
 }
 
 shv::chainpack::RpcValue::List DlgAddEditRole::roles()
@@ -255,6 +254,11 @@ void DlgAddEditRole::setRoles(const shv::chainpack::RpcValue::List &roles)
 QString DlgAddEditRole::roleName()
 {
 	return ui->leRoleName->text();
+}
+
+int DlgAddEditRole::weight()
+{
+	return ui->sbWeight->value();
 }
 
 void DlgAddEditRole::setWeight(int weight)

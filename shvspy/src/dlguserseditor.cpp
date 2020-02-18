@@ -13,6 +13,9 @@
 #include <QMessageBox>
 #include <QTableWidgetItem>
 
+static const std::string VALUE_METHOD = "value";
+static const std::string SET_VALUE_METHOD = "setValue";
+
 DlgUsersEditor::DlgUsersEditor(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection) :
 	QDialog(parent),
 	ui(new Ui::DlgUsersEditor)
@@ -129,7 +132,7 @@ void DlgUsersEditor::onDelUserClicked()
 		});
 
 		shv::chainpack::RpcValue::List params{shv::chainpack::RpcValue::String(user.toStdString()), {}};
-		m_rpcConnection->callShvMethod(rqid, m_aclEtcUsersNodePath, "setValue", params);
+		m_rpcConnection->callShvMethod(rqid, m_aclEtcUsersNodePath, SET_VALUE_METHOD, params);
 	}
 }
 

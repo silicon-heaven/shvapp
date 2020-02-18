@@ -1,9 +1,12 @@
 #include "dlgroleseditor.h"
-#include "ui_dlggrantseditor.h"
+#include "ui_dlgroleseditor.h"
 
 #include "dlgaddeditrole.h"
 #include "shv/core/assert.h"
 #include <QMessageBox>
+
+static const std::string VALUE_METHOD = "value";
+static const std::string SET_VALUE_METHOD = "setValue";
 
 DlgRolesEditor::DlgRolesEditor(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection) :
 	QDialog(parent),
@@ -95,7 +98,7 @@ void DlgRolesEditor::onDeleteRoleClicked()
 		});
 
 		shv::chainpack::RpcValue::List params{shv::chainpack::RpcValue::String(role), {}};
-		m_rpcConnection->callShvMethod(rqid, aclEtcRolesNodePath(), "setValue", params);
+		m_rpcConnection->callShvMethod(rqid, aclEtcRolesNodePath(), SET_VALUE_METHOD, params);
 	}
 }
 
@@ -186,5 +189,5 @@ void DlgRolesEditor::callDeletePathsForRole(const std::string &role)
 	});
 
 	shv::chainpack::RpcValue::List params{shv::chainpack::RpcValue::String(role), {}};
-	m_rpcConnection->callShvMethod(rqid, aclEtcPathsNodePath(), "setValue", params);
+	m_rpcConnection->callShvMethod(rqid, aclEtcPathsNodePath(), SET_VALUE_METHOD, params);
 }

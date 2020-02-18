@@ -9,6 +9,9 @@ static const std::string FORMAT_KEY = "format";
 static const std::string ROLES_KEY = "roles";
 static const std::string PASSWORD_KEY = "password";
 
+static const std::string VALUE_METHOD = "value";
+static const std::string SET_VALUE_METHOD = "setValue";
+
 DlgAddEditUser::DlgAddEditUser(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_users_node_path, DlgAddEditUser::DialogType dt) :
 	QDialog(parent),
 	ui(new Ui::DlgAddEditUser),
@@ -115,7 +118,7 @@ void DlgAddEditUser::callGetUserSettings()
 		}
 	});
 
-	m_rpcConnection->callShvMethod(rqid, userShvPath(), "value");
+	m_rpcConnection->callShvMethod(rqid, userShvPath(), VALUE_METHOD);
 }
 
 void DlgAddEditUser::callSetUserSettings()
@@ -150,7 +153,7 @@ void DlgAddEditUser::callSetUserSettings()
 	}
 
 	shv::chainpack::RpcValue::List params{user(), user_settings};
-	m_rpcConnection->callShvMethod(rqid, aclUsersShvPath(), "setValue",  params);
+	m_rpcConnection->callShvMethod(rqid, aclUsersShvPath(), SET_VALUE_METHOD,  params);
 }
 
 const std::string &DlgAddEditUser::aclUsersShvPath()
@@ -166,7 +169,7 @@ std::string DlgAddEditUser::userShvPath()
 shv::chainpack::RpcValue::List DlgAddEditUser::roles()
 {
 	shv::chainpack::RpcValue::List roles;
-	QStringList lst = ui->leGrants->text().split(",", QString::SplitBehavior::SkipEmptyParts);
+	QStringList lst = ui->leRoles->text().split(",", QString::SplitBehavior::SkipEmptyParts);
 
 	for (int i = 0; i < lst.count(); i++){
 		roles.push_back(shv::chainpack::RpcValue::String(lst.at(i).trimmed().toStdString()));
@@ -185,5 +188,5 @@ void DlgAddEditUser::setRoles(const shv::chainpack::RpcValue::List &roles)
 		}
 	}
 
-	ui->leGrants->setText(roles_list.join(","));
+	ui->leRoles->setText(roles_list.join(","));
 }

@@ -57,7 +57,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QLabel" name="lblGrants">
+           <widget class="QLabel" name="lblRoles">
             <property name="font">
              <font>
               <weight>50</weight>
@@ -65,7 +65,7 @@
              </font>
             </property>
             <property name="text">
-             <string>Grants</string>
+             <string>Roles</string>
             </property>
            </widget>
           </item>
@@ -115,7 +115,7 @@
            </layout>
           </item>
           <item>
-           <widget class="QLineEdit" name="leGrants">
+           <widget class="QLineEdit" name="leRoles">
             <property name="font">
              <font>
               <weight>50</weight>

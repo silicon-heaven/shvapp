@@ -192,7 +192,7 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 	QAction *a_subscribeNode = new QAction(tr("Subscribe"), &m);
 	QAction *a_callShvMethod = new QAction(tr("Call shv method"), &m);
 	QAction *a_usersEditor = new QAction(tr("Users editor"), &m);
-	QAction *a_grantsEditor = new QAction(tr("Grants editor"), &m);
+	QAction *a_rolesEditor = new QAction(tr("Roles editor"), &m);
 
 	//QAction *a_test = new QAction(tr("create test.txt"), &m);
 	if(!nd) {
@@ -215,7 +215,7 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 
 		if (nd->nodeId() == ".broker"){
 			m.addAction(a_usersEditor);
-			m.addAction(a_grantsEditor);
+			m.addAction(a_rolesEditor);
 		}
 	}
 	if(!m.actions().isEmpty()) {
@@ -252,7 +252,7 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 					dlg.exec();
 				}
 			}
-			else if(a == a_grantsEditor) {
+			else if(a == a_rolesEditor) {
 				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 				if(nd) {
 					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();

@@ -1,5 +1,5 @@
-#ifndef DLGADDEDITGRANT_H
-#define DLGADDEDITGRANT_H
+#ifndef DLGADDEDITROLE_H
+#define DLGADDEDITROLE_H
 
 #include <QDialog>
 
@@ -32,19 +32,20 @@ public:
 
 private:
 
-	void callAddGrant();
-	void callSeGrants();
-	void callEditGrant();
+	void callAddRole();
+	void callEditRole();
 	void callGetRoleSettings();
 
-	void callSetGrantPaths();
-	void callGetPathsSettings();
+	void callSetPathsForRole();
+	void callGetPathsForRole();
 
-	shv::chainpack::RpcValue::Map createParamsMap();
+	shv::chainpack::RpcValue::Map paths();
+
 	shv::chainpack::RpcValue::List roles();
 	void setRoles(const shv::chainpack::RpcValue::List &roles);
 
 	QString roleName();
+	int weight();
 	void setWeight(int weight);
 
 	std::string aclEtcRoleNodePath();
@@ -62,4 +63,4 @@ private:
 	PathsModel m_pathsModel;
 };
 
-#endif // DLGADDEDITGRANT_H
+#endif // DLGADDEDITROLE_H
