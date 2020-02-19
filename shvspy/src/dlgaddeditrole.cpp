@@ -26,7 +26,6 @@ DlgAddEditRole::DlgAddEditRole(QWidget *parent, shv::iotqt::rpc::ClientConnectio
 	ui->tvPaths->setModel(&m_accessModel);
 	ui->tvPaths->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
 	ui->tvPaths->verticalHeader()->setDefaultSectionSize(static_cast<int>(fontMetrics().height() * 1.3));
-	ui->tvPaths->setItemDelegate(new AccessTableItemDelegate(this));
 	ui->tvPaths->setColumnWidth(AccessModel::Columns::ColPath, frameGeometry().width() * 0.6);
 
 	connect(ui->tbAddRow, &QToolButton::clicked, this, &DlgAddEditRole::onAddRowClicked);
@@ -232,7 +231,7 @@ shv::chainpack::RpcValue::List DlgAddEditRole::roles()
 	QStringList lst = ui->leRoles->text().split(",", QString::SplitBehavior::SkipEmptyParts);
 
 	for (int i = 0; i < lst.count(); i++){
-		roles.push_back(shv::chainpack::RpcValue::String(lst.at(i).trimmed().toStdString()));
+		roles.push_back(lst.at(i).trimmed().toStdString());
 	}
 
 	return roles;

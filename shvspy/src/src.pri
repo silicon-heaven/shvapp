@@ -1,5 +1,4 @@
 HEADERS += \
-    $$PWD/accessmodel/accesstableitemdelegate.h \
     $$PWD/dlgaddeditrole.h \
     $$PWD/dlgroleseditor.h \
     $$PWD/accessmodel/accessmodel.h \
@@ -25,7 +24,6 @@ HEADERS += \
     $$PWD/dlgaddedituser.h
 
 SOURCES += \
-    $$PWD/accessmodel/accesstableitemdelegate.cpp \
     $$PWD/dlgaddeditrole.cpp \
     $$PWD/dlgroleseditor.cpp \
 	$$PWD/main.cpp\

@@ -78,7 +78,7 @@ void DlgRolesEditor::onDeleteRoleClicked()
 
 	ui->lblStatus->setText("");
 
-	if (QMessageBox::question(this, tr("Delete role"), tr("Do you really want to delete data and associated access pahts for role ") + " " + QString::fromStdString(role) + "?") == QMessageBox::Yes){
+	if (QMessageBox::question(this, tr("Delete role"), tr("Do you really want to delete data and associated access pahts for role") + " " + QString::fromStdString(role) + "?") == QMessageBox::Yes){
 		int rqid = m_rpcConnection->nextRequestId();
 		shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
@@ -169,7 +169,7 @@ void DlgRolesEditor::callDeleteAccessForRole(const std::string &role)
 	if (m_rpcConnection == nullptr)
 		return;
 
-	ui->lblStatus->setText(tr("Deleting access for role:") + " " + QString::fromStdString(role));
+	ui->lblStatus->setText(tr("Deleting access paths for role:") + " " + QString::fromStdString(role));
 
 	int rqid = m_rpcConnection->nextRequestId();
 	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
@@ -177,7 +177,7 @@ void DlgRolesEditor::callDeleteAccessForRole(const std::string &role)
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if (response.isValid()){
 			if(response.isError()) {
-				ui->lblStatus->setText(tr("Failed to delete access.") + " " + QString::fromStdString(response.error().toString()));
+				ui->lblStatus->setText(tr("Failed to delete access pahts.") + " " + QString::fromStdString(response.error().toString()));
 			}
 			else{
 				ui->lblStatus->setText("");

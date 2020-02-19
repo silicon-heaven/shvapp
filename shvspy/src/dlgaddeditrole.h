@@ -4,7 +4,6 @@
 #include <QDialog>
 
 #include "accessmodel/accessmodel.h"
-#include "accessmodel/accesstableitemdelegate.h"
 
 #include "shv/chainpack/rpcvalue.h"
 

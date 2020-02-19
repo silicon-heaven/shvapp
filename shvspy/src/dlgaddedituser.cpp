@@ -175,7 +175,7 @@ shv::chainpack::RpcValue::List DlgAddEditUser::roles()
 	QStringList lst = ui->leRoles->text().split(",", QString::SplitBehavior::SkipEmptyParts);
 
 	for (int i = 0; i < lst.count(); i++){
-		roles.push_back(shv::chainpack::RpcValue::String(lst.at(i).trimmed().toStdString()));
+		roles.push_back(lst.at(i).trimmed().toStdString());
 	}
 
 	return roles;
