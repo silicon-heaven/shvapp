@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>DlgAddEditGrant</class>
- <widget class="QDialog" name="DlgAddEditGrant">
+ <class>DlgAddEditRole</class>
+ <widget class="QDialog" name="DlgAddEditRole">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -23,7 +23,7 @@
       </font>
      </property>
      <property name="title">
-      <string>New grant</string>
+      <string>New role</string>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_3">
       <item>
@@ -31,7 +31,7 @@
         <item>
          <layout class="QVBoxLayout" name="verticalLayout">
           <item>
-           <widget class="QLabel" name="lblGrantName">
+           <widget class="QLabel" name="lblRoleName">
             <property name="font">
              <font>
               <weight>50</weight>
@@ -39,12 +39,12 @@
              </font>
             </property>
             <property name="text">
-             <string>Grant name</string>
+             <string>Role name</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QLabel" name="label_2">
+           <widget class="QLabel" name="lblRoles">
             <property name="font">
              <font>
               <weight>50</weight>
@@ -52,7 +52,7 @@
              </font>
             </property>
             <property name="text">
-             <string>Grants</string>
+             <string>Roles</string>
             </property>
            </widget>
           </item>
@@ -74,17 +74,23 @@
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_2">
           <item>
-           <widget class="QLineEdit" name="leGrantName">
+           <widget class="QLineEdit" name="leRoleName">
+            <property name="enabled">
+             <bool>true</bool>
+            </property>
             <property name="font">
              <font>
               <weight>50</weight>
               <bold>false</bold>
              </font>
             </property>
+            <property name="readOnly">
+             <bool>false</bool>
+            </property>
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="leGrants">
+           <widget class="QLineEdit" name="leRoles">
             <property name="font">
              <font>
               <weight>50</weight>
@@ -101,11 +107,8 @@
               <bold>false</bold>
              </font>
             </property>
-            <property name="specialValueText">
-             <string>Not set</string>
-            </property>
             <property name="minimum">
-             <number>-1</number>
+             <number>0</number>
             </property>
             <property name="maximum">
              <number>10000</number>
@@ -114,7 +117,7 @@
              <number>1</number>
             </property>
             <property name="value">
-             <number>-1</number>
+             <number>0</number>
             </property>
            </widget>
           </item>
@@ -255,7 +258,7 @@
       <enum>Qt::Horizontal</enum>
      </property>
      <property name="standardButtons">
-      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Save</set>
      </property>
     </widget>
    </item>
@@ -268,7 +271,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>accepted()</signal>
-   <receiver>DlgAddEditGrant</receiver>
+   <receiver>DlgAddEditRole</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -284,7 +287,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
-   <receiver>DlgAddEditGrant</receiver>
+   <receiver>DlgAddEditRole</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">

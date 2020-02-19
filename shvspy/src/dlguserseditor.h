@@ -4,6 +4,7 @@
 #include <QDialog>
 
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
+#include <shv/chainpack/rpcvalue.h>
 
 namespace Ui {
 class DlgUsersEditor;
