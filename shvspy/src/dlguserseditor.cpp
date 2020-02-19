@@ -48,7 +48,8 @@ DlgUsersEditor::~DlgUsersEditor()
 
 void DlgUsersEditor::init(const std::string &path)
 {
-	m_aclEtcUsersNodePath = path + "/etc/acl/users";
+	m_aclEtcUsersNodePath = path + "users";
+	m_aclEtcRolesNodePath = path + "roles";
 	listUsers();
 }
 
@@ -96,7 +97,7 @@ QString DlgUsersEditor::selectedUser()
 
 void DlgUsersEditor::onAddUserClicked()
 {
-	DlgAddEditUser dlg(this, m_rpcConnection, m_aclEtcUsersNodePath, DlgAddEditUser::DialogType::Add);
+	DlgAddEditUser dlg(this, m_rpcConnection, m_aclEtcUsersNodePath, m_aclEtcRolesNodePath, DlgAddEditUser::DialogType::Add);
 	if (dlg.exec() == QDialog::Accepted){
 		listUsers();
 	}
@@ -147,7 +148,7 @@ void DlgUsersEditor::onEditUserClicked()
 
 	ui->lblStatus->setText("");
 
-	DlgAddEditUser dlg(this, m_rpcConnection, m_aclEtcUsersNodePath, DlgAddEditUser::DialogType::Edit);
+	DlgAddEditUser dlg(this, m_rpcConnection, m_aclEtcUsersNodePath, m_aclEtcRolesNodePath, DlgAddEditUser::DialogType::Edit);
 	dlg.setUser(user);
 
 	if (dlg.exec() == QDialog::Accepted){

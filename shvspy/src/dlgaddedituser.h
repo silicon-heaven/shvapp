@@ -18,7 +18,7 @@ class DlgAddEditUser : public QDialog
 
 public:
 	enum class DialogType {Add = 0, Edit, Count};
-	explicit DlgAddEditUser(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_users_node_path, DlgAddEditUser::DialogType dt = DialogType::Add);
+	explicit DlgAddEditUser(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_users_node_path, const std::string &acl_etc_roles_node_path, DlgAddEditUser::DialogType dt = DialogType::Add);
 	~DlgAddEditUser() override;
 
 	DialogType dialogType();
@@ -30,6 +30,7 @@ public:
 
 private:
 	void onShowPasswordClicked();
+	void onRolesSelectionClicked();
 
 	void callSetUserSettings();
 	void callGetUserSettings();
@@ -43,7 +44,8 @@ private:
 	Ui::DlgAddEditUser *ui;
 	DialogType m_dialogType;
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
-	const std::string &m_aclEtcUsersNodePath;
+	std::string m_aclEtcUsersNodePath;
+	std::string m_aclEtcRolesNodePath;
 	shv::chainpack::RpcValue::Map m_remoteUserSettings;
 };
 

@@ -2,6 +2,7 @@ HEADERS += \
     $$PWD/dlgaddeditrole.h \
     $$PWD/dlgroleseditor.h \
     $$PWD/accessmodel/accessmodel.h \
+    $$PWD/dlgrolesselection.h \
 	$$PWD/version.h \
 	$$PWD/mainwindow.h \
 	$$PWD/dlgserverproperties.h \
@@ -21,11 +22,14 @@ HEADERS += \
     $$PWD/subscriptionsmodel/subscriptionsmodel.h \
     $$PWD/subscriptionsmodel/subscriptionstableitemdelegate.h \
     $$PWD/dlguserseditor.h \
-    $$PWD/dlgaddedituser.h
+    $$PWD/dlgaddedituser.h \
+    $$PWD/rolesmodel/rolesmodel.h
+
 
 SOURCES += \
     $$PWD/dlgaddeditrole.cpp \
     $$PWD/dlgroleseditor.cpp \
+    $$PWD/dlgrolesselection.cpp \
 	$$PWD/main.cpp\
 	$$PWD/mainwindow.cpp \
 	$$PWD/dlgserverproperties.cpp \
@@ -47,10 +51,12 @@ SOURCES += \
     $$PWD/subscriptionsmodel/subscriptionstableitemdelegate.cpp \
     $$PWD/dlguserseditor.cpp \
     $$PWD/dlgaddedituser.cpp \
+    $$PWD/rolesmodel/rolesmodel.cpp
 
 FORMS += \
     $$PWD/dlgaddeditrole.ui \
     $$PWD/dlgroleseditor.ui \
+    $$PWD/dlgrolesselection.ui \
 	$$PWD/mainwindow.ui \
 	$$PWD/dlgserverproperties.ui \
 	$$PWD/dlgsubscriptionparameters.ui \

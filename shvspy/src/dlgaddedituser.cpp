@@ -2,6 +2,7 @@
 #include "ui_dlgaddedituser.h"
 
 #include "theapp.h"
+#include "dlgrolesselection.h"
 
 #include <QCryptographicHash>
 
@@ -12,10 +13,12 @@ static const std::string PASSWORD_KEY = "password";
 static const std::string VALUE_METHOD = "value";
 static const std::string SET_VALUE_METHOD = "setValue";
 
-DlgAddEditUser::DlgAddEditUser(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_users_node_path, DlgAddEditUser::DialogType dt) :
+DlgAddEditUser::DlgAddEditUser(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_users_node_path,
+							   const std::string &acl_etc_roles_node_path, DlgAddEditUser::DialogType dt) :
 	QDialog(parent),
 	ui(new Ui::DlgAddEditUser),
-	m_aclEtcUsersNodePath(acl_etc_users_node_path)
+	m_aclEtcUsersNodePath(acl_etc_users_node_path),
+	m_aclEtcRolesNodePath(acl_etc_roles_node_path)
 {
 	ui->setupUi(this);
 	m_dialogType = dt;
@@ -33,6 +36,7 @@ DlgAddEditUser::DlgAddEditUser(QWidget *parent, shv::iotqt::rpc::ClientConnectio
 	}
 
 	connect(ui->tbShowPassword, &QToolButton::clicked, this, &DlgAddEditUser::onShowPasswordClicked);
+	connect(ui->pbRolesSelection, &QPushButton::clicked, this, &DlgAddEditUser::onRolesSelectionClicked);
 }
 
 DlgAddEditUser::~DlgAddEditUser()
@@ -90,6 +94,16 @@ void DlgAddEditUser::onShowPasswordClicked()
 	bool password_mode = (ui->lePassword->echoMode() == QLineEdit::EchoMode::Password);
 	ui->lePassword->setEchoMode((password_mode) ? QLineEdit::EchoMode::Normal : QLineEdit::EchoMode::Password);
 	ui->tbShowPassword->setIcon((password_mode) ? QIcon(":/shvspy/images/hide.svg") : QIcon(":/shvspy/images/show.svg"));
+}
+
+void DlgAddEditUser::onRolesSelectionClicked()
+{
+	DlgRolesSelection dlg(this);
+	dlg.init(m_rpcConnection, m_aclEtcRolesNodePath);
+
+	if (dlg.exec() == QDialog::Accepted){
+
+	}
 }
 
 void DlgAddEditUser::callGetUserSettings()
