@@ -17,11 +17,16 @@ class DlgRolesSelection : public QDialog
 
 public:
 	explicit DlgRolesSelection(QWidget *parent);
-
-	void init(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_roles_node_path);
 	~DlgRolesSelection();
 
+	void init(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_roles_node_path, const shv::chainpack::RpcValue::List &roles);
+
+	shv::chainpack::RpcValue::List checkedRoles();
+	void setUserRoles(const shv::chainpack::RpcValue::List &roles);
+
+
 private:
+	shv::chainpack::RpcValue::List m_userRoles;
 	RolesTreeModel *m_rolesModel = nullptr;
 
 	Ui::DlgRolesSelection *ui;

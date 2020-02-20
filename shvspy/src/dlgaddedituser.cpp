@@ -99,10 +99,10 @@ void DlgAddEditUser::onShowPasswordClicked()
 void DlgAddEditUser::onRolesSelectionClicked()
 {
 	DlgRolesSelection dlg(this);
-	dlg.init(m_rpcConnection, m_aclEtcRolesNodePath);
+	dlg.init(m_rpcConnection, m_aclEtcRolesNodePath, roles());
 
 	if (dlg.exec() == QDialog::Accepted){
-
+		setRoles(dlg.checkedRoles());
 	}
 }
 
