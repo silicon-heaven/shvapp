@@ -13,12 +13,12 @@ DlgRolesSelection::DlgRolesSelection(QWidget *parent):
 void DlgRolesSelection::init(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_roles_node_path, const shv::chainpack::RpcValue::List &roles)
 {
 	m_rolesModel = new RolesTreeModel(this);
-	m_rolesModel->loadRolesTree(rpc_connection, acl_etc_roles_node_path);
+	m_rolesModel->loadRoles(rpc_connection, acl_etc_roles_node_path);
 	ui->tvRoles->setModel(m_rolesModel);
 	m_userRoles = roles;
 
 	connect(m_rolesModel, &RolesTreeModel::treeLoaded, this, [this](){
-		m_rolesModel->setCheckedRoles(m_userRoles);
+		m_rolesModel->checkRoles(m_userRoles);
 	});
 }
 
@@ -29,7 +29,7 @@ shv::chainpack::RpcValue::List DlgRolesSelection::checkedRoles()
 
 void DlgRolesSelection::setUserRoles(const shv::chainpack::RpcValue::List &roles)
 {
-	m_rolesModel->setCheckedRoles(roles);
+	m_rolesModel->checkRoles(roles);
 }
 
 DlgRolesSelection::~DlgRolesSelection()

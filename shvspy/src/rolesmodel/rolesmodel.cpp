@@ -2,6 +2,7 @@
 
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
 #include <shv/core/log.h>
+
 #include <QDebug>
 
 static const std::string VALUE_METHOD = "value";
@@ -30,17 +31,8 @@ bool RolesTreeModel::setData(const QModelIndex & ix, const QVariant & val, int r
 	return ret;
 }
 
-void RolesTreeModel::loadRolesTree(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_roles_node_path)
+void RolesTreeModel::loadRoles(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_roles_node_path)
 {
-	clear();
-	{
-		QStringList sl;
-		sl << tr("Role");
-		setHorizontalHeaderLabels(sl);
-	}
-
-	QStandardItem *parent_item = invisibleRootItem();
-
 	if (rpc_connection == nullptr)
 		return;
 
@@ -56,19 +48,9 @@ void RolesTreeModel::loadRolesTree(shv::iotqt::rpc::ClientConnection *rpc_connec
 			else{
 				if (response.result().isList()){
 					shv::chainpack::RpcValue::List roles = response.result().toList();
+
 					for (size_t i = 0; i < roles.size(); i++){
-						QList<QStandardItem *> row;
-						{
-							QString role_name = QString::fromStdString(roles.at(i).toStdString());
-							QStandardItem *it = new QStandardItem(role_name);
-							it->setData(role_name, NameRole);
-							it->setCheckable(true);
-							it->setFlags(it->flags() & ~Qt::ItemIsEditable);
-							loadChildItems(rpc_connection, acl_etc_roles_node_path, it);
-							row << it;
-						}
-						QStandardItem *parent_item = invisibleRootItem();
-						parent_item->appendRow(row);
+						loadChildItems(rpc_connection, acl_etc_roles_node_path, roles.at(i).toStdString());
 					}
 				}
 			}
@@ -83,7 +65,41 @@ void RolesTreeModel::loadRolesTree(shv::iotqt::rpc::ClientConnection *rpc_connec
 	rpc_connection->callShvMethod(rqid, acl_etc_roles_node_path, shv::chainpack::Rpc::METH_LS);
 }
 
-void RolesTreeModel::setCheckedRoles(const shv::chainpack::RpcValue::List &roles)
+void RolesTreeModel::loadChildItems(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_roles_node_path, const std::string &role_name)
+{
+	if(rpc_connection == nullptr){
+		return;
+	}
+
+	int rqid = rpc_connection->nextRequestId();
+	m_rqIds.push_back(rqid);
+	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(rpc_connection, rqid, this);
+
+	cb->start(this, [this, rqid, role_name](const shv::chainpack::RpcResponse &response) {
+		if (response.isValid()){
+			if (response.isError()) {
+				//ui->lblStatus->setText(tr("Failed to call method ls.") + QString::fromStdString(response.error().toString()));
+			}
+			else{
+				if (response.result().isMap()){
+					shv::chainpack::RpcValue::Map res = response.result().toMap();
+					shv::chainpack::RpcValue::List roles = res.value(ROLES).toList();
+					m_shvRoles[QString::fromStdString(role_name)] = roles;
+				}
+			}
+		}
+		else{
+			//ui->lblStatus->setText(tr("Request timeout expired"));
+		}
+
+		deleteRqId(rqid);
+	});
+
+	std::string role_path = acl_etc_roles_node_path + "/" + role_name;
+	rpc_connection->callShvMethod(rqid, role_path, VALUE_METHOD);
+}
+
+void RolesTreeModel::checkRoles(const shv::chainpack::RpcValue::List &roles)
 {
 	for (int r = 0; r < roles.size(); r++){
 		std::string role = roles.at(r).toStdString();
@@ -118,50 +134,52 @@ shv::chainpack::RpcValue::List RolesTreeModel::checkedRoles()
 	return roles;
 }
 
-void RolesTreeModel::loadChildItems(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_roles_node_path, QStandardItem *parent_item)
+
+void RolesTreeModel::generateTree()
 {
-	if(rpc_connection == nullptr){
+	clear();
+	QStringList sl;
+	sl << tr("Role");
+	setHorizontalHeaderLabels(sl);
+
+	QStandardItem *parent_item = invisibleRootItem();
+
+	for (const QString &role_name: m_shvRoles.keys()){
+		QList<QStandardItem *> row;
+		QStandardItem *it = new QStandardItem(role_name);
+		it->setData(role_name, NameRole);
+		it->setCheckable(true);
+		it->setFlags(it->flags() & ~Qt::ItemIsEditable);
+		row << it;
+		parent_item->appendRow(row);
+
+		shv::chainpack::RpcValue::List sub_roles = m_shvRoles.value(role_name);
+		for (int i = 0; i < sub_roles.size(); i++){
+			generateSubTree(it, sub_roles.at(i).toStdString());
+		}
+	}
+}
+
+void RolesTreeModel::generateSubTree(QStandardItem *parent_item, const std::string &item)
+{
+	QString role_name = QString::fromStdString(item);
+
+	if (flattenRoleReverse(parent_item).contains(role_name)){
 		return;
 	}
 
-	int rqid = rpc_connection->nextRequestId();
-	m_rqIds.push_back(rqid);
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(rpc_connection, rqid, this);
+	QList<QStandardItem *> row;
+	QStandardItem *it = new QStandardItem(role_name);
+	it->setData(role_name, NameRole);
+	it->setFlags(it->flags() & ~Qt::ItemIsEditable);
+	row << it;
+	parent_item->appendRow(row);
 
-	cb->start(this, [this, rqid, rpc_connection, acl_etc_roles_node_path, parent_item](const shv::chainpack::RpcResponse &response) {
-		if (response.isValid()){
-			if (response.isError()) {
-				//ui->lblStatus->setText(tr("Failed to call method ls.") + QString::fromStdString(response.error().toString()));
-			}
-			else{
-				if (response.result().isMap()){
-					shv::chainpack::RpcValue::Map res = response.result().toMap();
-					shv::chainpack::RpcValue::List roles = res.value(ROLES).toList();
+	shv::chainpack::RpcValue::List subRoles = m_shvRoles.value(role_name);
 
-					for (size_t i = 0; i < roles.size(); i++){
-						QList<QStandardItem *> row;
-						{
-							QString role_name = QString::fromStdString(roles.at(i).toStdString());
-							QStandardItem *it = new QStandardItem(role_name);
-							it->setData(role_name, NameRole);
-							it->setFlags(it->flags() & ~Qt::ItemIsEditable);
-//							loadChildItems(rpc_connection, acl_etc_roles_node_path, it);
-							row << it;
-						}
-						parent_item->appendRow(row);
-					}
-				}
-			}
-		}
-		else{
-			//ui->lblStatus->setText(tr("Request timeout expired"));
-		}
-
-		deleteRqId(rqid);
-	});
-
-	std::string role_path = acl_etc_roles_node_path + "/" + parent_item->data().toString().toStdString();
-	rpc_connection->callShvMethod(rqid, role_path, VALUE_METHOD);
+	for (size_t j = 0; j < subRoles.size(); j++){
+		generateSubTree(it, subRoles.at(j).toStdString());
+	}
 }
 
 void RolesTreeModel::deleteRqId(int rqid)
@@ -172,6 +190,8 @@ void RolesTreeModel::deleteRqId(int rqid)
 	}
 
 	if (m_rqIds.isEmpty()){
+		generateTree();
+
 		emit treeLoaded();
 	}
 }
@@ -207,6 +227,23 @@ QSet<QString> RolesTreeModel::flattenRole(QStandardItem *parent_item)
 
 		if(!ret.contains(role_name)) {
 			ret += flattenRole(it);
+		}
+	}
+
+	return ret;
+}
+
+QSet<QString> RolesTreeModel::flattenRoleReverse(QStandardItem *child_item)
+{
+	QSet<QString> ret;
+
+	if (child_item != nullptr && child_item != invisibleRootItem()){
+		QString role_name = child_item->data().toString();
+
+		shvInfo() << "f" << role_name.toStdString();
+		if(!ret.contains(role_name)) {
+			ret.insert(role_name);
+			ret += flattenRoleReverse(child_item->parent());
 		}
 	}
 

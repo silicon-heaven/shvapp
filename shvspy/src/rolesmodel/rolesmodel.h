@@ -13,8 +13,8 @@ public:
 	RolesTreeModel(QObject *parent = nullptr);
 
 	void checkPartialySubRoles();
-	void loadRolesTree(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_roles_node_path);
-	void setCheckedRoles(const shv::chainpack::RpcValue::List &roles);
+	void loadRoles(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_roles_node_path);
+	void checkRoles(const shv::chainpack::RpcValue::List &roles);
 
 	shv::chainpack::RpcValue::List checkedRoles();
 
@@ -23,16 +23,19 @@ public:
 	Q_SIGNAL void treeLoaded();
 
 protected:
-	void loadChildItems(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_roles_node_path, QStandardItem *parent_item);
+	void loadChildItems(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_roles_node_path, const std::string &role_name);
 
 private:
+	QMap<QString, shv::chainpack::RpcValue::List> m_shvRoles;
 	QVector<int> m_rqIds;
 
+	void generateTree();
+	void generateSubTree(QStandardItem *parent_item, const std::string &item);
 	void deleteRqId(int rqid);
 	void createItems(const shv::chainpack::RpcValue::List &items);
 	QSet<QString> allSubRoles();
 	QSet<QString> flattenRole(QStandardItem *parent_item);
-
+	QSet<QString> flattenRoleReverse(QStandardItem *child_item);
 
 };
 
