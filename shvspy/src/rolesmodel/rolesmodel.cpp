@@ -2,6 +2,7 @@
 
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
 #include <shv/core/log.h>
+#include <QDebug>
 
 static const std::string VALUE_METHOD = "value";
 static const std::string ROLES = "roles";
@@ -16,21 +17,12 @@ bool RolesTreeModel::setData(const QModelIndex & ix, const QVariant & val, int r
 	bool ret = true;
 
 	if(role == Qt::CheckStateRole) {
-		int state = val.toInt();
-		if(state != Qt::PartiallyChecked) {
-			QStandardItem *it = itemFromIndex(ix);
-			if(it) {
-				if(it->checkState() == Qt::PartiallyChecked) {
-					return ret;
-				}
-				else {
-					bool check_on = (state == Qt::Checked);
-					//checkAllPartialySubRoles();
-					checkPartialySubRoles(it, check_on);
-				}
-			}
-		}
 		ret = QStandardItemModel::setData(ix, val, role);
+
+		int state = val.toInt();
+		if (state != Qt::PartiallyChecked) {
+				checkPartialySubRoles();
+		}
 	}
 	else {
 		ret = QStandardItemModel::setData(ix, val, role);
@@ -99,13 +91,15 @@ void RolesTreeModel::setCheckedRoles(const shv::chainpack::RpcValue::List &roles
 
 		for(int i=0; i < root_item->rowCount(); i++) {
 			QStandardItem *it = root_item->child(i);
-			bool has_role = (role == it->data().toString().toStdString());
-			if (has_role){
+			bool check = (role == it->data().toString().toStdString());
+
+			if (check){
 				it->setCheckState(Qt::Checked);
-				checkPartialySubRoles(it, true);
 			}
 		}
 	}
+
+	checkPartialySubRoles();
 }
 
 shv::chainpack::RpcValue::List RolesTreeModel::checkedRoles()
@@ -151,7 +145,7 @@ void RolesTreeModel::loadChildItems(shv::iotqt::rpc::ClientConnection *rpc_conne
 							QStandardItem *it = new QStandardItem(role_name);
 							it->setData(role_name, NameRole);
 							it->setFlags(it->flags() & ~Qt::ItemIsEditable);
-							loadChildItems(rpc_connection, acl_etc_roles_node_path, it);
+//							loadChildItems(rpc_connection, acl_etc_roles_node_path, it);
 							row << it;
 						}
 						parent_item->appendRow(row);
@@ -182,67 +176,60 @@ void RolesTreeModel::deleteRqId(int rqid)
 	}
 }
 
-bool RolesTreeModel::checkIfRoleIsSet(const std::string &role)
+QSet<QString> RolesTreeModel::allSubRoles()
 {
-	bool is_set = false;
-
+	QSet<QString> roles;
 	QStandardItem *root_item = invisibleRootItem();
 
 	for (int i = 0; i < root_item->rowCount(); i++) {
-		if (root_item->child(i)->checkState() == Qt::CheckState::Checked)
-			is_set |= isRoleSet(root_item->child(i), role);
+		QStandardItem *it = root_item->child(i);
+
+		if (it->checkState() == Qt::CheckState::Checked){
+			for(int ch = 0; ch < it->rowCount(); ch++) {
+				QStandardItem *it1 = it->child(ch);
+				roles += flattenRole(it1);
+			}
+		}
 	}
 
-	return is_set;
+	return roles;
 }
 
-bool RolesTreeModel::isRoleSet(QStandardItem *parent_item, const std::string &role)
+QSet<QString> RolesTreeModel::flattenRole(QStandardItem *parent_item)
 {
-	bool is_set = false;
+	QSet<QString> ret;
 
-	for(int i = 0; i < parent_item->rowCount(); i++) {
+	ret.insert(parent_item->data().toString());
+
+	for (int i = 0; i < parent_item->rowCount(); i++) {
 		QStandardItem *it = parent_item->child(i);
-		std::string role1 = it->data(NameRole).toString().toStdString();
+		QString role_name = it->data().toString();
 
-		if(role == role1) {
-			return true;
-		}
-		else{
-			is_set |= isRoleSet(it, role);
+		if(!ret.contains(role_name)) {
+			ret += flattenRole(it);
 		}
 	}
 
-	return is_set;
+	return ret;
 }
 
-void RolesTreeModel::checkAllPartialySubRoles()
+void RolesTreeModel::checkPartialySubRoles()
 {
+	QSet<QString> sub_roles = allSubRoles();
 	QStandardItem *root_item = invisibleRootItem();
 
 	for(int i = 0; i < root_item->rowCount(); i++) {
 		QStandardItem *it = root_item->child(i);
 
-		if (it->checkState() == Qt::PartiallyChecked){
-			it->setCheckState(Qt::Unchecked);
-		}
-	}
-}
-
-void RolesTreeModel::checkPartialySubRoles(QStandardItem *parent_item, bool check_on)
-{
-	for(int i = 0; i < parent_item->rowCount(); i++) {
-		QStandardItem *it = parent_item->child(i);
-		QString role = it->data(NameRole).toString();
-		QStandardItem *root_item = invisibleRootItem();
-
-		for(int i = 0; i < root_item->rowCount(); i++) {
-			QStandardItem *it1 = root_item->child(i);
-			QString role1 = it1->data(NameRole).toString();
-
-			if(role == role1) {
-				it1->setCheckState((check_on) ? Qt::PartiallyChecked: Qt::Unchecked);
+		if (it->checkState() == Qt::CheckState::PartiallyChecked){
+			if (!sub_roles.contains(it->data().toString())){
+				it->setCheckState(Qt::CheckState::Unchecked);
 			}
 		}
-		checkPartialySubRoles(it, check_on);
+		else{
+			if (sub_roles.contains(it->data().toString())){
+				it->setCheckState(Qt::CheckState::PartiallyChecked);
+			}
+		}
 	}
 }

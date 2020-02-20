@@ -12,8 +12,7 @@ public:
 	enum Role {NameRole = Qt::UserRole+1};
 	RolesTreeModel(QObject *parent = nullptr);
 
-	void checkAllPartialySubRoles();
-	void checkPartialySubRoles(QStandardItem *parent_item, bool check_on);
+	void checkPartialySubRoles();
 	void loadRolesTree(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_roles_node_path);
 	void setCheckedRoles(const shv::chainpack::RpcValue::List &roles);
 
@@ -31,7 +30,10 @@ private:
 
 	void deleteRqId(int rqid);
 	void createItems(const shv::chainpack::RpcValue::List &items);
-	QSet<QString> allUserRoles();
+	QSet<QString> allSubRoles();
+	QSet<QString> flattenRole(QStandardItem *parent_item);
+
+
 };
 
 
