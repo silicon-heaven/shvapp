@@ -1,9 +1,9 @@
 #include "dlgselectroles.h"
-#include "ui_dlgrolesselection.h"
+#include "ui_dlgselectroles.h"
 
 DlgSelectRoles::DlgSelectRoles(QWidget *parent):
 	QDialog(parent),
-	ui(new Ui::DlgRolesSelection)
+	ui(new Ui::DlgSelectRoles)
 {
 	ui->setupUi(this);
 }

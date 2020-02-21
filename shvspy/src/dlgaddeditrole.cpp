@@ -90,10 +90,10 @@ void DlgAddEditRole::callAddRole()
 		}
 	});
 
+	m_role.roles = roles();
+	m_role.weight = weight();
 
-	shv::broker::AclRole role(weight(), roles());
-
-	shv::chainpack::RpcValue::List params{roleName().toStdString(), role.toRpcValueMap()};
+	shv::chainpack::RpcValue::List params{roleName().toStdString(), m_role.toRpcValueMap()};
 	m_rpcConnection->callShvMethod(rqid, aclEtcRoleNodePath(), SET_VALUE_METHOD, params);
 }
 

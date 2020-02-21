@@ -10,7 +10,7 @@
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
 #include <shv/iotqt/rpc/clientconnection.h>
 
-#include <shv/broker/aclmanager.h>
+#include <shv/broker/aclrole.h>
 
 namespace Ui {
 class DlgAddEditRole;

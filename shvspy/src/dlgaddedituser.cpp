@@ -4,7 +4,7 @@
 #include "theapp.h"
 #include "dlgselectroles.h"
 
-#include <shv/broker/aclmanager.h>
+#include <shv/broker/aclrole.h>
 
 #include <QCryptographicHash>
 
@@ -147,7 +147,6 @@ void DlgAddEditUser::callCreateRoleAndSetSettings(const std::string &role_name)
 	shv::chainpack::RpcValue::List params{role_name, role.toRpcValueMap()};
 	m_rpcConnection->callShvMethod(rqid, m_aclEtcRolesNodePath, SET_VALUE_METHOD, params);
 }
-
 
 void DlgAddEditUser::callGetUserSettings()
 {

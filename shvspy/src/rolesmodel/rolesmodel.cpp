@@ -2,7 +2,8 @@
 
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
 #include <shv/core/log.h>
-#include <shv/broker/aclmanager.h>
+
+#include <shv/broker/aclrole.h>
 
 static const std::string VALUE_METHOD = "value";
 

@@ -1,5 +1,5 @@
-#ifndef DLGROLESSELECTION_H
-#define DLGROLESSELECTION_H
+#ifndef DLGSELECTROLES_H
+#define DLGSELECTROLES_H
 
 #include <QDialog>
 
@@ -8,7 +8,7 @@
 #include <shv/iotqt/rpc/clientconnection.h>
 
 namespace Ui {
-class DlgRolesSelection;
+class DlgSelectRoles;
 }
 
 class DlgSelectRoles : public QDialog
@@ -29,7 +29,7 @@ private:
 	std::vector<std::string> m_userRoles;
 	RolesTreeModel *m_rolesModel = nullptr;
 
-	Ui::DlgRolesSelection *ui;
+	Ui::DlgSelectRoles *ui;
 };
 
-#endif // DLGROLESSELECTION_H
+#endif // DLGDLGSELECTROLES_H
