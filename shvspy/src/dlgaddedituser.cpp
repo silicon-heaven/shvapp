@@ -6,11 +6,8 @@
 
 #include <shv/broker/aclrole.h>
 
-#include <QCryptographicHash>
 
-static const std::string FORMAT_KEY = "format";
-static const std::string PASSWORD_KEY = "password";
-static const std::string ROLES_KEY = "roles";
+#include <QCryptographicHash>
 
 static const std::string VALUE_METHOD = "value";
 static const std::string SET_VALUE_METHOD = "setValue";
@@ -164,8 +161,8 @@ void DlgAddEditUser::callGetUserSettings()
 				ui->lblStatus->setText(QString::fromStdString(response.error().toString()));
 			}
 			else{
-				m_remoteUserSettings = response.result().isMap() ? response.result().toMap() : shv::chainpack::RpcValue::Map();
-				setRoles(m_remoteUserSettings.value(ROLES_KEY).toList());
+				m_user = shv::broker::AclUser::fromRpcValue(response.result());
+				setRoles(m_user.roles);
 				ui->lblStatus->setText("");
 			}
 		}
@@ -201,17 +198,14 @@ void DlgAddEditUser::callSetUserSettings()
 
 	shv::chainpack::RpcValue::Map user_settings;
 
-	if (m_dialogType == DialogType::Edit){
-		user_settings = m_remoteUserSettings;
-	}
-
-	user_settings[ROLES_KEY] = roles();
+	m_user.roles = roles();
 
 	if (!password().isEmpty()){
-		user_settings[PASSWORD_KEY] = shv::chainpack::RpcValue::Map{{FORMAT_KEY, "SHA1"}, {PASSWORD_KEY, sha1_hex(password().toStdString())}};
+		m_user.password.format = shv::broker::AclPassword::Format::Sha1;
+		m_user.password.password = sha1_hex(password().toStdString());
 	}
 
-	shv::chainpack::RpcValue::List params{user(), user_settings};
+	shv::chainpack::RpcValue::List params{user(), m_user.toRpcValueMap()};
 	m_rpcConnection->callShvMethod(rqid, aclUsersShvPath(), SET_VALUE_METHOD, params);
 }
 

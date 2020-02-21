@@ -8,6 +8,8 @@
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
 #include <shv/iotqt/rpc/clientconnection.h>
 
+#include <shv/broker/acluser.h>
+
 namespace Ui {
 class DlgAddEditUser;
 }
@@ -48,7 +50,7 @@ private:
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
 	std::string m_aclEtcUsersNodePath;
 	std::string m_aclEtcRolesNodePath;
-	shv::chainpack::RpcValue::Map m_remoteUserSettings;
+	shv::broker::AclUser m_user;
 };
 
 #endif // DLGEDITUSER_H
