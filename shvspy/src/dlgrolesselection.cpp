@@ -1,8 +1,6 @@
 #include "dlgrolesselection.h"
 #include "ui_dlgrolesselection.h"
 
-#include <QTimer>
-
 DlgRolesSelection::DlgRolesSelection(QWidget *parent):
 	QDialog(parent),
 	ui(new Ui::DlgRolesSelection)
@@ -18,7 +16,7 @@ void DlgRolesSelection::init(shv::iotqt::rpc::ClientConnection *rpc_connection, 
 	m_userRoles = roles;
 
 	connect(m_rolesModel, &RolesTreeModel::rolesLoaded, this, [this](){
-		m_rolesModel->checkRoles(m_userRoles);
+		m_rolesModel->setSelectedRoles(m_userRoles);
 	});
 
 	connect(m_rolesModel, &RolesTreeModel::loadError, this, [this](QString error){
@@ -26,14 +24,14 @@ void DlgRolesSelection::init(shv::iotqt::rpc::ClientConnection *rpc_connection, 
 	});
 }
 
-shv::chainpack::RpcValue::List DlgRolesSelection::checkedRoles()
+shv::chainpack::RpcValue::List DlgRolesSelection::selectedRoles()
 {
-	return m_rolesModel->checkedRoles();
+	return m_rolesModel->secetedRoles();
 }
 
 void DlgRolesSelection::setUserRoles(const shv::chainpack::RpcValue::List &roles)
 {
-	m_rolesModel->checkRoles(roles);
+	m_rolesModel->setSelectedRoles(roles);
 }
 
 DlgRolesSelection::~DlgRolesSelection()

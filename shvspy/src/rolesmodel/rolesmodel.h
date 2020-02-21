@@ -14,8 +14,8 @@ public:
 
 	void loadRoles(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_roles_node_path);
 
-	void checkRoles(const shv::chainpack::RpcValue::List &roles);
-	shv::chainpack::RpcValue::List checkedRoles();
+	void setSelectedRoles(const shv::chainpack::RpcValue::List &roles);
+	shv::chainpack::RpcValue::List secetedRoles();
 
 	Q_SIGNAL void rolesLoaded();
 	Q_SIGNAL void loadError(QString error);

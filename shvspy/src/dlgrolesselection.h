@@ -21,7 +21,7 @@ public:
 
 	void init(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_roles_node_path, const shv::chainpack::RpcValue::List &roles);
 
-	shv::chainpack::RpcValue::List checkedRoles();
+	shv::chainpack::RpcValue::List selectedRoles();
 	void setUserRoles(const shv::chainpack::RpcValue::List &roles);
 
 

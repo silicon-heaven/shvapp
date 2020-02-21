@@ -18,9 +18,8 @@ bool RolesTreeModel::setData(const QModelIndex & ix, const QVariant & val, int r
 	if(role == Qt::CheckStateRole) {
 		ret = QStandardItemModel::setData(ix, val, role);
 
-		int state = val.toInt();
-		if (state != Qt::PartiallyChecked) {
-				checkPartialySubRoles();
+		if (val.toInt() != Qt::PartiallyChecked) {
+			checkPartialySubRoles();
 		}
 	}
 	else {
@@ -97,13 +96,13 @@ void RolesTreeModel::loadChildItems(shv::iotqt::rpc::ClientConnection *rpc_conne
 	rpc_connection->callShvMethod(rqid, role_path, VALUE_METHOD);
 }
 
-void RolesTreeModel::checkRoles(const shv::chainpack::RpcValue::List &roles)
+void RolesTreeModel::setSelectedRoles(const shv::chainpack::RpcValue::List &roles)
 {
 	for (size_t r = 0; r < roles.size(); r++){
 		std::string role = roles.at(r).toStdString();
 		QStandardItem *root_item = invisibleRootItem();
 
-		for(int i=0; i < root_item->rowCount(); i++) {
+		for(int i = 0; i < root_item->rowCount(); i++) {
 			QStandardItem *it = root_item->child(i);
 			bool check = (role == it->data().toString().toStdString());
 
@@ -116,12 +115,12 @@ void RolesTreeModel::checkRoles(const shv::chainpack::RpcValue::List &roles)
 	checkPartialySubRoles();
 }
 
-shv::chainpack::RpcValue::List RolesTreeModel::checkedRoles()
+shv::chainpack::RpcValue::List RolesTreeModel::secetedRoles()
 {
 	shv::chainpack::RpcValue::List roles;
 	QStandardItem *root_item = invisibleRootItem();
 
-	for(int i=0; i < root_item->rowCount(); i++) {
+	for(int i = 0; i < root_item->rowCount(); i++) {
 		QStandardItem *it = root_item->child(i);
 
 		if (it->checkState() == Qt::CheckState::Checked){
