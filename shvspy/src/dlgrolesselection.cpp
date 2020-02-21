@@ -17,8 +17,12 @@ void DlgRolesSelection::init(shv::iotqt::rpc::ClientConnection *rpc_connection, 
 	ui->tvRoles->setModel(m_rolesModel);
 	m_userRoles = roles;
 
-	connect(m_rolesModel, &RolesTreeModel::treeLoaded, this, [this](){
+	connect(m_rolesModel, &RolesTreeModel::rolesLoaded, this, [this](){
 		m_rolesModel->checkRoles(m_userRoles);
+	});
+
+	connect(m_rolesModel, &RolesTreeModel::loadError, this, [this](QString error){
+		ui->lblStatus->setText(error);
 	});
 }
 
