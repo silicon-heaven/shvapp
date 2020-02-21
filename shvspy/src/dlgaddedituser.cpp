@@ -8,6 +8,7 @@
 
 static const std::string FORMAT_KEY = "format";
 static const std::string ROLES_KEY = "roles";
+static const std::string WEIGHT_KEY = "weight";
 static const std::string PASSWORD_KEY = "password";
 
 static const std::string VALUE_METHOD = "value";
@@ -77,7 +78,13 @@ void DlgAddEditUser::accept()
 	if (dialogType() == DialogType::Add){
 		if ((!user().empty()) && (!password().isEmpty())){
 			ui->lblStatus->setText(tr("Adding new user"));
-			callSetUserSettings();
+
+			if (ui->chbCreateRole->isChecked()){
+				callCreateRoleAndSetSettings(user());
+			}
+			else{
+				callSetUserSettings();
+			}
 		}
 		else {
 			ui->lblStatus->setText(tr("User name or password is empty."));
@@ -85,7 +92,13 @@ void DlgAddEditUser::accept()
 	}
 	else if (dialogType() == DialogType::Edit){
 		ui->lblStatus->setText(tr("Updating user ...") + QString::fromStdString(m_aclEtcUsersNodePath));
-		callSetUserSettings();
+
+		if (ui->chbCreateRole->isChecked()){
+			callCreateRoleAndSetSettings(user());
+		}
+		else{
+			callSetUserSettings();
+		}
 	}
 }
 
@@ -105,6 +118,37 @@ void DlgAddEditUser::onRolesSelectionClicked()
 		setRoles(dlg.checkedRoles());
 	}
 }
+
+void DlgAddEditUser::callCreateRoleAndSetSettings(const std::string &role_name)
+{
+	if (m_rpcConnection == nullptr)
+		return;
+
+	int rqid = m_rpcConnection->nextRequestId();
+	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
+
+	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
+		if (response.isValid()){
+			if(response.isError()) {
+				ui->lblStatus->setText(tr("Failed to add role.") + QString::fromStdString(response.error().toString()));
+			}
+			else{
+				callSetUserSettings();
+			}
+		}
+		else{
+			ui->lblStatus->setText(tr("Request timeout expired"));
+		}
+	});
+
+	shv::chainpack::RpcValue::Map role_settings;
+	role_settings[ROLES_KEY] = {};
+	role_settings[WEIGHT_KEY] = 0;
+
+	shv::chainpack::RpcValue::List params{role_name, role_settings};
+	m_rpcConnection->callShvMethod(rqid, m_aclEtcRolesNodePath, SET_VALUE_METHOD, params);
+}
+
 
 void DlgAddEditUser::callGetUserSettings()
 {
@@ -191,6 +235,9 @@ shv::chainpack::RpcValue::List DlgAddEditUser::roles()
 	for (int i = 0; i < lst.count(); i++){
 		roles.push_back(lst.at(i).trimmed().toStdString());
 	}
+
+	if (ui->chbCreateRole->isChecked())
+		 roles.push_back(user());
 
 	return roles;
 }

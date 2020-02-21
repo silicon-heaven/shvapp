@@ -32,6 +32,7 @@ private:
 	void onShowPasswordClicked();
 	void onRolesSelectionClicked();
 
+	void callCreateRoleAndSetSettings(const std::string &role_name);
 	void callSetUserSettings();
 	void callGetUserSettings();
 
