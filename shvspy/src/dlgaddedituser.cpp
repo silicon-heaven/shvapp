@@ -2,14 +2,15 @@
 #include "ui_dlgaddedituser.h"
 
 #include "theapp.h"
-#include "dlgrolesselection.h"
+#include "dlgselectroles.h"
+
+#include <shv/broker/aclmanager.h>
 
 #include <QCryptographicHash>
 
 static const std::string FORMAT_KEY = "format";
-static const std::string ROLES_KEY = "roles";
-static const std::string WEIGHT_KEY = "weight";
 static const std::string PASSWORD_KEY = "password";
+static const std::string ROLES_KEY = "roles";
 
 static const std::string VALUE_METHOD = "value";
 static const std::string SET_VALUE_METHOD = "setValue";
@@ -37,7 +38,7 @@ DlgAddEditUser::DlgAddEditUser(QWidget *parent, shv::iotqt::rpc::ClientConnectio
 	}
 
 	connect(ui->tbShowPassword, &QToolButton::clicked, this, &DlgAddEditUser::onShowPasswordClicked);
-	connect(ui->pbRolesSelection, &QPushButton::clicked, this, &DlgAddEditUser::onRolesSelectionClicked);
+	connect(ui->pbSelectRoles, &QPushButton::clicked, this, &DlgAddEditUser::onSelectRolesClicked);
 }
 
 DlgAddEditUser::~DlgAddEditUser()
@@ -109,9 +110,9 @@ void DlgAddEditUser::onShowPasswordClicked()
 	ui->tbShowPassword->setIcon((password_mode) ? QIcon(":/shvspy/images/hide.svg") : QIcon(":/shvspy/images/show.svg"));
 }
 
-void DlgAddEditUser::onRolesSelectionClicked()
+void DlgAddEditUser::onSelectRolesClicked()
 {
-	DlgRolesSelection dlg(this);
+	DlgSelectRoles dlg(this);
 	dlg.init(m_rpcConnection, m_aclEtcRolesNodePath, roles());
 
 	if (dlg.exec() == QDialog::Accepted){
@@ -141,11 +142,9 @@ void DlgAddEditUser::callCreateRoleAndSetSettings(const std::string &role_name)
 		}
 	});
 
-	shv::chainpack::RpcValue::Map role_settings;
-	role_settings[ROLES_KEY] = {};
-	role_settings[WEIGHT_KEY] = 0;
+	shv::broker::AclRole role(0);
 
-	shv::chainpack::RpcValue::List params{role_name, role_settings};
+	shv::chainpack::RpcValue::List params{role_name, role.toRpcValueMap()};
 	m_rpcConnection->callShvMethod(rqid, m_aclEtcRolesNodePath, SET_VALUE_METHOD, params);
 }
 
@@ -227,9 +226,9 @@ std::string DlgAddEditUser::userShvPath()
 	return m_aclEtcUsersNodePath + '/' + user() + "/";
 }
 
-shv::chainpack::RpcValue::List DlgAddEditUser::roles()
+std::vector<std::string> DlgAddEditUser::roles()
 {
-	shv::chainpack::RpcValue::List roles;
+	std::vector<std::string> roles;
 	QStringList lst = ui->leRoles->text().split(",", QString::SplitBehavior::SkipEmptyParts);
 
 	for (int i = 0; i < lst.count(); i++){
@@ -240,6 +239,17 @@ shv::chainpack::RpcValue::List DlgAddEditUser::roles()
 		 roles.push_back(user());
 
 	return roles;
+}
+
+void DlgAddEditUser::setRoles(const std::vector<std::string> &roles)
+{
+	QStringList roles_list;
+
+	for (const std::string role : roles){
+		roles_list.append(QString::fromStdString(role));
+	}
+
+	ui->leRoles->setText(roles_list.join(","));
 }
 
 void DlgAddEditUser::setRoles(const shv::chainpack::RpcValue::List &roles)

@@ -10,6 +10,8 @@
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
 #include <shv/iotqt/rpc/clientconnection.h>
 
+#include <shv/broker/aclmanager.h>
+
 namespace Ui {
 class DlgAddEditRole;
 }
@@ -38,8 +40,8 @@ private:
 
 	shv::chainpack::RpcValue::Map paths();
 
-	shv::chainpack::RpcValue::List roles();
-	void setRoles(const shv::chainpack::RpcValue::List &roles);
+	std::vector<std::string> roles();
+	void setRoles(const std::vector<std::string> &roles);
 
 	QString roleName();
 	int weight();
@@ -58,6 +60,7 @@ private:
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
 	std::string m_aclEtcNodePath;
 	AccessModel m_accessModel;
+	shv::broker::AclRole m_role;
 };
 
 #endif // DLGADDEDITROLE_H

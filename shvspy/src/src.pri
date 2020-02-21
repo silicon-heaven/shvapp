@@ -2,7 +2,7 @@ HEADERS += \
     $$PWD/dlgaddeditrole.h \
     $$PWD/dlgroleseditor.h \
     $$PWD/accessmodel/accessmodel.h \
-    $$PWD/dlgrolesselection.h \
+    $$PWD/dlgselectroles.h \
 	$$PWD/version.h \
 	$$PWD/mainwindow.h \
 	$$PWD/dlgserverproperties.h \
@@ -29,7 +29,7 @@ HEADERS += \
 SOURCES += \
     $$PWD/dlgaddeditrole.cpp \
     $$PWD/dlgroleseditor.cpp \
-    $$PWD/dlgrolesselection.cpp \
+    $$PWD/dlgselectroles.cpp \
 	$$PWD/main.cpp\
 	$$PWD/mainwindow.cpp \
 	$$PWD/dlgserverproperties.cpp \
@@ -56,7 +56,7 @@ SOURCES += \
 FORMS += \
     $$PWD/dlgaddeditrole.ui \
     $$PWD/dlgroleseditor.ui \
-    $$PWD/dlgrolesselection.ui \
+    $$PWD/dlgselectroles.ui \
 	$$PWD/mainwindow.ui \
 	$$PWD/dlgserverproperties.ui \
 	$$PWD/dlgsubscriptionparameters.ui \

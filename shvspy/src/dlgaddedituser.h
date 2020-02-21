@@ -30,7 +30,7 @@ public:
 
 private:
 	void onShowPasswordClicked();
-	void onRolesSelectionClicked();
+	void onSelectRolesClicked();
 
 	void callCreateRoleAndSetSettings(const std::string &role_name);
 	void callSetUserSettings();
@@ -39,7 +39,8 @@ private:
 	const std::string &aclUsersShvPath();
 	std::string userShvPath();
 
-	shv::chainpack::RpcValue::List roles();
+	std::vector<std::string> roles();
+	void setRoles(const std::vector<std::string> &roles);
 	void setRoles(const shv::chainpack::RpcValue::List &roles);
 
 	Ui::DlgAddEditUser *ui;

@@ -2,9 +2,9 @@
 
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
 #include <shv/core/log.h>
+#include <shv/broker/aclmanager.h>
 
 static const std::string VALUE_METHOD = "value";
-static const std::string ROLES = "roles";
 
 RolesTreeModel::RolesTreeModel(QObject * parent)
 	: QStandardItemModel(parent)
@@ -34,72 +34,77 @@ void RolesTreeModel::loadRoles(shv::iotqt::rpc::ClientConnection *rpc_connection
 		return;
 
 	int rqid = rpc_connection->nextRequestId();
-	m_rqIds.push_back(rqid);
 	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(rpc_connection, rqid, this);
 
-	cb->start(this, [this, rqid, rpc_connection, acl_etc_roles_node_path](const shv::chainpack::RpcResponse &response) {
+	cb->start(this, [this, rpc_connection, acl_etc_roles_node_path](const shv::chainpack::RpcResponse &response) {
 		if(response.isValid()){
 			if(response.isError()) {
 				emit loadError(tr("Failed to load roles.") + " " + QString::fromStdString(response.error().toString()));
 			}
 			else{
 				if (response.result().isList()){
-					shv::chainpack::RpcValue::List roles = response.result().toList();
+					QVector<std::string> roles;
 
-					for (size_t i = 0; i < roles.size(); i++){
-						loadChildItems(rpc_connection, acl_etc_roles_node_path, roles.at(i).toStdString());
+					for (const auto &v : response.result().toList()){
+						roles.push_back(v.toStdString());
 					}
+
+					loadChildItems(rpc_connection, acl_etc_roles_node_path, roles);
 				}
 			}
 		}
 		else{
 			emit loadError(tr("Request timeout expired for method: %1 path: %2").arg("ls").arg(QString::fromStdString(acl_etc_roles_node_path)));
 		}
-
-		deleteRqId(rqid);
 	});
 
 	rpc_connection->callShvMethod(rqid, acl_etc_roles_node_path, shv::chainpack::Rpc::METH_LS);
 }
 
-void RolesTreeModel::loadChildItems(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_roles_node_path, const std::string &role_name)
+void RolesTreeModel::loadChildItems(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_roles_node_path, QVector<std::string> not_loaded_roles)
 {
+	if (not_loaded_roles.isEmpty()){
+		generateTree();
+		emit loadRolesFinished();
+		return;
+	}
+
 	if(rpc_connection == nullptr){
 		return;
 	}
 
 	int rqid = rpc_connection->nextRequestId();
-	m_rqIds.push_back(rqid);
+	std::string role_name = not_loaded_roles.takeFirst();
+
 	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(rpc_connection, rqid, this);
 	std::string role_path = acl_etc_roles_node_path + "/" + role_name;
 
-	cb->start(this, [this, rqid, role_path, role_name](const shv::chainpack::RpcResponse &response) {
+	cb->start(this, [this, rpc_connection, acl_etc_roles_node_path, role_path, role_name, not_loaded_roles](const shv::chainpack::RpcResponse &response) {
 		if (response.isValid()){
 			if (response.isError()) {
 				emit loadError(tr("Failed to load role: %1").arg(QString::fromStdString(role_name)) + " " + QString::fromStdString(response.error().toString()));
 			}
 			else{
 				if (response.result().isMap()){
-					shv::chainpack::RpcValue::Map res = response.result().toMap();
-					shv::chainpack::RpcValue::List roles = res.value(ROLES).toList();
-					m_shvRoles[QString::fromStdString(role_name)] = roles;
+					shv::broker::AclRole r = shv::broker::AclRole::fromRpcValue(response.result());
+					m_shvRoles[QString::fromStdString(role_name)] = r.roles;
 				}
+
+				loadChildItems(rpc_connection, acl_etc_roles_node_path, not_loaded_roles);
 			}
 		}
 		else{
 			emit loadError(tr("Request timeout expired for method: %1 path: %2").arg(QString::fromStdString(VALUE_METHOD)).arg(QString::fromStdString(role_path)));
 		}
-
-		deleteRqId(rqid);
 	});
 
 	rpc_connection->callShvMethod(rqid, role_path, VALUE_METHOD);
 }
 
-void RolesTreeModel::setSelectedRoles(const shv::chainpack::RpcValue::List &roles)
+void RolesTreeModel::setSelectedRoles(const std::vector<std::string> &roles)
 {
 	for (size_t r = 0; r < roles.size(); r++){
-		std::string role = roles.at(r).toStdString();
+		std::string role = roles.at(r);
 		QStandardItem *root_item = invisibleRootItem();
 
 		for(int i = 0; i < root_item->rowCount(); i++) {
@@ -115,9 +120,9 @@ void RolesTreeModel::setSelectedRoles(const shv::chainpack::RpcValue::List &role
 	checkPartialySubRoles();
 }
 
-shv::chainpack::RpcValue::List RolesTreeModel::secetedRoles()
+std::vector<std::string> RolesTreeModel::selectedRoles()
 {
-	shv::chainpack::RpcValue::List roles;
+	std::vector<std::string> roles;
 	QStandardItem *root_item = invisibleRootItem();
 
 	for(int i = 0; i < root_item->rowCount(); i++) {
@@ -149,44 +154,36 @@ void RolesTreeModel::generateTree()
 		row << it;
 		parent_item->appendRow(row);
 
-		shv::chainpack::RpcValue::List sub_roles = m_shvRoles.value(role_name);
+		std::vector<std::string> sub_roles = m_shvRoles.value(role_name);
+		QSet<QString> created_roles{role_name};
+
 		for (size_t i = 0; i < sub_roles.size(); i++){
-			generateSubTree(it, QString::fromStdString(sub_roles.at(i).toStdString()));
+			generateSubTree(it, QString::fromStdString(sub_roles.at(i)), created_roles);
 		}
 	}
 }
 
-void RolesTreeModel::generateSubTree(QStandardItem *parent_item, const QString &role_name)
+void RolesTreeModel::generateSubTree(QStandardItem *parent_item, const QString &role, QSet<QString> created_roles)
 {
-	if (flattenRoleReverse(parent_item).contains(role_name)){
+	if (created_roles.contains(role)){
 		return;
 	}
 
 	QList<QStandardItem *> row;
-	QStandardItem *it = new QStandardItem(role_name);
-	it->setData(role_name, NameRole);
+	QStandardItem *it = new QStandardItem(role);
+	it->setData(role, NameRole);
 	it->setFlags(it->flags() & ~Qt::ItemIsEditable);
 	row << it;
 	parent_item->appendRow(row);
 
-	shv::chainpack::RpcValue::List subRoles = m_shvRoles.value(role_name);
+	std::vector<std::string> subRoles = m_shvRoles.value(role);
 
 	for (size_t j = 0; j < subRoles.size(); j++){
-		generateSubTree(it, QString::fromStdString(subRoles.at(j).toStdString()));
-	}
-}
+		QString sub_role = QString::fromStdString(subRoles.at(j));
+		QSet<QString> cr = created_roles;
+		cr += role;
 
-void RolesTreeModel::deleteRqId(int rqid)
-{
-	for (int i = m_rqIds.count()-1; i >= 0; i--){
-		if (m_rqIds.at(i) == rqid)
-			m_rqIds.remove(i);
-	}
-
-	if (m_rqIds.isEmpty()){
-		generateTree();
-
-		emit rolesLoaded();
+		generateSubTree(it, sub_role, cr);
 	}
 }
 
@@ -221,22 +218,6 @@ QSet<QString> RolesTreeModel::flattenRole(QStandardItem *parent_item)
 
 		if(!ret.contains(role_name)) {
 			ret += flattenRole(it);
-		}
-	}
-
-	return ret;
-}
-
-QSet<QString> RolesTreeModel::flattenRoleReverse(QStandardItem *child_item)
-{
-	QSet<QString> ret;
-
-	if (child_item != nullptr && child_item != invisibleRootItem()){
-		QString role_name = child_item->data().toString();
-
-		if(!ret.contains(role_name)) {
-			ret.insert(role_name);
-			ret += flattenRoleReverse(child_item->parent());
 		}
 	}
 
