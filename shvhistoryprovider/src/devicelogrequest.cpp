@@ -30,30 +30,24 @@ void DeviceLogRequest::exec()
 
 			QDateTime first_record_time;
 			QDateTime last_record_time;
+			bool is_finished;
+			ShvGetLogParams params = logParams();
+			QDateTime until = m_until;
 			if (log.entries().size()) {
 				first_record_time = QDateTime::fromMSecsSinceEpoch(log.entries()[0].epochMsec, Qt::TimeSpec::UTC);
 				last_record_time = QDateTime::fromMSecsSinceEpoch(log.entries()[log.entries().size() - 1].epochMsec, Qt::TimeSpec::UTC);
+				is_finished = (int)log.entries().size() < Application::SINGLE_FILE_RECORD_COUNT;
+				if (!is_finished) {
+					until = last_record_time;
+				}
+			}
+			else {
+				is_finished = true;
 			}
 
 			shvInfo() << "received log for" << m_shvPath << "with" << log.entries().size() << "records"
 					  << "since" << first_record_time
 					<< "until" << last_record_time;
-
-			const ShvLogHeader &header = log.logHeader();
-			QDateTime until = rpcvalue_cast<QDateTime>(header.until());
-
-			bool is_finished =
-					log.entries().size() == 0 ||
-					(header.recordCountLimit() != 0 && (int)log.entries().size() < header.recordCountLimit()) ||
-					m_since == m_until;
-
-			if (!header.since().isValid()) {
-				log.setSince(m_since.toMSecsSinceEpoch());
-			}
-			if (!header.until().isValid()) {
-				until = is_finished ? m_until : last_record_time;
-				log.setUntil(until.toMSecsSinceEpoch());
-			}
 
 			QFile file(LogDir(m_shvPath).filePath(m_since));
 			if (!file.open(QFile::WriteOnly)) {
@@ -65,7 +59,6 @@ void DeviceLogRequest::exec()
 			m_since = until;
 
 			if (is_finished) {
-				shvInfo() << "device log request finished";
 				Q_EMIT finished(true);
 			}
 			else {

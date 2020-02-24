@@ -1,7 +1,7 @@
 #ifndef CHECKLOGREQUEST_H
 #define CHECKLOGREQUEST_H
 
-#include "abstractrequest.h"
+#include "asyncrequest.h"
 #include "logdir.h"
 
 class DeviceLogRequest;
@@ -11,10 +11,10 @@ enum class CheckLogType {
 	Periodic          //dirty log is replaced only if it is too big or too old
 };
 
-class CheckLogRequest : public AbstractRequest
+class CheckLogRequest : public AsyncRequest
 {
 	Q_OBJECT
-	using Super = AbstractRequest;
+	using Super = AsyncRequest;
 
 public:
 	CheckLogRequest(const QString &shv_path, CheckLogType check_type, QObject *parent);

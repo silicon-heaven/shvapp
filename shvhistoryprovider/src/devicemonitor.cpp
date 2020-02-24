@@ -1,7 +1,6 @@
 #include "devicemonitor.h"
 
 #include "application.h"
-#include "appclioptions.h"
 #include "shvsubscription.h"
 #include "siteitem.h"
 
@@ -53,22 +52,18 @@ void DeviceMonitor::onShvStateChanged()
 	Application *app = Application::instance();
 	auto *conn = app->deviceConnection();
 	if (conn->state() == shv::iotqt::rpc::ClientConnection::State::BrokerConnected) {
-		QString maintained_path = QString::fromStdString(app->cliOptions()->maintainedPath());
+		QString shv_sites_path = app->shvSitesPath();
 		QString path = "shv";
-		if (!maintained_path.isEmpty()) {
-			path += '/' + maintained_path;
+		if (!shv_sites_path.isEmpty()) {
+			path += '/' + shv_sites_path;
 		}
 
 		m_mntSubscription = new ShvSubscription(conn, path, "mntchng", this);
 		connect(m_mntSubscription, &ShvSubscription::notificationReceived, this, &DeviceMonitor::onDeviceMountChanged);
-		conn->callMethodSubscribe(path.toStdString(), "mntchng");
 
 		downloadSites();
-		QString sites_path = QString::fromStdString(app->cliOptions()->masterBrokerPath()) + "sites";
-
-		m_sitesSubscription = new ShvSubscription(conn, sites_path, "reloaded", this);
+		m_sitesSubscription = new ShvSubscription(conn, app->sitesPath(), "reloaded", this);
 		connect(m_sitesSubscription, &ShvSubscription::notificationReceived, this, &DeviceMonitor::downloadSites);
-		conn->callMethodSubscribe(sites_path.toStdString(), "reloaded");
 	}
 	else if (conn->state() == shv::iotqt::rpc::ClientConnection::State::NotConnected) {
 		if (m_mntSubscription) {
@@ -91,40 +86,41 @@ void DeviceMonitor::downloadSites()
 
 	Application *app = Application::instance();
 
-	app->shvCall(QString::fromStdString(app->cliOptions()->masterBrokerPath()) + "sites", "getSites", [this](const shv::chainpack::RpcResponse &response) {
-		if (response.isError()) {
-			shvError() << response.error().message();
-			QTimer::singleShot(60 * 1000, this, &DeviceMonitor::downloadSites);
-			m_downloadingSites = false;
-			return;
-		}
-		shvInfo() << "sites loaded";
-		QTimer::singleShot(60 * 60 * 1000, this, &DeviceMonitor::downloadSites);
-		try {
-			SiteItem *new_sites = new SiteItem(this);
-			new_sites->parseRpcValue(response.result());
-			if (m_sites) {
-				delete m_sites;
+	try {
+		app->shvCall(app->sitesPath(), "getSites", [this](const shv::chainpack::RpcResponse &response) {
+			if (response.isError()) {
+				shvError() << response.error().message();
+				QTimer::singleShot(60 * 1000, this, &DeviceMonitor::downloadSites);
+				m_downloadingSites = false;
+				return;
 			}
-			m_sites = new_sites;
-		}
-		catch (const shv::core::Exception &e) {
-			shvWarning() << "Error on parsing sites.json" << e.message();
-		}
+			shvInfo() << "sites loaded";
+			QTimer::singleShot(60 * 60 * 1000, this, &DeviceMonitor::downloadSites);
+			try {
+				SiteItem *new_sites = new SiteItem(this);
+				new_sites->parseRpcValue(response.result());
+				if (m_sites) {
+					delete m_sites;
+				}
+				m_sites = new_sites;
+			}
+			catch (const shv::core::Exception &e) {
+				shvWarning() << "Error on parsing sites.json" << e.message();
+			}
+			m_downloadingSites = false;
+			scanDevices();
+		});
+	}
+	catch (...) {
 		m_downloadingSites = false;
-		scanDevices();
-	});
+		throw;
+	}
 }
 
 void DeviceMonitor::onDeviceMountChanged(const QString &path, const QString &method, const shv::chainpack::RpcValue &data)
 {
 	Q_UNUSED(method);
 	QString p = path.mid(4);  //remove shv/
-	shvInfo() << "device mount changed" << path << p;
-
-//	if (!Application::instance()->cliOptions()->test() && p.startsWith("test")) {
-//		return;
-//	}
 
 	bool mounted = data.toBool();
 	if (mounted) {
@@ -149,34 +145,23 @@ void DeviceMonitor::onDeviceMountChanged(const QString &path, const QString &met
 
 void DeviceMonitor::scanDevices()
 {
-	QString maintained_path = QString::fromStdString(Application::instance()->cliOptions()->maintainedPath());
 	QStringList old_monitores_devices = m_monitoredDevices;
-	//QSharedPointer<int> online_test_cnt(new int(1));
 	for (const SitesHPDevice *device : m_sites->findChildren<SitesHPDevice*>()) {
 		QString shv_path = device->shvPath();
-		if (shv_path.startsWith(maintained_path)) {
-//			if (Application::instance()->cliOptions()->test() || !shv_path.startsWith("test")) {
-			if (old_monitores_devices.removeOne(shv_path)) {
-				continue;
-			}
-			m_monitoredDevices << shv_path;
-//			checkLogs(shv_path);
-			//Q_EMIT deviceAddedToSites(shv_path);
-			isDeviceOnline(shv_path, [this, shv_path](bool is_online) {
-				if (is_online) {
-					m_onlineDevices << shv_path;
-					Q_EMIT deviceConnectedToBroker(shv_path);
-				}
-			});
-//			}
+		if (old_monitores_devices.removeOne(shv_path)) {
+			continue;
 		}
+		m_monitoredDevices << shv_path;
+		isDeviceOnline(shv_path, [this, shv_path](bool is_online) {
+			if (is_online) {
+				m_onlineDevices << shv_path;
+				Q_EMIT deviceConnectedToBroker(shv_path);
+			}
+		});
 	}
 	for (const QString &shv_path : old_monitores_devices) {
 		m_monitoredDevices.removeOne(shv_path);
 		m_onlineDevices.removeOne(shv_path);
-		//if (m_onlineDevices.contains(shv_path)) {
-		//	Q_EMIT deviceDisconnectedFromBroker(shv_path);
-		//}
 		Q_EMIT deviceRemovedFromSites(shv_path);
 	}
 	Q_EMIT sitesDownloadFinished();
@@ -184,7 +169,24 @@ void DeviceMonitor::scanDevices()
 
 void DeviceMonitor::isDeviceOnline(const QString &shv_path, BoolCallback callback)
 {
-	Application::instance()->shvCall("shv/" + shv_path, cp::Rpc::METH_DIR, [callback](const shv::chainpack::RpcResponse &response) {
-		callback(!response.isError());
+	int slash = shv_path.lastIndexOf('/');
+	QString parent_path = shv_path.mid(0, slash);
+	std::string device_name = shv_path.mid(slash + 1).toStdString();
+	Application::instance()->shvCall("shv/" + parent_path, cp::Rpc::METH_LS, [callback, device_name](const shv::chainpack::RpcResponse &response) {
+		if (response.isError()) {
+			callback(false);
+		}
+		const cp::RpcValue &result = response.result();
+		if (!result.isList()) {
+			callback(false);
+		}
+		const cp::RpcValue::List &result_list = result.toList();
+		for (const cp::RpcValue &list_item : result_list) {
+			if (list_item.isString() && list_item.toString() == device_name) {
+				callback(true);
+				return;
+			}
+		}
+		callback(false);
 	});
 }

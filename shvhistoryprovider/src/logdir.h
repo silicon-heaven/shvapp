@@ -3,7 +3,7 @@
 
 #include <QDir>
 
-class LogDir : public QDir
+class LogDir
 {
 public:
 	LogDir(const QString &shv_path);
@@ -16,12 +16,15 @@ public:
 
 	static QString fileName(const QDateTime &datetime);
 
+	bool exists(const QString &file) const { return m_dir.exists(file); }
+	void remove(const QString &file) { m_dir.remove(file); }
+	void rename(const QString &old_name, const QString &new_name) { m_dir.rename(old_name, new_name); }
+	QString absoluteFilePath(const QString &file) const { return m_dir.absoluteFilePath(file); }
+
 private:
-	static QDateTime dateTimeFromFileName(const QString &filename);
 	static QString dirPath(const QString &shv_path);
 
-	static QRegularExpression fileNameRegExp;
-	static QString fileNameMask;
+	QDir m_dir;
 };
 
 #endif // DEVICELOGDIR_H

@@ -6,6 +6,7 @@ ShvSubscription::ShvSubscription(shv::iotqt::rpc::ClientConnection *conn, const 
 	, m_method(method)
 {
 	connect(conn, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvSubscription::onRpcMessageReceived);
+	conn->callMethodSubscribe(path.toStdString(), method.toStdString());
 }
 
 void ShvSubscription::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
@@ -14,7 +15,7 @@ void ShvSubscription::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg
 		shv::chainpack::RpcSignal ntf(msg);
 		QString path = QString::fromStdString(ntf.shvPath().toString());
 		QString method = QString::fromStdString(ntf.method().toString());
-		if (path.startsWith(m_path) && (m_method.isEmpty() || m_method == method)) {
+		if (path.startsWith(m_path) && m_method == method) {
 			Q_EMIT notificationReceived(path, method, ntf.params());
 		}
 	}

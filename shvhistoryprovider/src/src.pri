@@ -4,7 +4,6 @@ HEADERS += \
     $$PWD/application.h \
     $$PWD/getlogmerge.h \
     $$PWD/rootnode.h \
-    $$PWD/abstractrequest.h \
     $$PWD/devicelogrequest.h \
     $$PWD/devicemonitor.h \
     $$PWD/checklogrequest.h \
@@ -14,7 +13,8 @@ HEADERS += \
     $$PWD/logsanitizer.h \
     $$PWD/migration.h \
     $$PWD/dirtylogmanager.h \
-    $$PWD/shvsubscription.h
+    $$PWD/shvsubscription.h \
+    $$PWD/asyncrequest.h
 
 SOURCES += \
     $$PWD/getlogmerge.cpp \
@@ -22,7 +22,6 @@ SOURCES += \
     $$PWD/appclioptions.cpp \
     $$PWD/application.cpp \
     $$PWD/rootnode.cpp \
-    $$PWD/abstractrequest.cpp \
     $$PWD/devicelogrequest.cpp \
     $$PWD/devicemonitor.cpp \
     $$PWD/checklogrequest.cpp \
@@ -32,7 +31,8 @@ SOURCES += \
     $$PWD/logsanitizer.cpp \
     $$PWD/migration.cpp \
     $$PWD/dirtylogmanager.cpp \
-    $$PWD/shvsubscription.cpp
+    $$PWD/shvsubscription.cpp \
+    $$PWD/asyncrequest.cpp
 
 FORMS +=
 

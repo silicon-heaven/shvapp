@@ -1,4 +1,5 @@
 #include "siteitem.h"
+#include "application.h"
 
 #include <shv/coreqt/exception.h>
 #include <shv/coreqt/log.h>
@@ -49,8 +50,11 @@ void SiteItem::parseRpcValue(const cp::RpcValue::Map &map)
 				c = new SiteItem(this);
 			}
 
-			if (c) {
-				c->setObjectName(QString::fromStdString(it->first));
+			c->setObjectName(QString::fromStdString(it->first));
+			if (qobject_cast<SitesDevice*>(c) && !c->shvPath().startsWith(Application::instance()->shvSitesPath())) {
+				delete c;
+			}
+			else {
 				c->parseRpcValue(child);
 				if (!qobject_cast<SitesHPDevice*>(c) && c->findChildren<SitesHPDevice*>().count() == 0) {
 					delete c;

@@ -25,7 +25,6 @@ Application::Application(int &argc, char **argv, AppCliOptions* cli_opts)
 	if (!cli_opts->deviceId_isset()) {
 		cli_opts->setDeviceId("shvhistoryprovider");
 	}
-	m_masterBrokerPath = QString::fromStdString(cli_opts->masterBrokerPath());
 
 	m_rpcConnection = new shv::iotqt::rpc::DeviceConnection(this);
 	if (!cli_opts->serverHost_isset()) {
@@ -49,23 +48,19 @@ Application::Application(int &argc, char **argv, AppCliOptions* cli_opts)
 	connectToShv();
 
 	m_deviceMonitor = new DeviceMonitor(this);
+
+	QEventLoop loop(this);
+	connect(m_deviceMonitor, &DeviceMonitor::sitesDownloadFinished, &loop, &QEventLoop::quit);
+	loop.exec();
+
 	Migration migration;
 	if (migration.isNeeded()) {
-		QMetaObject::Connection *connection = new QMetaObject::Connection;
-		*connection = connect(m_deviceMonitor, &DeviceMonitor::sitesDownloadFinished, [this, connection]() {
-			disconnect(*connection);
-			delete connection;
-			disconnectFromShv();
-			Migration().exec();
-			connectToShv();
-			m_logSanitizer = new LogSanitizer(this);
-			m_dirtyLogManager = new DirtyLogManager(this);
-		});
+		disconnectFromShv();
+		Migration().exec();
+		connectToShv();
 	}
-	else {
-		m_logSanitizer = new LogSanitizer(this);
-		m_dirtyLogManager = new DirtyLogManager(this);
-	}
+	m_logSanitizer = new LogSanitizer(this);
+	m_dirtyLogManager = new DirtyLogManager(this);
 }
 
 Application::~Application()
@@ -128,6 +123,21 @@ Application *Application::instance()
 QString Application::elesysPath() const
 {
 	return masterBrokerPath() + QString::fromStdString(m_cliOptions->elesysPath());
+}
+
+QString Application::sitesPath() const
+{
+	return masterBrokerPath() + "sites";
+}
+
+QString Application::shvSitesPath() const
+{
+	return QString::fromStdString(m_cliOptions->shvSitesPath());
+}
+
+QString Application::masterBrokerPath() const
+{
+	return QString::fromStdString(m_cliOptions->masterBrokerPath());
 }
 
 QString Application::uptime() const

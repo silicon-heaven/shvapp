@@ -4,7 +4,7 @@
 #include <QObject>
 
 #include <shv/chainpack/rpcvalue.h>
-#include "abstractrequest.h"
+#include "asyncrequest.h"
 
 class SiteItem;
 class ShvSubscription;

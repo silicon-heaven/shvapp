@@ -1,5 +1,4 @@
 #include "application.h"
-#include "appclioptions.h"
 #include "devicemonitor.h"
 #include "dirtylogmanager.h"
 #include "logdir.h"
@@ -21,22 +20,14 @@ DirtyLogManager::DirtyLogManager(QObject *parent)
 
 	DeviceMonitor *monitor = app->deviceMonitor();
 
-	QMetaObject::Connection *connection = new QMetaObject::Connection;
-	*connection = connect(monitor, &DeviceMonitor::sitesDownloadFinished, [this, connection]() {
-		disconnect(*connection);
-		delete connection;
-		setDirtyLogsDirty();
+	setDirtyLogsDirty();
 
-		Application *app = Application::instance();
-		DeviceMonitor *monitor = app->deviceMonitor();
-
-		for (const QString &shv_path : monitor->onlineDevices()) {
-			onDeviceAppeared(shv_path);
-		}
-		connect(monitor, &DeviceMonitor::deviceConnectedToBroker, this, &DirtyLogManager::onDeviceAppeared);
-		connect(monitor, &DeviceMonitor::deviceDisconnectedFromBroker, this, &DirtyLogManager::onDeviceDisappeared);
-		connect(monitor, &DeviceMonitor::deviceRemovedFromSites, this, &DirtyLogManager::onDeviceDisappeared);
-	});
+	for (const QString &shv_path : monitor->onlineDevices()) {
+		onDeviceAppeared(shv_path);
+	}
+	connect(monitor, &DeviceMonitor::deviceConnectedToBroker, this, &DirtyLogManager::onDeviceAppeared);
+	connect(monitor, &DeviceMonitor::deviceDisconnectedFromBroker, this, &DirtyLogManager::onDeviceDisappeared);
+	connect(monitor, &DeviceMonitor::deviceRemovedFromSites, this, &DirtyLogManager::onDeviceDisappeared);
 }
 
 DirtyLogManager::~DirtyLogManager()
@@ -70,14 +61,13 @@ void DirtyLogManager::onShvStateChanged(shv::iotqt::rpc::ClientConnection::State
 		Application *app = Application::instance();
 		auto *conn = app->deviceConnection();
 
-		QString maintained_path = QString::fromStdString(app->cliOptions()->maintainedPath());
+		QString shv_sites_path = app->shvSitesPath();
 		QString path = "shv";
-		if (!maintained_path.isEmpty()) {
-			path += '/' + maintained_path;
+		if (!shv_sites_path.isEmpty()) {
+			path += '/' + shv_sites_path;
 		}
 		m_chngSubscription = new ShvSubscription(conn, path, "chng", this);
 		connect(m_chngSubscription, &ShvSubscription::notificationReceived, this, &DirtyLogManager::onDeviceDataChanged);
-		conn->callMethodSubscribe(path.toStdString(), "chng");
 	}
 	else if (state == shv::iotqt::rpc::ClientConnection::State::NotConnected && m_chngSubscription) {
 		if (m_chngSubscription) {

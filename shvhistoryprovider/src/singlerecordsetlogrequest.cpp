@@ -2,12 +2,12 @@
 #include "appclioptions.h"
 #include "devicemonitor.h"
 #include "singlerecordsetlogrequest.h"
-#include "siteitem.h"
 
 #include <shv/iotqt/rpc/rpc.h>
 #include <shv/coreqt/log.h>
 
 namespace cp = shv::chainpack;
+using namespace shv::core::utils;
 
 SingleRecordSetLogRequest::SingleRecordSetLogRequest(const QString &shv_path, const QDateTime &since, const QDateTime &until, QObject *parent)
 	: Super(parent)
@@ -47,7 +47,16 @@ void SingleRecordSetLogRequest::askDevice(VoidCallback callback)
 {
 	shvCall("shv/" + m_shvPath, "getLog", logParams().toRpcValue(), [this, callback](const cp::RpcValue &result) {
 		try {
-			m_log.loadLog(result);
+			if (m_log.entries().size()) {
+				ShvMemoryJournal device_log;
+				device_log.loadLog(result);
+				for (const auto &entry : device_log.entries()) {
+					m_log.append(entry);
+				}
+			}
+			else {
+				m_log.loadLog(result);
+			}
 		}
 		catch (const shv::core::Exception &e) {
 			error(QString::fromStdString(e.message()));
@@ -89,6 +98,24 @@ void SingleRecordSetLogRequest::askElesys(VoidCallback callback)
 	catch (const shv::core::Exception &e) {
 		error(QString::fromStdString(e.message()));
 	}
+}
+
+void SingleRecordSetLogRequest::shvCall(const QString &shv_path, const QString &method, const cp::RpcValue &params, ResultHandler callback)
+{
+	Application *app = Application::instance();
+	app->shvCall(shv_path, method, params, [this, callback](const cp::RpcResponse &response) {
+		if (response.isError()) {
+			error(QString::fromStdString(response.error().message()));
+		}
+		else {
+			try {
+				callback(response.result());
+			}
+			catch (const shv::core::Exception &e) {
+				error(e.what());
+			}
+		}
+	});
 }
 
 shv::core::utils::ShvGetLogParams SingleRecordSetLogRequest::logParams() const

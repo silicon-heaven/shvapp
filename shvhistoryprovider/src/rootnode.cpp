@@ -17,15 +17,14 @@
 namespace cp = shv::chainpack;
 
 static const char METH_GET_VERSION[] = "version";
-static const char METH_GET_LOG[] = "getLog";
 static const char METH_RELOAD_SITES[] = "reloadSites";
 static const char METH_GET_UPTIME[] = "uptime";
 
 static std::vector<cp::MetaMethod> root_meta_methods {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_BROWSE },
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_BROWSE },
-	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, false, cp::Rpc::ROLE_READ },
-	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false, cp::Rpc::ROLE_READ },
+	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_BROWSE },
+	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_BROWSE },
+	{ cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, false, cp::Rpc::ROLE_READ },
+	{ cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false, cp::Rpc::ROLE_READ },
     { METH_GET_VERSION, cp::MetaMethod::Signature::RetVoid, false, cp::Rpc::ROLE_READ },
 	{ METH_RELOAD_SITES, cp::MetaMethod::Signature::RetVoid, false, cp::Rpc::ROLE_COMMAND },
 	{ METH_GET_UPTIME, cp::MetaMethod::Signature::RetVoid, false, cp::Rpc::ROLE_READ },
@@ -34,12 +33,13 @@ static std::vector<cp::MetaMethod> root_meta_methods {
 static std::vector<cp::MetaMethod> branch_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_BROWSE },
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_BROWSE },
+	{ cp::Rpc::METH_GET_LOG, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_READ },
 };
 
 static std::vector<cp::MetaMethod> leaf_meta_methods {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_BROWSE },
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_BROWSE },
-	{ METH_GET_LOG, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_READ },
+	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_BROWSE },
+	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_BROWSE },
+	{ cp::Rpc::METH_GET_LOG, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_READ },
 };
 
 RootNode::RootNode(QObject *parent)
@@ -83,16 +83,9 @@ shv::chainpack::RpcValue RootNode::ls(const shv::core::StringViewList &shv_path,
 cp::RpcValue RootNode::ls(const shv::core::StringViewList &shv_path, size_t index, const SiteItem *site_item)
 {
 	if (shv_path.size() - index == 0) {
-		QString maintained_path = QString::fromStdString(Application::instance()->cliOptions()->maintainedPath());
-		QString joined_path = QString::fromStdString(shv_path.join('/'));
 		cp::RpcValue::List items;
 		for (int i = 0; i < site_item->children().count(); ++i) {
-			QString item_path = (shv_path.size() ? (joined_path + "/") : QString()) + site_item->children()[i]->objectName();
-			if (item_path.startsWith(maintained_path) || maintained_path.startsWith(item_path)) {
-//				if (Application::instance()->cliOptions()->test() || !item_path.startsWith("test")) {
-					items.push_back(cp::RpcValue::fromValue(site_item->children()[i]->objectName()));
-//				}
-			}
+			items.push_back(cp::RpcValue::fromValue(site_item->children()[i]->objectName()));
 		}
 		return items;
 	}
@@ -144,7 +137,7 @@ cp::RpcValue RootNode::processRpcRequest(const cp::RpcRequest &rq)
 	else if (method == METH_GET_UPTIME) {
 		return Application::instance()->uptime().toStdString();
 	}
-	else if (method == METH_GET_LOG) {
+	else if (method == cp::Rpc::METH_GET_LOG) {
 		return getLog(rpcvalue_cast<QString>(rq.shvPath()), rq.params());
 	}
 	else if (method == METH_RELOAD_SITES) {
@@ -164,9 +157,6 @@ cp::RpcValue RootNode::getLog(const QString &shv_path, const shv::chainpack::Rpc
 		log_params = params;
 	}
 
-	if (!Application::instance()->deviceMonitor()->monitoredDevices().startsWith(shv_path)) {
-		SHV_EXCEPTION("Invalid shv_path");
-	}
 	if (log_params.since.isValid() && log_params.until.isValid() && log_params.since.toDateTime() > log_params.until.toDateTime()) {
 		SHV_QT_EXCEPTION("since is after until");
 	}

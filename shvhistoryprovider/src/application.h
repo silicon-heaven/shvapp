@@ -29,6 +29,10 @@ public:
 	AppCliOptions *cliOptions() { return m_cliOptions; }
 
 	QString elesysPath() const;
+	QString sitesPath() const;
+	QString shvSitesPath() const;
+	QString masterBrokerPath() const;
+
 	QString uptime() const;
 
 	DeviceMonitor *deviceMonitor() { return m_deviceMonitor; }
@@ -39,7 +43,6 @@ public:
 	void shvCall(const QString &shv_path, const QString &method, const shv::chainpack::RpcValue &params, shv::iotqt::rpc::RpcResponseCallBack::CallBackFunction callback);
 
 	shv::iotqt::rpc::DeviceConnection *deviceConnection();
-	const QString &masterBrokerPath() const { return m_masterBrokerPath; }
 
 private:
 	void onShvStateChanged();
@@ -56,5 +59,4 @@ private:
 	DirtyLogManager *m_dirtyLogManager;
 	shv::iotqt::rpc::DeviceConnection *m_rpcConnection;
 	shv::iotqt::node::ShvNodeTree *m_shvTree;
-	QString m_masterBrokerPath;
 };

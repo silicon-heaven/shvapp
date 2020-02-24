@@ -1,16 +1,16 @@
 #ifndef DEVICELOGREQUEST_H
 #define DEVICELOGREQUEST_H
 
-#include "abstractrequest.h"
+#include "asyncrequest.h"
 #include "logdir.h"
 
 #include <shv/core/utils/shvmemoryjournal.h>
 #include <QDateTime>
 
-class DeviceLogRequest : public AbstractRequest
+class DeviceLogRequest : public AsyncRequest
 {
 	Q_OBJECT
-	using Super = AbstractRequest;
+	using Super = AsyncRequest;
 
 public:
 	explicit DeviceLogRequest(const QString &shv_path, const QDateTime &since, const QDateTime &until, QObject *parent = nullptr);

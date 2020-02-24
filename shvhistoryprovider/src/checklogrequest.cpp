@@ -14,7 +14,7 @@ namespace cp = shv::chainpack;
 using namespace shv::core::utils;
 
 CheckLogRequest::CheckLogRequest(const QString &shv_path, CheckLogType check_type, QObject *parent)
-	: AbstractRequest(parent)
+	: AsyncRequest(parent)
 	, m_shvPath(shv_path)
 	, m_checkType(check_type)
 	, m_logDir(m_shvPath)
@@ -28,6 +28,9 @@ void CheckLogRequest::exec()
 		checkOldDataConsistency();
 		if (m_checkType == CheckLogType::Periodic) {
 			periodicDirtyLogCheck();
+		}
+		if (m_requests.count() == 0) {
+			Q_EMIT finished(true);
 		}
 	}
 	catch (shv::core::Exception &e) {

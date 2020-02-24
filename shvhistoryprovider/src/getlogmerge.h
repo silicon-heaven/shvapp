@@ -1,7 +1,7 @@
 #ifndef GETLOGREQUEST_H
 #define GETLOGREQUEST_H
 
-#include "abstractrequest.h"
+#include "asyncrequest.h"
 
 #include <shv/core/utils/shvmemoryjournal.h>
 
@@ -14,6 +14,7 @@ public:
 
 private:
 	QString m_shvPath;
+	QStringList m_shvPaths;
 	shv::core::utils::ShvGetLogParams m_logParams;
 	shv::core::utils::ShvMemoryJournal m_mergedLog;
 };

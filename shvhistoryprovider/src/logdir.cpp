@@ -4,53 +4,37 @@
 
 #include <QDateTime>
 #include <QRegularExpression>
+#include <QVector>
 
-QString LogDir::fileNameMask("([0-9][0-9][0-9][0-9])-([0-9][0-9])-([0-9][0-9])T([0-9][0-9]):([0-9][0-9]):([0-9][0-9]).([0-9][0-9][0-9]).");
+#include <shv/core/utils/shvfilejournal.h>
 
-QRegularExpression LogDir::fileNameRegExp(fileNameMask);
-
-LogDir::LogDir(const QString &shv_path)	: QDir(dirPath(shv_path), "*.chp", QDir::SortFlag::Name, QDir::Filter::Files)
+LogDir::LogDir(const QString &shv_path)
+	: m_dir(dirPath(shv_path), "*.chp", QDir::SortFlag::Name, QDir::Filter::Files)
 {
-	if (!exists()) {
+	if (!m_dir.exists()) {
 		QDir(QString::fromStdString(Application::instance()->cliOptions()->dataDir())).mkpath(shv_path);
-		refresh();
+		m_dir.refresh();
 	}
 }
 
 QString LogDir::dirPath(const QString &shv_path)
 {
-	return QString::fromStdString(Application::instance()->cliOptions()->dataDir()) + separator() + shv_path;
-}
-
-QDateTime LogDir::dateTimeFromFileName(const QString &filename)
-{
-	QDateTime datetime;
-	QRegularExpressionMatch match = fileNameRegExp.match(filename);
-	if (match.hasMatch()) {
-		int year = match.captured(1).toInt();
-		int month = match.captured(2).toInt();
-		int day = match.captured(3).toInt();
-		int hour = match.captured(4).toInt();
-		int minutes = match.captured(5).toInt();
-		int seconds = match.captured(6).toInt();
-		int miliseconds = match.captured(7).toInt();
-		datetime = QDateTime(QDate(year, month, day), QTime(hour, minutes, seconds, miliseconds), Qt::UTC);
-	}
-	return datetime;
+	return QString::fromStdString(Application::instance()->cliOptions()->dataDir()) + QDir::separator() + shv_path;
 }
 
 QStringList LogDir::findFiles(const QDateTime &since, const QDateTime &until)
 {
-	QFileInfoList file_infos = entryInfoList();
+	QFileInfoList file_infos = m_dir.entryInfoList();
 	QStringList file_names;
-	QVector<QDateTime> file_dates;
+	QVector<int64_t> file_dates;
 	for (int i = 0; i < file_infos.count(); ++i) {
 		QString filename = file_infos[i].fileName();
-		QDateTime datetime = dateTimeFromFileName(filename);
-		if (datetime.isValid()) {
+		try {
+			int64_t datetime = shv::core::utils::ShvFileJournal::JournalContext::fileNameToFileMsec(filename.toStdString());
 			file_names << filename;
 			file_dates << datetime;
 		}
+		catch(...) {}
 	}
 
 	if (file_dates.count() == 0) {
@@ -59,7 +43,7 @@ QStringList LogDir::findFiles(const QDateTime &since, const QDateTime &until)
 
 	int since_pos = 0;
 	if (since.isValid()) {
-		auto it = std::upper_bound(file_dates.begin(), file_dates.end(), since);
+		auto it = std::upper_bound(file_dates.begin(), file_dates.end(), since.toMSecsSinceEpoch());
 		if (it != file_dates.begin()) {
 			--it;
 		}
@@ -67,31 +51,24 @@ QStringList LogDir::findFiles(const QDateTime &since, const QDateTime &until)
 	}
 	int until_pos = file_dates.count();
 	if (until.isValid()) {
-		auto it = std::upper_bound(file_dates.begin(), file_dates.end(), until);
+		auto it = std::upper_bound(file_dates.begin(), file_dates.end(), until.toMSecsSinceEpoch());
 		until_pos = (int)(it - file_dates.begin());
 	}
 	QStringList result;
 	for (int i = since_pos; i < until_pos; ++i) {
-		result << QDir::filePath(file_names[i]);
+		result << m_dir.filePath(file_names[i]);
 	}
 	return result;
 }
 
 QString LogDir::fileName(const QDateTime &datetime)
 {
-	return QString("%1-%2-%3T%4:%5:%6.%7.chp")
-			.arg(datetime.date().year(), 4)
-			.arg(datetime.date().month(), 2, 10, QChar('0'))
-			.arg(datetime.date().day(), 2, 10, QChar('0'))
-			.arg(datetime.time().hour(), 2, 10, QChar('0'))
-			.arg(datetime.time().minute(), 2, 10, QChar('0'))
-			.arg(datetime.time().second(), 2, 10, QChar('0'))
-			.arg(datetime.time().msec(), 3, 10, QChar('0'));
+	return QString::fromStdString(shv::core::utils::ShvFileJournal::JournalContext::msecToBaseFileName(datetime.toMSecsSinceEpoch())) + ".chp";
 }
 
 QString LogDir::filePath(const QDateTime &datetime)
 {
-	return absoluteFilePath(fileName(datetime));
+	return m_dir.absoluteFilePath(fileName(datetime));
 }
 
 QString LogDir::dirtyLogName() const
@@ -101,5 +78,5 @@ QString LogDir::dirtyLogName() const
 
 QString LogDir::dirtyLogPath() const
 {
-	return absoluteFilePath(dirtyLogName());
+	return m_dir.absoluteFilePath(dirtyLogName());
 }
