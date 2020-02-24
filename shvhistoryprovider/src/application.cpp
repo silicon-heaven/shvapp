@@ -16,6 +16,7 @@
 namespace cp = shv::chainpack;
 
 const int Application::SINGLE_FILE_RECORD_COUNT = 10000;
+const QDateTime Application::WORLD_BEGIN(QDate(2019, 1, 1), QTime(0, 0, 0, 0), Qt::TimeSpec::UTC);
 
 Application::Application(int &argc, char **argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)

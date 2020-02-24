@@ -3,7 +3,6 @@
 #include "logdir.h"
 
 #include <QDateTime>
-#include <QRegularExpression>
 #include <QVector>
 
 #include <shv/core/utils/shvfilejournal.h>

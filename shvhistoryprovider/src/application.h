@@ -20,6 +20,7 @@ class Application : public QCoreApplication
 
 public:
 	static const int SINGLE_FILE_RECORD_COUNT;
+	static const QDateTime WORLD_BEGIN;
 
 	Application(int &argc, char **argv, AppCliOptions* cli_opts);
 	~Application();

@@ -1,5 +1,5 @@
-#ifndef DEVICELOGDIR_H
-#define DEVICELOGDIR_H
+#ifndef LOGDIR_H
+#define LOGDIR_H
 
 #include <QDir>
 
@@ -27,4 +27,4 @@ private:
 	QDir m_dir;
 };
 
-#endif // DEVICELOGDIR_H
+#endif // LOGDIR_H

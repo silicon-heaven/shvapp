@@ -41,7 +41,7 @@ void CheckLogRequest::exec()
 void CheckLogRequest::checkOldDataConsistency()
 {
 	m_dirEntries = m_logDir.findFiles(QDateTime(), QDateTime());
-	QDateTime requested_since(QDate(2019, 1, 1), QTime(0, 0, 0, 0), Qt::TimeSpec::UTC);
+	QDateTime requested_since = Application::WORLD_BEGIN;
 	for (int i = 0; i < m_dirEntries.count(); ++i) {
 		ShvLogHeader header = ShvLogFileReader(m_dirEntries[i].toStdString()).logHeader();
 		QDateTime file_since = rpcvalue_cast<QDateTime>(header.since());

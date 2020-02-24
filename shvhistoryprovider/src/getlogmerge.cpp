@@ -108,30 +108,37 @@ private:
 			m_logReader = new ShvLogFileReader(m_logs[0].toStdString());
 			m_header = m_logReader->logHeader();
 			found_data_begin = m_header.since();
-			if (!m_requestedDataBegin.isDateTime() || m_requestedDataBegin.toDateTime() < found_data_begin.toDateTime()) {
+		}
+
+		if (!found_data_begin.isValid() ||
+			(found_data_begin.toDateTime().msecsSinceEpoch() > Application::WORLD_BEGIN.toMSecsSinceEpoch() &&
+			 (!m_requestedDataBegin.isValid() || m_requestedDataBegin.toDateTime() < found_data_begin.toDateTime()))) {
+			m_entryCache.push_back(ShvJournalEntry {
+									   ShvJournalEntry::PATH_DATA_MISSING,
+									   ShvJournalEntry::DATA_MISSING_LOG_FILE_MISSING,
+									   ShvJournalEntry::DOMAIN_SHV_SYSTEM,
+									   ShvJournalEntry::NO_SHORT_TIME,
+									   ShvJournalEntry::SampleType::Continuous,
+									   m_requestedDataBegin.isDateTime() ? m_requestedDataBegin.toDateTime().msecsSinceEpoch() : 0
+								   });
+			if (found_data_begin.isDateTime()) {
 				m_entryCache.push_back(ShvJournalEntry {
 										   ShvJournalEntry::PATH_DATA_MISSING,
-										   ShvJournalEntry::DATA_MISSING_LOG_FILE_MISSING,
+										   "",
 										   ShvJournalEntry::DOMAIN_SHV_SYSTEM,
 										   ShvJournalEntry::NO_SHORT_TIME,
 										   ShvJournalEntry::SampleType::Continuous,
-										   m_requestedDataBegin.isDateTime() ? m_requestedDataBegin.toDateTime().msecsSinceEpoch() : 0
+										   found_data_begin.toDateTime().msecsSinceEpoch()
 									   });
-				if (found_data_begin.isDateTime()) {
-					m_entryCache.push_back(ShvJournalEntry {
-											   ShvJournalEntry::PATH_DATA_MISSING,
-											   "",
-											   ShvJournalEntry::DOMAIN_SHV_SYSTEM,
-											   ShvJournalEntry::NO_SHORT_TIME,
-											   ShvJournalEntry::SampleType::Continuous,
-											   found_data_begin.toDateTime().msecsSinceEpoch()
-										   });
-					if (cache_dirty_entry) {
-						m_entryCache.push_back(m_journalReader->entry());
-					}
-				}
 			}
 		}
+		if (cache_dirty_entry) {
+			m_entryCache.push_back(m_journalReader->entry());
+		}
+		if (m_entryCache.count()) {
+			m_entryCache.prepend(ShvJournalEntry());
+		}
+
 		if (m_logReader) {
 			m_requestedDataBegin = m_header.until();
 		}
