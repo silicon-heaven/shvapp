@@ -1,4 +1,4 @@
-#include "rolesmodel.h"
+#include "rolestreemodel.h"
 
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
 #include <shv/core/log.h>
@@ -29,7 +29,7 @@ bool RolesTreeModel::setData(const QModelIndex & ix, const QVariant & val, int r
 	return ret;
 }
 
-void RolesTreeModel::loadRoles(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_roles_node_path)
+void RolesTreeModel::load(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_roles_node_path)
 {
 	if (rpc_connection == nullptr)
 		return;
@@ -50,7 +50,7 @@ void RolesTreeModel::loadRoles(shv::iotqt::rpc::ClientConnection *rpc_connection
 						roles.push_back(v.toStdString());
 					}
 
-					loadChildItems(rpc_connection, acl_etc_roles_node_path, roles);
+					loadRoles(rpc_connection, acl_etc_roles_node_path, roles);
 				}
 			}
 		}
@@ -62,11 +62,11 @@ void RolesTreeModel::loadRoles(shv::iotqt::rpc::ClientConnection *rpc_connection
 	rpc_connection->callShvMethod(rqid, acl_etc_roles_node_path, shv::chainpack::Rpc::METH_LS);
 }
 
-void RolesTreeModel::loadChildItems(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_roles_node_path, QVector<std::string> not_loaded_roles)
+void RolesTreeModel::loadRoles(shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_roles_node_path, QVector<std::string> not_loaded_roles)
 {
 	if (not_loaded_roles.isEmpty()){
 		generateTree();
-		emit loadRolesFinished();
+		emit loadFinished();
 		return;
 	}
 
@@ -91,7 +91,7 @@ void RolesTreeModel::loadChildItems(shv::iotqt::rpc::ClientConnection *rpc_conne
 					m_shvRoles[QString::fromStdString(role_name)] = r.roles;
 				}
 
-				loadChildItems(rpc_connection, acl_etc_roles_node_path, not_loaded_roles);
+				loadRoles(rpc_connection, acl_etc_roles_node_path, not_loaded_roles);
 			}
 		}
 		else{
@@ -167,6 +167,7 @@ void RolesTreeModel::generateTree()
 void RolesTreeModel::generateSubTree(QStandardItem *parent_item, const QString &role, QSet<QString> created_roles)
 {
 	if (created_roles.contains(role)){
+		shvWarning() << "generate sub tree cyclic reference";
 		return;
 	}
 

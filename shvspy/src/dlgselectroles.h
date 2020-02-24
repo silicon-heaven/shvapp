@@ -3,7 +3,7 @@
 
 #include <QDialog>
 
-#include "rolesmodel/rolesmodel.h"
+#include "rolestreemodel/rolestreemodel.h"
 
 #include <shv/iotqt/rpc/clientconnection.h>
 
@@ -27,7 +27,7 @@ public:
 
 private:
 	std::vector<std::string> m_userRoles;
-	RolesTreeModel *m_rolesModel = nullptr;
+	RolesTreeModel *m_rolesTreeModel = nullptr;
 
 	Ui::DlgSelectRoles *ui;
 };

@@ -105,7 +105,7 @@ shv::chainpack::RpcValue DlgLogView::getLogParams()
 	params.since = get_dt(ui->edSince);
 	params.until = get_dt(ui->edUntil);
 	if(ui->edMaxRecordCount->value() > ui->edMaxRecordCount->minimum())
-		params.maxRecordCount = ui->edMaxRecordCount->value();
+		params.recordCountLimit = ui->edMaxRecordCount->value();
 	//params.withUptime = ui->chkWithUptime->isChecked();
 	params.withSnapshot = ui->chkWithSnapshot->isChecked();
 	/*
