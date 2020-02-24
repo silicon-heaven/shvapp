@@ -1,4 +1,4 @@
-#include "checklogrequest.h"
+#include "checklogtask.h"
 #include "application.h"
 #include "devicelogrequest.h"
 #include "logdir.h"
@@ -13,7 +13,7 @@
 namespace cp = shv::chainpack;
 using namespace shv::core::utils;
 
-CheckLogRequest::CheckLogRequest(const QString &shv_path, CheckLogType check_type, QObject *parent)
+CheckLogTask::CheckLogTask(const QString &shv_path, CheckLogType check_type, QObject *parent)
 	: AsyncRequest(parent)
 	, m_shvPath(shv_path)
 	, m_checkType(check_type)
@@ -21,13 +21,13 @@ CheckLogRequest::CheckLogRequest(const QString &shv_path, CheckLogType check_typ
 {
 }
 
-void CheckLogRequest::exec()
+void CheckLogTask::exec()
 {
 	try {
 		QStringList m_dirEntries = m_logDir.findFiles(QDateTime(), QDateTime());
 		checkOldDataConsistency();
-		if (m_checkType == CheckLogType::Periodic) {
-			periodicDirtyLogCheck();
+		if (m_checkType == CheckLogType::CheckDirtyLogState) {
+			checkDirtyLogState();
 		}
 		if (m_requests.count() == 0) {
 			Q_EMIT finished(true);
@@ -38,7 +38,7 @@ void CheckLogRequest::exec()
 	}
 }
 
-void CheckLogRequest::checkOldDataConsistency()
+void CheckLogTask::checkOldDataConsistency()
 {
 	m_dirEntries = m_logDir.findFiles(QDateTime(), QDateTime());
 	QDateTime requested_since = Application::WORLD_BEGIN;
@@ -53,7 +53,7 @@ void CheckLogRequest::checkOldDataConsistency()
 	}
 	bool exists_dirty = m_logDir.exists(m_logDir.dirtyLogName());
 	QDateTime requested_until;
-	if (m_checkType == CheckLogType::OnDeviceAppeared || !exists_dirty) {
+	if (m_checkType == CheckLogType::ReplaceDirtyLog || !exists_dirty) {
 		requested_until = QDateTime::currentDateTimeUtc();
 	}
 	else if (exists_dirty){
@@ -69,7 +69,7 @@ void CheckLogRequest::checkOldDataConsistency()
 	}
 }
 
-void CheckLogRequest::periodicDirtyLogCheck()
+void CheckLogTask::checkDirtyLogState()
 {
 	if (m_logDir.exists(m_logDir.dirtyLogName())) {
 
@@ -106,7 +106,12 @@ void CheckLogRequest::periodicDirtyLogCheck()
 	}
 }
 
-void CheckLogRequest::execRequest(DeviceLogRequest *request)
+void CheckLogTask::replaceDirtyLog()
+{
+
+}
+
+void CheckLogTask::execRequest(DeviceLogRequest *request)
 {
 	shvInfo() << "requesting log" << m_shvPath << request->since() << "-" << request->until();
 	Super::execRequest(request, [this]() {
@@ -114,7 +119,7 @@ void CheckLogRequest::execRequest(DeviceLogRequest *request)
 	});
 }
 
-void CheckLogRequest::getLog(const QDateTime &since, const QDateTime &until)
+void CheckLogTask::getLog(const QDateTime &since, const QDateTime &until)
 {
 	m_requests << new DeviceLogRequest(m_shvPath, since, until, this);
 	if (m_requests.count() == 1) {
@@ -122,7 +127,7 @@ void CheckLogRequest::getLog(const QDateTime &since, const QDateTime &until)
 	}
 }
 
-void CheckLogRequest::checkRequestQueue()
+void CheckLogTask::checkRequestQueue()
 {
 	m_requests.removeFirst();
 	if (m_requests.count() > 0) {

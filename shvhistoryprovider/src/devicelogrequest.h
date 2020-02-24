@@ -22,7 +22,7 @@ public:
 
 private:
 	shv::core::utils::ShvGetLogParams logParams() const;
-	void stripDirtyLog(const QDateTime &until);
+	void trimDirtyLog(const QDateTime &until);
 
 	const QString m_shvPath;
 	QDateTime m_since;

@@ -20,7 +20,7 @@ private:
 	void shvCall(const QString &shv_path, const QString &method, const shv::chainpack::RpcValue &params, ResultHandler callback);
 
 	void askDevice(VoidCallback callback);
-	void askElesys(VoidCallback callback);
+	void askElesysProvider(VoidCallback callback);
 	shv::core::utils::ShvGetLogParams logParams() const;
 
 	QString m_shvPath;

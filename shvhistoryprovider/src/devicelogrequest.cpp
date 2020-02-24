@@ -21,9 +21,25 @@ DeviceLogRequest::DeviceLogRequest(const QString &shv_path, const QDateTime &sin
 {
 }
 
+void getChunk()
+{
+	if(m_since < m_until) {
+		{
+			int rq_id = m_rpcConnection->nextRequestId();
+			shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rq_id, this);
+			cb->start([this](const cp::RpcResponse &resp) {
+				.....
+				QTimer::singleShot(getChunk());
+			});
+			m_rpcConnection->callShvMethod(rq_id, shv_path.toStdString(), method.toStdString(), params);
+		}
+	}
+}
+
 void DeviceLogRequest::exec()
 {
 	try {
+		getChunk();
 		SingleRecordSetLogRequest *request = new SingleRecordSetLogRequest(m_shvPath, m_since, m_until, this);
 		execRequest(request, [this, request]() {
 			ShvMemoryJournal &log = request->receivedLog();
@@ -55,7 +71,7 @@ void DeviceLogRequest::exec()
 			}
 			file.write(QByteArray::fromStdString(log.getLog(logParams()).toChainPack()));
 			file.close();
-			stripDirtyLog(until);
+			trimDirtyLog(until);
 			m_since = until;
 
 			if (is_finished) {
@@ -81,7 +97,7 @@ ShvGetLogParams DeviceLogRequest::logParams() const
 	return params;
 }
 
-void DeviceLogRequest::stripDirtyLog(const QDateTime &until)
+void DeviceLogRequest::trimDirtyLog(const QDateTime &until)
 {
 	qint64 until_msec = until.toMSecsSinceEpoch();
 	ShvLogHeader header;

@@ -28,7 +28,7 @@ void SingleRecordSetLogRequest::exec()
 		return;
 	}
 
-	askElesys([this]() {
+	askElesysProvider([this]() {
 		if ((int)m_log.entries().size() < Application::SINGLE_FILE_RECORD_COUNT) {
 			if (m_log.entries().size()) {
 				m_since = QDateTime::fromMSecsSinceEpoch(m_log.entries()[m_log.entries().size() - 1].epochMsec, Qt::TimeSpec::UTC);
@@ -66,7 +66,7 @@ void SingleRecordSetLogRequest::askDevice(VoidCallback callback)
 	});
 }
 
-void SingleRecordSetLogRequest::askElesys(VoidCallback callback)
+void SingleRecordSetLogRequest::askElesysProvider(VoidCallback callback)
 {
 	try {
 		QString path = m_shvPath;

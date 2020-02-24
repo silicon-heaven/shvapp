@@ -4,7 +4,7 @@
 #include <QObject>
 #include <QTimer>
 
-#include "checklogrequest.h"
+#include "checklogtask.h"
 #include <shv/iotqt/rpc/clientconnection.h>
 
 class LogSanitizer : public QObject

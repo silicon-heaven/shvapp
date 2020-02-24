@@ -167,7 +167,7 @@ cp::RpcValue RootNode::getLog(const QString &shv_path, const shv::chainpack::Rpc
 	shvInfo() << "got request" << request_no << "for log" << shv_path << "with params:\n" << log_params.toRpcValue().toCpon("    ");
 	GetLogMerge request(shv_path, log_params);
 	try {
-		shv::core::utils::ShvMemoryJournal &result = request.getLog();
+		const shv::core::utils::ShvMemoryJournal &result = request.getLog();
 		shvInfo() << "request number" << request_no << "finished in" << tm.elapsed() << "ms with" << result.entries().size() << "records";
 		return result.getLog(log_params);
 	}

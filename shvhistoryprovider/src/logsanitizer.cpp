@@ -1,5 +1,5 @@
 #include "application.h"
-#include "checklogrequest.h"
+#include "checklogtask.h"
 #include "devicemonitor.h"
 #include "logsanitizer.h"
 
@@ -34,7 +34,7 @@ void LogSanitizer::onShvStateChanged(shv::iotqt::rpc::ClientConnection::State st
 
 void LogSanitizer::onDeviceAppeared(const QString &shv_path)
 {
-	checkLogs(shv_path, CheckLogType::OnDeviceAppeared);
+	checkLogs(shv_path, CheckLogType::ReplaceDirtyLog);
 }
 
 void LogSanitizer::checkLogs()
@@ -46,7 +46,7 @@ void LogSanitizer::checkLogs()
 	if (++m_lastCheckedDevice >= online_devices.count()) {
 		m_lastCheckedDevice = 0;
 	}
-	checkLogs(online_devices[m_lastCheckedDevice], CheckLogType::Periodic);
+	checkLogs(online_devices[m_lastCheckedDevice], CheckLogType::CheckDirtyLogState);
 }
 
 void LogSanitizer::checkLogs(const QString &shv_path, CheckLogType check_type)
@@ -56,9 +56,9 @@ void LogSanitizer::checkLogs(const QString &shv_path, CheckLogType check_type)
 	}
 	m_timer.stop();
 	shvInfo() << "checking logs for" << shv_path;
-	CheckLogRequest *request = new CheckLogRequest(shv_path, check_type, this);
+	CheckLogTask *request = new CheckLogTask(shv_path, check_type, this);
 	m_runningChecks << shv_path;
-	connect(request, &CheckLogRequest::finished, [this, shv_path, request]() {
+	connect(request, &CheckLogTask::finished, [this, shv_path, request]() {
 		request->deleteLater();
 		shvInfo() << "checking logs for" << shv_path << "finished";
 		m_runningChecks.removeOne(shv_path);

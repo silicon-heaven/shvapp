@@ -2,11 +2,11 @@
 HEADERS += \
     $$PWD/appclioptions.h \
     $$PWD/application.h \
+    $$PWD/checklogtask.h \
     $$PWD/getlogmerge.h \
     $$PWD/rootnode.h \
     $$PWD/devicelogrequest.h \
     $$PWD/devicemonitor.h \
-    $$PWD/checklogrequest.h \
     $$PWD/singlerecordsetlogrequest.h \
     $$PWD/siteitem.h \
     $$PWD/logdir.h \
@@ -17,6 +17,7 @@ HEADERS += \
     $$PWD/asyncrequest.h
 
 SOURCES += \
+    $$PWD/checklogtask.cpp \
     $$PWD/getlogmerge.cpp \
     $$PWD/main.cpp\
     $$PWD/appclioptions.cpp \
@@ -24,7 +25,6 @@ SOURCES += \
     $$PWD/rootnode.cpp \
     $$PWD/devicelogrequest.cpp \
     $$PWD/devicemonitor.cpp \
-    $$PWD/checklogrequest.cpp \
     $$PWD/singlerecordsetlogrequest.cpp \
     $$PWD/siteitem.cpp \
     $$PWD/logdir.cpp \

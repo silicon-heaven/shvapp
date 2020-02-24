@@ -25,7 +25,7 @@ public:
 		, m_logReader(nullptr)
 		, m_journalReader(nullptr)
 	{
-		m_requestedDataBegin = cp::RpcValue::fromValue<QDateTime>(since);
+		m_previousFileUntil = cp::RpcValue::fromValue<QDateTime>(since);
 		openNextFile();
 	}
 
@@ -43,12 +43,13 @@ public:
 
 	bool next()
 	{
-		if (m_entryCache.count()) {
-			m_entryCache.removeFirst();
+		if (m_fakeEntriesList.count()) {
+			m_fakeEntriesList.removeFirst();
 		}
-		if (m_entryCache.count()) {
+		if (m_fakeEntriesList.count()) {
 			return true;
 		}
+
 		bool has_next = false;
 		if (m_journalReader) {
 			has_next = m_journalReader->next();
@@ -59,18 +60,19 @@ public:
 		if (has_next) {
 			return true;
 		}
-		if (m_logs.count() == 1) {
+
+		m_logs.removeFirst();
+		if (m_logs.count() == 0) {
 			return false;
 		}
-		m_logs.removeFirst();
 		openNextFile();
 		return next();
 	}
 
 	const ShvJournalEntry &entry()
 	{
-		if (m_entryCache.count()) {
-			return m_entryCache[0];
+		if (m_fakeEntriesList.count()) {
+			return m_fakeEntriesList[0];
 		}
 		if (m_journalReader) {
 			return m_journalReader->entry();
@@ -93,13 +95,13 @@ private:
 			delete m_logReader;
 			m_logReader = nullptr;
 		}
-		cp::RpcValue found_data_begin;
+		cp::RpcValue current_file_since;
 		bool cache_dirty_entry = false;
 		if (m_logs.count() == 1) {
 			if (QFile(m_logs[0]).exists()) {
 				m_journalReader = new ShvJournalFileReader(m_logs[0].toStdString(), &m_header);
 				if (m_journalReader->next()) {
-					found_data_begin = cp::RpcValue::DateTime::fromMSecsSinceEpoch(m_journalReader->entry().epochMsec);
+					current_file_since = cp::RpcValue::DateTime::fromMSecsSinceEpoch(m_journalReader->entry().epochMsec);
 					cache_dirty_entry = true;
 				}
 			}
@@ -107,40 +109,40 @@ private:
 		else {
 			m_logReader = new ShvLogFileReader(m_logs[0].toStdString());
 			m_header = m_logReader->logHeader();
-			found_data_begin = m_header.since();
+			current_file_since = m_header.since();
 		}
 
-		if (!found_data_begin.isValid() ||
-			(found_data_begin.toDateTime().msecsSinceEpoch() > Application::WORLD_BEGIN.toMSecsSinceEpoch() &&
-			 (!m_requestedDataBegin.isValid() || m_requestedDataBegin.toDateTime() < found_data_begin.toDateTime()))) {
-			m_entryCache.push_back(ShvJournalEntry {
+		if (!current_file_since.isValid() ||
+			(current_file_since.toDateTime().msecsSinceEpoch() > Application::WORLD_BEGIN.toMSecsSinceEpoch() &&
+			 (!m_previousFileUntil.isValid() || m_previousFileUntil.toDateTime() < current_file_since.toDateTime()))) {
+			m_fakeEntriesList.push_back(ShvJournalEntry {
 									   ShvJournalEntry::PATH_DATA_MISSING,
 									   ShvJournalEntry::DATA_MISSING_LOG_FILE_MISSING,
 									   ShvJournalEntry::DOMAIN_SHV_SYSTEM,
 									   ShvJournalEntry::NO_SHORT_TIME,
 									   ShvJournalEntry::SampleType::Continuous,
-									   m_requestedDataBegin.isDateTime() ? m_requestedDataBegin.toDateTime().msecsSinceEpoch() : 0
+									   m_previousFileUntil.isDateTime() ? m_previousFileUntil.toDateTime().msecsSinceEpoch() : 0
 								   });
-			if (found_data_begin.isDateTime()) {
-				m_entryCache.push_back(ShvJournalEntry {
+			if (current_file_since.isDateTime()) {
+				m_fakeEntriesList.push_back(ShvJournalEntry {
 										   ShvJournalEntry::PATH_DATA_MISSING,
 										   "",
 										   ShvJournalEntry::DOMAIN_SHV_SYSTEM,
 										   ShvJournalEntry::NO_SHORT_TIME,
 										   ShvJournalEntry::SampleType::Continuous,
-										   found_data_begin.toDateTime().msecsSinceEpoch()
+										   current_file_since.toDateTime().msecsSinceEpoch()
 									   });
 			}
 		}
 		if (cache_dirty_entry) {
-			m_entryCache.push_back(m_journalReader->entry());
+			m_fakeEntriesList.push_back(m_journalReader->entry());
 		}
-		if (m_entryCache.count()) {
-			m_entryCache.prepend(ShvJournalEntry());
+		if (m_fakeEntriesList.count()) {
+			m_fakeEntriesList.prepend(ShvJournalEntry());
 		}
 
 		if (m_logReader) {
-			m_requestedDataBegin = m_header.until();
+			m_previousFileUntil = m_header.until();
 		}
 	}
 
@@ -149,8 +151,8 @@ private:
 	ShvLogHeader m_header;
 	ShvLogFileReader *m_logReader;
 	ShvJournalFileReader *m_journalReader;
-	QVector<ShvJournalEntry> m_entryCache;
-	cp::RpcValue m_requestedDataBegin;
+	QVector<ShvJournalEntry> m_fakeEntriesList;
+	cp::RpcValue m_previousFileUntil;
 };
 
 GetLogMerge::GetLogMerge(const QString &shv_path, const shv::core::utils::ShvGetLogParams &log_params)
@@ -172,7 +174,7 @@ GetLogMerge::GetLogMerge(const QString &shv_path, const shv::core::utils::ShvGet
 	}
 }
 
-shv::core::utils::ShvMemoryJournal &GetLogMerge::getLog()
+shv::chainpack::RpcValue GetLogMerge::getLog()
 {
 	QDateTime since = rpcvalue_cast<QDateTime>(m_logParams.since);
 	QDateTime until = rpcvalue_cast<QDateTime>(m_logParams.until);
