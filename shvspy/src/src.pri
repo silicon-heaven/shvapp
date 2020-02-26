@@ -2,12 +2,14 @@ HEADERS += \
     $$PWD/dlgaddeditrole.h \
     $$PWD/dlgroleseditor.h \
     $$PWD/accessmodel/accessmodel.h \
-	$$PWD/version.h \
-	$$PWD/mainwindow.h \
-	$$PWD/dlgserverproperties.h \
-	$$PWD/theapp.h \
-	$$PWD/servertreemodel/servertreemodel.h \
-	$$PWD/attributesmodel/attributesmodel.h \
+    $$PWD/dlgselectroles.h \
+    $$PWD/rolestreemodel/rolestreemodel.h \
+    $$PWD/version.h \
+    $$PWD/mainwindow.h \
+    $$PWD/dlgserverproperties.h \
+    $$PWD/theapp.h \
+    $$PWD/servertreemodel/servertreemodel.h \
+    $$PWD/attributesmodel/attributesmodel.h \
     $$PWD/servertreeview.h \
     $$PWD/dlgsubscriptionparameters.h \
     $$PWD/appclioptions.h \
@@ -23,16 +25,19 @@ HEADERS += \
     $$PWD/dlguserseditor.h \
     $$PWD/dlgaddedituser.h
 
+
 SOURCES += \
     $$PWD/dlgaddeditrole.cpp \
     $$PWD/dlgroleseditor.cpp \
-	$$PWD/main.cpp\
-	$$PWD/mainwindow.cpp \
-	$$PWD/dlgserverproperties.cpp \
+    $$PWD/dlgselectroles.cpp \
+    $$PWD/main.cpp\
+    $$PWD/mainwindow.cpp \
+    $$PWD/dlgserverproperties.cpp \
     $$PWD/accessmodel/accessmodel.cpp \
-	$$PWD/theapp.cpp \
-	$$PWD/servertreemodel/servertreemodel.cpp \
-	$$PWD/attributesmodel/attributesmodel.cpp \
+    $$PWD/rolestreemodel/rolestreemodel.cpp \
+    $$PWD/theapp.cpp \
+    $$PWD/servertreemodel/servertreemodel.cpp \
+    $$PWD/attributesmodel/attributesmodel.cpp \
     $$PWD/servertreeview.cpp \
     $$PWD/dlgsubscriptionparameters.cpp \
     $$PWD/appclioptions.cpp \
@@ -46,14 +51,15 @@ SOURCES += \
     $$PWD/subscriptionsmodel/subscriptionsmodel.cpp \
     $$PWD/subscriptionsmodel/subscriptionstableitemdelegate.cpp \
     $$PWD/dlguserseditor.cpp \
-    $$PWD/dlgaddedituser.cpp \
+    $$PWD/dlgaddedituser.cpp
 
 FORMS += \
     $$PWD/dlgaddeditrole.ui \
     $$PWD/dlgroleseditor.ui \
-	$$PWD/mainwindow.ui \
-	$$PWD/dlgserverproperties.ui \
-	$$PWD/dlgsubscriptionparameters.ui \
+    $$PWD/dlgselectroles.ui \
+    $$PWD/mainwindow.ui \
+    $$PWD/dlgserverproperties.ui \
+    $$PWD/dlgsubscriptionparameters.ui \
     $$PWD/lastusedparamswidget.ui \
     $$PWD/methodparametersdialog.ui \
     $$PWD/texteditdialog.ui \

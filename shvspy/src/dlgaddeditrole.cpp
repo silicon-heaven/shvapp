@@ -3,9 +3,6 @@
 
 #include "shv/core/log.h"
 
-static const std::string WEIGHT = "weight";
-static const std::string ROLES = "roles";
-
 static const std::string VALUE_METHOD = "value";
 static const std::string SET_VALUE_METHOD = "setValue";
 
@@ -93,11 +90,10 @@ void DlgAddEditRole::callAddRole()
 		}
 	});
 
-	shv::chainpack::RpcValue::Map role_settings;
-	role_settings[ROLES] = roles();
-	role_settings[WEIGHT] = weight();
+	m_role.roles = roles();
+	m_role.weight = weight();
 
-	shv::chainpack::RpcValue::List params{roleName().toStdString(), role_settings};
+	shv::chainpack::RpcValue::List params{roleName().toStdString(), m_role.toRpcValueMap()};
 	m_rpcConnection->callShvMethod(rqid, aclEtcRoleNodePath(), SET_VALUE_METHOD, params);
 }
 
@@ -125,11 +121,10 @@ void DlgAddEditRole::callEditRole()
 		}
 	});
 
-	shv::chainpack::RpcValue::Map role_settings;
-	role_settings[ROLES] = roles();
-	role_settings[WEIGHT] = weight();
+	m_role.roles = roles();
+	m_role.weight = weight();
 
-	shv::chainpack::RpcValue::List params{roleName().toStdString(), role_settings};
+	shv::chainpack::RpcValue::List params{roleName().toStdString(), m_role.toRpcValueMap()};
 	m_rpcConnection->callShvMethod(rqid, aclEtcRoleNodePath(), SET_VALUE_METHOD, params);
 }
 
@@ -148,11 +143,9 @@ void DlgAddEditRole::callGetRoleSettings()
 				ui->lblStatus->setText(tr("Failed to call method ls.") + QString::fromStdString(response.error().toString()));
 			}
 			else{
-				if (response.result().isMap()){
-					shv::chainpack::RpcValue::Map res = response.result().toMap();
-					setRoles(res.value(ROLES).toList());
-					setWeight((res.value(WEIGHT).isValid() && res.value(WEIGHT).isInt()) ? res.value(WEIGHT).toInt() : 0);
-				}
+				m_role = shv::broker::AclRole::fromRpcValue(response.result());
+				setRoles(m_role.roles);
+				setWeight(m_role.weight);
 			}
 		}
 		else{
@@ -225,9 +218,9 @@ void DlgAddEditRole::callSetAccessForRole()
 	m_rpcConnection->callShvMethod(rqid, aclEtcAcessNodePath(), SET_VALUE_METHOD, params);
 }
 
-shv::chainpack::RpcValue::List DlgAddEditRole::roles()
+std::vector<std::string> DlgAddEditRole::roles()
 {
-	shv::chainpack::RpcValue::List roles;
+	std::vector<std::string> roles;
 	QStringList lst = ui->leRoles->text().split(",", QString::SplitBehavior::SkipEmptyParts);
 
 	for (int i = 0; i < lst.count(); i++){
@@ -237,14 +230,14 @@ shv::chainpack::RpcValue::List DlgAddEditRole::roles()
 	return roles;
 }
 
-void DlgAddEditRole::setRoles(const shv::chainpack::RpcValue::List &roles)
+void DlgAddEditRole::setRoles(const std::vector<std::string> &roles)
 {
 	QString g;
 
 	for (size_t i = 0; i < roles.size(); i++){
 		if(i > 0)
 			g += ',';
-		g += QString::fromStdString(roles[i].toStdString());
+		g += QString::fromStdString(roles[i]);
 	}
 
 	ui->leRoles->setText(g);
