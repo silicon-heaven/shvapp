@@ -1,7 +1,8 @@
 #include "application.h"
-#include "logdir.h"
 #include "devicemonitor.h"
 #include "getlogmerge.h"
+#include "logdir.h"
+#include "logdirreader.h"
 #include "siteitem.h"
 
 #include <QDateTime>
@@ -14,146 +15,6 @@
 
 namespace cp = shv::chainpack;
 using namespace shv::core::utils;
-
-class LogDirReader
-{
-public:
-	LogDirReader(const std::string &path_prefix, const QDateTime &since, const QStringList &logs, ShvLogHeader &header)
-		: m_pathPrefix(path_prefix)
-		, m_logs(logs)
-		, m_header(header)
-		, m_logReader(nullptr)
-		, m_journalReader(nullptr)
-	{
-		m_previousFileUntil = cp::RpcValue::fromValue<QDateTime>(since);
-		openNextFile();
-	}
-
-	LogDirReader(const LogDirReader &) = delete;
-
-	~LogDirReader()
-	{
-		if (m_journalReader) {
-			delete m_journalReader;
-		}
-		if (m_logReader) {
-			delete m_logReader;
-		}
-	}
-
-	bool next()
-	{
-		if (m_fakeEntriesList.count()) {
-			m_fakeEntriesList.removeFirst();
-		}
-		if (m_fakeEntriesList.count()) {
-			return true;
-		}
-
-		bool has_next = false;
-		if (m_journalReader) {
-			has_next = m_journalReader->next();
-		}
-		else if (m_logReader){
-			has_next = m_logReader->next();
-		}
-		if (has_next) {
-			return true;
-		}
-
-		m_logs.removeFirst();
-		if (m_logs.count() == 0) {
-			return false;
-		}
-		openNextFile();
-		return next();
-	}
-
-	const ShvJournalEntry &entry()
-	{
-		if (m_fakeEntriesList.count()) {
-			return m_fakeEntriesList[0];
-		}
-		if (m_journalReader) {
-			return m_journalReader->entry();
-		}
-		else {
-			return m_logReader->entry();
-		}
-	}
-
-	const std::string &pathPrefix() const { return m_pathPrefix; }
-
-private:
-	void openNextFile()
-	{
-		if (m_journalReader) {
-			delete m_journalReader;
-			m_journalReader = nullptr;
-		}
-		if (m_logReader) {
-			delete m_logReader;
-			m_logReader = nullptr;
-		}
-		cp::RpcValue current_file_since;
-		bool cache_dirty_entry = false;
-		if (m_logs.count() == 1) {
-			if (QFile(m_logs[0]).exists()) {
-				m_journalReader = new ShvJournalFileReader(m_logs[0].toStdString(), &m_header);
-				if (m_journalReader->next()) {
-					current_file_since = cp::RpcValue::DateTime::fromMSecsSinceEpoch(m_journalReader->entry().epochMsec);
-					cache_dirty_entry = true;
-				}
-			}
-		}
-		else {
-			m_logReader = new ShvLogFileReader(m_logs[0].toStdString());
-			m_header = m_logReader->logHeader();
-			current_file_since = m_header.since();
-		}
-
-		if (!current_file_since.isValid() ||
-			(current_file_since.toDateTime().msecsSinceEpoch() > Application::WORLD_BEGIN.toMSecsSinceEpoch() &&
-			 (!m_previousFileUntil.isValid() || m_previousFileUntil.toDateTime() < current_file_since.toDateTime()))) {
-			m_fakeEntriesList.push_back(ShvJournalEntry {
-									   ShvJournalEntry::PATH_DATA_MISSING,
-									   ShvJournalEntry::DATA_MISSING_LOG_FILE_MISSING,
-									   ShvJournalEntry::DOMAIN_SHV_SYSTEM,
-									   ShvJournalEntry::NO_SHORT_TIME,
-									   ShvJournalEntry::SampleType::Continuous,
-									   m_previousFileUntil.isDateTime() ? m_previousFileUntil.toDateTime().msecsSinceEpoch() : 0
-								   });
-			if (current_file_since.isDateTime()) {
-				m_fakeEntriesList.push_back(ShvJournalEntry {
-										   ShvJournalEntry::PATH_DATA_MISSING,
-										   "",
-										   ShvJournalEntry::DOMAIN_SHV_SYSTEM,
-										   ShvJournalEntry::NO_SHORT_TIME,
-										   ShvJournalEntry::SampleType::Continuous,
-										   current_file_since.toDateTime().msecsSinceEpoch()
-									   });
-			}
-		}
-		if (cache_dirty_entry) {
-			m_fakeEntriesList.push_back(m_journalReader->entry());
-		}
-		if (m_fakeEntriesList.count()) {
-			m_fakeEntriesList.prepend(ShvJournalEntry());
-		}
-
-		if (m_logReader) {
-			m_previousFileUntil = m_header.until();
-		}
-	}
-
-	std::string m_pathPrefix;
-	QStringList m_logs;
-	ShvLogHeader m_header;
-	ShvLogFileReader *m_logReader;
-	ShvJournalFileReader *m_journalReader;
-	QVector<ShvJournalEntry> m_fakeEntriesList;
-	cp::RpcValue m_previousFileUntil;
-};
 
 GetLogMerge::GetLogMerge(const QString &shv_path, const shv::core::utils::ShvGetLogParams &log_params)
 	: m_shvPath(shv_path)
@@ -234,5 +95,5 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 		}
 	}
 
-	return m_mergedLog;
+	return m_mergedLog.getLog(m_logParams);
 }

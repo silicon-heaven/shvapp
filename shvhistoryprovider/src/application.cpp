@@ -1,15 +1,14 @@
 #include "application.h"
 #include "appclioptions.h"
-#include "rootnode.h"
 #include "devicemonitor.h"
-#include "logsanitizer.h"
-#include "migration.h"
 #include "dirtylogmanager.h"
+#include "migration.h"
+#include "logsanitizer.h"
+#include "rootnode.h"
 
 #include <shv/coreqt/log.h>
 #include <shv/coreqt/exception.h>
 #include <shv/iotqt/rpc/rpc.h>
-#include <shv/iotqt/rpc/rpcresponsecallback.h>
 
 #include <QTimer>
 
@@ -40,10 +39,7 @@ Application::Application(int &argc, char **argv, AppCliOptions* cli_opts)
     }
 	m_rpcConnection->setCliOptions(cli_opts);
 
-//	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvClient::onRpcMessageReceived);
-
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::stateChanged, this, &Application::onShvStateChanged);
-	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::stateChanged, this, &Application::shvStateChanged);
 
 	m_uptime.start();
 	connectToShv();
@@ -67,21 +63,6 @@ Application::Application(int &argc, char **argv, AppCliOptions* cli_opts)
 Application::~Application()
 {
 	shvInfo() << "destroying" << QCoreApplication::applicationName() << "application";
-}
-
-void Application::shvCall(const QString &shv_path, const QString &method, shv::iotqt::rpc::RpcResponseCallBack::CallBackFunction callback)
-{
-	shvCall(shv_path, method, cp::RpcValue(), callback);
-}
-
-void Application::shvCall(const QString &shv_path, const QString &method, const shv::chainpack::RpcValue &params, shv::iotqt::rpc::RpcResponseCallBack::CallBackFunction callback)
-{
-	int rq_id = m_rpcConnection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rq_id, this);
-	cb->start([callback](const cp::RpcResponse &resp) {
-		callback(resp);
-	});
-	m_rpcConnection->callShvMethod(rq_id, shv_path.toStdString(), method.toStdString(), params);
 }
 
 shv::iotqt::rpc::DeviceConnection *Application::deviceConnection()
@@ -119,26 +100,6 @@ void Application::quit()
 Application *Application::instance()
 {
 	return qobject_cast<Application *>(QCoreApplication::instance());
-}
-
-QString Application::elesysPath() const
-{
-	return masterBrokerPath() + QString::fromStdString(m_cliOptions->elesysPath());
-}
-
-QString Application::sitesPath() const
-{
-	return masterBrokerPath() + "sites";
-}
-
-QString Application::shvSitesPath() const
-{
-	return QString::fromStdString(m_cliOptions->shvSitesPath());
-}
-
-QString Application::masterBrokerPath() const
-{
-	return QString::fromStdString(m_cliOptions->masterBrokerPath());
 }
 
 QString Application::uptime() const

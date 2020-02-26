@@ -1,30 +1,31 @@
-#ifndef CHECKLOGREQUEST_H
-#define CHECKLOGREQUEST_H
+#ifndef CHECKLOGTASK_H
+#define CHECKLOGTASK_H
 
-#include "asyncrequest.h"
 #include "logdir.h"
+
+#include <QVector>
 
 class DeviceLogRequest;
 
 enum class CheckLogType {
-	ReplaceDirtyLog, //we need to remove dirty log, as soon as possible because it is inconsistent
-	CheckDirtyLogState          //dirty log is replaced only if it is too big or too old
+	ReplaceDirtyLog,       //on device apperance we need to remove dirty log as soon as possible, because it is inconsistent
+	CheckDirtyLogState     //periodic check, dirty log is replaced only if it is too big or too old
 };
 
-class CheckLogTask : public AsyncRequest
+class CheckLogTask : public QObject
 {
 	Q_OBJECT
-	using Super = AsyncRequest;
+	using Super = QObject;
 
 public:
 	CheckLogTask(const QString &shv_path, CheckLogType check_type, QObject *parent);
 
-	void exec() override;
+	void exec();
+	Q_SIGNAL void finished(bool);
 
 private:
 	void checkOldDataConsistency();
 	void checkDirtyLogState();
-	void replaceDirtyLog();
 	void getLog(const QDateTime &since, const QDateTime &until);
 	void execRequest(DeviceLogRequest *request);
 	void checkRequestQueue();
@@ -36,4 +37,4 @@ private:
 	QStringList m_dirEntries;
 };
 
-#endif // CHECKLOGREQUEST_H
+#endif // CHECKLOGTASK_H

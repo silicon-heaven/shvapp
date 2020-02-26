@@ -1,9 +1,9 @@
 #ifndef SITEITEM_H
 #define SITEITEM_H
 
-#include <QObject>
-
 #include <shv/chainpack/rpcvalue.h>
+
+#include <QObject>
 
 class SiteItem : public QObject
 {

@@ -1,5 +1,6 @@
-#include "siteitem.h"
 #include "application.h"
+#include "appclioptions.h"
+#include "siteitem.h"
 
 #include <shv/coreqt/exception.h>
 #include <shv/coreqt/log.h>
@@ -51,7 +52,8 @@ void SiteItem::parseRpcValue(const cp::RpcValue::Map &map)
 			}
 
 			c->setObjectName(QString::fromStdString(it->first));
-			if (qobject_cast<SitesDevice*>(c) && !c->shvPath().startsWith(Application::instance()->shvSitesPath())) {
+			if (qobject_cast<SitesDevice*>(c) &&
+				!c->shvPath().startsWith(QString::fromStdString(Application::instance()->cliOptions()->shvSitesPath()))) {
 				delete c;
 			}
 			else {

@@ -1,11 +1,10 @@
 #ifndef SHVSUBSCRIPTION_H
 #define SHVSUBSCRIPTION_H
 
-#include <QObject>
-
 #include <shv/chainpack/rpcvalue.h>
 #include <shv/iotqt/rpc/clientconnection.h>
 
+#include <QObject>
 
 class ShvSubscription : public QObject
 {

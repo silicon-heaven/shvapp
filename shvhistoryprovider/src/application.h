@@ -1,11 +1,10 @@
 #pragma once
 
-#include <QCoreApplication>
-#include <QElapsedTimer>
-
 #include <shv/iotqt/node/shvnodetree.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
-#include <shv/iotqt/rpc/rpcresponsecallback.h>
+
+#include <QCoreApplication>
+#include <QElapsedTimer>
 
 class AppCliOptions;
 class RootNode;
@@ -26,31 +25,17 @@ public:
 	~Application();
 
 	static Application *instance();
-
 	AppCliOptions *cliOptions() { return m_cliOptions; }
-
-	QString elesysPath() const;
-	QString sitesPath() const;
-	QString shvSitesPath() const;
-	QString masterBrokerPath() const;
+	DeviceMonitor *deviceMonitor() { return m_deviceMonitor; }
+	shv::iotqt::rpc::DeviceConnection *deviceConnection();
 
 	QString uptime() const;
-
-	DeviceMonitor *deviceMonitor() { return m_deviceMonitor; }
-
-	Q_SIGNAL void shvStateChanged(shv::iotqt::rpc::ClientConnection::State);
-
-	void shvCall(const QString &shv_path, const QString &method, shv::iotqt::rpc::RpcResponseCallBack::CallBackFunction callback);
-	void shvCall(const QString &shv_path, const QString &method, const shv::chainpack::RpcValue &params, shv::iotqt::rpc::RpcResponseCallBack::CallBackFunction callback);
-
-	shv::iotqt::rpc::DeviceConnection *deviceConnection();
 
 private:
 	void onShvStateChanged();
 	void connectToShv();
 	void disconnectFromShv();
 	void quit();
-    void createNodes();
 
 	AppCliOptions *m_cliOptions;
 	RootNode *m_root;

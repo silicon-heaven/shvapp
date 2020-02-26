@@ -1,12 +1,14 @@
-#include "devicemonitor.h"
-
 #include "application.h"
+#include "appclioptions.h"
+#include "devicemonitor.h"
 #include "shvsubscription.h"
 #include "siteitem.h"
 
 #include <shv/coreqt/log.h>
 #include <shv/iotqt/rpc/rpc.h>
-#include <QSharedPointer>
+#include <shv/iotqt/rpc/deviceconnection.h>
+#include <shv/iotqt/rpc/rpcresponsecallback.h>
+
 #include <QTimer>
 
 namespace cp = shv::chainpack;
@@ -18,7 +20,7 @@ DeviceMonitor::DeviceMonitor(QObject *parent)
 	, m_sites(nullptr)
 	, m_downloadingSites(false)
 {
-	connect(Application::instance(), &Application::shvStateChanged, this, &DeviceMonitor::onShvStateChanged);
+	connect(Application::instance()->deviceConnection(), &shv::iotqt::rpc::DeviceConnection::stateChanged, this, &DeviceMonitor::onShvStateChanged);
 }
 
 DeviceMonitor::~DeviceMonitor()
@@ -52,7 +54,7 @@ void DeviceMonitor::onShvStateChanged()
 	Application *app = Application::instance();
 	auto *conn = app->deviceConnection();
 	if (conn->state() == shv::iotqt::rpc::ClientConnection::State::BrokerConnected) {
-		QString shv_sites_path = app->shvSitesPath();
+		QString shv_sites_path = QString::fromStdString(app->cliOptions()->shvSitesPath());
 		QString path = "shv";
 		if (!shv_sites_path.isEmpty()) {
 			path += '/' + shv_sites_path;
@@ -62,7 +64,7 @@ void DeviceMonitor::onShvStateChanged()
 		connect(m_mntSubscription, &ShvSubscription::notificationReceived, this, &DeviceMonitor::onDeviceMountChanged);
 
 		downloadSites();
-		m_sitesSubscription = new ShvSubscription(conn, app->sitesPath(), "reloaded", this);
+		m_sitesSubscription = new ShvSubscription(conn, QString::fromStdString(app->cliOptions()->sitesPath()), "reloaded", this);
 		connect(m_sitesSubscription, &ShvSubscription::notificationReceived, this, &DeviceMonitor::downloadSites);
 	}
 	else if (conn->state() == shv::iotqt::rpc::ClientConnection::State::NotConnected) {
@@ -84,10 +86,12 @@ void DeviceMonitor::downloadSites()
 	}
 	m_downloadingSites = true;
 
-	Application *app = Application::instance();
-
 	try {
-		app->shvCall(app->sitesPath(), "getSites", [this](const shv::chainpack::RpcResponse &response) {
+		Application *app = Application::instance();
+		auto *conn = app->deviceConnection();
+		int rq_id = conn->nextRequestId();
+		shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(conn, rq_id, this);
+		cb->start([this](const cp::RpcResponse &response) {
 			if (response.isError()) {
 				shvError() << response.error().message();
 				QTimer::singleShot(60 * 1000, this, &DeviceMonitor::downloadSites);
@@ -103,13 +107,15 @@ void DeviceMonitor::downloadSites()
 					delete m_sites;
 				}
 				m_sites = new_sites;
+				m_downloadingSites = false;
+				scanDevices();
 			}
 			catch (const shv::core::Exception &e) {
 				shvWarning() << "Error on parsing sites.json" << e.message();
+				m_downloadingSites = false;
 			}
-			m_downloadingSites = false;
-			scanDevices();
 		});
+		conn->callShvMethod(rq_id, app->cliOptions()->sitesPath(), "getSites", cp::RpcValue());
 	}
 	catch (...) {
 		m_downloadingSites = false;
@@ -167,12 +173,16 @@ void DeviceMonitor::scanDevices()
 	Q_EMIT sitesDownloadFinished();
 }
 
-void DeviceMonitor::isDeviceOnline(const QString &shv_path, BoolCallback callback)
+void DeviceMonitor::isDeviceOnline(const QString &shv_path, std::function<void(bool)> callback)
 {
 	int slash = shv_path.lastIndexOf('/');
 	QString parent_path = shv_path.mid(0, slash);
 	std::string device_name = shv_path.mid(slash + 1).toStdString();
-	Application::instance()->shvCall("shv/" + parent_path, cp::Rpc::METH_LS, [callback, device_name](const shv::chainpack::RpcResponse &response) {
+
+	auto *conn = Application::instance()->deviceConnection();
+	int rq_id = conn->nextRequestId();
+	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(conn, rq_id, this);
+	cb->start([callback, device_name](const cp::RpcResponse &response) {
 		if (response.isError()) {
 			callback(false);
 		}
@@ -189,4 +199,5 @@ void DeviceMonitor::isDeviceOnline(const QString &shv_path, BoolCallback callbac
 		}
 		callback(false);
 	});
+	conn->callShvMethod(rq_id, ("shv/" + parent_path).toStdString(), cp::Rpc::METH_LS, cp::RpcValue());
 }

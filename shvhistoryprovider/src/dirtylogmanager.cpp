@@ -1,4 +1,5 @@
 #include "application.h"
+#include "appclioptions.h"
 #include "devicemonitor.h"
 #include "dirtylogmanager.h"
 #include "logdir.h"
@@ -16,7 +17,7 @@ DirtyLogManager::DirtyLogManager(QObject *parent)
 	, m_chngSubscription(nullptr)
 {
 	Application *app = Application::instance();
-	connect(app, &Application::shvStateChanged, this, &DirtyLogManager::onShvStateChanged);
+	connect(app->deviceConnection(), &shv::iotqt::rpc::DeviceConnection::stateChanged, this, &DirtyLogManager::onShvStateChanged);
 
 	DeviceMonitor *monitor = app->deviceMonitor();
 
@@ -61,7 +62,7 @@ void DirtyLogManager::onShvStateChanged(shv::iotqt::rpc::ClientConnection::State
 		Application *app = Application::instance();
 		auto *conn = app->deviceConnection();
 
-		QString shv_sites_path = app->shvSitesPath();
+		QString shv_sites_path = QString::fromStdString(app->cliOptions()->shvSitesPath());
 		QString path = "shv";
 		if (!shv_sites_path.isEmpty()) {
 			path += '/' + shv_sites_path;

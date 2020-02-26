@@ -1,11 +1,11 @@
 #ifndef LOGSANITIZER_H
 #define LOGSANITIZER_H
 
-#include <QObject>
-#include <QTimer>
-
 #include "checklogtask.h"
 #include <shv/iotqt/rpc/clientconnection.h>
+
+#include <QObject>
+#include <QTimer>
 
 class LogSanitizer : public QObject
 {
@@ -22,8 +22,6 @@ private:
 
 	int m_lastCheckedDevice;
 	QTimer m_timer;
-
-	QStringList m_runningChecks;
 };
 
 #endif // LOGSANITIZER_H

@@ -5,12 +5,12 @@
 #include "rootnode.h"
 #include "siteitem.h"
 
+#include <shv/chainpack/metamethod.h>
+#include <shv/coreqt/log.h>
+#include <shv/coreqt/exception.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/node/shvnodetree.h>
 #include <shv/iotqt/rpc/rpc.h>
-#include <shv/coreqt/log.h>
-#include <shv/coreqt/exception.h>
-#include <shv/chainpack/metamethod.h>
 
 #include <QElapsedTimer>
 
@@ -167,9 +167,9 @@ cp::RpcValue RootNode::getLog(const QString &shv_path, const shv::chainpack::Rpc
 	shvInfo() << "got request" << request_no << "for log" << shv_path << "with params:\n" << log_params.toRpcValue().toCpon("    ");
 	GetLogMerge request(shv_path, log_params);
 	try {
-		const shv::core::utils::ShvMemoryJournal &result = request.getLog();
-		shvInfo() << "request number" << request_no << "finished in" << tm.elapsed() << "ms with" << result.entries().size() << "records";
-		return result.getLog(log_params);
+		shv::chainpack::RpcValue result = request.getLog();
+		shvInfo() << "request number" << request_no << "finished in" << tm.elapsed() << "ms with" << result.toList().size() << "records";
+		return result;
 	}
 	catch (const shv::core::Exception &e) {
 		shvInfo() << "request number" << request_no << "finished in" << tm.elapsed() << "ms with error" << e.message();

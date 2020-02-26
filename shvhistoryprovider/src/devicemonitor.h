@@ -1,10 +1,10 @@
 #ifndef DEVICEMONITOR_H
 #define DEVICEMONITOR_H
 
-#include <QObject>
-
 #include <shv/chainpack/rpcvalue.h>
-#include "asyncrequest.h"
+
+#include <QObject>
+#include <functional>
 
 class SiteItem;
 class ShvSubscription;
@@ -24,7 +24,6 @@ public:
 	void downloadSites();
 	const SiteItem *sites() const { return m_sites; }
 
-	//Q_SIGNAL void deviceAddedToSites(const QString &device);
 	Q_SIGNAL void deviceRemovedFromSites(const QString &device);
 	Q_SIGNAL void deviceConnectedToBroker(const QString &device);
 	Q_SIGNAL void deviceDisconnectedFromBroker(const QString &device);
@@ -37,7 +36,7 @@ private:
 	void onDeviceDataChanged(const QString &path, const QString &method, const shv::chainpack::RpcValue &data);
 
 	void scanDevices();
-	void isDeviceOnline(const QString &shv_path, BoolCallback callback);
+	void isDeviceOnline(const QString &shv_path, std::function<void(bool)> callback);
 
 	ShvSubscription *m_mntSubscription;
 	ShvSubscription *m_sitesSubscription;

@@ -1,20 +1,20 @@
-#include "checklogtask.h"
 #include "application.h"
+#include "checklogtask.h"
 #include "devicelogrequest.h"
 #include "logdir.h"
 
-#include <shv/iotqt/rpc/rpc.h>
-#include <shv/coreqt/log.h>
-#include <shv/coreqt/exception.h>
 #include <shv/core/utils/shvjournalfilereader.h>
 #include <shv/core/utils/shvjournalfilewriter.h>
 #include <shv/core/utils/shvlogfilereader.h>
+#include <shv/coreqt/log.h>
+#include <shv/coreqt/exception.h>
+#include <shv/iotqt/rpc/rpc.h>
 
 namespace cp = shv::chainpack;
 using namespace shv::core::utils;
 
 CheckLogTask::CheckLogTask(const QString &shv_path, CheckLogType check_type, QObject *parent)
-	: AsyncRequest(parent)
+	: Super(parent)
 	, m_shvPath(shv_path)
 	, m_checkType(check_type)
 	, m_logDir(m_shvPath)
@@ -34,7 +34,8 @@ void CheckLogTask::exec()
 		}
 	}
 	catch (shv::core::Exception &e) {
-		error(QString::fromStdString(e.message()));
+		shvError() << e.message();
+		Q_EMIT finished(false);
 	}
 }
 
@@ -106,17 +107,24 @@ void CheckLogTask::checkDirtyLogState()
 	}
 }
 
-void CheckLogTask::replaceDirtyLog()
-{
-
-}
-
 void CheckLogTask::execRequest(DeviceLogRequest *request)
 {
 	shvInfo() << "requesting log" << m_shvPath << request->since() << "-" << request->until();
-	Super::execRequest(request, [this]() {
-		checkRequestQueue();
-	});
+	connect(request, &DeviceLogRequest::finished, this, [this, request](bool success) {
+		request->deleteLater();
+		if (!success) {
+			Q_EMIT finished(false);
+			return;
+		}
+		try {
+			checkRequestQueue();
+		}
+		catch (const shv::core::Exception &e) {
+			shvError() << e.message();
+			Q_EMIT finished(false);
+		}
+	}, Qt::QueuedConnection);
+	request->exec();
 }
 
 void CheckLogTask::getLog(const QDateTime &since, const QDateTime &until)

@@ -2,11 +2,7 @@
 #include "appclioptions.h"
 
 #include <shv/core/utils.h>
-
 #include <shv/coreqt/log.h>
-
-#include <QDateTime>
-#include <QDir>
 
 #include <iostream>
 
@@ -15,25 +11,26 @@ int main(int argc, char *argv[])
 	QCoreApplication::setOrganizationName("Elektroline");
 	QCoreApplication::setOrganizationDomain("elektroline.cz");
 	QCoreApplication::setApplicationName("shvhistoryprovider");
-	QCoreApplication::setApplicationVersion("2.0");
+	QCoreApplication::setApplicationVersion("2.1");
 
 	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);
 	int ret = 0;
 
 	AppCliOptions cli_opts;
 	cli_opts.parse(shv_args);
-	if(cli_opts.isParseError()) {
-		foreach(std::string err, cli_opts.parseErrors())
+	if (cli_opts.isParseError()) {
+		for (std::string err : cli_opts.parseErrors()) {
 			shvError() << err;
+		}
 		return EXIT_FAILURE;
 	}
-	if(cli_opts.isAppBreak()) {
-		if(cli_opts.isHelp()) {
+	if (cli_opts.isAppBreak()) {
+		if (cli_opts.isHelp()) {
 			cli_opts.printHelp(std::cout);
 		}
 		return EXIT_SUCCESS;
 	}
-	if(cli_opts.isVersion()) {
+	if (cli_opts.isVersion()) {
 		shvInfo().nospace() << QCoreApplication::applicationName() << ": " << QCoreApplication::applicationVersion().toStdString();
 		shvInfo() << "build:" << __DATE__ << __TIME__;
 		#ifdef GIT_COMMIT
@@ -42,11 +39,11 @@ int main(int argc, char *argv[])
 		return EXIT_SUCCESS;
 	}
 
-	foreach(std::string s, cli_opts.unusedArguments()) {
+	for (std::string s : cli_opts.unusedArguments()) {
 		shvWarning() << "Undefined argument:" << s;
 	}
 
-	if(!cli_opts.loadConfigFile()) {
+	if (!cli_opts.loadConfigFile()) {
 		return EXIT_FAILURE;
 	}
 

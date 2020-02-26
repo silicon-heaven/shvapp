@@ -1,9 +1,10 @@
-#ifndef GETLOGREQUEST_H
-#define GETLOGREQUEST_H
-
-#include "asyncrequest.h"
+#ifndef GETLOGMERGE_H
+#define GETLOGMERGE_H
 
 #include <shv/core/utils/shvmemoryjournal.h>
+
+#include <QString>
+#include <QStringList>
 
 class GetLogMerge
 {
@@ -19,4 +20,4 @@ private:
 	shv::core::utils::ShvMemoryJournal m_mergedLog;
 };
 
-#endif // GETLOGREQUEST_H
+#endif // GETLOGMERGE_H
