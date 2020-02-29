@@ -40,29 +40,19 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 	QDateTime since = rpcvalue_cast<QDateTime>(m_logParams.since);
 	QDateTime until = rpcvalue_cast<QDateTime>(m_logParams.until);
 
+	struct ReaderInfo {
+		bool used = false;
+		bool exhausted = false;
+	};
+
 	QVector<LogDirReader*> readers;
+	QVector<ReaderInfo> reader_infos;
 	for (const QString &shv_path : m_shvPaths) {
-		LogDir log_dir(shv_path);
-		QStringList logs = log_dir.findFiles(since, until);
-		ShvLogHeader header;
-		if (logs.count() == 0) {
-			QStringList all_logs = log_dir.findFiles(QDateTime(), QDateTime());
-			if (all_logs.count()) {
-				ShvLogFileReader log_reader(all_logs.last().toStdString());
-				header = log_reader.logHeader();
-			}
-		}
-		logs << log_dir.dirtyLogPath();
-
-		QString path_prefix;
-		int prepend_path_length = shv_path.length() - m_shvPath.length();
-		if (prepend_path_length) {
-			path_prefix = shv_path.right(prepend_path_length - 1) + "/";
-		}
-
-		LogDirReader *reader = new LogDirReader(path_prefix.toStdString(), since, logs, header);
+		int prefix_length = shv_path.length() - m_shvPath.length();
+		LogDirReader *reader = new LogDirReader(shv_path, prefix_length, since, until);
 		if (reader->next()) {
 			readers << reader;
+			reader_infos << ReaderInfo();
 		}
 		else {
 			delete reader;
@@ -70,11 +60,12 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 	}
 	int64_t until_msecs = until.isNull() ? std::numeric_limits<int64_t>::max() : until.toMSecsSinceEpoch();
 
-	while (readers.count()) {
+	int usable_readers = readers.count();
+	while (usable_readers) {
 		int64_t oldest = std::numeric_limits<int64_t>::max();
 		int oldest_index = -1;
 		for (int i = 0; i < readers.count(); ++i) {
-			if (readers[i]->entry().epochMsec < oldest) {
+			if (!reader_infos[i].exhausted && readers[i]->entry().epochMsec < oldest) {
 				oldest = readers[i]->entry().epochMsec;
 				oldest_index = i;
 			}
@@ -89,11 +80,18 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 		if ((int)m_mergedLog.entries().size() >= m_mergedLog.inputFilterRecordCountLimit()) {
 			break;
 		}
+		reader_infos[oldest_index].used = true;
 		if (!reader->next()) {
-			delete reader;
-			readers.removeAt(oldest_index);
+			reader_infos[oldest_index].exhausted = true;
+			--usable_readers;
 		}
 	}
+	for (int i = 0; i < readers.count(); ++i) {
+		if (reader_infos[i].used) {
+			m_mergedLog.setTypeInfo(readers[i]->pathPrefix(), readers[i]->typeInfo());
+		}
+	}
+	qDeleteAll(readers);
 
 	return m_mergedLog.getLog(m_logParams);
 }

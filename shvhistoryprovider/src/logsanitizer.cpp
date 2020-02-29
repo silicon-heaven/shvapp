@@ -55,12 +55,12 @@ void LogSanitizer::checkLogs(const QString &shv_path, CheckLogType check_type)
 		return;
 	}
 	m_timer.stop();
-	shvInfo() << "checking logs for" << shv_path;
+	shvMessage() << "checking logs for" << shv_path;
 	CheckLogTask *task = new CheckLogTask(shv_path, check_type, this);
 	task->setObjectName(shv_path);
 	connect(task, &CheckLogTask::finished, [this, shv_path, task](bool success) {
 		task->deleteLater();
-		shvInfo() << "checking logs for" << shv_path << (success ? "succesfully finished" : "finished with error");
+		shvMessage() << "checking logs for" << shv_path << (success ? "succesfully finished" : "finished with error");
 	});
 	connect(task, &CheckLogTask::destroyed, [this]() {
 		if (findChildren<CheckLogTask*>(QString(), Qt::FindChildOption::FindDirectChildrenOnly).count() == 0 &&

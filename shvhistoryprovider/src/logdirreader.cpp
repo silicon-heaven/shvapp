@@ -1,4 +1,5 @@
 #include "application.h"
+#include "logdir.h"
 #include "logdirreader.h"
 
 #include <QFile>
@@ -6,14 +7,27 @@
 namespace cp = shv::chainpack;
 using namespace shv::core::utils;
 
-LogDirReader::LogDirReader(const std::string &path_prefix, const QDateTime &since, const QStringList &logs, shv::core::utils::ShvLogHeader &header)
-	: m_pathPrefix(path_prefix)
-	, m_logs(logs)
-	, m_header(header)
-	, m_logReader(nullptr)
+LogDirReader::LogDirReader(const QString &shv_path, int prefix_length, const QDateTime &since, const QDateTime &until)
+	: m_logReader(nullptr)
 	, m_journalReader(nullptr)
 {
+	LogDir log_dir(shv_path);
+	m_logs = log_dir.findFiles(since, until);
+	if (m_logs.count() == 0) {
+		QStringList all_logs = log_dir.findFiles(QDateTime(), QDateTime());
+		if (all_logs.count()) {
+			ShvLogFileReader log_reader(all_logs.last().toStdString());
+			m_header = log_reader.logHeader();
+		}
+	}
+	m_logs << log_dir.dirtyLogPath();
+
+	if (prefix_length) {
+		m_pathPrefix = (shv_path.right(prefix_length - 1) + "/").toStdString();
+	}
+
 	m_previousFileUntil = since.isValid() ? since.toMSecsSinceEpoch() : 0LL;
+	m_typeInfo = m_header.typeInfo();
 	openNextFile();
 }
 
@@ -30,17 +44,18 @@ LogDirReader::~LogDirReader()
 bool LogDirReader::next()
 {
 	if (m_fakeEntryList.count()) {
+		m_entry = m_fakeEntryList[0];
 		m_fakeEntryList.removeFirst();
-	}
-	if (m_fakeEntryList.count()) {
 		return true;
 	}
 	bool has_next = false;
 	if (m_journalReader) {
 		has_next = m_journalReader->next();
+		m_entry = m_journalReader->entry();
 	}
 	else if (m_logReader){
 		has_next = m_logReader->next();
+		m_entry = m_logReader->entry();
 	}
 	if (has_next) {
 		return true;
@@ -51,19 +66,6 @@ bool LogDirReader::next()
 	m_logs.removeFirst();
 	openNextFile();
 	return next();
-}
-
-const ShvJournalEntry &LogDirReader::entry()
-{
-	if (m_fakeEntryList.count()) {
-		return m_fakeEntryList[0];
-	}
-	if (m_journalReader) {
-		return m_journalReader->entry();
-	}
-	else {
-		return m_logReader->entry();
-	}
 }
 
 void LogDirReader::openNextFile()
@@ -88,9 +90,17 @@ void LogDirReader::openNextFile()
 		}
 	}
 	else {
-		m_logReader = new ShvLogFileReader(m_logs[0].toStdString());
-		m_header = m_logReader->logHeader();
-		current_file_since = m_header.since().toDateTime().msecsSinceEpoch();
+		if (!QFile(m_logs[0]).exists()) {
+			m_logs.removeFirst();
+			openNextFile();
+			return;
+		}
+		else {
+			m_logReader = new ShvLogFileReader(m_logs[0].toStdString());
+			m_header = m_logReader->logHeader();
+			current_file_since = m_header.since().toDateTime().msecsSinceEpoch();
+			m_typeInfo = m_header.typeInfo();
+		}
 	}
 
 	if (!current_file_since || (current_file_since > Application::WORLD_BEGIN.toMSecsSinceEpoch() && m_previousFileUntil < current_file_since)) {
@@ -116,10 +126,6 @@ void LogDirReader::openNextFile()
 	if (cache_dirty_entry) {
 		m_fakeEntryList.push_back(m_journalReader->entry());
 	}
-	if (m_fakeEntryList.count()) {
-		m_fakeEntryList.prepend(ShvJournalEntry());
-	}
-
 	if (m_logReader) {
 		m_previousFileUntil = m_header.until().toDateTime().msecsSinceEpoch();
 	}

@@ -126,7 +126,7 @@ ShvGetLogParams DeviceLogRequest::logParams() const
 	ShvGetLogParams params;
 	params.since = cp::RpcValue::fromValue(m_since);
 	params.until = cp::RpcValue::fromValue(m_until);
-	params.maxRecordCount = Application::SINGLE_FILE_RECORD_COUNT;
+	params.recordCountLimit = Application::SINGLE_FILE_RECORD_COUNT;
 	params.withSnapshot = true;
 	return params;
 }

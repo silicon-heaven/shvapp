@@ -19,6 +19,9 @@ namespace cp = shv::chainpack;
 static const char METH_GET_VERSION[] = "version";
 static const char METH_RELOAD_SITES[] = "reloadSites";
 static const char METH_GET_UPTIME[] = "uptime";
+static const char METH_GET_LOGVERBOSITY[] = "logVerbosity";
+static const char METH_SET_LOGVERBOSITY[] = "setLogVerbosity";
+
 
 static std::vector<cp::MetaMethod> root_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_BROWSE },
@@ -28,6 +31,8 @@ static std::vector<cp::MetaMethod> root_meta_methods {
     { METH_GET_VERSION, cp::MetaMethod::Signature::RetVoid, false, cp::Rpc::ROLE_READ },
 	{ METH_RELOAD_SITES, cp::MetaMethod::Signature::RetVoid, false, cp::Rpc::ROLE_COMMAND },
 	{ METH_GET_UPTIME, cp::MetaMethod::Signature::RetVoid, false, cp::Rpc::ROLE_READ },
+	{ METH_GET_LOGVERBOSITY, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ },
+	{ METH_SET_LOGVERBOSITY, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::IsSetter, cp::Rpc::ROLE_COMMAND },
 };
 
 static std::vector<cp::MetaMethod> branch_meta_methods {
@@ -144,6 +149,15 @@ cp::RpcValue RootNode::processRpcRequest(const cp::RpcRequest &rq)
 		Application::instance()->deviceMonitor()->downloadSites();
 		return true;
 	}
+	else if (method == METH_GET_LOGVERBOSITY) {
+		return NecroLog::topicsLogTresholds();
+	}
+	else if (method == METH_SET_LOGVERBOSITY) {
+		const std::string &s = rq.params().toString();
+		NecroLog::setTopicsLogTresholds(s);
+		return true;
+	}
+
 	return Super::processRpcRequest(rq);
 }
 
@@ -164,15 +178,15 @@ cp::RpcValue RootNode::getLog(const QString &shv_path, const shv::chainpack::Rpc
 	int request_no = static_request_no++;
 	QElapsedTimer tm;
 	tm.start();
-	shvInfo() << "got request" << request_no << "for log" << shv_path << "with params:\n" << log_params.toRpcValue().toCpon("    ");
+	shvMessage() << "got request" << request_no << "for log" << shv_path << "with params:\n" << log_params.toRpcValue().toCpon("    ");
 	GetLogMerge request(shv_path, log_params);
 	try {
 		shv::chainpack::RpcValue result = request.getLog();
-		shvInfo() << "request number" << request_no << "finished in" << tm.elapsed() << "ms with" << result.toList().size() << "records";
+		shvMessage() << "request number" << request_no << "finished in" << tm.elapsed() << "ms with" << result.toList().size() << "records";
 		return result;
 	}
 	catch (const shv::core::Exception &e) {
-		shvInfo() << "request number" << request_no << "finished in" << tm.elapsed() << "ms with error" << e.message();
+		shvMessage() << "request number" << request_no << "finished in" << tm.elapsed() << "ms with error" << e.message();
 		throw;
 	}
 }
