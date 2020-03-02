@@ -53,7 +53,7 @@ void SiteItem::parseRpcValue(const cp::RpcValue::Map &map)
 
 			c->setObjectName(QString::fromStdString(it->first));
 			if (qobject_cast<SitesDevice*>(c) &&
-				!c->shvPath().startsWith(QString::fromStdString(Application::instance()->cliOptions()->shvSitesPath()))) {
+				!c->shvPath().startsWith(QString::fromStdString(Application::instance()->cliOptions()->sitesRootPath()))) {
 				delete c;
 			}
 			else {

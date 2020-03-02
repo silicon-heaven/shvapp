@@ -11,14 +11,14 @@ LogDir::LogDir(const QString &shv_path)
 	: m_dir(dirPath(shv_path), "*.chp", QDir::SortFlag::Name, QDir::Filter::Files)
 {
 	if (!m_dir.exists()) {
-		QDir(QString::fromStdString(Application::instance()->cliOptions()->dataDir())).mkpath(shv_path);
+		QDir(QString::fromStdString(Application::instance()->cliOptions()->logCacheDir())).mkpath(shv_path);
 		m_dir.refresh();
 	}
 }
 
 QString LogDir::dirPath(const QString &shv_path)
 {
-	return QString::fromStdString(Application::instance()->cliOptions()->dataDir()) + QDir::separator() + shv_path;
+	return QString::fromStdString(Application::instance()->cliOptions()->logCacheDir()) + QDir::separator() + shv_path;
 }
 
 QStringList LogDir::findFiles(const QDateTime &since, const QDateTime &until)

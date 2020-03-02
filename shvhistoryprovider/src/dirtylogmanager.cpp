@@ -62,7 +62,7 @@ void DirtyLogManager::onShvStateChanged(shv::iotqt::rpc::ClientConnection::State
 		Application *app = Application::instance();
 		auto *conn = app->deviceConnection();
 
-		QString shv_sites_path = QString::fromStdString(app->cliOptions()->shvSitesPath());
+		QString shv_sites_path = QString::fromStdString(app->cliOptions()->sitesRootPath());
 		QString path = "shv";
 		if (!shv_sites_path.isEmpty()) {
 			path += '/' + shv_sites_path;

@@ -11,7 +11,7 @@
 #include <QDir>
 
 Migration::Migration()
-	: m_root(QString::fromStdString(Application::instance()->cliOptions()->dataDir()))
+	: m_root(QString::fromStdString(Application::instance()->cliOptions()->logCacheDir()))
 {
 }
 
@@ -31,7 +31,7 @@ void Migration::exec()
 void Migration::migrateDir(const QString &path)
 {
 	QDir dir(path);
-	QString shv_path = path.mid((int)Application::instance()->cliOptions()->dataDir().length());
+	QString shv_path = path.mid((int)Application::instance()->cliOptions()->logCacheDir().length());
 	if (shv_path.startsWith('/')) {
 		shv_path.remove(0, 1);
 	}
