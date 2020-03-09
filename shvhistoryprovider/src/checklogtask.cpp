@@ -13,7 +13,7 @@
 namespace cp = shv::chainpack;
 using namespace shv::core::utils;
 
-CheckLogTask::CheckLogTask(const QString &shv_path, CheckLogType check_type, QObject *parent)
+CheckLogTask::CheckLogTask(const QString &shv_path, CheckType check_type, QObject *parent)
 	: Super(parent)
 	, m_shvPath(shv_path)
 	, m_checkType(check_type)
@@ -26,7 +26,7 @@ void CheckLogTask::exec()
 	try {
 		QStringList m_dirEntries = m_logDir.findFiles(QDateTime(), QDateTime());
 
-		if (m_checkType == CheckLogType::TrimDirtyLogOnly) {
+		if (m_checkType == CheckType::TrimDirtyLogOnly) {
 			int64_t dirty_begin = 0LL;
 			int64_t regular_end = 0LL;
 			if (m_logDir.exists(m_logDir.dirtyLogName())) {
@@ -44,12 +44,12 @@ void CheckLogTask::exec()
 				getLog(QDateTime::fromMSecsSinceEpoch(dirty_begin, Qt::TimeSpec::UTC), QDateTime::currentDateTimeUtc());
 			}
 			else {
-				m_checkType = CheckLogType::ReplaceDirtyLog;
+				m_checkType = CheckType::ReplaceDirtyLog;
 			}
 		}
-		if (m_checkType == CheckLogType::ReplaceDirtyLog || m_checkType == CheckLogType::CheckDirtyLogState) {
+		if (m_checkType == CheckType::ReplaceDirtyLog || m_checkType == CheckType::CheckDirtyLogState) {
 			checkOldDataConsistency();
-			if (m_checkType == CheckLogType::CheckDirtyLogState) {
+			if (m_checkType == CheckType::CheckDirtyLogState) {
 				checkDirtyLogState();
 			}
 		}
@@ -78,7 +78,7 @@ void CheckLogTask::checkOldDataConsistency()
 	}
 	bool exists_dirty = m_logDir.exists(m_logDir.dirtyLogName());
 	QDateTime requested_until;
-	if (m_checkType == CheckLogType::ReplaceDirtyLog || !exists_dirty) {
+	if (m_checkType == CheckType::ReplaceDirtyLog || !exists_dirty) {
 		requested_until = QDateTime::currentDateTimeUtc();
 	}
 	else if (exists_dirty){
@@ -101,9 +101,11 @@ void CheckLogTask::checkDirtyLogState()
 		//Zjisteni datumu od kdy chceme nahradit dirty log normalnim logem:
 		//Existuji 2 zdroje, konec posledniho radneho logu a zacatek dirty logu.
 		//Normalne by mely byt konzistentni, po dotazeni radneho logu, se zacatek dirty logu zahodi,
-		//ale neni to atomicke, takze se muze stat, ze se radny log stahne, ale dirty log se neupravi.
+		//ale neni to atomicke, protoze aplikace muze prave v tuto chvili spadnout nebo muze skoncit,
+		//takze se muze stat, ze se radny log stahne, ale dirty log se neupravi.
 		//Pokud je tedy zacatek dirty logu starsi nez konec posledniho radneho logu, pouzije se konec
-		//posledniho radneho logu. Nekonzistence muze nastat i opacna, radne logy se uz stahuji, ale jeste
+		//posledniho radneho logu.
+		//Nekonzistence muze nastat i opacna, radne logy se uz stahuji, ale jeste
 		//nejsou vsechny dotazene a konec posledniho radneho logu je starsi nez zacatek dirty logu. Potom
 		//pouzijeme zacatek dirty logu.
 		QDateTime log_since;

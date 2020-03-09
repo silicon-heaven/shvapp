@@ -28,36 +28,28 @@ LogSanitizer::LogSanitizer(QObject *parent)
 
 void LogSanitizer::trimDirtyLog(const QString &shv_path)
 {
-	auto run_check = [this, shv_path]() {
-		shvMessage() << "trim dirty log for" << shv_path;
-		CheckLogTask *task = new CheckLogTask(shv_path, CheckLogType::TrimDirtyLogOnly, this);
-		task->setObjectName(shv_path);
-		connect(task, &CheckLogTask::finished, [this, shv_path, task](bool success) {
-			task->setParent(nullptr);
-			task->deleteLater();
-			shvMessage() << "trimming dirty log for" << shv_path << (success ? "succesfully finished" : "finished with error");
-		});
-		task->exec();
-	};
-
 	if (Application::instance()->deviceMonitor()->onlineDevices().contains(shv_path)) {
 		CheckLogTask *running_task = findChild<CheckLogTask*>(shv_path, Qt::FindChildOption::FindDirectChildrenOnly);
 		if (running_task) {
-			if (running_task->checkType() == CheckLogType::TrimDirtyLogOnly || running_task->checkType() == CheckLogType::ReplaceDirtyLog) {
+			if (running_task->checkType() == CheckLogTask::CheckType::TrimDirtyLogOnly || running_task->checkType() == CheckLogTask::CheckType::ReplaceDirtyLog) {
 				return;
 			}
-			connect(running_task, &CheckLogTask::destroyed, [this, run_check, shv_path]() {
-				Application *app = Application::instance();
-				if (app->deviceConnection()->state() == shv::iotqt::rpc::ClientConnection::State::BrokerConnected &&
-					app->deviceMonitor()->onlineDevices().contains(shv_path) &&
-					!findChild<CheckLogTask*>(shv_path, Qt::FindChildOption::FindDirectChildrenOnly)) {
-					run_check();
-				}
-			});
+			SHV_EXCEPTION("Device " + shv_path.toStdString() + " is currently sanitized.");
 		}
 		else {
-			run_check();
+			shvMessage() << "trim dirty log for" << shv_path;
+			CheckLogTask *task = new CheckLogTask(shv_path, CheckLogTask::CheckType::TrimDirtyLogOnly, this);
+			task->setObjectName(shv_path);
+			connect(task, &CheckLogTask::finished, [shv_path, task](bool success) {
+				task->setParent(nullptr);
+				task->deleteLater();
+				shvMessage() << "trimming dirty log for" << shv_path << (success ? "succesfully finished" : "finished with error");
+			});
+			task->exec();
 		}
+	}
+	else {
+		SHV_EXCEPTION("Device " + shv_path.toStdString() + " is offline.");
 	}
 }
 
@@ -74,7 +66,7 @@ void LogSanitizer::onShvStateChanged(shv::iotqt::rpc::ClientConnection::State st
 
 void LogSanitizer::onDeviceAppeared(const QString &shv_path)
 {
-	checkLogs(shv_path, CheckLogType::ReplaceDirtyLog);
+	checkLogs(shv_path, CheckLogTask::CheckType::ReplaceDirtyLog);
 }
 
 void LogSanitizer::checkLogs()
@@ -86,10 +78,10 @@ void LogSanitizer::checkLogs()
 	if (++m_lastCheckedDevice >= online_devices.count()) {
 		m_lastCheckedDevice = 0;
 	}
-	checkLogs(online_devices[m_lastCheckedDevice], CheckLogType::CheckDirtyLogState);
+	checkLogs(online_devices[m_lastCheckedDevice], CheckLogTask::CheckType::CheckDirtyLogState);
 }
 
-void LogSanitizer::checkLogs(const QString &shv_path, CheckLogType check_type)
+void LogSanitizer::checkLogs(const QString &shv_path, CheckLogTask::CheckType check_type)
 {
 	if (findChild<CheckLogTask*>(shv_path, Qt::FindChildOption::FindDirectChildrenOnly)) {
 		return;
@@ -98,7 +90,7 @@ void LogSanitizer::checkLogs(const QString &shv_path, CheckLogType check_type)
 	shvMessage() << "checking logs for" << shv_path;
 	CheckLogTask *task = new CheckLogTask(shv_path, check_type, this);
 	task->setObjectName(shv_path);
-	connect(task, &CheckLogTask::finished, [this, shv_path, task](bool success) {
+	connect(task, &CheckLogTask::finished, [shv_path, task](bool success) {
 		task->setParent(nullptr);
 		task->deleteLater();
 		shvMessage() << "checking logs for" << shv_path << (success ? "succesfully finished" : "finished with error");

@@ -118,7 +118,7 @@ cp::RpcValue RootNode::ls(const shv::core::StringViewList &shv_path, size_t inde
 		if (site_item->children().count() == 0) {
 			items.push_back(Application::DIRTY_LOG_NODE);
 		}
-		return items;
+		return std::move(items);
 	}
 	QString key = QString::fromStdString(shv_path[index].toString());
 	SiteItem *child = site_item->findChild<SiteItem*>(key);
@@ -128,7 +128,7 @@ cp::RpcValue RootNode::ls(const shv::core::StringViewList &shv_path, size_t inde
 	if (index + 1 == shv_path.size() && key == Application::DIRTY_LOG_NODE) {
 		cp::RpcValue::List items;
 		items.push_back(Application::START_TS_NODE);
-		return items;
+		return std::move(items);
 	}
 	return cp::RpcValue::List();
 }
@@ -170,53 +170,51 @@ void RootNode::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 		if (resp.requestId().toInt() > 0) { // RPC calls with requestID == 0 does not expect response
 			sendRpcMessage(resp);
 		}
-    }
+	}
 }
 
-cp::RpcValue RootNode::processRpcRequest(const cp::RpcRequest &rq)
+shv::chainpack::RpcValue RootNode::callMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
 {
-	const cp::RpcValue::String method = rq.method().toString();
-
 	if (method == cp::Rpc::METH_APP_NAME) {
 		return Application::instance()->applicationName().toStdString();
 	}
 	if (method == cp::Rpc::METH_DEVICE_ID) {
 		return Application::instance()->cliOptions()->deviceId();
 	}
-    else if (method == METH_GET_VERSION) {
-        return Application::instance()->applicationVersion().toStdString();
-    }
+	else if (method == METH_GET_VERSION) {
+		return Application::instance()->applicationVersion().toStdString();
+	}
 	else if (method == METH_GET_UPTIME) {
 		return Application::instance()->uptime().toStdString();
 	}
 	else if (method == cp::Rpc::METH_GET_LOG) {
-		return getLog(rpcvalue_cast<QString>(rq.shvPath()), rq.params());
+		return getLog(QString::fromStdString(shv_path.join('/')), params);
 	}
 	else if (method == METH_RELOAD_SITES) {
 		Application::instance()->deviceMonitor()->downloadSites();
 		return true;
 	}
-	else if (method == METH_TRIM_DIRTY_LOG) {
-		QStringList shv_path_items = rpcvalue_cast<QString>(rq.shvPath()).split('/');
-		QString shv_path = shv_path_items.mid(0, shv_path_items.count() - 1).join('/');
+	else if (method == METH_TRIM_DIRTY_LOG && shv_path.size() && shv_path.value(-1) == Application::DIRTY_LOG_NODE) {
+		shv::iotqt::node::ShvNode::StringViewList path = shv_path.mid(0, shv_path.size() - 1);
+		QString shv_path = QString::fromStdString(path.join('/'));
 		trimDirtyLog(shv_path);
 		return true;
 	}
-	else if (method == cp::Rpc::METH_GET) {
-		QStringList shv_path_items = rpcvalue_cast<QString>(rq.shvPath()).split('/');
-		QString shv_path = shv_path_items.mid(0, shv_path_items.count() - 2).join('/');
+	else if (method == cp::Rpc::METH_GET && shv_path.size() > 2 && shv_path.value(-1) == Application::START_TS_NODE) {
+		shv::iotqt::node::ShvNode::StringViewList path = shv_path.mid(0, shv_path.size() - 2);
+		QString shv_path = QString::fromStdString(path.join('/'));
 		return getStartTS(shv_path);
 	}
 	else if (method == METH_GET_LOGVERBOSITY) {
 		return NecroLog::topicsLogTresholds();
 	}
 	else if (method == METH_SET_LOGVERBOSITY) {
-		const std::string &s = rq.params().toString();
+		const std::string &s = params.toString();
 		NecroLog::setTopicsLogTresholds(s);
 		return true;
 	}
 
-	return Super::processRpcRequest(rq);
+	return Super::callMethod(shv_path, method, params);
 }
 
 cp::RpcValue RootNode::getLog(const QString &shv_path, const shv::chainpack::RpcValue &params) const

@@ -143,7 +143,7 @@ bool DeviceLogRequest::tryAppendToPreviousFile(ShvMemoryJournal &log)
 {
 	if ((int)log.entries().size() < Application::SINGLE_FILE_RECORD_COUNT) {  //check append to previous file to avoid fragmentation
 		LogDir log_dir(m_shvPath);
-		QStringList all_files = log_dir.findFiles(m_since.addSecs(-1), m_since);
+		QStringList all_files = log_dir.findFiles(m_since.addMSecs(-1), m_since);
 		if (all_files.count() == 1) {
 			ShvLogFileReader log_reader(all_files[0].toStdString());
 			const ShvLogHeader &header = log_reader.logHeader();
