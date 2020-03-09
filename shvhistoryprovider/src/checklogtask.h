@@ -9,7 +9,8 @@ class DeviceLogRequest;
 
 enum class CheckLogType {
 	ReplaceDirtyLog,       //on device apperance we need to remove dirty log as soon as possible, because it is inconsistent
-	CheckDirtyLogState     //periodic check, dirty log is replaced only if it is too big or too old
+	CheckDirtyLogState,    //periodic check, dirty log is replaced only if it is too big or too old
+	TrimDirtyLogOnly,      //only trim dirty log if it is possible
 };
 
 class CheckLogTask : public QObject
@@ -22,6 +23,7 @@ public:
 
 	void exec();
 	Q_SIGNAL void finished(bool);
+	CheckLogType checkType() const { return m_checkType; }
 
 private:
 	void checkOldDataConsistency();

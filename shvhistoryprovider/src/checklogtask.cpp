@@ -25,9 +25,33 @@ void CheckLogTask::exec()
 {
 	try {
 		QStringList m_dirEntries = m_logDir.findFiles(QDateTime(), QDateTime());
-		checkOldDataConsistency();
-		if (m_checkType == CheckLogType::CheckDirtyLogState) {
-			checkDirtyLogState();
+
+		if (m_checkType == CheckLogType::TrimDirtyLogOnly) {
+			int64_t dirty_begin = 0LL;
+			int64_t regular_end = 0LL;
+			if (m_logDir.exists(m_logDir.dirtyLogName())) {
+				ShvLogHeader header;
+				ShvJournalFileReader reader(m_logDir.dirtyLogPath().toStdString(), &header);
+				if (reader.next()) {
+					dirty_begin = reader.entry().epochMsec;
+				}
+			}
+			if (m_dirEntries.count()) {
+				ShvLogFileReader last_log(m_dirEntries.last().toStdString());
+				regular_end = last_log.logHeader().until().toDateTime().msecsSinceEpoch();
+			}
+			if (dirty_begin && dirty_begin == regular_end) {
+				getLog(QDateTime::fromMSecsSinceEpoch(dirty_begin, Qt::TimeSpec::UTC), QDateTime::currentDateTimeUtc());
+			}
+			else {
+				m_checkType = CheckLogType::ReplaceDirtyLog;
+			}
+		}
+		if (m_checkType == CheckLogType::ReplaceDirtyLog || m_checkType == CheckLogType::CheckDirtyLogState) {
+			checkOldDataConsistency();
+			if (m_checkType == CheckLogType::CheckDirtyLogState) {
+				checkDirtyLogState();
+			}
 		}
 		if (m_requests.count() == 0) {
 			Q_EMIT finished(true);
@@ -76,7 +100,7 @@ void CheckLogTask::checkDirtyLogState()
 
 		//Zjisteni datumu od kdy chceme nahradit dirty log normalnim logem:
 		//Existuji 2 zdroje, konec posledniho radneho logu a zacatek dirty logu.
-		//Normalne by mely byt konzistentni, po dotazeni radneho logu, za zacatek dirty logu zahodi,
+		//Normalne by mely byt konzistentni, po dotazeni radneho logu, se zacatek dirty logu zahodi,
 		//ale neni to atomicke, takze se muze stat, ze se radny log stahne, ale dirty log se neupravi.
 		//Pokud je tedy zacatek dirty logu starsi nez konec posledniho radneho logu, pouzije se konec
 		//posledniho radneho logu. Nekonzistence muze nastat i opacna, radne logy se uz stahuji, ale jeste

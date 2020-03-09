@@ -55,7 +55,7 @@ QStringList LogDir::findFiles(const QDateTime &since, const QDateTime &until)
 	}
 	QStringList result;
 	for (int i = since_pos; i < until_pos; ++i) {
-		result << m_dir.filePath(file_names[i]);
+		result << m_dir.absoluteFilePath(file_names[i]);
 	}
 	return result;
 }

@@ -4,6 +4,8 @@
 #include "getlogmerge.h"
 #include "rootnode.h"
 #include "siteitem.h"
+#include "logdir.h"
+#include "logsanitizer.h"
 
 #include <shv/chainpack/metamethod.h>
 #include <shv/coreqt/log.h>
@@ -11,17 +13,19 @@
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/node/shvnodetree.h>
 #include <shv/iotqt/rpc/rpc.h>
+#include <shv/core/utils/shvjournalfilereader.h>
 
 #include <QElapsedTimer>
 
 namespace cp = shv::chainpack;
+using namespace shv::core::utils;
 
 static const char METH_GET_VERSION[] = "version";
 static const char METH_RELOAD_SITES[] = "reloadSites";
 static const char METH_GET_UPTIME[] = "uptime";
 static const char METH_GET_LOGVERBOSITY[] = "logVerbosity";
 static const char METH_SET_LOGVERBOSITY[] = "setLogVerbosity";
-
+static const char METH_TRIM_DIRTY_LOG[] = "trim";
 
 static std::vector<cp::MetaMethod> root_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_BROWSE },
@@ -47,6 +51,19 @@ static std::vector<cp::MetaMethod> leaf_meta_methods {
 	{ cp::Rpc::METH_GET_LOG, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_READ },
 };
 
+static std::vector<cp::MetaMethod> dirty_log_meta_methods {
+	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_BROWSE },
+	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_BROWSE },
+	{ METH_TRIM_DIRTY_LOG, cp::MetaMethod::Signature::RetVoid, false, cp::Rpc::ROLE_READ },
+};
+
+static std::vector<cp::MetaMethod> start_ts_meta_methods {
+	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_BROWSE },
+	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_BROWSE },
+	{ cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ },
+	{ cp::Rpc::SIG_VAL_CHANGED, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::IsSignal, cp::Rpc::ROLE_READ },
+};
+
 RootNode::RootNode(QObject *parent)
 	: Super(parent)
 {
@@ -58,7 +75,13 @@ const std::vector<shv::chainpack::MetaMethod> &RootNode::metaMethods(const shv::
 		return root_meta_methods;
 	}
 	else {
-		if (!Application::instance()->deviceMonitor()->monitoredDevices().contains(QString::fromStdString(shv_path.join('/')))) {
+		if (shv_path[shv_path.size() - 1] == Application::DIRTY_LOG_NODE) {
+			return dirty_log_meta_methods;
+		}
+		else if (shv_path[shv_path.size() - 1] == Application::START_TS_NODE) {
+			return start_ts_meta_methods;
+		}
+		else if (!Application::instance()->deviceMonitor()->monitoredDevices().contains(QString::fromStdString(shv_path.join('/')))) {
 			return branch_meta_methods;
 		}
 		return leaf_meta_methods;
@@ -92,6 +115,9 @@ cp::RpcValue RootNode::ls(const shv::core::StringViewList &shv_path, size_t inde
 		for (int i = 0; i < site_item->children().count(); ++i) {
 			items.push_back(cp::RpcValue::fromValue(site_item->children()[i]->objectName()));
 		}
+		if (site_item->children().count() == 0) {
+			items.push_back(Application::DIRTY_LOG_NODE);
+		}
 		return items;
 	}
 	QString key = QString::fromStdString(shv_path[index].toString());
@@ -99,7 +125,28 @@ cp::RpcValue RootNode::ls(const shv::core::StringViewList &shv_path, size_t inde
 	if (child) {
 		return ls(shv_path, index + 1, child);
 	}
+	if (index + 1 == shv_path.size() && key == Application::DIRTY_LOG_NODE) {
+		cp::RpcValue::List items;
+		items.push_back(Application::START_TS_NODE);
+		return items;
+	}
 	return cp::RpcValue::List();
+}
+
+void RootNode::trimDirtyLog(const QString &shv_path)
+{
+	Application::instance()->logSanitizer()->trimDirtyLog(shv_path);
+}
+
+shv::chainpack::RpcValue RootNode::getStartTS(const QString &shv_path)
+{
+	LogDir log_dir(shv_path);
+	ShvLogHeader header;
+	ShvJournalFileReader dirty_log(log_dir.dirtyLogPath().toStdString(), &header);
+	if (dirty_log.next()) {
+		return dirty_log.entry().dateTime();
+	}
+	return cp::RpcValue(nullptr);
 }
 
 void RootNode::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
@@ -148,6 +195,17 @@ cp::RpcValue RootNode::processRpcRequest(const cp::RpcRequest &rq)
 	else if (method == METH_RELOAD_SITES) {
 		Application::instance()->deviceMonitor()->downloadSites();
 		return true;
+	}
+	else if (method == METH_TRIM_DIRTY_LOG) {
+		QStringList shv_path_items = rpcvalue_cast<QString>(rq.shvPath()).split('/');
+		QString shv_path = shv_path_items.mid(0, shv_path_items.count() - 1).join('/');
+		trimDirtyLog(shv_path);
+		return true;
+	}
+	else if (method == cp::Rpc::METH_GET) {
+		QStringList shv_path_items = rpcvalue_cast<QString>(rq.shvPath()).split('/');
+		QString shv_path = shv_path_items.mid(0, shv_path_items.count() - 2).join('/');
+		return getStartTS(shv_path);
 	}
 	else if (method == METH_GET_LOGVERBOSITY) {
 		return NecroLog::topicsLogTresholds();

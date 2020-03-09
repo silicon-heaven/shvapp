@@ -45,7 +45,7 @@ void Migration::migrateDir(const QString &path)
 	}
 
 	for (const QFileInfo &entry : dir.entryInfoList(QDir::AllEntries | QDir::Filter::NoDotAndDotDot)) {
-		if (entry.fileName().contains("dirty")) {
+		if (entry.fileName().contains(Application::PATH_DIRTY)) {
 			shvInfo() << "removing dirty log" << entry.absoluteFilePath().mid(m_root.absolutePath().length());
 			dir.remove(entry.fileName());
 		}

@@ -5,6 +5,7 @@
 #include "logdir.h"
 #include "shvsubscription.h"
 
+#include <shv/core/log.h>
 #include <shv/core/utils/shvjournalfilereader.h>
 #include <shv/core/utils/shvjournalfilewriter.h>
 #include <shv/core/utils/shvlogfilereader.h>
@@ -17,7 +18,8 @@ DirtyLogManager::DirtyLogManager(QObject *parent)
 	, m_chngSubscription(nullptr)
 {
 	Application *app = Application::instance();
-	connect(app->deviceConnection(), &shv::iotqt::rpc::DeviceConnection::stateChanged, this, &DirtyLogManager::onShvStateChanged);
+	auto *conn = app->deviceConnection();
+	connect(conn, &shv::iotqt::rpc::DeviceConnection::stateChanged, this, &DirtyLogManager::onShvStateChanged);
 
 	DeviceMonitor *monitor = app->deviceMonitor();
 
@@ -29,6 +31,10 @@ DirtyLogManager::DirtyLogManager(QObject *parent)
 	connect(monitor, &DeviceMonitor::deviceConnectedToBroker, this, &DirtyLogManager::onDeviceAppeared);
 	connect(monitor, &DeviceMonitor::deviceDisconnectedFromBroker, this, &DirtyLogManager::onDeviceDisappeared);
 	connect(monitor, &DeviceMonitor::deviceRemovedFromSites, this, &DirtyLogManager::onDeviceDisappeared);
+
+	if (conn->state() == shv::iotqt::rpc::DeviceConnection::State::BrokerConnected) {
+		onShvStateChanged(conn->state());
+	}
 }
 
 DirtyLogManager::~DirtyLogManager()
@@ -158,7 +164,7 @@ void DirtyLogManager::checkDirtyLog(const QString &shv_path, bool is_connected)
 		}
 		ShvJournalFileWriter dirty_writer(log_dir.dirtyLogPath().toStdString());
 		dirty_writer.append(ShvJournalEntry{
-								"dirty",
+								Application::PATH_DIRTY,
 								true,
 								ShvJournalEntry::DOMAIN_SHV_SYSTEM,
 								ShvJournalEntry::NO_SHORT_TIME,
@@ -185,6 +191,12 @@ void DirtyLogManager::checkDirtyLog(const QString &shv_path, bool is_connected)
 										QDateTime::currentDateTimeUtc().toMSecsSinceEpoch()
 									});
 			}
+		}
+		auto *conn = Application::instance()->deviceConnection();
+		if (conn->state() == shv::iotqt::rpc::DeviceConnection::State::BrokerConnected) {
+			conn->sendShvSignal((shv_path + "/" + Application::DIRTY_LOG_NODE + "/" + Application::START_TS_NODE).toStdString(),
+								shv::chainpack::Rpc::SIG_VAL_CHANGED,
+								shv::chainpack::RpcValue::DateTime::fromMSecsSinceEpoch(since.toMSecsSinceEpoch()));
 		}
 	}
 }

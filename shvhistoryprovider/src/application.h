@@ -20,6 +20,9 @@ class Application : public QCoreApplication
 public:
 	static const int SINGLE_FILE_RECORD_COUNT;
 	static const QDateTime WORLD_BEGIN;
+	static const char DIRTY_LOG_NODE[];
+	static const char START_TS_NODE[];
+	static const char PATH_DIRTY[];
 
 	Application(int &argc, char **argv, AppCliOptions* cli_opts);
 	~Application();
@@ -27,6 +30,7 @@ public:
 	static Application *instance();
 	AppCliOptions *cliOptions() { return m_cliOptions; }
 	DeviceMonitor *deviceMonitor() { return m_deviceMonitor; }
+	LogSanitizer *logSanitizer() { return m_logSanitizer; }
 	shv::iotqt::rpc::DeviceConnection *deviceConnection();
 
 	QString uptime() const;
