@@ -1,7 +1,7 @@
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
-  SHV_NIRVANA_IP: "${SHV_NIRVANA_IP}"
-  SHV_HEAVEN_IP: "${SHV_HEAVEN_IP}"
+  SHV_NIRVANA_IP: "165.227.247.202"
+  SHV_HEAVEN_IP: "138.68.112.73"
 
 stages:
   - build
