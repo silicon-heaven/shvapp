@@ -81,7 +81,7 @@
      <x>0</x>
      <y>0</y>
      <width>1414</width>
-     <height>22</height>
+     <height>32</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_View">
@@ -89,7 +89,14 @@
      <string>&amp;View</string>
     </property>
    </widget>
+   <widget class="QMenu" name="menu_Help">
+    <property name="title">
+     <string>&amp;Help</string>
+    </property>
+    <addaction name="actHelpAbout"/>
+   </widget>
    <addaction name="menu_View"/>
+   <addaction name="menu_Help"/>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
    <attribute name="toolBarArea">
@@ -184,6 +191,16 @@
         <widget class="QLineEdit" name="edAttributesShvPath">
          <property name="readOnly">
           <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="btLogInspector">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>Log inspector</string>
          </property>
         </widget>
        </item>
@@ -339,6 +356,11 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Q</string>
+   </property>
+  </action>
+  <action name="actHelpAbout">
+   <property name="text">
+    <string>&amp;About</string>
    </property>
   </action>
  </widget>

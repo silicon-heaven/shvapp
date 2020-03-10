@@ -1,4 +1,8 @@
 HEADERS += \
+    $$PWD/dlgaddeditrole.h \
+    $$PWD/dlgroleseditor.h \
+    $$PWD/accessmodel/accessmodel.h \
+	$$PWD/version.h \
 	$$PWD/mainwindow.h \
 	$$PWD/dlgserverproperties.h \
 	$$PWD/theapp.h \
@@ -17,14 +21,15 @@ HEADERS += \
     $$PWD/subscriptionsmodel/subscriptionsmodel.h \
     $$PWD/subscriptionsmodel/subscriptionstableitemdelegate.h \
     $$PWD/dlguserseditor.h \
-    $$PWD/dlgaddedituser.h \
-    $$PWD/dlggrantseditor.h \
-    $$PWD/dlgaddeditgrants.h
+    $$PWD/dlgaddedituser.h
 
 SOURCES += \
+    $$PWD/dlgaddeditrole.cpp \
+    $$PWD/dlgroleseditor.cpp \
 	$$PWD/main.cpp\
 	$$PWD/mainwindow.cpp \
 	$$PWD/dlgserverproperties.cpp \
+    $$PWD/accessmodel/accessmodel.cpp \
 	$$PWD/theapp.cpp \
 	$$PWD/servertreemodel/servertreemodel.cpp \
 	$$PWD/attributesmodel/attributesmodel.cpp \
@@ -42,10 +47,10 @@ SOURCES += \
     $$PWD/subscriptionsmodel/subscriptionstableitemdelegate.cpp \
     $$PWD/dlguserseditor.cpp \
     $$PWD/dlgaddedituser.cpp \
-    $$PWD/dlggrantseditor.cpp \
-    $$PWD/dlgaddeditgrants.cpp
 
 FORMS += \
+    $$PWD/dlgaddeditrole.ui \
+    $$PWD/dlgroleseditor.ui \
 	$$PWD/mainwindow.ui \
 	$$PWD/dlgserverproperties.ui \
 	$$PWD/dlgsubscriptionparameters.ui \
@@ -55,8 +60,6 @@ FORMS += \
     $$PWD/subscriptionswidget.ui \
     $$PWD/dlgcallshvmethod.ui \
     $$PWD/dlgaddedituser.ui \
-    $$PWD/dlguserseditor.ui \
-    $$PWD/dlggrantseditor.ui \
-    $$PWD/dlgaddeditgrants.ui
+    $$PWD/dlguserseditor.ui
 
 include ( $$PWD/log/log.pri )

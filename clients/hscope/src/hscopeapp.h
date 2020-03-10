@@ -15,7 +15,7 @@ class Telegram;
 namespace shv { namespace chainpack { class RpcMessage; }}
 namespace shv { namespace iotqt { namespace rpc { class DeviceConnection; }}}
 namespace shv { namespace iotqt { namespace node { class ShvNodeTree; }}}
-namespace shv { namespace iotqt { namespace utils { class FileShvJournal; struct ShvJournalEntry; }}}
+namespace shv { namespace core { namespace utils { class ShvFileJournal; struct ShvJournalEntry; }}}
 
 class HNodeBrokers;
 
@@ -44,7 +44,7 @@ public:
 	static HScopeApp *instance();
 	shv::iotqt::rpc::DeviceConnection *rpcConnection() const {return m_rpcConnection;}
 	AppCliOptions* cliOptions() {return m_cliOptions;}
-	shv::iotqt::utils::FileShvJournal *shvJournal() {return m_shvJournal;}
+	shv::core::utils::ShvFileJournal *shvJournal() {return m_shvJournal;}
 
 	void start();
 
@@ -61,13 +61,13 @@ private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	void createNodes();
-	void getSnapshot(std::vector<shv::iotqt::utils::ShvJournalEntry> &snapshot);
+	void getSnapshot(std::vector<shv::core::utils::ShvJournalEntry> &snapshot);
 private:
 	shv::iotqt::rpc::DeviceConnection *m_rpcConnection = nullptr;
 	AppCliOptions* m_cliOptions;
 	shv::iotqt::node::ShvNodeTree *m_shvTree = nullptr;
 	HNodeBrokers *m_brokersNode = nullptr;
-	shv::iotqt::utils::FileShvJournal *m_shvJournal = nullptr;
+	shv::core::utils::ShvFileJournal *m_shvJournal = nullptr;
 	Telegram *m_telegram = nullptr;
 };
 

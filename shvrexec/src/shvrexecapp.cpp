@@ -341,8 +341,15 @@ void ShvRExecApp::runCmd(const shv::chainpack::RpcValue &params)
 		shvError() << "Exec process error:" << error;
 		//this->closeAndQuit();
 	});
-	connect(m_cmdProc, QOverload<int>::of(&QProcess::finished), this, [this](int exit_code) {
-		shvInfo() << "Process" << m_cmdProc->program() << "finished with exit code:" << exit_code;
+	connect(m_cmdProc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, [this](int exit_code, QProcess::ExitStatus status) {
+		switch (status) {
+		case QProcess::NormalExit:
+			shvInfo() << "Process" << m_cmdProc->program() << "finished with exit code:" << exit_code;
+			break;
+		case QProcess::CrashExit:
+			shvWarning() << "Process" << m_cmdProc->program() << "crashed with exit code:" << exit_code;
+			break;
+		}
 		this->closeAndQuit();
 	});
 	m_cmdProc->start(QString::fromStdString(exec_cmd));
@@ -381,7 +388,7 @@ void ShvRExecApp::runPtyCmd(const shv::chainpack::RpcValue &params)
 		}
 	});
 	*/
-	connect(m_ptyCmdProc, QOverload<int>::of(&QProcess::finished), this, [this](int exit_code) {
+	connect(m_ptyCmdProc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, [this](int exit_code) {
 		shvInfo() << "Process" << m_ptyCmdProc->program() << "finished with exit code:" << exit_code;
 		m_ptyCmdProc->disconnect();
 		closeAndQuit();

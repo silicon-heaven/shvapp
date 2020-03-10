@@ -6,6 +6,9 @@
 
 #include <shv/chainpack/chainpackreader.h>
 #include <shv/chainpack/cponreader.h>
+#include <shv/chainpack/chainpackwriter.h>
+#include <shv/chainpack/cponwriter.h>
+#include <shv/chainpack/valuechange.h>
 #include <shv/coreqt/log.h>
 #include <shv/iotqt/utils.h>
 #include <shv/chainpack/rpcmessage.h>
@@ -14,6 +17,8 @@
 #include <shv/iotqt/rpc/clientconnection.h>
 #include <shv/visu/timeline/graphmodel.h>
 #include <shv/visu/timeline/graphwidget.h>
+#include <shv/core/utils/shvfilejournal.h>
+#include <shv/core/utils/shvlogfilereader.h>
 
 #include <QFileDialog>
 #include <QMessageBox>
@@ -306,18 +311,9 @@ void MainWindow::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 
 void MainWindow::openLogFile(const std::string &fn)
 {
+	shvLogFuncFrame() << fn;
 	try {
 		LogDataType type = LogDataType::General;
-		m_deviceType = DeviceType::General;
-		{
-			shv::core::StringViewList lst1 = shv::core::StringView(fn).split('/', shv::core::StringView::KeepEmptyParts);
-			shv::core::StringViewList lst = lst1.value(-1).split('.', shv::core::StringView::KeepEmptyParts);
-			std::string s = lst.value(-2).toString();
-			if(lst.value(-2) == "andi")
-				m_deviceType = DeviceType::Andi;
-			else if(lst.value(-2) == "anca")
-				m_deviceType = DeviceType::Anca;
-		}
 		shv::chainpack::RpcValue rv;
 		std::ifstream file_is;
 		file_is.open(fn, std::ios::binary);
@@ -330,44 +326,12 @@ void MainWindow::openLogFile(const std::string &fn)
 			rd = new shv::chainpack::ChainPackReader(file_is);
 			type = LogDataType::BrcLab;
 		}
-		else if(shv::core::String::endsWith(fn, ".log")) {
-			QFile f(QString::fromStdString(fn));
-			if (!f.open(QIODevice::ReadOnly))
-				SHV_EXCEPTION("Cannot open file for reading.");
-			struct Column { enum Enum { Timestamp = 0, Uptime, Path, Value, }; };
-			cp::RpcValue::List log;
-			while (!f.atEnd()) {
-				QByteArray ba = f.readLine();
-				std::string line(ba.constData(), (size_t)ba.size());
-				shv::core::StringView sv(line);
-				shv::core::StringViewList lst = sv.split('\t', shv::core::StringView::KeepEmptyParts);
-				if(lst.empty()) {
-					continue; // skip empty line
-				}
-				std::string dtstr = lst[Column::Timestamp].toString();
-				std::string path = lst.value(Column::Path).toString();
-				size_t len;
-				cp::RpcValue::DateTime dt = cp::RpcValue::DateTime::fromUtcString(dtstr, &len);
-				if(len == 0) {
-					shvWarning() << fn << "invalid date time string:" << dtstr;
-					continue;
-				}
-				std::string err;
-				cp::RpcValue::List rec;
-				shv::chainpack::RpcValue val = cp::RpcValue::fromCpon(lst.value(Column::Value).toString(), &err);
-				rec.push_back(dt);
-				rec.push_back(path);
-				rec.push_back(val);
-				log.push_back(rec);
-			}
-			rv = log;
-		}
 		else
 			SHV_EXCEPTION("Unknown extension");
 		if(rd) {
 			rv = rd->read();
-			file_is.close();
 			delete rd;
+			file_is.close();
 		}
 		setLogData(rv, type);
 	}
@@ -378,6 +342,7 @@ void MainWindow::openLogFile(const std::string &fn)
 
 void MainWindow::setLogData(const shv::chainpack::RpcValue &data, LogDataType type)
 {
+	m_logData = data;
 	m_pathsDict.clear();
 	m_shortTimePrev = 0;
 	m_msecTime = 0;
@@ -596,9 +561,9 @@ void MainWindow::setDataFile(const QString &fn)
 }
 #endif
 
-void MainWindow::on_action_Open_triggered()
+void MainWindow::on_acOpenFile_triggered()
 {
-	QString qfn = QFileDialog::getOpenFileName(this, tr("Open File"), QString(), tr("Data (*.chainpack *.cpon *.log *.brclab)"));
+	QString qfn = QFileDialog::getOpenFileName(this, tr("Open log file"), QString(), tr("Data (*.chainpack *.cpon *.brclab)"));
 	if(!qfn.isEmpty()) {
 #ifdef Q_OS_WIN
 		std::string fn = qfn.toLocal8Bit().constData();
@@ -609,7 +574,78 @@ void MainWindow::on_action_Open_triggered()
 	}
 }
 
+void MainWindow::on_actOpenRawFiles_triggered()
+{
+	QStringList qfns = QFileDialog::getOpenFileNames(this, tr("Open raw log files"), QString(), tr("Raw log (*.log2)"));
+	cp::RpcValue::List log;
+	for(const QString &qfn : qfns) {
+#ifdef Q_OS_WIN
+		std::string fn = qfn.toLocal8Bit().constData();
+#else
+		std::string fn = qfn.toUtf8().constData();
+#endif
+		{
+			shv::core::utils::ShvLogFileReader rd(fn);
+			while (rd.next()) {
+				const shv::core::utils::ShvJournalEntry &e = rd.entry();
+				if(!e.isValid())
+					break;
+				cp::RpcValue::List rec;
+				rec.push_back(shv::chainpack::RpcValue::DateTime::fromMSecsSinceEpoch(e.epochMsec));
+				rec.push_back(e.path);
+				rec.push_back(e.value);
+				if(e.shortTime >= 0)
+					rec.push_back(e.shortTime);
+				log.push_back(rec);
+			}
+		}
+	}
+	shv::chainpack::RpcValue rv;
+	rv = log;
+	{
+			cp::RpcValue::List fields;
+			fields.push_back(cp::RpcValue::Map{{shv::core::utils::ShvFileJournal::KEY_NAME, "Timestamp"}});
+			fields.push_back(cp::RpcValue::Map{{shv::core::utils::ShvFileJournal::KEY_NAME, "Path"}});
+			fields.push_back(cp::RpcValue::Map{{shv::core::utils::ShvFileJournal::KEY_NAME, "Value"}});
+			fields.push_back(cp::RpcValue::Map{{shv::core::utils::ShvFileJournal::KEY_NAME, "ShortTime"}});
+			rv.setMetaValue("fields", std::move(fields));
+		}
+	setLogData(rv, LogDataType::General);
+}
+
 void MainWindow::on_actPause_triggered(bool checked)
 {
 	m_paused = checked;
+}
+
+
+void MainWindow::on_actFileSaveAs_triggered()
+{
+	QString qfn = QFileDialog::getSaveFileName(this, tr("Save log file"),
+							   "untitled.chainpack",
+							   tr("Images (*.cpon *.chainpack)"));
+	if(!qfn.isEmpty()) {
+#ifdef Q_OS_WIN
+		std::string fn = qfn.toLocal8Bit().constData();
+#else
+		std::string fn = qfn.toUtf8().constData();
+#endif
+		std::ofstream os;
+		os.open(fn, std::ios::binary);
+		shv::chainpack::AbstractStreamWriter *wr = nullptr;
+		if(shv::core::String::endsWith(fn, ".chainpack"))
+			wr = new shv::chainpack::ChainPackWriter(os);
+		else if(shv::core::String::endsWith(fn, ".cpon")) {
+			shv::chainpack::CponWriterOptions opts;
+			opts.setIndent("\t");
+			wr = new shv::chainpack::CponWriter(os, opts);
+		}
+		else
+			SHV_EXCEPTION("Unknown extension");
+		if(wr) {
+			wr->write(m_logData);
+			delete wr;
+			os.close();
+		}
+	}
 }

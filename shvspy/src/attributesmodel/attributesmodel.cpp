@@ -289,7 +289,7 @@ void AttributesModel::loadRow(unsigned method_ix)
 	rv[ColMethodName] = mtd->method;
 	rv[ColSignature] = mtd->signatureStr();
 	rv[ColFlags] = mtd->flagsStr();
-	rv[ColAccessGrant] = mtd->accessGrant;
+	rv[ColAccessGrant] = mtd->accessGrantStr();
 	rv[ColParams] = mtd->params;
 	shvDebug() << "\t response:" << mtd->response.toCpon() << "is valid:" << mtd->response.isValid();
 	if(mtd->response.isError()) {

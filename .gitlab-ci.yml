@@ -83,15 +83,15 @@ test-deploy:
   stage:
     deploy
   script:
-    # nirvana
+    # nirvana 165.227.247.202
     - pwd
-    - rsync -avz shvbroker/etc gitlab@165.227.247.202:/opt/shv/ 
-    - rsync -avz clients/hscope/etc gitlab@165.227.247.202:/opt/shv/ 
+    #- rsync -avz shvbroker/etc gitlab@165.227.247.202:/opt/shv/ 
+    #- rsync -avz clients/hscope/etc gitlab@165.227.247.202:/opt/shv/ 
     - cd build
     - rsync -avz lib bin /opt/shv/ 
     - rsync -avz lib bin gitlab@165.227.247.202:/opt/shv/ 
     - ssh -t gitlab@165.227.247.202 "sudo /opt/shv/install.sh"
-    # heaven
+    # heaven 138.68.112.73
     - rsync -avz lib bin shv@138.68.112.73:/opt/shv/test/
     - ssh -t shv@138.68.112.73 "sudo /opt/shv/test/install.sh"
 

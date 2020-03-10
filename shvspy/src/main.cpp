@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "theapp.h"
+#include "version.h"
 #include "appclioptions.h"
 
 #include <shv/chainpack/rpcmessage.h>
@@ -17,7 +18,7 @@ int main(int argc, char *argv[])
 	QCoreApplication::setOrganizationName("Elektroline");
 	QCoreApplication::setOrganizationDomain("elektroline.cz");
 	QCoreApplication::setApplicationName("shvspy");
-	QCoreApplication::setApplicationVersion("0.0.1");
+	QCoreApplication::setApplicationVersion(APP_VERSION);
 
 	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);
 
@@ -47,7 +48,10 @@ int main(int argc, char *argv[])
 	shv::chainpack::RpcMessage::registerMetaTypes();
 
 	shvInfo() << "======================================================================================";
-	shvInfo() << "Starting ShvSpy, PID:" << QCoreApplication::applicationPid() << "build:" << __DATE__ << __TIME__;
+	shvInfo() << "Starting" << QCoreApplication::applicationName()
+			  << "ver." << QCoreApplication::applicationVersion()
+			  << "PID:" << QCoreApplication::applicationPid()
+			  << "build:" << __DATE__ << __TIME__;
 #ifdef GIT_COMMIT
 	shvInfo() << "GIT commit:" << SHV_EXPAND_AND_QUOTE(GIT_COMMIT);
 #endif

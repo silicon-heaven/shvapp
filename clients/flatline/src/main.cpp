@@ -5,7 +5,7 @@
 
 #include <shv/core/utils.h>
 #include <shv/coreqt/log.h>
-#include <shv/iotqt/utils/fileshvjournal.h>
+#include <shv/core/utils/shvfilejournal.h>
 
 #include <QTextStream>
 #include <QTranslator>

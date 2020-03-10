@@ -1,29 +1,14 @@
 
 HEADERS += \
+    $$PWD/shvbrokerapp.h \
     $$PWD/version.h \
     $$PWD/appclioptions.h \
-    $$PWD/brokerapp.h \
-    $$PWD/brokernode.h \
-    $$PWD/subscriptionsnode.h \
-    $$PWD/brokerconfigfilenode.h \
-    $$PWD/clientconnectionnode.h \
-    $$PWD/clientshvnode.h \
-    $$PWD/tunnelsecretlist.h
 
 SOURCES += \
     $$PWD/main.cpp\
     $$PWD/appclioptions.cpp \
-    $$PWD/brokerapp.cpp \
-    $$PWD/brokernode.cpp \
-    $$PWD/subscriptionsnode.cpp \
-    $$PWD/brokerconfigfilenode.cpp \
-    $$PWD/clientconnectionnode.cpp \
-    $$PWD/clientshvnode.cpp \
-    $$PWD/tunnelsecretlist.cpp
+    $$PWD/shvbrokerapp.cpp \
 
-#include ($$PWD/sql/sql.pri)
-include ($$PWD/rpc/rpc.pri)
-include ($$PWD/utils/utils.pri)
 
 
 

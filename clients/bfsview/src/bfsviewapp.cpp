@@ -5,7 +5,7 @@
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/node/shvnodetree.h>
 #include <shv/iotqt/node/localfsnode.h>
-#include <shv/iotqt/utils/shvpath.h>
+#include <shv/core/utils/shvpath.h>
 #include <shv/coreqt/log.h>
 #include <shv/chainpack/metamethod.h>
 
@@ -29,7 +29,7 @@ static std::vector<cp::MetaMethod> meta_methods_root {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0},
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0},
 	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, 0},
-	{cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_BROWSE},
+	{cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
 	{cp::Rpc::METH_MOUNT_POINT, cp::MetaMethod::Signature::RetVoid, 0},
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, 0},
 	{METH_APP_LOG, cp::MetaMethod::Signature::RetVoid, 0},
@@ -346,7 +346,7 @@ const std::string &BfsViewApp::bfsStatusShvPath()
 	if(shv_path.empty()) {
 		QSettings qsettings;
 		Settings settings(qsettings);
-		shv_path = shv::iotqt::utils::ShvPath::join(settings.bfsShvPath().toStdString(), "status");
+		shv_path = shv::core::utils::ShvPath::join(settings.bfsShvPath().toStdString(), "status");
 	}
 	return shv_path;
 }

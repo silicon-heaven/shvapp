@@ -16,8 +16,8 @@ static const char M_READ_BRCLAB_SUMMARY[] = "readBrclabSummary";
 namespace cp = shv::chainpack;
 
 static std::vector<cp::MetaMethod> meta_methods {
-	{M_LSMETA, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
-	{M_READ_BRCLAB_SUMMARY, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ}
+	{M_LSMETA, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_READ},
+	{M_READ_BRCLAB_SUMMARY, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_READ}
 };
 
 BrclabFsNode::BrclabFsNode(const QString &root_path, Super *parent):

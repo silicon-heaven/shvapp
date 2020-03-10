@@ -35,20 +35,22 @@
 #include <unistd.h>
 #endif
 
+#define logRunCmd() shvCMessage("RunCmd")
+
 namespace cp = shv::chainpack;
 namespace si = shv::iotqt;
 
 static std::vector<cp::MetaMethod> meta_methods {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_BROWSE},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_BROWSE},
-	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_BROWSE},
+	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_BROWSE},
+	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_BROWSE},
+	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
 	//{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_BROWSE},
-	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_BROWSE},
-	{cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_BROWSE},
-	{cp::Rpc::METH_HELP, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_BROWSE},
-	{cp::Rpc::METH_RUN_CMD, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_COMMAND},
-	{cp::Rpc::METH_RUN_SCRIPT, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_COMMAND},
-	{cp::Rpc::METH_LAUNCH_REXEC, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_COMMAND},
+	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
+	{cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
+	{cp::Rpc::METH_HELP, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_BROWSE},
+	{cp::Rpc::METH_RUN_CMD, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_COMMAND},
+	{cp::Rpc::METH_RUN_SCRIPT, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_COMMAND},
+	{cp::Rpc::METH_LAUNCH_REXEC, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_COMMAND},
 };
 
 size_t AppRootNode::methodCount(const StringViewList &shv_path)
@@ -409,6 +411,7 @@ void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq)
 	connect(proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), [this, proc, rq2](int exit_code, QProcess::ExitStatus exit_status) {
 		cp::RpcResponse resp = cp::RpcResponse::forRequest(rq2);
 		if(exit_status == QProcess::CrashExit) {
+			logRunCmd() << "Proces crashed!";
 			resp.setError(cp::RpcResponse::Error::createMethodCallExceptionError("Process crashed!"));
 		}
 		else {
@@ -433,11 +436,13 @@ void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq)
 					}
 				}
 				resp.setResult(lst);
+				logRunCmd() << "Proces exit OK, result:" << resp.result().toCpon();
 			}
 			else {
 				QByteArray ba = proc->readAllStandardOutput();
 				shvDebug() << "\t stdout:" << ba.toStdString();
 				resp.setResult(std::string(ba.constData(), ba.size()));
+				logRunCmd() << "Proces exit OK, result:" << resp.result().toCpon();
 			}
 		}
 		m_rpcConnection->sendMessage(resp);
@@ -476,7 +481,7 @@ void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq)
 	else {
 		cmd = rq.params().toString();
 	}
-	shvDebug() << "CMD:" << cmd << "env:" << env.toStringList().join(',');
+	logRunCmd() << "CMD:" << cmd << "env:" << env.toStringList().join(',');
 	proc->setProcessEnvironment(env);
 	proc->start(QString::fromStdString(cmd));
 }

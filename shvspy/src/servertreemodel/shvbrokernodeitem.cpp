@@ -9,7 +9,7 @@
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/rpc/deviceappclioptions.h>
 #include <shv/iotqt/node/shvnode.h>
-#include <shv/iotqt/utils/shvpath.h>
+#include <shv/core/utils/shvpath.h>
 
 #include <shv/chainpack/rpcmessage.h>
 #include <shv/core/stringview.h>
@@ -127,6 +127,12 @@ void ShvBrokerNodeItem::setServerProperties(const QVariantMap &props)
 	}
 	m_serverPropeties = props;
 	setNodeId(m_serverPropeties.value("name").toString().toStdString());
+	m_shvRoot = m_serverPropeties.value("shvRoot").toString().toStdString();
+}
+
+const std::string& ShvBrokerNodeItem::shvRoot() const
+{
+	return m_shvRoot;
 }
 
 void ShvBrokerNodeItem::open()
@@ -154,15 +160,7 @@ void ShvBrokerNodeItem::close()
 	deleteChildren();
 	emitDataChanged();
 }
-/*
-QString ServerNode::connectionErrorString()
-{
-	QString ret;
-	if(m_clientConnection)
-		ret = m_clientConnection->errorString();
-	return ret;
-}
-*/
+
 shv::iotqt::rpc::ClientConnection *ShvBrokerNodeItem::clientConnection()
 {
 	if(!m_rpcConnection) {
@@ -237,10 +235,17 @@ void ShvBrokerNodeItem::onBrokerConnectedChanged(bool is_connected)
 	emit brokerConnectedChange(is_connected);
 }
 
-ShvNodeItem* ShvBrokerNodeItem::findNode(const std::string &path, std::string *path_rest)
+ShvNodeItem* ShvBrokerNodeItem::findNode(const std::string &path_, std::string *path_rest)
 {
+	shvLogFuncFrame() << path_ << "shv root:" << shvRoot();
 	ShvNodeItem *ret = this;
-	shv::core::StringViewList id_list = shv::iotqt::utils::ShvPath::split(path);
+	std::string path = path_;
+	if(!shvRoot().empty()) {
+		path = path.substr(shvRoot().size());
+		if(path.size() && path[0] == '/')
+			path = path.substr(1);
+	}
+	shv::core::StringViewList id_list = shv::core::utils::ShvPath::split(path);
 
 	for(const shv::core::StringView &node_id : id_list) {
 		int i;
@@ -281,6 +286,7 @@ int ShvBrokerNodeItem::callUnsubscribe(const std::string &shv_path, std::string 
 
 int ShvBrokerNodeItem::callNodeRpcMethod(const std::string &calling_node_shv_path, const std::string &method, const cp::RpcValue &params)
 {
+	shvLogFuncFrame() << calling_node_shv_path;
 	shv::iotqt::rpc::ClientConnection *cc = clientConnection();
 	int rqid = cc->callShvMethod(calling_node_shv_path, method, params);
 	m_runningRpcRequests[rqid].shvPath = calling_node_shv_path;
@@ -348,6 +354,10 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 	}
 	else if(msg.isSignal()) {
 		shvDebug() << msg.toCpon();
+		if(serverProperties().value(QStringLiteral("muteHeartBeats")).toBool()) {
+			if(msg.method().toString() == "appserver.heartBeat")
+				return;
+		}
 		RpcNotificationsModel *m = TheApp::instance()->rpcNotificationsModel();
 		m->addLogRow(nodeId(), msg);
 	}

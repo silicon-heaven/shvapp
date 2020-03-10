@@ -3,50 +3,62 @@
     "grants":[
       "slaveBroker"
     ],
-    "passwordFormat":"sha1",
-    "password":"ffee1086753ca76fe84b7fadd738d76caf2072d0"
+    "password":"ffee1086753ca76fe84b7fadd738d76caf2072d0",
+    "passwordFormat":"sha1"
   },
   "elviz":{
     "grants":[
       "elviz"
     ],
-    "passwordFormat":"sha1",
-    "password":"3fae43e926dc7b2b1e0fed398c32c149e0954d26"
+    "password":"foobar"
   },
   "fanda":{
     "grants":[
       "admin"
     ],
-    "passwordFormat":"sha1",
-    "password":"998886fed1af5c356cff427eca4aa7bb53ee4d6c"
+    "password":"998886fed1af5c356cff427eca4aa7bb53ee4d6c",
+    "passwordFormat":"sha1"
   },
   "iot":{
     "grants":[
       "device"
     ],
-    "passwordFormat":"sha1",
-    "password":"8884a26b82a69838092fd4fc824bbfde56719e02"
-  },
-  "shvsitesprovider": {
-    "grants": [ "shvsitesprovider" ],
-    "passwordFormat": "sha1",
-    "password": "8884a26b82a69838092fd4fc824bbfde56719e02"
-  },
-  "shvhistoryprovider": {
-    "grants": [ "shvhistoryprovider" ],
-    "passwordFormat": "sha1",
-    "password": "8884a26b82a69838092fd4fc824bbfde56719e02"
-  },
-  "tscshvagent": {
-    "grants" : [ "tscshvagent" ],
-    "passwordFormat": "sha1",
-    "password": "8884a26b82a69838092fd4fc824bbfde56719e02"
+    "password":"8884a26b82a69838092fd4fc824bbfde56719e02",
+    "passwordFormat":"sha1"
   },
   "revitest":{
     "grants":[
       "observer"
     ],
-    "passwordFormat":"sha1",
-    "password":"99f76f19bfc9bd2331df02c72c65627b77d0888e"
+    "password":"99f76f19bfc9bd2331df02c72c65627b77d0888e",
+    "passwordFormat":"sha1"
+  },
+  "shvhistoryprovider":{
+    "grants":[
+      "shvhistoryprovider"
+    ],
+    "password":"8884a26b82a69838092fd4fc824bbfde56719e02",
+    "passwordFormat":"sha1"
+  },
+  "shvsitesprovider":{
+    "grants":[
+      "shvsitesprovider"
+    ],
+    "password":"8884a26b82a69838092fd4fc824bbfde56719e02",
+    "passwordFormat":"sha1"
+  },
+  "test":{
+    "grants":[
+      "client"
+    ],
+    "password":"a94a8fe5ccb19ba61c4c0873d391e987982fbbd3",
+    "passwordFormat":"sha1"
+  },
+  "tscshvagent":{
+    "grants":[
+      "tscshvagent"
+    ],
+    "password":"8884a26b82a69838092fd4fc824bbfde56719e02",
+    "passwordFormat":"sha1"
   }
 }

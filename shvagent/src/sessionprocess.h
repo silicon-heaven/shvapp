@@ -10,7 +10,7 @@ class SessionProcess : public QProcess
 public:
 	SessionProcess(QObject *parent);
 private:
-	void onFinished(int exit_code);
+	void onFinished(int exit_code, ExitStatus);
 	//void onReadyReadStandardOutput();
 	//void onReadyReadStandardError();
 

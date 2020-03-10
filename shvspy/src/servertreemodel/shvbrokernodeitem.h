@@ -31,6 +31,7 @@ public:
 	void open();
 	void close();
 	//QString connectionErrorString();
+	const std::string &shvRoot() const;
 
 	QVariantMap serverProperties() const;
 	void setServerProperties(const QVariantMap &props);
@@ -64,5 +65,6 @@ private:
 	OpenStatus m_openStatus = OpenStatus::Disconnected;
 	struct RpcRequestInfo;
 	std::map<int, RpcRequestInfo> m_runningRpcRequests;
+	std::string m_shvRoot;
 };
 

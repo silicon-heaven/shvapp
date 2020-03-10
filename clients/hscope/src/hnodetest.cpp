@@ -5,7 +5,7 @@
 
 #include <shv/coreqt/log.h>
 #include <shv/core/string.h>
-#include <shv/iotqt/utils/shvpath.h>
+#include <shv/core/utils/shvpath.h>
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/rpc/rpc.h>
@@ -30,7 +30,7 @@ static const char METH_NEXT_RUN[] = "nextRun";
 
 static std::vector<cp::MetaMethod> meta_methods;
 static std::vector<cp::MetaMethod> meta_methods_extra {
-	{METH_RUN_TEST, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_COMMAND},
+	{METH_RUN_TEST, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::ROLE_COMMAND},
 };
 
 HNodeTest::HNodeTest(const std::string &node_id, HNode *parent)

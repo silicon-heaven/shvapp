@@ -4,9 +4,10 @@
 #define APP_NAME "SHVSPY"
 #define APP_NAME_LOWER "shvspy"
 #define COMPANY "elektroline"
-#define VERSION "0.1"
-
-#define QT_DIR "C:\Qt\5.12.0\mingw73_64"
+#ifndef VERSION
+#define VERSION "0.0.1"
+#endif
+#define QT_DIR "C:\Qt\5.13.2\mingw73_64"
 #define MINGW_DIR "C:\Qt\Tools\mingw730_64"
 ;#define PSQL_DIR "C:\app\pgsql32"
 
@@ -55,6 +56,7 @@ Source: {#BUILD_DIR}\bin\shvchainpack.dll; DestDir: {app}; Flags: ignoreversion
 Source: {#BUILD_DIR}\bin\shvcore.dll; DestDir: {app}; Flags: ignoreversion
 Source: {#BUILD_DIR}\bin\shvcoreqt.dll; DestDir: {app}; Flags: ignoreversion
 Source: {#BUILD_DIR}\bin\shviotqt.dll; DestDir: {app}; Flags: ignoreversion
+Source: {#BUILD_DIR}\bin\shvvisu.dll; DestDir: {app}; Flags: ignoreversion
 
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 

@@ -6,7 +6,7 @@
 #include "confignode.h"
 
 #include <shv/coreqt/log.h>
-#include <shv/iotqt/utils/shvpath.h>
+#include <shv/core/utils/shvpath.h>
 
 #include <QDirIterator>
 
@@ -69,6 +69,7 @@ NodeStatus NodeStatus::fromRpcValue(const shv::chainpack::RpcValue &val)
 const char *NodeStatus::valueToString(NodeStatus::Value val)
 {
 	switch (val) {
+	case Value::Disabled: return "Disabled";
 	case Value::Unknown: return "Unknown";
 	case Value::Ok: return "Ok";
 	case Value::Warning: return "Warning";
@@ -81,6 +82,7 @@ const char *NodeStatus::valueToStringAbbr(NodeStatus::Value val)
 {
 	switch (val) {
 	case Value::Unknown: return "???";
+	case Value::Disabled: return "DIS";
 	case Value::Ok: return "OK";
 	case Value::Warning: return "WARN";
 	case Value::Error: return "ERR";
@@ -97,13 +99,13 @@ static const char METH_STATUS_CHANGED[] = "statusChanged";
 static const char METH_OVERALL_STATUS[] = "overallStatus";
 static const char METH_OVERALL_STATUS_CHANGED[] = "overallStatusChanged";
 static std::vector<cp::MetaMethod> meta_methods {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::GRANT_BROWSE},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::GRANT_BROWSE},
-	{METH_STATUS, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_READ},
-	{METH_STATUS_CHANGED, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsSignal, cp::Rpc::GRANT_READ},
-	{METH_OVERALL_STATUS, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_READ},
-	{METH_OVERALL_STATUS_CHANGED, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsSignal, cp::Rpc::GRANT_READ},
-	{METH_RELOAD, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::GRANT_CONFIG},
+	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE},
+	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE},
+	{METH_STATUS, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
+	{METH_STATUS_CHANGED, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsSignal, cp::Rpc::ROLE_READ},
+	{METH_OVERALL_STATUS, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
+	{METH_OVERALL_STATUS_CHANGED, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsSignal, cp::Rpc::ROLE_READ},
+	{METH_RELOAD, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_CONFIG},
 };
 
 HNode::HNode(const std::string &node_id, HNode *parent)
@@ -241,7 +243,7 @@ void HNode::updateOverallStatus()
 	shvLogFuncFrame() << shvPath() << "status:" << status().toString();
 	NodeStatus st = status();
 	NodeStatus chst = overallChildrenStatus();
-	if(chst.value > st.value) {
+	if(chst.value < st.value) {
 		st.value = chst.value;
 		st.message = chst.message;
 	}
@@ -257,7 +259,7 @@ NodeStatus HNode::overallChildrenStatus()
 	for(HNode *chnd : lst) {
 		const NodeStatus &chst = chnd->overallStatus();
 		shvDebug().color(NecroLog::Color::Yellow) << "\t child:" << chnd->shvPath() << "overall status" << chst.toString();
-		if(chst.value > ret.value) {
+		if(chst.value < ret.value) {
 			ret.value = chst.value;
 			ret.message = chst.message;
 		}
@@ -267,7 +269,7 @@ NodeStatus HNode::overallChildrenStatus()
 
 shv::chainpack::RpcValue HNode::configValueOnPath(const std::string &shv_path, const shv::chainpack::RpcValue &default_val) const
 {
-	shv::core::StringViewList lst = shv::iotqt::utils::ShvPath::split(shv_path);
+	shv::core::StringViewList lst = shv::core::utils::ShvPath::split(shv_path);
 	shv::chainpack::RpcValue val = m_confignode->valueOnPath(lst, !shv::core::Exception::Throw);
 	if(val.isValid())
 		return val;

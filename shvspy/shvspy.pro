@@ -27,7 +27,8 @@ LIBS += \
 	-lshvchainpack \
 	-lshvcore \
 	-lshvcoreqt \
-	-lshviotqt \
+    -lshviotqt \
+    -lshvvisu \
 
 unix {
 	LIBS += \
@@ -48,6 +49,7 @@ INCLUDEPATH += \
     $$LIBSHV_SRC_DIR/libshvcore/include \
     $$LIBSHV_SRC_DIR/libshvcoreqt/include \
     $$LIBSHV_SRC_DIR/libshviotqt/include \
+    $$LIBSHV_SRC_DIR/libshvvisu/include \
 
 RESOURCES += \
 	$${TARGET}.qrc \

@@ -1,17 +1,10 @@
-#include "brokerapp.h"
+#include "shvbrokerapp.h"
 #include "version.h"
 #include "appclioptions.h"
-#include "utils/network.h"
-
-#include <shv/chainpack/rpcmessage.h>
-#include <shv/chainpack/tunnelctl.h>
-
-#include <shv/core/utils.h>
 
 #include <shv/coreqt/log.h>
+#include <shv/iotqt/utils/network.h>
 
-#include <QTextStream>
-#include <QTranslator>
 #include <QHostAddress>
 
 #include <iostream>
@@ -23,14 +16,7 @@ int main(int argc, char *argv[])
 	QCoreApplication::setApplicationName("shvbroker");
 	QCoreApplication::setApplicationVersion(APP_VERSION);
 
-	NecroLog::registerTopic("Tunnel", "tunneling");
-	NecroLog::registerTopic("Acl", "users and grants resolving");
-	NecroLog::registerTopic("Access", "user access");
-	NecroLog::registerTopic("Subscr", "subscriptions creation and propagation");
-	NecroLog::registerTopic("SigRes", "signal resolution in client subscriptions");
-	NecroLog::registerTopic("RpcMsg", "dump RPC messages");
-	NecroLog::registerTopic("RpcRawMsg", "dump raw RPC messages"),
-	NecroLog::registerTopic("RpcData", "dump RPC mesages as HEX data");
+	ShvBrokerApp::registerLogTopics();
 
 	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);
 
@@ -69,13 +55,15 @@ int main(int argc, char *argv[])
 	shvInfo() << QDateTime::currentDateTime().toString(Qt::ISODate).toStdString() << "UTC:" << QDateTime::currentDateTimeUtc().toString(Qt::ISODate).toStdString();
 	shvInfo() << "======================================================================================";
 	shvInfo() << "Log tresholds:" << NecroLog::tresholdsLogInfo();
-	//shvInfo() << NecroLog::instantiationInfo();
-	shvInfo() << "Primary IPv4 address:" << utils::Network::primaryIPv4Address().toString();
-	shvInfo() << "Primary public IPv4 address:" << utils::Network::primaryPublicIPv4Address().toString();
+	shvInfo() << "Config dir:" << cli_opts.configDir();
+	if(cli_opts.isSqlConfigEnabled())
+		shvInfo() << "SQL config database" << cli_opts.sqlConfigDatabase() << "driver" << cli_opts.sqlConfigDriver();
+	shvInfo() << "Primary IPv4 address:" << shv::iotqt::utils::Network::primaryIPv4Address().toString();
+	shvInfo() << "Primary public IPv4 address:" << shv::iotqt::utils::Network::primaryPublicIPv4Address().toString();
 	shvInfo() << "--------------------------------------------------------------------------------------";
 
-	BrokerApp a(argc, argv, &cli_opts);
-
+	ShvBrokerApp a(argc, argv, &cli_opts);
+#if 0
 	QString lc_name = QString::fromStdString(cli_opts.locale());
 	{
 		if (lc_name.isEmpty() || lc_name == QStringLiteral("system")) {
@@ -110,7 +98,7 @@ int main(int argc, char *argv[])
 			}
 		}
 	}
-
+#endif
 	shvInfo() << "starting main thread event loop";
 	ret = a.exec();
 	shvInfo() << "main event loop exit code:" << ret;

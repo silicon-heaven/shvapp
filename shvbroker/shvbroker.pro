@@ -13,7 +13,7 @@ else {
 message ( SHV_PROJECT_TOP_BUILDDIR == '$$SHV_PROJECT_TOP_BUILDDIR' )
 
 QT -= gui
-QT += core network
+QT += core network sql
 
 with-shvwebsockets {
 	QT += websockets
@@ -39,6 +39,7 @@ LIBS += \
     -lshvcore \
     -lshvcoreqt \
     -lshviotqt \
+    -lshvbroker \
 
 unix {
         LIBS += \
@@ -51,6 +52,7 @@ INCLUDEPATH += \
     $$LIBSHV_SRC_DIR/libshvcore/include \
     $$LIBSHV_SRC_DIR/libshvcoreqt/include \
     $$LIBSHV_SRC_DIR/libshviotqt/include \
+    $$LIBSHV_SRC_DIR/libshvbroker/include \
 
 RESOURCES += \
         #shvbroker.qrc \

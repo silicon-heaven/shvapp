@@ -30,42 +30,44 @@ static const char METH_GET_CONFIG[] = "getConfig";
 static const char METH_SAVE_CONFIG[] = "saveConfig";
 static const char METH_RELOAD_SITES[] = "reloadSites";
 static const char METH_SITES_TIME[] = "sitesSyncTime";
+static const char METH_SITES_RELOADED[] = "reloaded";
 
 static std::vector<cp::MetaMethod> root_meta_methods {
-	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::GRANT_BROWSE },
-	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::GRANT_BROWSE },
-	{ cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::GRANT_READ },
-	{ cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::GRANT_READ },
-	{ cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_BROWSE},
-	{ METH_GET_SITES, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::GRANT_READ },
-	{ METH_GET_CONFIG, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::GRANT_READ },
-	{ METH_SAVE_CONFIG, cp::MetaMethod::Signature::VoidParam, false, shv::chainpack::Rpc::GRANT_ADMIN },
-	{ METH_RELOAD_SITES, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::GRANT_ADMIN },
-	{ METH_SITES_TIME, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::GRANT_READ }
+	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::ROLE_BROWSE },
+	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::ROLE_BROWSE },
+	{ cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::ROLE_READ },
+	{ cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::ROLE_READ },
+	{ cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
+	{ METH_GET_SITES, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::ROLE_READ },
+	{ METH_GET_CONFIG, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::ROLE_READ },
+	{ METH_SAVE_CONFIG, cp::MetaMethod::Signature::VoidParam, false, shv::chainpack::Rpc::ROLE_ADMIN },
+	{ METH_RELOAD_SITES, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::ROLE_COMMAND},
+	{ METH_SITES_TIME, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::ROLE_READ },
+	{ METH_SITES_RELOADED, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::IsSignal, shv::chainpack::Rpc::ROLE_READ }
 };
 
 static std::vector<cp::MetaMethod> empty_leaf_meta_methods {
-	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::GRANT_BROWSE },
-	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::GRANT_BROWSE },
-	{ METH_GET_CONFIG, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::GRANT_READ },
-	{ METH_SAVE_CONFIG, cp::MetaMethod::Signature::VoidParam, false, shv::chainpack::Rpc::GRANT_READ },
+	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::ROLE_BROWSE },
+	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::ROLE_BROWSE },
+	{ METH_GET_CONFIG, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::ROLE_READ },
+	{ METH_SAVE_CONFIG, cp::MetaMethod::Signature::VoidParam, false, shv::chainpack::Rpc::ROLE_READ },
 };
 
 static std::vector<cp::MetaMethod> meta_leaf_meta_methods {
-	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::GRANT_BROWSE },
-	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::GRANT_BROWSE },
+	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::ROLE_BROWSE },
+	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::ROLE_BROWSE },
 };
 
 static std::vector<cp::MetaMethod> file_leaf_meta_methods {
-	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::GRANT_BROWSE },
-	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::GRANT_BROWSE },
-	{ cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::GRANT_READ },
+	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::ROLE_BROWSE },
+	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::ROLE_BROWSE },
+	{ cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::ROLE_READ },
 };
 
 static std::vector<cp::MetaMethod> data_leaf_meta_methods {
-	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::GRANT_BROWSE },
-	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::GRANT_BROWSE },
-	{ cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::GRANT_READ },
+	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::ROLE_BROWSE },
+	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, shv::chainpack::Rpc::ROLE_BROWSE },
+	{ cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, false, shv::chainpack::Rpc::ROLE_READ },
 };
 
 
@@ -369,6 +371,11 @@ void AppRootNode::downloadSites(std::function<void ()> callback)
 			}
 			m_sites = shv_cp.toMap();
 			shvInfo() << "Downloaded sites.json";
+			if (SitesProviderApp::instance()->rpcConnection()->isBrokerConnected()) {
+				cp::RpcSignal ntf;
+				ntf.setMethod(METH_SITES_RELOADED);
+				rootNode()->emitSendRpcMessage(ntf);
+			}
 		}
 		catch (std::exception &e) {
 			m_downloadSitesError = e.what();

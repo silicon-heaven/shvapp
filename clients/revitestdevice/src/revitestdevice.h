@@ -5,7 +5,7 @@
 
 namespace shv { namespace chainpack { class RpcMessage; class RpcValue; }}
 namespace shv { namespace iotqt { namespace node { class ShvNodeTree; }}}
-namespace shv { namespace iotqt { namespace utils { class FileShvJournal; struct ShvJournalEntry; }}}
+namespace shv { namespace core { namespace utils { class ShvFileJournal; struct ShvJournalEntry; }}}
 
 class RevitestDevice : public QObject
 {
@@ -16,7 +16,7 @@ public:
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	Q_SIGNAL void sendRpcMessage(const shv::chainpack::RpcMessage &msg);
 
-	void getSnapshot(std::vector<shv::iotqt::utils::ShvJournalEntry> &snapshot);
+	void getSnapshot(std::vector<shv::core::utils::ShvJournalEntry> &snapshot);
 	shv::iotqt::node::ShvNodeTree * shvTree() {return m_shvTree;}
 private:
 	void onLublicatorPropertyValueChanged(const std::string &property_name, const shv::chainpack::RpcValue &new_val);

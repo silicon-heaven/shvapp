@@ -9,8 +9,9 @@
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
 #include <shv/iotqt/node/shvnodetree.h>
-#include <shv/iotqt/utils/fileshvjournal.h>
-#include <shv/iotqt/utils/shvpath.h>
+#include <shv/core/utils/shvfilejournal.h>
+#include <shv/core/utils/shvlogtypeinfo.h>
+#include <shv/core/utils/shvpath.h>
 #include <shv/coreqt/log.h>
 
 #include <QTimer>
@@ -26,13 +27,13 @@ namespace si = shv::iotqt;
 //static const char M_RUN_SCRIPT[] = "runScript";
 
 static std::vector<cp::MetaMethod> meta_methods {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_BROWSE},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_BROWSE},
-	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_BROWSE},
-	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_BROWSE},
-	{cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_BROWSE},
-	{cp::Rpc::METH_CLIENT_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_READ},
-	{cp::Rpc::METH_GET_LOG, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::GRANT_READ},
+	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_BROWSE},
+	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_BROWSE},
+	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
+	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
+	{cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
+	{cp::Rpc::METH_CLIENT_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
+	{cp::Rpc::METH_GET_LOG, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
 };
 
 size_t AppRootNode::methodCount(const StringViewList &shv_path)
@@ -68,7 +69,7 @@ shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path,
 			return HScopeApp::instance()->rpcConnection()->loginResult().value(cp::Rpc::KEY_CLIENT_ID);
 		}
 		if(method == cp::Rpc::METH_GET_LOG) {
-			return HScopeApp::instance()->shvJournal()->getLog(shv::iotqt::utils::ShvJournalGetLogParams(params));
+			return HScopeApp::instance()->shvJournal()->getLog(shv::core::utils::ShvGetLogParams(params));
 		}
 	}
 	return Super::callMethod(shv_path, method, params);
@@ -81,34 +82,32 @@ HScopeApp::HScopeApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
 {
-	m_shvJournal = new shv::iotqt::utils::FileShvJournal([this](std::vector<shv::iotqt::utils::ShvJournalEntry> &s) { this->getSnapshot(s); });
+	m_shvJournal = new shv::core::utils::ShvFileJournal(applicationName().toStdString(), [this](std::vector<shv::core::utils::ShvJournalEntry> &s) { this->getSnapshot(s); });
 	if(cli_opts->shvJournalDir_isset())
 		m_shvJournal->setJournalDir(cli_opts->shvJournalDir());
 	m_shvJournal->setFileSizeLimit(cli_opts->shvJournalFileSizeLimit());
 	m_shvJournal->setJournalSizeLimit(cli_opts->shvJournalSizeLimit());
+	shv::core::utils::ShvLogTypeInfo type_info
 	{
-		cp::RpcValue::Map types {
-			{"Status", cp::RpcValue::Map{
-					{"type", "Map"},
-					{"fields", cp::RpcValue::List{
-							cp::RpcValue::Map{{"name", "val"}, {"type", "Enum"}},
-							cp::RpcValue::Map{{"name", "msg"}, {"type", "String"}},
-						}
+		// types
+		{
+			{
+				"Status",
+				{
+					shv::core::utils::ShvLogTypeDescr::Type::Map,
+					{
+						{"val", "Enum", shv::chainpack::RpcValue::Map{{"Unknown", -1}, {"OK", 0}, {"Warning", 1}, {"Error", 2}}},
+						{"msg", "String"},
 					},
-					{"description", "Unknown = -1, OK = 0, Warning = 1, Error = 2"},
 				}
 			},
-		};
-		cp::RpcValue::Map paths {
-			{"status", cp::RpcValue::Map{ {"type", "Status"} }
-			},
-		};
-		cp::RpcValue::Map type_info {
-			{"types", types},
-			{"paths", paths},
-		};
-		m_shvJournal->setTypeInfo(type_info);
-	}
+		},
+		// paths
+		{
+			{ "status", {"Status"} },
+		},
+	};
+	m_shvJournal->setTypeInfo(type_info);
 
 	m_rpcConnection = new shv::iotqt::rpc::DeviceConnection(this);
 
@@ -181,11 +180,11 @@ void HScopeApp::createNodes()
 	m_brokersNode->load();
 }
 
-void HScopeApp::getSnapshot(std::vector<shv::iotqt::utils::ShvJournalEntry> &snapshot)
+void HScopeApp::getSnapshot(std::vector<shv::core::utils::ShvJournalEntry> &snapshot)
 {
 	auto lst = m_shvTree->root()->findChildren<HNodeTest*>(QString(), Qt::FindChildrenRecursively);
 	for(const HNodeTest *nd : lst) {
-		shv::iotqt::utils::ShvJournalEntry e;
+		shv::core::utils::ShvJournalEntry e;
 		e.path = nd->shvPath() + "/status";
 		e.value = nd->status().toRpcValue();
 		snapshot.push_back(std::move(e));

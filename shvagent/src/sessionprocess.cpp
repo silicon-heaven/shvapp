@@ -15,12 +15,12 @@ SessionProcess::SessionProcess(QObject *parent)
 	: QProcess(parent)
 {
 	//connect(ShvAgentApp::instance(), &ShvAgentApp::aboutToTerminate, this, &SessionProcess::terminate);
-	connect(this, QOverload<int>::of(&QProcess::finished), this, &SessionProcess::onFinished);
+	connect(this, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &SessionProcess::onFinished);
 	//connect(this, &QProcess::readyReadStandardOutput, this, &SessionProcess::onReadyReadStandardOutput);
 	//connect(this, &QProcess::readyReadStandardError, this, &SessionProcess::onReadyReadStandardError);
 }
 
-void SessionProcess::onFinished(int exit_code)
+void SessionProcess::onFinished(int exit_code, QProcess::ExitStatus)
 {
 	shvInfo() << "Process" << program() << arguments() << "finished with exit code:" << exit_code;
 	deleteLater();

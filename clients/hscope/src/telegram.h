@@ -61,8 +61,7 @@ private:
 private:
 	QNetworkAccessManager *m_netManager = nullptr;
 	int m_getUpdateId = 0;
-	bool m_isGetUpdateRunning = false;
-	//QNetworkReply *m_getUpdateReply = nullptr;
+	QTimer *m_getUdatesTimer = nullptr;
 	shv::iotqt::node::RpcValueConfigNode *m_configNode = nullptr;
 };
 

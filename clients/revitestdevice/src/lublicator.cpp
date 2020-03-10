@@ -3,7 +3,7 @@
 #include "appclioptions.h"
 
 #include <shv/iotqt/node/shvnodetree.h>
-#include <shv/iotqt/utils/fileshvjournal.h>
+#include <shv/core/utils/shvfilejournal.h>
 
 #include <shv/chainpack/rpcmessage.h>
 #include <shv/chainpack/metamethod.h>
@@ -54,10 +54,11 @@ Lublicator::Lublicator(const std::string &node_id, ShvNode *parent)
 				sim_setBateryVoltage(bv);
 			}
 		});
-		bat_voltage_sim->start(1000);
+		bat_voltage_sim->start(100);
 	}
 
 	connect(this, &Lublicator::valueChanged, this, &Lublicator::addLogEntry);
+	connect(this, &Lublicator::fastValueChanged, this, &Lublicator::addFastLogEntry);
 }
 
 unsigned Lublicator::status() const
@@ -78,23 +79,23 @@ bool Lublicator::setStatus(unsigned stat)
 }
 
 static std::vector<cp::MetaMethod> meta_methods_device {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_BROWSE},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_BROWSE},
-	{Lublicator::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_READ},
-	{Lublicator::METH_CMD_ON, cp::MetaMethod::Signature::VoidVoid, 0, cp::Rpc::GRANT_COMMAND},
-	{Lublicator::METH_CMD_OFF, cp::MetaMethod::Signature::VoidVoid, 0, cp::Rpc::GRANT_COMMAND},
-	{Lublicator::METH_GET_LOG, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_READ},
-	{METH_BATTERY_LOW_TRESHOLD, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_READ},
-	{METH_SET_BATTERY_LOW_TRESHOLD, cp::MetaMethod::Signature::VoidParam, 0, cp::Rpc::GRANT_SERVICE},
-	{METH_BATTERY_HIGH_TRESHOLD, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_READ},
-	{METH_SET_BATTERY_HIGH_TRESHOLD, cp::MetaMethod::Signature::VoidParam, 0, cp::Rpc::GRANT_SERVICE},
-	{METH_BATTERY_VOLTAGE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::GRANT_READ},
-	{METH_SIM_SET_BATTERY_VOLTAGE, cp::MetaMethod::Signature::VoidParam, 0, cp::Rpc::GRANT_SERVICE},
+	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_BROWSE},
+	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_BROWSE},
+	{Lublicator::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
+	{Lublicator::METH_CMD_ON, cp::MetaMethod::Signature::VoidVoid, 0, cp::Rpc::ROLE_COMMAND},
+	{Lublicator::METH_CMD_OFF, cp::MetaMethod::Signature::VoidVoid, 0, cp::Rpc::ROLE_COMMAND},
+	{Lublicator::METH_GET_LOG, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_READ},
+	{METH_BATTERY_LOW_TRESHOLD, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
+	{METH_SET_BATTERY_LOW_TRESHOLD, cp::MetaMethod::Signature::VoidParam, 0, cp::Rpc::ROLE_SERVICE},
+	{METH_BATTERY_HIGH_TRESHOLD, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
+	{METH_SET_BATTERY_HIGH_TRESHOLD, cp::MetaMethod::Signature::VoidParam, 0, cp::Rpc::ROLE_SERVICE},
+	{METH_BATTERY_VOLTAGE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
+	{METH_SIM_SET_BATTERY_VOLTAGE, cp::MetaMethod::Signature::VoidParam, 0, cp::Rpc::ROLE_SERVICE},
 };
 
 static std::vector<cp::MetaMethod> meta_methods_status {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::GRANT_BROWSE},
+	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_BROWSE},
 	{cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, false},
 	{METH_SIM_SET, cp::MetaMethod::Signature::VoidParam, false},
 	{cp::Rpc::SIG_VAL_CHANGED, cp::MetaMethod::Signature::VoidParam, true},
@@ -222,7 +223,7 @@ shv::chainpack::RpcValue Lublicator::callMethod(const StringViewList &shv_path, 
 
 shv::chainpack::RpcValue Lublicator::getLog(const shv::chainpack::RpcValue &params)
 {
-	shv::iotqt::utils::ShvJournalGetLogParams p(params);
+	shv::core::utils::ShvGetLogParams p(params);
 	if(p.pathPattern.empty())
 		p.pathPattern = nodeId() + "/**";
 	else
@@ -234,6 +235,13 @@ shv::chainpack::RpcValue Lublicator::getLog(const shv::chainpack::RpcValue &para
 void Lublicator::addLogEntry(const std::string &key, const shv::chainpack::RpcValue &value)
 {
 	RevitestApp::instance()->shvJournal()->append({nodeId() + '/' + key, value});
+}
+
+void Lublicator::addFastLogEntry(const std::string &key, const shv::chainpack::RpcValue &value)
+{
+	RevitestApp::instance()->shvJournal()->append({nodeId() + '/' + key
+												   , value
+												   , shv::core::utils::ShvJournalEntry::DOMAIN_VAL_FASTCHANGE});
 }
 
 void Lublicator::checkBatteryTresholds()
@@ -255,7 +263,7 @@ void Lublicator::sim_setBateryVoltage(unsigned v)
 	if(m_batteryVoltage == v)
 		return;
 	m_batteryVoltage = v;
-	emit valueChanged(PROP_BATTERY_VOLTAGE, v);
+	emit fastValueChanged(PROP_BATTERY_VOLTAGE, v);
 	checkBatteryTresholds();
 }
 

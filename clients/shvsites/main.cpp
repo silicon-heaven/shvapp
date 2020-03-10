@@ -2,6 +2,7 @@
 #include "sitesmodel.h"
 #include "appclioptions.h"
 
+#include <shv/chainpack/rpcmessage.h>
 #include <shv/coreqt/log.h>
 
 #include <QGuiApplication>
@@ -46,14 +47,20 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
+	shv::chainpack::RpcMessage::registerMetaTypes();
+
 	shvInfo() << "======================================================================================";
-	shvInfo() << "Starting shvsites, PID:" << QCoreApplication::applicationPid() << "build:" << __DATE__ << __TIME__;
+	shvInfo() << "Starting application" << QCoreApplication::applicationName()
+			  << "ver:" << QCoreApplication::applicationVersion()
+			  << "PID:" << QCoreApplication::applicationPid()
+			  << "build:" << __DATE__ << __TIME__;
 #ifdef GIT_COMMIT
 	shvInfo() << "GIT commit:" << SHV_EXPAND_AND_QUOTE(GIT_COMMIT);
 #endif
 	shvInfo() << QDateTime::currentDateTime().toString(Qt::ISODate).toStdString() << "UTC:" << QDateTime::currentDateTimeUtc().toString(Qt::ISODate).toStdString();
 	shvInfo() << "======================================================================================";
 	shvInfo() << "Log tresholds:" << NecroLog::tresholdsLogInfo();
+	shvInfo() << "--------------------------------------------------------------------------------------";
 
 	ShvSitesApp app(argc,argv, &cli_opts);
 

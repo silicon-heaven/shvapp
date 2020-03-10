@@ -1,14 +1,14 @@
 #!/bin/bash
 
-BINDIR=/home/fanda/proj/_build/shv/bin
+BINDIR=/home/fanda/proj/_build/shv-newacl/bin
 SRCDIR=/home/fanda/proj/shv
 
-BROKER_TOPICS=rpcmsg,subscr #,sigres
+BROKER_TOPICS=rpcmsg,subscr,acl #,sigres
 SLEEP_SETTLE=0.2
 
 # tmux set option remain-on-exit on
 
-tmux new-window $BINDIR/shvbroker --config-dir $SRCDIR/shvbroker/etc/ -v $BROKER_TOPICS
+tmux new-window $BINDIR/shvbroker --config-dir $SRCDIR/shvbroker/etc/shv/shvbroker -v $BROKER_TOPICS
 
 # sleep 1
 tmux split-window $BINDIR/shvbroker --config-dir $SRCDIR/shvbroker/test/relative-paths/etc1/ --server-ws-port 0 -v $BROKER_TOPICS

@@ -1,9 +1,10 @@
 #include "revitestapp.h"
 #include "appclioptions.h"
 
+#include <shv/chainpack/rpcmessage.h>
 #include <shv/core/utils.h>
 #include <shv/coreqt/log.h>
-#include <shv/iotqt/utils/fileshvjournal.h>
+#include <shv/core/utils/shvfilejournal.h>
 
 #include <QTextStream>
 #include <QTranslator>
@@ -48,21 +49,25 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
+	shv::chainpack::RpcMessage::registerMetaTypes();
+
 	shvInfo() << "======================================================================================";
-	shvInfo() << "Starting revidestdevice, PID:" << QCoreApplication::applicationPid() << "build:" << __DATE__ << __TIME__;
+	shvInfo() << "Starting application" << QCoreApplication::applicationName()
+			  << "ver:" << QCoreApplication::applicationVersion()
+			  << "PID:" << QCoreApplication::applicationPid()
+			  << "build:" << __DATE__ << __TIME__;
 #ifdef GIT_COMMIT
 	shvInfo() << "GIT commit:" << SHV_EXPAND_AND_QUOTE(GIT_COMMIT);
 #endif
 	shvInfo() << QDateTime::currentDateTime().toString(Qt::ISODate).toStdString() << "UTC:" << QDateTime::currentDateTimeUtc().toString(Qt::ISODate).toStdString();
 	shvInfo() << "======================================================================================";
 	shvInfo() << "Log tresholds:" << NecroLog::tresholdsLogInfo();
-	//shvInfo() << NecroLog::instantiationInfo();
 
 	RevitestApp a(argc, argv, &cli_opts);
 
-	shvInfo() << "Shv journal dir:" << a.shvJournal()->journalDir();
-	shvInfo() << "Shv journal file size limit:" << a.shvJournal()->fileSizeLimit();
-	shvInfo() << "Shv journal dir size limit:" << a.shvJournal()->journalSizeLimit();
+	shvInfo() << "SHV Journal dir:" << a.shvJournal()->journalDir();
+	shvInfo() << "SHV Journal size limit:" << a.shvJournal()->journalSizeLimit();
+	shvInfo() << "SHV Journal file size limit:" << a.shvJournal()->fileSizeLimit();
 	shvInfo() << "--------------------------------------------------------------------------------------";
 
 	shvInfo() << "starting main thread event loop";
