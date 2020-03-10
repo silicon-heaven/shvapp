@@ -1,7 +1,7 @@
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
-  SHV_NIRVANA_IP: "165.227.247.202"
-  SHV_HEAVEN_IP: "138.68.112.73"
+  SHV_NIRVANA_IP: "${SHV_NIRVANA_IP}"
+  SHV_HEAVEN_IP: "${SHV_HEAVEN_IP}"
 
 stages:
   - build
@@ -58,8 +58,8 @@ production-deploy:
     #- rsync -avz lib bin gitlab-jessie@35.167.83.38:/opt/shv/ 
     #- ssh -t gitlab-jessie@35.167.83.38 "sudo /opt/shv/install.sh"
     # nirvana
-    - rsync -avz lib bin gitlab@165.227.247.202:/opt/shv-prod/ 
-    - ssh -t gitlab@165.227.247.202 "sudo /opt/shv-prod/install.sh"
+    - rsync -avz lib bin gitlab@${SHV_NIRVANA_IP}:/opt/shv-prod/ 
+    - ssh -t gitlab@${SHV_NIRVANA_IP} "sudo /opt/shv-prod/install.sh"
 
   environment:
     name: jessie
@@ -74,8 +74,8 @@ production-deploy-heaven:
   script:
     - id
     - cd build
-    - rsync -avz lib bin shv@138.68.112.73:/opt/shv/production/
-    - ssh -t shv@138.68.112.73 "sudo /opt/shv/production/install.sh"
+    - rsync -avz lib bin shv@${SHV_HEAVEN_IP}:/opt/shv/production/
+    - ssh -t shv@${SHV_HEAVEN_IP} "sudo /opt/shv/production/install.sh"
   environment:
     name: heaven
 
@@ -87,15 +87,15 @@ test-deploy:
   stage:
     deploy
   script:
-    # nirvana 165.227.247.202
+    # nirvana
     - pwd
-    #- rsync -avz shvbroker/etc gitlab@165.227.247.202:/opt/shv/ 
-    #- rsync -avz clients/hscope/etc gitlab@165.227.247.202:/opt/shv/ 
+    #- rsync -avz shvbroker/etc gitlab@${SHV_NIRVANA_IP}:/opt/shv/ 
+    #- rsync -avz clients/hscope/etc gitlab@${SHV_NIRVANA_IP}:/opt/shv/ 
     - cd build
     - rsync -avz lib bin /opt/shv/ 
     - rsync -avz lib bin gitlab@${SHV_NIRVANA_IP}:/opt/shv/ 
     - ssh -t gitlab@${SHV_NIRVANA_IP} "sudo /opt/shv/install.sh"
-    # heaven 138.68.112.73
+    # heaven 
     - rsync -avz lib bin shv@${SHV_HEAVEN_IP}:/opt/shv/test/
     - ssh -t shv@${SHV_HEAVEN_IP} "sudo /opt/shv/test/install.sh"
 
