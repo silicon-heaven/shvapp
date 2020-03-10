@@ -26,6 +26,8 @@ linux:
     #- ../make-linux-artifacts.sh
 
 linux-bb:
+  only:
+    - production
   tags:
     - beaglebone
   stage:
