@@ -143,8 +143,9 @@ void ShvBrokerNodeItem::open()
 	cli->setHost(m_serverPropeties.value("host").toString().toStdString());
 	cli->setPort(m_serverPropeties.value("port").toInt());
 	cli->setUser(m_serverPropeties.value("user").toString().toStdString());
-	cli->setPassword(m_serverPropeties.value("password").toString().toStdString());
-	cli->setLoginType(cp::IRpcConnection::LoginType::Plain);
+	std::string pwd = m_serverPropeties.value("password").toString().toStdString();
+	cli->setPassword(pwd);
+	cli->setLoginType(pwd.size() == 40? cp::IRpcConnection::LoginType::Sha1: cp::IRpcConnection::LoginType::Plain);
 	cli->open();
 	m_openStatus = OpenStatus::Connecting;
 	emitDataChanged();
@@ -201,7 +202,6 @@ shv::iotqt::rpc::ClientConnection *ShvBrokerNodeItem::clientConnection()
 			if(!mount_point.isEmpty())
 				opts.setMountPoint(mount_point.toStdString());
 		}
-
 		if(conn_type == "device") {
 			auto *c = new shv::iotqt::rpc::DeviceConnection(nullptr);
 			c->setCliOptions(&opts);

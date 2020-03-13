@@ -32,6 +32,7 @@ private:
 
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
 	std::string m_aclEtcUsersNodePath;
+	std::string m_aclEtcRolesNodePath;
 };
 
 #endif // DLGUSERSEDITOR_H

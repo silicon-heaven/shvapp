@@ -1,5 +1,7 @@
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
+  SHV_NIRVANA_IP: "165.227.247.202"
+  SHV_HEAVEN_IP: "138.68.112.73"
 
 stages:
   - build
@@ -19,11 +21,13 @@ linux:
     - rm -rf build
     - mkdir -p build
     - cd build
-    - /opt/qt/5.12.0/gcc_64/bin/qmake -r CONFIG+=no-libshv-gui CONFIG+=with-flatline CONFIG+=with-shvwebsockets ../shv.pro DEFINES+=GIT_COMMIT=${CI_BUILD_REF}
+    - /opt/qt/5.14.1/gcc_64/bin/qmake -r CONFIG+=no-libshv-gui CONFIG+=with-flatline CONFIG+=with-shvwebsockets ../shv.pro DEFINES+=GIT_COMMIT=${CI_BUILD_REF}
     - make -j2
     #- ../make-linux-artifacts.sh
 
 linux-bb:
+  only:
+    - production
   tags:
     - beaglebone
   stage:
@@ -54,8 +58,8 @@ production-deploy:
     #- rsync -avz lib bin gitlab-jessie@35.167.83.38:/opt/shv/ 
     #- ssh -t gitlab-jessie@35.167.83.38 "sudo /opt/shv/install.sh"
     # nirvana
-    - rsync -avz lib bin gitlab@165.227.247.202:/opt/shv-prod/ 
-    - ssh -t gitlab@165.227.247.202 "sudo /opt/shv-prod/install.sh"
+    - rsync -avz lib bin gitlab@${SHV_NIRVANA_IP}:/opt/shv-prod/ 
+    - ssh -t gitlab@${SHV_NIRVANA_IP} "sudo /opt/shv-prod/install.sh"
 
   environment:
     name: jessie
@@ -70,8 +74,8 @@ production-deploy-heaven:
   script:
     - id
     - cd build
-    - rsync -avz lib bin shv@138.68.112.73:/opt/shv/production/
-    - ssh -t shv@138.68.112.73 "sudo /opt/shv/production/install.sh"
+    - rsync -avz lib bin shv@${SHV_HEAVEN_IP}:/opt/shv/production/
+    - ssh -t shv@${SHV_HEAVEN_IP} "sudo /opt/shv/production/install.sh"
   environment:
     name: heaven
 
@@ -83,17 +87,17 @@ test-deploy:
   stage:
     deploy
   script:
-    # nirvana 165.227.247.202
+    # nirvana
     - pwd
-    #- rsync -avz shvbroker/etc gitlab@165.227.247.202:/opt/shv/ 
-    #- rsync -avz clients/hscope/etc gitlab@165.227.247.202:/opt/shv/ 
+    #- rsync -avz shvbroker/etc gitlab@${SHV_NIRVANA_IP}:/opt/shv/ 
+    #- rsync -avz clients/hscope/etc gitlab@${SHV_NIRVANA_IP}:/opt/shv/ 
     - cd build
     - rsync -avz lib bin /opt/shv/ 
-    - rsync -avz lib bin gitlab@165.227.247.202:/opt/shv/ 
-    - ssh -t gitlab@165.227.247.202 "sudo /opt/shv/install.sh"
-    # heaven 138.68.112.73
-    - rsync -avz lib bin shv@138.68.112.73:/opt/shv/test/
-    - ssh -t shv@138.68.112.73 "sudo /opt/shv/test/install.sh"
+    - rsync -avz lib bin gitlab@${SHV_NIRVANA_IP}:/opt/shv/ 
+    - ssh -t gitlab@${SHV_NIRVANA_IP} "sudo /opt/shv/install.sh"
+    # heaven 
+    - rsync -avz lib bin shv@${SHV_HEAVEN_IP}:/opt/shv/test/
+    - ssh -t shv@${SHV_HEAVEN_IP} "sudo /opt/shv/test/install.sh"
 
   environment:
     name: jessie
