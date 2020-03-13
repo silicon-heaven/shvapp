@@ -7,6 +7,8 @@ AppCliOptions::AppCliOptions()
 			.setComment("Local file system directory, which contains log files.");
 	addOption("app.sitesRootPath").setType(shv::chainpack::RpcValue::Type::String).setNames("--sites-root-path")
 			.setComment("Maintained path in shvtree");
+	addOption("app.trimDirtyLogInterval").setType(shv::chainpack::RpcValue::Type::Int).setNames("--trim-dirty-log-interval")
+			.setComment("interval of dirty log trimming (mins)").setDefaultValue(30);
 	addOption("elesysPath").setType(shv::chainpack::RpcValue::Type::String).setNames("--elesys-path")
 			.setComment("path to elesys node").setDefaultValue("elesys");
 	addOption("sitesPath").setType(shv::chainpack::RpcValue::Type::String).setNames("--sites-path")

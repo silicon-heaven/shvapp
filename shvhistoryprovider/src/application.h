@@ -20,9 +20,8 @@ class Application : public QCoreApplication
 public:
 	static const int SINGLE_FILE_RECORD_COUNT;
 	static const QDateTime WORLD_BEGIN;
-	static const char DIRTY_LOG_NODE[];
-	static const char START_TS_NODE[];
-	static const char PATH_DIRTY[];
+	static const char *DIRTY_LOG_NODE;
+	static const char *START_TS_NODE;
 
 	Application(int &argc, char **argv, AppCliOptions* cli_opts);
 	~Application();

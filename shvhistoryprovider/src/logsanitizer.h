@@ -17,10 +17,10 @@ public:
 	void trimDirtyLog(const QString &shv_path);
 
 private:
-	void onShvStateChanged(shv::iotqt::rpc::ClientConnection::State state);
 	void onDeviceAppeared(const QString &shv_path);
 	void checkLogs();
 	void checkLogs(const QString &shv_path, CheckLogTask::CheckType check_type);
+	void setupTimer();
 
 	int m_lastCheckedDevice;
 	QTimer m_timer;

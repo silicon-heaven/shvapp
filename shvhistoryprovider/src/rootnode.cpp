@@ -28,38 +28,38 @@ static const char METH_SET_LOGVERBOSITY[] = "setLogVerbosity";
 static const char METH_TRIM_DIRTY_LOG[] = "trim";
 
 static std::vector<cp::MetaMethod> root_meta_methods {
-	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_BROWSE },
-	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_BROWSE },
-	{ cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, false, cp::Rpc::ROLE_READ },
-	{ cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false, cp::Rpc::ROLE_READ },
-    { METH_GET_VERSION, cp::MetaMethod::Signature::RetVoid, false, cp::Rpc::ROLE_READ },
-	{ METH_RELOAD_SITES, cp::MetaMethod::Signature::RetVoid, false, cp::Rpc::ROLE_COMMAND },
-	{ METH_GET_UPTIME, cp::MetaMethod::Signature::RetVoid, false, cp::Rpc::ROLE_READ },
+	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE },
+	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE },
+	{ cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ },
+	{ cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ },
+    { METH_GET_VERSION, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ },
+	{ METH_RELOAD_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_COMMAND },
+	{ METH_GET_UPTIME, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ },
 	{ METH_GET_LOGVERBOSITY, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ },
 	{ METH_SET_LOGVERBOSITY, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::IsSetter, cp::Rpc::ROLE_COMMAND },
 };
 
 static std::vector<cp::MetaMethod> branch_meta_methods {
-	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_BROWSE },
-	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_BROWSE },
-	{ cp::Rpc::METH_GET_LOG, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_READ },
+	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE },
+	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE },
+	{ cp::Rpc::METH_GET_LOG, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ },
 };
 
 static std::vector<cp::MetaMethod> leaf_meta_methods {
-	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_BROWSE },
-	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_BROWSE },
-	{ cp::Rpc::METH_GET_LOG, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_READ },
+	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE },
+	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE },
+	{ cp::Rpc::METH_GET_LOG, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ },
 };
 
 static std::vector<cp::MetaMethod> dirty_log_meta_methods {
-	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_BROWSE },
-	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_BROWSE },
-	{ METH_TRIM_DIRTY_LOG, cp::MetaMethod::Signature::RetVoid, false, cp::Rpc::ROLE_READ },
+	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE },
+	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE },
+	{ METH_TRIM_DIRTY_LOG, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ },
 };
 
 static std::vector<cp::MetaMethod> start_ts_meta_methods {
-	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_BROWSE },
-	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false, cp::Rpc::ROLE_BROWSE },
+	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE },
+	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE },
 	{ cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ },
 	{ cp::Rpc::SIG_VAL_CHANGED, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::IsSignal, cp::Rpc::ROLE_READ },
 };

@@ -164,7 +164,7 @@ void DirtyLogManager::checkDirtyLog(const QString &shv_path, bool is_connected)
 		}
 		ShvJournalFileWriter dirty_writer(log_dir.dirtyLogPath().toStdString());
 		dirty_writer.append(ShvJournalEntry{
-								Application::PATH_DIRTY,
+								ShvJournalEntry::PATH_DATA_DIRTY,
 								true,
 								ShvJournalEntry::DOMAIN_SHV_SYSTEM,
 								ShvJournalEntry::NO_SHORT_TIME,

@@ -71,7 +71,7 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 		return;
 	}
 	if (response.isError()) {
-		shvError() << response.error().message();
+		shvError() << (m_askElesys ? "elesys error:" : "device error:") << response.error().message();
 		Q_EMIT finished(false);
 		return;
 	}
@@ -145,41 +145,51 @@ bool DeviceLogRequest::tryAppendToPreviousFile(ShvMemoryJournal &log)
 		LogDir log_dir(m_shvPath);
 		QStringList all_files = log_dir.findFiles(m_since.addMSecs(-1), m_since);
 		if (all_files.count() == 1) {
-			ShvLogFileReader log_reader(all_files[0].toStdString());
-			const ShvLogHeader &header = log_reader.logHeader();
-			if (header.until().toDateTime().msecsSinceEpoch() == m_since.toMSecsSinceEpoch() &&
-				header.recordCount() + (int)log.entries().size() <= Application::SINGLE_FILE_RECORD_COUNT) {
-				ShvGetLogParams joined_params = logParams();
-				joined_params.since = header.since();
-				ShvMemoryJournal joined_log(joined_params);
-				joined_log.setDeviceId(header.deviceId());
-				joined_log.setDeviceType(header.deviceType());
-				joined_log.setSince(header.since());
-				joined_log.setUntil(joined_params.until);
-				while (log_reader.next()) {
-					joined_log.append(log_reader.entry());
+			std::ifstream in_file;
+			in_file.open(all_files[0].toStdString(), std::ios::in | std::ios::binary);
+			if (in_file) {
+				cp::ChainPackReader log_reader(in_file);
+				std::string error;
+				cp::RpcValue orig_log = log_reader.read(&error);
+				if (!error.empty() || !orig_log.isList()) {
+					SHV_QT_EXCEPTION("Cannot parse file " + all_files[0]);
 				}
-				for (const auto &entry : log.entries()) {
-					joined_log.append(entry);
+				int orig_record_count = (int)orig_log.toList().size();
+				cp::RpcValue orig_until_cp = orig_log.metaValue("until");
+				if (!orig_until_cp.isDateTime()) {
+					SHV_QT_EXCEPTION("Missing until in file " + all_files[0]);
 				}
-				QString temp_filename = all_files[0];
-				temp_filename.replace(".chp", ".tmp");
+				int64_t orig_until = orig_until_cp.toDateTime().msecsSinceEpoch();
+				if (orig_until == m_since.toMSecsSinceEpoch() && orig_record_count + (int)log.entries().size() <= Application::SINGLE_FILE_RECORD_COUNT) {
+					ShvMemoryJournal joined_log;
+					joined_log.loadLog(orig_log);
 
-				QFile temp_file(temp_filename);
-				if (!temp_file.open(QFile::WriteOnly | QFile::Truncate)) {
-					SHV_QT_EXCEPTION("Cannot open file " + temp_file.fileName());
-				}
-				temp_file.write(QByteArray::fromStdString(joined_log.getLog(joined_params).toChainPack()));
-				temp_file.close();
+					ShvGetLogParams joined_params = logParams();
+					joined_params.since = orig_log.metaValue("since");
+					for (const auto &entry : log.entries()) {
+						joined_log.append(entry);
+					}
+					QString temp_filename = all_files[0];
+					temp_filename.replace(".chp", ".tmp");
 
-				QFile old_log_file(all_files[0]);
-				if (!old_log_file.remove()) {
-					SHV_QT_EXCEPTION("Cannot remove file " + all_files[0]);
+					QFile temp_file(temp_filename);
+					if (!temp_file.open(QFile::WriteOnly | QFile::Truncate)) {
+						SHV_QT_EXCEPTION("Cannot open file " + temp_file.fileName());
+					}
+					cp::RpcValue result = joined_log.getLog(joined_params);
+					result.setMetaValue("until", cp::RpcValue::fromValue(m_until));
+					temp_file.write(QByteArray::fromStdString(result.toChainPack()));
+					temp_file.close();
+
+					QFile old_log_file(all_files[0]);
+					if (!old_log_file.remove()) {
+						SHV_QT_EXCEPTION("Cannot remove file " + all_files[0]);
+					}
+					if (!temp_file.rename(old_log_file.fileName())) {
+						SHV_QT_EXCEPTION("Cannot rename file " + temp_file.fileName());
+					}
+					return true;
 				}
-				if (!temp_file.rename(old_log_file.fileName())) {
-					SHV_QT_EXCEPTION("Cannot rename file " + temp_file.fileName());
-				}
-				return true;
 			}
 		}
 	}
@@ -209,7 +219,7 @@ void DeviceLogRequest::trimDirtyLog(const QDateTime &until)
 	}
 	ShvJournalFileWriter dirty_writer(m_logDir.absoluteFilePath(temp_filename).toStdString());
 	dirty_writer.append(ShvJournalEntry{
-							Application::PATH_DIRTY,
+							ShvJournalEntry::PATH_DATA_DIRTY,
 							true,
 							ShvJournalEntry::DOMAIN_VAL_CHANGE,
 							ShvJournalEntry::NO_SHORT_TIME,
@@ -228,14 +238,14 @@ void DeviceLogRequest::trimDirtyLog(const QDateTime &until)
 			if (first) {
 				first = false;
 				if (!data_missing_value.empty()) {
-						dirty_writer.append(ShvJournalEntry {
-												ShvJournalEntry::PATH_DATA_MISSING,
-												data_missing_value,
-												ShvJournalEntry::DOMAIN_VAL_CHANGE,
-												ShvJournalEntry::NO_SHORT_TIME,
-												ShvJournalEntry::SampleType::Continuous,
-												until_msec
-											});
+					dirty_writer.append(ShvJournalEntry {
+											ShvJournalEntry::PATH_DATA_MISSING,
+											data_missing_value,
+											ShvJournalEntry::DOMAIN_VAL_CHANGE,
+											ShvJournalEntry::NO_SHORT_TIME,
+											ShvJournalEntry::SampleType::Continuous,
+											until_msec
+										});
 				}
 			}
 			dirty_writer.append(dirty_reader.entry());

@@ -58,6 +58,7 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 			delete reader;
 		}
 	}
+
 	int64_t until_msecs = until.isNull() ? std::numeric_limits<int64_t>::max() : until.toMSecsSinceEpoch();
 
 	int usable_readers = readers.count();
@@ -93,5 +94,9 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 	}
 	qDeleteAll(readers);
 
-	return m_mergedLog.getLog(m_logParams);
+	cp::RpcValue result = m_mergedLog.getLog(m_logParams);
+	if (!since.isValid() || since < Application::WORLD_BEGIN) {
+		result.setMetaValue("since", cp::RpcValue::DateTime::fromMSecsSinceEpoch(Application::WORLD_BEGIN.toMSecsSinceEpoch()));
+	}
+	return result;
 }

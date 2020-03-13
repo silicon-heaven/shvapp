@@ -1,4 +1,5 @@
 #include "application.h"
+#include "appclioptions.h"
 #include "checklogtask.h"
 #include "devicelogrequest.h"
 #include "logdir.h"
@@ -126,7 +127,7 @@ void CheckLogTask::checkDirtyLogState()
 				journal_since = log_since;
 			}
 			QDateTime current = QDateTime::currentDateTimeUtc();
-			if (rec_count >= Application::SINGLE_FILE_RECORD_COUNT || journal_since.secsTo(current) > 60 * 60 * 12) {
+			if (rec_count >= Application::SINGLE_FILE_RECORD_COUNT || journal_since.secsTo(current) > Application::instance()->cliOptions()->trimDirtyLogInterval() * 60) {
 				getLog(journal_since, current);
 			}
 		}
