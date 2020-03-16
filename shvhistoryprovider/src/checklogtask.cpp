@@ -1,4 +1,5 @@
 #include "application.h"
+#include "appclioptions.h"
 #include "checklogtask.h"
 #include "devicelogrequest.h"
 #include "logdir.h"
@@ -13,7 +14,7 @@
 namespace cp = shv::chainpack;
 using namespace shv::core::utils;
 
-CheckLogTask::CheckLogTask(const QString &shv_path, CheckLogType check_type, QObject *parent)
+CheckLogTask::CheckLogTask(const QString &shv_path, CheckType check_type, QObject *parent)
 	: Super(parent)
 	, m_shvPath(shv_path)
 	, m_checkType(check_type)
@@ -25,9 +26,33 @@ void CheckLogTask::exec()
 {
 	try {
 		QStringList m_dirEntries = m_logDir.findFiles(QDateTime(), QDateTime());
-		checkOldDataConsistency();
-		if (m_checkType == CheckLogType::CheckDirtyLogState) {
-			checkDirtyLogState();
+
+		if (m_checkType == CheckType::TrimDirtyLogOnly) {
+			int64_t dirty_begin = 0LL;
+			int64_t regular_end = 0LL;
+			if (m_logDir.exists(m_logDir.dirtyLogName())) {
+				ShvLogHeader header;
+				ShvJournalFileReader reader(m_logDir.dirtyLogPath().toStdString(), &header);
+				if (reader.next()) {
+					dirty_begin = reader.entry().epochMsec;
+				}
+			}
+			if (m_dirEntries.count()) {
+				ShvLogFileReader last_log(m_dirEntries.last().toStdString());
+				regular_end = last_log.logHeader().until().toDateTime().msecsSinceEpoch();
+			}
+			if (dirty_begin && dirty_begin == regular_end) {
+				getLog(QDateTime::fromMSecsSinceEpoch(dirty_begin, Qt::TimeSpec::UTC), QDateTime::currentDateTimeUtc());
+			}
+			else {
+				m_checkType = CheckType::ReplaceDirtyLog;
+			}
+		}
+		if (m_checkType == CheckType::ReplaceDirtyLog || m_checkType == CheckType::CheckDirtyLogState) {
+			checkOldDataConsistency();
+			if (m_checkType == CheckType::CheckDirtyLogState) {
+				checkDirtyLogState();
+			}
 		}
 		if (m_requests.count() == 0) {
 			Q_EMIT finished(true);
@@ -54,7 +79,7 @@ void CheckLogTask::checkOldDataConsistency()
 	}
 	bool exists_dirty = m_logDir.exists(m_logDir.dirtyLogName());
 	QDateTime requested_until;
-	if (m_checkType == CheckLogType::ReplaceDirtyLog || !exists_dirty) {
+	if (m_checkType == CheckType::ReplaceDirtyLog || !exists_dirty) {
 		requested_until = QDateTime::currentDateTimeUtc();
 	}
 	else if (exists_dirty){
@@ -76,10 +101,12 @@ void CheckLogTask::checkDirtyLogState()
 
 		//Zjisteni datumu od kdy chceme nahradit dirty log normalnim logem:
 		//Existuji 2 zdroje, konec posledniho radneho logu a zacatek dirty logu.
-		//Normalne by mely byt konzistentni, po dotazeni radneho logu, za zacatek dirty logu zahodi,
-		//ale neni to atomicke, takze se muze stat, ze se radny log stahne, ale dirty log se neupravi.
+		//Normalne by mely byt konzistentni, po dotazeni radneho logu, se zacatek dirty logu zahodi,
+		//ale neni to atomicke, protoze aplikace muze prave v tuto chvili spadnout nebo muze skoncit,
+		//takze se muze stat, ze se radny log stahne, ale dirty log se neupravi.
 		//Pokud je tedy zacatek dirty logu starsi nez konec posledniho radneho logu, pouzije se konec
-		//posledniho radneho logu. Nekonzistence muze nastat i opacna, radne logy se uz stahuji, ale jeste
+		//posledniho radneho logu.
+		//Nekonzistence muze nastat i opacna, radne logy se uz stahuji, ale jeste
 		//nejsou vsechny dotazene a konec posledniho radneho logu je starsi nez zacatek dirty logu. Potom
 		//pouzijeme zacatek dirty logu.
 		QDateTime log_since;
@@ -100,7 +127,7 @@ void CheckLogTask::checkDirtyLogState()
 				journal_since = log_since;
 			}
 			QDateTime current = QDateTime::currentDateTimeUtc();
-			if (rec_count >= Application::SINGLE_FILE_RECORD_COUNT || journal_since.secsTo(current) > 60 * 60 * 12) {
+			if (rec_count >= Application::SINGLE_FILE_RECORD_COUNT || journal_since.secsTo(current) > Application::instance()->cliOptions()->trimDirtyLogInterval() * 60) {
 				getLog(journal_since, current);
 			}
 		}

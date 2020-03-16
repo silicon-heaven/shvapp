@@ -7,21 +7,23 @@
 
 class DeviceLogRequest;
 
-enum class CheckLogType {
-	ReplaceDirtyLog,       //on device apperance we need to remove dirty log as soon as possible, because it is inconsistent
-	CheckDirtyLogState     //periodic check, dirty log is replaced only if it is too big or too old
-};
-
 class CheckLogTask : public QObject
 {
 	Q_OBJECT
 	using Super = QObject;
 
 public:
-	CheckLogTask(const QString &shv_path, CheckLogType check_type, QObject *parent);
+	enum class CheckType {
+		ReplaceDirtyLog,       //on device apperance we need to remove dirty log as soon as possible, because it is inconsistent
+		CheckDirtyLogState,    //periodic check, dirty log is replaced only if it is too big or too old
+		TrimDirtyLogOnly,      //only trim dirty log if it is possible
+	};
+
+	CheckLogTask(const QString &shv_path, CheckType check_type, QObject *parent);
 
 	void exec();
 	Q_SIGNAL void finished(bool);
+	CheckType checkType() const { return m_checkType; }
 
 private:
 	void checkOldDataConsistency();
@@ -31,7 +33,7 @@ private:
 	void checkRequestQueue();
 
 	QString m_shvPath;
-	CheckLogType m_checkType;
+	CheckType m_checkType;
 	LogDir m_logDir;
 	QVector<DeviceLogRequest*> m_requests;
 	QStringList m_dirEntries;

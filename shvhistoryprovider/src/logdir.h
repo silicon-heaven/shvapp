@@ -17,8 +17,8 @@ public:
 	static QString fileName(const QDateTime &datetime);
 
 	bool exists(const QString &file) const { return m_dir.exists(file); }
-	void remove(const QString &file) { m_dir.remove(file); }
-	void rename(const QString &old_name, const QString &new_name) { m_dir.rename(old_name, new_name); }
+	bool remove(const QString &file) { return m_dir.remove(file); }
+	bool rename(const QString &old_name, const QString &new_name) { return m_dir.rename(old_name, new_name); }
 	QString absoluteFilePath(const QString &file) const { return m_dir.absoluteFilePath(file); }
 
 private:
