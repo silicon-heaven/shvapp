@@ -111,12 +111,31 @@ if [ ! -z $APP ]; then \n\
     fi \n\
   fi \n\
   if [ ! -z $NUM ]; then \n\
-    sudo systemctl start ${NAME}@$NUM \n\
     sudo systemctl enable ${NAME}@$NUM 1>/dev/null  2>&1 \n\
+    sudo systemctl start ${NAME}@$NUM \n\
+    echo `systemctl is-enabled ${NAME}@$NUM`:`systemctl is-active ${NAME}@$NUM` \n\
+  else \n\
+    sudo systemctl enable $APP 1>/dev/null 2>&1 \n\
+    sudo systemctl start $APP \n\
+    echo `systemctl is-enabled $APP`:`systemctl is-active $APP` \n\
+  fi \n\
+fi \n\
+"
+var start = "\
+#!/bin/bash \n\
+if [ ! -z $APP ]; then \n\
+  NUM=$(echo $APP | sed 's/[^0-9]*//g') \n\
+  NAME=$(echo $APP | sed 's/[0-9]*//g') \n\
+  if [ -e /mnt/sd/shvjournal/ ]; then \n\
+    if [ ! -e /mnt/sd/shvjournal/${APP} ]; then \n\
+      mkdir /mnt/sd/shvjournal/${APP} \n\
+    fi \n\
+  fi \n\
+  if [ ! -z $NUM ]; then \n\
+    sudo systemctl start ${NAME}@$NUM \n\
     echo `systemctl is-enabled ${NAME}@$NUM`:`systemctl is-active ${NAME}@$NUM` \n\
   else \n\
     sudo systemctl start $APP \n\
-    sudo systemctl enable $APP 1>/dev/null 2>&1 \n\
     echo `systemctl is-enabled $APP`:`systemctl is-active $APP` \n\
   fi \n\
 fi \n\
@@ -130,10 +149,27 @@ if [ ! -z $APP ]; then \n\
   if [ ! -z $NUM ]; then \n\
     sudo systemctl stop ${NAME}@$NUM \n\
     sudo systemctl disable ${NAME}@$NUM 1>/dev/null  2>&1 \n\
+    sudo systemctl stop ${NAME}@$NUM \n\
     echo `systemctl is-enabled ${NAME}@$NUM`:`systemctl is-active ${NAME}@$NUM` \n\
   else \n\
     sudo systemctl stop $APP \n\
     sudo systemctl disable $APP 1>/dev/null  2>&1 \n\
+    sudo systemctl stop $APP \n\
+    echo `systemctl is-enabled $APP`:`systemctl is-active $APP` \n\
+  fi \n\
+fi \n\
+"
+
+var stop = "\
+#!/bin/bash \n\
+if [ ! -z $APP ]; then \n\
+  NUM=$(echo $APP | sed 's/[^0-9]*//g') \n\
+  NAME=$(echo $APP | sed 's/[0-9]*//g') \n\
+  if [ ! -z $NUM ]; then \n\
+    sudo systemctl stop ${NAME}@$NUM \n\
+    echo `systemctl is-enabled ${NAME}@$NUM`:`systemctl is-active ${NAME}@$NUM` \n\
+  else \n\
+    sudo systemctl stop $APP \n\
     echo `systemctl is-enabled $APP`:`systemctl is-active $APP` \n\
   fi \n\
 fi \n\

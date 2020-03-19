@@ -16,24 +16,40 @@
 </head>
 
 <body>
-  <div id="onHideShvConnected" style="display:block;">
+  <div id="onHideShvConnected" align="center" style="display:block;  align:center;">
     <p>
-      <h1>Shv Login</h1>
-        <label>User:</label><br /><input type="text" id="shvUser" /><br />
-        <label>Password:</label><br /><input type="password" id="shvPassword" onkeydown="if(event.keyCode==13)initWebSocket(false);" /><br />
-        <label>Url:</label><br /><input type="text" id="wsUri" value="ws://192.168.6.2:3777" onkeydown="if(event.keyCode==13)initWebSocket(false);" /><br />
-        <label>Path:</label><br /><input type="text" id="shvPath" onkeydown="if(event.keyCode==13)initWebSocket(false);" /><br />
-        <button onClick="initWebSocket(false);">Connect</button>
-        <span id="onConnectionError" style="color:red"></span>
+      <div style="width: min-content; text-align:left;">
+        <h1>Shv Login</h1>
+          <label>User:</label><br /><input type="text" id="shvUser" /><br />
+          <label>Password:</label><br /><input type="password" id="shvPassword" onkeydown="if(event.keyCode==13)initWebSocket(false);" /><br />
+          <label>Url:</label><br /><select type="text" id="wsUri" onkeydown="if(event.keyCode==13)initWebSocket(false);">
+            <option value="ws://192.168.6.2:3777">192.168.6.2:3777 (usb)</option>
+            <option value="ws://165.227.247.202:3777">165.227.247.202:3777 (nirvana)</option>
+            <option value="ws://10.8.88.198:3777">10.8.88.198:3777 (trojska)</option>
+          </select><br />
+          <label>Path:</label><br /><input type="text" id="shvPath" onkeydown="if(event.keyCode==13)initWebSocket(false);" /><br />
+          <button class='btn' onClick="initWebSocket(false);">Connect</button><br />
+      </div>
+          <br>
+          <span id="onConnectionError" style="color:lightcoral"></span>
     </p>
   </div>
 
   <div id="onShowShvConnected" style="width:100%; display:none;">
     <h2 id="onPath" >Shv Configuration</h2>
-    <button onClick="stopWebSocket();">Disconnect</button>
-    <button onClick='load();'>Reload</button>
-    <button onClick='stopWebSocket();'>Done</button>
+    <button class='btn' onClick="stopWebSocket();">Disconnect</button>
+    <button class='btn' onClick='load();'>Reload</button>
+    <button class='btn' onClick='restartDevice();'>Restart Device</button>
+    <button class='btn' id="webConfigureOutputBtn" onClick='changeWebConfigureOutputVisibility();'>Show output</button>
+    <button class='btn' onClick='stopWebSocket();'>Done</button>
+    <div id="webConfigureOutput" style="display:none;">
+      <br><h3>Output:</h3>
+      <button class='btn' onclick='document.getElementById("callShvMethodOutput").innerHTML="";'>Clean</button><br>
+      <textarea id="callShvMethodOutput" name="post" maxlength="5000" rows="10" style="width:100%;background-color:white; color:black"></textarea>
+    </div>
     <br><h3>Status:</h3>
+    <div id="alerts" style="width:100%"></div>
+
     <div id="statusField" style="width:100%">
       <div class='row'>
         <div class='column c1'><span style="font-weight:bold">Description</span></div>
@@ -42,9 +58,10 @@
       <div class='row'>
         <div class='column c1'><span>Packages status:</span></div>
         <div class='column c8'><span id="packagesStatus"></span></div>
+        <div class='column c3'><button id="packagesUpgrade" onClick='callShvMethod("apt", agentPath, "runCmd", "\"sudo systemctl start shv-upgrade\"", 20000, null)'>Upgrade</button></div>
       </div>
     </div>
-    <br><h3>Configuration:</h3>
+    <br><h3>Device configuration:</h3>
     <div id="configurationField" style="width:100%">
       <div class='row'>
         <div class='column c1'><span style="font-weight:bold">Description</span></div>
@@ -54,30 +71,20 @@
         <div class='column c5'><span style="font-weight:bold">Result</span></div>
       </div>
     </div>
-    <br><h3>Applications:</h3>
-        <table style="width:100%">
-         <tr>
-           <td valign="top" style="width:35%">
+    <br><h3>Installed applications:</h3>
              <div id="applicationsField">
-               <div class='row' >
-                 <div class'column c8'>
+<!--                <div class='row' >
+                 <div>
                    <div class='column c7'><span style="font-weight:bold">Applications</span></div>
-                   <div class='column c8'><span style="font-weight:bold">Status</span></div>
-                   <div class='column c5'><span style="font-weight:bold">Action</button></div>
+                   <div class='column c7'><span style="font-weight:bold">Status</span></div>
+                   <div class='column c4'><span style="font-weight:bold">Action</button></div>
                    <div class='column c4'><span style="font-weight:bold">Result</span></div>
                  </div>
-               </div>
+               </div> -->
             </div>
-           </td>
-           <td valign="top" style="width:45%">
-             <div class='column c10'><span style="font-weight:bold">Output</span>
-             <button onclick='document.getElementById("callShvMethodOutput").innerHTML="";'>Clean</button><br>
-             <textarea id="callShvMethodOutput" name="post" maxlength="5000" rows="40" style="width:100%;background-color:white; color:black"></textarea>
-           </div>
-
-           </td>
-         </tr>
-       </table>
+    <br><h3>Available applications:</h3>
+      <div id="availableApplicationsField">
+      </div>
   </div>
 
   <script type="text/javascript">
@@ -94,6 +101,19 @@
           e.innerHTML = "";
         }
       });
+    }
+
+    function changeWebConfigureOutputVisibility()
+    {
+        var e = document.getElementById("webConfigureOutput");
+        if (e.style.display == "none") {
+          e.style.display = "block";
+          document.getElementById("webConfigureOutputBtn").innerHTML = "Hide output";
+        }
+        else {
+          e.style.display = "none";
+          document.getElementById("webConfigureOutputBtn").innerHTML = "Show output";
+        }
     }
 
     function change(id)
@@ -172,6 +192,13 @@
         console.log("PRINT: "+ arr[1]);
     }
 
+    function restartDevice()
+    {
+      showAlert('warning', 'Device will be restarted.');
+      setTimeout(function(){ callShvMethod("apt", agentPath, "runCmd", "\"sudo systemctl reboot\"", 5000, null); }, 2000);
+      setTimeout(function(){ stopWebSocket(); }, 5000);
+    }
+
     function status()
     {
       s = document.getElementById("status");
@@ -202,15 +229,22 @@
 
     function applications(app_list)
     {
+      cleanApplications();
+
       app = document.createElement('div');
       app.setAttribute("id", "applications");
       document.getElementById("applicationsField").appendChild(app);
 
-      var template = "<div class='row' > \
-      <div class='column c7'><span>APP</span></div> \
-      <div class='column c8'><span id='IDStatus' style='color:black;'>STATUS</span></div> \
-      <div class='column c5'><button id='IDButton' onClick='apt(\"ID\")'>ACTION</button></div> \
-      <div class='column c4'><span id='IDResult'></span></div> \
+      var template = "\
+      <div id='IDField' class='row' > \
+        <div class='column c7'> \
+          <button class='btn' id='IDButtonRemove' onClick='remove(this, \"ID\")' value='remove' >&#10006;</button> \
+          <span>APP</span></div> \
+        <div class='column c7'><span id='IDStatus' style='color:black;'>STATUS</span></div> \
+        <div class='column c4'> \
+          <button class='btn' id='IDButtonService' onClick='service(this, \"ID\")' value='VALUE' >ACTION</button> \
+        </div> \
+        <div class='column c4'><span id='IDResult'></span></div> \
       </div>";
 
       app_list = app_list.replace(/\n/g, '');
@@ -225,89 +259,146 @@
         tmp = tmp.replace(/ID/g, app[0]);
         tmp = tmp.replace(/APP/g, app[1]);
 
-        color="black";
-        action = app[2]=="enabled"?"Disable":"Enable";
-        color = app[2]=="enabled"?"yellow":"black";
-        color = app[3]=="active"?"green":color;
+        if (app[2]=="enabled" || app[3]=="active") {
+          tmp = tmp.replace(/color:black/g, appStatusColor(app[2]+":"+app[3]));
+          tmp = tmp.replace(/STATUS/g, app[2] +":"+app[3]);
+          tmp = tmp.replace(/ACTION/g, app[3]=="active"?"&#9724;":"&#9654;");
+          tmp = tmp.replace(/VALUE/g, app[3]=="active"?"stop":"start");
 
-        tmp = tmp.replace(/black/g, color);
-        tmp = tmp.replace(/STATUS/g, app[2] +":"+app[3]);
-        tmp = tmp.replace(/ACTION/g, action);
-
-        element = document.createRange().createContextualFragment(tmp);
-        document.getElementById("applications").appendChild(element);
+          element = document.createRange().createContextualFragment(tmp);
+          document.getElementById("applications").appendChild(element);
+        }
       }
+
+      var template2 = "<div class='row' >\
+      <div class='column c8'> \
+      <select id='availableApplicationsSelect' style='width: 100%'>";
+      for (i = 0; i < lst.length; i++) {
+        var app = lst[i].split(":");
+        if (app[2]=="enabled" || app[3]=="active") {
+          continue;
+        }
+        template2 += "<option value="+app[0]+">"+app[1]+"</option>";
+      }
+      template2 += "</select></div>\
+      <div class='column c4'> \
+        <button class='btn' onClick='install()'>&#10010;</button> \
+      </div></div>"
+
+      app = document.createElement('div');
+      app.setAttribute("id", "availableApplications");
+      document.getElementById("availableApplicationsField").appendChild(app);
+      element = document.createRange().createContextualFragment(template2);
+      document.getElementById("availableApplications").appendChild(element);
+  
     }
 
-    function apt(app_id)
+    function appStatusColor(st)
     {
-      document.getElementById(setPostfix(app_id, "Result")).innerHTML = "";
+      var s = st.split(":");
+      if (s[0].includes("enabled") && !s[1].includes("inactive")) {
+        return "color:green";
+      }
+      return "color:gray";
+    }
+
+    function log(str)
+    {
+      document.getElementById("callShvMethodOutput").innerHTML += str + "\n"; 
+    }
+
+    function install()
+    {
+      app_id = document.getElementById("availableApplicationsSelect").value.toString();
       app_name=app_id.replace(/[0-9]/g, '');
-      callShvMethod("apt", agentPath, "runCmd", "\"sudo apt install -y "+app_name+"\"", 10000, function(result, code){
+      log(app_id);
+      log(app_name);
+
+      callShvMethod("apt", agentPath, "runCmd", "\"sudo apt install -y "+app_name+"\"", 20000, function(result, code){
           if (code == 0 ) {
-            if (document.getElementById(setPostfix(app_id, "Button")).innerHTML == "Enable" ) {
-              document.getElementById(setPostfix(app_id, "Result")).innerHTML = "Installed";
-              document.getElementById(setPostfix(app_id, "Result")).setAttribute("style", "color:green");
-            }
-            service(app_id);
+            showAlert('success', 'Application' + app_name + "(" + app_id + ") was installed.");
+            params = "[ 1, \""+enable+"\", \{\"APP\":\""+app_id+"\"\}, 2 ]";
+            callShvMethod(app_id, agentPath, "runScript", params, 15000, function(result, code)
+            { 
+              if (code == 0) {
+                showAlert('success', 'Application ' + app_name + " (" + app_id + ") was enabled.");
+                loadApplications();
+              }
+              else {
+                showAlert('error', 'Application ' + app_name + " (" + app_id + ") service error.");
+              }
+            });
           }
           else {
-            document.getElementById(setPostfix(app_id, "Result")).innerHTML = "Error";
-            document.getElementById(setPostfix(app_id, "Result")).setAttribute("style", "color:red");
+            showAlert('error', 'Application ' + app_name + " (" + app_id + ") installation error.");
           }
       });
     }
 
-    function service(app_id)
+    function remove(element, app_id)
     {
-      var action = document.getElementById(setPostfix(app_id, "Button")).innerHTML;
-      if ( action == "Enable" ) {
-        params = "[ 1, \""+enable+"\", \{\"APP\":\""+app_id+"\"\}, 2 ]";
-      }
-      else if (action == "Disable") {
-        params = "[ 1, \""+disable+"\", \{\"APP\":\""+app_id+"\"\}, 2 ]";
-      }
-      else {
-        console.log("Unknown action.");
-      }
+      params = "[ 1, \""+disable+"\", \{\"APP\":\""+app_id+"\"\}, 2 ]";
       callShvMethod(app_id, agentPath, "runScript", params, 15000, function(result, code)
       {
-        // console.log(result);
         if (code == 0) {
-        var action = document.getElementById(setPostfix(app_id, "Button")).innerHTML;
-          document.getElementById(setPostfix(app_id, "Status")).innerHTML = result.toString();
-          if ( action == "Enable" ) {
-            document.getElementById(setPostfix(app_id, "Status")).setAttribute("style", "color:green");
-            document.getElementById(setPostfix(app_id, "Button")).innerHTML = "Disable";
-            document.getElementById(setPostfix(app_id, "Result")).innerHTML = "Ok";
-            document.getElementById(setPostfix(app_id, "Result")).setAttribute("style", "color:green");
-          }
-          else if (action == "Disable") {
-            document.getElementById(setPostfix(app_id, "Status")).setAttribute("style", "color:black");
-            document.getElementById(setPostfix(app_id, "Button")).innerHTML = "Enable";
-            document.getElementById(setPostfix(app_id, "Result")).innerHTML = "Ok";
-            document.getElementById(setPostfix(app_id, "Result")).setAttribute("style", "color:green");
-          }
+          app_name=app_id.replace(/[0-9]/g, '');
+          document.getElementById(setPostfix(app_id, "Field")).remove();
+          loadApplications();
+          showAlert('success', 'Application ' + app_name + " (" + app_id + ") was removed.");
         }
         else {
-          document.getElementById(setPostfix(app_id, "Result")).innerHTML = "Error";
-          document.getElementById(setPostfix(app_id, "Result")).setAttribute("style", "color:red");
+          showAlert('error', 'Application ' + app_name + " (" + app_id + ") unable to remove.");
+        }
+
+      });
+    }
+
+    function service(element, app_id)
+    {
+      var el = document.getElementById(element.id).value;
+      switch(el){
+        case "stop":
+          params = "[ 1, \""+stop+"\", \{\"APP\":\""+app_id+"\"\}, 2 ]";
+          var new_value = "start";
+          var new_innerHTML = "&#9654;";
+        break;
+        case "start":
+          params = "[ 1, \""+start+"\", \{\"APP\":\""+app_id+"\"\}, 2 ]";
+          var new_value = "stop";
+          var new_innerHTML = "&#9724;";
+        break;
+        default: 
+          return;
+      }
+
+      callShvMethod(app_id, agentPath, "runScript", params, 15000, function(result, code)
+      {
+        console.log("RESULT:" + result.toString());
+        document.getElementById(setPostfix(app_id, "Status")).innerHTML = result.toString();
+        document.getElementById(setPostfix(app_id, "Status")).setAttribute("style", appStatusColor(result.toString()));
+        app_name=app_id.replace(/[0-9]/g, '');
+        if (code == 0) {
+          showAlert('success', 'Application ' + app_name + " (" + app_id + ") was " + element.value + "ed.");
+          element.value = new_value;
+          element.innerHTML = new_innerHTML;
+        }
+        else {
+          showAlert('error', 'Application ' + app_name + " (" + app_id + ") unable to " + element.value + ".");
         }
       });
     }
 
     function load()
     {
-      var app_div = document.getElementById("applications");
-      if(app_div  != null){
-         document.getElementById("applications").remove();
-      }
+      cleanApplications();
+
       for (i = 0; i < configurationList.length; i++) {
         clean(configurationList[i].id);
       }
       for (i = 0; i < statusList.length; i++) {
         clean(statusList[i].id);
       }
+      
       document.getElementById("callShvMethodOutput").innerHTML = "";
 
       params = "[1,  \""+aptTest+"\", 2]";
@@ -323,42 +414,54 @@
         else {
           document.getElementById("packagesStatus").innerHTML = "Updating packages.";
           callShvMethod("apt", agentPath, "runCmd", "\"sudo apt update\"", 20000, function(result){
+            document.getElementById("callShvMethodOutput").innerHTML += result.toString();
+
             if ( result.search("--upgradable") > 0 ){
-              // params = "[1,  \""+aptUpgrade+"\", \{\""+"DISABLE_SHVAGENT_RESTART"+"\":\""+true+"\"\}, 2]";
-              // callShvMethod("apt", agentPath, "runScript", param, 120000, load);
-              callShvMethod("apt", agentPath, "runCmd", "\"sudo systemctl start shv-upgrade\"", 20000, null);
+              document.getElementById("packagesStatus").innerHTML = "Some packages can be upgraded.";
+              showAlert('warning', 'Some packages can be upgraded.');
+              callShvMethod("apt", agentPath, "runCmd", "\"apt list --upgradable\"", 20000, function(result){
+                document.getElementById("callShvMethodOutput").innerHTML += result;
+              });
+              document.getElementById("packagesUpgrade").style.display = "block";
+            } else if ( result.search("All packages are up to date.") > 0 ) {
+              document.getElementById("packagesStatus").innerHTML = "All packages are up to date.";
+              showAlert('info', 'All packages are up to date.');
+
             }
-            else {
-              if ( result.search("Temporary failure resolving") > 0 ){
-                document.getElementById("packagesStatus").innerHTML = "Failure resolving 'shv.elektroline.cz'";
-              }
-              else {
-                  document.getElementById("packagesStatus").innerHTML = "All packages are up to date.";
-              }
+            status();
 
-              status();
-
-              var params;
-              for (i = 0; i < configurationList.length; i++) {
-                  env_value = document.getElementById(setPostfix(configurationList[i].id, "Input")).value;
-                  env_name = configurationList[i].env_name;
-                  params = "[1, \""+configurationList[i].script+"\", \{\""+env_name+"\":\""+env_value+"\"\} , 2]";
-                  console.log("PARAMS: "+ params);
-                  clean(configurationList[i].id);
-                  callShvMethod(configurationList[i].id, agentPath, "runScript", params, 5000, null);
-              }
-
-              var app_div = document.getElementById("applications");
-              if(app_div  != null){
-                 document.getElementById("applications").remove();
-              }
-
-              params = "[ 1, \""+app+"\", 2 ]";
-              callShvMethod("app", agentPath, "runScript", params, 15000, applications);
+            var params;
+            for (i = 0; i < configurationList.length; i++) {
+              env_value = document.getElementById(setPostfix(configurationList[i].id, "Input")).value;
+              env_name = configurationList[i].env_name;
+              params = "[1, \""+configurationList[i].script+"\", \{\""+env_name+"\":\""+env_value+"\"\} , 2]";
+              clean(configurationList[i].id);
+              callShvMethod(configurationList[i].id, agentPath, "runScript", params, 5000, null);
             }
+
+            cleanApplications();
+            loadApplications();
           });
         }
       });
+    }
+
+    function cleanApplications()
+    {
+      var app_div = document.getElementById("applications");
+      if(app_div  != null){
+        document.getElementById("applications").remove();
+      }
+      var available_app_div = document.getElementById("availableApplications");
+      if(available_app_div  != null){
+        document.getElementById("availableApplications").remove();
+      }
+    }    
+
+    function loadApplications()
+    {
+      params = "[ 1, \""+app+"\", 2 ]";
+      callShvMethod("app", agentPath, "runScript", params, 25000, applications);
     }
 
     function runScript(id)
@@ -377,8 +480,6 @@
 
     function callShvMethod(id, path, method, params, timeout, fn)
     {
-
-        // console.log(params);
         if (websocket && websocket.readyState == 1) {
 
             function shvCallBack(result, code)
@@ -432,8 +533,7 @@
       }
     }
 
-    let wsUri = "ws://192.168.6.2:3777"; //wsUri = "ws://localhost:3777";
-    console.log(wsUri);
+    let wsUri = "";
     let websocket = null;
     let hello_phase = false;
     let login_phase = false;
@@ -448,8 +548,8 @@
     <div class='column c2'><span id='ROWID'></span></div>  \
     <div class='column c3'><input id='ROWIDInput' style='display:none;''> </input></div> \
     <div class='column c4'>  \
-      <button id='ROWIDChange' onClick=\"change('ROWID'); clean('ROWID');\">Change</button> \
-      <button id=\"ROWIDButton\" style=\"display:none;\" onClick=\"runScript('ROWID'); clean('ROWID'); change('ROWID');\">Set</button> \
+      <button class='btn' id='ROWIDChange' onClick=\"change('ROWID'); clean('ROWID');\">Change</button> \
+      <button class='btn' id=\"ROWIDButton\" style=\"display:none;\" onClick=\"runScript('ROWID'); clean('ROWID'); change('ROWID'); showAlert('warning', 'Changes to take effect after a restart of the device.');\">Set</button> \
     </div> \
     <div class='column c5'><span id='ROWIDResult'></span></div> \
     </div>";
@@ -460,6 +560,38 @@
       tmp = tmp.replace(/ROWID/g, configurationList[i].id);
       var element = document.createRange().createContextualFragment(tmp);
       document.getElementById("configurationField").appendChild(element);
+    }
+
+    function showAlert(type, str) {
+      var alerts = document.getElementsByClassName("alert_text");
+      for (i = 0; i < alerts.length; i++) {
+          var text = alerts[i].textContent.toString();
+          if (text.includes(str)) {
+            return;
+          }
+      }
+
+      var template = "\
+      <div class='alert type'> \
+        <span class='closebtn'>&times;</span> \
+        <strong class='alert_text'>TYPE! alertText</strong> \
+      </div>";
+      template = template.replace(/alertText/g, str);   
+      template = template.replace(/type/g, type.toLowerCase());   
+      template = template.replace(/TYPE/g, type.toUpperCase());   
+
+      var element = document.createRange().createContextualFragment(template);
+      document.getElementById("alerts").appendChild(element);
+      
+      var close = document.getElementsByClassName("closebtn");
+      var i;
+
+      for (i = 0; i < close.length; i++) {
+        close[i].onclick = function(){
+          var div = this.parentElement;
+              setTimeout(function(){ div.parentNode.removeChild(div); }, 300);
+        }
+      }
     }
 
     function isJsonString(str) {
@@ -475,14 +607,10 @@
       var path = document.getElementById("shvPath").value.toString();
       wsUri = document.getElementById("wsUri").value.toString();
       if (path.length == 0) {
-        // wsUri = "ws://192.168.6.2:3777";
-        //wsUri = "ws://localhost:3777";
         agentPath = "shv/agent";
-        // agentPath = "agent";
       }
       else {
-        // wsUri = "ws://165.227.247.202:3777";
-        agentPath = path + "/agent";
+        agentPath = path + "-agent";
       }
       console.log(wsUri + "/" + agentPath);
 
@@ -511,19 +639,26 @@
             if (rqid == 1) {
               let user = document.getElementById("shvUser").value.toString();
               let password = document.getElementById("shvPassword").value.toString();
-              let params = format('{"login":{"password":"%s","type":"PLAIN","user":"%s"},"options":{"device":{"mountPoint":"test/configure"},"idleWatchDogTimeOut":180}}', password, user);
+              let params = '{"login":{"password":"' + password + '","type":"PLAIN","user":"' + user + '"},"options":{"device":{"mountPoint":"test/webconfigure"},"idleWatchDogTimeOut":0}}'
               callRpcMethod(null, "login", params)
               hello_phase = false;
               login_phase = true;
             }
           } else if (login_phase) {
             let rqid = rpc_msg.requestId();
+            if (rpc_msg.error()) {
+              console.log("ERROR");
+              document.getElementById("onConnectionError").innerHTML = "Invalid authentication.";
+              setTimeout(function() { document.getElementById("onConnectionError").innerHTML = ""; }, 2000);
+              return;
+            } 
             if (rqid == 2) {
               login_phase = false;
               broker_connected = true;
               document.getElementById("onPath").innerHTML = "Shv Configuration: " + wsUri.substring(5, wsUri.length) +"/" + agentPath; //document.getElementById("shvPath").value;
               document.getElementById("onShowShvConnected").style.display = "block";
               document.getElementById("onHideShvConnected").style.display = "none";
+              document.getElementById("packagesUpgrade").style.display = "none";
               console.log('SUCCESS: connected to shv broker');
               load();
             }
@@ -547,12 +682,12 @@
                       if (result.value[2].toString().length > 2){
                         var msg = result.value[2];
                         requestIdList[index].fn.call(this, prettifyString(msg), 1);
-                        console.log("error");
+                        console.log("ERROR");
                       }
                       else {
                         var msg = result.value[0];
                         requestIdList[index].fn.call(this, prettifyString(msg), result.value[1]);
-                        console.log("ok");
+                        console.log("OK");
                       }
                     }
                     else {
@@ -570,12 +705,11 @@
         websocket.onerror = function(evt) {
           document.getElementById("onHideShvConnected").style.display = "block";
           document.getElementById("onShowShvConnected").style.display = "none";
-          console.log("OnError");
           document.getElementById("onConnectionError").innerHTML = "Unable connect to server";
           console.log('ERROR: ' + evt.data);
         };
-        websocket.onclose = function(evt) {
-          document.getElementById("onConnectionError").innerHTML = "";
+        websocket.onclose = function(evt) {          
+          setTimeout(function() { document.getElementById("onConnectionError").innerHTML = ""; }, 2000);
           document.getElementById("onHideShvConnected").style.display = "block";
           document.getElementById("onShowShvConnected").style.display = "none";
           console.log('socket close code: ' + evt.code);
@@ -608,7 +742,6 @@
     function sendRpcMessage(rpc_msg) {
       if (websocket && websocket.readyState == 1) {
         console.log("Sending rpc message:", rpc_msg.toString());
-        //console.log("sending rpc message:", rpc_msg.toString())
         if (isUseCpon)
           var msg_data = new Uint8Array(rpc_msg.toCpon());
         else
@@ -642,8 +775,6 @@
       else
         rd = new ChainPackReader(rd.ctx)
       let rpc_val = rd.read();
-      //console.log("msg buff len " + buff.byteLength + " offset: " + offset)
-      //return String.fromCharCode.apply(null, new Uint8Array(buff, offset));
       return rpc_val;
     }
   </script>
