@@ -26,7 +26,7 @@ LogDirReader::LogDirReader(const QString &shv_path, int prefix_length, const QDa
 		m_pathPrefix = (shv_path.right(prefix_length - 1) + "/").toStdString();
 	}
 
-	m_previousFileUntil = since.isValid() ? since.toMSecsSinceEpoch() : Application::WORLD_BEGIN.toMSecsSinceEpoch();
+	m_previousFileUntil = since.isValid() ? since.toMSecsSinceEpoch() : 0LL;
 	m_typeInfo = m_header.typeInfo();
 	openNextFile();
 }
@@ -102,7 +102,7 @@ void LogDirReader::openNextFile()
 			m_typeInfo = m_header.typeInfo();
 		}
 	}
-	if (!current_file_since || m_previousFileUntil < current_file_since) {
+	if (m_previousFileUntil && (!current_file_since || m_previousFileUntil < current_file_since)) {
 		m_fakeEntryList.push_back(ShvJournalEntry {
 								   ShvJournalEntry::PATH_DATA_MISSING,
 								   ShvJournalEntry::DATA_MISSING_LOG_CACHE_FILE_MISSING,

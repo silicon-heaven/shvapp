@@ -156,7 +156,8 @@ void DirtyLogManager::checkDirtyLog(const QString &shv_path, bool is_connected)
 {
 	LogDir log_dir(shv_path);
 	if (!log_dir.exists(log_dir.dirtyLogName())) {
-		QDateTime since = Application::WORLD_BEGIN;
+		QDateTime current = QDateTime::currentDateTimeUtc();
+		QDateTime since = current;
 		QStringList log_files = log_dir.findFiles(QDateTime(), QDateTime());
 		if (log_files.count()) {
 			ShvLogHeader latest_header = ShvLogFileReader(log_files.last().toStdString()).logHeader();
@@ -171,7 +172,6 @@ void DirtyLogManager::checkDirtyLog(const QString &shv_path, bool is_connected)
 								ShvJournalEntry::SampleType::Continuous,
 								since.toMSecsSinceEpoch()
 							});
-		QDateTime current = QDateTime::currentDateTimeUtc();
 		if (!is_connected || since < current) {
 			dirty_writer.append(ShvJournalEntry{
 									ShvJournalEntry::PATH_DATA_MISSING,

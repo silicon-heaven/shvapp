@@ -35,7 +35,7 @@ void DeviceLogRequest::getChunk()
 	connect(cb, &shv::iotqt::rpc::RpcResponseCallBack::finished, this, &DeviceLogRequest::onChunkReceived);
 	cb->start();
 	if (m_askElesys) {
-		if (m_since.date().daysTo(QDate::currentDate()) < 3) {
+		if (m_since.isValid() && m_since.date().daysTo(QDate::currentDate()) < 3) {
 			m_askElesys = false;
 		}
 	}
@@ -89,7 +89,7 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 		if (log.entries().size()) {
 			first_record_time = QDateTime::fromMSecsSinceEpoch(log.entries()[0].epochMsec, Qt::TimeSpec::UTC);
 			last_record_time = QDateTime::fromMSecsSinceEpoch(log.entries()[log.entries().size() - 1].epochMsec, Qt::TimeSpec::UTC);
-			is_finished = (int)log.entries().size() < Application::SINGLE_FILE_RECORD_COUNT;
+			is_finished = (int)log.entries().size() < Application::CHUNK_RECORD_COUNT;
 			if (!is_finished) {
 				until = last_record_time;
 			}
@@ -106,7 +106,7 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 				  << "since" << first_record_time
 				  << "until" << last_record_time;
 
-		if (!tryAppendToPreviousFile(log, until)) {
+		if (!m_since.isValid() || !tryAppendToPreviousFile(log, until)) {
 			saveToNewFile(log);
 		}
 		trimDirtyLog(until);
@@ -134,14 +134,14 @@ ShvGetLogParams DeviceLogRequest::logParams() const
 	ShvGetLogParams params;
 	params.since = cp::RpcValue::fromValue(m_since);
 	params.until = cp::RpcValue::fromValue(m_until);
-	params.recordCountLimit = Application::SINGLE_FILE_RECORD_COUNT;
+	params.recordCountLimit = Application::CHUNK_RECORD_COUNT;
 	params.withSnapshot = true;
 	return params;
 }
 
 bool DeviceLogRequest::tryAppendToPreviousFile(ShvMemoryJournal &log, const QDateTime &until)
 {
-	if ((int)log.entries().size() < Application::SINGLE_FILE_RECORD_COUNT) {  //check append to previous file to avoid fragmentation
+	if ((int)log.entries().size() < Application::CHUNK_RECORD_COUNT) {  //check append to previous file to avoid fragmentation
 		LogDir log_dir(m_shvPath);
 		QStringList all_files = log_dir.findFiles(m_since.addMSecs(-1), m_since);
 		if (all_files.count() == 1) {
@@ -160,7 +160,7 @@ bool DeviceLogRequest::tryAppendToPreviousFile(ShvMemoryJournal &log, const QDat
 					SHV_QT_EXCEPTION("Missing until in file " + all_files[0]);
 				}
 				int64_t orig_until = orig_until_cp.toDateTime().msecsSinceEpoch();
-				if (orig_until == m_since.toMSecsSinceEpoch() && orig_record_count + (int)log.entries().size() <= Application::SINGLE_FILE_RECORD_COUNT) {
+				if (orig_until == m_since.toMSecsSinceEpoch() && orig_record_count + (int)log.entries().size() <= Application::CHUNK_RECORD_COUNT) {
 					ShvMemoryJournal joined_log;
 					joined_log.loadLog(orig_log);
 
@@ -198,11 +198,21 @@ bool DeviceLogRequest::tryAppendToPreviousFile(ShvMemoryJournal &log, const QDat
 
 void DeviceLogRequest::saveToNewFile(ShvMemoryJournal &log)
 {
-	QFile file(LogDir(m_shvPath).filePath(m_since));
+	cp::RpcValue log_cp = log.getLog(logParams());
+
+	QDateTime since;
+	if (m_since.isValid()) {
+		since = m_since;
+	}
+	else {
+		since = rpcvalue_cast<QDateTime>(log_cp.metaValue("since"));
+		log_cp.setMetaValue("HP", cp::RpcValue::Map{{ "firstLog", true }});
+	}
+	QFile file(LogDir(m_shvPath).filePath(since));
 	if (!file.open(QFile::WriteOnly)) {
 		SHV_QT_EXCEPTION("Cannot open file " + file.fileName());
 	}
-	file.write(QByteArray::fromStdString(log.getLog(logParams()).toChainPack()));
+	file.write(QByteArray::fromStdString(log_cp.toChainPack()));
 	file.close();
 }
 

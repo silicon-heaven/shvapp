@@ -67,12 +67,28 @@ void CheckLogTask::exec()
 void CheckLogTask::checkOldDataConsistency()
 {
 	m_dirEntries = m_logDir.findFiles(QDateTime(), QDateTime());
-	QDateTime requested_since = Application::WORLD_BEGIN;
+	QDateTime requested_since;
 	for (int i = 0; i < m_dirEntries.count(); ++i) {
 		ShvLogHeader header = ShvLogFileReader(m_dirEntries[i].toStdString()).logHeader();
 		QDateTime file_since = rpcvalue_cast<QDateTime>(header.since());
 		QDateTime file_until = rpcvalue_cast<QDateTime>(header.until());
-		if (requested_since < file_since) {
+		if (!requested_since.isValid()) {
+			std::ifstream in_file;
+			in_file.open(m_dirEntries[i].toStdString(),  std::ios::in | std::ios::binary);
+			shv::chainpack::ChainPackReader first_file_reader(in_file);
+			cp::RpcValue::MetaData meta_data;
+			first_file_reader.read(meta_data);
+			cp::RpcValue meta_hp = meta_data.value("HP");
+			bool has_first_log_mark = false;
+			if (meta_hp.isMap()) {
+				cp::RpcValue meta_first = meta_hp.toMap().value("firstLog");
+				has_first_log_mark = meta_first.isBool() && meta_first.toBool();
+			}
+			if (!has_first_log_mark) {
+				getLog(QDateTime(), file_since);
+			}
+		}
+		else if (requested_since < file_since) {
 			getLog(requested_since, file_since);
 		}
 		requested_since = file_until;
@@ -90,7 +106,7 @@ void CheckLogTask::checkOldDataConsistency()
 		}
 	}
 
-	if (requested_until.isValid() && requested_since < requested_until) {
+	if (requested_until.isValid() && (!requested_since.isValid() || requested_since < requested_until)) {
 		getLog(requested_since, requested_until);
 	}
 }
@@ -127,7 +143,7 @@ void CheckLogTask::checkDirtyLogState()
 				journal_since = log_since;
 			}
 			QDateTime current = QDateTime::currentDateTimeUtc();
-			if (rec_count >= Application::SINGLE_FILE_RECORD_COUNT || journal_since.secsTo(current) > Application::instance()->cliOptions()->trimDirtyLogInterval() * 60) {
+			if (rec_count >= Application::CHUNK_RECORD_COUNT || journal_since.secsTo(current) > Application::instance()->cliOptions()->trimDirtyLogInterval() * 60) {
 				getLog(journal_since, current);
 			}
 		}
