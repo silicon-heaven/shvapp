@@ -94,9 +94,5 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 	}
 	qDeleteAll(readers);
 
-	cp::RpcValue result = m_mergedLog.getLog(m_logParams);
-	if (!since.isValid() || since < Application::WORLD_BEGIN) {
-		result.setMetaValue("since", cp::RpcValue::DateTime::fromMSecsSinceEpoch(Application::WORLD_BEGIN.toMSecsSinceEpoch()));
-	}
-	return result;
+	return m_mergedLog.getLog(m_logParams);;
 }

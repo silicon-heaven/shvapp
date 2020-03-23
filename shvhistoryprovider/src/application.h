@@ -18,8 +18,7 @@ class Application : public QCoreApplication
 	using Super = QCoreApplication;
 
 public:
-	static const int SINGLE_FILE_RECORD_COUNT;
-	static const QDateTime WORLD_BEGIN;
+	static const int CHUNK_RECORD_COUNT;
 	static const char *DIRTY_LOG_NODE;
 	static const char *START_TS_NODE;
 
