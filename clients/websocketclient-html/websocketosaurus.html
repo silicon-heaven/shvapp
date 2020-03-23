@@ -119,7 +119,7 @@
 							let rqid = rpc_msg.requestId().toInt();
 							if(rqid == 1) {
 								// <T:RpcMessage,id:2,method:"login">i{params:{"login":{"password":"lub42DUB","type":"PLAIN","user":"iot"},"options":{"device":{"mountPoint":"test/agent1"},"idleWatchDogTimeOut":0}}}
-								let params = '{"login":{"password":"' + password + '","type":"PLAIN","user":"' + user + '"},"options":{"device":{"mountPoint":"test/websocketosaurus"},"idleWatchDogTimeOut":0}}'
+								let params = '{"login":{"password":"' + password + '","type":"PLAIN","user":"' + user + '"},"options":{"idleWatchDogTimeOut": 3600}}'
 								callRpcMethod(null, "login", params)
 								hello_phase = false;
 								login_phase = true;
