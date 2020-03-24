@@ -3,6 +3,7 @@
 #include <shv/coreqt/log.h>
 
 #include <shv/core/utils.h>
+#include <shv/core/exception.h>
 
 #include <QSocketNotifier>
 
@@ -41,27 +42,27 @@ void PtyProcess::openPty()
 	m_masterPtyFd = ::posix_openpt(O_RDWR | O_NOCTTY | O_NONBLOCK); /* Open pty master */
 	shvInfo() << "master PTY fd:" << m_masterPtyFd;
 	if (m_masterPtyFd == -1)
-		throw std::runtime_error(strerror(errno));
+		SHV_EXCEPTION(strerror(errno));
 	/* Grant access to slave pty */
 	if (::grantpt(m_masterPtyFd) == -1) { /// BSD specific, not needed in Linux
 		std::string err = "grantpt(): " + std::string(strerror(errno));
 		::close(m_masterPtyFd);
 		m_masterPtyFd = -1;
-		throw std::runtime_error(err);
+		SHV_EXCEPTION(err);
 	}
 
 	if (::unlockpt(m_masterPtyFd) == -1) { /* Unlock slave pty */
 		std::string err = "unlockpt(): " + std::string(strerror(errno));
 		::close(m_masterPtyFd);
 		m_masterPtyFd = -1;
-		throw std::runtime_error(err);
+		SHV_EXCEPTION(err);
 	}
 	char *p = ptsname(m_masterPtyFd); /* Get slave pty name */
-	if (p == NULL) {
+	if (p == nullptr) {
 		std::string err = "ptsname(): " + std::string(strerror(errno));
 		::close(m_masterPtyFd);
 		m_masterPtyFd = -1;
-		throw std::runtime_error(err);
+		SHV_EXCEPTION(err);
 	}
 	m_slavePtyName = p;
 	shvInfo() << "slave PTY name:" << m_slavePtyName;
@@ -72,7 +73,7 @@ void PtyProcess::openPty()
 		std::string err = "pipe(): " + std::string(strerror(errno));
 		::close(m_masterPtyFd);
 		m_masterPtyFd = -1;
-		throw std::runtime_error(err);
+		SHV_EXCEPTION(err);
 	}
 	*/
 	m_masterPtyNotifier = new QSocketNotifier(m_masterPtyFd, QSocketNotifier::Read, this);
@@ -119,16 +120,16 @@ void PtyProcess::setupChildProcess()
 	//	shvError() << "Error set process group ID:" << errno << ::strerror(errno);
 
 	if (::setsid() == -1)  /* Start a new session */
-		throw std::runtime_error("setsid(): " + std::string(::strerror(errno)));
+		SHV_EXCEPTION("setsid(): " + std::string(::strerror(errno)));
 
 	int slave_fd = ::open(m_slavePtyName.data(), O_RDWR | O_NONBLOCK); /* Becomes controlling tty */
 	shvInfo() << "slave PTY fd:" << slave_fd;
 	if (slave_fd == -1)
-		throw std::runtime_error("open(\"" + m_slavePtyName + "\"): " + std::string(::strerror(errno)));
+		SHV_EXCEPTION("open(\"" + m_slavePtyName + "\"): " + std::string(::strerror(errno)));
 #ifdef TIOCSCTTY
 	/* Acquire controlling tty on BSD */
 	if (ioctl(slave_fd, TIOCSCTTY, 0) == -1)
-		throw std::runtime_error("ioctl(slave_fd, TIOCSCTTY, 0): " + std::string(::strerror(errno)));
+		SHV_EXCEPTION("ioctl(slave_fd, TIOCSCTTY, 0): " + std::string(::strerror(errno)));
 #endif
 	::close(m_masterPtyFd); /* Not needed in child */
 	/*
@@ -142,11 +143,11 @@ void PtyProcess::setupChildProcess()
 	if(m_ptyCols * m_ptyRows != 0) {
 		struct winsize term_window_size;
 		if (ioctl(slave_fd, TIOCGWINSZ, &term_window_size) == -1)
-			throw std::runtime_error("ioctl(slave_fd, TIOCGWINSZ, &term_window_size): " + std::string(::strerror(errno)));
+			SHV_EXCEPTION("ioctl(slave_fd, TIOCGWINSZ, &term_window_size): " + std::string(::strerror(errno)));
 		term_window_size.ws_col = m_ptyCols;
 		term_window_size.ws_row = m_ptyRows;
 		if (ioctl(slave_fd, TIOCSWINSZ, &term_window_size) == -1)
-			throw std::runtime_error("ioctl(slave_fd, TIOCSWINSZ, &term_window_size): " + std::string(::strerror(errno)));
+			SHV_EXCEPTION("ioctl(slave_fd, TIOCSWINSZ, &term_window_size): " + std::string(::strerror(errno)));
 	}
 	/*
 	::close(m_sendSlavePtyFd[0]);
@@ -154,11 +155,11 @@ void PtyProcess::setupChildProcess()
 	*/
 	/* Duplicate pty slave to be child's stdin, stdout, and stderr */
 	if (dup2(slave_fd, STDIN_FILENO) != STDIN_FILENO)
-		throw std::runtime_error("ptyFork:dup2-STDIN_FILENO");
+		SHV_EXCEPTION("ptyFork:dup2-STDIN_FILENO");
 	if (dup2(slave_fd, STDOUT_FILENO) != STDOUT_FILENO)
-		throw std::runtime_error("ptyFork:dup2-STDOUT_FILENO");
+		SHV_EXCEPTION("ptyFork:dup2-STDOUT_FILENO");
 	if (dup2(slave_fd, STDERR_FILENO) != STDERR_FILENO)
-		throw std::runtime_error("ptyFork:dup2-STDERR_FILENO");
+		SHV_EXCEPTION("ptyFork:dup2-STDERR_FILENO");
 	if (slave_fd > STDERR_FILENO) /* Safety check */
 		::close(slave_fd);  /* No longer need this fd */
 }

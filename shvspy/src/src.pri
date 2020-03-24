@@ -1,10 +1,15 @@
 HEADERS += \
-	$$PWD/version.h \
-	$$PWD/mainwindow.h \
-	$$PWD/dlgserverproperties.h \
-	$$PWD/theapp.h \
-	$$PWD/servertreemodel/servertreemodel.h \
-	$$PWD/attributesmodel/attributesmodel.h \
+    $$PWD/dlgaddeditrole.h \
+    $$PWD/dlgroleseditor.h \
+    $$PWD/accessmodel/accessmodel.h \
+    $$PWD/dlgselectroles.h \
+    $$PWD/rolestreemodel/rolestreemodel.h \
+    $$PWD/version.h \
+    $$PWD/mainwindow.h \
+    $$PWD/dlgserverproperties.h \
+    $$PWD/theapp.h \
+    $$PWD/servertreemodel/servertreemodel.h \
+    $$PWD/attributesmodel/attributesmodel.h \
     $$PWD/servertreeview.h \
     $$PWD/dlgsubscriptionparameters.h \
     $$PWD/appclioptions.h \
@@ -18,19 +23,21 @@ HEADERS += \
     $$PWD/subscriptionsmodel/subscriptionsmodel.h \
     $$PWD/subscriptionsmodel/subscriptionstableitemdelegate.h \
     $$PWD/dlguserseditor.h \
-    $$PWD/dlgaddedituser.h \
-    $$PWD/dlggrantseditor.h \
-    $$PWD/dlgaddeditgrant.h \
-    $$PWD/pathsmodel/pathsmodel.h \
-    $$PWD/pathsmodel/pathstableitemdelegate.h
+    $$PWD/dlgaddedituser.h
+
 
 SOURCES += \
-	$$PWD/main.cpp\
-	$$PWD/mainwindow.cpp \
-	$$PWD/dlgserverproperties.cpp \
-	$$PWD/theapp.cpp \
-	$$PWD/servertreemodel/servertreemodel.cpp \
-	$$PWD/attributesmodel/attributesmodel.cpp \
+    $$PWD/dlgaddeditrole.cpp \
+    $$PWD/dlgroleseditor.cpp \
+    $$PWD/dlgselectroles.cpp \
+    $$PWD/main.cpp\
+    $$PWD/mainwindow.cpp \
+    $$PWD/dlgserverproperties.cpp \
+    $$PWD/accessmodel/accessmodel.cpp \
+    $$PWD/rolestreemodel/rolestreemodel.cpp \
+    $$PWD/theapp.cpp \
+    $$PWD/servertreemodel/servertreemodel.cpp \
+    $$PWD/attributesmodel/attributesmodel.cpp \
     $$PWD/servertreeview.cpp \
     $$PWD/dlgsubscriptionparameters.cpp \
     $$PWD/appclioptions.cpp \
@@ -44,24 +51,21 @@ SOURCES += \
     $$PWD/subscriptionsmodel/subscriptionsmodel.cpp \
     $$PWD/subscriptionsmodel/subscriptionstableitemdelegate.cpp \
     $$PWD/dlguserseditor.cpp \
-    $$PWD/dlgaddedituser.cpp \
-    $$PWD/dlggrantseditor.cpp \
-    $$PWD/dlgaddeditgrant.cpp \
-    $$PWD/pathsmodel/pathsmodel.cpp \
-    $$PWD/pathsmodel/pathstableitemdelegate.cpp \
+    $$PWD/dlgaddedituser.cpp
 
 FORMS += \
-	$$PWD/mainwindow.ui \
-	$$PWD/dlgserverproperties.ui \
-	$$PWD/dlgsubscriptionparameters.ui \
+    $$PWD/dlgaddeditrole.ui \
+    $$PWD/dlgroleseditor.ui \
+    $$PWD/dlgselectroles.ui \
+    $$PWD/mainwindow.ui \
+    $$PWD/dlgserverproperties.ui \
+    $$PWD/dlgsubscriptionparameters.ui \
     $$PWD/lastusedparamswidget.ui \
     $$PWD/methodparametersdialog.ui \
     $$PWD/texteditdialog.ui \
     $$PWD/subscriptionswidget.ui \
     $$PWD/dlgcallshvmethod.ui \
     $$PWD/dlgaddedituser.ui \
-    $$PWD/dlguserseditor.ui \
-    $$PWD/dlggrantseditor.ui \
-    $$PWD/dlgaddeditgrant.ui
+    $$PWD/dlguserseditor.ui
 
 include ( $$PWD/log/log.pri )

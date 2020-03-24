@@ -5,7 +5,7 @@
 
 namespace shv { namespace chainpack { class RpcMessage; class RpcValue; }}
 namespace shv { namespace iotqt { namespace node { class ShvNodeTree; }}}
-namespace shv { namespace core { namespace utils { class FileShvJournal; struct ShvJournalEntry; }}}
+namespace shv { namespace core { namespace utils { class ShvFileJournal; struct ShvJournalEntry; }}}
 
 class RevitestDevice : public QObject
 {

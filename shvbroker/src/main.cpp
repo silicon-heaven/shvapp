@@ -55,7 +55,9 @@ int main(int argc, char *argv[])
 	shvInfo() << QDateTime::currentDateTime().toString(Qt::ISODate).toStdString() << "UTC:" << QDateTime::currentDateTimeUtc().toString(Qt::ISODate).toStdString();
 	shvInfo() << "======================================================================================";
 	shvInfo() << "Log tresholds:" << NecroLog::tresholdsLogInfo();
-	//shvInfo() << NecroLog::instantiationInfo();
+	shvInfo() << "Config dir:" << cli_opts.configDir();
+	if(cli_opts.isSqlConfigEnabled())
+		shvInfo() << "SQL config database" << cli_opts.sqlConfigDatabase() << "driver" << cli_opts.sqlConfigDriver();
 	shvInfo() << "Primary IPv4 address:" << shv::iotqt::utils::Network::primaryIPv4Address().toString();
 	shvInfo() << "Primary public IPv4 address:" << shv::iotqt::utils::Network::primaryPublicIPv4Address().toString();
 	shvInfo() << "--------------------------------------------------------------------------------------";

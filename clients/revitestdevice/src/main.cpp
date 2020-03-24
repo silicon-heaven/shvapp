@@ -4,7 +4,7 @@
 #include <shv/chainpack/rpcmessage.h>
 #include <shv/core/utils.h>
 #include <shv/coreqt/log.h>
-#include <shv/core/utils/fileshvjournal.h>
+#include <shv/core/utils/shvfilejournal.h>
 
 #include <QTextStream>
 #include <QTranslator>

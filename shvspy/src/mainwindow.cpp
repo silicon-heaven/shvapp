@@ -10,7 +10,7 @@
 #include "dlgsubscriptionparameters.h"
 #include "dlgcallshvmethod.h"
 #include "dlguserseditor.h"
-#include "dlggrantseditor.h"
+#include "dlgroleseditor.h"
 #include "methodparametersdialog.h"
 #include "texteditdialog.h"
 
@@ -192,7 +192,7 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 	QAction *a_subscribeNode = new QAction(tr("Subscribe"), &m);
 	QAction *a_callShvMethod = new QAction(tr("Call shv method"), &m);
 	QAction *a_usersEditor = new QAction(tr("Users editor"), &m);
-	QAction *a_grantsEditor = new QAction(tr("Grants editor"), &m);
+	QAction *a_rolesEditor = new QAction(tr("Roles editor"), &m);
 
 	//QAction *a_test = new QAction(tr("create test.txt"), &m);
 	if(!nd) {
@@ -215,7 +215,7 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 
 		if (nd->nodeId() == ".broker"){
 			m.addAction(a_usersEditor);
-			m.addAction(a_grantsEditor);
+			m.addAction(a_rolesEditor);
 		}
 	}
 	if(!m.actions().isEmpty()) {
@@ -248,17 +248,17 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
 
 					DlgUsersEditor dlg(this, cc);
-					dlg.init(nd->shvPath());
+					dlg.init(nd->shvPath() + "/etc/acl/");
 					dlg.exec();
 				}
 			}
-			else if(a == a_grantsEditor) {
+			else if(a == a_rolesEditor) {
 				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
 				if(nd) {
 					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
 
-					DlgGrantsEditor dlg(this, cc);
-					dlg.init(nd->shvPath());
+					DlgRolesEditor dlg(this, cc);
+					dlg.init(nd->shvPath() + "/etc/acl/");
 					dlg.exec();
 				}
 			}

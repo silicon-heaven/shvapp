@@ -4,6 +4,7 @@
 #include <QDialog>
 
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
+#include <shv/chainpack/rpcvalue.h>
 
 namespace Ui {
 class DlgUsersEditor;
@@ -31,6 +32,7 @@ private:
 
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
 	std::string m_aclEtcUsersNodePath;
+	std::string m_aclEtcRolesNodePath;
 };
 
 #endif // DLGUSERSEDITOR_H

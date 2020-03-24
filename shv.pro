@@ -21,6 +21,7 @@ SUBDIRS += \
     shvrsh \
     shvsitesprovider \
     shvbrclabprovider \
-    eyassrvctl \
+    shvhistoryprovider \
+    #eyassrvctl \
 }
 

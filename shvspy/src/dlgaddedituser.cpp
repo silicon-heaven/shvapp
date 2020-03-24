@@ -2,23 +2,31 @@
 #include "ui_dlgaddedituser.h"
 
 #include "theapp.h"
+#include "dlgselectroles.h"
+
+#include <shv/broker/aclrole.h>
+
 
 #include <QCryptographicHash>
 
+static const std::string VALUE_METHOD = "value";
+static const std::string SET_VALUE_METHOD = "setValue";
 
-DlgAddEditUser::DlgAddEditUser(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_users_node_path, DlgAddEditUser::DialogType dt) :
+DlgAddEditUser::DlgAddEditUser(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection, const std::string &acl_etc_users_node_path,
+							   const std::string &acl_etc_roles_node_path, DlgAddEditUser::DialogType dt) :
 	QDialog(parent),
 	ui(new Ui::DlgAddEditUser),
-	m_aclEtcUsersNodePath(acl_etc_users_node_path)
+	m_aclEtcUsersNodePath(acl_etc_users_node_path),
+	m_aclEtcRolesNodePath(acl_etc_roles_node_path)
 {
 	ui->setupUi(this);
 	m_dialogType = dt;
 	bool edit_mode = (m_dialogType == DialogType::Edit);
 
-	showPasswordItems(!edit_mode);
 	ui->leUserName->setReadOnly(edit_mode);
 	ui->groupBox->setTitle(edit_mode ? tr("Edit user") : tr("New user"));
 	setWindowTitle(edit_mode ? tr("Edit user dialog") : tr("New user dialog"));
+	ui->lblPassword->setText(edit_mode ? tr("New password") : tr("Password"));
 
 	m_rpcConnection = rpc_connection;
 
@@ -26,12 +34,8 @@ DlgAddEditUser::DlgAddEditUser(QWidget *parent, shv::iotqt::rpc::ClientConnectio
 		ui->lblStatus->setText(tr("Connection to shv does not exist."));
 	}
 
-	connect(ui->pbChangePassword, &QPushButton::clicked, this, [this](){
-		showPasswordItems(true);
-		ui->lePassword->setFocus();
-	});
-
 	connect(ui->tbShowPassword, &QToolButton::clicked, this, &DlgAddEditUser::onShowPasswordClicked);
+	connect(ui->pbSelectRoles, &QPushButton::clicked, this, &DlgAddEditUser::onSelectRolesClicked);
 }
 
 DlgAddEditUser::~DlgAddEditUser()
@@ -51,15 +55,15 @@ DlgAddEditUser::DialogType DlgAddEditUser::dialogType()
 	return m_dialogType;
 }
 
-QString DlgAddEditUser::user()
+std::string DlgAddEditUser::user()
 {
-	return ui->leUserName->text();
+	return ui->leUserName->text().toStdString();
 }
 
 void DlgAddEditUser::setUser(const QString &user)
 {
 	ui->leUserName->setText(user);
-	callGetGrants();
+	callGetUserSettings();
 }
 
 QString DlgAddEditUser::password()
@@ -70,9 +74,15 @@ QString DlgAddEditUser::password()
 void DlgAddEditUser::accept()
 {
 	if (dialogType() == DialogType::Add){
-		if ((!user().isEmpty()) && (!password().isEmpty())){
-			ui->lblStatus->setText(tr("Adding new user ..."));
-			callAddUser();
+		if ((!user().empty()) && (!password().isEmpty())){
+			ui->lblStatus->setText(tr("Adding new user"));
+
+			if (ui->chbCreateRole->isChecked()){
+				callCreateRoleAndSetSettings(user());
+			}
+			else{
+				callSetUserSettings();
+			}
 		}
 		else {
 			ui->lblStatus->setText(tr("User name or password is empty."));
@@ -80,11 +90,13 @@ void DlgAddEditUser::accept()
 	}
 	else if (dialogType() == DialogType::Edit){
 		ui->lblStatus->setText(tr("Updating user ...") + QString::fromStdString(m_aclEtcUsersNodePath));
-		if (!password().isEmpty()){
-			callChangePassword();
-		}
 
-		callSetGrants();
+		if (ui->chbCreateRole->isChecked()){
+			callCreateRoleAndSetSettings(user());
+		}
+		else{
+			callSetUserSettings();
+		}
 	}
 }
 
@@ -95,15 +107,20 @@ void DlgAddEditUser::onShowPasswordClicked()
 	ui->tbShowPassword->setIcon((password_mode) ? QIcon(":/shvspy/images/hide.svg") : QIcon(":/shvspy/images/show.svg"));
 }
 
-void DlgAddEditUser::callAddUser()
+void DlgAddEditUser::onSelectRolesClicked()
+{
+	DlgSelectRoles dlg(this);
+	dlg.init(m_rpcConnection, m_aclEtcRolesNodePath, roles());
+
+	if (dlg.exec() == QDialog::Accepted){
+		setRoles(dlg.selectedRoles());
+	}
+}
+
+void DlgAddEditUser::callCreateRoleAndSetSettings(const std::string &role_name)
 {
 	if (m_rpcConnection == nullptr)
 		return;
-
-	shv::chainpack::RpcValue::Map params;
-	params["user"] = user().toStdString();
-	params["password"] = sha1_hex(password().toStdString());
-	params["grants"] = grants();
 
 	int rqid = m_rpcConnection->nextRequestId();
 	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
@@ -111,10 +128,10 @@ void DlgAddEditUser::callAddUser()
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if (response.isValid()){
 			if(response.isError()) {
-				ui->lblStatus->setText(tr("Failed to add user.") + QString::fromStdString(response.error().toString()));
+				ui->lblStatus->setText(tr("Failed to add role.") + QString::fromStdString(response.error().toString()));
 			}
 			else{
-				QDialog::accept();
+				callSetUserSettings();
 			}
 		}
 		else{
@@ -122,67 +139,13 @@ void DlgAddEditUser::callAddUser()
 		}
 	});
 
-	ui->lblStatus->setText(QString::fromStdString(m_aclEtcUsersNodePath));
-	m_rpcConnection->callShvMethod(rqid, m_aclEtcUsersNodePath, "addUser", params);
+	shv::broker::AclRole role(0);
+
+	shv::chainpack::RpcValue::List params{role_name, role.toRpcValueMap()};
+	m_rpcConnection->callShvMethod(rqid, m_aclEtcRolesNodePath, SET_VALUE_METHOD, params);
 }
 
-void DlgAddEditUser::callChangePassword()
-{
-	if (m_rpcConnection == nullptr)
-		return;
-
-	m_requestedRpcCallsCount++;
-
-	int rqid = m_rpcConnection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
-
-	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
-		if (response.isValid()){
-			if(response.isError()) {
-				ui->lblStatus->setText(QString::fromStdString(response.error().toString()));
-			}
-			else{
-				m_requestedRpcCallsCount--;
-				callCommitChanges();
-			}
-		}
-		else{
-			ui->lblStatus->setText(tr("Request timeout expired"));
-		}
-	});
-
-	m_rpcConnection->callShvMethod(rqid, userShvPath() + "password", "set", sha1_hex(password().toStdString()));
-}
-
-void DlgAddEditUser::callSetGrants()
-{
-	if (m_rpcConnection == nullptr)
-		return;
-
-	m_requestedRpcCallsCount++;
-
-	int rqid = m_rpcConnection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
-
-	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
-		if (response.isValid()){
-			if(response.isError()) {
-				ui->lblStatus->setText(QString::fromStdString(response.error().toString()));
-			}
-			else{
-				m_requestedRpcCallsCount--;
-				callCommitChanges();
-			}
-		}
-		else{
-			ui->lblStatus->setText(tr("Request timeout expired"));
-		}
-	});
-
-	m_rpcConnection->callShvMethod(rqid, userShvPath() + "grants", "set", grants());
-}
-
-void DlgAddEditUser::callGetGrants()
+void DlgAddEditUser::callGetUserSettings()
 {
 	if (m_rpcConnection == nullptr)
 		return;
@@ -198,7 +161,8 @@ void DlgAddEditUser::callGetGrants()
 				ui->lblStatus->setText(QString::fromStdString(response.error().toString()));
 			}
 			else{
-				(response.result().isList())? setGrants(response.result().toList()) : setGrants(shv::chainpack::RpcValue::List());
+				m_user = shv::broker::AclUser::fromRpcValue(response.result());
+				setRoles(m_user.roles);
 				ui->lblStatus->setText("");
 			}
 		}
@@ -207,66 +171,89 @@ void DlgAddEditUser::callGetGrants()
 		}
 	});
 
-	m_rpcConnection->callShvMethod(rqid, userShvPath() + "grants", "get");
+	m_rpcConnection->callShvMethod(rqid, userShvPath(), VALUE_METHOD);
 }
 
-void DlgAddEditUser::callCommitChanges()
+void DlgAddEditUser::callSetUserSettings()
 {
-	if ((m_requestedRpcCallsCount == 0) && (m_rpcConnection != nullptr)){
-		int rqid = m_rpcConnection->nextRequestId();
-		shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
+	if (m_rpcConnection == nullptr)
+		return;
 
-		cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
-			if(response.isValid()){
-				if(response.isError()) {
-					ui->lblStatus->setText(QString::fromStdString(response.error().toString()));
-				}
-				else{
-					QDialog::accept();
-				}
-			}
-			else {
-				ui->lblStatus->setText(tr("Request timeout expired"));
-			}
-		});
+	int rqid = m_rpcConnection->nextRequestId();
+	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
-		m_rpcConnection->callShvMethod(rqid, m_aclEtcUsersNodePath, "commitChanges");
+	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
+		if (response.isValid()){
+			if(response.isError()) {
+				ui->lblStatus->setText(QString::fromStdString(response.error().toString()));
+			}
+			else{
+				QDialog::accept();
+			}
+		}
+		else{
+			ui->lblStatus->setText(tr("Request timeout expired"));
+		}
+	});
+
+	shv::chainpack::RpcValue::Map user_settings;
+
+	m_user.roles = roles();
+
+	if (!password().isEmpty()){
+		m_user.password.format = shv::broker::AclPassword::Format::Sha1;
+		m_user.password.password = sha1_hex(password().toStdString());
 	}
+
+	shv::chainpack::RpcValue::List params{user(), m_user.toRpcValueMap()};
+	m_rpcConnection->callShvMethod(rqid, aclUsersShvPath(), SET_VALUE_METHOD, params);
+}
+
+const std::string &DlgAddEditUser::aclUsersShvPath()
+{
+	return m_aclEtcUsersNodePath;
 }
 
 std::string DlgAddEditUser::userShvPath()
 {
-	return m_aclEtcUsersNodePath + '/' + user().toStdString() + "/";
+	return m_aclEtcUsersNodePath + '/' + user() + "/";
 }
 
-void DlgAddEditUser::showPasswordItems(bool visible)
+std::vector<std::string> DlgAddEditUser::roles()
 {
-	ui->pbChangePassword->setVisible(!visible);
-	ui->lePassword->setVisible(visible);
-	ui->tbShowPassword->setVisible(visible);
-}
-
-shv::chainpack::RpcValue::List DlgAddEditUser::grants()
-{
-	shv::chainpack::RpcValue::List grants;
-	QStringList lst = ui->leGrants->text().split(",", QString::SplitBehavior::SkipEmptyParts);
+	std::vector<std::string> roles;
+	QStringList lst = ui->leRoles->text().split(",", QString::SplitBehavior::SkipEmptyParts);
 
 	for (int i = 0; i < lst.count(); i++){
-		grants.push_back(shv::chainpack::RpcValue::String(lst.at(i).trimmed().toStdString()));
+		roles.push_back(lst.at(i).trimmed().toStdString());
 	}
 
-	return grants;
+	if (ui->chbCreateRole->isChecked())
+		 roles.push_back(user());
+
+	return roles;
 }
 
-void DlgAddEditUser::setGrants(const shv::chainpack::RpcValue::List &grants)
+void DlgAddEditUser::setRoles(const std::vector<std::string> &roles)
 {
-	QString g;
+	QStringList roles_list;
 
-	for (size_t i = 0; i < grants.size(); i++){
-		if(i > 0)
-			g += ',';
-		g += QString::fromStdString(grants[i].toStdString());
+	for (const std::string role : roles){
+		roles_list.append(QString::fromStdString(role));
 	}
 
-	ui->leGrants->setText(g);
+	ui->leRoles->setText(roles_list.join(","));
+}
+
+void DlgAddEditUser::setRoles(const shv::chainpack::RpcValue::List &roles)
+{
+	QStringList roles_list;
+
+	for (shv::chainpack::RpcValue role : roles){
+		if (role.isString()){
+			roles_list.append(QString::fromStdString(role.toString()));
+		}
+	}
+
+	ui->leRoles->setText(roles_list.join(","));
 }

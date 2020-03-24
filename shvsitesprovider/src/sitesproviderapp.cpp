@@ -345,7 +345,7 @@ void AppRootNode::downloadSites(std::function<void ()> callback)
 	m_downloadingSites = true;
 	m_downloadSitesError.clear();
 	QNetworkAccessManager *network_manager = new QNetworkAccessManager(this);
-
+	network_manager->setRedirectPolicy(QNetworkRequest::NoLessSafeRedirectPolicy);
 	connect(network_manager, &QNetworkAccessManager::finished, [this, network_manager, callback](QNetworkReply *reply) {
 		try {
 			if (reply->error()) {
@@ -356,6 +356,7 @@ void AppRootNode::downloadSites(std::function<void ()> callback)
 			std::string err;
 			cp::RpcValue sites_cp = cp::RpcValue::fromCpon(sites_string, &err);
 			if (!err.empty()) {
+				shvError() << sites_string;
 				SHV_EXCEPTION(err);
 			}
 			if (!sites_cp.isMap()) {

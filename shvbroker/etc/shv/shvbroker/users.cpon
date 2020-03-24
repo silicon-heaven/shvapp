@@ -10,8 +10,7 @@
     "grants":[
       "elviz"
     ],
-    "password":"3fae43e926dc7b2b1e0fed398c32c149e0954d26",
-    "passwordFormat":"sha1"
+    "password":"foobar"
   },
   "fanda":{
     "grants":[

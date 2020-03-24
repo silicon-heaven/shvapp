@@ -4,7 +4,8 @@
 
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
-#include <shv/core/utils/fileshvjournal.h>
+#include <shv/core/utils/shvfilejournal.h>
+#include <shv/core/utils/shvlogtypeinfo.h>
 #include <shv/iotqt/node/shvnodetree.h>
 #include <shv/core/log.h>
 #include <shv/chainpack/rpcdriver.h>
@@ -26,43 +27,46 @@ RevitestApp::RevitestApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
 {
-	m_shvJournal = new shv::core::utils::FileShvJournal2(applicationName().toStdString(), [this](std::vector<shv::core::utils::ShvJournalEntry> &s) { this->getSnapshot(s); });
+	m_shvJournal = new shv::core::utils::ShvFileJournal(applicationName().toStdString(), [this](std::vector<shv::core::utils::ShvJournalEntry> &s) { this->getSnapshot(s); });
 	if(cli_opts->shvJournalDir_isset())
 		m_shvJournal->setJournalDir(cli_opts->shvJournalDir());
 	m_shvJournal->setFileSizeLimit(cli_opts->shvJournalFileSizeLimit());
 	m_shvJournal->setJournalSizeLimit(cli_opts->shvJournalSizeLimit());
 	{
-		cp::RpcValue::Map types {
-			{"Status", cp::RpcValue::Map{
-					{"type", "BitField"},
-					{"fields", cp::RpcValue::List{
-							cp::RpcValue::Map{{"name", "PosOff"}, {"value", 0}},
-							cp::RpcValue::Map{{"name", "PosOn"}, {"value", 1}},
-							cp::RpcValue::Map{{"name", "PosMiddle"}, {"value", 2}},
-							cp::RpcValue::Map{{"name", "PosError"}, {"value", 3}},
-							cp::RpcValue::Map{{"name", "BatteryLow"}, {"value", 4}},
-							cp::RpcValue::Map{{"name", "BatteryHigh"}, {"value", 5}},
-							cp::RpcValue::Map{{"name", "DoorOpenCabinet"}, {"value", 6}},
-							cp::RpcValue::Map{{"name", "DoorOpenMotor"}, {"value", 7}},
-							cp::RpcValue::Map{{"name", "ModeAuto"}, {"value", 8}},
-							cp::RpcValue::Map{{"name", "ModeRemote"}, {"value", 9}},
-							cp::RpcValue::Map{{"name", "ModeService"}, {"value", 10}},
-							cp::RpcValue::Map{{"name", "MainSwitch"}, {"value", 11}},
-						}
-					},
-					{"description", "PosOff = 0, PosOn = 1, PosMiddle = 2, PosError= 3, BatteryLow = 4, BatteryHigh = 5, DoorOpenCabinet = 6, DoorOpenMotor = 7, ModeAuto= 8, ModeRemote = 9, ModeService = 10, MainSwitch = 11, ErrorRtc = 12"},
-				}
+		using namespace shv::core::utils;
+		ShvLogTypeInfo type_info
+		{
+			// types
+			{
+				{
+					"Status",
+					{
+						ShvLogTypeDescr::Type::BitField,
+						{
+							{"PosOff", 0},
+							{"PosOn", 1},
+							{"PosMiddle", 2},
+							{"PosError", 3},
+							{"BatteryLow", 4},
+							{"BatteryHigh", 5},
+							{"DoorOpenCabinet", 6},
+							{"DoorOpenMotor", 7},
+							{"ModeAuto", 8},
+							{"ModeRemote", 9},
+							{"ModeService", 10},
+							{"MainSwitch", 11},
+						},
+						"PosOff = 0, PosOn = 1, PosMiddle = 2, PosError= 3, BatteryLow = 4, BatteryHigh = 5, DoorOpenCabinet = 6, DoorOpenMotor = 7, ModeAuto= 8, ModeRemote = 9, ModeService = 10, MainSwitch = 11, ErrorRtc = 12",
+						ShvLogTypeDescr::SampleType::Continuous
+					}
+				},
+			},
+			// paths
+			{
+				{ "status", {"Status"} }
 			},
 		};
-		cp::RpcValue::Map paths {
-			{"status", cp::RpcValue::Map{ {"type", "Status"} }
-			},
-		};
-		cp::RpcValue::Map type_info {
-			{"types", types},
-			{"paths", paths},
-		};
-		m_shvJournal->setTypeInfo(type_info);
+		m_shvJournal->setTypeInfo(std::move(type_info));
 	}
 
 	m_rpcConnection = new shv::iotqt::rpc::DeviceConnection(this);

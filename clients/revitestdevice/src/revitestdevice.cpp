@@ -3,7 +3,7 @@
 #include "historynode.h"
 #include "revitestapp.h"
 
-#include <shv/core/utils/fileshvjournal.h>
+#include <shv/core/utils/shvfilejournal.h>
 #include <shv/iotqt/node//shvnodetree.h>
 #include <shv/coreqt/log.h>
 

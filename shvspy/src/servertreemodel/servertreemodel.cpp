@@ -185,7 +185,7 @@ void ServerTreeModel::loadSettings(const QSettings &settings)
 		return;
 	}
 	const QVariantList lst = jsd.toVariant().toList();
-	for(const auto v : lst) {
+	for(const auto &v : lst) {
 		QVariantMap m = v.toMap();
 		m["password"] = QString::fromStdString(TheApp::instance()->crypt().decrypt(m.value("password").toString().toStdString()));
 		createConnection(m);

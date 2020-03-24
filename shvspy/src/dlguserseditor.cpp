@@ -13,6 +13,9 @@
 #include <QMessageBox>
 #include <QTableWidgetItem>
 
+static const std::string VALUE_METHOD = "value";
+static const std::string SET_VALUE_METHOD = "setValue";
+
 DlgUsersEditor::DlgUsersEditor(QWidget *parent, shv::iotqt::rpc::ClientConnection *rpc_connection) :
 	QDialog(parent),
 	ui(new Ui::DlgUsersEditor)
@@ -45,7 +48,8 @@ DlgUsersEditor::~DlgUsersEditor()
 
 void DlgUsersEditor::init(const std::string &path)
 {
-	m_aclEtcUsersNodePath = path + "/etc/acl/users";
+	m_aclEtcUsersNodePath = path + "users";
+	m_aclEtcRolesNodePath = path + "roles";
 	listUsers();
 }
 
@@ -93,7 +97,7 @@ QString DlgUsersEditor::selectedUser()
 
 void DlgUsersEditor::onAddUserClicked()
 {
-	DlgAddEditUser dlg(this, m_rpcConnection, m_aclEtcUsersNodePath, DlgAddEditUser::DialogType::Add);
+	DlgAddEditUser dlg(this, m_rpcConnection, m_aclEtcUsersNodePath, m_aclEtcRolesNodePath, DlgAddEditUser::DialogType::Add);
 	if (dlg.exec() == QDialog::Accepted){
 		listUsers();
 	}
@@ -128,7 +132,8 @@ void DlgUsersEditor::onDelUserClicked()
 			}
 		});
 
-		m_rpcConnection->callShvMethod(rqid, m_aclEtcUsersNodePath, "delUser", shv::chainpack::RpcValue::String(user.toStdString()));
+		shv::chainpack::RpcValue::List params{shv::chainpack::RpcValue::String(user.toStdString()), {}};
+		m_rpcConnection->callShvMethod(rqid, m_aclEtcUsersNodePath, SET_VALUE_METHOD, params);
 	}
 }
 
@@ -143,7 +148,7 @@ void DlgUsersEditor::onEditUserClicked()
 
 	ui->lblStatus->setText("");
 
-	DlgAddEditUser dlg(this, m_rpcConnection, m_aclEtcUsersNodePath, DlgAddEditUser::DialogType::Edit);
+	DlgAddEditUser dlg(this, m_rpcConnection, m_aclEtcUsersNodePath, m_aclEtcRolesNodePath, DlgAddEditUser::DialogType::Edit);
 	dlg.setUser(user);
 
 	if (dlg.exec() == QDialog::Accepted){

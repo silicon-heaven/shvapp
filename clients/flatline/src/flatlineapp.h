@@ -7,7 +7,7 @@ class AppCliOptions;
 class RevitestDevice;
 namespace shv { namespace chainpack { class RpcMessage; }}
 namespace shv { namespace iotqt { namespace rpc { class ClientConnection; }}}
-namespace shv { namespace core { namespace utils { class FileShvJournal; struct ShvJournalEntry; }}}
+namespace shv { namespace core { namespace utils { class ShvFileJournal; struct ShvJournalEntry; }}}
 
 class FlatLineApp : public QApplication
 {

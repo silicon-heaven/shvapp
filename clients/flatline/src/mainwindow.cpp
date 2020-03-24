@@ -17,7 +17,8 @@
 #include <shv/iotqt/rpc/clientconnection.h>
 #include <shv/visu/timeline/graphmodel.h>
 #include <shv/visu/timeline/graphwidget.h>
-#include <shv/core/utils/fileshvjournal.h>
+#include <shv/core/utils/shvfilejournal.h>
+#include <shv/core/utils/shvlogfilereader.h>
 
 #include <QFileDialog>
 #include <QMessageBox>
@@ -575,7 +576,7 @@ void MainWindow::on_acOpenFile_triggered()
 
 void MainWindow::on_actOpenRawFiles_triggered()
 {
-	QStringList qfns = QFileDialog::getOpenFileNames(this, tr("Open raw log files"), QString(), tr("Raw log (*.log)"));
+	QStringList qfns = QFileDialog::getOpenFileNames(this, tr("Open raw log files"), QString(), tr("Raw log (*.log2)"));
 	cp::RpcValue::List log;
 	for(const QString &qfn : qfns) {
 #ifdef Q_OS_WIN
@@ -584,43 +585,17 @@ void MainWindow::on_actOpenRawFiles_triggered()
 		std::string fn = qfn.toUtf8().constData();
 #endif
 		{
-			QFile f(QString::fromStdString(fn));
-			if (!f.open(QIODevice::ReadOnly))
-				SHV_EXCEPTION("Cannot open file for reading.");
-			struct Column { enum Enum { Timestamp = 0, Uptime, Path, Value, ShortTime}; };
-			while (!f.atEnd()) {
-				QByteArray ba = f.readLine();
-				std::string line(ba.constData(), (size_t)ba.size());
-				shv::core::StringView sv(line);
-				shv::core::StringViewList lst = sv.split('\t', shv::core::StringView::KeepEmptyParts);
-				if(lst.empty()) {
-					continue; // skip empty line
-				}
-				std::string dtstr = lst.value(Column::Timestamp).toString();
-				std::string path = lst.value(Column::Path).toString();
-				size_t len;
-				cp::RpcValue::DateTime dt = cp::RpcValue::DateTime::fromUtcString(dtstr, &len);
-				if(len == 0) {
-					shvWarning() << fn << "invalid date time string:" << dtstr;
-					continue;
-				}
-				std::string err;
+			shv::core::utils::ShvLogFileReader rd(fn);
+			while (rd.next()) {
+				const shv::core::utils::ShvJournalEntry &e = rd.entry();
+				if(!e.isValid())
+					break;
 				cp::RpcValue::List rec;
-				shv::chainpack::RpcValue val = cp::RpcValue::fromCpon(lst.value(Column::Value).toString(), &err);
-				shv::chainpack::RpcValue short_time;
-				if(val.metaTypeId() == cp::meta::GlobalNS::MetaTypeId::ValueChange) {
-					cp::ValueChange vc(val);
-					val = vc.value();
-					short_time = vc.shortTime();
-				}
-				else {
-					short_time = cp::RpcValue::fromCpon(lst.value(Column::ShortTime).toString(), &err);
-				}
-				rec.push_back(dt);
-				rec.push_back(path);
-				rec.push_back(val);
-				if(short_time.isValid())
-					rec.push_back(short_time);
+				rec.push_back(shv::chainpack::RpcValue::DateTime::fromMSecsSinceEpoch(e.epochMsec));
+				rec.push_back(e.path);
+				rec.push_back(e.value);
+				if(e.shortTime >= 0)
+					rec.push_back(e.shortTime);
 				log.push_back(rec);
 			}
 		}
@@ -629,10 +604,10 @@ void MainWindow::on_actOpenRawFiles_triggered()
 	rv = log;
 	{
 			cp::RpcValue::List fields;
-			fields.push_back(cp::RpcValue::Map{{shv::core::utils::FileShvJournal::KEY_NAME, "Timestamp"}});
-			fields.push_back(cp::RpcValue::Map{{shv::core::utils::FileShvJournal::KEY_NAME, "Path"}});
-			fields.push_back(cp::RpcValue::Map{{shv::core::utils::FileShvJournal::KEY_NAME, "Value"}});
-			fields.push_back(cp::RpcValue::Map{{shv::core::utils::FileShvJournal::KEY_NAME, "ShortTime"}});
+			fields.push_back(cp::RpcValue::Map{{shv::core::utils::ShvFileJournal::KEY_NAME, "Timestamp"}});
+			fields.push_back(cp::RpcValue::Map{{shv::core::utils::ShvFileJournal::KEY_NAME, "Path"}});
+			fields.push_back(cp::RpcValue::Map{{shv::core::utils::ShvFileJournal::KEY_NAME, "Value"}});
+			fields.push_back(cp::RpcValue::Map{{shv::core::utils::ShvFileJournal::KEY_NAME, "ShortTime"}});
 			rv.setMetaValue("fields", std::move(fields));
 		}
 	setLogData(rv, LogDataType::General);

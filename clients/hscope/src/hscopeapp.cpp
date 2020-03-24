@@ -9,7 +9,8 @@
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
 #include <shv/iotqt/node/shvnodetree.h>
-#include <shv/core/utils/fileshvjournal.h>
+#include <shv/core/utils/shvfilejournal.h>
+#include <shv/core/utils/shvlogtypeinfo.h>
 #include <shv/core/utils/shvpath.h>
 #include <shv/coreqt/log.h>
 
@@ -46,7 +47,7 @@ const shv::chainpack::MetaMethod *AppRootNode::metaMethod(const StringViewList &
 {
 	if(shv_path.empty()) {
 		if(meta_methods.size() <= ix)
-			SHV_EXCEPTION("Invalid method index: " + std::to_string(ix) + " of: " + std::to_string(meta_methods.size()))
+			SHV_EXCEPTION("Invalid method index: " + std::to_string(ix) + " of: " + std::to_string(meta_methods.size()));
 		return &(meta_methods[ix]);
 	}
 	return nullptr;
@@ -68,7 +69,7 @@ shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path,
 			return HScopeApp::instance()->rpcConnection()->loginResult().value(cp::Rpc::KEY_CLIENT_ID);
 		}
 		if(method == cp::Rpc::METH_GET_LOG) {
-			return HScopeApp::instance()->shvJournal()->getLog(shv::core::utils::ShvJournalGetLogParams(params));
+			return HScopeApp::instance()->shvJournal()->getLog(shv::core::utils::ShvGetLogParams(params));
 		}
 	}
 	return Super::callMethod(shv_path, method, params);
@@ -81,34 +82,32 @@ HScopeApp::HScopeApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
 {
-	m_shvJournal = new shv::core::utils::FileShvJournal(applicationName().toStdString(), [this](std::vector<shv::core::utils::ShvJournalEntry> &s) { this->getSnapshot(s); });
+	m_shvJournal = new shv::core::utils::ShvFileJournal(applicationName().toStdString(), [this](std::vector<shv::core::utils::ShvJournalEntry> &s) { this->getSnapshot(s); });
 	if(cli_opts->shvJournalDir_isset())
 		m_shvJournal->setJournalDir(cli_opts->shvJournalDir());
 	m_shvJournal->setFileSizeLimit(cli_opts->shvJournalFileSizeLimit());
 	m_shvJournal->setJournalSizeLimit(cli_opts->shvJournalSizeLimit());
+	shv::core::utils::ShvLogTypeInfo type_info
 	{
-		cp::RpcValue::Map types {
-			{"Status", cp::RpcValue::Map{
-					{"type", "Map"},
-					{"fields", cp::RpcValue::List{
-							cp::RpcValue::Map{{"name", "val"}, {"type", "Enum"}},
-							cp::RpcValue::Map{{"name", "msg"}, {"type", "String"}},
-						}
+		// types
+		{
+			{
+				"Status",
+				{
+					shv::core::utils::ShvLogTypeDescr::Type::Map,
+					{
+						{"val", "Enum", shv::chainpack::RpcValue::Map{{"Unknown", -1}, {"OK", 0}, {"Warning", 1}, {"Error", 2}}},
+						{"msg", "String"},
 					},
-					{"description", "Unknown = -1, OK = 0, Warning = 1, Error = 2"},
 				}
 			},
-		};
-		cp::RpcValue::Map paths {
-			{"status", cp::RpcValue::Map{ {"type", "Status"} }
-			},
-		};
-		cp::RpcValue::Map type_info {
-			{"types", types},
-			{"paths", paths},
-		};
-		m_shvJournal->setTypeInfo(type_info);
-	}
+		},
+		// paths
+		{
+			{ "status", {"Status"} },
+		},
+	};
+	m_shvJournal->setTypeInfo(type_info);
 
 	m_rpcConnection = new shv::iotqt::rpc::DeviceConnection(this);
 
