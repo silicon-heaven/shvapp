@@ -23,9 +23,9 @@
           <label>User:</label><br /><input type="text" id="shvUser" /><br />
           <label>Password:</label><br /><input type="password" id="shvPassword" onkeydown="if(event.keyCode==13)initWebSocket(false);" /><br />
           <label>Url:</label><br /><select type="text" id="wsUri" onkeydown="if(event.keyCode==13)initWebSocket(false);">
-            <option value="ws://192.168.6.2:3777">192.168.6.2:3777 (usb)</option>
-            <option value="ws://165.227.247.202:3777">165.227.247.202:3777 (nirvana)</option>
-            <option value="ws://10.8.88.198:3777">10.8.88.198:3777 (trojska)</option>
+            <option value="wss://192.168.6.2:3778">192.168.6.2:3778 (usb)</option>
+            <option value="wss://165.227.247.202:3778">165.227.247.202:3778 (nirvana)</option>
+            <option value="wss://10.8.88.198:3778">10.8.88.198:3778 (trojska)</option>
           </select><br />
           <label>Path:</label><br /><input type="text" id="shvPath" onkeydown="if(event.keyCode==13)initWebSocket(false);" /><br />
           <button class='btn' onClick="initWebSocket(false);">Connect</button><br />
@@ -295,9 +295,11 @@
 
     function appStatusColor(st)
     {
-      var s = st.split(":");
-      if (s[0].includes("enabled") && !s[1].includes("inactive")) {
+      if (st.includes("enabled:active")) {
         return "color:green";
+      }
+      if (st.includes("failed")) {
+        return "color:crimson";
       }
       return "color:gray";
     }
@@ -381,6 +383,7 @@
           showAlert('success', 'Application ' + app_name + " (" + app_id + ") was " + element.value + "ed.");
           element.value = new_value;
           element.innerHTML = new_innerHTML;
+	  loadApplications();
         }
         else {
           showAlert('error', 'Application ' + app_name + " (" + app_id + ") unable to " + element.value + ".");
@@ -391,6 +394,10 @@
     function load()
     {
       cleanApplications();
+      var list = document.getElementById("alerts");
+      while(list.hasChildNodes()) {
+	list.removeChild(list.childNodes[0]);  
+      }
 
       for (i = 0; i < configurationList.length; i++) {
         clean(configurationList[i].id);
