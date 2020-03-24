@@ -39,7 +39,8 @@
 		</p>
 
 		<script type="text/javascript">
-			document.getElementById("edUri").value = "ws://nirvana.elektroline.cz:3777";
+			//document.getElementById("edUri").value = "wss://nirvana.elektroline.cz:3778";
+			document.getElementById("edUri").value = "wss://localhost:3778";
 			document.getElementById("edUser").value = "iot";
 			document.getElementById("edPassword").value = "lub42DUB";
 
@@ -119,7 +120,7 @@
 							let rqid = rpc_msg.requestId().toInt();
 							if(rqid == 1) {
 								// <T:RpcMessage,id:2,method:"login">i{params:{"login":{"password":"lub42DUB","type":"PLAIN","user":"iot"},"options":{"device":{"mountPoint":"test/agent1"},"idleWatchDogTimeOut":0}}}
-								let params = '{"login":{"password":"' + password + '","type":"PLAIN","user":"' + user + '"},"options":{"idleWatchDogTimeOut": 3600}}'
+								let params = '{"login":{"password":"' + password + '","type":"PLAIN","user":"' + user + '"},"options":{"device":{"mountPoint":"test/websocketosaurus"},"idleWatchDogTimeOut": 60}}'
 								callRpcMethod(null, "login", params)
 								hello_phase = false;
 								login_phase = true;
@@ -135,18 +136,40 @@
 							}
 						}
 						else if(broker_connected) {
-							let txtResult = document.getElementById("txtResult");
-							// result == 2
-							// error == 3
-							let err = rpc_msg.error();
-							if(err) {
-								txtResult.value = err.toString()
-								txtResult.style.background = "salmon"
+							if(rpc_msg.isRequest()) {
+								let method = rpc_msg.method().asString();
+								let resp = new RpcMessage();
+								if(method == "dir") {
+									resp.setResult(["ls", "dir", "appName"]);
+								}
+								else if(method == "ls") {
+									resp.setResult([]);
+								}
+								else if(method == "appName") {
+									resp.setResult("websocketosaurus");
+								}
+								else {
+									debug('ERROR: ' + "Method: " + method + " is not defined.");
+									resp.setError("Method: " + method + " is not defined.");
+								}
+								resp.setRequestId(rpc_msg.requestId());
+								resp.setCallerIds(rpc_msg.callerIds());
+								sendRpcMessage(resp);
 							}
 							else {
-								let result = rpc_msg.result();
-								txtResult.value = result.toString()
-								txtResult.style.background = ""
+								let txtResult = document.getElementById("txtResult");
+								// result == 2
+								// error == 3
+								let err = rpc_msg.error();
+								if(err) {
+									txtResult.value = err.toString()
+									txtResult.style.background = "salmon"
+								}
+								else {
+									let result = rpc_msg.result();
+									txtResult.value = result.toString()
+									txtResult.style.background = ""
+								}
 							}
 						}
 					};
