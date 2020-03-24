@@ -33,7 +33,7 @@ void DeviceLogRequest::getChunk()
 	int rq_id = conn->nextRequestId();
 	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(conn, rq_id, this);
 	connect(cb, &shv::iotqt::rpc::RpcResponseCallBack::finished, this, &DeviceLogRequest::onChunkReceived);
-	cb->start();
+	cb->start(2 * 60 * 1000);
 	if (m_askElesys) {
 		if (m_since.isValid() && m_since.date().daysTo(QDate::currentDate()) < 3) {
 			m_askElesys = false;
