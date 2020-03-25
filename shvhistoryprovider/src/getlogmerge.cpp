@@ -78,7 +78,7 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 		}
 		entry.path = reader->pathPrefix() + entry.path;
 		m_mergedLog.append(entry);
-		if ((int)m_mergedLog.entries().size() >= m_mergedLog.inputFilterRecordCountLimit()) {
+		if ((int)m_mergedLog.size() >= m_mergedLog.inputFilterRecordCountLimit()) {
 			break;
 		}
 		reader_infos[oldest_index].used = true;

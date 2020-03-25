@@ -15,7 +15,7 @@ public:
 
 private:
 	void migrateDir(const QString &path);
-	void migrateFile(const QFileInfo &fileinfo);
+	bool migrateFile(const QFileInfo &fileinfo, bool first);
 
 	QDir m_root;
 };

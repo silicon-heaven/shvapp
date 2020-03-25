@@ -44,6 +44,7 @@ void Migration::migrateDir(const QString &path)
 		return;
 	}
 
+	bool first = true;
 	for (const QFileInfo &entry : dir.entryInfoList(QDir::AllEntries | QDir::Filter::NoDotAndDotDot)) {
 		if (entry.fileName().contains("dirty")) {
 			shvInfo() << "removing dirty log" << entry.absoluteFilePath().mid(m_root.absolutePath().length());
@@ -54,7 +55,9 @@ void Migration::migrateDir(const QString &path)
 		}
 		else {
 			if (is_monitored) {
-				migrateFile(entry);
+				if (migrateFile(entry, first)) {
+					first = false;
+				}
 			}
 			else if (dir.absolutePath() != m_root.absolutePath()) {
 				shvInfo() << "removing dir" << dir.absolutePath().mid(m_root.absolutePath().length()) << "because it is no longer monitored";
@@ -69,16 +72,16 @@ void Migration::migrateDir(const QString &path)
 	}
 }
 
-void Migration::migrateFile(const QFileInfo &fileinfo)
+bool Migration::migrateFile(const QFileInfo &fileinfo, bool first)
 {
 	if (fileinfo.suffix() == "chp" || fileinfo.suffix() == "log2") {
-		return;
+		return false;
 	}
 	QFile file(fileinfo.absoluteFilePath());
 	QDate file_date = QDate::fromString(fileinfo.fileName().mid(0, 8), "yyyyMMdd");
 	if (!file_date.isValid()) {
 		file.remove();
-		return;
+		return false;
 	}
 
 	if (!file.open(QFile::ReadOnly)) {
@@ -111,6 +114,10 @@ void Migration::migrateFile(const QFileInfo &fileinfo)
 	QDateTime until(file_date, QTime(23, 59, 59, 999), Qt::TimeSpec::UTC);
 	metadata["since"] = shv::chainpack::RpcValue::fromValue<QDateTime>(since);
 	metadata["until"] = shv::chainpack::RpcValue::fromValue<QDateTime>(until);
+	if (first) {
+		metadata["HP"] = shv::chainpack::RpcValue::Map{{ "firstLog", true }};
+	}
+
 	val.setMetaData(std::move(metadata));
 
 	QFile new_file(fileinfo.absolutePath() + QDir::separator() + LogDir::fileName(since));
@@ -120,4 +127,5 @@ void Migration::migrateFile(const QFileInfo &fileinfo)
 	new_file.write(QByteArray::fromStdString(val.toChainPack()));
 	new_file.close();
 	file.remove();
+	return true;
 }

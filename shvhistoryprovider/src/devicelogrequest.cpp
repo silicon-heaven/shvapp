@@ -86,10 +86,10 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 		bool is_finished;
 		ShvGetLogParams params = logParams();
 		QDateTime until = m_until;
-		if (log.entries().size()) {
+		if (log.size()) {
 			first_record_time = QDateTime::fromMSecsSinceEpoch(log.entries()[0].epochMsec, Qt::TimeSpec::UTC);
-			last_record_time = QDateTime::fromMSecsSinceEpoch(log.entries()[log.entries().size() - 1].epochMsec, Qt::TimeSpec::UTC);
-			is_finished = (int)log.entries().size() < Application::CHUNK_RECORD_COUNT;
+			last_record_time = QDateTime::fromMSecsSinceEpoch(log.entries()[log.size() - 1].epochMsec, Qt::TimeSpec::UTC);
+			is_finished = (int)log.size() < Application::CHUNK_RECORD_COUNT;
 			if (!is_finished) {
 				until = last_record_time;
 			}
@@ -102,7 +102,7 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 			m_askElesys = false;
 			is_finished = false;
 		}
-		shvInfo() << "received log for" << m_shvPath << "with" << log.entries().size() << "records"
+		shvInfo() << "received log for" << m_shvPath << "with" << log.size() << "records"
 				  << "since" << first_record_time
 				  << "until" << last_record_time;
 
@@ -141,7 +141,7 @@ ShvGetLogParams DeviceLogRequest::logParams() const
 
 bool DeviceLogRequest::tryAppendToPreviousFile(ShvMemoryJournal &log, const QDateTime &until)
 {
-	if ((int)log.entries().size() < Application::CHUNK_RECORD_COUNT) {  //check append to previous file to avoid fragmentation
+	if ((int)log.size() < Application::CHUNK_RECORD_COUNT) {  //check append to previous file to avoid fragmentation
 		LogDir log_dir(m_shvPath);
 		QStringList all_files = log_dir.findFiles(m_since.addMSecs(-1), m_since);
 		if (all_files.count() == 1) {
@@ -160,8 +160,11 @@ bool DeviceLogRequest::tryAppendToPreviousFile(ShvMemoryJournal &log, const QDat
 					SHV_QT_EXCEPTION("Missing until in file " + all_files[0]);
 				}
 				int64_t orig_until = orig_until_cp.toDateTime().msecsSinceEpoch();
-				if (orig_until == m_since.toMSecsSinceEpoch() && orig_record_count + (int)log.entries().size() <= Application::CHUNK_RECORD_COUNT) {
-					ShvMemoryJournal joined_log;
+				if (orig_until == m_since.toMSecsSinceEpoch() && orig_record_count + (int)log.size() <= Application::CHUNK_RECORD_COUNT) {
+					ShvGetLogParams joined_params;
+					joined_params.recordCountLimit = Application::CHUNK_RECORD_COUNT;
+					joined_params.withSnapshot = true;
+					ShvMemoryJournal joined_log(joined_params);
 					joined_log.loadLog(orig_log);
 
 					for (const auto &entry : log.entries()) {
@@ -174,8 +177,6 @@ bool DeviceLogRequest::tryAppendToPreviousFile(ShvMemoryJournal &log, const QDat
 					if (!temp_file.open(QFile::WriteOnly | QFile::Truncate)) {
 						SHV_QT_EXCEPTION("Cannot open file " + temp_file.fileName());
 					}
-					ShvGetLogParams joined_params;
-					joined_params.withSnapshot = true;
 					cp::RpcValue result = joined_log.getLog(joined_params);
 					result.setMetaValue("until", cp::RpcValue::fromValue(until));
 					temp_file.write(QByteArray::fromStdString(result.toChainPack()));
@@ -227,54 +228,56 @@ void DeviceLogRequest::trimDirtyLog(const QDateTime &until)
 			SHV_QT_EXCEPTION("cannot remove file " + m_logDir.absoluteFilePath(temp_filename));
 		}
 	}
-	ShvJournalFileWriter dirty_writer(m_logDir.absoluteFilePath(temp_filename).toStdString());
-	dirty_writer.append(ShvJournalEntry{
-							ShvJournalEntry::PATH_DATA_DIRTY,
-							true,
-							ShvJournalEntry::DOMAIN_VAL_CHANGE,
-							ShvJournalEntry::NO_SHORT_TIME,
-							ShvJournalEntry::SampleType::Continuous,
-							until_msec
-						});
-	bool first = true;
-	int64_t old_start_ts = 0LL;
-	std::string data_missing_value;
-	while (dirty_reader.next()) {
-		const ShvJournalEntry &entry = dirty_reader.entry();
-		if (!old_start_ts) {
-			old_start_ts = entry.epochMsec;
-		}
-		if (entry.epochMsec > until_msec) {
-			if (first) {
-				first = false;
-				if (!data_missing_value.empty()) {
-					dirty_writer.append(ShvJournalEntry {
-											ShvJournalEntry::PATH_DATA_MISSING,
-											data_missing_value,
-											ShvJournalEntry::DOMAIN_VAL_CHANGE,
-											ShvJournalEntry::NO_SHORT_TIME,
-											ShvJournalEntry::SampleType::Continuous,
-											until_msec
-										});
+	if (dirty_reader.next() && dirty_reader.entry().epochMsec < until_msec) {
+		ShvJournalFileWriter dirty_writer(m_logDir.absoluteFilePath(temp_filename).toStdString());
+		dirty_writer.append(ShvJournalEntry{
+								ShvJournalEntry::PATH_DATA_DIRTY,
+								true,
+								ShvJournalEntry::DOMAIN_SHV_SYSTEM,
+								ShvJournalEntry::NO_SHORT_TIME,
+								ShvJournalEntry::SampleType::Continuous,
+								until_msec
+							});
+		bool first = true;
+		int64_t old_start_ts = 0LL;
+		std::string data_missing_value;
+		while (dirty_reader.next()) {
+			const ShvJournalEntry &entry = dirty_reader.entry();
+			if (!old_start_ts) {
+				old_start_ts = entry.epochMsec;
+			}
+			if (entry.epochMsec > until_msec) {
+				if (first) {
+					first = false;
+					if (!data_missing_value.empty()) {
+						dirty_writer.append(ShvJournalEntry {
+												ShvJournalEntry::PATH_DATA_MISSING,
+												data_missing_value,
+												ShvJournalEntry::DOMAIN_VAL_CHANGE,
+												ShvJournalEntry::NO_SHORT_TIME,
+												ShvJournalEntry::SampleType::Continuous,
+												until_msec
+											});
+					}
+				}
+				dirty_writer.append(dirty_reader.entry());
+			}
+			else {
+				if (entry.path == ShvJournalEntry::PATH_DATA_MISSING && entry.value.isString()) {
+					data_missing_value = entry.value.toString();
 				}
 			}
-			dirty_writer.append(dirty_reader.entry());
 		}
-		else {
-			if (entry.path == ShvJournalEntry::PATH_DATA_MISSING && entry.value.isString()) {
-				data_missing_value = entry.value.toString();
-			}
+		if (!m_logDir.remove(m_logDir.dirtyLogName())) {
+			SHV_QT_EXCEPTION("Cannot remove file " + m_logDir.dirtyLogPath());
 		}
-	}
-	if (!m_logDir.remove(m_logDir.dirtyLogName())) {
-		SHV_QT_EXCEPTION("Cannot remove file " + m_logDir.dirtyLogPath());
-	}
-	if (!m_logDir.rename(temp_filename, m_logDir.dirtyLogName())) {
-		SHV_QT_EXCEPTION("Cannot rename file " + m_logDir.absoluteFilePath(temp_filename));
-	}
-	auto *conn = Application::instance()->deviceConnection();
-	if (until_msec != old_start_ts && conn->state() == shv::iotqt::rpc::DeviceConnection::State::BrokerConnected) {
-		conn->sendShvSignal((m_shvPath + "/" + Application::DIRTY_LOG_NODE + "/" + Application::START_TS_NODE).toStdString(),
-							cp::Rpc::SIG_VAL_CHANGED, cp::RpcValue::DateTime::fromMSecsSinceEpoch(until_msec));
+		if (!m_logDir.rename(temp_filename, m_logDir.dirtyLogName())) {
+			SHV_QT_EXCEPTION("Cannot rename file " + m_logDir.absoluteFilePath(temp_filename));
+		}
+		auto *conn = Application::instance()->deviceConnection();
+		if (until_msec != old_start_ts && conn->state() == shv::iotqt::rpc::DeviceConnection::State::BrokerConnected) {
+			conn->sendShvSignal((m_shvPath + "/" + Application::DIRTY_LOG_NODE + "/" + Application::START_TS_NODE).toStdString(),
+								cp::Rpc::SIG_VAL_CHANGED, cp::RpcValue::DateTime::fromMSecsSinceEpoch(until_msec));
+		}
 	}
 }
