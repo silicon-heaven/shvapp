@@ -20,9 +20,8 @@
     }
   },
   "masterBroker":{
-    "**":{
-      "forwardGrant":true,
-      "weight:":0
+    ".broker/app/**":{
+      "grant":"rd"
     }
   },
   "observer":{
