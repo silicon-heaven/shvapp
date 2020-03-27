@@ -248,6 +248,7 @@ void ShvNodeItem::processRpcMessage(const shv::chainpack::RpcMessage &msg)
 				mm.signature = (cp::MetaMethod::Signature) lst.value(1).toUInt();
 				mm.flags = lst.value(2).toUInt();
 				mm.accessGrant = lst.value(3);
+				mm.desription = lst.value(4);
 				m_methods.push_back(mm);
 			}
 			emit methodsLoaded();

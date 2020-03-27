@@ -137,8 +137,12 @@ QVariant AttributesModel::data(const QModelIndex &ix, int role) const
 			return data(ix, Qt::DisplayRole);
 		}
 		else if(ix.column() == ColFlags) {
-			bool is_notify = m_rows[ix.row()][ColFlags].toUInt() & cp::MetaMethod::Flag::IsSignal;
+			bool is_notify = m_rows[(unsigned)ix.row()][ColFlags].toUInt() & cp::MetaMethod::Flag::IsSignal;
 			return is_notify? tr("Method is notify signal"): QVariant();
+		}
+		else if(ix.column() == ColMethodName) {
+			auto descr = m_rows[(unsigned)ix.row()][ColDescription].toString();
+			return QString::fromStdString(descr);
 		}
 		else {
 			return data(ix, Qt::DisplayRole);
@@ -291,6 +295,7 @@ void AttributesModel::loadRow(unsigned method_ix)
 	rv[ColFlags] = mtd->flagsStr();
 	rv[ColAccessGrant] = mtd->accessGrantStr();
 	rv[ColParams] = mtd->params;
+	rv[ColDescription] = mtd->desription;
 	shvDebug() << "\t response:" << mtd->response.toCpon() << "is valid:" << mtd->response.isValid();
 	if(mtd->response.isError()) {
 		rv[ColResult] = mtd->response.error();

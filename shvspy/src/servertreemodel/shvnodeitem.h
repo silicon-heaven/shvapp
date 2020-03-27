@@ -20,6 +20,7 @@ struct ShvMetaMethod
 	shv::chainpack::MetaMethod::Signature signature = shv::chainpack::MetaMethod::Signature::VoidVoid;
 	unsigned flags = 0;
 	shv::chainpack::RpcValue accessGrant;
+	shv::chainpack::RpcValue desription;
 	shv::chainpack::RpcValue params;
 	shv::chainpack::RpcResponse response;
 	int rpcRequestId = 0;

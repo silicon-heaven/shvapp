@@ -365,7 +365,23 @@ void MainWindow::editCponParameters(const QModelIndex &ix)
 void MainWindow::onAttributesTableContexMenu(const QPoint &point)
 {
 	QModelIndex index = ui->tblAttributes->indexAt(point);
-	if (index.isValid() && index.column() == AttributesModel::ColResult) {
+	if (index.isValid() && index.column() == AttributesModel::ColMethodName) {
+		QMenu menu(this);
+		menu.addAction(tr("Method description"));
+		if (menu.exec(ui->tblAttributes->viewport()->mapToGlobal(point))) {
+			QString s = index.data(Qt::ToolTipRole).toString();
+			if(s.isEmpty())
+				s = tr("Method description no available.");
+			TextEditDialog *view = new TextEditDialog(this);
+			view->setModal(true);
+			view->setAttribute(Qt::WA_DeleteOnClose);
+			view->setWindowIconText(tr("Method description"));
+			view->setReadOnly(true);
+			view->setText(s);
+			view->show();
+		}
+	}
+	else if (index.isValid() && index.column() == AttributesModel::ColResult) {
 		QMenu menu(this);
 		menu.addAction(tr("View result"));
 		if (menu.exec(ui->tblAttributes->viewport()->mapToGlobal(point))) {
