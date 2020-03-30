@@ -2,18 +2,24 @@
 body {
   font: 16px Arial, sans-serif;
 }
-button {
-  background-color: gray;
-  border: none;
-  color: white;
-  padding: 4px 10px;
-  text-align: center;
-  font-size: 14px;
-  margin: 0px 2px 4px 0px;
-  cursor: pointer;
-  min-width: 34px;
+
+div.configForm {
+  width:100%; 
+  display:none;
 }
-input {
+
+div.configForm input {
+  width: 90%;
+  background-color: white;
+  border: 1px solid gray;
+  color: black;
+  padding: 4px 10px;
+  text-align: left;
+  margin: 0px 2px 4px 0px;
+  font-size: 14px;
+}
+
+div.configForm select {
   width: 200px;
   background-color: white;
   border: 1px solid gray;
@@ -23,23 +29,23 @@ input {
   margin: 0px 2px 4px 0px;
   font-size: 14px;
 }
-select {
-  width: 200px;
-  background-color: white;
-  border: 1px solid gray;
-  color: black;
-  padding: 4px 10px;
-  text-align: left;
-  margin: 0px 2px 4px 0px;
+
+div.configForm p {
   font-size: 14px;
-}
-label {
-  border: none;
-  color: black;
   text-align: left;
-  font-size: 12px;
+  padding-left: 30%;
+  margin-left: 20px;
+  color: gray;
+  font-weight: bold;
 }
-span {
+
+div.configForm label {
+  font-size: 14px;
+  margin-top: 5px;
+  margin-bottom: 0px;
+}
+
+div.configForm span {
   background-color: none;
   border: none;
   color: black;
@@ -50,9 +56,130 @@ span {
   cursor: pointer;
 }
 
+div.configForm button {
+  background-color: #1b5c29;
+  border: none;
+  color: white;
+  padding: 4px 10px;
+  text-align: center;
+  font-size: 14px;
+  margin: 0px 2px 4px 0px;
+  cursor: pointer;
+  min-width: 34px;
+}
+
+div.configForm h2 {
+  text-align: left;
+  font-size: 20px;
+  margin-top: 16px;
+  margin-bottom: 8px;
+}
+
+div.configForm h3 {
+  text-align: left;
+  font-size: 18px;
+    margin-top: 16px;
+  margin-bottom: 8px;
+}
+
+
 * {
   box-sizing: border-box;
 }
+
+div.loginForm {
+  display:block;  
+  align:center;
+}
+
+div.loginForm h1 {
+  text-align: center;
+  font-size: 22px;
+  margin-top: 128px;
+  margin-bottom: 32px;
+}
+
+div.loginForm div {
+  width: min-content; 
+  text-align:left;
+}
+
+div.loginForm label {
+  border: none;
+  color: black;
+  text-align: left;
+  font-size: 14px;
+}
+
+div.loginForm input {
+  width: 200px;
+  background-color: white;
+  border: 1px solid gray;
+  color: black;
+  padding: 4px 10px;
+  text-align: left;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+div.loginForm button {
+  background-color: #1b5c29;
+  border: none;
+  color: white;
+  padding: 4px 10px;
+  text-align: center;
+  font-size: 14px;
+  margin: 0px 2px 4px 0px;
+  cursor: pointer;
+  min-width: 200px;
+}
+
+.log {
+  width:100%;
+  background-color:white; 
+  color:black;
+}
+
+.separator {
+  height: 5px;
+}
+
+.header {
+  padding: 10px 0;
+  text-align: center;
+  background: #1b5c29;
+  color: white;
+}
+
+.path {
+  /*padding: 2px 0;*/
+  text-align: center;
+  background: #1b5c29;
+  color: white;
+}
+
+div.path {
+  font-size: 18px;
+  margin-top: 0px;
+  margin-bottom: 4px;
+}
+
+div.header img {
+  height: 52px;
+  margin-top: -10px;
+}
+
+div.header label {
+  font-size: 24px;
+  margin-top: 5px;
+  margin-bottom: 0px;
+}
+
+.columnHeader {                   
+  float: left;
+  height: 32px;
+}
+
 .column {
   text-align: left;
   float: left;
@@ -89,15 +216,17 @@ span {
 }
 
 .c10 {
-  width: 100%;
+  width: 70%;
 }
 
 .left {
-  width: 30%;
+  align: left;
+  width: 90%;
 }
 
 .right {
-  width: 40%;
+  align: right;
+  width: 10%;
 }
 
 .row:after {
@@ -139,17 +268,15 @@ span {
 }
 
 .btn {
-  background-color: gray;
+  background-color: #1b5c29;
   border: none;
   color: white;
-  /*padding: 10px 14px;*/
-/*  font-size: 14px; */
   cursor: pointer;
   text-align: center;
 }
 
 .btn:hover {
-  background-color: lightgray;
+  background-color: #66c37a;
 }
 
 </style>

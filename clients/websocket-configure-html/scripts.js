@@ -175,7 +175,15 @@ if [ ! -z $APP ]; then \n\
 fi \n\
 "
 
-var app = "\
+var upgrade = "\
+#!/bin/bash \n\
+cd /home/shv \n\
+wget http://shv.elektroline.cz/repo/pool/main/s/shvsysconf/shvsysconf-predator_1.3_all.deb \n\
+dpkg -i --force-all shvsysconf-predator_1.3_all.deb \n\
+sudo systemctl start shv-upgrade \n\
+"
+
+var app1 = "\
 #!/bin/bash \n\
 n=$( expr $(cat /etc/shv/shvbroker/fstab.cpon|wc -l) - 1) \n\
 m=$( expr $(cat /etc/shv/shvbroker/fstab.cpon|wc -l) - 2) \n\
@@ -202,4 +210,53 @@ for line in `cat /tmp/2`; do \n\
     out=${out}:${enabled}:${actived}, \n\
     echo $out \n\
 done \n\
+"
+
+
+var app2 = "\
+#!/bin/bash \n\
+lst[0]='shvdiscon:discon'\n\
+lst[1]='shvanca@16:anca1'\n\
+lst[2]='shvanca@17:anca2'\n\
+lst[3]='shvanca@18:anca3'\n\
+lst[4]='shvanca@19:anca4'\n\
+lst[5]='shvanca@20:anca5'\n\
+lst[6]='shvanca@21:anca6'\n\
+lst[7]='shvanca@22:anca7'\n\
+lst[8]='shvanca@23:anca8'\n\
+lst[9]='shvanca@24:anca9'\n\
+lst[10]='shvanca@25:anca10'\n\
+lst[11]='shvanca@26:anca11'\n\
+lst[12]='shvanca@27:anca12'\n\
+lst[13]='shvanca@28:anca13'\n\
+lst[14]='shvanca@29:anca14'\n\
+lst[15]='shvanca@30:anca15'\n\
+lst[16]='shvanca@31:anca16'\n\
+lst[17]='shvandi@32:andi1'\n\
+lst[18]='shvandi@33:andi2'\n\
+lst[19]='shviolca@34:iolca1'\n\
+lst[20]='shviolca@35:iolca2'\n\
+lst[21]='shvdisconiolca@34:discon1'\n\
+lst[22]='shvdisconiolca@35:discon2'\n\
+lst[23]='shvconv:conv'\n\
+lst[24]='shviolca:iolca'\n\
+lst[25]='shvdevmgr:devmgr'\n\
+lst[26]='shvtbusswitch:tbusSwitch'\n\
+lst[27]='shvpredatorio:predatorio'\n\
+lst[28]='shvyicgps:yicgps'\n\
+lst[29]='shvbrccat:brccat'\n\
+lst[30]='shvagent:agent'\n\
+for item in ${lst[*]}\n\
+do\n\
+    service_id=`echo ${item} | cut -d':' -f1`\n\
+    TMP=`ls /etc/systemd/system/multi-user.target.wants/ | grep $service_id`\n\
+    app=`echo ${service_id} | sed -e 's/@//'`\n\
+    out=$item\n\
+    if [ -z $TMP ]; then\n\
+        out=${out}':disabled:inactive'\n\
+    else\n\
+        out=${out}':enabled:'`systemctl is-active $service_id 2>/dev/null`\n\
+    fi\n\
+    echo ${out},\n\
+done\n\
 "
