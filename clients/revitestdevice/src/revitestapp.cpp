@@ -86,11 +86,14 @@ RevitestApp::RevitestApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	connect(m_revitest->shvTree()->root(), &shv::iotqt::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
 
 	m_rpcConnection->open();
+
+	m_shvJournal->append(shv::core::utils::ShvJournalEntry(shv::core::utils::ShvJournalEntry::PATH_APP_START, true, shv::core::utils::ShvJournalEntry::DOMAIN_SHV_SYSTEM));
 }
 
 RevitestApp::~RevitestApp()
 {
 	shvInfo() << "destroying shv agent application";
+	m_shvJournal->append(shv::core::utils::ShvJournalEntry(shv::core::utils::ShvJournalEntry::PATH_DATA_MISSING, shv::core::utils::ShvJournalEntry::DATA_MISSING_APP_SHUTDOWN, shv::core::utils::ShvJournalEntry::DOMAIN_SHV_SYSTEM));
 	delete m_shvJournal;
 }
 
