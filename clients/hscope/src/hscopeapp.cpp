@@ -122,11 +122,14 @@ HScopeApp::HScopeApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	AppRootNode *root = new AppRootNode();
 	m_shvTree = new si::node::ShvNodeTree(root, this);
 	connect(m_shvTree->root(), &si::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &si::rpc::ClientConnection::sendMessage);
+
+	m_shvJournal->append(shv::core::utils::ShvJournalEntry(shv::core::utils::ShvJournalEntry::PATH_APP_START, true, shv::core::utils::ShvJournalEntry::DOMAIN_SHV_SYSTEM));
 }
 
 HScopeApp::~HScopeApp()
 {
 	shvInfo() << "destroying hscope application";
+	m_shvJournal->append(shv::core::utils::ShvJournalEntry(shv::core::utils::ShvJournalEntry::PATH_DATA_MISSING, shv::core::utils::ShvJournalEntry::DATA_MISSING_APP_SHUTDOWN, shv::core::utils::ShvJournalEntry::DOMAIN_SHV_SYSTEM));
 }
 
 HScopeApp *HScopeApp::instance()
