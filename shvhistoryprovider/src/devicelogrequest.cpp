@@ -107,7 +107,7 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 				  << "until" << last_record_time;
 
 		if (!m_since.isValid() || !tryAppendToPreviousFile(log, until)) {
-			saveToNewFile(log);
+			saveToNewFile(log, until);
 		}
 		trimDirtyLog(until);
 		m_since = until;
@@ -197,7 +197,7 @@ bool DeviceLogRequest::tryAppendToPreviousFile(ShvMemoryJournal &log, const QDat
 	return false;
 }
 
-void DeviceLogRequest::saveToNewFile(ShvMemoryJournal &log)
+void DeviceLogRequest::saveToNewFile(ShvMemoryJournal &log, const QDateTime &until)
 {
 	cp::RpcValue log_cp = log.getLog(logParams());
 
@@ -209,6 +209,7 @@ void DeviceLogRequest::saveToNewFile(ShvMemoryJournal &log)
 		since = rpcvalue_cast<QDateTime>(log_cp.metaValue("since"));
 		log_cp.setMetaValue("HP", cp::RpcValue::Map{{ "firstLog", true }});
 	}
+	log_cp.setMetaValue("until", cp::RpcValue::fromValue(until));
 	QFile file(LogDir(m_shvPath).filePath(since));
 	if (!file.open(QFile::WriteOnly)) {
 		SHV_QT_EXCEPTION("Cannot open file " + file.fileName());

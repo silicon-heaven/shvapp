@@ -29,7 +29,7 @@ private:
 	void onChunkReceived(const shv::chainpack::RpcResponse &response);
 	shv::core::utils::ShvGetLogParams logParams() const;
 	bool tryAppendToPreviousFile(shv::core::utils::ShvMemoryJournal &log, const QDateTime &until);
-	void saveToNewFile(shv::core::utils::ShvMemoryJournal &log);
+	void saveToNewFile(shv::core::utils::ShvMemoryJournal &log, const QDateTime &until);
 	void trimDirtyLog(const QDateTime &until);
 
 	const QString m_shvPath;
