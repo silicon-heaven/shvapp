@@ -14,7 +14,7 @@
 		"shvPath": "../lub2/1/status",
 		"params": 42,
 		"timeout": 500
-		"processNextOnExec": true
+		//"processNextOnExec": true
 	},
 	{
 		"descr": "Set value on node conected to the same broker via relative shv_path call",
@@ -23,7 +23,7 @@
 		"shvPath": "../lub2/1/status",
 		"params": 42,
 		"result": true,
-		"processNextOnSuccess": false
+		"waitForResult": false
 	},
 	{
 		"descr": "Get value on node conected to the same broker via relative shv_path call",
@@ -47,7 +47,7 @@
 		"shvPath": "../../../broker1/slave/lub1/1/status",
 		"params": 42,
 		"timeout": 500
-		"processNextOnExec": true
+		"waitForResult": false
 	},
 	{
 		"descr": "Set value on node conected to different broker via relative shv_path call",
@@ -56,7 +56,6 @@
 		"shvPath": "../../../broker1/slave/lub1/1/status",
 		"params": 42,
 		"result": true,
-		"processNextOnSuccess": false
 	},
 	{
 		"descr": "Get value on node conected to different broker via relative shv_path call",

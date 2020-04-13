@@ -109,7 +109,7 @@ void RevitestApp::onBrokerConnectedChanged(bool is_connected)
 		if(cliOptions()->callFile_isset()) {
 			QFile f(cliOptions()->callFile().data());
 			if(!f.open(QFile::ReadOnly))
-				SHV_EXCEPTION("Cannot oprn file " + f.fileName().toStdString() + " for reading");
+				SHV_EXCEPTION("Cannot open file " + f.fileName().toStdString() + " for reading");
 			QByteArray ba = f.readAll();
 			cpon = std::string(ba.data(), (unsigned)ba.length());
 		}

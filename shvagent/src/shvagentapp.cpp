@@ -1,6 +1,7 @@
 #include "shvagentapp.h"
 #include "appclioptions.h"
 #include "sessionprocess.h"
+#include "testernode.h"
 
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
@@ -9,6 +10,7 @@
 #include <shv/coreqt/log.h>
 #include <shv/chainpack/tunnelctl.h>
 #include <shv/chainpack/metamethod.h>
+#include <shv/chainpack/cponreader.h>
 
 #include <shv/core/stringview.h>
 
@@ -20,7 +22,7 @@
 #include <QRegularExpression>
 #include <QCryptographicHash>
 
-//#include <regex>
+#include <fstream>
 
 #ifdef Q_OS_UNIX
 #include <unistd.h>
@@ -36,6 +38,15 @@
 #endif
 
 #define logRunCmd() shvCMessage("RunCmd")
+
+#define logTesterD() shvCDebug("Tester")
+#define logTesterI() shvCInfo("Tester")
+#define logTesterW() shvCWarning("Tester")
+#define logTesterE() shvCError("Tester")
+#define logTesterPassed(test_no) shvCError("Tester").color(NecroLog::Color::LightGreen) << "#" << test_no << "[PASSED]"
+#define logTesterFailed(test_no) shvCError("Tester").color(NecroLog::Color::LightRed) << "#" << test_no << "[FAILED]"
+
+using namespace std;
 
 namespace cp = shv::chainpack;
 namespace si = shv::iotqt;
@@ -287,6 +298,12 @@ ShvAgentApp::ShvAgentApp(int &argc, char **argv, AppCliOptions* cli_opts)
 		si::node::LocalFSNode *fsn = new si::node::LocalFSNode(sys_fs_root_dir);
 		m_shvTree->mount(SYS_FS, fsn);
 	}
+	if(cli_opts->isTesterEnabled() || !cli_opts->testerScript().empty()) {
+		const char *TESTER_DIR = "tester";
+		shvInfo() << "Enabling tester at:" << TESTER_DIR;
+		TesterNode *nd = new TesterNode(nullptr);
+		m_shvTree->mount(TESTER_DIR, nd);
+	}
 
 	if(cliOptions()->connStatusUpdateInterval() > 0) {
 		QTimer *tm = new QTimer(this);
@@ -338,7 +355,7 @@ void ShvAgentApp::launchRexec(const shv::chainpack::RpcRequest &rq)
 			startup_params["onConnectedCall"] = on_connected;
 			std::string cpon = cp::RpcValue(std::move(startup_params)).toCpon();
 			//shvInfo() << "cpon:" << cpon;
-			proc->write(cpon.data(), cpon.size());
+			proc->write(cpon.data(), (unsigned)cpon.size());
 			proc->write("\n", 1);
 		}
 		else {
@@ -426,12 +443,12 @@ void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq)
 						if(i == STDOUT_FILENO) {
 							QByteArray ba = proc->readAllStandardOutput();
 							shvDebug() << "\t stdout:" << ba.toStdString();
-							lst.push_back(std::string(ba.constData(), ba.size()));
+							lst.push_back(std::string(ba.constData(), (unsigned)ba.size()));
 						}
 						else if(i == STDERR_FILENO) {
 							QByteArray ba = proc->readAllStandardError();
 							shvDebug() << "\t stderr:" << ba.toStdString();
-							lst.push_back(std::string(ba.constData(), ba.size()));
+							lst.push_back(std::string(ba.constData(), (unsigned)ba.size()));
 						}
 					}
 				}
@@ -441,7 +458,7 @@ void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq)
 			else {
 				QByteArray ba = proc->readAllStandardOutput();
 				shvDebug() << "\t stdout:" << ba.toStdString();
-				resp.setResult(std::string(ba.constData(), ba.size()));
+				resp.setResult(std::string(ba.constData(), (unsigned)ba.size()));
 				logRunCmd() << "Proces exit OK, result:" << resp.result().toCpon();
 			}
 		}
@@ -489,6 +506,15 @@ void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq)
 void ShvAgentApp::onBrokerConnectedChanged(bool is_connected)
 {
 	m_isBrokerConnected = is_connected;
+	AppCliOptions *cli_opts = cliOptions();
+	if(!cli_opts->testerScript().empty()) {
+		fstream is(cli_opts->testerScript());
+		if(!is)
+			SHV_EXCEPTION("Cannot open file " + cli_opts->testerScript() + " for reading");
+		cp::CponReader rd(is);
+		m_testerScript = rd.read();
+		tester_processShvCalls();
+	}
 }
 
 void ShvAgentApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
@@ -534,6 +560,91 @@ void ShvAgentApp::updateConnStatusFile()
 	}
 	else {
 		shvError() << "Cannot write to connection statu file:" << fn;
+	}
+}
+
+void ShvAgentApp::tester_processShvCalls()
+{
+	if(!m_rpcConnection->isBrokerConnected()) {
+		return;
+	}
+	const shv::chainpack::RpcValue::List &tests = m_testerScript.toList();
+	if(m_currentTestIndex >= tests.size())
+		return;
+
+	cp::RpcValue rv = tests.at(m_currentTestIndex++);
+	const shv::chainpack::RpcValue::Map &task = rv.toMap();
+	std::string descr = task.value("descr").toString();
+	std::string cmd = task.value("cmd").toString();
+	//bool process_next_on_exec = task.value("processNextOnExec", false).toBool();
+	auto test_no = m_currentTestIndex;
+	logTesterI() << "=========================================";
+	logTesterI() << "#" << test_no << "COMMAND:" << cmd;
+	logTesterI() << "DESCR:" << descr;
+	if(cmd == "call") {
+		bool wait_for_result = task.value("waitForResult", true).toBool();
+		std::string shv_path = task.value("shvPath").toString();
+		std::string method = task.value("method").toString();
+		cp::RpcValue params = task.value("params");
+		cp::RpcValue result = task.value("result");
+
+		int rq_id = m_rpcConnection->nextRequestId();
+		logTesterD() << "CALL rqid:" << rq_id << "msg:" << rv.toCpon();
+		shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rq_id, this);
+		cb->start(this, [this, rq_id, result, wait_for_result, test_no](const cp::RpcResponse &resp) {
+			bool ok = false;
+			if(resp.isValid()) {
+				if(resp.isError()) {
+					logTesterW() << "ERROR rqid:" << rq_id << "request error:" << resp.error().toString();
+				}
+				else {
+					logTesterD() << "RESULT rqid:" << rq_id << "result:" << resp.toCpon();
+					if(resp.result() == result) {
+						logTesterPassed(test_no);
+						ok = true;
+					}
+					else {
+						logTesterFailed(test_no) << "wrong result" << resp.result().toCpon();
+						m_currentTestIndex = numeric_limits<decltype (m_currentTestIndex)>::max();
+					}
+				}
+			}
+			else {
+				logTesterW() << "Invalid response rqid:" << rq_id;
+			}
+			if(ok && wait_for_result)
+				QTimer::singleShot(0, this, &ShvAgentApp::tester_processShvCalls);
+		});
+		m_rpcConnection->callShvMethod(rq_id, shv_path, method, params);
+		if(!wait_for_result)
+			QTimer::singleShot(0, this, &ShvAgentApp::tester_processShvCalls);
+	}
+	else if(cmd == "sigTrap") {
+		std::string shv_path = task.value("shvPath").toString();
+		std::string method = task.value("method").toString();
+		cp::RpcValue params = task.value("params");
+		int timeout = task.value("timeout").toInt();
+		QObject *ctx = new QObject();
+		QTimer::singleShot(timeout, ctx, [this, ctx, timeout, test_no]() {
+			logTesterFailed(test_no) << "timeout after:" << timeout;
+			ctx->deleteLater();
+			m_currentTestIndex = numeric_limits<decltype (m_currentTestIndex)>::max();
+		});
+		connect(m_rpcConnection
+				, &shv::iotqt::rpc::DeviceConnection::rpcMessageReceived
+				, ctx
+				, [ctx, this, shv_path, method, params, test_no](const shv::chainpack::RpcMessage &msg) {
+			logTesterD() << "MSG:" << msg.toCpon();
+			if(msg.isSignal()) {
+				cp::RpcSignal sig(msg);
+				if(sig.shvPath() == shv_path && sig.method() == method && sig.params() == params) {
+					logTesterPassed(test_no);
+					ctx->deleteLater();
+					//QTimer::singleShot(0, this, &ShvAgentApp::tester_processShvCalls);
+				}
+			}
+		});
+		QTimer::singleShot(0, this, &ShvAgentApp::tester_processShvCalls);
 	}
 }
 

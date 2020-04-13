@@ -1,0 +1,28 @@
+//./shvagent --user iot --password lub42DUB --lt PLAIN -m test/agent1 --ts ~/proj/shv/shvbroker/test/relative-paths/test-simple.cpon -v tester
+[
+	{
+		"descr": "Subscribe value change of node on the same broker via relative shv_path call",
+		"cmd": "call",
+		"method": "subscribe",
+		"shvPath": ".broker/app",
+		"params": {"method":"chng", "path":"../agent1/tester"},
+		"result": true
+	},
+	{
+		"descr": "Wait for value change notify",
+		"cmd": "sigTrap",
+		"method": "chng",
+		"shvPath": "../agent1/tester/prop1/propA",
+		"params": 42,
+		"timeout": 500
+	},
+	{
+		"descr": "Set value on node conected to the same broker via relative shv_path call",
+		"cmd": "call",
+		"method": "set",
+		"shvPath": "../agent1/tester/prop1/propA",
+		"params": 42,
+		"result": true,
+		"waitForResult": false
+	},
+]

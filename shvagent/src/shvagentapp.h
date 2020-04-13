@@ -45,6 +45,8 @@ private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	void updateConnStatusFile();
+
+	void tester_processShvCalls();
 private:
 	shv::iotqt::rpc::DeviceConnection *m_rpcConnection = nullptr;
 	AppCliOptions* m_cliOptions;
@@ -52,6 +54,9 @@ private:
 	shv::iotqt::node::ShvNodeTree *m_shvTree = nullptr;
 	//QTimer *m_conStatusFileUpdateTimer = nullptr;
 	bool m_isBrokerConnected = false;
+
+	shv::chainpack::RpcValue m_testerScript;
+	unsigned m_currentTestIndex = 0;
 #ifdef HANDLE_UNIX_SIGNALS
 	Q_SIGNAL void aboutToTerminate(int sig);
 

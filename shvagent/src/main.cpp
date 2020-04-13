@@ -22,6 +22,8 @@ int main(int argc, char *argv[])
 
 	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);
 
+	NecroLog::registerTopic("Tester", "Tester");
+
 	int ret = 0;
 
 	AppCliOptions cli_opts;

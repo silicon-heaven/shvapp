@@ -1,0 +1,69 @@
+//./shvagent --user iot --password lub42DUB --lt PLAIN -m test/agent1 --ts ~/proj/shv/shvbroker/test/relative-paths/test-simple.cpon -v tester
+[
+	{
+		"descr": "Subscribe value change of node on the same broker via relative shv_path call",
+		"cmd": "call",
+		"method": "subscribe",
+		"shvPath": ".broker/app",
+		"params": {"method":"chng", "path":"../agent1/tester"},
+		"result": true
+	},
+	{
+		"descr": "Wait for value change notify",
+		"cmd": "sigTrap",
+		"method": "chng",
+		"shvPath": "../agent1/tester/prop1/propA",
+		"params": 42,
+		"timeout": 500
+	},
+	{
+		"descr": "Set value on node conected to the same broker via relative shv_path call",
+		"cmd": "call",
+		"method": "set",
+		"shvPath": "../agent1/tester/prop1/propA",
+		"params": 42,
+		"result": true,
+		"waitForResult": false
+	},
+	/*
+	{
+		"descr": "Get value on node conected to the same broker via relative shv_path call",
+		"cmd": "call",
+		"method": "get",
+		"shvPath": "../lub2/1/status",
+		"result": 42,
+	},
+	{
+		"descr": "Subscribe value change of node on different broker via relative shv_path call",
+		"cmd": "call",
+		"method": "subscribe",
+		"shvPath": ".broker/app",
+		"params": {"method":"chng", "path":"../../../broker1/slave/lub1/1/status"},
+		"result": true
+	},
+	{
+		"descr": "Wait for value change notify",
+		"cmd": "sigTrap",
+		"method": "chng",
+		"shvPath": "../../../broker1/slave/lub1/1/status",
+		"params": 42,
+		"timeout": 500
+		"waitForResult": false
+	},
+	{
+		"descr": "Set value on node conected to different broker via relative shv_path call",
+		"cmd": "call",
+		"method": "sim_set",
+		"shvPath": "../../../broker1/slave/lub1/1/status",
+		"params": 42,
+		"result": true,
+	},
+	{
+		"descr": "Get value on node conected to different broker via relative shv_path call",
+		"cmd": "call",
+		"method": "get",
+		"shvPath": "../../../broker1/slave/lub1/1/status",
+		"result": 42,
+	},
+	*/
+]
