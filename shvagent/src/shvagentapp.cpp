@@ -576,13 +576,24 @@ void ShvAgentApp::tester_processShvCalls()
 	const shv::chainpack::RpcValue::Map &task = rv.toMap();
 	std::string descr = task.value("descr").toString();
 	std::string cmd = task.value("cmd").toString();
-	//bool process_next_on_exec = task.value("processNextOnExec", false).toBool();
+
+	unsigned on_success_skip = task.value("onSuccess").toMap().value("skip", 1).toUInt();
+	unsigned on_success_ix = m_currentTestIndex + on_success_skip - 1;
+	auto on_success_fn = [this, on_success_skip, on_success_ix]() {
+		if(on_success_skip > 0) {
+			m_currentTestIndex = on_success_ix;
+			QTimer::singleShot(0, this, &ShvAgentApp::tester_processShvCalls);
+		}
+	};
+	auto on_error_fn = [this]() {
+		m_currentTestIndex = numeric_limits<decltype (m_currentTestIndex)>::max();
+	};
+
 	auto test_no = m_currentTestIndex;
 	logTesterI() << "=========================================";
-	logTesterI() << "#" << test_no << "COMMAND:" << cmd;
+	logTesterI() << "#" << test_no << "ID:" << task.value("id").toString() << "COMMAND:" << cmd;
 	logTesterI() << "DESCR:" << descr;
 	if(cmd == "call") {
-		bool wait_for_result = task.value("waitForResult", true).toBool();
 		std::string shv_path = task.value("shvPath").toString();
 		std::string method = task.value("method").toString();
 		cp::RpcValue params = task.value("params");
@@ -591,33 +602,34 @@ void ShvAgentApp::tester_processShvCalls()
 		int rq_id = m_rpcConnection->nextRequestId();
 		logTesterD() << "CALL rqid:" << rq_id << "msg:" << rv.toCpon();
 		shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rq_id, this);
-		cb->start(this, [this, rq_id, result, wait_for_result, test_no](const cp::RpcResponse &resp) {
-			bool ok = false;
+		cb->start(this, [rq_id, result,
+				  on_success_fn,
+				  on_error_fn,
+				  test_no](const cp::RpcResponse &resp) {
 			if(resp.isValid()) {
 				if(resp.isError()) {
 					logTesterW() << "ERROR rqid:" << rq_id << "request error:" << resp.error().toString();
+					logTesterFailed(test_no) << "call response error";
+					on_error_fn();
 				}
 				else {
 					logTesterD() << "RESULT rqid:" << rq_id << "result:" << resp.toCpon();
 					if(resp.result() == result) {
 						logTesterPassed(test_no);
-						ok = true;
+						on_success_fn();
 					}
 					else {
 						logTesterFailed(test_no) << "wrong result" << resp.result().toCpon();
-						m_currentTestIndex = numeric_limits<decltype (m_currentTestIndex)>::max();
+						on_error_fn();
 					}
 				}
 			}
 			else {
-				logTesterW() << "Invalid response rqid:" << rq_id;
+				logTesterE() << "Invalid response rqid:" << rq_id;
+				on_error_fn();
 			}
-			if(ok && wait_for_result)
-				QTimer::singleShot(0, this, &ShvAgentApp::tester_processShvCalls);
 		});
 		m_rpcConnection->callShvMethod(rq_id, shv_path, method, params);
-		if(!wait_for_result)
-			QTimer::singleShot(0, this, &ShvAgentApp::tester_processShvCalls);
 	}
 	else if(cmd == "sigTrap") {
 		std::string shv_path = task.value("shvPath").toString();
@@ -625,22 +637,22 @@ void ShvAgentApp::tester_processShvCalls()
 		cp::RpcValue params = task.value("params");
 		int timeout = task.value("timeout").toInt();
 		QObject *ctx = new QObject();
-		QTimer::singleShot(timeout, ctx, [this, ctx, timeout, test_no]() {
+		QTimer::singleShot(timeout, ctx, [ctx, on_error_fn, timeout, test_no]() {
 			logTesterFailed(test_no) << "timeout after:" << timeout;
 			ctx->deleteLater();
-			m_currentTestIndex = numeric_limits<decltype (m_currentTestIndex)>::max();
+			on_error_fn();
 		});
 		connect(m_rpcConnection
 				, &shv::iotqt::rpc::DeviceConnection::rpcMessageReceived
 				, ctx
-				, [ctx, this, shv_path, method, params, test_no](const shv::chainpack::RpcMessage &msg) {
+				, [ctx, on_success_fn, shv_path, method, params, test_no](const shv::chainpack::RpcMessage &msg) {
 			logTesterD() << "MSG:" << msg.toCpon();
 			if(msg.isSignal()) {
 				cp::RpcSignal sig(msg);
 				if(sig.shvPath() == shv_path && sig.method() == method && sig.params() == params) {
 					logTesterPassed(test_no);
 					ctx->deleteLater();
-					//QTimer::singleShot(0, this, &ShvAgentApp::tester_processShvCalls);
+					on_success_fn();
 				}
 			}
 		});

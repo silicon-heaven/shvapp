@@ -7,6 +7,9 @@
 		"shvPath": ".broker/app",
 		"params": {"method":"chng", "path":"../agent1/tester"},
 		"result": true
+		"onSuccess": {"skip": 1}, // default
+		"onError": {"abort": true}, // default
+		"onTimeout": {"abort": true}, // default
 	},
 	{
 		"descr": "Wait for value change notify",
@@ -15,6 +18,7 @@
 		"shvPath": "../agent1/tester/prop1/propA",
 		"params": 42,
 		"timeout": 500
+		"onSuccess": {"skip": 2}
 	},
 	{
 		"descr": "Set value on node conected to the same broker via relative shv_path call",

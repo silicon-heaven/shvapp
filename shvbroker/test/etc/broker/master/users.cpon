@@ -1,0 +1,30 @@
+{
+  "admin":{
+    "roles":["admin"],
+    "password": {
+      "password":"8884a26b82a69838092fd4fc824bbfde56719e02",
+      "format":"sha1"
+    }
+  },
+  "iot":{
+    "roles":["device","tester"],
+    "password": {
+      "password":"8884a26b82a69838092fd4fc824bbfde56719e02",
+      "format":"sha1"
+    }
+  },
+  "broker":{
+    "roles":["device","tester"],
+    "password": {
+      "password":"ffee1086753ca76fe84b7fadd738d76caf2072d0",
+      "format":"sha1"
+    }
+  },
+  "fanda":{
+    "roles":["admin"],
+    "password": {
+      "password":"998886fed1af5c356cff427eca4aa7bb53ee4d6c",
+      "format":"sha1"
+    }
+  },
+}

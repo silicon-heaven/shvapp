@@ -1,69 +1,79 @@
-//./shvagent --user iot --password lub42DUB --lt PLAIN -m test/agent1 --ts ~/proj/shv/shvbroker/test/relative-paths/test-simple.cpon -v tester
 [
 	{
+		"id": "SUBS_1"
 		"descr": "Subscribe value change of node on the same broker via relative shv_path call",
 		"cmd": "call",
 		"method": "subscribe",
 		"shvPath": ".broker/app",
-		"params": {"method":"chng", "path":"../agent1/tester"},
+		"params": {"method":"chng", "path":"../agentB1"},
 		"result": true
+		"onSuccess": {"skip": 1}, // default
+		"onError": {"abort": true}, // default
+		"onTimeout": {"abort": true}, // default
 	},
 	{
+		"id": "NTF_1"
 		"descr": "Wait for value change notify",
 		"cmd": "sigTrap",
 		"method": "chng",
-		"shvPath": "../agent1/tester/prop1/propA",
+		"shvPath": "../agentB1/tester/prop1",
 		"params": 42,
 		"timeout": 500
+		"onSuccess": {"skip": 2}
 	},
 	{
+		"id": "SET_1"
 		"descr": "Set value on node conected to the same broker via relative shv_path call",
 		"cmd": "call",
 		"method": "set",
-		"shvPath": "../agent1/tester/prop1/propA",
+		"shvPath": "../agentB1/tester/prop1",
 		"params": 42,
 		"result": true,
 		"waitForResult": false
+		"onSuccess": {"skip": 0}
 	},
-	/*
 	{
+		"id": "GET_1"
 		"descr": "Get value on node conected to the same broker via relative shv_path call",
 		"cmd": "call",
 		"method": "get",
-		"shvPath": "../lub2/1/status",
+		"shvPath": "../agentB1/tester/prop1",
 		"result": 42,
 	},
+
 	{
+		"id": "SUBS-cross-1"
 		"descr": "Subscribe value change of node on different broker via relative shv_path call",
 		"cmd": "call",
 		"method": "subscribe",
 		"shvPath": ".broker/app",
-		"params": {"method":"chng", "path":"../../../broker1/slave/lub1/1/status"},
+		"params": {"method":"chng", "path":"../../broker1/agentA1"},
 		"result": true
 	},
 	{
+		"id": "NTF-cross-1"
 		"descr": "Wait for value change notify",
 		"cmd": "sigTrap",
 		"method": "chng",
-		"shvPath": "../../../broker1/slave/lub1/1/status",
-		"params": 42,
+		"shvPath": "../../broker1/agentA1/tester/prop1/propA",
+		"params": 3,
 		"timeout": 500
-		"waitForResult": false
+		"onSuccess": {"skip": 2}
 	},
 	{
 		"descr": "Set value on node conected to different broker via relative shv_path call",
 		"cmd": "call",
-		"method": "sim_set",
-		"shvPath": "../../../broker1/slave/lub1/1/status",
-		"params": 42,
+		"method": "set",
+		"shvPath": "../../broker1/agentA1/tester/prop1/propA",
+		"params": 3,
 		"result": true,
+		"onSuccess": {"skip": 0}
 	},
 	{
 		"descr": "Get value on node conected to different broker via relative shv_path call",
 		"cmd": "call",
 		"method": "get",
-		"shvPath": "../../../broker1/slave/lub1/1/status",
-		"result": 42,
+		"shvPath": "../../broker1/agentA1/tester/prop1/propA",
+		"result": 3,
 	},
-	*/
 ]
