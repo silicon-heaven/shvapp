@@ -101,6 +101,13 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 		if (is_finished && m_askElesys) {
 			m_askElesys = false;
 			is_finished = false;
+			if (log.size()) {
+				until = last_record_time;
+			}
+			else {
+				getChunk();
+				return;
+			}
 		}
 		shvInfo() << "received log for" << m_shvPath << "with" << log.size() << "records"
 				  << "since" << first_record_time
