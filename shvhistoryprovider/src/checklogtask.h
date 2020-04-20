@@ -3,9 +3,27 @@
 
 #include "logdir.h"
 
+#include <QDateTime>
 #include <QVector>
 
 class DeviceLogRequest;
+
+class CacheState
+{
+public:
+	QDateTime since;
+	QDateTime until;
+	int recordCount = 0;
+	int fileCount = 0;
+};
+
+class CacheInfo
+{
+public:
+	CacheState state;
+	QStringList errors;
+};
+
 
 class CheckLogTask : public QObject
 {
@@ -24,6 +42,7 @@ public:
 	void exec();
 	Q_SIGNAL void finished(bool);
 	CheckType checkType() const { return m_checkType; }
+	static CacheInfo checkLogCache(const QString &shv_path);
 
 private:
 	void checkOldDataConsistency();
