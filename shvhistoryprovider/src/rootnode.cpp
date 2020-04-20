@@ -26,6 +26,7 @@ static const char METH_GET_UPTIME[] = "uptime";
 static const char METH_GET_LOGVERBOSITY[] = "logVerbosity";
 static const char METH_SET_LOGVERBOSITY[] = "setLogVerbosity";
 static const char METH_TRIM_DIRTY_LOG[] = "trim";
+static const char METH_SANITIZE_LOG_CACHE[] = "sanitizeLogCache";
 
 static std::vector<cp::MetaMethod> root_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE },
@@ -49,6 +50,7 @@ static std::vector<cp::MetaMethod> leaf_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE },
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE },
 	{ cp::Rpc::METH_GET_LOG, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ },
+	{ METH_SANITIZE_LOG_CACHE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_SERVICE },
 };
 
 static std::vector<cp::MetaMethod> dirty_log_meta_methods {
@@ -193,6 +195,10 @@ shv::chainpack::RpcValue RootNode::callMethod(const shv::iotqt::node::ShvNode::S
 	else if (method == METH_RELOAD_SITES) {
 		Application::instance()->deviceMonitor()->downloadSites();
 		return true;
+	}
+	else if (method == METH_SANITIZE_LOG_CACHE) {
+		return Application::instance()->logSanitizer()->checkLogs(QString::fromStdString(shv_path.join('/')), CheckLogTask::CheckType::CheckDirtyLogState);
+
 	}
 	else if (method == METH_TRIM_DIRTY_LOG && shv_path.size() && shv_path.value(-1) == Application::DIRTY_LOG_NODE) {
 		shv::iotqt::node::ShvNode::StringViewList path = shv_path.mid(0, shv_path.size() - 1);

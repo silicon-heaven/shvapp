@@ -81,13 +81,13 @@ void LogSanitizer::checkLogs()
 	checkLogs(online_devices[m_lastCheckedDevice], CheckLogTask::CheckType::CheckDirtyLogState);
 }
 
-void LogSanitizer::checkLogs(const QString &shv_path, CheckLogTask::CheckType check_type)
+bool LogSanitizer::checkLogs(const QString &shv_path, CheckLogTask::CheckType check_type)
 {
 	if (Application::instance()->deviceConnection()->state() != shv::iotqt::rpc::ClientConnection::State::BrokerConnected) {
-		return;
+		return false;
 	}
 	if (findChild<CheckLogTask*>(shv_path, Qt::FindChildOption::FindDirectChildrenOnly)) {
-		return;
+		return false;
 	}
 	shvMessage() << "checking logs for" << shv_path;
 	CheckLogTask *task = new CheckLogTask(shv_path, check_type, this);
@@ -98,4 +98,5 @@ void LogSanitizer::checkLogs(const QString &shv_path, CheckLogTask::CheckType ch
 		shvMessage() << "checking logs for" << shv_path << (success ? "succesfully finished" : "finished with error");
 	});
 	task->exec();
+	return true;
 }
