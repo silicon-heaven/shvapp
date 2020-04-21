@@ -272,7 +272,7 @@ ShvAgentApp::ShvAgentApp(int &argc, char **argv, AppCliOptions* cli_opts)
 #endif
 #ifdef Q_OS_UNIX
 	if(0 != ::setpgid(0, 0))
-		shvError() << "Error set process group ID:" << errno << ::strerror(errno);
+		shvError() << "Cannot make shvagent process the group leader, error set process group ID:" << errno << ::strerror(errno);
 #endif
 	//cp::RpcMessage::setMetaTypeExplicit(cli_opts->isMetaTypeExplicit());
 

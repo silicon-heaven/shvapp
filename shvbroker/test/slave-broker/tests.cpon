@@ -1,0 +1,44 @@
+[
+	{
+		"id": "SUBS_1"
+		"descr": "Subscribe value change of node test",
+		"cmd": "call",
+		"method": "subscribe",
+		"shvPath": ".broker/app",
+		"params": {"method":"chng", "path":"test"},
+		"result": true
+		"onSuccess": {"skip": 1}, // default
+		"onError": {"abort": true}, // default
+		"onTimeout": {"abort": true}, // default
+	},
+	{
+		"id": "NTF_1"
+		"descr": "Wait for value change notify",
+		"cmd": "sigTrap",
+		"method": "chng",
+		"shvPath": "test/broker1/brokerA/agentA1/tester/prop1/propA",
+		"params": 42,
+		"timeout": 500
+		"onSuccess": {"skip": 2}
+	},
+	{
+		"id": "SET_1"
+		"descr": "Set value on node conected to lowes broker in hierarchy",
+		"cmd": "call",
+		"method": "set",
+		"shvPath": "test/broker1/brokerA/agentA1/tester/prop1/propA",
+		"params": 42,
+		"result": true,
+		"waitForResult": false
+		"onSuccess": {"skip": 0}
+	},
+	{
+		"id": "GET_1"
+		"descr": "Get value on node conected to the same broker via relative shv_path call",
+		"cmd": "call",
+		"method": "get",
+		"shvPath": "test/broker1/brokerA/agentA1/tester/prop1/propA",
+		"result": 42,
+	},
+
+]
