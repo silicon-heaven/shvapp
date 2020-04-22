@@ -114,7 +114,12 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 				  << "until" << last_record_time;
 
 		if (!m_since.isValid() || !tryAppendToPreviousFile(log, until)) {
-			saveToNewFile(log, until);
+			if (!m_since.isValid() && log.size() == 0) {
+				fixFirstLogFile();
+			}
+			else {
+				saveToNewFile(log, until);
+			}
 		}
 		trimDirtyLog(until);
 		m_since = until;
@@ -286,6 +291,22 @@ void DeviceLogRequest::trimDirtyLog(const QDateTime &until)
 		if (until_msec != old_start_ts && conn->state() == shv::iotqt::rpc::DeviceConnection::State::BrokerConnected) {
 			conn->sendShvSignal((m_shvPath + "/" + Application::DIRTY_LOG_NODE + "/" + Application::START_TS_NODE).toStdString(),
 								cp::Rpc::SIG_VAL_CHANGED, cp::RpcValue::DateTime::fromMSecsSinceEpoch(until_msec));
+		}
+	}
+}
+
+void DeviceLogRequest::fixFirstLogFile()
+{
+	QStringList log_files = m_logDir.findFiles(QDateTime(), QDateTime());
+	if (log_files.count()) {
+		QFile first_file(log_files[0]);
+		if (first_file.open(QFile::ReadOnly)) {
+			cp::RpcValue log = cp::RpcValue::fromChainPack(first_file.readAll().toStdString());
+			log.setMetaValue("HP", cp::RpcValue::Map{{ "firstLog", true }});
+			first_file.close();
+			if (first_file.open(QFile::WriteOnly | QFile::Truncate)) {
+				first_file.write(QByteArray::fromStdString(log.toChainPack()));
+			}
 		}
 	}
 }

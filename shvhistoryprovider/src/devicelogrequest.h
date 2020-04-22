@@ -31,6 +31,7 @@ private:
 	bool tryAppendToPreviousFile(shv::core::utils::ShvMemoryJournal &log, const QDateTime &until);
 	void saveToNewFile(shv::core::utils::ShvMemoryJournal &log, const QDateTime &until);
 	void trimDirtyLog(const QDateTime &until);
+	void fixFirstLogFile();
 
 	const QString m_shvPath;
 	QDateTime m_since;
