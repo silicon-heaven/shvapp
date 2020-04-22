@@ -1,64 +1,23 @@
 {
-  "broker":{
-    "grants":[
-      "slaveBroker"
-    ],
-    "password":"ffee1086753ca76fe84b7fadd738d76caf2072d0",
-    "passwordFormat":"sha1"
-  },
-  "elviz":{
-    "grants":[
-      "elviz"
-    ],
-    "password":"foobar"
-  },
-  "fanda":{
-    "grants":[
-      "admin"
-    ],
-    "password":"998886fed1af5c356cff427eca4aa7bb53ee4d6c",
-    "passwordFormat":"sha1"
+  "admin":{
+    "roles":["admin"],
+    "password": {
+      "password":"8284a26b82a69838092fd4fc824bbfde56719e02",
+      "format":"sha1"
+    }
   },
   "iot":{
-    "grants":[
-      "device"
-    ],
-    "password":"8884a26b82a69838092fd4fc824bbfde56719e02",
-    "passwordFormat":"sha1"
+    "roles":["device","tester"],
+    "password": {
+      "password":"8284a26b82a69838092fd4fc824bbfde56719e02",
+      "format":"sha1"
+    }
   },
-  "revitest":{
-    "grants":[
-      "observer"
-    ],
-    "password":"99f76f19bfc9bd2331df02c72c65627b77d0888e",
-    "passwordFormat":"sha1"
+  "broker":{
+    "roles":["device","tester"],
+    "password": {
+      "password":"ff2e1086753ca76fe84b7fadd738d76caf2072d0",
+      "format":"sha1"
+    }
   },
-  "shvhistoryprovider":{
-    "grants":[
-      "shvhistoryprovider"
-    ],
-    "password":"8884a26b82a69838092fd4fc824bbfde56719e02",
-    "passwordFormat":"sha1"
-  },
-  "shvsitesprovider":{
-    "grants":[
-      "shvsitesprovider"
-    ],
-    "password":"8884a26b82a69838092fd4fc824bbfde56719e02",
-    "passwordFormat":"sha1"
-  },
-  "test":{
-    "grants":[
-      "client"
-    ],
-    "password":"a94a8fe5ccb19ba61c4c0873d391e987982fbbd3",
-    "passwordFormat":"sha1"
-  },
-  "tscshvagent":{
-    "grants":[
-      "tscshvagent"
-    ],
-    "password":"8884a26b82a69838092fd4fc824bbfde56719e02",
-    "passwordFormat":"sha1"
-  }
 }
