@@ -7,7 +7,31 @@
 
 #include <QHostAddress>
 
+#include <sstream>
 #include <iostream>
+
+namespace {
+
+NecroLog::MessageHandler old_message_handler;
+bool send_log_entry_recursion_lock = false;
+
+void send_log_entry_handler(NecroLog::Level level, const NecroLog::LogContext &context, const std::string &msg)
+{
+	if(!send_log_entry_recursion_lock) {
+		send_log_entry_recursion_lock = true;
+		ShvBrokerApp *app = ShvBrokerApp::instance();
+		if(app) {
+			std::ostringstream os;
+			NecroLog::writeWithDefaultFormat(os, false, level, context, msg);
+			//old_message_handler(level, context, s);
+			app->sendNewLogEntryNotify(os.str());
+		}
+		send_log_entry_recursion_lock = false;
+	}
+	old_message_handler(level, context, msg);
+}
+
+}
 
 int main(int argc, char *argv[])
 {
@@ -63,6 +87,8 @@ int main(int argc, char *argv[])
 	shvInfo() << "--------------------------------------------------------------------------------------";
 
 	ShvBrokerApp a(argc, argv, &cli_opts);
+
+	old_message_handler = NecroLog::setMessageHandler(send_log_entry_handler);
 #if 0
 	QString lc_name = QString::fromStdString(cli_opts.locale());
 	{

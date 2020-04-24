@@ -21,7 +21,7 @@ NecroLog::MessageHandler old_message_handler;
 
 std::ofstream log_file_stream;
 
-void copy_to_file_message_handler(NecroLog::Level level, const NecroLog::LogContext &context, const std::string &msg)
+void send_log_entry_handler(NecroLog::Level level, const NecroLog::LogContext &context, const std::string &msg)
 {
 	//std::fstream file(Jn50ViewApp::logFilePath(), std::ios::out | std::ios::binary | std::ios::app);
 	std::ostream &os = log_file_stream;
@@ -54,7 +54,7 @@ void init_log_environment()
 		}
 	}
 	log_file_stream.open(log_file_path, std::ios::binary | std::ios::out | std::ios::app);
-	old_message_handler = NecroLog::setMessageHandler(copy_to_file_message_handler);
+	old_message_handler = NecroLog::setMessageHandler(send_log_entry_handler);
 }
 
 }

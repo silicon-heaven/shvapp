@@ -39,7 +39,11 @@ QVariant LogTableModelBase::data(const QModelIndex &index, int role) const
 	case Qt::BackgroundRole: {
 		break;
 	}
-	};
+	case Qt::ToolTipRole: {
+		QVariant ret = data(index, Qt::DisplayRole);
+		return ret;
+	}
+	}
 	return QVariant();
 }
 
