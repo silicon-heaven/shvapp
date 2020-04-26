@@ -13,14 +13,13 @@
 namespace cp = shv::chainpack;
 
 static const char KEY_SHV_PATH[] = "shvPath";
-static const char KEY_DISABLED[] = "disabled";
 
 HNodeAgent::HNodeAgent(const std::string &node_id, HNode *parent)
 	: Super(node_id, parent)
 {
 	shvDebug() << "creating:" << metaObject()->className() << node_id;
-	connect(this, &HNode::statusChanged, [this]() { updateOverallStatus(); });
 
+	//connect(this, &HNode::statusChanged, [this]() { updateOverallStatus(); });
 	HNodeBroker *pbnd = parentBrokerNode();
 	connect(pbnd, &HNodeBroker::brokerConnectedChanged, this, &HNodeAgent::onParentBrokerConnectedChanged);
 	connect(pbnd, &HNodeBroker::rpcMessageReceived, this, &HNodeAgent::onParentBrokerRpcMessageReceived);
@@ -29,10 +28,7 @@ HNodeAgent::HNodeAgent(const std::string &node_id, HNode *parent)
 void HNodeAgent::load()
 {
 	Super::load();
-	if(isDisabled()) {
-		setStatus({NodeStatus::Value::Disabled, "Node is disabled"});
-	}
-	else {
+	if(!isDisabled()) {
 		for (const std::string &dir : lsConfigDir()) {
 			auto *nd = new HNodeTests(dir, this);
 			nd->load();
@@ -45,11 +41,6 @@ void HNodeAgent::load()
 std::string HNodeAgent::agentShvPath() const
 {
 	return configValueOnPath(KEY_SHV_PATH).toString();
-}
-
-bool HNodeAgent::isDisabled() const
-{
-	return configValueOnPath(KEY_DISABLED).toBool();
 }
 
 void HNodeAgent::onParentBrokerConnectedChanged(bool is_connected)
@@ -68,10 +59,10 @@ void HNodeAgent::onParentBrokerRpcMessageReceived(const shv::chainpack::RpcMessa
 		if(sig.method().toString() == cp::Rpc::SIG_MOUNTED_CHANGED && sig.shvPath().toString() == agentShvPath()) {
 			bool is_mounted = sig.params().toBool();
 			if(is_mounted) {
-				setStatus({NodeStatus::Value::Ok, "Agent connected."});
+				setStatus({NodeStatus::Level::Ok, "Agent connected."});
 			}
 			else {
-				setStatus({NodeStatus::Value::Error, "Agent disconnected."});
+				setStatus({NodeStatus::Level::Error, "Agent disconnected."});
 			}
 		}
 	}
@@ -102,18 +93,18 @@ void HNodeAgent::checkAgentConnected()
 			cb->start(5000, this, [this](const cp::RpcResponse &resp) {
 				if(resp.isValid()) {
 					if(resp.isError()) {
-						NodeStatus st{NodeStatus::Value::Error, "Agent connected check error: " + resp.error().toString()};
+						NodeStatus st{NodeStatus::Level::Error, "Agent connected check error: " + resp.error().toString()};
 						//logTest() << "\t setting status to:" << st.toRpcValue().toCpon();
 						setStatus(st);
 					}
 					else {
-						NodeStatus st{NodeStatus::Value::Ok, "Agent connected."};
+						NodeStatus st{NodeStatus::Level::Ok, "Agent connected."};
 						//logTest() << "\t setting status to:" << st.toRpcValue().toCpon();
 						setStatus(st);
 					}
 				}
 				else {
-					NodeStatus st{NodeStatus::Value::Error, "Agent connected chect timeout."};
+					NodeStatus st{NodeStatus::Level::Error, "Agent connected chect timeout."};
 					//logTest() << "\t setting status to:" << st.toRpcValue().toCpon();
 					setStatus(st);
 				}

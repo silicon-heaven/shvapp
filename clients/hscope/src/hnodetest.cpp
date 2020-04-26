@@ -15,7 +15,7 @@
 #include <QFile>
 #include <QTimer>
 
-#define logTest() shvCDebug("Test")
+#define logTest() shvCMessage("Test")
 
 namespace cp = shv::chainpack;
 
@@ -48,7 +48,7 @@ HNodeTest::HNodeTest(const std::string &node_id, HNode *parent)
 	m_runTimer = new QTimer(this);
 	connect(m_runTimer, &QTimer::timeout, this, &HNodeTest::runTestSafe);
 
-	connect(this, &HNode::statusChanged, [this]() { updateOverallStatus(); });
+	//connect(this, &HNode::statusChanged, [this]() { updateOverallStatus(); });
 
 	HNodeBroker *pbnd = parentBrokerNode();
 	connect(pbnd, &HNodeBroker::brokerConnectedChanged, this, &HNodeTest::onParentBrokerConnectedChanged);
@@ -65,7 +65,7 @@ void HNodeTest::load()
 		logTest() << "\t" << "disabled";
 		m_nextRun = cp::RpcValue();
 		m_runTimer->stop();
-		setStatus(NodeStatus{NodeStatus::Value::Ok, "Test disabled"});
+		setStatus(NodeStatus{NodeStatus::Level::Ok, "Test disabled"});
 		return;
 	}
 
@@ -195,7 +195,7 @@ void HNodeTest::runTest(const shv::chainpack::RpcRequest &rq, bool use_script_ca
 					logTest() << test_no << "Test response:" << shvPath() << "ERROR:" << err.toString();
 					if(rq1.isRequest())
 						resp2.setError(err);
-					NodeStatus st{NodeStatus::Value::Error, err.toString()};
+					NodeStatus st{NodeStatus::Level::Error, err.toString()};
 					logTest() << test_no << "\t setting status to:" << st.toRpcValue().toCpon();
 					setStatus(st);
 				}
@@ -233,12 +233,13 @@ void HNodeTest::runTest(const shv::chainpack::RpcRequest &rq, bool use_script_ca
 			logTest() << test_no << "Running test:" << shvPath() << "TIMEOUT!";
 			if(rq1.isRequest())
 				resp2.setError(cp::RpcResponse::Error::createSyncMethodCallTimeout("Test invocation timeout!"));
-			NodeStatus st{NodeStatus::Value::Error, "Test invocation timeout!"};
+			NodeStatus st{NodeStatus::Level::Error, "Test invocation timeout!"};
 			logTest() << test_no << "\t setting status to:" << st.toRpcValue().toCpon();
 			setStatus(st);
 		}
 		if(rq1.isRequest())
 			this->appRpcConnection()->sendMessage(resp2);
+		emit runTestFinished();
 	});
 	logTest() << test_no << "call shv:" << shv_path << cp::Rpc::METH_RUN_SCRIPT << cp::RpcValue(cp::RpcValue::List{script.toStdString(), 1, env}).toCpon();
 	bnd->rpcConnection()->callShvMethod(rq_id, shv_path, cp::Rpc::METH_RUN_SCRIPT, cp::RpcValue::List{script.toStdString(), 1, env});

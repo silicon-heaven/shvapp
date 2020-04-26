@@ -1,5 +1,7 @@
 #pragma once
 
+#include "hnode.h"
+
 #include <shv/iotqt/node/shvnode.h>
 #include <shv/coreqt/utils.h>
 
@@ -9,7 +11,6 @@
 class AppCliOptions;
 class QFileSystemWatcher;
 
-class NodeStatus;
 class Telegram;
 
 namespace shv { namespace chainpack { class RpcMessage; }}
@@ -49,14 +50,14 @@ public:
 	void start();
 
 	shv::iotqt::node::ShvNodeTree *shvTree() { return m_shvTree; }
-	NodeStatus overallNodesStatus();
+	NodeStatus::Level overallNodesStatus();
 
 	Q_SIGNAL void rpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	Q_SIGNAL void brokerConnectedChanged(bool is_connected);
 	Q_SIGNAL void alertStatusChanged(const std::string &shv_path, const NodeStatus &status);
 
 	void onHNodeStatusChanged(const std::string &shv_path, const NodeStatus &status);
-	void onHNodeOverallStatusChanged(const std::string &shv_path, const NodeStatus &status);
+	void onHNodeOverallStatusChanged(const std::string &shv_path, NodeStatus::Level level);
 private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);

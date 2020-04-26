@@ -12,6 +12,8 @@
 
 namespace cp = shv::chainpack;
 
+static const char KEY_DISABLED[] = "disabled";
+
 //===========================================================
 // HNodeStatus
 //===========================================================
@@ -24,7 +26,7 @@ NodeStatus NodeStatus::fromRpcValue(const shv::chainpack::RpcValue &val)
 		if(!val.isValid())
 			val = map.value("val");
 		if(val.isInt() || val.isUInt())
-			ret.value = (NodeStatus::Value)val.toInt();
+			ret.level = (NodeStatus::Level)val.toInt();
 		else if(val.isString()) {
 			const std::string &val_str = val.toString();
 			if(val_str.size()) {
@@ -33,27 +35,27 @@ NodeStatus NodeStatus::fromRpcValue(const shv::chainpack::RpcValue &val)
 				case '0':
 				case 'o':
 				case 'O':
-					ret.value = NodeStatus::Value::Ok;
+					ret.level = NodeStatus::Level::Ok;
 					break;
 				case '1':
 				case 'w':
 				case 'W':
-					ret.value = NodeStatus::Value::Warning;
+					ret.level = NodeStatus::Level::Warning;
 					break;
 				case '2':
 				case 'e':
 				case 'E':
-					ret.value = NodeStatus::Value::Error;
+					ret.level = NodeStatus::Level::Error;
 					break;
 				default:
-					ret.value = NodeStatus::Value::Unknown;
+					ret.level = NodeStatus::Level::Unknown;
 					break;
 				}
 			}
 		}
 		else {
 			shvWarning() << "Invalid HNode::Status rpc value:" << val.toCpon();
-			ret.value = NodeStatus::Value::Unknown;
+			ret.level = NodeStatus::Level::Unknown;
 		}
 		std::string msg = map.value("message").toString();
 		if(msg.empty())
@@ -66,26 +68,28 @@ NodeStatus NodeStatus::fromRpcValue(const shv::chainpack::RpcValue &val)
 	return ret;
 }
 
-const char *NodeStatus::valueToString(NodeStatus::Value val)
+const char *NodeStatus::levelToString(NodeStatus::Level val)
 {
 	switch (val) {
-	case Value::Disabled: return "Disabled";
-	case Value::Unknown: return "Unknown";
-	case Value::Ok: return "Ok";
-	case Value::Warning: return "Warning";
-	case Value::Error: return "Error";
+	case Level::Disabled: return "Disabled";
+	case Level::Unknown: return "Unknown";
+	case Level::Ok: return "Ok";
+	//case Value::Info: return "Info";
+	case Level::Warning: return "Warning";
+	case Level::Error: return "Error";
 	}
 	return "impossible";
 }
 
-const char *NodeStatus::valueToStringAbbr(NodeStatus::Value val)
+const char *NodeStatus::levelToStringAbbr(NodeStatus::Level val)
 {
 	switch (val) {
-	case Value::Unknown: return "???";
-	case Value::Disabled: return "DIS";
-	case Value::Ok: return "OK";
-	case Value::Warning: return "WARN";
-	case Value::Error: return "ERR";
+	case Level::Unknown: return "???";
+	case Level::Disabled: return "DIS";
+	case Level::Ok: return "OK";
+	//case Value::Info: return "INF";
+	case Level::Warning: return "WARN";
+	case Level::Error: return "ERR";
 	}
 	return "impossible";
 }
@@ -96,6 +100,7 @@ const char *NodeStatus::valueToStringAbbr(NodeStatus::Value val)
 static const char METH_RELOAD[] = "reload";
 static const char METH_STATUS[] = "status";
 static const char METH_STATUS_CHANGED[] = "statusChanged";
+static const char METH_UPDATE_OVERALL_STATUS[] = "updateOverallStatus";
 static const char METH_OVERALL_STATUS[] = "overallStatus";
 static const char METH_OVERALL_STATUS_CHANGED[] = "overallStatusChanged";
 static std::vector<cp::MetaMethod> meta_methods {
@@ -105,12 +110,14 @@ static std::vector<cp::MetaMethod> meta_methods {
 	{METH_STATUS_CHANGED, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsSignal, cp::Rpc::ROLE_READ},
 	{METH_OVERALL_STATUS, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 	{METH_OVERALL_STATUS_CHANGED, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsSignal, cp::Rpc::ROLE_READ},
-	{METH_RELOAD, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_CONFIG},
+	{METH_UPDATE_OVERALL_STATUS, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_COMMAND},
+	{METH_RELOAD, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_COMMAND},
 };
 
 HNode::HNode(const std::string &node_id, HNode *parent)
 	: Super(node_id, &meta_methods, parent)
 {
+	connect(this, &HNode::statusChanged, this, &HNode::updateOverallStatus);
 	connect(this, &HNode::statusChanged, HScopeApp::instance(), &HScopeApp::onHNodeStatusChanged);
 	connect(this, &HNode::overallStatusChanged, HScopeApp::instance(), &HScopeApp::onHNodeOverallStatusChanged);
 }
@@ -163,6 +170,9 @@ void HNode::load()
 	HNode *parent_hnode = qobject_cast<HNode*>(parent());
 	if(parent_hnode)
 		connect(this, &HNode::overallStatusChanged, parent_hnode, &HNode::updateOverallStatus);
+	if(isDisabled()) {
+		setStatus({NodeStatus::Level::Disabled, "Node is disabled"});
+	}
 }
 
 void HNode::reload()
@@ -172,6 +182,11 @@ void HNode::reload()
 	load();
 }
 
+bool HNode::isDisabled() const
+{
+	return configValueOnPath(KEY_DISABLED).toBool();
+}
+
 shv::chainpack::RpcValue HNode::callMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
 {
 	if(shv_path.empty()) {
@@ -179,7 +194,11 @@ shv::chainpack::RpcValue HNode::callMethod(const shv::iotqt::node::ShvNode::Stri
 			return status().toRpcValue();
 		}
 		if(method == METH_OVERALL_STATUS) {
-			return overallStatus().toRpcValue();
+			return NodeStatus::levelToString(overallStatus());
+		}
+		if(method == METH_UPDATE_OVERALL_STATUS) {
+			updateOverallStatus();
+			return true;
 		}
 		if(method == METH_RELOAD) {
 			reload();
@@ -220,48 +239,57 @@ std::vector<std::string> HNode::lsConfigDir()
 
 void HNode::setStatus(const NodeStatus &st)
 {
-	if(st == m_status)
+	if(st.level == m_status.level) {
+		// message is not compared to avoid cyclic status message emit on save severity level
+		// like not-connected -> connect-error -> not-connected -> ...
 		return;
+	}
 	//NodeStatus old_st = m_status;
 	m_status = st;
 	//shvWarning() << "emit" << shvPath() << "statusChanged" << st.toRpcValue().toCpon();
 	emit statusChanged(shvPath(), st);
 }
 
-void HNode::setOverallStatus(const NodeStatus &st)
+void HNode::setOverallStatus(const NodeStatus::Level &level)
 {
-	if(st == m_overallStatus)
+	shvLogFuncFrame() << shvPath() << "old status:" << NodeStatus::levelToString(m_overallStatus) << "new:" << NodeStatus::levelToString(level);
+	if(level == m_overallStatus) {
 		return;
+	}
 	//NodeStatus old_st = m_overallStatus;
-	m_overallStatus = st;
+	m_overallStatus = level;
 	//shvWarning() << "emit" << shvPath() << "overallStatusChanged" << st.toRpcValue().toCpon();
-	emit overallStatusChanged(shvPath(), st);
+	emit overallStatusChanged(shvPath(), level);
 }
 
 void HNode::updateOverallStatus()
 {
 	shvLogFuncFrame() << shvPath() << "status:" << status().toString();
-	NodeStatus st = status();
-	NodeStatus chst = overallChildrenStatus();
-	if(chst.value < st.value) {
-		st.value = chst.value;
-		st.message = chst.message;
+	NodeStatus::Level olev = status().level;
+	//shvDebug() << "updateOverallStatus:" << shvPath() << "node status:" << st.toString();
+	if(isDisabled()) {
+		//shvInfo() << "updateOverallStatus:" << shvPath() << "node is disabled";
 	}
-	shvDebug() << "\t overall status:" << st.toString();
-	setOverallStatus(st);
+	else {
+		NodeStatus::Level chlev = overallChildrenStatus();
+		if(chlev < olev) {
+			olev = chlev;
+		}
+	}
+	shvDebug() << "\t overall status:" << NodeStatus::levelToString(olev);
+	setOverallStatus(olev);
 }
 
-NodeStatus HNode::overallChildrenStatus()
+NodeStatus::Level HNode::overallChildrenStatus()
 {
 	shvLogFuncFrame() << shvPath();
-	NodeStatus ret;
+	NodeStatus::Level ret = NodeStatus::Level::Unknown;
 	QList<HNode*> lst = findChildren<HNode*>(QString(), Qt::FindDirectChildrenOnly);
 	for(HNode *chnd : lst) {
-		const NodeStatus &chst = chnd->overallStatus();
-		shvDebug().color(NecroLog::Color::Yellow) << "\t child:" << chnd->shvPath() << "overall status" << chst.toString();
-		if(chst.value < ret.value) {
-			ret.value = chst.value;
-			ret.message = chst.message;
+		NodeStatus::Level chlev = chnd->overallStatus();
+		//shvDebug() << "\t child:" << chnd->shvPath() << "overall status" << chst.toString();
+		if(chlev < ret) {
+			ret = chlev;
 		}
 	}
 	return ret;

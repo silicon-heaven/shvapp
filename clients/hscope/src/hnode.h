@@ -12,18 +12,20 @@ class HNodeBroker;
 struct NodeStatus
 {
 public:
-	enum class Value : int {Error, Warning, Ok, Disabled, Unknown};
-	Value value = Value::Unknown;
+	enum class Level : int {Error = 0, Warning, Ok, Disabled, Unknown};
+	Level level = Level::Unknown;
 	std::string message;
 
 	NodeStatus() {}
-	NodeStatus(Value val, const std::string &msg) : value(val), message(msg) {}
-	bool operator==(const NodeStatus &o) const { return o.value == value && o.message == message; }
-	shv::chainpack::RpcValue toRpcValue() const { return shv::chainpack::RpcValue::Map{{"val", (int)value}, {"msg", message}}; }
-	std::string toString() const { return toRpcValue().toCpon(); }
+	NodeStatus(Level val, const std::string &msg) : level(val), message(msg) {}
+
+	//bool operator==(const NodeStatus &o) const { return o.value == value && o.message == message; }
+
+	shv::chainpack::RpcValue toRpcValue() const { return shv::chainpack::RpcValue::Map{{"val", (int)level}, {"msg", message}}; }
+	std::string toString() const { return levelToStringAbbr(level) + std::string(": ") + message; }
 	static NodeStatus fromRpcValue(const shv::chainpack::RpcValue &val);
-	static const char* valueToString(Value val);
-	static const char* valueToStringAbbr(Value val);
+	static const char* levelToString(Level val);
+	static const char* levelToStringAbbr(Level val);
 };
 
 class HNode : public shv::iotqt::node::MethodsTableNode
@@ -34,13 +36,15 @@ class HNode : public shv::iotqt::node::MethodsTableNode
 public:
 	HNode(const std::string &node_id, HNode *parent);
 
+	bool isDisabled() const;
+
 	void setStatus(const NodeStatus &st);
 	const NodeStatus& status() const { return m_status; }
 	Q_SIGNAL void statusChanged(const std::string &shv_path, const NodeStatus &status);
 
-	void setOverallStatus(const NodeStatus &st);
-	const NodeStatus& overallStatus() const { return m_overallStatus; }
-	Q_SIGNAL void overallStatusChanged(const std::string &shv_path, const NodeStatus &status);
+	void setOverallStatus(const NodeStatus::Level &level);
+	NodeStatus::Level overallStatus() const { return m_overallStatus; }
+	Q_SIGNAL void overallStatusChanged(const std::string &shv_path, NodeStatus::Level level);
 
 	std::string appConfigDir();
 	std::string nodeConfigDir();
@@ -76,12 +80,12 @@ protected:
 
 	//virtual void onChildStatusChanged() {}
 	virtual void updateOverallStatus();
-	NodeStatus overallChildrenStatus();
+	NodeStatus::Level overallChildrenStatus();
 
 	shv::chainpack::RpcValue configValueOnPath(const std::string &shv_path, const shv::chainpack::RpcValue &default_val = shv::chainpack::RpcValue()) const;
 protected:
 	NodeStatus m_status;
-	NodeStatus m_overallStatus;
+	NodeStatus::Level m_overallStatus = NodeStatus::Level::Unknown;
 	ConfigNode *m_confignode = nullptr;
 };
 

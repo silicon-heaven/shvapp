@@ -24,6 +24,8 @@ public:
 
 	shv::chainpack::RpcValue recentRun() const { return m_recentRun; }
 	shv::chainpack::RpcValue nextRun() const { return m_nextRun; }
+
+	Q_SIGNAL void runTestFinished();
 private:
 	void onParentBrokerConnectedChanged(bool is_connected);
 

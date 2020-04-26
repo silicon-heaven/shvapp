@@ -20,4 +20,11 @@
       "format":"sha1"
     }
   },
+  "hscope":{
+    "roles":["device"],
+    "password": {
+      "password":"8884a26b82a69838092fd4fc824bbfde56719e02",
+      "format":"sha1"
+    }
+  },
 }

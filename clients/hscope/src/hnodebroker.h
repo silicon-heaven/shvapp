@@ -19,6 +19,8 @@ public:
 	Q_SIGNAL void brokerConnectedChanged(bool is_connected);
 
 	shv::iotqt::rpc::ClientConnection *rpcConnection();
+protected:
+	//void updateOverallStatus() override;
 private:
 	void reconnect();
 private:

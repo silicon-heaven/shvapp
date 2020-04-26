@@ -148,12 +148,12 @@ void HScopeApp::onHNodeStatusChanged(const std::string &shv_path, const NodeStat
 	emit alertStatusChanged(shv_path, status);
 }
 
-void HScopeApp::onHNodeOverallStatusChanged(const std::string &shv_path, const NodeStatus &status)
+void HScopeApp::onHNodeOverallStatusChanged(const std::string &shv_path, NodeStatus::Level level)
 {
 	shv::iotqt::rpc::DeviceConnection *conn = rpcConnection();
 	if(conn->isBrokerConnected()) {
 		// log changes
-		conn->sendShvNotify(shv_path, "overallStatusChanged", status.toRpcValue());
+		conn->sendShvNotify(shv_path, "overallStatusChanged", NodeStatus::levelToStringAbbr(level));
 	}
 }
 
@@ -169,7 +169,7 @@ void HScopeApp::start()
 	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
 }
 
-NodeStatus HScopeApp::overallNodesStatus()
+NodeStatus::Level HScopeApp::overallNodesStatus()
 {
 	return m_brokersNode->overallStatus();
 }

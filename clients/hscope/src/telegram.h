@@ -65,11 +65,11 @@ private:
 	shv::iotqt::node::RpcValueConfigNode *m_configNode = nullptr;
 };
 
-class LsState
+class TelegramLsState
 {
-	Q_DECLARE_TR_FUNCTIONS(LsState)
+	Q_DECLARE_TR_FUNCTIONS(TelegramLsState)
 public:
-	explicit LsState(const QTimeZone &time_zone);
+	explicit TelegramLsState(const QTimeZone &time_zone);
 
 	QVariantMap paramsForShvPath(const QString &shv_path);
 private:
