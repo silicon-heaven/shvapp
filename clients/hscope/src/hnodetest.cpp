@@ -134,16 +134,16 @@ void HNodeTest::runTestFirstTime()
 		return;
 	if(m_runCount > 0)
 		return;
-	HNodeBroker *bnd = brokerNode();
-	if(bnd->rpcConnection()->isBrokerConnected()) {
-		runTestSafe();
-	}
+	runTestSafe();
 }
 
 void HNodeTest::runTestSafe()
 {
 	try {
-		runTest(cp::RpcRequest(), USE_SCRIPT_CACHE);
+		HNodeBroker *bnd = brokerNode();
+		if(bnd->rpcConnection()->isBrokerConnected()) {
+			runTest(cp::RpcRequest(), USE_SCRIPT_CACHE);
+		}
 	}
 	catch (std::exception &e) {
 		logTest() << "Running test:" << shvPath() << "exception:" << e.what();

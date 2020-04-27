@@ -22,6 +22,7 @@ private:
 	void subscribeAgentMntChng();
 	//int m_agentPingRequestId = 0;
 	void checkAgentConnected();
+	void runAllTests();
 private:
 	QTimer *m_checkAgentConnectedTimer = nullptr;
 };

@@ -1,5 +1,6 @@
 #include "hnodeagent.h"
 #include "hnodetests.h"
+#include "hnodetest.h"
 #include "hnodebroker.h"
 #include "hscopeapp.h"
 
@@ -74,8 +75,7 @@ void HNodeAgent::onParentBrokerRpcMessageReceived(const shv::chainpack::RpcMessa
 		if(sig.method().toString() == cp::Rpc::SIG_MOUNTED_CHANGED && sig.shvPath().toString() == agentShvPath()) {
 			bool is_mounted = sig.params().toBool();
 			if(is_mounted) {
-				setStatus({NodeStatus::Level::Ok, "Agent connected."});
-				reload();
+				checkAgentConnected();
 			}
 			else {
 				setStatus({NodeStatus::Level::Error, "Agent disconnected."});
@@ -131,9 +131,14 @@ void HNodeAgent::checkAgentConnected()
 						setStatus(st);
 					}
 					else {
+						NodeStatus old_status = status();
 						NodeStatus st{NodeStatus::Level::Ok, "Agent connected."};
 						//logTest() << "\t setting status to:" << st.toRpcValue().toCpon();
 						setStatus(st);
+						if(old_status.level != NodeStatus::Level::Ok) {
+							// not connected ---> connected
+							runAllTests();
+						}
 					}
 				}
 				else {
@@ -146,5 +151,12 @@ void HNodeAgent::checkAgentConnected()
 		else {
 			// do nothing, broker node will fire error state
 		}
+	}
+}
+
+void HNodeAgent::runAllTests()
+{
+	for(auto *nd : findChildren<HNodeTest*>(QString(), Qt::FindChildrenRecursively)) {
+		nd->runTestSafe();
 	}
 }
