@@ -12,6 +12,7 @@
 	"tester": {"roles": ["device"]},
 	"client": {"roles": ["ping", "subscribe"]},
 	"device": {"roles": ["client"]},
+	"subscribe": {},
 	"ping": {},
 	"masterBroker": {"roles": ["subscribe"]},
 }

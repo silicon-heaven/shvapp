@@ -28,10 +28,22 @@ HNodeAgent::HNodeAgent(const std::string &node_id, HNode *parent)
 void HNodeAgent::load()
 {
 	Super::load();
-	if(!isDisabled()) {
+	if(isDisabled()) {
+		SHV_SAFE_DELETE(m_checkAgentConnectedTimer);
+	}
+	else {
 		for (const std::string &dir : lsConfigDir()) {
 			auto *nd = new HNodeTests(dir, this);
 			nd->load();
+		}
+
+		if(m_checkAgentConnectedTimer == nullptr) {
+			static constexpr int INTERVAL = 10 * 60 * 1000;
+			// event id mntchng wil work in 90% of cases, check connected every INTERVAL
+			// for example shvbroker.reloadConfig() might not fire any event in HScope, but user rights might be changed
+			m_checkAgentConnectedTimer = new QTimer(this);
+			connect(m_checkAgentConnectedTimer, &QTimer::timeout, this, &HNodeAgent::checkAgentConnected);
+			m_checkAgentConnectedTimer->start(INTERVAL);
 		}
 
 		QTimer::singleShot(100, this, &HNodeAgent::checkAgentConnected);
@@ -45,6 +57,7 @@ std::string HNodeAgent::agentShvPath() const
 
 void HNodeAgent::onParentBrokerConnectedChanged(bool is_connected)
 {
+	shvMessage() << "parent broker connected changed:" << is_connected;
 	if(is_connected) {
 		subscribeAgentMntChng();
 		checkAgentConnected();
@@ -60,6 +73,7 @@ void HNodeAgent::onParentBrokerRpcMessageReceived(const shv::chainpack::RpcMessa
 			bool is_mounted = sig.params().toBool();
 			if(is_mounted) {
 				setStatus({NodeStatus::Level::Ok, "Agent connected."});
+				reload();
 			}
 			else {
 				setStatus({NodeStatus::Level::Error, "Agent disconnected."});
@@ -74,8 +88,25 @@ void HNodeAgent::subscribeAgentMntChng()
 	if(pbnd) {
 		shv::iotqt::rpc::ClientConnection *conn = pbnd->rpcConnection();
 		if(conn && conn->isBrokerConnected()) {
-			shvDebug() << "subscribing mounted for:" << agentShvPath();
-			conn->callMethodSubscribe(agentShvPath(), cp::Rpc::SIG_MOUNTED_CHANGED);
+			shvMessage() << "subscribing mounted for:" << agentShvPath();
+			int rq_id = conn->callMethodSubscribe(agentShvPath(), cp::Rpc::SIG_MOUNTED_CHANGED);
+			shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(conn, rq_id, this);
+			cb->start(5000, this, [this](const cp::RpcResponse &resp) {
+				if(resp.result() == true) {
+					shvMessage() << "\t OK";
+					return;
+				}
+				shvMessage() << "\t ERROR";
+				if(resp.isError()) {
+					NodeStatus st{NodeStatus::Level::Error, "Agent subscribe mount change error: " + resp.error().toString()};
+					setStatus(st);
+				}
+				else {
+					NodeStatus st{NodeStatus::Level::Error, "Agent subscribe mount change empty response received."};
+					//logTest() << "\t setting status to:" << st.toRpcValue().toCpon();
+					setStatus(st);
+				}
+			});
 		}
 	}
 }

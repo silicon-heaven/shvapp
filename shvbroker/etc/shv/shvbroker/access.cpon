@@ -30,7 +30,10 @@
     }
   },
   "subscribe":{
-    ".broker/app":{
+    ".broker/app:subscribe":{
+      "role":"wr"
+    },
+    ".broker/app:unsubscribe":{
       "role":"wr"
     }
   },

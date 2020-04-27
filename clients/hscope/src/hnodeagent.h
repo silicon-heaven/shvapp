@@ -3,6 +3,8 @@
 
 #include "hnode.h"
 
+class QTimer;
+
 class HNodeAgent : public HNode
 {
 	Q_OBJECT
@@ -18,9 +20,10 @@ private:
 	void onParentBrokerConnectedChanged(bool is_connected);
 	void onParentBrokerRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	void subscribeAgentMntChng();
-private:
 	//int m_agentPingRequestId = 0;
 	void checkAgentConnected();
+private:
+	QTimer *m_checkAgentConnectedTimer = nullptr;
 };
 
 #endif // HNODENODE_H
