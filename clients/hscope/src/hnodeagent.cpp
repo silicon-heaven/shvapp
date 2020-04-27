@@ -59,8 +59,10 @@ void HNodeAgent::onParentBrokerConnectedChanged(bool is_connected)
 {
 	shvMessage() << "parent broker connected changed:" << is_connected;
 	if(is_connected) {
-		subscribeAgentMntChng();
-		checkAgentConnected();
+		if(!isDisabled()) {
+			subscribeAgentMntChng();
+			checkAgentConnected();
+		}
 	}
 }
 

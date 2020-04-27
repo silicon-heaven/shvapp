@@ -21,7 +21,8 @@
 #include <QVariantMap>
 #include <QTimeZone>
 
-#define logTelegram() shvCInfo("Telegram")
+#define logTelegram() shvCMessage("Telegram")
+#define logTelegramE() shvCError("Telegram")
 
 namespace cp = shv::chainpack;
 
@@ -91,7 +92,7 @@ void Telegram::callTgApiMethod(QString method, const QVariantMap &_params, Teleg
 	QJsonObject params = QJsonObject::fromVariantMap(_params);
 	QJsonDocument doc(params);
 	QByteArray params_data = doc.toJson(QJsonDocument::Indented);
-	logTelegram() << call_cnt << "==>" << method << "params:" << format_json_for_log(doc);
+	logTelegram() << call_cnt << "==>" << url << "params:" << format_json_for_log(doc);
 	QNetworkRequest req(url);
 	req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 	QNetworkReply *rpl = m_netManager->post(req, params_data);
@@ -105,17 +106,17 @@ void Telegram::callTgApiMethod(QString method, const QVariantMap &_params, Teleg
 				call_back(rv.value(QStringLiteral("result")));
 		}
 		else {
-			shvError() << "TG method call error, method:" << method;
+			logTelegramE() << "TG method call error, method:" << method;
 		}
 		rpl->deleteLater();
 	};
 	if(rpl->isFinished()) {
-		shvError() << "HTTP reply finished too unexpected" << rpl->errorString();
+		logTelegramE() << "HTTP reply finished too early" << rpl->errorString();
 		reply_handler();
 	}
 	else {
 		connect(rpl, QOverload<QNetworkReply::NetworkError>::of(&QNetworkReply::error), [](QNetworkReply::NetworkError code) {
-			shvError() << "TG getUpdates network reply error:" << code;
+			logTelegramE() << "TG getUpdates network reply error:" << code;
 		});
 		connect(rpl, &QNetworkReply::finished, this, reply_handler);
 	}
