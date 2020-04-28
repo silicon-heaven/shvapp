@@ -9,11 +9,6 @@
       "role":"bws"
     }
   },
-  "device":{
-    "**":{
-      "role":"rd"
-    }
-  },
   "iot":{
     "shv/**":{
       "role":"rd"
@@ -25,7 +20,7 @@
     }
   },
   "ping":{
-    ".broker/app":{
+    ".broker/app:ping":{
       "role":"bws"
     }
   },

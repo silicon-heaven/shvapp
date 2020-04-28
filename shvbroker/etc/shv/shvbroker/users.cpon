@@ -13,8 +13,15 @@
       "format":"plain"
     }
   },
+  "tester":{
+    "roles":["tester"],
+    "password": {
+      "password":"good password",
+      "format":"plain"
+    }
+  },
   "broker":{
-    "roles":["device","tester"],
+    "roles":["device"],
     "password": {
       "password":"ff2e1086753ca76fe84b7fadd738d76caf2072d0",
       "format":"sha1"

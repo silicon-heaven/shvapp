@@ -153,8 +153,8 @@ void ShvBrokerNodeItem::open()
 
 void ShvBrokerNodeItem::close()
 {
-	if(openStatus() == OpenStatus::Disconnected)
-		return;
+	//if(openStatus() == OpenStatus::Disconnected)
+	//	return;
 	if(m_rpcConnection)
 		m_rpcConnection->close();
 	m_openStatus = OpenStatus::Disconnected;
@@ -229,7 +229,7 @@ void ShvBrokerNodeItem::onBrokerConnectedChanged(bool is_connected)
 		m->load(this);
 	}
 	else {
-		deleteChildren();
+		close();
 	}
 
 	emit brokerConnectedChange(is_connected);
