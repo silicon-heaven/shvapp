@@ -202,19 +202,21 @@ shv::chainpack::RpcValue RootNode::callMethod(const shv::iotqt::node::ShvNode::S
 		return Application::instance()->logSanitizer()->sanitizeLogCache(QString::fromStdString(shv_path.join('/')), CheckLogTask::CheckType::CheckDirtyLogState);
 	}
 	else if (method == METH_CHECK_LOG_CACHE) {
-		CacheInfo info = CheckLogTask::checkLogCache(QString::fromStdString(shv_path.join('/')));
+		CacheState info = CheckLogTask::checkLogCache(QString::fromStdString(shv_path.join('/')));
 		cp::RpcValue::Map res;
-		cp::RpcValue::List res_err;
+		cp::RpcValue::List res_errs;
 		for (const auto &err : info.errors) {
-			res_err.push_back(err.toStdString());
+			cp::RpcValue::Map res_err;
+			res_err["type"] = CacheError::typeToString(err.type);
+			res_err["fileName"] = err.fileName.toStdString();
+			res_err["description"] = err.description.toStdString();
+			res_errs.push_back(res_err);
 		}
-		res["errors"] = res_err;
-		cp::RpcValue::Map res_state;
-		res_state["recordCount"] = info.state.recordCount;
-		res_state["fileCount"] = info.state.fileCount;
-		res_state["since"] = cp::RpcValue::fromValue(info.state.since);
-		res_state["until"] = cp::RpcValue::fromValue(info.state.until);
-		res["state"] = res_state;
+		res["errors"] = res_errs;
+		res["recordCount"] = info.recordCount;
+		res["fileCount"] = info.fileCount;
+		res["since"] = cp::RpcValue::fromValue(info.since);
+		res["until"] = cp::RpcValue::fromValue(info.until);
 		return res;
 	}
 	else if (method == METH_TRIM_DIRTY_LOG && shv_path.size() && shv_path.value(-1) == Application::DIRTY_LOG_NODE) {
