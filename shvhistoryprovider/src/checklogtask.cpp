@@ -64,6 +64,106 @@ void CheckLogTask::exec()
 	}
 }
 
+CacheState CheckLogTask::checkLogCache(const QString &shv_path)
+{
+	QStringList short_files;
+	CacheState state;
+	LogDir m_logDir(shv_path);
+
+	QStringList dir_entries = m_logDir.findFiles(QDateTime(), QDateTime());
+	dir_entries = m_logDir.findFiles(QDateTime(), QDateTime());
+	QDateTime requested_since;
+	for (int i = 0; i < dir_entries.count(); ++i) {
+		ShvLogHeader header = ShvLogFileReader(dir_entries[i].toStdString()).logHeader();
+		QDateTime file_since = rpcvalue_cast<QDateTime>(header.since());
+		QDateTime file_until = rpcvalue_cast<QDateTime>(header.until());
+		if (!requested_since.isValid()) {
+			std::ifstream in_file;
+			in_file.open(dir_entries[i].toStdString(),  std::ios::in | std::ios::binary);
+			shv::chainpack::ChainPackReader first_file_reader(in_file);
+			cp::RpcValue::MetaData meta_data;
+			first_file_reader.read(meta_data);
+			cp::RpcValue meta_hp = meta_data.value("HP");
+			bool has_first_log_mark = false;
+			if (meta_hp.isMap()) {
+				cp::RpcValue meta_first = meta_hp.toMap().value("firstLog");
+				has_first_log_mark = meta_first.isBool() && meta_first.toBool();
+			}
+			if (!has_first_log_mark) {
+				state.errors << CacheError  {
+								CacheError::Type::FirstFileMarkMissing,
+								dir_entries[i],
+								"first file doesn't have firstLog mark" };
+			}
+			state.since = file_since;
+		}
+		else if (requested_since < file_since) {
+			state.errors << CacheError {
+							CacheError::Type::SinceUntilGap,
+							dir_entries[i],
+							"missing data between " + requested_since.toString(Qt::DateFormat::ISODateWithMs)
+							+ " and " + file_since.toString(Qt::DateFormat::ISODateWithMs) };
+		}
+		else if (requested_since > file_since) {
+			state.errors << CacheError {
+							CacheError::Type::SinceUntilOverlap,
+							dir_entries[i],
+							"data between " + requested_since.toString(Qt::DateFormat::ISODateWithMs)
+							+ " and " + file_since.toString(Qt::DateFormat::ISODateWithMs + " overlaps") };
+
+		}
+		requested_since = file_until;
+		if (header.recordCount() < Application::CHUNK_RECORD_COUNT - 1) {
+			short_files << dir_entries[i];
+		}
+		state.recordCount += header.recordCount();
+		++state.fileCount;
+		state.until = file_until;
+	}
+	bool exists_dirty = m_logDir.exists(m_logDir.dirtyLogName());
+	if (!exists_dirty) {
+		state.errors << CacheError { CacheError::Type::DirtLogMissing, m_logDir.dirtyLogPath(), "missing dirty log" };
+	}
+	else {
+		ShvLogHeader header;
+		ShvJournalFileReader dirty_log(m_logDir.dirtyLogPath().toStdString(), &header);
+		std::string entry_path;
+		QDateTime entry_ts;
+		if (dirty_log.next()) {
+			entry_path = dirty_log.entry().path;
+			entry_ts = QDateTime::fromMSecsSinceEpoch(dirty_log.entry().epochMsec, Qt::UTC);
+		}
+		if (entry_path != shv::core::utils::ShvJournalEntry::PATH_DATA_DIRTY) {
+			state.errors << CacheError { CacheError::Type::DirtyLogMarkMissing, m_logDir.dirtyLogPath(),
+							"missing dirty mark on begin of dirty log" };
+		}
+		if (!entry_ts.isValid()) {
+			state.errors << CacheError { CacheError::Type::SinceUntilGap, m_logDir.dirtyLogPath(),
+							("missing data since " + requested_since.toString(Qt::DateFormat::ISODateWithMs)) };
+		}
+		else if (entry_ts > requested_since) {
+			state.errors << CacheError { CacheError::Type::SinceUntilGap, m_logDir.dirtyLogPath(),
+							("missing data between " + requested_since.toString(Qt::DateFormat::ISODateWithMs)
+							 + " and " + entry_ts.toString(Qt::DateFormat::ISODateWithMs)) };
+		}
+		else if (entry_ts < requested_since) {
+			state.errors << CacheError { CacheError::Type::SinceUntilOverlap, m_logDir.dirtyLogPath(),
+							("data between " + requested_since.toString(Qt::DateFormat::ISODateWithMs)
+							 + " and " + entry_ts.toString(Qt::DateFormat::ISODateWithMs) + " overlaps") };
+		}
+		++state.fileCount;
+		while (dirty_log.next()) {
+			state.until = QDateTime::fromMSecsSinceEpoch(dirty_log.entry().epochMsec, Qt::UTC);
+		}
+	}
+	if (short_files.count()) {
+		state.errors << CacheError { CacheError::Type::Fragmentation, short_files.join(", "),
+						("there are " + QString::number(short_files.count()) + " files where is less than " +
+					   QString::number(Application::CHUNK_RECORD_COUNT) + " records") };
+	}
+	return state;
+}
+
 void CheckLogTask::checkOldDataConsistency()
 {
 	m_dirEntries = m_logDir.findFiles(QDateTime(), QDateTime());
@@ -187,4 +287,10 @@ void CheckLogTask::checkRequestQueue()
 	else {
 		Q_EMIT finished(true);
 	}
+}
+
+const char *CacheError::typeToString(CacheError::Type t)
+{
+	static QMetaEnum type_enum = QMetaEnum::fromType<Type>();
+	return type_enum.valueToKey((int)t);
 }

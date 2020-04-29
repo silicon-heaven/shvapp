@@ -11,7 +11,7 @@ LogSanitizer::LogSanitizer(QObject *parent)
 	, m_lastCheckedDevice(-1)
 	, m_timer(this)
 {
-	connect(&m_timer, &QTimer::timeout, this, qOverload<>(&LogSanitizer::checkLogs));
+	connect(&m_timer, &QTimer::timeout, this, qOverload<>(&LogSanitizer::sanitizeLogCache));
 
 	DeviceMonitor *monitor = Application::instance()->deviceMonitor();
 	connect(monitor, &DeviceMonitor::deviceConnectedToBroker, this, &LogSanitizer::onDeviceAppeared);
@@ -59,11 +59,11 @@ void LogSanitizer::trimDirtyLog(const QString &shv_path)
 
 void LogSanitizer::onDeviceAppeared(const QString &shv_path)
 {
-	checkLogs(shv_path, CheckLogTask::CheckType::ReplaceDirtyLog);
+	sanitizeLogCache(shv_path, CheckLogTask::CheckType::ReplaceDirtyLog);
 	setupTimer();
 }
 
-void LogSanitizer::checkLogs()
+void LogSanitizer::sanitizeLogCache()
 {
 	if (Application::instance()->deviceConnection()->state() != shv::iotqt::rpc::ClientConnection::State::BrokerConnected) {
 		return;
@@ -78,16 +78,16 @@ void LogSanitizer::checkLogs()
 	if (++m_lastCheckedDevice >= online_devices.count()) {
 		m_lastCheckedDevice = 0;
 	}
-	checkLogs(online_devices[m_lastCheckedDevice], CheckLogTask::CheckType::CheckDirtyLogState);
+	sanitizeLogCache(online_devices[m_lastCheckedDevice], CheckLogTask::CheckType::CheckDirtyLogState);
 }
 
-void LogSanitizer::checkLogs(const QString &shv_path, CheckLogTask::CheckType check_type)
+bool LogSanitizer::sanitizeLogCache(const QString &shv_path, CheckLogTask::CheckType check_type)
 {
 	if (Application::instance()->deviceConnection()->state() != shv::iotqt::rpc::ClientConnection::State::BrokerConnected) {
-		return;
+		return false;
 	}
 	if (findChild<CheckLogTask*>(shv_path, Qt::FindChildOption::FindDirectChildrenOnly)) {
-		return;
+		return false;
 	}
 	shvMessage() << "checking logs for" << shv_path;
 	CheckLogTask *task = new CheckLogTask(shv_path, check_type, this);
@@ -98,4 +98,5 @@ void LogSanitizer::checkLogs(const QString &shv_path, CheckLogTask::CheckType ch
 		shvMessage() << "checking logs for" << shv_path << (success ? "succesfully finished" : "finished with error");
 	});
 	task->exec();
+	return true;
 }

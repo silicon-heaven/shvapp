@@ -3,9 +3,44 @@
 
 #include "logdir.h"
 
+#include <QDateTime>
 #include <QVector>
 
 class DeviceLogRequest;
+
+class CacheError
+{
+	Q_GADGET
+
+public:
+	enum class Type
+	{
+		FirstFileMarkMissing,
+		SinceUntilGap,
+		SinceUntilOverlap,
+		Fragmentation,
+		DirtLogMissing,
+		DirtyLogMarkMissing
+	};
+
+	Q_ENUM(Type)
+
+	Type type;
+	QString fileName;
+	QString description;
+
+	static const char *typeToString(Type t);
+};
+
+class CacheState
+{
+public:
+	QDateTime since;
+	QDateTime until;
+	int recordCount = 0;
+	int fileCount = 0;
+	QVector<CacheError> errors;
+};
 
 class CheckLogTask : public QObject
 {
@@ -24,6 +59,7 @@ public:
 	void exec();
 	Q_SIGNAL void finished(bool);
 	CheckType checkType() const { return m_checkType; }
+	static CacheState checkLogCache(const QString &shv_path);
 
 private:
 	void checkOldDataConsistency();
