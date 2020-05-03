@@ -32,6 +32,7 @@ private:
 	shv::core::utils::ShvLogTypeInfo m_typeInfo;
 	int64_t m_previousFileUntil;
 	shv::core::utils::ShvJournalEntry m_entry;
+	bool m_firstFile;
 };
 
 #endif // LOGDIRREADER_H

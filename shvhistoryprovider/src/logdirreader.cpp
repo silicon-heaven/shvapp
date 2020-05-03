@@ -10,6 +10,7 @@ using namespace shv::core::utils;
 LogDirReader::LogDirReader(const QString &shv_path, int prefix_length, const QDateTime &since, const QDateTime &until)
 	: m_logReader(nullptr)
 	, m_journalReader(nullptr)
+	, m_firstFile(true)
 {
 	LogDir log_dir(shv_path);
 	m_logs = log_dir.findFiles(since, until);
@@ -103,9 +104,25 @@ void LogDirReader::openNextFile()
 		}
 	}
 	if (m_previousFileUntil && (!current_file_since || m_previousFileUntil < current_file_since)) {
+		if (m_firstFile) {
+			std::ifstream in_file;
+			in_file.open(m_logs[0].toStdString(),  std::ios::in | std::ios::binary);
+			shv::chainpack::ChainPackReader first_file_reader(in_file);
+			cp::RpcValue::MetaData meta_data;
+			first_file_reader.read(meta_data);
+			cp::RpcValue meta_hp = meta_data.value("HP");
+			bool has_first_log_mark = false;
+			if (meta_hp.isMap()) {
+				cp::RpcValue meta_first = meta_hp.toMap().value("firstLog");
+				has_first_log_mark = meta_first.isBool() && meta_first.toBool();
+			}
+			if (!has_first_log_mark) {
+				m_firstFile = false;
+			}
+		}
 		m_fakeEntryList.push_back(ShvJournalEntry {
 								   ShvJournalEntry::PATH_DATA_MISSING,
-								   ShvJournalEntry::DATA_MISSING_LOG_CACHE_FILE_MISSING,
+								   m_firstFile ? ShvJournalEntry::DATA_MISSING_LOG_FILE_MISSING : ShvJournalEntry::DATA_MISSING_LOG_CACHE_FILE_MISSING,
 								   ShvJournalEntry::DOMAIN_SHV_SYSTEM,
 								   ShvJournalEntry::NO_SHORT_TIME,
 								   ShvJournalEntry::SampleType::Continuous,
@@ -128,4 +145,5 @@ void LogDirReader::openNextFile()
 	if (m_logReader) {
 		m_previousFileUntil = m_header.until().toDateTime().msecsSinceEpoch();
 	}
+	m_firstFile = false;
 }
