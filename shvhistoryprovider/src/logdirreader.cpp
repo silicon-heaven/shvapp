@@ -10,6 +10,7 @@ using namespace shv::core::utils;
 LogDirReader::LogDirReader(const QString &shv_path, int prefix_length, const QDateTime &since, const QDateTime &until)
 	: m_logReader(nullptr)
 	, m_journalReader(nullptr)
+	, m_until(until.isValid() ? until.toMSecsSinceEpoch() : 0LL)
 	, m_firstFile(true)
 {
 	LogDir log_dir(shv_path);
@@ -21,11 +22,11 @@ LogDirReader::LogDirReader(const QString &shv_path, int prefix_length, const QDa
 			m_header = log_reader.logHeader();
 		}
 	}
-	m_logs << log_dir.dirtyLogPath();
-
 	if (prefix_length) {
 		m_pathPrefix = (shv_path.right(prefix_length - 1) + "/").toStdString();
 	}
+
+	m_dirtyLog = log_dir.dirtyLogPath();
 
 	m_previousFileUntil = since.isValid() ? since.toMSecsSinceEpoch() : 0LL;
 	m_typeInfo = m_header.typeInfo();
@@ -62,7 +63,12 @@ bool LogDirReader::next()
 		return true;
 	}
 	if (m_logs.count() == 1) {
-		return false;
+		if (!m_until || m_previousFileUntil < m_until) {
+			m_logs << m_dirtyLog;
+		}
+		else {
+			return false;
+		}
 	}
 	m_logs.removeFirst();
 	openNextFile();
@@ -104,39 +110,25 @@ void LogDirReader::openNextFile()
 		}
 	}
 	if (m_previousFileUntil && (!current_file_since || m_previousFileUntil < current_file_since)) {
-		if (m_firstFile) {
-			std::ifstream in_file;
-			in_file.open(m_logs[0].toStdString(),  std::ios::in | std::ios::binary);
-			shv::chainpack::ChainPackReader first_file_reader(in_file);
-			cp::RpcValue::MetaData meta_data;
-			first_file_reader.read(meta_data);
-			cp::RpcValue meta_hp = meta_data.value("HP");
-			bool has_first_log_mark = false;
-			if (meta_hp.isMap()) {
-				cp::RpcValue meta_first = meta_hp.toMap().value("firstLog");
-				has_first_log_mark = meta_first.isBool() && meta_first.toBool();
-			}
-			if (!has_first_log_mark) {
-				m_firstFile = false;
-			}
-		}
-		m_fakeEntryList.push_back(ShvJournalEntry {
-								   ShvJournalEntry::PATH_DATA_MISSING,
-								   m_firstFile ? ShvJournalEntry::DATA_MISSING_LOG_FILE_MISSING : ShvJournalEntry::DATA_MISSING_LOG_CACHE_FILE_MISSING,
-								   ShvJournalEntry::DOMAIN_SHV_SYSTEM,
-								   ShvJournalEntry::NO_SHORT_TIME,
-								   ShvJournalEntry::SampleType::Continuous,
-								   m_previousFileUntil
-							   });
-		if (current_file_since) {
+		if (!m_firstFile) {
 			m_fakeEntryList.push_back(ShvJournalEntry {
 									   ShvJournalEntry::PATH_DATA_MISSING,
-									   "",
+									   m_firstFile ? ShvJournalEntry::DATA_MISSING_LOG_FILE_MISSING : ShvJournalEntry::DATA_MISSING_LOG_CACHE_FILE_MISSING,
 									   ShvJournalEntry::DOMAIN_SHV_SYSTEM,
 									   ShvJournalEntry::NO_SHORT_TIME,
 									   ShvJournalEntry::SampleType::Continuous,
-									   current_file_since
+									   m_previousFileUntil
 								   });
+			if (current_file_since) {
+				m_fakeEntryList.push_back(ShvJournalEntry {
+										   ShvJournalEntry::PATH_DATA_MISSING,
+										   "",
+										   ShvJournalEntry::DOMAIN_SHV_SYSTEM,
+										   ShvJournalEntry::NO_SHORT_TIME,
+										   ShvJournalEntry::SampleType::Continuous,
+										   current_file_since
+									   });
+			}
 		}
 	}
 	if (cache_dirty_entry) {

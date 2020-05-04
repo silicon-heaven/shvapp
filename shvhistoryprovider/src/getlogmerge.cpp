@@ -40,6 +40,8 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 	QDateTime since = rpcvalue_cast<QDateTime>(m_logParams.since);
 	QDateTime until = rpcvalue_cast<QDateTime>(m_logParams.until);
 
+	int64_t first_record_since = 0LL;
+
 	struct ReaderInfo {
 		bool used = false;
 		bool exhausted = false;
@@ -76,6 +78,9 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 		if (entry.epochMsec >= until_msecs) {
 			break;
 		}
+		if (!first_record_since) {
+			first_record_since = entry.epochMsec;
+		}
 		entry.path = reader->pathPrefix() + entry.path;
 		m_mergedLog.append(entry);
 		if ((int)m_mergedLog.size() >= m_mergedLog.inputFilterRecordCountLimit()) {
@@ -94,5 +99,9 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 	}
 	qDeleteAll(readers);
 
-	return m_mergedLog.getLog(m_logParams);;
+	cp::RpcValue res = m_mergedLog.getLog(m_logParams);
+	if (!since.isNull() && first_record_since && first_record_since > since.toMSecsSinceEpoch()) {
+		res.setMetaValue("since", cp::RpcValue::DateTime::fromMSecsSinceEpoch(first_record_since));
+	}
+	return res;
 }
