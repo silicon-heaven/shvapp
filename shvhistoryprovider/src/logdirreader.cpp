@@ -113,7 +113,7 @@ void LogDirReader::openNextFile()
 		if (!m_firstFile) {
 			m_fakeEntryList.push_back(ShvJournalEntry {
 									   ShvJournalEntry::PATH_DATA_MISSING,
-									   m_firstFile ? ShvJournalEntry::DATA_MISSING_LOG_FILE_MISSING : ShvJournalEntry::DATA_MISSING_LOG_CACHE_FILE_MISSING,
+									   ShvJournalEntry::DATA_MISSING_UNAVAILABLE,
 									   ShvJournalEntry::DOMAIN_SHV_SYSTEM,
 									   ShvJournalEntry::NO_SHORT_TIME,
 									   ShvJournalEntry::SampleType::Continuous,
