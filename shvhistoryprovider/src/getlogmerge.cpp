@@ -94,7 +94,7 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 	}
 	for (int i = 0; i < readers.count(); ++i) {
 		if (reader_infos[i].used) {
-			m_mergedLog.setTypeInfo(readers[i]->pathPrefix(), readers[i]->typeInfo());
+			m_mergedLog.setTypeInfo(readers[i]->typeInfo(), readers[i]->pathPrefix());
 		}
 	}
 	qDeleteAll(readers);

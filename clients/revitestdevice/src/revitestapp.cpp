@@ -93,7 +93,7 @@ RevitestApp::RevitestApp(int &argc, char **argv, AppCliOptions* cli_opts)
 RevitestApp::~RevitestApp()
 {
 	shvInfo() << "destroying shv agent application";
-	m_shvJournal->append(shv::core::utils::ShvJournalEntry(shv::core::utils::ShvJournalEntry::PATH_DATA_MISSING, shv::core::utils::ShvJournalEntry::DATA_MISSING_APP_SHUTDOWN, shv::core::utils::ShvJournalEntry::DOMAIN_SHV_SYSTEM));
+	m_shvJournal->append(shv::core::utils::ShvJournalEntry(shv::core::utils::ShvJournalEntry::PATH_DATA_MISSING, shv::core::utils::ShvJournalEntry::DATA_MISSING_NOT_EXISTS, shv::core::utils::ShvJournalEntry::DOMAIN_SHV_SYSTEM));
 	delete m_shvJournal;
 }
 

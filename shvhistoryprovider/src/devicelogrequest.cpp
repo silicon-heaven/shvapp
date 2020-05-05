@@ -233,9 +233,8 @@ void DeviceLogRequest::saveToNewFile(ShvMemoryJournal &log, const QDateTime &unt
 void DeviceLogRequest::trimDirtyLog(const QDateTime &until)
 {
 	qint64 until_msec = until.toMSecsSinceEpoch();
-	ShvLogHeader header;
 	QString temp_filename = "dirty.tmp";
-	ShvJournalFileReader dirty_reader(m_logDir.dirtyLogPath().toStdString(), &header);
+	ShvJournalFileReader dirty_reader(m_logDir.dirtyLogPath().toStdString());
 	if (m_logDir.exists(temp_filename)) {
 		if (!m_logDir.remove(temp_filename)) {
 			SHV_QT_EXCEPTION("cannot remove file " + m_logDir.absoluteFilePath(temp_filename));

@@ -57,7 +57,7 @@ void DirtyLogManager::onDeviceDisappeared(const QString &shv_path)
 {
 	writeDirtyLog(shv_path,
 				  ShvJournalEntry::PATH_DATA_MISSING,
-				  ShvJournalEntry::DATA_MISSING_DEVICE_DISCONNECTED,
+				  ShvJournalEntry::DATA_MISSING_UNAVAILABLE,
 				  ShvJournalEntry::DOMAIN_SHV_SYSTEM,
 				  false);
 }
@@ -115,21 +115,20 @@ void DirtyLogManager::setDirtyLogDirty(const QString &shv_path)
 {
 	checkDirtyLog(shv_path, false);
 	LogDir log_dir(shv_path);
-	ShvLogHeader header;
-	ShvJournalFileReader dirty_reader(log_dir.dirtyLogPath().toStdString(), &header);
+	ShvJournalFileReader dirty_reader(log_dir.dirtyLogPath().toStdString());
 	ShvJournalEntry last_entry;
 	if (dirty_reader.last()) {
 		last_entry = dirty_reader.entry();
 	}
 	if (last_entry.path == ShvJournalEntry::PATH_DATA_MISSING &&
 		last_entry.value.isString() &&
-		last_entry.value.toString() == ShvJournalEntry::DATA_MISSING_DEVICE_DISCONNECTED) {
+		last_entry.value.toString() == ShvJournalEntry::DATA_MISSING_UNAVAILABLE) {
 		return;
 	}
 	ShvJournalFileWriter dirty_writer(log_dir.dirtyLogPath().toStdString());
 	dirty_writer.append(ShvJournalEntry{
 							ShvJournalEntry::PATH_DATA_MISSING,
-							ShvJournalEntry::DATA_MISSING_DEVICE_DISCONNECTED,
+							ShvJournalEntry::DATA_MISSING_UNAVAILABLE,
 							ShvJournalEntry::DOMAIN_SHV_SYSTEM,
 							ShvJournalEntry::NO_SHORT_TIME,
 							ShvJournalEntry::SampleType::Continuous,
@@ -175,7 +174,7 @@ void DirtyLogManager::checkDirtyLog(const QString &shv_path, bool is_connected)
 		if (!is_connected || since < current) {
 			dirty_writer.append(ShvJournalEntry{
 									ShvJournalEntry::PATH_DATA_MISSING,
-									ShvJournalEntry::DATA_MISSING_DEVICE_DISCONNECTED,
+									ShvJournalEntry::DATA_MISSING_UNAVAILABLE,
 									ShvJournalEntry::DOMAIN_SHV_SYSTEM,
 									ShvJournalEntry::NO_SHORT_TIME,
 									ShvJournalEntry::SampleType::Continuous,
