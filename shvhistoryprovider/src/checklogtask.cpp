@@ -31,8 +31,7 @@ void CheckLogTask::exec()
 			int64_t dirty_begin = 0LL;
 			int64_t regular_end = 0LL;
 			if (m_logDir.exists(m_logDir.dirtyLogName())) {
-				ShvLogHeader header;
-				ShvJournalFileReader reader(m_logDir.dirtyLogPath().toStdString(), &header);
+				ShvJournalFileReader reader(m_logDir.dirtyLogPath().toStdString());
 				if (reader.next()) {
 					dirty_begin = reader.entry().epochMsec;
 				}
@@ -125,8 +124,7 @@ CacheState CheckLogTask::checkLogCache(const QString &shv_path)
 		state.errors << CacheError { CacheError::Type::DirtLogMissing, m_logDir.dirtyLogPath(), "missing dirty log" };
 	}
 	else {
-		ShvLogHeader header;
-		ShvJournalFileReader dirty_log(m_logDir.dirtyLogPath().toStdString(), &header);
+		ShvJournalFileReader dirty_log(m_logDir.dirtyLogPath().toStdString());
 		std::string entry_path;
 		QDateTime entry_ts;
 		if (dirty_log.next()) {
@@ -199,8 +197,7 @@ void CheckLogTask::checkOldDataConsistency()
 		requested_until = QDateTime::currentDateTimeUtc();
 	}
 	else if (exists_dirty){
-		ShvLogHeader header;
-		ShvJournalFileReader dirty_log(m_logDir.dirtyLogPath().toStdString(), &header);
+		ShvJournalFileReader dirty_log(m_logDir.dirtyLogPath().toStdString());
 		if (dirty_log.next()) {
 			requested_until = QDateTime::fromMSecsSinceEpoch(dirty_log.entry().epochMsec, Qt::TimeSpec::UTC);
 		}
@@ -230,8 +227,7 @@ void CheckLogTask::checkDirtyLogState()
 			ShvLogFileReader last_log(m_dirEntries.last().toStdString());
 			log_since = rpcvalue_cast<QDateTime>(last_log.logHeader().until());
 		}
-		ShvLogHeader header;
-		ShvJournalFileReader reader(m_logDir.dirtyLogPath().toStdString(), &header);
+		ShvJournalFileReader reader(m_logDir.dirtyLogPath().toStdString());
 		if (reader.next()) {
 			ShvJournalEntry first_entry = reader.entry();
 			int rec_count = 1;

@@ -115,8 +115,7 @@ void DirtyLogManager::setDirtyLogDirty(const QString &shv_path)
 {
 	checkDirtyLog(shv_path, false);
 	LogDir log_dir(shv_path);
-	ShvLogHeader header;
-	ShvJournalFileReader dirty_reader(log_dir.dirtyLogPath().toStdString(), &header);
+	ShvJournalFileReader dirty_reader(log_dir.dirtyLogPath().toStdString());
 	ShvJournalEntry last_entry;
 	if (dirty_reader.last()) {
 		last_entry = dirty_reader.entry();

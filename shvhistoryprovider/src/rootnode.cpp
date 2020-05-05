@@ -145,8 +145,7 @@ void RootNode::trimDirtyLog(const QString &shv_path)
 shv::chainpack::RpcValue RootNode::getStartTS(const QString &shv_path)
 {
 	LogDir log_dir(shv_path);
-	ShvLogHeader header;
-	ShvJournalFileReader dirty_log(log_dir.dirtyLogPath().toStdString(), &header);
+	ShvJournalFileReader dirty_log(log_dir.dirtyLogPath().toStdString());
 	if (dirty_log.next()) {
 		return dirty_log.entry().dateTime();
 	}

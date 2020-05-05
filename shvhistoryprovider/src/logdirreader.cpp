@@ -20,6 +20,7 @@ LogDirReader::LogDirReader(const QString &shv_path, int prefix_length, const QDa
 		if (all_logs.count()) {
 			ShvLogFileReader log_reader(all_logs.last().toStdString());
 			m_header = log_reader.logHeader();
+			m_typeInfo = m_header.typeInfo();
 		}
 	}
 	if (prefix_length) {
@@ -29,7 +30,6 @@ LogDirReader::LogDirReader(const QString &shv_path, int prefix_length, const QDa
 	m_dirtyLog = log_dir.dirtyLogPath();
 
 	m_previousFileUntil = since.isValid() ? since.toMSecsSinceEpoch() : 0LL;
-	m_typeInfo = m_header.typeInfo();
 	openNextFile();
 }
 
@@ -89,7 +89,7 @@ void LogDirReader::openNextFile()
 	bool cache_dirty_entry = false;
 	if (m_logs.count() == 1) {
 		if (QFile(m_logs[0]).exists()) {
-			m_journalReader = new ShvJournalFileReader(m_logs[0].toStdString(), &m_header);
+			m_journalReader = new ShvJournalFileReader(m_logs[0].toStdString());
 			if (m_journalReader->next()) {
 				current_file_since = m_journalReader->entry().epochMsec;
 				cache_dirty_entry = true;
