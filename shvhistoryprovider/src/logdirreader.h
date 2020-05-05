@@ -25,13 +25,16 @@ private:
 
 	std::string m_pathPrefix;
 	QStringList m_logs;
+	QString m_dirtyLog;
 	shv::core::utils::ShvLogHeader m_header;
 	shv::core::utils::ShvLogFileReader *m_logReader;
 	shv::core::utils::ShvJournalFileReader *m_journalReader;
 	QVector<shv::core::utils::ShvJournalEntry> m_fakeEntryList;
 	shv::core::utils::ShvLogTypeInfo m_typeInfo;
 	int64_t m_previousFileUntil;
+	int64_t m_until;
 	shv::core::utils::ShvJournalEntry m_entry;
+	bool m_firstFile;
 };
 
 #endif // LOGDIRREADER_H

@@ -10,6 +10,8 @@ using namespace shv::core::utils;
 LogDirReader::LogDirReader(const QString &shv_path, int prefix_length, const QDateTime &since, const QDateTime &until)
 	: m_logReader(nullptr)
 	, m_journalReader(nullptr)
+	, m_until(until.isValid() ? until.toMSecsSinceEpoch() : 0LL)
+	, m_firstFile(true)
 {
 	LogDir log_dir(shv_path);
 	m_logs = log_dir.findFiles(since, until);
@@ -20,11 +22,11 @@ LogDirReader::LogDirReader(const QString &shv_path, int prefix_length, const QDa
 			m_header = log_reader.logHeader();
 		}
 	}
-	m_logs << log_dir.dirtyLogPath();
-
 	if (prefix_length) {
 		m_pathPrefix = (shv_path.right(prefix_length - 1) + "/").toStdString();
 	}
+
+	m_dirtyLog = log_dir.dirtyLogPath();
 
 	m_previousFileUntil = since.isValid() ? since.toMSecsSinceEpoch() : 0LL;
 	m_typeInfo = m_header.typeInfo();
@@ -61,7 +63,12 @@ bool LogDirReader::next()
 		return true;
 	}
 	if (m_logs.count() == 1) {
-		return false;
+		if (!m_until || m_previousFileUntil < m_until) {
+			m_logs << m_dirtyLog;
+		}
+		else {
+			return false;
+		}
 	}
 	m_logs.removeFirst();
 	openNextFile();
@@ -103,23 +110,25 @@ void LogDirReader::openNextFile()
 		}
 	}
 	if (m_previousFileUntil && (!current_file_since || m_previousFileUntil < current_file_since)) {
-		m_fakeEntryList.push_back(ShvJournalEntry {
-								   ShvJournalEntry::PATH_DATA_MISSING,
-								   ShvJournalEntry::DATA_MISSING_LOG_CACHE_FILE_MISSING,
-								   ShvJournalEntry::DOMAIN_SHV_SYSTEM,
-								   ShvJournalEntry::NO_SHORT_TIME,
-								   ShvJournalEntry::SampleType::Continuous,
-								   m_previousFileUntil
-							   });
-		if (current_file_since) {
+		if (!m_firstFile) {
 			m_fakeEntryList.push_back(ShvJournalEntry {
 									   ShvJournalEntry::PATH_DATA_MISSING,
-									   "",
+									   m_firstFile ? ShvJournalEntry::DATA_MISSING_LOG_FILE_MISSING : ShvJournalEntry::DATA_MISSING_LOG_CACHE_FILE_MISSING,
 									   ShvJournalEntry::DOMAIN_SHV_SYSTEM,
 									   ShvJournalEntry::NO_SHORT_TIME,
 									   ShvJournalEntry::SampleType::Continuous,
-									   current_file_since
+									   m_previousFileUntil
 								   });
+			if (current_file_since) {
+				m_fakeEntryList.push_back(ShvJournalEntry {
+										   ShvJournalEntry::PATH_DATA_MISSING,
+										   "",
+										   ShvJournalEntry::DOMAIN_SHV_SYSTEM,
+										   ShvJournalEntry::NO_SHORT_TIME,
+										   ShvJournalEntry::SampleType::Continuous,
+										   current_file_since
+									   });
+			}
 		}
 	}
 	if (cache_dirty_entry) {
@@ -128,4 +137,5 @@ void LogDirReader::openNextFile()
 	if (m_logReader) {
 		m_previousFileUntil = m_header.until().toDateTime().msecsSinceEpoch();
 	}
+	m_firstFile = false;
 }
