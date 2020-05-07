@@ -63,6 +63,9 @@ bool LogDirReader::next()
 		return true;
 	}
 	if (m_logs.count() == 1) {
+		if (m_logs[0] == m_dirtyLog) {
+			return false;
+		}
 		if (!m_until || m_previousFileUntil < m_until) {
 			m_logs << m_dirtyLog;
 		}
@@ -87,7 +90,7 @@ void LogDirReader::openNextFile()
 	}
 	int64_t current_file_since = 0LL;
 	bool cache_dirty_entry = false;
-	if (m_logs.count() == 1) {
+	if (m_logs[0] == m_dirtyLog) {
 		if (QFile(m_logs[0]).exists()) {
 			m_journalReader = new ShvJournalFileReader(m_logs[0].toStdString());
 			if (m_journalReader->next()) {

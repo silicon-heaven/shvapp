@@ -60,7 +60,7 @@ void DeviceLogRequest::getChunk()
 		params = logParams().toRpcValue();
 	}
 
-	conn->callShvMethod(rq_id, path.toStdString(), "getLog", params);
+	conn->callShvMethod(rq_id, path.toStdString(), cp::Rpc::METH_GET_LOG, params);
 }
 
 void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &response)
@@ -148,6 +148,7 @@ ShvGetLogParams DeviceLogRequest::logParams() const
 	params.until = cp::RpcValue::fromValue(m_until);
 	params.recordCountLimit = Application::CHUNK_RECORD_COUNT;
 	params.withSnapshot = true;
+	params.withTypeInfo = true;
 	return params;
 }
 
