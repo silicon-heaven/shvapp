@@ -48,8 +48,8 @@ DlgUsersEditor::~DlgUsersEditor()
 
 void DlgUsersEditor::init(const std::string &path)
 {
-	m_aclEtcUsersNodePath = path + "users";
-	m_aclEtcRolesNodePath = path + "roles";
+	m_aclEtcUsersNodePath = path + "/users";
+	m_aclEtcRolesNodePath = path + "/roles";
 	listUsers();
 }
 

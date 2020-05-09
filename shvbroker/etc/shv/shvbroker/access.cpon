@@ -14,13 +14,12 @@
       "role":"rd"
     }
   },
-  "masterBroker":{
-    ".broker/app/**":{
-      "role":"rd"
-    }
-  },
+  "masterBroker": [
+    { "pathPattern": ".broker/app/**", "role":"rd" }
+  ],
   "ping":{
-    ".broker/app:ping":{
+    ".broker/app":{
+      "method": "ping",
       "role":"bws"
     }
   },

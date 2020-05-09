@@ -31,6 +31,8 @@ DlgRolesEditor::DlgRolesEditor(QWidget *parent, shv::iotqt::rpc::ClientConnectio
 	connect(ui->pbDeleteRole, &QPushButton::clicked, this, &DlgRolesEditor::onDeleteRoleClicked);
 	connect(ui->pbEditRole, &QPushButton::clicked, this, &DlgRolesEditor::onEditRoleClicked);
 	connect(ui->twRoles, &QTableWidget::doubleClicked, this, &DlgRolesEditor::onTableRoleDoubleClicked);
+
+	setStatusText(QString());
 }
 
 DlgRolesEditor::~DlgRolesEditor()
@@ -46,12 +48,12 @@ void DlgRolesEditor::init(const std::string &acl_node_path)
 
 std::string DlgRolesEditor::aclEtcRolesNodePath()
 {
-	return m_aclEtcNodePath + "roles";
+	return m_aclEtcNodePath + "/roles";
 }
 
 std::string DlgRolesEditor::aclEtcAccessNodePath()
 {
-	return m_aclEtcNodePath + "access";
+	return m_aclEtcNodePath + "/access";
 }
 
 QString DlgRolesEditor::selectedRole()
@@ -72,11 +74,11 @@ void DlgRolesEditor::onDeleteRoleClicked()
 	std::string role = selectedRole().toStdString();
 
 	if (role.empty()){
-		ui->lblStatus->setText(tr("Select role in the table above."));
+		setStatusText(tr("Select role in the table above."));
 		return;
 	}
 
-	ui->lblStatus->setText("");
+	setStatusText(QString());
 
 	if (QMessageBox::question(this, tr("Delete role"), tr("Do you really want to delete data and associated access pahts for role") + " " + QString::fromStdString(role) + "?") == QMessageBox::Yes){
 		int rqid = m_rpcConnection->nextRequestId();
@@ -85,15 +87,16 @@ void DlgRolesEditor::onDeleteRoleClicked()
 		cb->start(this, [this, role](const shv::chainpack::RpcResponse &response) {
 			if(response.isValid()){
 				if(response.isError()) {
-					ui->lblStatus->setText(tr("Failed to delete role.") + " " + QString::fromStdString(response.error().toString()));
+					setStatusText(tr("Failed to delete role.") + " " + QString::fromStdString(response.error().toString()));
 				}
 				else{
 					callDeleteAccessForRole(role);
 					listRoles();
+					setStatusText(QString());
 				}
 			}
 			else{
-				ui->lblStatus->setText(tr("Request timeout expired"));
+				setStatusText(tr("Request timeout expired"));
 			}
 		});
 
@@ -107,11 +110,11 @@ void DlgRolesEditor::onEditRoleClicked()
 	QString role = selectedRole();
 
 	if (role.isEmpty()){
-		ui->lblStatus->setText(tr("Select role in the table above."));
+		setStatusText(tr("Select role in the table above."));
 		return;
 	}
 
-	ui->lblStatus->setText("");
+	setStatusText(QString());
 
 	DlgAddEditRole dlg(this, m_rpcConnection, m_aclEtcNodePath, DlgAddEditRole::DialogType::Edit);
 	dlg.init(role);
@@ -141,7 +144,7 @@ void DlgRolesEditor::listRoles()
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if(response.isValid()){
 			if(response.isError()) {
-				ui->lblStatus->setText(tr("Failed to load roles.") + " " + QString::fromStdString(response.error().toString()));
+				setStatusText(tr("Failed to load roles.") + " " + QString::fromStdString(response.error().toString()));
 			}
 			else{
 				if (response.result().isList()){
@@ -154,10 +157,11 @@ void DlgRolesEditor::listRoles()
 						ui->twRoles->setItem(i, 0, item);
 					}
 				}
+				setStatusText(QString());
 			}
 		}
 		else{
-			ui->lblStatus->setText(tr("Request timeout expired"));
+			setStatusText(tr("Request timeout expired"));
 		}
 	});
 
@@ -169,7 +173,7 @@ void DlgRolesEditor::callDeleteAccessForRole(const std::string &role)
 	if (m_rpcConnection == nullptr)
 		return;
 
-	ui->lblStatus->setText(tr("Deleting access paths for role:") + " " + QString::fromStdString(role));
+	setStatusText(tr("Deleting access paths for role:") + " " + QString::fromStdString(role));
 
 	int rqid = m_rpcConnection->nextRequestId();
 	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
@@ -177,17 +181,29 @@ void DlgRolesEditor::callDeleteAccessForRole(const std::string &role)
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if (response.isValid()){
 			if(response.isError()) {
-				ui->lblStatus->setText(tr("Failed to delete access pahts.") + " " + QString::fromStdString(response.error().toString()));
+				setStatusText(tr("Failed to delete access pahts.") + " " + QString::fromStdString(response.error().toString()));
 			}
 			else{
-				ui->lblStatus->setText("");
+				setStatusText(QString());
 			}
 		}
 		else{
-			ui->lblStatus->setText(tr("Request timeout expired"));
+			setStatusText(tr("Request timeout expired"));
 		}
 	});
 
 	shv::chainpack::RpcValue::List params{shv::chainpack::RpcValue::String(role), {}};
 	m_rpcConnection->callShvMethod(rqid, aclEtcAccessNodePath(), SET_VALUE_METHOD, params);
 }
+
+void DlgRolesEditor::setStatusText(const QString &txt)
+{
+	if(txt.isEmpty()) {
+		ui->lblStatus->hide();
+	}
+	else {
+		ui->lblStatus->show();
+		ui->lblStatus->setText(txt);
+	}
+}
+

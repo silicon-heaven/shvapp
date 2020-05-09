@@ -2,14 +2,13 @@
 
 #include "../theapp.h"
 
+#include <shv/coreqt/log.h>
+#include <shv/core/exception.h>
 #include <shv/chainpack/rpcvalue.h>
 
 #include <QBrush>
 
 namespace cp = shv::chainpack;
-
-static const std::string PATH = "path";
-static const std::string GRANT = "grant";
 
 AccessModel::AccessModel(QObject *parent)
 	: Super(parent)
@@ -20,42 +19,22 @@ AccessModel::~AccessModel()
 {
 }
 
-void AccessModel::setPaths(const shv::chainpack::RpcValue::Map &paths)
+void AccessModel::setRules(const shv::chainpack::RpcValue &role_rules)
 {
 	beginResetModel();
-	m_paths.clear();
-
-	std::vector<std::string> keys = paths.keys();
-
-	for (size_t i = 0; i < keys.size(); i++){
-		shv::chainpack::RpcValue::Map path;
-		path[PATH] = keys[i];
-		path[GRANT] = paths.value(keys[i]).toString();
-		m_paths.push_back(path);
-	}
-
+	m_rules = shv::broker::AclRoleAccessRules::fromRpcValue(role_rules);
 	endResetModel();
 }
 
-shv::chainpack::RpcValue::Map AccessModel::paths()
+shv::chainpack::RpcValue AccessModel::rules()
 {
-	shv::chainpack::RpcValue::Map paths;
-
-	for (int i = 0; i < m_paths.count(); i++){
-		const shv::chainpack::RpcValue::Map &p = m_paths.at(i);
-
-		if (!p.value(PATH).toString().empty() && !p.value(GRANT).toStdString().empty()){
-			paths[p.value(PATH).toString()] = p.value(GRANT).toStdString();
-		}
-	}
-
-	return paths;
+	return m_rules.toRpcValue();
 }
 
 int AccessModel::rowCount(const QModelIndex &parent) const
 {
 	Q_UNUSED(parent)
-	return m_paths.count();
+	return m_rules.size();
 }
 
 int AccessModel::columnCount(const QModelIndex &parent) const
@@ -77,26 +56,20 @@ Qt::ItemFlags AccessModel::flags(const QModelIndex &ix) const
 
 QVariant AccessModel::data(const QModelIndex &ix, int role) const
 {
-	if (m_paths.isEmpty() || ix.row() >= m_paths.count() || ix.row() < 0){
+	if (m_rules.empty() || ix.row() >= (int)m_rules.size() || ix.row() < 0){
 		return QVariant();
 	}
 
-	const shv::chainpack::RpcValue::Map &path = m_paths.at(ix.row());
+	const shv::broker::AclAccessRule &rule = m_rules.at(ix.row());
 
-	if(role == Qt::DisplayRole) {
+	if(role == Qt::DisplayRole || role == Qt::EditRole) {
 		switch (ix.column()) {
 		case Columns::ColPath:
-			return QString::fromStdString(path.value(PATH).toStdString());
+			return QString::fromStdString(rule.pathPattern);
+		case Columns::ColMethod:
+			return QString::fromStdString(rule.method);
 		case Columns::ColGrant:
-			return QString::fromStdString(path.value(GRANT).toStdString());
-		}
-	}
-	else if(role == Qt::EditRole){
-		switch (ix.column()) {
-		case Columns::ColPath:
-			return QString::fromStdString(path.value(PATH).toStdString());
-		case Columns::ColGrant:
-			return QString::fromStdString(path.value(GRANT).toStdString());
+			return QString::fromStdString(rule.grant.toRpcValue().toCpon());
 		}
 	}
 
@@ -105,22 +78,28 @@ QVariant AccessModel::data(const QModelIndex &ix, int role) const
 
 bool AccessModel::setData(const QModelIndex &ix, const QVariant &val, int role)
 {
-	if (m_paths.isEmpty() || ix.row() >= m_paths.count() || ix.row() < 0){
+	if (m_rules.empty() || ix.row() >= (int)m_rules.size() || ix.row() < 0){
 		return false;
 	}
 
 	if (role == Qt::EditRole){
-		shv::chainpack::RpcValue::Map &path = m_paths[ix.row()];
-
-		if (ix.column() == Columns::ColPath){
-			path[PATH] = (!val.toString().isEmpty()) ? val.toString().toStdString() : "";
+		shv::broker::AclAccessRule &rule = m_rules[ix.row()];
+		if (ix.column() == Columns::ColPath) {
+			rule.pathPattern = val.toString().toStdString();
 		}
-		else if (ix.column() == Columns::ColGrant){
-			if (!val.toString().isEmpty()) {
-				path[GRANT] = val.toString().toStdString();
+		else if (ix.column() == Columns::ColMethod) {
+			rule.method = val.toString().toStdString();
+		}
+		else if (ix.column() == Columns::ColGrant) {
+			std::string cpon = val.toString().toStdString();
+			std::string err;
+			shv::chainpack::RpcValue rv = cp::RpcValue::fromCpon(cpon, &err);
+			if(err.empty()) {
+				rule.grant = shv::chainpack::AccessGrant::fromRpcValue(rv);
 			}
-			else{
-				path.erase(GRANT);
+			else {
+				//shvError() << "Invalid access grant definition:" << cpon;
+				throw shv::core::Exception(tr("Invalid access grant definition: %1").arg(val.toString()).toStdString());
 			}
 		}
 	}
@@ -136,9 +115,10 @@ QVariant AccessModel::headerData(int section, Qt::Orientation orientation, int r
 			switch (section){
 			case Columns::ColPath:
 				return tr("Path");
+			case Columns::ColMethod:
+				return tr("Method");
 			case Columns::ColGrant:
 				return tr("Grant");
-
 			default:
 				return tr("Unknown");
 			}
@@ -148,18 +128,18 @@ QVariant AccessModel::headerData(int section, Qt::Orientation orientation, int r
 	return ret;
 }
 
-void AccessModel::addPath()
+void AccessModel::addRule()
 {
-	beginInsertRows(QModelIndex(), m_paths.count(), m_paths.count());
-	m_paths.append(shv::chainpack::RpcValue::Map());
+	beginInsertRows(QModelIndex(), rowCount(), rowCount());
+	m_rules.push_back(shv::broker::AclAccessRule());
 	endInsertRows();
 }
 
-void AccessModel::deletePath(int index)
+void AccessModel::deleteRule(int index)
 {
-	if ((index >= 0) && (index < m_paths.count())){
+	if ((index >= 0) && (index < rowCount())){
 		beginResetModel();
-		m_paths.remove(index);
+		m_rules.erase(m_rules.begin() + index);
 		endResetModel();
 	}
 }

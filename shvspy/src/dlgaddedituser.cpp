@@ -216,7 +216,7 @@ const std::string &DlgAddEditUser::aclUsersShvPath()
 
 std::string DlgAddEditUser::userShvPath()
 {
-	return m_aclEtcUsersNodePath + '/' + user() + "/";
+	return m_aclEtcUsersNodePath + '/' + user();
 }
 
 std::vector<std::string> DlgAddEditUser::roles()

@@ -1,6 +1,8 @@
 #pragma once
 
+#include <shv/broker/aclrolepaths.h>
 #include <shv/chainpack/rpcvalue.h>
+
 #include <QAbstractTableModel>
 
 class AccessModel : public QAbstractTableModel
@@ -9,24 +11,24 @@ class AccessModel : public QAbstractTableModel
 private:
 	typedef QAbstractTableModel Super;
 public:
-	enum Columns {ColPath = 0, ColGrant, ColCount};
+	enum Columns {ColPath = 0, ColMethod, ColGrant, ColCount};
 
 public:
 	AccessModel(QObject *parent = nullptr);
 	~AccessModel() Q_DECL_OVERRIDE;
 public:
-	void setPaths(const shv::chainpack::RpcValue::Map &paths);
-	shv::chainpack::RpcValue::Map paths();
+	void setRules(const shv::chainpack::RpcValue &role_paths);
+	shv::chainpack::RpcValue rules();
 
-	int rowCount(const QModelIndex &parent) const override;
-	int columnCount(const QModelIndex &parent) const override;
+	int rowCount(const QModelIndex &parent = QModelIndex()) const override;
+	int columnCount(const QModelIndex &parent = QModelIndex()) const override;
 	Qt::ItemFlags flags(const QModelIndex &ix) const Q_DECL_OVERRIDE;
 	QVariant data( const QModelIndex &index, int role = Qt::DisplayRole ) const Q_DECL_OVERRIDE;
 	bool setData(const QModelIndex &ix, const QVariant &val, int role = Qt::EditRole) Q_DECL_OVERRIDE;
 	QVariant headerData (int section, Qt::Orientation orientation, int role = Qt::DisplayRole ) const Q_DECL_OVERRIDE;
-	void addPath();
-	void deletePath(int index);
+	void addRule();
+	void deleteRule(int index);
 
 private:
-	QVector <shv::chainpack::RpcValue::Map> m_paths;
+	shv::broker::AclRoleAccessRules m_rules;
 };

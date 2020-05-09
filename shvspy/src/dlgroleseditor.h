@@ -34,6 +34,8 @@ private:
 	void onEditRoleClicked();
 	void onTableRoleDoubleClicked(QModelIndex ix);
 
+	void setStatusText(const QString &txt);
+private:
 	Ui::DlgRolesEditor *ui;
 	std::string m_aclEtcNodePath;
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection = nullptr;
