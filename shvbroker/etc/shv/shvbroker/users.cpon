@@ -1,37 +1,22 @@
 {
-  "admin":{
-    "roles":["admin"],
-    "password": {
-      "password":"admin password",
-      "format":"plain"
-    }
-  },
-  "iot":{
-    "roles":["device","tester"],
-    "password": {
-      "password":"good password",
-      "format":"plain"
-    }
-  },
-  "tester":{
-    "roles":["tester"],
-    "password": {
-      "password":"good password",
-      "format":"plain"
-    }
-  },
-  "broker":{
-    "roles":["device"],
-    "password": {
-      "password":"ff2e1086753ca76fe84b7fadd738d76caf2072d0",
-      "format":"sha1"
-    }
-  },
-  "hscope":{
-    "roles":["device"],
-    "password": {
-      "password":"8884a26b82a69838092fd4fc824bbfde56719e02",
-      "format":"sha1"
-    }
-  },
+	"admin":{
+		"password":{"format":"PLAIN", "password":"admin password"},
+		"roles":["admin", "ping"]
+	},
+	"broker":{
+		"password":{"format":"SHA1", "password":"ff2e1086753ca76fe84b7fadd738d76caf2072d0"},
+		"roles":["device"]
+	},
+	"hscope":{
+		"password":{"format":"SHA1", "password":"8884a26b82a69838092fd4fc824bbfde56719e02"},
+		"roles":["device"]
+	},
+	"iot":{
+		"password":{"format":"PLAIN", "password":"good password"},
+		"roles":["device", "tester"]
+	},
+	"tester":{
+		"password":{"format":"PLAIN", "password":"good password"},
+		"roles":["tester", "ping"]
+	}
 }
