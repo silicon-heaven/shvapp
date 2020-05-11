@@ -5,7 +5,6 @@
 #include "servertreemodel/servertreemodel.h"
 #include "servertreemodel/shvbrokernodeitem.h"
 #include "log/rpcnotificationsmodel.h"
-#include "log/errorlogmodel.h"
 #include "dlgserverproperties.h"
 #include "dlgsubscriptionparameters.h"
 #include "dlgcallshvmethod.h"
@@ -19,6 +18,8 @@
 #include <shv/chainpack/cponreader.h>
 #include <shv/chainpack/cponwriter.h>
 #include <shv/visu/logview/dlgloginspector.h>
+#include <shv/visu/errorlogmodel.h>
+#include <shv/visu/logwidget.h>
 
 #include <shv/coreqt/log.h>
 

@@ -81,7 +81,7 @@
      <x>0</x>
      <y>0</y>
      <width>1414</width>
-     <height>32</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_View">
@@ -247,7 +247,7 @@
       <number>1</number>
      </property>
      <item>
-      <widget class="LogWidget" name="notificationsLogWidget" native="true"/>
+      <widget class="shv::visu::LogWidget" name="notificationsLogWidget" native="true"/>
      </item>
     </layout>
    </widget>
@@ -277,7 +277,7 @@
       <number>3</number>
      </property>
      <item>
-      <widget class="LogWidget" name="errorLogWidget" native="true"/>
+      <widget class="shv::visu::LogWidget" name="errorLogWidget" native="true"/>
      </item>
     </layout>
    </widget>
@@ -378,9 +378,9 @@
    <header>src/servertreeview.h</header>
   </customwidget>
   <customwidget>
-   <class>LogWidget</class>
+   <class>shv::visu::LogWidget</class>
    <extends>QWidget</extends>
-   <header>src/log/logwidget.h</header>
+   <header>shv/visu/logwidget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

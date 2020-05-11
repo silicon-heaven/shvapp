@@ -27,7 +27,7 @@ void RpcNotificationsModel::addLogRow(const std::string &broker_name, const shv:
 {
 	if(msg.isSignal()) {
 		cp::RpcSignal ntf(msg);
-		LogTableModelRow rw;
+		shv::visu::LogTableModelRow rw;
 		rw.resize(ColCnt);
 		rw[ColBroker] = QString::fromStdString(broker_name);
 		rw[ColShvPath] = QString::fromStdString(ntf.shvPath().toString());
