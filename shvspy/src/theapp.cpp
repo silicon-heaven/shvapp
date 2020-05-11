@@ -2,9 +2,9 @@
 #include "servertreemodel/servertreemodel.h"
 #include "attributesmodel/attributesmodel.h"
 #include "log/rpcnotificationsmodel.h"
-#include "log/errorlogmodel.h"
 
 #include <shv/coreqt/log.h>
+#include <shv/visu/errorlogmodel.h>
 
 #include <QSettings>
 #ifdef Q_OS_WIN
@@ -28,7 +28,7 @@ TheApp::TheApp(int &argc, char **argv, AppCliOptions *cli_opts)
 	m_serverTreeModel = new ServerTreeModel(this);
 	m_attributesModel = new AttributesModel(this);
 	m_rpcNotificationsModel = new RpcNotificationsModel(this);
-	m_errorLogModel = new ErrorLogModel(this);
+	m_errorLogModel = new shv::visu::ErrorLogModel(this);
 }
 
 TheApp::~TheApp()

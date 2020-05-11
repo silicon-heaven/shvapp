@@ -1,14 +1,7 @@
 HEADERS += \
-	$$PWD/logwidget.h \
-    $$PWD/rpcnotificationsmodel.h \
-    $$PWD/errorlogmodel.h \
-    $$PWD/logtablemodelbase.h
+    $$PWD/rpcnotificationsmodel.h
 
 SOURCES += \
-	$$PWD/logwidget.cpp \
-    $$PWD/rpcnotificationsmodel.cpp \
-    $$PWD/errorlogmodel.cpp \
-    $$PWD/logtablemodelbase.cpp
+    $$PWD/rpcnotificationsmodel.cpp
 
 FORMS += \
-	$$PWD/logwidget.ui \

@@ -1,7 +1,6 @@
 #include "shvbrokernodeitem.h"
 #include "../theapp.h"
 #include "../appclioptions.h"
-#include "../log/errorlogmodel.h"
 #include "../log/rpcnotificationsmodel.h"
 #include "../attributesmodel/attributesmodel.h"
 
@@ -10,6 +9,7 @@
 #include <shv/iotqt/rpc/deviceappclioptions.h>
 #include <shv/iotqt/node/shvnode.h>
 #include <shv/core/utils/shvpath.h>
+#include <shv/visu/errorlogmodel.h>
 
 #include <shv/chainpack/rpcmessage.h>
 #include <shv/core/stringview.h>
