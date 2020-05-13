@@ -22,12 +22,15 @@ AccessModel::~AccessModel()
 void AccessModel::setRules(const shv::chainpack::RpcValue &role_rules)
 {
 	beginResetModel();
+	m_legacyRulesFormat = role_rules.isMap();
 	m_rules = shv::broker::AclRoleAccessRules::fromRpcValue(role_rules);
 	endResetModel();
 }
 
 shv::chainpack::RpcValue AccessModel::rules()
 {
+	if(m_legacyRulesFormat)
+		return m_rules.toRpcValue_legacy();
 	return m_rules.toRpcValue();
 }
 

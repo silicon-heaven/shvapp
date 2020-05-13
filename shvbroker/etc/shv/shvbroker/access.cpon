@@ -1,39 +1,24 @@
 {
-  "admin":{
-    "**":{
-      "role":"su"
-    }
-  },
-  "client":{
-    "**":{
-      "role":"bws"
-    }
-  },
-  "iot":{
-    "shv/**":{
-      "role":"rd"
-    }
-  },
-  "masterBroker": [
-    { "pathPattern": ".broker/app/**", "role":"rd" }
-  ],
-  "ping":{
-    ".broker/app":{
-      "method": "ping",
-      "role":"bws"
-    }
-  },
-  "subscribe":{
-    ".broker/app:subscribe":{
-      "role":"wr"
-    },
-    ".broker/app:unsubscribe":{
-      "role":"wr"
-    }
-  },
-  "tester":{
-    "test/**":{
-      "role":"wr"
-    }
-  }
+	"admin":[
+		{"method":"", "pathPattern":"**", "role":"su"}
+	],
+	"client":[
+		{"method":"", "pathPattern":"**", "role":"bws"}
+	],
+	"iot":[
+		{"method":"", "pathPattern":"shv/**", "role":"rd"}
+	],
+	"masterBroker":[
+		{"method":"", "pathPattern":".broker/app/**", "role":"rd"}
+	],
+	"ping":[
+		{"method":"ping", "pathPattern":".broker/app", "role":"srv"}
+	],
+	"subscribe":[
+		{"method":"subscribe", "pathPattern":".broker/app", "role":"rd"},
+		{"method":"unsubscribe", "pathPattern":".broker/app", "role":"wr"}
+	],
+	"tester":[
+		{"method":"", "pathPattern":"test/**", "role":"wr"}
+	]
 }

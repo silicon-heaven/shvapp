@@ -15,6 +15,10 @@
 		"password":{"format":"PLAIN", "password":"good password"},
 		"roles":["device", "tester"]
 	},
+	"shvgate":{
+		"password":{"format":"SHA1", "password":"19b9eab2dea2882d328caa6bc26b0b66c002813b"},
+		"roles":["device"]
+	},
 	"tester":{
 		"password":{"format":"PLAIN", "password":"good password"},
 		"roles":["tester", "ping"]

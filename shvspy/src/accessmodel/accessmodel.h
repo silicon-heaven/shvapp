@@ -31,4 +31,5 @@ public:
 
 private:
 	shv::broker::AclRoleAccessRules m_rules;
+	bool m_legacyRulesFormat = false;
 };
