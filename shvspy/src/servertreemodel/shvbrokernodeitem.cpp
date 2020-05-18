@@ -122,8 +122,7 @@ void ShvBrokerNodeItem::setSubscriptionList(const QVariantList &subs)
 void ShvBrokerNodeItem::addSubscription(const std::string &shv_path, const std::string &method)
 {
 	int rqid = callSubscribe(shv_path, method);
-	RpcSubscriptionInfo sub_info(shv_path, method);
-	m_subscriptionRequests[rqid] = (sub_info);
+	m_subscriptionRequests[rqid] = RpcSubscriptionInfo(shv_path, method);
 }
 
 void ShvBrokerNodeItem::enableSubscription(const std::string &shv_path, const std::string &method, bool is_enabled)
@@ -287,7 +286,6 @@ ShvNodeItem* ShvBrokerNodeItem::findNode(const std::string &path_, std::string *
 
 int ShvBrokerNodeItem::callSubscribe(const std::string &shv_path, std::string method)
 {
-	shvInfo() << "Create subscription:" << nodeId() << "creating subscription" << shv_path << ":" << method;
 	shv::iotqt::rpc::ClientConnection *cc = clientConnection();
 	int rqid = cc->callMethodSubscribe(shv_path, method);
 	return rqid;
@@ -295,7 +293,6 @@ int ShvBrokerNodeItem::callSubscribe(const std::string &shv_path, std::string me
 
 int ShvBrokerNodeItem::callUnsubscribe(const std::string &shv_path, std::string method)
 {
-	shvInfo() << "Remove subscription:" << nodeId() << " subscription" << shv_path << ":" << method;
 	shv::iotqt::rpc::ClientConnection *cc = clientConnection();
 	int rqid = cc->callMethodUnsubscribe(shv_path, method);
 	return rqid;
@@ -325,7 +322,7 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 
 		auto sub_info = m_subscriptionRequests.find(rqid);
 
-		if (sub_info!= m_subscriptionRequests.end()){
+		if (sub_info != m_subscriptionRequests.end()){
 			if (!resp.isError())
 				emit subscriptionAdded(sub_info->second.shvPath, sub_info->second.method);
 
