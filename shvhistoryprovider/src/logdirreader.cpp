@@ -15,22 +15,28 @@ LogDirReader::LogDirReader(const QString &shv_path, int prefix_length, const QDa
 {
 	LogDir log_dir(shv_path);
 	m_logs = log_dir.findFiles(since, until);
+	m_dirtyLog = log_dir.dirtyLogPath();
 	if (m_logs.count() == 0) {
 		QStringList all_logs = log_dir.findFiles(QDateTime(), QDateTime());
 		if (all_logs.count()) {
 			ShvLogFileReader log_reader(all_logs.last().toStdString());
 			m_header = log_reader.logHeader();
 			m_typeInfo = m_header.typeInfo();
+			if (!until.isValid() || until.toMSecsSinceEpoch() > m_header.untilMsec()) {
+				m_logs << m_dirtyLog;
+			}
 		}
 	}
 	if (prefix_length) {
 		m_pathPrefix = (shv_path.right(prefix_length - 1) + "/").toStdString();
 	}
 
-	m_dirtyLog = log_dir.dirtyLogPath();
 
 	m_previousFileUntil = since.isValid() ? since.toMSecsSinceEpoch() : 0LL;
-	openNextFile();
+
+	if (m_logs.count() > 0) {
+		openNextFile();
+	}
 }
 
 LogDirReader::~LogDirReader()
@@ -61,6 +67,9 @@ bool LogDirReader::next()
 	}
 	if (has_next) {
 		return true;
+	}
+	if (m_logs.count() == 0) {
+		return false;
 	}
 	if (m_logs.count() == 1) {
 		if (m_logs[0] == m_dirtyLog) {
