@@ -140,11 +140,13 @@ SHV_BIN_DIR=/home/fanda/proj/_build/shv-release
 SHV_SRC_DIR=/home/fanda/proj/shv
 rsync -avz --progress $SHV_BIN_DIR/lib $SHV_BIN_DIR/bin $DEST_HOST:/opt/shv/
 
-rsync -avz --exclude '*.db' --progress $SHV_SRC_DIR/shvbroker/etc/shv/shvbroker/ $DEST_HOST:/etc/shv/shvbroker/
-
 SHVGATE_SRC_DIR=/home/fanda/proj/shvgate
 SHVGATE_BIN_DIR=/home/fanda/proj/_build/shvgate-release
 rsync -avz --progress $SHVGATE_BIN_DIR/bin $DEST_HOST:/opt/shv/
+
+exit 0
+
+rsync -avz --exclude '*.db' --progress $SHV_SRC_DIR/shvbroker/etc/shv/shvbroker/ $DEST_HOST:/etc/shv/shvbroker/
 
 SHVGATE_PROFILE=vystavka
 rsync -avz --progress $SHVGATE_SRC_DIR/etc/shv/shvgate/pki $DEST_HOST:/etc/shv/shvgate/
