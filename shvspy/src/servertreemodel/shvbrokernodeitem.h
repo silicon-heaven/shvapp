@@ -66,5 +66,7 @@ private:
 	struct RpcRequestInfo;
 	std::map<int, RpcRequestInfo> m_runningRpcRequests;
 	std::string m_shvRoot;
+	struct RpcSubscriptionInfo;
+	std::map<int, RpcSubscriptionInfo> m_subscriptionRequests;
 };
 

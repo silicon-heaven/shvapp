@@ -36,6 +36,22 @@ struct ShvBrokerNodeItem::RpcRequestInfo
 	}
 };
 
+struct ShvBrokerNodeItem::RpcSubscriptionInfo
+{
+	std::string shvPath;
+	std::string method;
+
+	RpcSubscriptionInfo()
+	{
+	}
+
+	RpcSubscriptionInfo(const std::string &shv_path, const std::string &meth)
+	{
+		shvPath = shv_path;
+		method = meth;
+	}
+};
+
 ShvBrokerNodeItem::ShvBrokerNodeItem(ServerTreeModel *m, const std::string &server_name)
 	: Super(m, server_name)
 {
@@ -105,8 +121,9 @@ void ShvBrokerNodeItem::setSubscriptionList(const QVariantList &subs)
 
 void ShvBrokerNodeItem::addSubscription(const std::string &shv_path, const std::string &method)
 {
-	callSubscribe(shv_path, method);
-	emit subscriptionAdded(shv_path, method);
+	int rqid = callSubscribe(shv_path, method);
+	RpcSubscriptionInfo sub_info(shv_path, method);
+	m_subscriptionRequests[rqid] = (sub_info);
 }
 
 void ShvBrokerNodeItem::enableSubscription(const std::string &shv_path, const std::string &method, bool is_enabled)
@@ -297,6 +314,7 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 {
 	if(msg.isResponse()) {
 		cp::RpcResponse resp(msg);
+
 		if(resp.isError())
 			TheApp::instance()->errorLogModel()->addLogRow(
 						NecroLog::Level::Error
@@ -304,7 +322,18 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 						, QString::fromStdString(cp::RpcResponse::Error::errorCodeToString(resp.error().code()))
 						);
 		int rqid = resp.requestId().toInt();
+
+		auto sub_info = m_subscriptionRequests.find(rqid);
+
+		if (sub_info!= m_subscriptionRequests.end()){
+			if (!resp.isError())
+				emit subscriptionAdded(sub_info->second.shvPath, sub_info->second.method);
+
+			m_subscriptionRequests.erase(sub_info);
+		}
+
 		auto it = m_runningRpcRequests.find(rqid);
+
 		if(it == m_runningRpcRequests.end()) {
 			//shvWarning() << "unexpected request id:" << rqid;
 			// can be load attributes request
