@@ -8,9 +8,6 @@
 	"iot":[
 		{"method":"", "pathPattern":"shv/**", "role":"rd"}
 	],
-	"masterBroker":[
-		{"method":"", "pathPattern":".broker/app/**", "role":"rd"}
-	],
 	"ping":[
 		{"method":"ping", "pathPattern":".broker/app", "role":"srv"}
 	],
