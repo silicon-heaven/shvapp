@@ -23,7 +23,7 @@ linux:
     - cd build
     - /opt/qt/5.14.1/gcc_64/bin/qmake -r CONFIG+=no-libshv-gui CONFIG+=with-shvwebsockets ../shv.pro DEFINES+=GIT_COMMIT=${CI_BUILD_REF}
     - make -j2
-    #- ../make-linux-artifacts.sh
+    - rsync -av --exclude '*.debug' lib bin /opt/shv/
 
 linux-bb:
   only:
