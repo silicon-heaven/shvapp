@@ -7,6 +7,7 @@
 #include <shv/iotqt/rpc/clientconnection.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/rpc/deviceappclioptions.h>
+#include <shv/iotqt/rpc/rpcresponsecallback.h>
 #include <shv/iotqt/node/shvnode.h>
 #include <shv/core/utils/shvpath.h>
 #include <shv/visu/errorlogmodel.h>
@@ -33,22 +34,6 @@ struct ShvBrokerNodeItem::RpcRequestInfo
 	RpcRequestInfo()
 	{
 		startTS.start();
-	}
-};
-
-struct ShvBrokerNodeItem::RpcSubscriptionInfo
-{
-	std::string shvPath;
-	std::string method;
-
-	RpcSubscriptionInfo()
-	{
-	}
-
-	RpcSubscriptionInfo(const std::string &shv_path, const std::string &meth)
-	{
-		shvPath = shv_path;
-		method = meth;
 	}
 };
 
@@ -122,7 +107,13 @@ void ShvBrokerNodeItem::setSubscriptionList(const QVariantList &subs)
 void ShvBrokerNodeItem::addSubscription(const std::string &shv_path, const std::string &method)
 {
 	int rqid = callSubscribe(shv_path, method);
-	m_subscriptionRequests[rqid] = RpcSubscriptionInfo(shv_path, method);
+
+	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
+	cb->start(5000, this, [this, shv_path, method](const cp::RpcResponse &resp) {
+		if(resp.result() == true) {
+			emit subscriptionAdded(shv_path, method);
+		}
+	});
 }
 
 void ShvBrokerNodeItem::enableSubscription(const std::string &shv_path, const std::string &method, bool is_enabled)
@@ -319,16 +310,6 @@ void ShvBrokerNodeItem::onRpcMessageReceived(const shv::chainpack::RpcMessage &m
 						, QString::fromStdString(cp::RpcResponse::Error::errorCodeToString(resp.error().code()))
 						);
 		int rqid = resp.requestId().toInt();
-
-		auto sub_info = m_subscriptionRequests.find(rqid);
-
-		if (sub_info != m_subscriptionRequests.end()){
-			if (!resp.isError())
-				emit subscriptionAdded(sub_info->second.shvPath, sub_info->second.method);
-
-			m_subscriptionRequests.erase(sub_info);
-		}
-
 		auto it = m_runningRpcRequests.find(rqid);
 
 		if(it == m_runningRpcRequests.end()) {
