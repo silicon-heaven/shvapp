@@ -118,6 +118,9 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 				fixFirstLogFile();
 			}
 			else {
+				if (Application::instance()->deviceMonitor()->isElesysDevice(m_shvPath) || !log.hasSnapshot()) {
+					tryReplayPreviousFile(log);
+				}
 				saveToNewFile(log, until);
 			}
 		}
@@ -208,6 +211,23 @@ bool DeviceLogRequest::tryAppendToPreviousFile(ShvMemoryJournal &log, const QDat
 		}
 	}
 	return false;
+}
+
+void DeviceLogRequest::tryReplayPreviousFile(ShvMemoryJournal &log)
+{
+	LogDir log_dir(m_shvPath);
+	QStringList all_files = log_dir.findFiles(m_since.addMSecs(-1), m_since);
+	if (all_files.count() == 1) {
+		ShvMemoryJournal new_log(logParams());
+		ShvLogFileReader previous_log(all_files[0].toStdString());
+		while (previous_log.next()) {
+			new_log.append(previous_log.entry());
+		}
+		for (const auto &entry : log.entries()) {
+			new_log.append(entry);
+		}
+		log = new_log;
+	}
 }
 
 void DeviceLogRequest::saveToNewFile(ShvMemoryJournal &log, const QDateTime &until)
