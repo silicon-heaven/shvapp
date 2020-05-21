@@ -36,6 +36,7 @@ Makefile*
 
 #SHV
 *.user.cpon
+shvbroker.cfg.db
 
 .idea
 
