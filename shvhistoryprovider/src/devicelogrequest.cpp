@@ -124,7 +124,9 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 				saveToNewFile(log, until);
 			}
 		}
-		trimDirtyLog(until);
+		if (m_logDir.exists(m_logDir.dirtyLogName())) {
+			trimDirtyLog(until);
+		}
 		m_since = until;
 
 		if (is_finished) {
@@ -254,6 +256,7 @@ void DeviceLogRequest::saveToNewFile(ShvMemoryJournal &log, const QDateTime &unt
 
 void DeviceLogRequest::trimDirtyLog(const QDateTime &until)
 {
+
 	qint64 until_msec = until.toMSecsSinceEpoch();
 	QString temp_filename = "dirty.tmp";
 	ShvJournalFileReader dirty_reader(m_logDir.dirtyLogPath().toStdString());
