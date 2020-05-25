@@ -110,7 +110,10 @@ void ShvBrokerNodeItem::addSubscription(const std::string &shv_path, const std::
 
 	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 	cb->start(5000, this, [this, shv_path, method](const cp::RpcResponse &resp) {
-		if(resp.result() == true) {
+		if(resp.isError() || (resp.result() == false)){
+			emit subscriptionAddError(shv_path, resp.error().message());
+		}
+		else{
 			emit subscriptionAdded(shv_path, method);
 		}
 	});

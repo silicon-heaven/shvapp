@@ -37,6 +37,7 @@ public:
 	unsigned nextId() {return ++m_maxId;}
 
 	Q_SIGNAL void subscriptionAdded(int broker_id, const std::string &path, const std::string &method);
+	Q_SIGNAL void subscriptionAddError(int broker_id, const std::string &shv_path, const std::string &error_msg);
 	Q_SIGNAL void brokerConnectedChanged(int broker_id, bool is_connected);
 private:
 	ShvNodeRootItem *m_invisibleRoot;
