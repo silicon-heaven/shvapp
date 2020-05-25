@@ -53,6 +53,10 @@ ShvBrokerNodeItem *ServerTreeModel::createConnection(const QVariantMap &params)
 		emit ServerTreeModel::subscriptionAdded(ret->brokerId(), path, method);
 	});
 
+	connect(ret, &ShvBrokerNodeItem::subscriptionAddError, this, [this, ret](const std::string &path, const std::string &error_msg){
+		emit ServerTreeModel::subscriptionAddError(ret->brokerId(), path, error_msg);
+	});
+
 	connect(ret, &ShvBrokerNodeItem::brokerConnectedChange, this, [this, ret](bool is_connected){
 		emit ServerTreeModel::brokerConnectedChanged(ret->brokerId(), is_connected);
 	});

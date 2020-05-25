@@ -7,6 +7,7 @@
 #include <shv/iotqt/rpc/clientconnection.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/rpc/deviceappclioptions.h>
+#include <shv/iotqt/rpc/rpcresponsecallback.h>
 #include <shv/iotqt/node/shvnode.h>
 #include <shv/core/utils/shvpath.h>
 #include <shv/visu/errorlogmodel.h>
@@ -105,8 +106,17 @@ void ShvBrokerNodeItem::setSubscriptionList(const QVariantList &subs)
 
 void ShvBrokerNodeItem::addSubscription(const std::string &shv_path, const std::string &method)
 {
-	callSubscribe(shv_path, method);
-	emit subscriptionAdded(shv_path, method);
+	int rqid = callSubscribe(shv_path, method);
+
+	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
+	cb->start(5000, this, [this, shv_path, method](const cp::RpcResponse &resp) {
+		if(resp.isError() || (resp.result() == false)){
+			emit subscriptionAddError(shv_path, resp.error().message());
+		}
+		else{
+			emit subscriptionAdded(shv_path, method);
+		}
+	});
 }
 
 void ShvBrokerNodeItem::enableSubscription(const std::string &shv_path, const std::string &method, bool is_enabled)
@@ -270,7 +280,6 @@ ShvNodeItem* ShvBrokerNodeItem::findNode(const std::string &path_, std::string *
 
 int ShvBrokerNodeItem::callSubscribe(const std::string &shv_path, std::string method)
 {
-	shvInfo() << "Create subscription:" << nodeId() << "creating subscription" << shv_path << ":" << method;
 	shv::iotqt::rpc::ClientConnection *cc = clientConnection();
 	int rqid = cc->callMethodSubscribe(shv_path, method);
 	return rqid;
@@ -278,7 +287,6 @@ int ShvBrokerNodeItem::callSubscribe(const std::string &shv_path, std::string me
 
 int ShvBrokerNodeItem::callUnsubscribe(const std::string &shv_path, std::string method)
 {
-	shvInfo() << "Remove subscription:" << nodeId() << " subscription" << shv_path << ":" << method;
 	shv::iotqt::rpc::ClientConnection *cc = clientConnection();
 	int rqid = cc->callMethodUnsubscribe(shv_path, method);
 	return rqid;

@@ -49,6 +49,8 @@ public:
 	int brokerId() const { return m_brokerId; }
 
 	Q_SIGNAL void subscriptionAdded(const std::string &path, const std::string &method);
+	Q_SIGNAL void subscriptionAddError(const std::string &shv_path, const std::string &error_msg);
+
 	Q_SIGNAL void brokerConnectedChange(bool is_connected);
 
 private:

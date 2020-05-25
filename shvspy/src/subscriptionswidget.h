@@ -25,6 +25,7 @@ public:
 	SubscriptionsModel &subscriptionsModel();
 	void onBrokerConnectedChanged(int broker_id, bool is_connected);
 	void onSubscriptionAdded(int broker_id, const std::string &shv_path, const std::string &method);
+	void onSubscriptionAddError(int broker_id, const std::string &shv_path, const std::string &error_msg);
 private:
 	Ui::SubscriptionsWidget *ui;
 	SubscriptionsModel m_subscriptionsModel;

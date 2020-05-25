@@ -70,6 +70,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	connect(ui->treeServers->selectionModel(), &QItemSelectionModel::currentChanged, this, &MainWindow::onShvTreeViewCurrentSelectionChanged);
 	connect(tree_model, &ServerTreeModel::brokerConnectedChanged, ui->subscriptionsWidget, &SubscriptionsWidget::onBrokerConnectedChanged);
 	connect(tree_model, &ServerTreeModel::subscriptionAdded, ui->subscriptionsWidget, &SubscriptionsWidget::onSubscriptionAdded);
+	connect(tree_model, &ServerTreeModel::subscriptionAddError, ui->subscriptionsWidget, &SubscriptionsWidget::onSubscriptionAddError);
 
 	AttributesModel *attr_model = TheApp::instance()->attributesModel();
 	ui->tblAttributes->setModel(attr_model);

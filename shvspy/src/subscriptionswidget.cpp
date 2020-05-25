@@ -7,6 +7,8 @@
 
 #include <shv/coreqt/log.h>
 
+#include <QMessageBox>
+
 namespace cp = shv::chainpack;
 
 SubscriptionsWidget::SubscriptionsWidget(QWidget *parent) :
@@ -47,4 +49,11 @@ void SubscriptionsWidget::onSubscriptionAdded(int broker_id, const std::string &
 
 	m_subscriptionsModel.addSubscription(sub);
 	ui->tvSubscriptions->resizeColumnsToContents();
+}
+
+void SubscriptionsWidget::onSubscriptionAddError(int broker_id, const std::string &shv_path, const std::string &error_msg)
+{
+	Q_UNUSED(broker_id);
+	QString msg = tr("Error:") + " " + QString::fromStdString(error_msg) + " " + QString::number(broker_id) + " " + tr("shv path:") + " " + QString::fromStdString(shv_path);
+	QMessageBox::warning(this, tr("Failed to add subsription"), msg);
 }
