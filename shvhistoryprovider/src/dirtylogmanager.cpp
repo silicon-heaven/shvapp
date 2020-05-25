@@ -160,7 +160,7 @@ void DirtyLogManager::checkDirtyLog(const QString &shv_path, bool is_connected)
 		QStringList log_files = log_dir.findFiles(QDateTime(), QDateTime());
 		if (log_files.count()) {
 			ShvLogHeader latest_header = ShvLogFileReader(log_files.last().toStdString()).logHeader();
-			since = rpcvalue_cast<QDateTime>(latest_header.since());
+			since = rpcvalue_cast<QDateTime>(latest_header.until());
 		}
 		ShvJournalFileWriter dirty_writer(log_dir.dirtyLogPath().toStdString());
 		dirty_writer.append(ShvJournalEntry{
