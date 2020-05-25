@@ -180,6 +180,7 @@ bool DeviceLogRequest::tryAppendToPreviousFile(ShvMemoryJournal &log, const QDat
 					ShvGetLogParams joined_params;
 					joined_params.recordCountLimit = Application::CHUNK_RECORD_COUNT;
 					joined_params.withSnapshot = true;
+					joined_params.withTypeInfo = true;
 					ShvMemoryJournal joined_log(joined_params);
 					joined_log.loadLog(orig_log);
 

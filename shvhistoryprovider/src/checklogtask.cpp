@@ -128,6 +128,7 @@ CacheState CheckLogTask::checkLogCache(const QString &shv_path)
 		std::string entry_path;
 		QDateTime entry_ts;
 		if (dirty_log.next()) {
+			++state.recordCount;
 			entry_path = dirty_log.entry().path;
 			entry_ts = QDateTime::fromMSecsSinceEpoch(dirty_log.entry().epochMsec, Qt::UTC);
 		}
@@ -152,6 +153,7 @@ CacheState CheckLogTask::checkLogCache(const QString &shv_path)
 		++state.fileCount;
 		while (dirty_log.next()) {
 			state.until = QDateTime::fromMSecsSinceEpoch(dirty_log.entry().epochMsec, Qt::UTC);
+			++state.recordCount;
 		}
 	}
 	if (short_files.count()) {
@@ -200,6 +202,22 @@ void CheckLogTask::checkOldDataConsistency()
 		ShvJournalFileReader dirty_log(m_logDir.dirtyLogPath().toStdString());
 		if (dirty_log.next()) {
 			requested_until = QDateTime::fromMSecsSinceEpoch(dirty_log.entry().epochMsec, Qt::TimeSpec::UTC);
+			if (dirty_log.next()) {
+				ShvJournalEntry second_entry = dirty_log.entry();
+				if (second_entry.path == ShvJournalEntry::PATH_DATA_MISSING && second_entry.value.toString() == ShvJournalEntry::DATA_MISSING_UNAVAILABLE) {
+					int64_t data_missing_begin = second_entry.epochMsec;
+					if (dirty_log.next()) {
+						ShvJournalEntry third_entry = dirty_log.entry();
+						if (third_entry.path == ShvJournalEntry::PATH_DATA_MISSING && third_entry.value.toString().empty()) {
+							int64_t data_missing_end = third_entry.epochMsec;
+							if (data_missing_end - data_missing_begin > 5) {
+								requested_until = QDateTime::currentDateTimeUtc();
+								m_checkType = CheckType::ReplaceDirtyLog;
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 
