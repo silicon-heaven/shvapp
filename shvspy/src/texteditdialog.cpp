@@ -26,6 +26,12 @@ TextEditDialog::TextEditDialog(QWidget *parent)
 	restoreGeometry(settings.value(QStringLiteral("ui/ResultView/geometry")).toByteArray());
 
 	ui->plainTextEdit->setFocus();
+	ui->searchWidget->hide();
+	ui->plainTextEdit->installEventFilter(this);
+	ui->searchEdit->installEventFilter(this);
+	connect(ui->closeToolButton, &QToolButton::clicked, ui->searchWidget, &QWidget::hide);
+	connect(ui->nextToolButton, &QToolButton::clicked, this, &TextEditDialog::search);
+	connect(ui->prevToolButton, &QToolButton::clicked, this, &TextEditDialog::searchBack);
 }
 
 TextEditDialog::~TextEditDialog()
@@ -49,6 +55,55 @@ void TextEditDialog::setReadOnly(bool ro)
 {
 	ui->plainTextEdit->setReadOnly(ro);
 	ui->btSave->setVisible(!ro);
+}
+
+bool TextEditDialog::eventFilter(QObject *o, QEvent *e)
+{
+	if (e->type() == QEvent::KeyPress) {
+		QKeyEvent *ke = (QKeyEvent *)e;
+		if (o == ui->plainTextEdit) {
+			if (ke->key() == Qt::Key_F && ke->modifiers() == Qt::CTRL) {
+				ui->searchWidget->show();
+				ui->searchEdit->setFocus();
+				return true;
+			}
+		}
+		else if (o == ui->searchEdit) {
+			if ((ke->key() == Qt::Key_Enter || ke->key() == Qt::Key_Return) && ke->modifiers() == Qt::NoModifier) {
+				if (ui->searchEdit->isModified()) {
+					ui->plainTextEdit->moveCursor(QTextCursor::MoveOperation::Start);
+					ui->searchEdit->setModified(false);
+				}
+				search();
+				return true;
+			}
+			else if (ke->key() == Qt::Key_Escape && ke->modifiers() == Qt::NoModifier) {
+				ui->searchWidget->hide();
+				return true;
+			}
+			else if (ke->key() == Qt::Key_F3) {
+				if (ke->modifiers() == Qt::NoModifier) {
+					search();
+					return true;
+				}
+				else if (ke->modifiers() == Qt::SHIFT) {
+					searchBack();
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
+void TextEditDialog::search()
+{
+	ui->plainTextEdit->find(ui->searchEdit->text());
+}
+
+void TextEditDialog::searchBack()
+{
+	ui->plainTextEdit->find(ui->searchEdit->text(), QTextDocument::FindFlag::FindBackward);
 }
 
 //=========================================================
