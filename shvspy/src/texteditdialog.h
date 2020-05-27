@@ -22,6 +22,10 @@ public:
 
 	void setReadOnly(bool ro);
 protected:
+	bool eventFilter(QObject *o, QEvent *e) override;
+	void search();
+	void searchBack();
+
 	Ui::TextEditDialog *ui;
 };
 
