@@ -29,6 +29,7 @@ TextEditDialog::TextEditDialog(QWidget *parent)
 	ui->searchWidget->hide();
 	ui->plainTextEdit->installEventFilter(this);
 	ui->searchEdit->installEventFilter(this);
+	installEventFilter(this);
 	connect(ui->closeToolButton, &QToolButton::clicked, ui->searchWidget, &QWidget::hide);
 	connect(ui->nextToolButton, &QToolButton::clicked, this, &TextEditDialog::search);
 	connect(ui->prevToolButton, &QToolButton::clicked, this, &TextEditDialog::searchBack);
@@ -61,8 +62,9 @@ bool TextEditDialog::eventFilter(QObject *o, QEvent *e)
 {
 	if (e->type() == QEvent::KeyPress) {
 		QKeyEvent *ke = (QKeyEvent *)e;
-		if (o == ui->plainTextEdit) {
-			if (ke->key() == Qt::Key_F && ke->modifiers() == Qt::CTRL) {
+		if (o == ui->plainTextEdit || o == this) {
+			if ((ke->key() == Qt::Key_F && ke->modifiers() == Qt::CTRL) ||
+				(ke->key() == Qt::Key_Slash && ke->modifiers() == Qt::NoModifier && ui->plainTextEdit->isReadOnly())) {
 				ui->searchWidget->show();
 				ui->searchEdit->setFocus();
 				return true;
@@ -93,7 +95,7 @@ bool TextEditDialog::eventFilter(QObject *o, QEvent *e)
 			}
 		}
 	}
-	return false;
+	return Super::eventFilter(o, e);
 }
 
 void TextEditDialog::search()
