@@ -8,6 +8,10 @@
 
 class DeviceLogRequest;
 
+enum class CacheStatus { OK, Warning, Error };
+
+const char *cacheStatusToString(CacheStatus st);
+
 class CacheError
 {
 	Q_GADGET
@@ -25,11 +29,20 @@ public:
 
 	Q_ENUM(Type)
 
+	CacheStatus status;
 	Type type;
-	QString fileName;
 	QString description;
 
 	static const char *typeToString(Type t);
+};
+
+class CacheFileState
+{
+public:
+	QString fileName;
+	CacheStatus status;
+	int recordCount = 0;
+	QVector<CacheError> errors;
 };
 
 class CacheState
@@ -39,7 +52,7 @@ public:
 	QDateTime until;
 	int recordCount = 0;
 	int fileCount = 0;
-	QVector<CacheError> errors;
+	QVector<CacheFileState> files;
 };
 
 class CheckLogTask : public QObject
@@ -59,7 +72,7 @@ public:
 	void exec();
 	Q_SIGNAL void finished(bool);
 	CheckType checkType() const { return m_checkType; }
-	static CacheState checkLogCache(const QString &shv_path);
+	static CacheState checkLogCache(const QString &shv_path, bool with_good_files);
 
 private:
 	void checkOldDataConsistency();

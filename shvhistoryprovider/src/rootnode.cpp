@@ -52,7 +52,8 @@ static std::vector<cp::MetaMethod> leaf_meta_methods {
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE },
 	{ cp::Rpc::METH_GET_LOG, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ },
 	{ METH_SANITIZE_LOG_CACHE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_SERVICE },
-	{ METH_CHECK_LOG_CACHE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_SERVICE },
+	{ METH_CHECK_LOG_CACHE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_SERVICE,
+				"Checks state of file cache. Use param {\"withGoodFiles\": true} or 1 to see complete output" },
 };
 
 static std::vector<cp::MetaMethod> dirty_log_meta_methods {
@@ -201,17 +202,39 @@ shv::chainpack::RpcValue RootNode::callMethod(const shv::iotqt::node::ShvNode::S
 		return Application::instance()->logSanitizer()->sanitizeLogCache(QString::fromStdString(shv_path.join('/')), CheckLogTask::CheckType::CheckDirtyLogState);
 	}
 	else if (method == METH_CHECK_LOG_CACHE) {
-		CacheState info = CheckLogTask::checkLogCache(QString::fromStdString(shv_path.join('/')));
-		cp::RpcValue::Map res;
-		cp::RpcValue::List res_errs;
-		for (const auto &err : info.errors) {
-			cp::RpcValue::Map res_err;
-			res_err["type"] = CacheError::typeToString(err.type);
-			res_err["fileName"] = err.fileName.toStdString();
-			res_err["description"] = err.description.toStdString();
-			res_errs.push_back(res_err);
+		bool with_good_files = false;
+		if (params.isValid()) {
+			if (params.isInt()) {
+				if (params.toInt() == 1) {
+					with_good_files = true;
+				}
+			}
+			else if (params.isMap()) {
+				with_good_files = params.toMap().value("withGoodFiles").toBool();
+			}
 		}
-		res["errors"] = res_errs;
+		CacheState info = CheckLogTask::checkLogCache(QString::fromStdString(shv_path.join('/')), with_good_files);
+		cp::RpcValue::Map res;
+		cp::RpcValue::List res_files;
+		for (const auto &file : info.files) {
+			cp::RpcValue::Map res_file;
+			res_file["fileName"] = file.fileName.toStdString();
+			res_file["status"] = cacheStatusToString(file.status);
+			res_file["recordCount"] = file.recordCount;
+			if (file.errors.count()) {
+				cp::RpcValue::List res_errs;
+				for (const auto &err : file.errors) {
+					cp::RpcValue::Map res_err;
+					res_err["status"] = cacheStatusToString(err.status);
+					res_err["type"] = CacheError::typeToString(err.type);
+					res_err["description"] = err.description.toStdString();
+					res_errs.push_back(res_err);
+				}
+				res_file["errors"] = res_errs;
+			}
+			res_files.push_back(res_file);
+		}
+		res["files"] = res_files;
 		res["recordCount"] = info.recordCount;
 		res["fileCount"] = info.fileCount;
 		res["since"] = cp::RpcValue::fromValue(info.since);
