@@ -86,6 +86,25 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 		bool is_finished;
 		ShvGetLogParams params = logParams();
 		QDateTime until = m_until;
+		if (m_since.isValid() && m_until.isValid() && log.entries().size() == 0) {
+			log.append(ShvJournalEntry{
+						   ShvJournalEntry::PATH_DATA_MISSING,
+						   ShvJournalEntry::DATA_MISSING_NOT_EXISTS,
+						   ShvJournalEntry::DOMAIN_SHV_SYSTEM,
+						   ShvJournalEntry::NO_SHORT_TIME,
+						   ShvJournalEntry::SampleType::Continuous,
+						   m_since.toMSecsSinceEpoch()
+					   });
+			log.append(ShvJournalEntry{
+						   ShvJournalEntry::PATH_DATA_MISSING,
+						   "",
+						   ShvJournalEntry::DOMAIN_SHV_SYSTEM,
+						   ShvJournalEntry::NO_SHORT_TIME,
+						   ShvJournalEntry::SampleType::Continuous,
+						   m_until.toMSecsSinceEpoch()
+					   });
+		}
+
 		if (log.size()) {
 			first_record_time = QDateTime::fromMSecsSinceEpoch(log.entries()[0].epochMsec, Qt::TimeSpec::UTC);
 			last_record_time = QDateTime::fromMSecsSinceEpoch(log.entries()[log.size() - 1].epochMsec, Qt::TimeSpec::UTC);
@@ -112,7 +131,6 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 		shvInfo() << "received log for" << m_shvPath << "with" << log.size() << "records"
 				  << "since" << first_record_time
 				  << "until" << last_record_time;
-
 		if (!m_since.isValid() || !tryAppendToPreviousFile(log, until)) {
 			if (!m_since.isValid() && log.size() == 0) {
 				fixFirstLogFile();
@@ -159,7 +177,7 @@ ShvGetLogParams DeviceLogRequest::logParams() const
 
 bool DeviceLogRequest::tryAppendToPreviousFile(ShvMemoryJournal &log, const QDateTime &until)
 {
-	if ((int)log.size() < Application::CHUNK_RECORD_COUNT) {  //check append to previous file to avoid fragmentation
+	if ((int)log.size() < Application::CHUNK_RECORD_COUNT + 1000) {  //check append to previous file to avoid fragmentation
 		LogDir log_dir(m_shvPath);
 		QStringList all_files = log_dir.findFiles(m_since.addMSecs(-1), m_since);
 		if (all_files.count() == 1) {
