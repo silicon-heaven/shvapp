@@ -101,7 +101,7 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 						   ShvJournalEntry::DOMAIN_SHV_SYSTEM,
 						   ShvJournalEntry::NO_SHORT_TIME,
 						   ShvJournalEntry::SampleType::Continuous,
-						   m_until.toMSecsSinceEpoch()
+						   m_until.toMSecsSinceEpoch() - 1
 					   });
 		}
 
@@ -177,7 +177,7 @@ ShvGetLogParams DeviceLogRequest::logParams() const
 
 bool DeviceLogRequest::tryAppendToPreviousFile(ShvMemoryJournal &log, const QDateTime &until)
 {
-	if ((int)log.size() < Application::CHUNK_RECORD_COUNT + 1000) {  //check append to previous file to avoid fragmentation
+	if ((int)log.size() < Application::CHUNK_RECORD_COUNT) {  //check append to previous file to avoid fragmentation
 		LogDir log_dir(m_shvPath);
 		QStringList all_files = log_dir.findFiles(m_since.addMSecs(-1), m_since);
 		if (all_files.count() == 1) {
@@ -197,9 +197,9 @@ bool DeviceLogRequest::tryAppendToPreviousFile(ShvMemoryJournal &log, const QDat
 					SHV_QT_EXCEPTION("Missing until in file " + all_files[0]);
 				}
 				int64_t orig_until = orig_until_cp.toDateTime().msecsSinceEpoch();
-				if (orig_until == m_since.toMSecsSinceEpoch() && orig_record_count + (int)log.size() <= Application::CHUNK_RECORD_COUNT) {
+				if (orig_until == m_since.toMSecsSinceEpoch() && orig_record_count + (int)log.size() <= Application::CHUNK_RECORD_COUNT + 1000) {
 					ShvGetLogParams joined_params;
-					joined_params.recordCountLimit = Application::CHUNK_RECORD_COUNT;
+					joined_params.recordCountLimit = Application::CHUNK_RECORD_COUNT + 1000;
 					joined_params.withSnapshot = true;
 					joined_params.withTypeInfo = true;
 					ShvMemoryJournal joined_log(joined_params);
