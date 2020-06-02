@@ -187,6 +187,7 @@ bool DeviceLogRequest::tryAppendToPreviousFile(ShvMemoryJournal &log, const QDat
 				cp::ChainPackReader log_reader(in_file);
 				std::string error;
 				cp::RpcValue orig_log = log_reader.read(&error);
+				cp::RpcValue hp_metadata = orig_log.metaValue("HP");
 				if (!error.empty() || !orig_log.isList()) {
 					SHV_QT_EXCEPTION("Cannot parse file " + all_files[0]);
 				}
@@ -216,6 +217,9 @@ bool DeviceLogRequest::tryAppendToPreviousFile(ShvMemoryJournal &log, const QDat
 					}
 					cp::RpcValue result = joined_log.getLog(joined_params);
 					result.setMetaValue("until", cp::RpcValue::fromValue(until));
+					if (hp_metadata.isMap()) {
+						result.setMetaValue("HP", hp_metadata);
+					}
 					temp_file.write(QByteArray::fromStdString(result.toChainPack()));
 					temp_file.close();
 
