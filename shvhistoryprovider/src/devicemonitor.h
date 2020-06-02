@@ -4,6 +4,7 @@
 #include <shv/chainpack/rpcvalue.h>
 
 #include <QObject>
+#include <QTimer>
 #include <functional>
 
 class SiteItem;
@@ -45,6 +46,7 @@ private:
 
 	SiteItem *m_sites;
 	bool m_downloadingSites;
+	QTimer m_downloadSitesTimer;
 };
 
 #endif // DEVICEMONITOR_H
