@@ -45,7 +45,6 @@ private:
 	QStringList m_onlineDevices;
 
 	SiteItem *m_sites;
-	bool m_downloadingSites;
 	QTimer m_downloadSitesTimer;
 };
 
