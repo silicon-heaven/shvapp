@@ -122,9 +122,9 @@ CacheState CheckLogTask::checkLogCache(const QString &shv_path, bool with_good_f
 
 		}
 		requested_since = file_until;
-		if (i + 1 < dir_entries.count() && header.recordCount() < Application::CHUNK_RECORD_COUNT - 500) {
+		if (i + 1 < dir_entries.count() && header.recordCount() < Application::CHUNK_RECORD_COUNT - 2000) {
 			file_state.errors << CacheError {
-						Application::CHUNK_RECORD_COUNT - header.recordCount() > 2000 ? CacheStatus::Error : CacheStatus::Warning,
+						Application::CHUNK_RECORD_COUNT - header.recordCount() > 4000 ? CacheStatus::Error : CacheStatus::Warning,
 						CacheError::Type::Fragmentation,
 						"file has less than " + QString::number(Application::CHUNK_RECORD_COUNT) + " records" };
 		}

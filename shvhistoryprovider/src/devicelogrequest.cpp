@@ -86,6 +86,25 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 		bool is_finished;
 		ShvGetLogParams params = logParams();
 		QDateTime until = m_until;
+		if (m_since.isValid() && m_until.isValid() && log.entries().size() == 0) {
+			log.append(ShvJournalEntry{
+						   ShvJournalEntry::PATH_DATA_MISSING,
+						   ShvJournalEntry::DATA_MISSING_NOT_EXISTS,
+						   ShvJournalEntry::DOMAIN_SHV_SYSTEM,
+						   ShvJournalEntry::NO_SHORT_TIME,
+						   ShvJournalEntry::SampleType::Continuous,
+						   m_since.toMSecsSinceEpoch()
+					   });
+			log.append(ShvJournalEntry{
+						   ShvJournalEntry::PATH_DATA_MISSING,
+						   "",
+						   ShvJournalEntry::DOMAIN_SHV_SYSTEM,
+						   ShvJournalEntry::NO_SHORT_TIME,
+						   ShvJournalEntry::SampleType::Continuous,
+						   m_until.toMSecsSinceEpoch() - 1
+					   });
+		}
+
 		if (log.size()) {
 			first_record_time = QDateTime::fromMSecsSinceEpoch(log.entries()[0].epochMsec, Qt::TimeSpec::UTC);
 			last_record_time = QDateTime::fromMSecsSinceEpoch(log.entries()[log.size() - 1].epochMsec, Qt::TimeSpec::UTC);
@@ -112,7 +131,6 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 		shvInfo() << "received log for" << m_shvPath << "with" << log.size() << "records"
 				  << "since" << first_record_time
 				  << "until" << last_record_time;
-
 		if (!m_since.isValid() || !tryAppendToPreviousFile(log, until)) {
 			if (!m_since.isValid() && log.size() == 0) {
 				fixFirstLogFile();
@@ -169,6 +187,7 @@ bool DeviceLogRequest::tryAppendToPreviousFile(ShvMemoryJournal &log, const QDat
 				cp::ChainPackReader log_reader(in_file);
 				std::string error;
 				cp::RpcValue orig_log = log_reader.read(&error);
+				cp::RpcValue hp_metadata = orig_log.metaValue("HP");
 				if (!error.empty() || !orig_log.isList()) {
 					SHV_QT_EXCEPTION("Cannot parse file " + all_files[0]);
 				}
@@ -178,9 +197,9 @@ bool DeviceLogRequest::tryAppendToPreviousFile(ShvMemoryJournal &log, const QDat
 					SHV_QT_EXCEPTION("Missing until in file " + all_files[0]);
 				}
 				int64_t orig_until = orig_until_cp.toDateTime().msecsSinceEpoch();
-				if (orig_until == m_since.toMSecsSinceEpoch() && orig_record_count + (int)log.size() <= Application::CHUNK_RECORD_COUNT) {
+				if (orig_until == m_since.toMSecsSinceEpoch() && orig_record_count + (int)log.size() <= Application::CHUNK_RECORD_COUNT + 1000) {
 					ShvGetLogParams joined_params;
-					joined_params.recordCountLimit = Application::CHUNK_RECORD_COUNT;
+					joined_params.recordCountLimit = Application::CHUNK_RECORD_COUNT + 1000;
 					joined_params.withSnapshot = true;
 					joined_params.withTypeInfo = true;
 					ShvMemoryJournal joined_log(joined_params);
@@ -198,6 +217,9 @@ bool DeviceLogRequest::tryAppendToPreviousFile(ShvMemoryJournal &log, const QDat
 					}
 					cp::RpcValue result = joined_log.getLog(joined_params);
 					result.setMetaValue("until", cp::RpcValue::fromValue(until));
+					if (hp_metadata.isMap()) {
+						result.setMetaValue("HP", hp_metadata);
+					}
 					temp_file.write(QByteArray::fromStdString(result.toChainPack()));
 					temp_file.close();
 

@@ -18,9 +18,11 @@ DeviceMonitor::DeviceMonitor(QObject *parent)
 	, m_mntSubscription(nullptr)
 	, m_sitesSubscription(nullptr)
 	, m_sites(nullptr)
-	, m_downloadingSites(false)
+	, m_downloadSitesTimer(this)
 {
 	connect(Application::instance()->deviceConnection(), &shv::iotqt::rpc::DeviceConnection::stateChanged, this, &DeviceMonitor::onShvStateChanged);
+	m_downloadSitesTimer.setSingleShot(true);
+	connect(&m_downloadSitesTimer, &QTimer::timeout, this, &DeviceMonitor::downloadSites);
 }
 
 DeviceMonitor::~DeviceMonitor()
@@ -81,10 +83,10 @@ void DeviceMonitor::onShvStateChanged()
 
 void DeviceMonitor::downloadSites()
 {
-	if (m_downloadingSites) {
+	if (m_downloadSitesTimer.isActive()) {
+		m_downloadSitesTimer.start(1);
 		return;
 	}
-	m_downloadingSites = true;
 
 	try {
 		Application *app = Application::instance();
@@ -94,12 +96,11 @@ void DeviceMonitor::downloadSites()
 		cb->start([this](const cp::RpcResponse &response) {
 			if (response.isError()) {
 				shvError() << response.error().message();
-				QTimer::singleShot(60 * 1000, this, &DeviceMonitor::downloadSites);
-				m_downloadingSites = false;
+				m_downloadSitesTimer.start(60 * 1000);
 				return;
 			}
 			shvInfo() << "sites loaded";
-			QTimer::singleShot(60 * 60 * 1000, this, &DeviceMonitor::downloadSites);
+			m_downloadSitesTimer.start(60 * 60 * 1000);
 			try {
 				SiteItem *new_sites = new SiteItem(this);
 				new_sites->parseRpcValue(response.result());
@@ -107,18 +108,16 @@ void DeviceMonitor::downloadSites()
 					delete m_sites;
 				}
 				m_sites = new_sites;
-				m_downloadingSites = false;
 				scanDevices();
 			}
 			catch (const shv::core::Exception &e) {
 				shvWarning() << "Error on parsing sites.json" << e.message();
-				m_downloadingSites = false;
 			}
 		});
 		conn->callShvMethod(rq_id, app->cliOptions()->sitesPath(), "getSites", cp::RpcValue());
 	}
 	catch (...) {
-		m_downloadingSites = false;
+		m_downloadSitesTimer.start(60 * 1000);
 		throw;
 	}
 }
