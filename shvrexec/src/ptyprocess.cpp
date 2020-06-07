@@ -86,7 +86,7 @@ void PtyProcess::ptyStart(const std::string &cmd, int pty_cols, int pty_rows)
 	m_ptyCols = pty_cols;
 	m_ptyRows = pty_rows;
 	openPty();
-	start(QString::fromStdString(cmd));
+	start(QString::fromStdString(cmd), QStringList());
 	//::close(m_sendSlavePtyFd[1]);
 }
 /*

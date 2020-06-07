@@ -285,7 +285,12 @@ void BfsViewApp::checkPowerSwitchStatusFile()
 			continue;
 
 		QString line = QString::fromUtf8(ba);
-		QStringList fields = line.split(' ', QString::SkipEmptyParts);
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+		auto skip_empty_parts = QString::SkipEmptyParts;
+#else
+		auto skip_empty_parts = Qt::SkipEmptyParts;
+#endif
+		QStringList fields = line.split(' ', skip_empty_parts);
 		shvDebug() << line;
 		QString name = fields.value(0);
 		bool ok;

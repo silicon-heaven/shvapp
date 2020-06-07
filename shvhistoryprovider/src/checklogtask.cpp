@@ -118,7 +118,7 @@ CacheState CheckLogTask::checkLogCache(const QString &shv_path, bool with_good_f
 							CacheStatus::Error,
 							CacheError::Type::SinceUntilOverlap,
 							"data between " + requested_since.toString(Qt::DateFormat::ISODateWithMs)
-							+ " and " + file_since.toString(Qt::DateFormat::ISODateWithMs + " overlaps") };
+							+ " and " + file_since.toString(Qt::DateFormat::ISODateWithMs) + " overlaps" };
 
 		}
 		requested_since = file_until;
@@ -338,4 +338,5 @@ const char *cacheStatusToString(CacheStatus st)
 	case CacheStatus::Error:
 		return "Error";
 	}
+	return "";
 }

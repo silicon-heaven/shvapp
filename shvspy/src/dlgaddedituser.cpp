@@ -222,7 +222,12 @@ std::string DlgAddEditUser::userShvPath()
 std::vector<std::string> DlgAddEditUser::roles()
 {
 	std::vector<std::string> roles;
-	QStringList lst = ui->leRoles->text().split(",", QString::SplitBehavior::SkipEmptyParts);
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+		auto skip_empty_parts = QString::SkipEmptyParts;
+#else
+		auto skip_empty_parts = Qt::SkipEmptyParts;
+#endif
+	QStringList lst = ui->leRoles->text().split(",", skip_empty_parts);
 
 	for (int i = 0; i < lst.count(); i++){
 		roles.push_back(lst.at(i).trimmed().toStdString());

@@ -115,7 +115,11 @@ void Telegram::callTgApiMethod(QString method, const QVariantMap &_params, Teleg
 		reply_handler();
 	}
 	else {
+#if QT_VERSION < QT_VERSION_CHECK(5, 15, 0)
 		connect(rpl, QOverload<QNetworkReply::NetworkError>::of(&QNetworkReply::error), [](QNetworkReply::NetworkError code) {
+#else
+		connect(rpl, &QNetworkReply::errorOccurred, [](QNetworkReply::NetworkError code) {
+#endif
 			logTelegramE() << "TG getUpdates network reply error:" << code;
 		});
 		connect(rpl, &QNetworkReply::finished, this, reply_handler);

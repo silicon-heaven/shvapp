@@ -500,7 +500,7 @@ void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq)
 	}
 	logRunCmd() << "CMD:" << cmd << "env:" << env.toStringList().join(',');
 	proc->setProcessEnvironment(env);
-	proc->start(QString::fromStdString(cmd));
+	proc->start(QString::fromStdString(cmd), QStringList());
 }
 
 void ShvAgentApp::onBrokerConnectedChanged(bool is_connected)

@@ -22,6 +22,8 @@ void GraphicsView::zoomToFit()
 void GraphicsView::zoom(double delta, const QPoint &mouse_pos)
 {
 	nLogFuncFrame() << "delta:" << delta << "center_pos:" << mouse_pos.x() << mouse_pos.y();
+	if(delta == 0)
+		return;
 	double factor = delta / 100;
 	factor = 1 + factor;
 	if(factor < 0)
@@ -50,13 +52,16 @@ void GraphicsView::paintEvent(QPaintEvent *event)
 
 void GraphicsView::wheelEvent(QWheelEvent *ev)
 {
-	if(ev->orientation() == Qt::Vertical) {
-		if(ev->modifiers() == Qt::ControlModifier) {
-			double delta = ev->angleDelta().y();
-			zoom(delta / 10, ev->pos());
-			ev->accept();
-			return;
-		}
+	if(ev->modifiers() == Qt::ControlModifier) {
+		double delta = ev->angleDelta().y();
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+	QPoint pos = ev->pos();
+#else
+	QPoint pos = ev->position().toPoint();
+#endif
+		zoom(delta / 10, pos);
+		ev->accept();
+		return;
 	}
 	Super::wheelEvent(ev);
 }
