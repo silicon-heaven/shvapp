@@ -10,6 +10,7 @@
 #include "dlgcallshvmethod.h"
 #include "dlguserseditor.h"
 #include "dlgroleseditor.h"
+#include "dlgmountseditor.h"
 #include "methodparametersdialog.h"
 #include "texteditdialog.h"
 
@@ -195,6 +196,7 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 	QAction *a_callShvMethod = new QAction(tr("Call shv method"), &m);
 	QAction *a_usersEditor = new QAction(tr("Users editor"), &m);
 	QAction *a_rolesEditor = new QAction(tr("Roles editor"), &m);
+	QAction *a_mountsEditor = new QAction(tr("Mounts editor"), &m);
 
 	//QAction *a_test = new QAction(tr("create test.txt"), &m);
 	if(!nd) {
@@ -218,6 +220,7 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 		if (nd->nodeId() == ".broker"){
 			m.addAction(a_usersEditor);
 			m.addAction(a_rolesEditor);
+			m.addAction(a_mountsEditor);
 		}
 	}
 	if(!m.actions().isEmpty()) {
@@ -260,6 +263,16 @@ void MainWindow::on_treeServers_customContextMenuRequested(const QPoint &pos)
 					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
 
 					DlgRolesEditor dlg(this, cc);
+					dlg.init(nd->shvPath() + "/etc/acl");
+					dlg.exec();
+				}
+			}
+			else if(a == a_mountsEditor) {
+				ShvNodeItem *nd = TheApp::instance()->serverTreeModel()->itemFromIndex(ui->treeServers->currentIndex());
+				if(nd) {
+					shv::iotqt::rpc::ClientConnection *cc = nd->serverNode()->clientConnection();
+
+					DlgMountsEditor dlg(this, cc);
 					dlg.init(nd->shvPath() + "/etc/acl");
 					dlg.exec();
 				}

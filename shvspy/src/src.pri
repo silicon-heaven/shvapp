@@ -1,5 +1,7 @@
 HEADERS += \
+    $$PWD/dlgaddeditmount.h \
     $$PWD/dlgaddeditrole.h \
+    $$PWD/dlgmountseditor.h \
     $$PWD/dlgroleseditor.h \
     $$PWD/accessmodel/accessmodel.h \
     $$PWD/dlgselectroles.h \
@@ -27,7 +29,9 @@ HEADERS += \
 
 
 SOURCES += \
+    $$PWD/dlgaddeditmount.cpp \
     $$PWD/dlgaddeditrole.cpp \
+    $$PWD/dlgmountseditor.cpp \
     $$PWD/dlgroleseditor.cpp \
     $$PWD/dlgselectroles.cpp \
     $$PWD/main.cpp\
@@ -54,7 +58,9 @@ SOURCES += \
     $$PWD/dlgaddedituser.cpp
 
 FORMS += \
+    $$PWD/dlgaddeditmount.ui \
     $$PWD/dlgaddeditrole.ui \
+    $$PWD/dlgmountseditor.ui \
     $$PWD/dlgroleseditor.ui \
     $$PWD/dlgselectroles.ui \
     $$PWD/mainwindow.ui \
