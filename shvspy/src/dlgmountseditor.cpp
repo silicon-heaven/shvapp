@@ -14,7 +14,7 @@ DlgMountsEditor::DlgMountsEditor(QWidget *parent, shv::iotqt::rpc::ClientConnect
 {
 	ui->setupUi(this);
 
-	SHV_ASSERT_EX(rpc_connection != nullptr, "Internal error");
+	SHV_ASSERT_EX(rpc_connection != nullptr, "RPC connection is NULL");
 
 	m_rpcConnection = rpc_connection;
 
