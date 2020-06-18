@@ -74,20 +74,20 @@ void DlgMountsEditor::onDeleteMountClicked()
 	std::string mount = selectedMount().toStdString();
 
 	if (mount.empty()){
-		setStatusText(tr("Select mount in the table above."));
+		setStatusText(tr("Select device id in the table above."));
 		return;
 	}
 
 	setStatusText(QString());
 
-	if (QMessageBox::question(this, tr("Delete mount"), tr("Do you really want to delete mount") + " " + QString::fromStdString(mount) + "?") == QMessageBox::Yes){
+	if (QMessageBox::question(this, tr("Delete mount"), tr("Do you really want to delete mount definition") + " " + QString::fromStdString(mount) + "?") == QMessageBox::Yes){
 		int rqid = m_rpcConnection->nextRequestId();
 		shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
 
 		cb->start(this, [this, mount](const shv::chainpack::RpcResponse &response) {
 			if(response.isValid()){
 				if(response.isError()) {
-					setStatusText(tr("Failed to delete mount.") + " " + QString::fromStdString(response.error().toString()));
+					setStatusText(tr("Failed to delete mount definition.") + " " + QString::fromStdString(response.error().toString()));
 				}
 				else{
 					listMounts();
@@ -109,7 +109,7 @@ void DlgMountsEditor::onEditMountClicked()
 	QString mount = selectedMount();
 
 	if (mount.isEmpty()){
-		setStatusText(tr("Select mount in the table above."));
+		setStatusText(tr("Select device id in the table above."));
 		return;
 	}
 
@@ -143,7 +143,7 @@ void DlgMountsEditor::listMounts()
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if(response.isValid()){
 			if(response.isError()) {
-				setStatusText(tr("Failed to load mounts.") + " " + QString::fromStdString(response.error().toString()));
+				setStatusText(tr("Failed to load mount definition.") + " " + QString::fromStdString(response.error().toString()));
 			}
 			else{
 				if (response.result().isList()){
@@ -166,34 +166,6 @@ void DlgMountsEditor::listMounts()
 
 	m_rpcConnection->callShvMethod(rqid, aclEtcMountsNodePath(), shv::chainpack::Rpc::METH_LS);
 }
-
-//void DlgMountsEditor::callDeleteAccessForMount(const std::string &mount)
-//{
-//	if (m_rpcConnection == nullptr)
-//		return;
-
-//	setStatusText(tr("Deleting access paths for mount:") + " " + QString::fromStdString(mount));
-
-//	int rqid = m_rpcConnection->nextRequestId();
-//	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
-
-//	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
-//		if (response.isValid()){
-//			if(response.isError()) {
-//				setStatusText(tr("Failed to delete access pahts.") + " " + QString::fromStdString(response.error().toString()));
-//			}
-//			else{
-//				setStatusText(QString());
-//			}
-//		}
-//		else{
-//			setStatusText(tr("Request timeout expired"));
-//		}
-//	});
-
-//	shv::chainpack::RpcValue::List params{shv::chainpack::RpcValue::String(mount), {}};
-//	m_rpcConnection->callShvMethod(rqid, aclEtcAccessNodePath(), SET_VALUE_METHOD, params);
-//}
 
 void DlgMountsEditor::setStatusText(const QString &txt)
 {

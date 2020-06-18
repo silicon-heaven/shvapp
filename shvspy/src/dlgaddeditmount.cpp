@@ -89,7 +89,7 @@ void DlgAddEditMount::callEditMount()
 	if (m_rpcConnection == nullptr)
 		return;
 
-	setStatusText(tr("Updating mount ..."));
+	setStatusText(tr("Updating mount definition..."));
 
 	int rqid = m_rpcConnection->nextRequestId();
 	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
@@ -97,7 +97,7 @@ void DlgAddEditMount::callEditMount()
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if (response.isValid()){
 			if(response.isError()) {
-				setStatusText(tr("Failed to edit mount.") + QString::fromStdString(response.error().toString()));
+				setStatusText(tr("Failed to edit mount definition.") + QString::fromStdString(response.error().toString()));
 			}
 		}
 		else{
