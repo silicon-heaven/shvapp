@@ -22,7 +22,7 @@ DlgUsersEditor::DlgUsersEditor(QWidget *parent, shv::iotqt::rpc::ClientConnectio
 {
 	ui->setupUi(this);
 
-	SHV_ASSERT_EX(rpc_connection != nullptr, "Internal error");
+	SHV_ASSERT_EX(rpc_connection != nullptr, "RPC connection is NULL");
 
 	static constexpr double ROW_HEIGHT_RATIO = 1.3;
 	static QStringList INFO_HEADER_NAMES {{ tr("User") }};
