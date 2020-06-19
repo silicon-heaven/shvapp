@@ -8,7 +8,7 @@ SUBDIRS += \
 
 }
 
-qtHaveModule(gui) {
+!no-gui:qtHaveModule(gui) {
 SUBDIRS += \
 	shvspy \
 }

@@ -1,7 +1,7 @@
 TEMPLATE = subdirs
 CONFIG += ordered
 
-qtHaveModule(gui) {
+!no-gui:qtHaveModule(gui) {
 SUBDIRS += \
     bfsview \
     jn50view \
