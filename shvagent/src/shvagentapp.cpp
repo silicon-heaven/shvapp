@@ -468,7 +468,7 @@ void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq)
 		shvInfo() << "RunCmd: Exec process error:" << error;
 		if(error == QProcess::FailedToStart) {
 			cp::RpcResponse resp = cp::RpcResponse::forRequest(rq2);
-			resp.setError(cp::RpcResponse::Error::createMethodCallExceptionError("Failed to start process"));
+			resp.setError(cp::RpcResponse::Error::createMethodCallExceptionError("Failed to start process (file not found, resource error)"));
 			m_rpcConnection->sendMessage(resp);
 		}
 	});

@@ -23,6 +23,7 @@ int main(int argc, char *argv[])
 	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);
 
 	NecroLog::registerTopic("Tester", "Tester");
+	NecroLog::registerTopic("RunCmd", "Run shell commands, scripts");
 
 	int ret = 0;
 
