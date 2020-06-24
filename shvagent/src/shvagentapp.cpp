@@ -62,12 +62,12 @@ static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_RUN_CMD, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_COMMAND,
 		"Parameter can be string or list\n"
 		"When list is provided: [\"command\", [\"arg1\", ... ], 1, 2, {\"ENV_VAR1\": \"value\", ...}]\n"
-		"\t list of same size is returned\n"
+		"\t list of values is returned\n"
 		"\t order and number of parameters list items is arbitrary, only the command part part is mandatory\n"
-		"\t - string interpretted as CMD, returned list has process ret val on same possition as this param\n"
-		"\t - list is interpretted as launched process argument list, returned list has NULL on same possition as this param\n"
-		"\t - int is interpretted as 1 == stdout, 2 == stderr, returned list has process stdin/stderr content on same possition as this param\n"
-		"\t - map is interpretted as launched process environment, returned list has NULL on same possition as this param\n"
+		"\t - string interpretted as CMD, process return value is appended to the retval list\n"
+		"\t - list is interpretted as launched process argument list\n"
+		"\t - int is interpretted as 1 == stdout, 2 == stderr, process stdin/stderr content  is appended to the retval list\n"
+		"\t - map is interpretted as launched process environment\n"
 	},
 	{cp::Rpc::METH_RUN_SCRIPT, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_COMMAND,
 		"Parameter can be string or list\n"
@@ -75,10 +75,10 @@ static std::vector<cp::MetaMethod> meta_methods {
 		"\t list of same size is returned\n"
 		"\t script-content is written to temporrary file before run, script-content SHA1 can be used instead of script-content if one wants to run same script again.\n"
 		"\t order and number of parameters list items is arbitrary, only the script-content part part is mandatory\n"
-		"\t - string is interpretted as script-content, returned list has process ret val on same possition as this param\n"
-		"\t - list is interpretted as launched process argument list, returned list has NULL on same possition as this param\n"
-		"\t - int is interpretted as 1 == stdout, 2 == stderr, returned list has process stdin/stderr content on same possition as this param\n"
-		"\t - map is interpretted as launched process environment, returned list has NULL on same possition as this param\n"
+		"\t - string is interpretted as script-content, process return value is appended to the retval list\n"
+		"\t - list is interpretted as launched process argument list\n"
+		"\t - int is interpretted as 1 == stdout, 2 == stderr, process stdin/stderr content  is appended to the retval list\n"
+		"\t - map is interpretted as launched process environment\n"
 	},
 	{cp::Rpc::METH_LAUNCH_REXEC, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_COMMAND},
 };
@@ -400,12 +400,6 @@ void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq, bool std_out_only
 				for(auto p : rq2.params().toList()) {
 					if(p.isString()) {
 						lst.push_back(exit_code);
-					}
-					else if(p.isMap()) {
-						lst.push_back(nullptr);
-					}
-					else if(p.isList()) {
-						lst.push_back(nullptr);
 					}
 					else if(p.isInt()) {
 						int i = p.toInt();
