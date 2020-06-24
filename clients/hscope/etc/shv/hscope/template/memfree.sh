@@ -7,9 +7,9 @@ USED_PERCENT=$(( $USED_VAL * 100 / $TOTAL_VAL ))
 
 if [[ -z $USED_PERCENT ]]; then
     VAL=ERR
-elif [[ $USED_PERCENT -ge ${ERROR_TRESHOLD:-90} ]]; then
+elif [[ $USED_PERCENT -ge ${ERROR_THRESHOLD:-90} ]]; then
     VAL=ERR
-elif [[ $USED_PERCENT -ge ${WARN_TRESHOLD:-75} ]]; then
+elif [[ $USED_PERCENT -ge ${WARN_THRESHOLD:-75} ]]; then
     VAL=WARN
 else
     VAL=OK
