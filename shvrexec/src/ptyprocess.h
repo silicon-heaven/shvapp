@@ -17,7 +17,7 @@ public:
 	PtyProcess(QObject *parent = nullptr);
 	~PtyProcess() Q_DECL_OVERRIDE;
 
-	void ptyStart(const std::string &cmd, int pty_cols, int pty_rows);
+	void ptyStart(const QString &cmd, const QStringList &args, int pty_cols, int pty_rows);
 
 	//void setTerminalWindowSize(int w, int h);
 

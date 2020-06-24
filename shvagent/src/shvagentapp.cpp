@@ -58,9 +58,28 @@ static std::vector<cp::MetaMethod> meta_methods {
 	//{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_BROWSE},
 	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
 	{cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
-	{cp::Rpc::METH_HELP, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_BROWSE},
-	{cp::Rpc::METH_RUN_CMD, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_COMMAND},
-	{cp::Rpc::METH_RUN_SCRIPT, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_COMMAND},
+	//{cp::Rpc::METH_HELP, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_BROWSE},
+	{cp::Rpc::METH_RUN_CMD, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_COMMAND,
+		"Parameter can be string or list\n"
+		"When list is provided: [\"command\", [\"arg1\", ... ], 1, 2, {\"ENV_VAR1\": \"value\", ...}]\n"
+		"\t list of same size is returned\n"
+		"\t order and number of parameters list items is arbitrary, only the command part part is mandatory\n"
+		"\t - string interpretted as CMD, returned list has process ret val on same possition as this param\n"
+		"\t - list is interpretted as launched process argument list, returned list has NULL on same possition as this param\n"
+		"\t - int is interpretted as 1 == stdout, 2 == stderr, returned list has process stdin/stderr content on same possition as this param\n"
+		"\t - map is interpretted as launched process environment, returned list has NULL on same possition as this param\n"
+	},
+	{cp::Rpc::METH_RUN_SCRIPT, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_COMMAND,
+		"Parameter can be string or list\n"
+		"When list is provided: [\"script-content\", [\"arg1\", ... ], 1, 2, {\"ENV_VAR1\": \"value\", ...}]\n"
+		"\t list of same size is returned\n"
+		"\t script-content is written to temporrary file before run, script-content SHA1 can be used instead of script-content if one wants to run same script again.\n"
+		"\t order and number of parameters list items is arbitrary, only the script-content part part is mandatory\n"
+		"\t - string is interpretted as script-content, returned list has process ret val on same possition as this param\n"
+		"\t - list is interpretted as launched process argument list, returned list has NULL on same possition as this param\n"
+		"\t - int is interpretted as 1 == stdout, 2 == stderr, returned list has process stdin/stderr content on same possition as this param\n"
+		"\t - map is interpretted as launched process environment, returned list has NULL on same possition as this param\n"
+	},
 	{cp::Rpc::METH_LAUNCH_REXEC, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_COMMAND},
 };
 
@@ -87,6 +106,7 @@ shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path,
 		if(method == cp::Rpc::METH_APP_NAME) {
 			return QCoreApplication::instance()->applicationName().toStdString();
 		}
+		/*
 		if(method == cp::Rpc::METH_HELP) {
 			std::string meth = params.toString();
 			if(meth == cp::Rpc::METH_RUN_CMD) {
@@ -105,6 +125,7 @@ shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path,
 				return "No help for method: " + meth;
 			}
 		}
+		*/
 	}
 	return Super::callMethod(shv_path, method, params);
 }
@@ -129,11 +150,11 @@ shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::Rp
 		}
 		if(rq.method() == cp::Rpc::METH_RUN_SCRIPT) {
 			QByteArray script;
+			cp::RpcValue::List args;
 			if(rq.params().isList()) {
 				for(auto p : rq.params().toList()) {
-					if(p.isString()) {
+					if(p.isString())
 						script = QByteArray::fromStdString(p.toString());
-					}
 				}
 			}
 			else {
@@ -164,19 +185,20 @@ shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::Rp
 			}
 
 			ShvAgentApp *app = ShvAgentApp::instance();
-			shv::chainpack::RpcRequest rq2 = rq;
+			shv::chainpack::RpcRequest rq2 = rq.clone();
+			std::string cmd = "bash";
 			std::string fn = (script_dir + sha1).toStdString();
-			std::string cmd = "bash " + fn;
+			args.insert(args.begin(), fn);
+			//std::string cmd = "bash " + fn;
+			cp::RpcValue::List new_params;
+			new_params.push_back(cmd);
+			new_params.push_back(args);
 			if(rq.params().isList()) {
-				cp::RpcValue::List new_params;
 				for(auto p : rq.params().toList()) {
-					if(p.isString()) {
-						new_params.push_back(cmd);
-					}
-					else if(p.isMap()) {
+					if(p.isMap()) {
 						new_params.push_back(p);
 					}
-					else {
+					else if(p.isInt()) {
 						int i = p.toInt();
 						if(i == STDOUT_FILENO) {
 							new_params.push_back(i);
@@ -185,19 +207,16 @@ shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::Rp
 							new_params.push_back(i);
 						}
 						else {
-							SHV_EXCEPTION("Invalid request parameter: " + p.toCpon());
+							SHV_EXCEPTION("Invalid request output stream parameter: " + p.toCpon());
 						}
 					}
 				}
-				rq2.setParams(new_params);
 			}
-			else {
-				rq2.setParams(cmd);
-			}
+			rq2.setParams(new_params);
 			//QFileDevice::Permissions perms = QFile::permissions(file.fileName());
 			//perms |= QFileDevice::QFileDevice::ExeOwner;
 			//QFile::setPermissions(file.fileName(), perms);
-			app->runCmd(rq2);
+			app->runCmd(rq2, rq.params().isString());
 			return cp::RpcValue();
 		}
 		if(rq.method() == cp::Rpc::METH_LAUNCH_REXEC) {
@@ -362,83 +381,33 @@ void ShvAgentApp::launchRexec(const shv::chainpack::RpcRequest &rq)
 			shvError() << "Invalid response to FindTunnelRequest:" << resp.toPrettyString();
 		}
 	});
-#if 0
-	using ConnectionParams = si::rpc::ConnectionParams;
-	using ConnectionParamsMT = si::rpc::ConnectionParams::MetaType;
-	ConnectionParams conn_params;
-	conn_params[ConnectionParamsMT::Key::Host] = m_rpcConnection->host();
-	conn_params[ConnectionParamsMT::Key::Port] = m_rpcConnection->port();
-	conn_params[ConnectionParamsMT::Key::User] = m_rpcConnection->user();
-	conn_params[ConnectionParamsMT::Key::Password] = m_rpcConnection->password();
-	cp::RpcValue::Map on_connected = rq.params().toMap();
-	if(!on_connected.empty()) {
-		on_connected[cp::Rpc::JSONRPC_REQUEST_ID] = rq.requestId();
-		on_connected[cp::Rpc::JSONRPC_CALLER_ID] = rq.callerIds();
-		conn_params[ConnectionParamsMT::Key::OnConnectedCall] = on_connected;
-	}
-
-	SessionProcess *proc = new SessionProcess(this);
-	QString app = QCoreApplication::applicationDirPath() + "/shvrexec";
-	QStringList params;
-	params << "--mtid" << "-v" << "rpcrawmsg";
-	shvInfo() << "starting child process:" << app << params.join(' ');
-	proc->start(app, params);
-	std::string cpon = conn_params.toRpcValue().toCpon();
-	//shvInfo() << "cpon:" << cpon;
-	proc->write(cpon.data(), cpon.size());
-	proc->write("\n", 1);
-
-	//proc->setCurrentReadChannel(QProcess::StandardOutput);
-	cp::RpcResponse resp1 = cp::RpcResponse::forRequest(rq);
-	connect(proc, &SessionProcess::readyReadStandardOutput, [this, proc, resp1]() {
-		if(!proc->canReadLine()) {
-			return;
-		}
-		cp::RpcResponse resp = resp1;
-		try {
-			QByteArray ba = proc->readLine();
-			std::string data(ba.constData(), ba.size());
-			cp::RpcValue::Map m = cp::RpcValue::fromCpon(data).toMap();
-			unsigned rexec_client_id = m.value(cp::Rpc::KEY_CLIENT_ID).toUInt();
-			std::string rexec_client_broker_path = si::rpc::ClientConnection::brokerClientPath(rexec_client_id);
-			std::string mount_point = m_rpcConnection->brokerMountPoint();
-			size_t cnt = shv::core::StringView(mount_point).split('/').size();
-			std::string rel_path;
-			for (size_t i = 0; i < cnt; ++i) {
-				rel_path = "../" + rel_path;
-			}
-			m[cp::Rpc::KEY_RELATIVE_PATH] = rel_path + rexec_client_broker_path;
-			cp::RpcValue result = m;
-			resp.setResult(result);
-			shvInfo() << "Got tunnel handle from child process:" << result.toPrettyString();
-		}
-		catch (std::exception &e) {
-			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, e.what()));
-		}
-		m_rpcConnection->sendMessage(resp);
-	});
-#endif
-
 }
 
-void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq)
+void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq, bool std_out_only)
 {
 	SessionProcess *proc = new SessionProcess(this);
 	auto rq2 = rq;
-	connect(proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), [this, proc, rq2](int exit_code, QProcess::ExitStatus exit_status) {
+	connect(QCoreApplication::instance(), &QCoreApplication::aboutToQuit, proc, &QProcess::kill);
+	connect(proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), [this, proc, rq2, std_out_only](int exit_code, QProcess::ExitStatus exit_status) {
 		cp::RpcResponse resp = cp::RpcResponse::forRequest(rq2);
 		if(exit_status == QProcess::CrashExit) {
 			logRunCmd() << "Proces crashed!";
 			resp.setError(cp::RpcResponse::Error::createMethodCallExceptionError("Process crashed!"));
 		}
 		else {
-			if(rq2.params().isList()) {
+			if(rq2.params().isList() && !std_out_only) {
 				cp::RpcValue::List lst;
 				for(auto p : rq2.params().toList()) {
 					if(p.isString()) {
 						lst.push_back(exit_code);
 					}
-					else {
+					else if(p.isMap()) {
+						lst.push_back(nullptr);
+					}
+					else if(p.isList()) {
+						lst.push_back(nullptr);
+					}
+					else if(p.isInt()) {
 						int i = p.toInt();
 						if(i == STDOUT_FILENO) {
 							QByteArray ba = proc->readAllStandardOutput();
@@ -464,20 +433,26 @@ void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq)
 		}
 		m_rpcConnection->sendMessage(resp);
 	});
-	connect(proc, &QProcess::errorOccurred, [this, rq2](QProcess::ProcessError error) {
+	connect(proc, &QProcess::errorOccurred, [this, proc, rq2](QProcess::ProcessError error) {
 		shvInfo() << "RunCmd: Exec process error:" << error;
 		if(error == QProcess::FailedToStart) {
 			cp::RpcResponse resp = cp::RpcResponse::forRequest(rq2);
 			resp.setError(cp::RpcResponse::Error::createMethodCallExceptionError("Failed to start process (file not found, resource error)"));
 			m_rpcConnection->sendMessage(resp);
+			proc->deleteLater();
 		}
 	});
 	std::string cmd;
+	QStringList args;
 	QProcessEnvironment env;
 	if(rq.params().isList()) {
 		for(auto p : rq.params().toList()) {
 			if(p.isString()) {
 				cmd = p.toString();
+			}
+			else if(p.isList()) {
+				for(auto kv : p.toList())
+					args << QString::fromStdString(kv.toString());
 			}
 			else if(p.isMap()) {
 				for(auto kv : p.toMap())
@@ -498,9 +473,9 @@ void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq)
 	else {
 		cmd = rq.params().toString();
 	}
-	logRunCmd() << "CMD:" << cmd << "env:" << env.toStringList().join(',');
+	logRunCmd() << "CMD:" << cmd << args.join(' ') << "env:" << env.toStringList().join(',');
 	proc->setProcessEnvironment(env);
-	proc->start(QString::fromStdString(cmd), QStringList());
+	proc->start(QString::fromStdString(cmd), args);
 }
 
 void ShvAgentApp::onBrokerConnectedChanged(bool is_connected)

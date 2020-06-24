@@ -330,11 +330,9 @@ void ShvRExecApp::runCmd(const shv::chainpack::RpcValue &params)
 	if(m_cmdProc || m_ptyCmdProc)
 		SHV_EXCEPTION("Process running already");
 
-	const shv::chainpack::RpcValue::String exec_cmd = params.toString();
-
-	shvInfo() << "Starting process:" << exec_cmd;
+	shvInfo() << "Starting process:" << params.toCpon();
 	m_cmdProc = new Process(this);
-	connect(QCoreApplication::instance(), &QCoreApplication::aboutToQuit, m_cmdProc, &QProcess::terminate);
+	connect(QCoreApplication::instance(), &QCoreApplication::aboutToQuit, m_cmdProc, &QProcess::kill);
 	connect(m_cmdProc, &QProcess::readyReadStandardOutput, this, &ShvRExecApp::onReadyReadProcessStandardOutput);
 	connect(m_cmdProc, &QProcess::readyReadStandardError, this, &ShvRExecApp::onReadyReadProcessStandardError);
 	connect(m_cmdProc, &QProcess::errorOccurred, [](QProcess::ProcessError error) {
@@ -352,7 +350,12 @@ void ShvRExecApp::runCmd(const shv::chainpack::RpcValue &params)
 		}
 		this->closeAndQuit();
 	});
-	m_cmdProc->start(QString::fromStdString(exec_cmd));
+	const shv::chainpack::RpcValue::List &cmd_lst = params.toList();
+	QString cmd = QString::fromStdString(params.isString()? params.toString(): cmd_lst.value(0).toString());
+	QStringList pars;
+	for (size_t i = 1; i < cmd_lst.size(); ++i)
+		pars << QString::fromStdString(cmd_lst[i].toString());
+	m_cmdProc->start(cmd, pars);
 }
 
 void ShvRExecApp::runPtyCmd(const shv::chainpack::RpcValue &params)
@@ -361,13 +364,17 @@ void ShvRExecApp::runPtyCmd(const shv::chainpack::RpcValue &params)
 		SHV_EXCEPTION("Process running already");
 
 	const shv::chainpack::RpcValue::List lst = params.toList();
-	std::string exec_cmd = lst.value(0).toString();
+	shv::chainpack::RpcValue cmd_params = lst.value(0);
+	if(!cmd_params.isString() && !cmd_params.isList()) {
+		shvError() << "Invalid command:" << cmd_params.toCpon();
+		closeAndQuit();
+	}
 	int pty_cols = lst.value(1).toInt();
 	int pty_rows = lst.value(2).toInt();
 
-	shvInfo() << "Starting process:" << exec_cmd;
+	shvInfo() << "Starting process:" << cmd_params.toCpon();
 	m_ptyCmdProc = new PtyProcess(this);
-	connect(QCoreApplication::instance(), &QCoreApplication::aboutToQuit, m_ptyCmdProc, &QProcess::terminate);
+	connect(QCoreApplication::instance(), &QCoreApplication::aboutToQuit, m_ptyCmdProc, &QProcess::kill);
 	connect(m_ptyCmdProc, &PtyProcess::readyReadMasterPty, this, &ShvRExecApp::onReadyReadMasterPty);
 	connect(m_ptyCmdProc, &QProcess::errorOccurred, [](QProcess::ProcessError error) {
 		shvError() << "Exec process error:" << error;
@@ -393,7 +400,12 @@ void ShvRExecApp::runPtyCmd(const shv::chainpack::RpcValue &params)
 		m_ptyCmdProc->disconnect();
 		closeAndQuit();
 	});
-	m_ptyCmdProc->ptyStart(exec_cmd, pty_cols, pty_rows);
+	QString cmd = QString::fromStdString(cmd_params.isString()? cmd_params.toString(): cmd_params.toList().value(0).toString());
+	QStringList pars;
+	const shv::chainpack::RpcValue::List &cmd_lst = cmd_params.toList();
+	for (size_t i = 1; i < cmd_lst.size(); ++i)
+		pars << QString::fromStdString(cmd_lst[i].toString());
+	m_ptyCmdProc->ptyStart(cmd, pars, pty_cols, pty_rows);
 }
 
 qint64 ShvRExecApp::writeCmdProcessStdIn(const char *data, size_t len)

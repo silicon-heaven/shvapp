@@ -40,7 +40,7 @@ public:
 	AppCliOptions* cliOptions() {return m_cliOptions;}
 
 	void launchRexec(const shv::chainpack::RpcRequest &rq);
-	void runCmd(const shv::chainpack::RpcRequest &rq);
+	void runCmd(const shv::chainpack::RpcRequest &rq, bool std_out_only = false);
 private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
