@@ -181,6 +181,7 @@ void HNodeTest::runTest(const shv::chainpack::RpcRequest &rq, bool use_script_ca
 		logTest() << test_no << "\t script SHA1:" << script.toStdString();
 	}
 	const shv::chainpack::RpcValue env = configValueOnPath(KEY_ENV);
+	logTest() << "\tenv:" << env.toCpon();
 
 	int rq_id = bnd->rpcConnection()->nextRequestId();
 	cp::RpcRequest rq1 = rq;
