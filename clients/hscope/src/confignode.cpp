@@ -26,11 +26,10 @@ ConfigNode::ConfigNode(ShvNode *parent)
 	setUserConfigDir(configDir());
 	setTemplateConfigName(parentHNode()->templateFileName());
 	setTemplateDir(parentHNode()->templatesDir());
-	logConfig() << "New config node        :" << shvPath();
-	logConfig() << "\t config dir          :" << configDir();
-	logConfig() << "\t user config dir     :" << userConfigDir();
-	logConfig() << "\t template config dir :" << templateDir();
-	logConfig() << "\t template config name:" << templateConfigName();
+	logConfig() << "New config node :" << shvPath();
+	logConfig() << "\t config dir       :" << configDir();
+	logConfig() << "\t user config      :" << userConfigDir() << "/" << userConfigName();
+	logConfig() << "\t template config  :" << templateDir() << "/" << templateConfigName();
 }
 
 HNode *ConfigNode::parentHNode()

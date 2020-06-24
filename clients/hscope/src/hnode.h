@@ -86,7 +86,7 @@ protected:
 protected:
 	NodeStatus m_status;
 	NodeStatus::Level m_overallStatus = NodeStatus::Level::Unknown;
-	ConfigNode *m_confignode = nullptr;
+	ConfigNode *m_configNode = nullptr;
 };
 
 #endif // HNODE_H

@@ -54,6 +54,11 @@ HNodeTest::HNodeTest(const std::string &node_id, HNode *parent)
 	connect(pbnd, &HNodeBroker::brokerConnectedChanged, this, &HNodeTest::onParentBrokerConnectedChanged);
 }
 
+std::string HNodeTest::templateFileName()
+{
+	return nodeId() + ".config";
+}
+
 void HNodeTest::load()
 {
 	logTest() << shvPath() << "load config.";

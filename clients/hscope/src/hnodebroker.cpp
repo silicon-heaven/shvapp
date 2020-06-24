@@ -30,7 +30,7 @@ void HNodeBroker::load()
 		auto *nd = new HNodeAgents(dir, this);
 		nd->load();
 	}
-	connect(m_confignode, &ConfigNode::configSaved, this, &HNodeBroker::reconnect);
+	connect(m_configNode, &ConfigNode::configSaved, this, &HNodeBroker::reconnect);
 	QTimer::singleShot(0, this, &HNodeBroker::reconnect);
 }
 

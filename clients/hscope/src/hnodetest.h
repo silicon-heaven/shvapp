@@ -18,6 +18,8 @@ class HNodeTest : public HNode
 public:
 	HNodeTest(const std::string &node_id, HNode *parent);
 public:
+	std::string templateFileName() override;
+
 	void runTestSafe();
 	void load() override;
 	shv::chainpack::RpcValue callMethodRq(const shv::chainpack::RpcRequest &rq) override;

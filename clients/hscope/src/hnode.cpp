@@ -164,7 +164,7 @@ std::string HNode::templateFileName()
 void HNode::load()
 {
 	//shvInfo() << "HNode::load" << shvPath();
-	m_confignode = new ConfigNode(this);
+	m_configNode = new ConfigNode(this);
 	//m_confignode->values();
 	//connect(this, &HNode::statusChanged, qobject_cast<HNode*>(parent()), &HNode::onChildStatusChanged);
 	HNode *parent_hnode = qobject_cast<HNode*>(parent());
@@ -298,7 +298,7 @@ NodeStatus::Level HNode::overallChildrenStatus()
 shv::chainpack::RpcValue HNode::configValueOnPath(const std::string &shv_path, const shv::chainpack::RpcValue &default_val) const
 {
 	shv::core::StringViewList lst = shv::core::utils::ShvPath::split(shv_path);
-	shv::chainpack::RpcValue val = m_confignode->valueOnPath(lst, !shv::core::Exception::Throw);
+	shv::chainpack::RpcValue val = m_configNode->valueOnPath(lst, !shv::core::Exception::Throw);
 	if(val.isValid())
 		return val;
 	return default_val;
