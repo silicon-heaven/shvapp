@@ -136,18 +136,30 @@ void DirtyLogManager::setDirtyLogDirty(const QString &shv_path)
 						});
 }
 
-void DirtyLogManager::writeDirtyLog(const QString &shv_path, const QString &path, const shv::chainpack::RpcValue &value, std::string domain, bool is_connected)
+void DirtyLogManager::writeDirtyLog(const QString &shv_path, const QString &path, shv::chainpack::RpcValue value, std::string domain, bool is_connected)
 {
 	checkDirtyLog(shv_path, is_connected);
 	LogDir log_dir(shv_path);
 	ShvJournalFileWriter dirty_writer(log_dir.dirtyLogPath().toStdString());
+
+	int64_t ts = 0;
+	if (shv::chainpack::DataChange::isDataChange(value)) {
+		shv::chainpack::DataChange d = shv::chainpack::DataChange::fromRpcValue(value);
+		if (d.hasDateTime()) {
+			ts = d.epochMSec();
+		}
+		value = d.value();
+	}
+	if (!ts) {
+		ts = QDateTime::currentDateTimeUtc().toMSecsSinceEpoch();
+	}
 	dirty_writer.append(ShvJournalEntry{
 							path.toStdString(),
 							value,
 							domain,
 							ShvJournalEntry::NO_SHORT_TIME,
 							ShvJournalEntry::SampleType::Continuous,
-							QDateTime::currentDateTimeUtc().toMSecsSinceEpoch()
+							ts
 						});
 }
 
