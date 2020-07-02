@@ -2,7 +2,6 @@
 #include "appclioptions.h"
 #include "devicemonitor.h"
 #include "dirtylogmanager.h"
-#include "migration.h"
 #include "logsanitizer.h"
 #include "rootnode.h"
 
@@ -51,12 +50,6 @@ Application::Application(int &argc, char **argv, AppCliOptions* cli_opts)
 	connect(m_deviceMonitor, &DeviceMonitor::sitesDownloadFinished, &loop, &QEventLoop::quit);
 	loop.exec();
 
-	Migration migration;
-	if (migration.isNeeded()) {
-		disconnectFromShv();
-		Migration().exec();
-		connectToShv();
-	}
 	m_logSanitizer = new LogSanitizer(this);
 	m_dirtyLogManager = new DirtyLogManager(this);
 }

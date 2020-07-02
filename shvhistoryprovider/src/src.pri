@@ -10,7 +10,6 @@ HEADERS += \
     $$PWD/siteitem.h \
     $$PWD/logdir.h \
     $$PWD/logsanitizer.h \
-    $$PWD/migration.h \
     $$PWD/dirtylogmanager.h \
     $$PWD/shvsubscription.h \
     $$PWD/logdirreader.h
@@ -27,7 +26,6 @@ SOURCES += \
     $$PWD/siteitem.cpp \
     $$PWD/logdir.cpp \
     $$PWD/logsanitizer.cpp \
-    $$PWD/migration.cpp \
     $$PWD/dirtylogmanager.cpp \
     $$PWD/shvsubscription.cpp \
     $$PWD/logdirreader.cpp
