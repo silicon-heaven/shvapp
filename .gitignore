@@ -45,3 +45,4 @@ _build
 !clients/jn50view/doc/help/Makefile
 
 user.telegram.config
+user.config

@@ -389,6 +389,7 @@ void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq, bool std_out_only
 	auto rq2 = rq;
 	connect(QCoreApplication::instance(), &QCoreApplication::aboutToQuit, proc, &QProcess::kill);
 	connect(proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), [this, proc, rq2, std_out_only](int exit_code, QProcess::ExitStatus exit_status) {
+		logRunCmd() << "Proces finished, exit code:" << exit_code << "exit status:" << exit_status;
 		cp::RpcResponse resp = cp::RpcResponse::forRequest(rq2);
 		if(exit_status == QProcess::CrashExit) {
 			logRunCmd() << "Proces crashed!";
