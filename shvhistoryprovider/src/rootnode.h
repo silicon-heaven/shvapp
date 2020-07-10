@@ -24,6 +24,7 @@ public:
 private:
 	shv::chainpack::RpcValue ls(const shv::core::StringViewList &shv_path, size_t index, const SiteItem *site_item);
 	void trimDirtyLog(const QString &shv_path);
+	void pushLog(const QString &shv_path, const shv::chainpack::RpcValue &log, int64_t &since, int64_t &until);
 	shv::chainpack::RpcValue getStartTS(const QString &shv_path);
 	const std::vector<shv::chainpack::MetaMethod> &metaMethods(const StringViewList &shv_path);
 };

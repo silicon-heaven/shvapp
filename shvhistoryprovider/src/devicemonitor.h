@@ -21,6 +21,7 @@ public:
 	const QStringList &monitoredDevices() const;
 	const QStringList &onlineDevices() const;
 	bool isElesysDevice(const QString &shv_path) const;
+	bool isPushLogDevice(const QString &shv_path) const;
 
 	void downloadSites();
 	const SiteItem *sites() const { return m_sites; }

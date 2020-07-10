@@ -41,12 +41,14 @@ public:
 	SitesHPDevice(QObject *parent) : SitesDevice(parent), m_elesys(false) {}
 
 	bool elesys() const	{ return m_elesys; }
+	bool pushLog() const { return m_pushLog; }
 
 protected:
 	void parseMetaRpcValue(const shv::chainpack::RpcValue::Map &meta) override;
 
 private:
 	bool m_elesys;
+	bool m_pushLog;
 };
 
 #endif // SITEITEM_H
