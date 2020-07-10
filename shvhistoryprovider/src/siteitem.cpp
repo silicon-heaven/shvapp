@@ -115,4 +115,10 @@ void SitesHPDevice::parseMetaRpcValue(const shv::chainpack::RpcValue::Map &meta)
 	else {
 		m_elesys = hp_meta.at("elesys").toBool();
 	}
+	if (!hp_meta.hasKey("pushLog")) {
+		m_pushLog = false;
+	}
+	else {
+		m_pushLog = hp_meta.at("pushLog").toBool();
+	}
 }

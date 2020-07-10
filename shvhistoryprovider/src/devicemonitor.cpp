@@ -51,6 +51,12 @@ bool DeviceMonitor::isElesysDevice(const QString &shv_path) const
 	return hp_device && hp_device->elesys();
 }
 
+bool DeviceMonitor::isPushLogDevice(const QString &shv_path) const
+{
+	const SitesHPDevice *hp_device = qobject_cast<const SitesHPDevice *>(m_sites->itemByShvPath(shv_path));
+	return hp_device && hp_device->pushLog();
+}
+
 void DeviceMonitor::onShvStateChanged()
 {
 	Application *app = Application::instance();

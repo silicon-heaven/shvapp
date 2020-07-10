@@ -59,6 +59,9 @@ void LogSanitizer::trimDirtyLog(const QString &shv_path)
 
 void LogSanitizer::onDeviceAppeared(const QString &shv_path)
 {
+	if (Application::instance()->deviceMonitor()->isPushLogDevice(shv_path)) {
+		return;
+	}
 	sanitizeLogCache(shv_path, CheckLogTask::CheckType::ReplaceDirtyLog);
 	setupTimer();
 }
@@ -71,7 +74,12 @@ void LogSanitizer::sanitizeLogCache()
 	if (findChildren<CheckLogTask*>(QString(), Qt::FindChildOption::FindDirectChildrenOnly).count() > 0) {
 		return;
 	}
-	const QStringList &online_devices = Application::instance()->deviceMonitor()->onlineDevices();
+	QStringList online_devices = Application::instance()->deviceMonitor()->onlineDevices();
+	for (int i = 0; i < online_devices.count(); ++i) {
+		if (Application::instance()->deviceMonitor()->isPushLogDevice(online_devices[i])) {
+			online_devices.removeAt(i--);
+		}
+	}
 	if (online_devices.count() == 0) {
 		return;
 	}
