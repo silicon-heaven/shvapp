@@ -193,7 +193,7 @@ void DlgLogView::parseLog(shv::chainpack::RpcValue log)
 			cp::RpcValue rv = row.value(2);
 			//cp::RpcValue short_time = row.value(3);
 			int64_t msec = dt.msecsSinceEpoch();
-			QVariant v = shv::iotqt::Utils::rpcValueToQVariant(rv);
+			QVariant v = shv::coreqt::Utils::rpcValueToQVariant(rv);
 			if(v.isValid())
 				m_graphModel->appendValueShvPath(path, tl::Sample{msec, v});
 		}
