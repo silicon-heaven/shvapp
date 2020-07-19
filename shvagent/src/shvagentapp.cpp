@@ -289,10 +289,10 @@ ShvAgentApp::ShvAgentApp(int &argc, char **argv, AppCliOptions* cli_opts)
 #ifdef HANDLE_UNIX_SIGNALS
 	installUnixSignalHandlers();
 #endif
-#ifdef Q_OS_UNIX
-	if(0 != ::setpgid(0, 0))
-		shvError() << "Cannot make shvagent process the group leader, error set process group ID:" << errno << ::strerror(errno);
-#endif
+//#ifdef Q_OS_UNIX
+//	if(0 != ::setpgid(0, 0))
+//		shvError() << "Cannot make shvagent process the group leader, error set process group ID:" << errno << ::strerror(errno);
+//#endif
 	//cp::RpcMessage::setMetaTypeExplicit(cli_opts->isMetaTypeExplicit());
 
 	m_rpcConnection = new si::rpc::DeviceConnection(this);

@@ -84,10 +84,10 @@ ShvRExecApp::ShvRExecApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
 {
-#ifdef Q_OS_UNIX
-	if(0 != ::setpgid(0, 0))
-		shvError() << "Error set process group ID:" << errno << ::strerror(errno);
-#endif
+//#ifdef Q_OS_UNIX
+//	if(0 != ::setpgid(0, 0))
+//		shvError() << "Error set process group ID:" << errno << ::strerror(errno);
+//#endif
 	//cp::RpcMessage::setMetaTypeExplicit(cli_opts->isMetaTypeExplicit());
 
 	m_rpcConnection = new shv::iotqt::rpc::ClientConnection(this);

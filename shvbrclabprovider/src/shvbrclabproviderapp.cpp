@@ -122,10 +122,6 @@ ShvBrclabProviderApp::ShvBrclabProviderApp(int &argc, char **argv, AppCliOptions
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
 {
-#ifdef Q_OS_UNIX
-	if(0 != ::setpgid(0, 0))
-		shvError() << "Error set process group ID:" << errno << ::strerror(errno);
-#endif
 	m_rpcConnection = new shv::iotqt::rpc::DeviceConnection(this);
 
 	if(!cli_opts->user_isset())

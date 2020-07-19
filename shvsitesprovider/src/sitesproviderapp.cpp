@@ -513,11 +513,6 @@ SitesProviderApp::SitesProviderApp(int &argc, char **argv, AppCliOptions* cli_op
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
 {
-#ifdef Q_OS_UNIX
-	if (setpgid(0, 0) != 0) {
-		shvError() << "Error set process group ID:" << errno << ::strerror(errno);
-	}
-#endif
 	//cp::RpcMessage::setMetaTypeExplicit(cli_opts->isMetaTypeExplicit());
 	m_rpcConnection = new shv::iotqt::rpc::DeviceConnection(this);
 

@@ -45,9 +45,11 @@ void SessionProcess::onReadyReadStandardError()
 */
 void SessionProcess::setupChildProcess()
 {
-#ifdef Q_OS_UNIX
-	if(0 != ::setpgid(0, ::getppid()))
-		shvError() << "Error set process group ID:" << errno << ::strerror(errno);
-#endif
+//#ifdef Q_OS_UNIX
+//	// as a std user ends with
+//	//Cannot make shvagent process the group leader, error set process group ID: 1 Operation not permitted
+//	if(0 != ::setpgid(0, ::getppid()))
+//		shvError() << "Error set process group ID:" << errno << ::strerror(errno);
+//#endif
 	Super::setupChildProcess();
 }
