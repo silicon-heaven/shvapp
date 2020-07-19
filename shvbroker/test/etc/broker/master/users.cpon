@@ -9,14 +9,14 @@
   "iot":{
     "roles":["device","tester"],
     "password": {
-      "password":"8284a26b82a69838092fd4fc824bbfde56719e02",
-      "format":"sha1"
+      "password":"iotpwd",
+      "format":"plain"
     }
   },
   "broker":{
     "roles":["device","tester"],
     "password": {
-      "password":"ff2e1086753ca76fe84b7fadd738d76caf2072d0",
+      "password":"ffee1086753ca76fe84b7fadd738d76caf2072d0",
       "format":"sha1"
     }
   },
