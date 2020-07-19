@@ -19,23 +19,23 @@ tmux split-window $BINDIR/shvbroker --config-dir $CFGDIR/slave1/ -v $BROKER_TOPI
 # sleep 1
 tmux split-window $BINDIR/shvbroker --config-dir $CFGDIR/slave2/ -v $BROKER_TOPICS
 
-#tmux split-window -h $BINDIR/revitestdevice -p 3755 -u iot --password lub42DUB --lt plain -m test/slave/lub1 --hbi 0
+#tmux split-window -h $BINDIR/revitestdevice -p 3755 -u iot --password iotpwd --lt plain -m test/slave/lub1
 # sleep 1
 # exit 0
 
 sleep $SLEEP_SETTLE
 
 tmux select-pane -t0
-tmux split-window -hf $BINDIR/shvagent -p 3756 -u iot --password lub42DUB --lt plain -m test/agentA1 --hbi 0 --tester -v tester
+tmux split-window -hf $BINDIR/shvagent -p 3756 -u iot --password iotpwd --lt plain -m test/agentA1 --tester -v tester
 
 sleep $SLEEP_SETTLE
 
 # tmux select-pane -t0
-tmux split-window $BINDIR/shvagent -p 3757 -u iot --password lub42DUB --lt plain -m test/agentB1 --hbi 0 --tester -v tester
+tmux split-window $BINDIR/shvagent -p 3757 -u iot --password iotpwd --lt plain -m test/agentB1 --tester -v tester
 
 sleep $SLEEP_SETTLE
 
-# tmux split-window $BINDIR/revitestdevice -p 3757 -u iot --password lub42DUB --lt plain -m test/slave/lub2 --hbi 0 -n 4 -c '[["../../../broker1/slave/lub1/1/status", "get"], [".broker/app", "subscribe", {"method":"chng", "path":"test"}], ["../lub2/3/status", "sim_set", 41]]' -v rpcmsg
-tmux split-window $BINDIR/shvagent -p 3757 -u iot --password lub42DUB --lt plain -m test/agentB2 --hbi 0 --ts $TSTDIR/tests.cpon -v tester
+# tmux split-window $BINDIR/revitestdevice -p 3757 -u iot --password iotpwd --lt plain -m test/slave/lub2 -n 4 -c '[["../../../broker1/slave/lub1/1/status", "get"], [".broker/app", "subscribe", {"method":"chng", "path":"test"}], ["../lub2/3/status", "sim_set", 41]]' -v rpcmsg
+tmux split-window $BINDIR/shvagent -p 3757 -u iot --password iotpwd --lt plain -m test/agentB2 --ts $TSTDIR/tests.cpon -v tester
 
 # tmux select-layout tiled
