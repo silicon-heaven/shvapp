@@ -23,7 +23,7 @@ DirtyLogManager::DirtyLogManager(QObject *parent)
 
 	DeviceMonitor *monitor = app->deviceMonitor();
 
-	setDirtyLogsDirty();
+	insertDataMissingToDirtyLog();
 
 	for (const QString &shv_path : monitor->onlineDevices()) {
 		onDeviceAppeared(shv_path);
@@ -85,7 +85,7 @@ void DirtyLogManager::onShvStateChanged(shv::iotqt::rpc::ClientConnection::State
 			delete m_chngSubscription;
 			m_chngSubscription = nullptr;
 		}
-		setDirtyLogsDirty();
+		insertDataMissingToDirtyLog();
 	}
 }
 
@@ -110,19 +110,19 @@ void DirtyLogManager::onDeviceDataChanged(const QString &path, const QString &me
 	}
 }
 
-void DirtyLogManager::setDirtyLogsDirty()
+void DirtyLogManager::insertDataMissingToDirtyLog()
 {
 	Application *app = Application::instance();
 	DeviceMonitor *dm = app->deviceMonitor();
 	const QStringList &monitored_devices = dm->monitoredDevices();
 	for (const QString &shv_path : monitored_devices) {
 		if (!dm->isPushLogDevice(shv_path)) {
-			setDirtyLogDirty(shv_path);
+			insertDataMissingToDirtyLog(shv_path);
 		}
 	}
 }
 
-void DirtyLogManager::setDirtyLogDirty(const QString &shv_path)
+void DirtyLogManager::insertDataMissingToDirtyLog(const QString &shv_path)
 {
 	checkDirtyLog(shv_path, false);
 	LogDir log_dir(shv_path);
