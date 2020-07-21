@@ -21,8 +21,8 @@ private:
 	void onDeviceAppeared(const QString &shv_path);
 	void onDeviceDisappeared(const QString &shv_path);
 
-	void setDirtyLogsDirty();
-	void setDirtyLogDirty(const QString &shv_path);
+	void insertDataMissingToDirtyLog();
+	void insertDataMissingToDirtyLog(const QString &shv_path);
 	void writeDirtyLog(const QString &shv_path, const QString &path, shv::chainpack::RpcValue value, std::string domain, bool is_connected);
 	void checkDirtyLog(const QString &shv_path, bool is_connected);
 	void onDeviceDataChanged(const QString &path, const QString &method, const shv::chainpack::RpcValue &data);

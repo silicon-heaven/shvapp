@@ -40,8 +40,8 @@ class SitesHPDevice : public SitesDevice
 public:
 	SitesHPDevice(QObject *parent) : SitesDevice(parent), m_elesys(false) {}
 
-	bool elesys() const	{ return m_elesys; }
-	bool pushLog() const { return m_pushLog; }
+	bool isElesys() const	{ return m_elesys; }
+	bool isPushLog() const { return m_pushLog; }
 
 protected:
 	void parseMetaRpcValue(const shv::chainpack::RpcValue::Map &meta) override;

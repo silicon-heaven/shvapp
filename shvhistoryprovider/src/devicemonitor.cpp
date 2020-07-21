@@ -48,13 +48,13 @@ const QStringList &DeviceMonitor::onlineDevices() const
 bool DeviceMonitor::isElesysDevice(const QString &shv_path) const
 {
 	const SitesHPDevice *hp_device = qobject_cast<const SitesHPDevice *>(m_sites->itemByShvPath(shv_path));
-	return hp_device && hp_device->elesys();
+	return hp_device && hp_device->isElesys();
 }
 
 bool DeviceMonitor::isPushLogDevice(const QString &shv_path) const
 {
 	const SitesHPDevice *hp_device = qobject_cast<const SitesHPDevice *>(m_sites->itemByShvPath(shv_path));
-	return hp_device && hp_device->pushLog();
+	return hp_device && hp_device->isPushLog();
 }
 
 void DeviceMonitor::onShvStateChanged()
