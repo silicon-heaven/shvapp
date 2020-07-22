@@ -58,7 +58,7 @@ production-deploy:
     #- rsync -avz lib bin gitlab-jessie@35.167.83.38:/opt/shv/ 
     #- ssh -t gitlab-jessie@35.167.83.38 "sudo /opt/shv/install.sh"
     # nirvana
-    - rsync -avz lib bin gitlab@${SHV_NIRVANA_IP}:/opt/shv-prod/ 
+    - rsync -avz _dist/lib _dist/bin gitlab@${SHV_NIRVANA_IP}:/opt/shv-prod/ 
     - ssh -t gitlab@${SHV_NIRVANA_IP} "sudo /opt/shv-prod/install.sh"
 
   environment:
@@ -74,7 +74,7 @@ production-deploy-heaven:
   script:
     - id
     - cd build
-    - rsync -avz lib bin shv@${SHV_HEAVEN_IP}:/opt/shv/production/
+    - rsync -avz _dist/lib _dist/bin shv@${SHV_HEAVEN_IP}:/opt/shv/production/
     - ssh -t shv@${SHV_HEAVEN_IP} "sudo /opt/shv/production/install.sh"
   environment:
     name: heaven
@@ -92,11 +92,11 @@ test-deploy:
     #- rsync -avz shvbroker/etc gitlab@${SHV_NIRVANA_IP}:/opt/shv/ 
     #- rsync -avz clients/hscope/etc gitlab@${SHV_NIRVANA_IP}:/opt/shv/ 
     - cd build
-    - rsync -avz lib bin /opt/shv/ 
-    - rsync -avz lib bin gitlab@${SHV_NIRVANA_IP}:/opt/shv/ 
+    - rsync -avz _dist/lib _dist/bin /opt/shv/ 
+    - rsync -avz _dist/lib _dist/bin gitlab@${SHV_NIRVANA_IP}:/opt/shv/ 
     - ssh -t gitlab@${SHV_NIRVANA_IP} "sudo /opt/shv/install.sh"
     # heaven 
-    - rsync -avz lib bin shv@${SHV_HEAVEN_IP}:/opt/shv/test/
+    - rsync -avz _dist/lib _dist/bin shv@${SHV_HEAVEN_IP}:/opt/shv/test/
     - ssh -t shv@${SHV_HEAVEN_IP} "sudo /opt/shv/test/install.sh"
 
   environment:
