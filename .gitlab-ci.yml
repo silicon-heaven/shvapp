@@ -14,7 +14,7 @@ linux:
     build
   artifacts:
     paths:
-    - build/_dist/install/
+    - build/_dist/
   script:
     #- git submodule update --init --force --recursive
     - rm -rf build
