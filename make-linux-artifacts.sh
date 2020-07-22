@@ -58,5 +58,4 @@ $RSYNC -R  $QT_DIR/plugins/./imageformats/libqsvg.so $DIST_BIN_DIR/
 # $RSYNC $QT_DIR/qml/QtQuick.2/ $DIST_BIN_DIR/QtQuick.2
 
 cd $DIST_DIR
-mkdir -p install
-tar -cvzf install/$APP_NAME-$APP_VER-gcc_64.tgz  bin lib
+tar -cvzf $APP_NAME-$APP_VER-gcc_64.tgz  bin lib
