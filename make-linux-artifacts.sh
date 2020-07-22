@@ -59,5 +59,4 @@ $RSYNC -R  $QT_DIR/plugins/./imageformats/libqsvg.so $DIST_BIN_DIR/
 
 cd $DIST_DIR
 mkdir -p install
-cd install
-tar -cvzf $APP_NAME-$APP_VER-gcc_64.tgz  bin lib
+tar -cvzf install/$APP_NAME-$APP_VER-gcc_64.tgz  bin lib
