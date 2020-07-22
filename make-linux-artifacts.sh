@@ -17,6 +17,7 @@ mkdir -p $DIST_DIR
 rm -rf $DIST_DIR/*
 
 RSYNC='rsync -av --exclude *.debug'
+# $RSYNC expands as: rsync -av '--exclude=*.debug'
 
 echo "$RSYNC lib bin $DIST_DIR"
 $RSYNC lib bin $DIST_DIR
@@ -57,4 +58,6 @@ $RSYNC -R  $QT_DIR/plugins/./imageformats/libqsvg.so $DIST_BIN_DIR/
 # $RSYNC $QT_DIR/qml/QtQuick.2/ $DIST_BIN_DIR/QtQuick.2
 
 cd $DIST_DIR
+mkdir -p install
+cd install
 tar -cvzf $APP_NAME-$APP_VER-gcc_64.tgz  bin lib
