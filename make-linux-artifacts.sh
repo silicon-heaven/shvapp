@@ -36,7 +36,7 @@ $RSYNC $QT_LIB_DIR/libQt5WebSockets.so* $DIST_LIB_DIR
 #$RSYNC $QT_LIB_DIR/libQt5ScriptTools.so* $DIST_LIB_DIR
 #$RSYNC $QT_LIB_DIR/libQt5PrintSupport.so* $DIST_LIB_DIR
 #$RSYNC $QT_LIB_DIR/libQt5SerialPort.so* $DIST_LIB_DIR
-#$RSYNC $QT_LIB_DIR/libQt5DBus.so* $DIST_LIB_DIR
+$RSYNC $QT_LIB_DIR/libQt5DBus.so* $DIST_LIB_DIR
 #$RSYNC $QT_LIB_DIR/libQt5Multimedia.so* $DIST_LIB_DIR
 $RSYNC $QT_LIB_DIR/libQt5XcbQpa.so* $DIST_LIB_DIR
 
