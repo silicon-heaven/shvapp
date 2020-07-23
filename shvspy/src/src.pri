@@ -17,7 +17,6 @@ HEADERS += \
     $$PWD/appclioptions.h \
     $$PWD/servertreemodel/shvnodeitem.h \
     $$PWD/servertreemodel/shvbrokernodeitem.h \
-    $$PWD/lastusedparamswidget.h \
     $$PWD/methodparametersdialog.h \
     $$PWD/texteditdialog.h \
     $$PWD/dlgcallshvmethod.h \
@@ -47,7 +46,6 @@ SOURCES += \
     $$PWD/appclioptions.cpp \
     $$PWD/servertreemodel/shvnodeitem.cpp \
     $$PWD/servertreemodel/shvbrokernodeitem.cpp \
-    $$PWD/lastusedparamswidget.cpp \
     $$PWD/methodparametersdialog.cpp \
     $$PWD/texteditdialog.cpp \
     $$PWD/dlgcallshvmethod.cpp \
@@ -66,7 +64,6 @@ FORMS += \
     $$PWD/mainwindow.ui \
     $$PWD/dlgserverproperties.ui \
     $$PWD/dlgsubscriptionparameters.ui \
-    $$PWD/lastusedparamswidget.ui \
     $$PWD/methodparametersdialog.ui \
     $$PWD/texteditdialog.ui \
     $$PWD/subscriptionswidget.ui \

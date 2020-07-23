@@ -1,5 +1,4 @@
 #include "methodparametersdialog.h"
-#include "lastusedparamswidget.h"
 #include "ui_methodparametersdialog.h"
 
 #include <shv/chainpack/rpcvalue.h>
@@ -53,7 +52,6 @@ MethodParametersDialog::MethodParametersDialog(const QString &path, const QStrin
 	connect(ui->addMapButton, &QPushButton::clicked, this, QOverload<>::of(&MethodParametersDialog::newMapParameter));
 	connect(ui->removeListButton, &QPushButton::clicked, this, &MethodParametersDialog::removeListParameter);
 	connect(ui->removeMapButton, &QPushButton::clicked, this, &MethodParametersDialog::removeMapParameter);
-	connect(ui->lastUsedButton, &QPushButton::clicked, this, &MethodParametersDialog::loadLastUsed);
 	connect(ui->clearButton, &QPushButton::clicked, this, &MethodParametersDialog::clear);
 	connect(ui->parameterListTable, &QTableWidget::currentCellChanged, this, &MethodParametersDialog::onListCurrentCellChanged);
 	connect(ui->parameterMapTable, &QTableWidget::currentCellChanged, this, &MethodParametersDialog::onMapCurrentCellChanged);
@@ -641,17 +639,6 @@ void MethodParametersDialog::checkSyntax()
 	QPalette pal = ui->rawCponEdit->palette();
 	pal.setColor(QPalette::ColorRole::Text, Qt::black);
 	ui->rawCponEdit->setPalette(pal);
-}
-
-void MethodParametersDialog::loadLastUsed()
-{
-	if (!m_usedParamsWidget) {
-		m_usedParamsWidget = new LastUsedParamsWidget(m_path, m_method, this);
-		m_usedParamsWidget->setWindowFlags(Qt::Popup | Qt::Dialog);
-		connect(m_usedParamsWidget, &LastUsedParamsWidget::paramSelected, this, QOverload<const QString &>::of(&MethodParametersDialog::loadParams));
-	}
-	m_usedParamsWidget->move(mapToGlobal(ui->lastUsedButton->geometry().bottomRight()));
-	m_usedParamsWidget->show();
 }
 
 void MethodParametersDialog::loadParams(const QString &s)

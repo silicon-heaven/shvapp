@@ -63,7 +63,6 @@ private:
 	void clear();
 	void onCurrentTabChanged(int index);
 	void checkSyntax();
-	void loadLastUsed();
 	void loadParams(const QString &s);
 	void loadParams(const shv::chainpack::RpcValue &params);
 
