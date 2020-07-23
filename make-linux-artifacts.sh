@@ -57,6 +57,7 @@ $RSYNC -R  $QT_DIR/plugins/./imageformats/libqsvg.so $DIST_BIN_DIR/
 # $RSYNC $QT_DIR/qml/QtQuick/Window.2/ $DIST_BIN_DIR/QtQuick/Window.2
 # $RSYNC $QT_DIR/qml/QtQuick.2/ $DIST_BIN_DIR/QtQuick.2
 
+echo `pwd`
 cp shvspy/script/shvspy.sh $DIST_DIR/
 
 cd $DIST_DIR
