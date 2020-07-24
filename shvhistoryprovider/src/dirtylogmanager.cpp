@@ -23,7 +23,7 @@ DirtyLogManager::DirtyLogManager(QObject *parent)
 
 	DeviceMonitor *monitor = app->deviceMonitor();
 
-	setDirtyLogsDirty();
+	insertDataMissingToDirtyLog();
 
 	for (const QString &shv_path : monitor->onlineDevices()) {
 		onDeviceAppeared(shv_path);
@@ -46,20 +46,24 @@ DirtyLogManager::~DirtyLogManager()
 
 void DirtyLogManager::onDeviceAppeared(const QString &shv_path)
 {
-	writeDirtyLog(shv_path,
-				  ShvJournalEntry::PATH_DATA_MISSING,
-				  "",
-				  ShvJournalEntry::DOMAIN_SHV_SYSTEM,
-				  true);
+	if (!Application::instance()->deviceMonitor()->isPushLogDevice(shv_path)) {
+		writeDirtyLog(shv_path,
+					  ShvJournalEntry::PATH_DATA_MISSING,
+					  "",
+					  ShvJournalEntry::DOMAIN_SHV_SYSTEM,
+					  true);
+	}
 }
 
 void DirtyLogManager::onDeviceDisappeared(const QString &shv_path)
 {
-	writeDirtyLog(shv_path,
-				  ShvJournalEntry::PATH_DATA_MISSING,
-				  ShvJournalEntry::DATA_MISSING_UNAVAILABLE,
-				  ShvJournalEntry::DOMAIN_SHV_SYSTEM,
-				  false);
+	if (!Application::instance()->deviceMonitor()->isPushLogDevice(shv_path)) {
+		writeDirtyLog(shv_path,
+					  ShvJournalEntry::PATH_DATA_MISSING,
+					  ShvJournalEntry::DATA_MISSING_UNAVAILABLE,
+					  ShvJournalEntry::DOMAIN_SHV_SYSTEM,
+					  false);
+	}
 }
 
 void DirtyLogManager::onShvStateChanged(shv::iotqt::rpc::ClientConnection::State state)
@@ -81,37 +85,44 @@ void DirtyLogManager::onShvStateChanged(shv::iotqt::rpc::ClientConnection::State
 			delete m_chngSubscription;
 			m_chngSubscription = nullptr;
 		}
-		setDirtyLogsDirty();
+		insertDataMissingToDirtyLog();
 	}
 }
 
 void DirtyLogManager::onDeviceDataChanged(const QString &path, const QString &method, const shv::chainpack::RpcValue &data)
 {
 	Q_UNUSED(method);
+	Application *app = Application::instance();
+	DeviceMonitor *dm = app->deviceMonitor();
+
 	QString p = path.mid(4);
 	QString shv_path;
 	QString property;
-	for (const QString &device : Application::instance()->deviceMonitor()->monitoredDevices()) {
+	for (const QString &device : dm->monitoredDevices()) {
 		if (p.startsWith(device)) {
 			shv_path = device;
 			property = p.mid(device.length() + 1);
 			break;
 		}
 	}
-	if (!shv_path.isEmpty()) {
+	if (!shv_path.isEmpty() && !dm->isPushLogDevice(shv_path)) {
 		writeDirtyLog(shv_path, property, data, ShvJournalEntry::DOMAIN_VAL_CHANGE, true);
 	}
 }
 
-void DirtyLogManager::setDirtyLogsDirty()
+void DirtyLogManager::insertDataMissingToDirtyLog()
 {
-	const QStringList &monitored_devices = Application::instance()->deviceMonitor()->monitoredDevices();
+	Application *app = Application::instance();
+	DeviceMonitor *dm = app->deviceMonitor();
+	const QStringList &monitored_devices = dm->monitoredDevices();
 	for (const QString &shv_path : monitored_devices) {
-		setDirtyLogDirty(shv_path);
+		if (!dm->isPushLogDevice(shv_path)) {
+			insertDataMissingToDirtyLog(shv_path);
+		}
 	}
 }
 
-void DirtyLogManager::setDirtyLogDirty(const QString &shv_path)
+void DirtyLogManager::insertDataMissingToDirtyLog(const QString &shv_path)
 {
 	checkDirtyLog(shv_path, false);
 	LogDir log_dir(shv_path);

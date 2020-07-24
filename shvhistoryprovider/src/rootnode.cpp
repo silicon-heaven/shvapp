@@ -1,4 +1,4 @@
-#include "application.h"
+﻿#include "application.h"
 #include "appclioptions.h"
 #include "devicemonitor.h"
 #include "getlogmerge.h"
@@ -14,6 +14,8 @@
 #include <shv/iotqt/node/shvnodetree.h>
 #include <shv/iotqt/rpc/rpc.h>
 #include <shv/core/utils/shvjournalfilereader.h>
+#include <shv/core/utils/shvlogfilereader.h>
+#include <shv/core/utils/shvlogrpcvaluereader.h>
 
 #include <QElapsedTimer>
 
@@ -28,6 +30,7 @@ static const char METH_SET_LOGVERBOSITY[] = "setLogVerbosity";
 static const char METH_TRIM_DIRTY_LOG[] = "trim";
 static const char METH_SANITIZE_LOG_CACHE[] = "sanitizeLogCache";
 static const char METH_CHECK_LOG_CACHE[] = "checkLogCache";
+static const char METH_PUSH_LOG[] = "pushLog";
 
 static std::vector<cp::MetaMethod> root_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE },
@@ -47,13 +50,22 @@ static std::vector<cp::MetaMethod> branch_meta_methods {
 	{ cp::Rpc::METH_GET_LOG, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ },
 };
 
-static std::vector<cp::MetaMethod> leaf_meta_methods {
+static std::vector<cp::MetaMethod> normal_leaf_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE },
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE },
 	{ cp::Rpc::METH_GET_LOG, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ },
 	{ METH_SANITIZE_LOG_CACHE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_SERVICE },
 	{ METH_CHECK_LOG_CACHE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_SERVICE,
 				"Checks state of file cache. Use param {\"withGoodFiles\": true} or 1 to see complete output" },
+};
+
+static std::vector<cp::MetaMethod> push_log_leaf_meta_methods {
+	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE },
+	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE },
+	{ cp::Rpc::METH_GET_LOG, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ },
+	{ METH_CHECK_LOG_CACHE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_SERVICE,
+				"Checks state of file cache. Use param {\"withGoodFiles\": true} or 1 to see complete output" },
+	{ METH_PUSH_LOG, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE },
 };
 
 static std::vector<cp::MetaMethod> dirty_log_meta_methods {
@@ -89,7 +101,10 @@ const std::vector<shv::chainpack::MetaMethod> &RootNode::metaMethods(const shv::
 		else if (!Application::instance()->deviceMonitor()->monitoredDevices().contains(QString::fromStdString(shv_path.join('/')))) {
 			return branch_meta_methods;
 		}
-		return leaf_meta_methods;
+		else if (Application::instance()->deviceMonitor()->isPushLogDevice(QString::fromStdString(shv_path.join('/')))) {
+			return  push_log_leaf_meta_methods;
+		}
+		return normal_leaf_meta_methods;
 	}
 }
 
@@ -141,6 +156,99 @@ cp::RpcValue RootNode::ls(const shv::core::StringViewList &shv_path, size_t inde
 void RootNode::trimDirtyLog(const QString &shv_path)
 {
 	Application::instance()->logSanitizer()->trimDirtyLog(shv_path);
+}
+
+void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &log, int64_t &since, int64_t &until)
+{
+	ShvLogRpcValueReader log_reader(log);
+	LogDir log_dir(shv_path);
+	QDateTime log_since = rpcvalue_cast<QDateTime>(log_reader.logHeader().since());
+	QDateTime log_until = rpcvalue_cast<QDateTime>(log_reader.logHeader().until());
+
+	if (!log_since.isValid() || !log_until.isValid()) {
+		SHV_EXCEPTION("Invalid log - missing since or until");
+	}
+	QStringList matching_files = log_dir.findFiles(log_since, log_until);
+
+	int64_t log_since_ms = log_since.toMSecsSinceEpoch();
+	int64_t log_until_ms = log_until.toMSecsSinceEpoch();
+
+	QVector<ShvJournalEntry> entries_to_prepend;
+	QVector<ShvJournalEntry> entries_to_append;
+
+	if (matching_files.count()) {
+		ShvLogFileReader first_file(matching_files[0].toStdString());
+		if (first_file.logHeader().since().toDateTime().msecsSinceEpoch() < log_since_ms) {
+			while (first_file.next()) {
+				const ShvJournalEntry &entry = first_file.entry();
+				if (entry.epochMsec < log_since_ms) {
+					entries_to_prepend << entry;
+				}
+				else {
+					break;
+				}
+			}
+		}
+		ShvLogFileReader last_file(matching_files.last().toStdString());
+		if (last_file.logHeader().until().toDateTime().msecsSinceEpoch() >= log_until_ms) {
+			while (last_file.next()) {
+				const ShvJournalEntry &entry = first_file.entry();
+				if (entry.epochMsec >= log_until_ms) {
+					entries_to_append << entry;
+				}
+			}
+		}
+	}
+	for (const QString &file : matching_files) {
+		QFile(file).remove();
+	}
+	since = until = log_since.toMSecsSinceEpoch();
+
+	ShvGetLogParams params;
+	params.recordCountLimit = Application::CHUNK_RECORD_COUNT;
+	params.withSnapshot = true;
+	params.withTypeInfo = true;
+
+	bool first_log = log_dir.findFiles(QDateTime(), QDateTime()).count() == 0;
+
+	ShvMemoryJournal output_log(params);
+	auto save_log = [&output_log, &shv_path, &params, &log_dir, &first_log]() {
+		cp::RpcValue log_cp = output_log.getLog(params);
+		if (first_log) {
+			log_cp.setMetaValue("HP", cp::RpcValue::Map{{ "firstLog", true }});
+			first_log = false;
+		}
+//		log_cp.setMetaValue("until", cp::RpcValue::fromValue(until));
+		QDateTime since = rpcvalue_cast<QDateTime>(log_cp.metaValue("since"));
+		QFile file(LogDir(shv_path).filePath(since));
+		if (!file.open(QFile::WriteOnly)) {
+			SHV_QT_EXCEPTION("Cannot open file " + file.fileName());
+		}
+		file.write(QByteArray::fromStdString(log_cp.toChainPack()));
+		file.close();
+		output_log = ShvMemoryJournal(params);
+	};
+
+	auto append_log = [&output_log, &until, &save_log](const ShvJournalEntry &entry) {
+		until = entry.epochMsec;
+		output_log.append(entry);
+		if ((int)output_log.size() >= Application::CHUNK_RECORD_COUNT) {
+			save_log();
+		}
+
+	};
+	for (const ShvJournalEntry &entry : entries_to_prepend) {
+		append_log(entry);
+	}
+	while (log_reader.next()) {
+		append_log(log_reader.entry());
+	}
+	for (const ShvJournalEntry &entry : entries_to_append) {
+		append_log(entry);
+	}
+	if (output_log.size()) {
+		save_log();
+	}
 }
 
 shv::chainpack::RpcValue RootNode::getStartTS(const QString &shv_path)
@@ -199,7 +307,12 @@ shv::chainpack::RpcValue RootNode::callMethod(const shv::iotqt::node::ShvNode::S
 		return true;
 	}
 	else if (method == METH_SANITIZE_LOG_CACHE) {
-		return Application::instance()->logSanitizer()->sanitizeLogCache(QString::fromStdString(shv_path.join('/')), CheckLogTask::CheckType::CheckDirtyLogState);
+		Application *app = Application::instance();
+		QString q_shv_path = QString::fromStdString(shv_path.join('/'));
+		if (app->deviceMonitor()->isPushLogDevice(q_shv_path)) {
+			SHV_QT_EXCEPTION("Cannot sanitize logs on pushLog device");
+		}
+		return app->logSanitizer()->sanitizeLogCache(q_shv_path, CheckLogTask::CheckType::CheckDirtyLogState);
 	}
 	else if (method == METH_CHECK_LOG_CACHE) {
 		bool with_good_files = false;
@@ -260,7 +373,27 @@ shv::chainpack::RpcValue RootNode::callMethod(const shv::iotqt::node::ShvNode::S
 		NecroLog::setTopicsLogTresholds(s);
 		return true;
 	}
-
+	else if (method == METH_PUSH_LOG) {
+		Application *app = Application::instance();
+		QString q_shv_path = QString::fromStdString(shv_path.join('/'));
+		if (!app->deviceMonitor()->isPushLogDevice(q_shv_path)) {
+			SHV_QT_EXCEPTION("Cannot push log to this device");
+		}
+		int64_t since = 0LL;
+		int64_t until = 0LL;
+		std::string err = "success";
+		try {
+			pushLog(q_shv_path, params, since, until);
+		}
+		catch(const std::exception &e) {
+			err = e.what();
+		}
+		cp::RpcValue::Map result;
+		result["since"] = cp::RpcValue::DateTime::fromMSecsSinceEpoch(since);
+		result["until"] = cp::RpcValue::DateTime::fromMSecsSinceEpoch(until);
+		result["msg"] = err;
+		return result;
+	}
 	return Super::callMethod(shv_path, method, params);
 }
 
