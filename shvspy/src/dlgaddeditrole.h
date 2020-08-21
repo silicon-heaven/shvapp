@@ -39,11 +39,10 @@ public:
 	void accept() Q_DECL_OVERRIDE;
 
 private:
-	void callAddRole();
-	void callEditRole();
+	void callSetRoleSettings();
 	void callGetRoleSettings();
 
-	void callSetAccessForRole();
+	void callSetPathsForRole();
 	void callGetPathsForRole();
 
 	shv::chainpack::RpcValue paths();

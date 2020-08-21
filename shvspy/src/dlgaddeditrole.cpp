@@ -64,23 +64,28 @@ void DlgAddEditRole::init(const QString &role_name)
 void DlgAddEditRole::accept()
 {
 	if (dialogType() == DialogType::Add){
-		if (!roleName().isEmpty()){
-			setStatusText(tr("Adding new role ..."));
-			callAddRole();
-		}
-		else {
-			setStatusText(tr("Role name is empty."));
-		}
+		setStatusText(tr("Adding new role ..."));
+		callSetRoleSettings();
 	}
 	else if (dialogType() == DialogType::Edit){
-		callEditRole();
+		setStatusText(tr("Updating role ..."));
+		callSetRoleSettings();
 	}
 }
 
-void DlgAddEditRole::callAddRole()
+void DlgAddEditRole::callSetRoleSettings()
 {
 	if (m_rpcConnection == nullptr)
 		return;
+
+	if (roleName().isEmpty()){
+		setStatusText(tr("Error: role name is empty."));
+		return;
+	}
+	else if (!m_accessModel.rules().isValid()){
+		setStatusText(tr("Error: paths must be a valid Cpon."));
+		return;
+	}
 
 	int rqid = m_rpcConnection->nextRequestId();
 	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
@@ -88,41 +93,15 @@ void DlgAddEditRole::callAddRole()
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if (response.isValid()){
 			if(response.isError()) {
-				setStatusText(tr("Failed to add role.") + QString::fromStdString(response.error().toString()));
+				setStatusText(tr("Failed:") + QString::fromStdString(response.error().toString()));
 			}
 			else{
-				callSetAccessForRole();
-			}
-		}
-		else{
-			setStatusText(tr("Request timeout expired"));
-		}
-	});
+				setStatusText(QString());
 
-	m_role.roles = roles();
-	m_role.weight = weight();
-
-	shv::chainpack::RpcValue::List params{roleName().toStdString(), m_role.toRpcValueMap()};
-	m_rpcConnection->callShvMethod(rqid, aclEtcRoleNodePath(), SET_VALUE_METHOD, params);
-}
-
-void DlgAddEditRole::callEditRole()
-{
-	if (m_rpcConnection == nullptr)
-		return;
-
-	setStatusText(tr("Updating role ..."));
-
-	int rqid = m_rpcConnection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
-
-	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
-		if (response.isValid()){
-			if(response.isError()) {
-				setStatusText(tr("Failed to edit role.") + QString::fromStdString(response.error().toString()));
-			}
-			else{
-				callSetAccessForRole();
+				if (m_accessModel.rules().count() > 0)
+					callSetPathsForRole();
+				else
+					QDialog::accept();
 			}
 		}
 		else{
@@ -195,15 +174,11 @@ void DlgAddEditRole::callGetPathsForRole()
 	m_rpcConnection->callShvMethod(rqid, accessShvPath(), VALUE_METHOD);
 }
 
-shv::chainpack::RpcValue DlgAddEditRole::paths()
+void DlgAddEditRole::callSetPathsForRole()
 {
-	return m_accessModel.rules();
-}
-
-void DlgAddEditRole::callSetAccessForRole()
-{
-	if (m_rpcConnection == nullptr)
+	if (m_rpcConnection == nullptr) {
 		return;
+	}
 
 	setStatusText(tr("Updating paths ..."));
 
@@ -226,6 +201,11 @@ void DlgAddEditRole::callSetAccessForRole()
 
 	shv::chainpack::RpcValue::List params{roleName().toStdString(), paths()};
 	m_rpcConnection->callShvMethod(rqid, aclEtcAcessNodePath(), SET_VALUE_METHOD, params);
+}
+
+shv::chainpack::RpcValue DlgAddEditRole::paths()
+{
+	return m_accessModel.rules();
 }
 
 std::vector<std::string> DlgAddEditRole::roles()

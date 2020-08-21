@@ -30,11 +30,9 @@ public:
 	void accept() Q_DECL_OVERRIDE;
 
 private:
-	void callAddMount();
+	void callSetMountSettings();
 	void callEditMount();
 	void callGetMountSettings();
-
-	QString mountName();
 
 	std::string aclEtcMountNodePath();
 	std::string mountShvPath();

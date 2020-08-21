@@ -17,7 +17,7 @@ DlgAddEditMount::DlgAddEditMount(QWidget *parent, shv::iotqt::rpc::ClientConnect
 	m_dialogType = dt;
 	bool edit_mode = (m_dialogType == DialogType::Edit);
 
-	ui->leMountName->setReadOnly(edit_mode);
+	ui->leDeviceId->setReadOnly(edit_mode);
 	ui->groupBox->setTitle(edit_mode ? tr("Edit mount") : tr("New mount"));
 	setWindowTitle(edit_mode ? tr("Edit mount dialog") : tr("New mount dialog"));
 
@@ -36,30 +36,35 @@ DlgAddEditMount::DialogType DlgAddEditMount::dialogType()
 	return m_dialogType;
 }
 
-void DlgAddEditMount::init(const QString &mount_name)
+void DlgAddEditMount::init(const QString &device_id)
 {
-	ui->leMountName->setText(mount_name);
+	ui->leDeviceId->setText(device_id);
 	callGetMountSettings();
 }
 
 void DlgAddEditMount::accept()
 {
 	if (dialogType() == DialogType::Add){
-		if (!mountName().isEmpty()){
-			setStatusText(tr("Adding new mount ..."));
-			callAddMount();
-		}
-		else {
-			setStatusText(tr("Mount name is empty."));
-		}
+		setStatusText(tr("Adding new mount ..."));
+		callSetMountSettings();
 	}
 	else if (dialogType() == DialogType::Edit){
-		callEditMount();
+		setStatusText(tr("Updating mount definition ..."));
+		callSetMountSettings();
 	}
 }
 
-void DlgAddEditMount::callAddMount()
+void DlgAddEditMount::callSetMountSettings()
 {
+	if (ui->leDeviceId->text().isEmpty()){
+		setStatusText(tr("Error: device id is empty."));
+		return;
+	}
+	else if (ui->leMountPoint->text().isEmpty()){
+		setStatusText(tr("Error: mount point is empty."));
+		return;
+	}
+
 	if (m_rpcConnection == nullptr)
 		return;
 
@@ -69,7 +74,10 @@ void DlgAddEditMount::callAddMount()
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if (response.isValid()){
 			if(response.isError()) {
-				setStatusText(tr("Failed to add mount.") + QString::fromStdString(response.error().toString()));
+				setStatusText(tr("Failed: ") + QString::fromStdString(response.error().toString()));
+			}
+			else{
+				QDialog::accept();
 			}
 		}
 		else{
@@ -80,35 +88,7 @@ void DlgAddEditMount::callAddMount()
 	m_mount.mountPoint = ui->leMountPoint->text().toStdString();
 	m_mount.description = ui->leDescription->text().toStdString();
 
-	shv::chainpack::RpcValue::List params{mountName().toStdString(), m_mount.toRpcValueMap()};
-	m_rpcConnection->callShvMethod(rqid, aclEtcMountNodePath(), SET_VALUE_METHOD, params);
-}
-
-void DlgAddEditMount::callEditMount()
-{
-	if (m_rpcConnection == nullptr)
-		return;
-
-	setStatusText(tr("Updating mount definition..."));
-
-	int rqid = m_rpcConnection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
-
-	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
-		if (response.isValid()){
-			if(response.isError()) {
-				setStatusText(tr("Failed to edit mount definition.") + QString::fromStdString(response.error().toString()));
-			}
-		}
-		else{
-			setStatusText(tr("Request timeout expired"));
-		}
-	});
-
-	m_mount.mountPoint = ui->leMountPoint->text().toStdString();
-	m_mount.description = ui->leDescription->text().toStdString();
-
-	shv::chainpack::RpcValue::List params{mountName().toStdString(), m_mount.toRpcValueMap()};
+	shv::chainpack::RpcValue::List params{ui->leDeviceId->text().toStdString(), m_mount.toRpcValueMap()};
 	m_rpcConnection->callShvMethod(rqid, aclEtcMountNodePath(), SET_VALUE_METHOD, params);
 }
 
@@ -140,11 +120,6 @@ void DlgAddEditMount::callGetMountSettings()
 	m_rpcConnection->callShvMethod(rqid, mountShvPath(), VALUE_METHOD);
 }
 
-QString DlgAddEditMount::mountName()
-{
-	return ui->leMountName->text();
-}
-
 std::string DlgAddEditMount::aclEtcMountNodePath()
 {
 	return m_aclEtcNodePath + "/mounts";
@@ -152,7 +127,7 @@ std::string DlgAddEditMount::aclEtcMountNodePath()
 
 std::string DlgAddEditMount::mountShvPath()
 {
-	return aclEtcMountNodePath() + '/' + mountName().toStdString();
+	return aclEtcMountNodePath() + '/' + ui->leDeviceId->text().toStdString();
 }
 
 void DlgAddEditMount::setStatusText(const QString &txt)
