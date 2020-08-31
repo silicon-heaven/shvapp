@@ -97,6 +97,7 @@ bool AccessModel::setData(const QModelIndex &ix, const QVariant &val, int role)
 			std::string cpon = val.toString().toStdString();
 			std::string err;
 			shv::chainpack::RpcValue rv = cp::RpcValue::fromCpon(cpon, &err);
+
 			if(err.empty()) {
 				rule.grant = shv::chainpack::AccessGrant::fromRpcValue(rv);
 			}
@@ -145,5 +146,15 @@ void AccessModel::deleteRule(int index)
 		m_rules.erase(m_rules.begin() + index);
 		endResetModel();
 	}
+}
+
+bool AccessModel::isRulesValid()
+{
+	for (int i = 0; i < rowCount(); i++){
+		if (!m_rules[i].isValid())
+			return false;
+	}
+
+	return true;
 }
 

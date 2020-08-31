@@ -28,6 +28,7 @@ public:
 	QVariant headerData (int section, Qt::Orientation orientation, int role = Qt::DisplayRole ) const Q_DECL_OVERRIDE;
 	void addRule();
 	void deleteRule(int index);
+	bool isRulesValid();
 
 private:
 	shv::broker::AclRoleAccessRules m_rules;

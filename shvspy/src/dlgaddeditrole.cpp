@@ -63,6 +63,11 @@ void DlgAddEditRole::init(const QString &role_name)
 
 void DlgAddEditRole::accept()
 {
+	if (!m_accessModel.isRulesValid()){
+		setStatusText(tr("Invalid paths."));
+		return;
+	}
+
 	if (dialogType() == DialogType::Add){
 		setStatusText(tr("Adding new role ..."));
 		callSetRoleSettings();
@@ -96,12 +101,7 @@ void DlgAddEditRole::callSetRoleSettings()
 				setStatusText(tr("Failed:") + QString::fromStdString(response.error().toString()));
 			}
 			else{
-				setStatusText(QString());
-
-				if (m_accessModel.rules().count() > 0)
-					callSetPathsForRole();
-				else
-					QDialog::accept();
+				callSetPathsForRole();
 			}
 		}
 		else{
