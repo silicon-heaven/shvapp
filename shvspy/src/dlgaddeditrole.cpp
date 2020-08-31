@@ -36,12 +36,16 @@ DlgAddEditRole::DlgAddEditRole(QWidget *parent, shv::iotqt::rpc::ClientConnectio
 	ui->tvPaths->verticalHeader()->setDefaultSectionSize(static_cast<int>(fontMetrics().height() * 1.3));
 	ui->tvPaths->setColumnWidth(AccessModel::Columns::ColPath, frameGeometry().width() * 0.6);
 
+	AccessItemDelegate *del = new AccessItemDelegate(ui->tvPaths);
+	ui->tvPaths->setItemDelegate(del);
+	connect(del, &AccessItemDelegate::inputDataError, this, &DlgAddEditRole::setStatusText);
+
 	connect(ui->tbAddRow, &QToolButton::clicked, this, &DlgAddEditRole::onAddRowClicked);
 	connect(ui->tbDeleteRow, &QToolButton::clicked, this, &DlgAddEditRole::onDeleteRowClicked);
 
 	m_rpcConnection = rpc_connection;
 
-	setStatusText((m_rpcConnection == nullptr)? tr("Connection to shv does not exist."): QString());
+	setStatusText((m_rpcConnection == nullptr) ? tr("Connection to shv does not exist."): QString());
 }
 
 DlgAddEditRole::~DlgAddEditRole()
@@ -67,6 +71,8 @@ void DlgAddEditRole::accept()
 		setStatusText(tr("Invalid paths."));
 		return;
 	}
+
+	setStatusText(QString());
 
 	if (dialogType() == DialogType::Add){
 		setStatusText(tr("Adding new role ..."));

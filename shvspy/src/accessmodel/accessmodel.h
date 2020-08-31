@@ -12,6 +12,7 @@ private:
 	typedef QAbstractTableModel Super;
 public:
 	enum Columns {ColPath = 0, ColMethod, ColGrant, ColCount};
+	static QString columnName(int col);
 
 public:
 	AccessModel(QObject *parent = nullptr);

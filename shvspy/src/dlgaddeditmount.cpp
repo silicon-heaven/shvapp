@@ -56,11 +56,11 @@ void DlgAddEditMount::accept()
 
 void DlgAddEditMount::callSetMountSettings()
 {
-	if (ui->leDeviceId->text().isEmpty()){
+	if (ui->leDeviceId->text().trimmed().isEmpty()){
 		setStatusText(tr("Error: device id is empty."));
 		return;
 	}
-	else if (ui->leMountPoint->text().isEmpty()){
+	else if (ui->leMountPoint->text().trimmed().isEmpty()){
 		setStatusText(tr("Error: mount point is empty."));
 		return;
 	}

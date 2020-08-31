@@ -2,6 +2,7 @@
 #define DLGADDEDITROLE_H
 
 #include "accessmodel/accessmodel.h"
+#include "accessmodel/accessitemdelegate.h"
 
 #include "shv/chainpack/rpcvalue.h"
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
