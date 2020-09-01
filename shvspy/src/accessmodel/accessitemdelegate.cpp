@@ -2,8 +2,6 @@
 #include "accessmodel.h"
 
 #include <QLineEdit>
-#include <shv/core/log.h>
-
 
 AccessItemDelegate::AccessItemDelegate(QObject *parent)
 	: QStyledItemDelegate(parent)
@@ -13,44 +11,45 @@ AccessItemDelegate::AccessItemDelegate(QObject *parent)
 
 QWidget *AccessItemDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
+	Q_UNUSED(option);
+	Q_UNUSED(index);
+
 	QLineEdit *editor = new QLineEdit(parent);
 	return editor;
 }
 
-void AccessItemDelegate::setEditorData(QWidget *editor, const QModelIndex &index) const
-{
-	Super::setEditorData(editor, index);
-}
-
 void AccessItemDelegate::setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const
 {
-	if (index.isValid()){
-		QLineEdit *e = qobject_cast<QLineEdit*>(editor);
-		if (e){
-			std::string val = e->text().trimmed().toStdString();
+	QLineEdit *e = qobject_cast<QLineEdit*>(editor);
+	if (index.isValid() && e){
+		std::string val = e->text().trimmed().toStdString();
 
-			if (index.column() == AccessModel::Columns::ColGrant){
-				std::string err;
-				shv::chainpack::RpcValue rv = shv::chainpack::RpcValue::fromCpon(val, &err);
+		if (index.column() == AccessModel::Columns::ColGrant){
+			std::string err;
+			shv::chainpack::RpcValue rv = shv::chainpack::RpcValue::fromCpon(val, &err);
 
-				if (err.empty()){
-					model->setData(index, qobject_cast<QLineEdit*>(editor)->text(), Qt::EditRole);
-					emit inputDataError(QString());
-				}
-				else
-					emit inputDataError(tr("Invalid data for column") + " " + AccessModel::columnName(index.column()) + " " + tr("It must be a valid chainpack. For exmaple \"cmd\""));
+			if (err.empty()){
+				model->setData(index, qobject_cast<QLineEdit*>(editor)->text(), Qt::EditRole);
+				emit inputDataError(QString());
 			}
-			else if (index.column() == AccessModel::Columns::ColPath){
-				if (!val.empty()){
-					model->setData(index, qobject_cast<QLineEdit*>(editor)->text(), Qt::EditRole);
-					emit inputDataError(QString());
-				}
-				else
-					emit inputDataError(tr("Invalid data for column") + " " + AccessModel::columnName(index.column()));
-			}
+			else
+				emit inputDataError(tr("Error: column") + " " + AccessModel::columnName(index.column()) + " " + tr("is not valid chainpack.") + " " + tr("For exmaple \"cmd\""));
 		}
+		else if (index.column() == AccessModel::Columns::ColPath){
+			if (!val.empty()){
+				model->setData(index, qobject_cast<QLineEdit*>(editor)->text(), Qt::EditRole);
+				emit inputDataError(QString());
+			}
+			else
+				emit inputDataError(tr("Error: column") + " " + AccessModel::columnName(index.column()) + " " + tr("is empty."));
+		}
+		else if (index.column() == AccessModel::Columns::ColMethod){
+			model->setData(index, qobject_cast<QLineEdit*>(editor)->text(), Qt::EditRole);
+			emit inputDataError(QString());
+		}
+		else
+			Super::setModelData(editor, model, index);
 	}
-	else {
+	else
 		Super::setModelData(editor, model, index);
-	}
 }

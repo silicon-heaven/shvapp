@@ -31,7 +31,6 @@ public:
 
 private:
 	void callSetMountSettings();
-	void callEditMount();
 	void callGetMountSettings();
 
 	std::string aclEtcMountNodePath();

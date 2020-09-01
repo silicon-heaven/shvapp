@@ -45,7 +45,7 @@ DlgAddEditRole::DlgAddEditRole(QWidget *parent, shv::iotqt::rpc::ClientConnectio
 
 	m_rpcConnection = rpc_connection;
 
-	setStatusText((m_rpcConnection == nullptr) ? tr("Connection to shv does not exist."): QString());
+	setStatusText((m_rpcConnection == nullptr) ? tr("Connection to shv does not exist.") : QString());
 }
 
 DlgAddEditRole::~DlgAddEditRole()
@@ -68,7 +68,7 @@ void DlgAddEditRole::init(const QString &role_name)
 void DlgAddEditRole::accept()
 {
 	if (!m_accessModel.isRulesValid()){
-		setStatusText(tr("Invalid paths."));
+		setStatusText(tr("Error: paths are invalid."));
 		return;
 	}
 
