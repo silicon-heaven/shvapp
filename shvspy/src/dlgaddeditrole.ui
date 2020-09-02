@@ -129,7 +129,7 @@
     </widget>
    </item>
    <item>
-    <widget class="QGroupBox" name="gbPaths">
+    <widget class="QGroupBox" name="gbAccessRules">
      <property name="font">
       <font>
        <weight>75</weight>
@@ -137,7 +137,7 @@
       </font>
      </property>
      <property name="title">
-      <string>Paths</string>
+      <string>Access rules</string>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_5">
       <property name="spacing">
@@ -156,7 +156,7 @@
        <number>9</number>
       </property>
       <item>
-       <widget class="AccessPathsView" name="tvPaths">
+       <widget class="QTableView" name="tvAccessRules">
         <property name="font">
          <font>
           <weight>50</weight>
@@ -264,13 +264,6 @@
    </item>
   </layout>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>AccessPathsView</class>
-   <extends>QTableView</extends>
-   <header>src/dlgaddeditrole.h</header>
-  </customwidget>
- </customwidgets>
  <resources>
   <include location="../shvspy.qrc"/>
  </resources>

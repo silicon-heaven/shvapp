@@ -16,15 +16,6 @@ namespace Ui {
 class DlgAddEditRole;
 }
 
-class AccessPathsView : public QTableView
-{
-	using Super = QTableView;
-public:
-	explicit AccessPathsView(QWidget *parent = nullptr) : Super(parent) {}
-protected:
-	void commitData(QWidget *editor) override;
-};
-
 class DlgAddEditRole : public QDialog
 {
 	Q_OBJECT
@@ -43,10 +34,8 @@ private:
 	void callSetRoleSettings();
 	void callGetRoleSettings();
 
-	void callSetPathsForRole();
-	void callGetPathsForRole();
-
-	shv::chainpack::RpcValue paths();
+	void callSetAccessRulesForRole();
+	void callGetAccessRulesForRole();
 
 	std::vector<std::string> roles();
 	void setRoles(const std::vector<std::string> &roles);

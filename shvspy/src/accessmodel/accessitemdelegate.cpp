@@ -2,6 +2,7 @@
 #include "accessmodel.h"
 
 #include <QLineEdit>
+#include <QMessageBox>
 
 AccessItemDelegate::AccessItemDelegate(QObject *parent)
 	: QStyledItemDelegate(parent)
@@ -30,22 +31,23 @@ void AccessItemDelegate::setModelData(QWidget *editor, QAbstractItemModel *model
 
 			if (err.empty()){
 				model->setData(index, qobject_cast<QLineEdit*>(editor)->text(), Qt::EditRole);
-				emit inputDataError(QString());
 			}
-			else
-				emit inputDataError(tr("Error: column") + " " + AccessModel::columnName(index.column()) + " " + tr("is not valid chainpack.") + " " + tr("For exmaple \"cmd\""));
+			else{
+				QString warn =tr("In column") + " " + AccessModel::columnName(index.column()) + " " + tr("is not valid chainpack.") + " " + tr("For exmaple \"cmd\"");
+				QMessageBox::warning(editor, tr("Invalid data"), warn);
+			}
 		}
 		else if (index.column() == AccessModel::Columns::ColPath){
 			if (!val.empty()){
 				model->setData(index, qobject_cast<QLineEdit*>(editor)->text(), Qt::EditRole);
-				emit inputDataError(QString());
 			}
-			else
-				emit inputDataError(tr("Error: column") + " " + AccessModel::columnName(index.column()) + " " + tr("is empty."));
+			else{
+				QString warn =tr("Column") + " " + AccessModel::columnName(index.column()) + " " + tr("is empty.");
+				QMessageBox::warning(editor, tr("Invalid data"), warn);
+			}
 		}
 		else if (index.column() == AccessModel::Columns::ColMethod){
 			model->setData(index, qobject_cast<QLineEdit*>(editor)->text(), Qt::EditRole);
-			emit inputDataError(QString());
 		}
 		else
 			Super::setModelData(editor, model, index);

@@ -13,8 +13,6 @@ public:
 
 	QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const Q_DECL_OVERRIDE;
 	void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const Q_DECL_OVERRIDE;
-
-	Q_SIGNAL void inputDataError(const QString &err) const;
 };
 
 #endif // ACCESSITEMDELEGATE_H
