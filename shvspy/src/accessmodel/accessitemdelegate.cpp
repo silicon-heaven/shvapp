@@ -33,8 +33,8 @@ void AccessItemDelegate::setModelData(QWidget *editor, QAbstractItemModel *model
 				model->setData(index, qobject_cast<QLineEdit*>(editor)->text(), Qt::EditRole);
 			}
 			else{
-				QString warn =tr("In column") + " " + AccessModel::columnName(index.column()) + " " + tr("is not valid chainpack.") + " " + tr("For exmaple \"cmd\"");
-				QMessageBox::warning(editor, tr("Invalid data"), warn);
+				QString msg =tr("In column") + " " + AccessModel::columnName(index.column()) + " " + tr("is not valid chainpack.") + " " + tr("For exmaple \"cmd\"");
+				QMessageBox::critical(editor, tr("Invalid data"), msg);
 			}
 		}
 		else if (index.column() == AccessModel::Columns::ColPath){
@@ -42,8 +42,8 @@ void AccessItemDelegate::setModelData(QWidget *editor, QAbstractItemModel *model
 				model->setData(index, qobject_cast<QLineEdit*>(editor)->text(), Qt::EditRole);
 			}
 			else{
-				QString warn =tr("Column") + " " + AccessModel::columnName(index.column()) + " " + tr("is empty.");
-				QMessageBox::warning(editor, tr("Invalid data"), warn);
+				QString msg =tr("Column") + " " + AccessModel::columnName(index.column()) + " " + tr("is empty.");
+				QMessageBox::critical(editor, tr("Invalid data"), msg);
 			}
 		}
 		else if (index.column() == AccessModel::Columns::ColMethod){

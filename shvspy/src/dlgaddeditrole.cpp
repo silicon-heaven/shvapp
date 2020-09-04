@@ -57,11 +57,11 @@ void DlgAddEditRole::init(const QString &role_name)
 void DlgAddEditRole::accept()
 {
 	if (roleName().isEmpty()){
-		QMessageBox::warning(this, tr("Invalid data"), tr("Error: role name is empty."));
+		QMessageBox::critical(this, tr("Invalid data"), tr("Role name is empty."));
 		return;
 	}
 	else if (!m_accessModel.isRulesValid()){
-		QMessageBox::warning(this, tr("Invalid data"), 	tr("Access rules are invalid."));
+		QMessageBox::critical(this, tr("Invalid data"), 	tr("Access rules are invalid."));
 		return;
 	}
 

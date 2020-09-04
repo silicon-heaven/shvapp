@@ -55,5 +55,5 @@ void SubscriptionsWidget::onSubscriptionAddError(int broker_id, const std::strin
 {
 	Q_UNUSED(broker_id);
 	QString msg = tr("Error:") + " " + QString::fromStdString(error_msg) + " " + QString::number(broker_id) + " " + tr("shv path:") + " " + QString::fromStdString(shv_path);
-	QMessageBox::warning(this, tr("Failed to add subsription"), msg);
+	QMessageBox::critical(this, tr("Failed to add subsription"), msg);
 }
