@@ -1,0 +1,282 @@
+<style>
+body {
+  font: 16px Arial, sans-serif;
+}
+
+div.configForm {
+  width:100%; 
+  display:none;
+}
+
+div.configForm input {
+  width: 90%;
+  background-color: white;
+  border: 1px solid gray;
+  color: black;
+  padding: 4px 10px;
+  text-align: left;
+  margin: 0px 2px 4px 0px;
+  font-size: 14px;
+}
+
+div.configForm select {
+  width: 200px;
+  background-color: white;
+  border: 1px solid gray;
+  color: black;
+  padding: 4px 10px;
+  text-align: left;
+  margin: 0px 2px 4px 0px;
+  font-size: 14px;
+}
+
+div.configForm p {
+  font-size: 14px;
+  text-align: left;
+  padding-left: 30%;
+  margin-left: 20px;
+  color: gray;
+  font-weight: bold;
+}
+
+div.configForm label {
+  font-size: 14px;
+  margin-top: 5px;
+  margin-bottom: 0px;
+}
+
+div.configForm span {
+  background-color: none;
+  border: none;
+  color: black;
+  text-align: left;
+  padding: 4px 10px;
+  font-size: 16px;
+  margin: 0px 2px 20px 0px;
+  cursor: pointer;
+}
+
+div.configForm button {
+  background-color: #1b5c29;
+  border: none;
+  color: white;
+  padding: 4px 10px;
+  text-align: center;
+  font-size: 14px;
+  margin: 0px 2px 4px 0px;
+  cursor: pointer;
+  min-width: 34px;
+}
+
+div.configForm h2 {
+  text-align: left;
+  font-size: 20px;
+  margin-top: 16px;
+  margin-bottom: 8px;
+}
+
+div.configForm h3 {
+  text-align: left;
+  font-size: 18px;
+    margin-top: 16px;
+  margin-bottom: 8px;
+}
+
+
+* {
+  box-sizing: border-box;
+}
+
+div.loginForm {
+  display:block;  
+  align:center;
+}
+
+div.loginForm h1 {
+  text-align: center;
+  font-size: 22px;
+  margin-top: 128px;
+  margin-bottom: 32px;
+}
+
+div.loginForm div {
+  width: min-content; 
+  text-align:left;
+}
+
+div.loginForm label {
+  border: none;
+  color: black;
+  text-align: left;
+  font-size: 14px;
+}
+
+div.loginForm input {
+  width: 200px;
+  background-color: white;
+  border: 1px solid gray;
+  color: black;
+  padding: 4px 10px;
+  text-align: left;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+div.loginForm button {
+  background-color: #1b5c29;
+  border: none;
+  color: white;
+  padding: 4px 10px;
+  text-align: center;
+  font-size: 14px;
+  margin: 0px 2px 4px 0px;
+  cursor: pointer;
+  min-width: 200px;
+}
+
+.log {
+  width:100%;
+  background-color:white; 
+  color:black;
+}
+
+.separator {
+  height: 5px;
+}
+
+.header {
+  padding: 10px 0;
+  text-align: center;
+  background: #1b5c29;
+  color: white;
+}
+
+.path {
+  /*padding: 2px 0;*/
+  text-align: center;
+  background: #1b5c29;
+  color: white;
+}
+
+div.path {
+  font-size: 18px;
+  margin-top: 0px;
+  margin-bottom: 4px;
+}
+
+div.header img {
+  height: 52px;
+  margin-top: -10px;
+}
+
+div.header label {
+  font-size: 24px;
+  margin-top: 5px;
+  margin-bottom: 0px;
+}
+
+.columnHeader {                   
+  float: left;
+  height: 32px;
+}
+
+.column {
+  text-align: left;
+  float: left;
+  padding: 10px;
+  height: 30px;
+}
+
+.c1, .c2, .c3 {
+  width: 25%;
+}
+
+.c4 {
+  width: 10%;
+}
+
+.c5 {
+  width: 15%;
+}
+
+.c6 {
+  width: 5%;
+}
+
+.c7 {
+  width: 30%;
+}
+
+.c8 {
+  width: 40%;
+}
+
+.c9 {
+  width: 20%;
+}
+
+.c10 {
+  width: 70%;
+}
+
+.left {
+  align: left;
+  width: 90%;
+}
+
+.right {
+  align: right;
+  width: 10%;
+}
+
+.row:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+.nowrap {
+  white-space: nowrap ;
+}
+
+.alert {
+  padding: 10px;
+  background-color: #f44336;
+  color: white;
+  opacity: 0.75;
+  transition: opacity 0.1s;
+  margin-bottom: 5px;
+}
+
+.alert.success {background-color: #4CAF50;}
+.alert.info {background-color: #2196F3;}
+.alert.warning {background-color: #ff9800;}
+
+.closebtn {
+  margin-left: 15px;
+  color: white;
+  font-weight: bold;
+  float: right;
+  font-size: 16px;
+  line-height: 10px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.closebtn:hover {
+  color: black;
+}
+
+.btn {
+  background-color: #1b5c29;
+  border: none;
+  color: white;
+  cursor: pointer;
+  text-align: center;
+}
+
+.btn:hover {
+  background-color: #66c37a;
+}
+
+</style>

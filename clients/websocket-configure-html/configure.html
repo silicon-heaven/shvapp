@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel="stylesheet" type="text/css" href="style.css">
+
+  <title>WebSocketConfigure</title>
+  <meta charset="utf-8">
+  <script type="text/javascript" src="../../3rdparty/libshv/libshvchainpack/js/rpcvalue.js"></script>
+  <script type="text/javascript" src="../../3rdparty/libshv/libshvchainpack/js/cpcontext.js"></script>
+  <script type="text/javascript" src="../../3rdparty/libshv/libshvchainpack/js/chainpack.js"></script>
+  <script type="text/javascript" src="../../3rdparty/libshv/libshvchainpack/js/cpon.js"></script>
+  <script type="text/javascript" src="../../3rdparty/libshv/libshvchainpack/js/bint.js"></script>
+  <script type="text/javascript" src="../../3rdparty/libshv/libshvchainpack/js/rpcmessage.js"></script>
+  <script type="text/javascript" src="scripts.js"></script>
+</head>
+
+<body>
+  <div class='header'>
+    <div class='row'>
+      <label class='columnHeader c5'><img src="./images/elektroline.svg"></img></label>
+      <label class='columnHeader c10'>Predator configurator</label>
+      <label class='columnHeader c5'></label>
+    </div>
+  </div>
+  <div class='path'>
+    <div class='row'>
+      <label id="onPath"></label>
+    </div>
+  </div>
+
+  <div class="loginForm" id="onHideShvConnected" align="center">
+      <div>
+        <h1>Shv Login</h1>
+        <label>User:</label>
+        <input type="text" id="shvUser" />
+        <label>Password:</label>
+        <input type="password" id="shvPassword" onkeydown="if(event.keyCode==13)initWebSocket(false);" />
+        <label>Url:</label>
+        <input list="uris" id="wsUri" onkeydown="if(event.keyCode==13)initWebSocket(false);">
+        <datalist id="uris">
+          <option value="ws://192.168.6.2:3777">local usb connection (3777)</option>
+          <option value="wss://nirvana.elektroline.cz:3778">nirvana.elektroline.cz (3778)</option>
+        </datalist>
+        <label>Path:</label><br /><input type="text" id="shvPath" onkeydown="if(event.keyCode==13)initWebSocket(false);" />          
+        <button id='lblState' class='btn' style='margin-top: 5px'onClick="initWebSocket(false);">Connect</button>
+      </div> 
+  </div>
+
+  <div class="configForm" id="onShowShvConnected">
+    <button class='btn' onClick="stopWebSocket();">Disconnect</button>
+    <button class='btn' onClick='load();'>Reload</button>
+    <button class='btn' onClick='restartDevice();'>Restart Device</button>
+    <button class='btn' id="webConfigureOutputBtn" onClick='changeWebConfigureOutputVisibility();'>Show output</button>
+    <button class='btn' id="webConfigureCleanOutputBtn" style='visibility: hidden;' onclick='cleanOutput();'>Clean output</button>        
+    <button id="packagesUpgradeBtn" style='visibility: hidden;' onClick='upgrade'>Upgrade</button>
+    <button class='btn' onClick='cleanAlertsField();'>Clean alerts</button>
+
+    <div id="alerts" style="width:100%"></div>
+    <div id="webConfigureOutput" style="display:none;">
+      <textarea class="log" id="callShvMethodOutput" name="post" maxlength="5000" rows="10"></textarea>
+    </div>
+    <h3>Status:</h3>
+    <div id="statusField" style="width:100%">
+      <div class='row'>
+        <div class='column c7'><span>Packages status:</span></div>
+        <div class='column c8'><span id="packagesStatus"></span></div>
+      </div>
+    </div>
+    <h3>Device configuration:</h3>
+    <div id="configurationField" style="width:100%">
+    </div>
+    <h3>Installed applications:</h3>
+    <div id="applicationsField"><p></p></div>
+    <br/>
+    <h3>Available applications:</h3>
+    <div id="availableApplicationsField"><p></p></div>
+  </div>
+
+  <script type="text/javascript">
+    const format = (...args) => args.shift().replace(/%([jsd])/g, x => x === '%j' ? JSON.stringify(args.shift()) : args.shift());
+    let requestIdList = new Array();
+    setTimeout(timeout, 1000);
+
+    function clean(id)
+    {
+      var list = ["result"];
+      list.forEach(function(value) {
+        var e = document.getElementById(setPostfix(id, value));
+        if (e != null) {
+          e.innerHTML = "";
+        }
+      });
+    }
+
+    function cleanOutput()
+    {
+      document.getElementById("callShvMethodOutput").innerHTML=""
+      document.getElementById("callShvMethodOutput").value=""
+    }
+
+    function upgrade() 
+    {
+      //callShvMethod("apt", agentPath, "runCmd", "\"sudo systemctl start shv-upgrade\"", 20000, null)
+      params = "[1, \""+upgrade+"\",  2]";
+      callShvMethod("", agentPath, "runScript", params, 30000, null);
+    }
+
+    function changeWebConfigureOutputVisibility()
+    {
+        var clean = document.getElementById("webConfigureCleanOutputBtn");
+        var e = document.getElementById("webConfigureOutput");
+        if (e.style.display == "none") {
+          e.style.display = "block";
+          clean.style.visibility = "visible";
+          document.getElementById("webConfigureOutputBtn").innerHTML = "Hide output";
+        }
+        else {
+          e.style.display = "none";
+          clean.style.visibility = "hidden";
+          document.getElementById("webConfigureOutputBtn").innerHTML = "Show output";
+        }
+        var e = document.getElementById("callShvMethodOutput"); 
+        e.scrollTop = e.scrollHeight;
+    }
+
+    function change(id)
+    {
+      var list = ["change", "button", "cancel", "input"];
+      list.forEach(function(value) {
+        var e = document.getElementById(setPostfix(id, value));
+        if (e.style.display == "none") {
+          e.style.display = "block";
+        }
+        else {
+          e.style.display = "none";
+        }
+      });
+    }
+
+    function changeVisibility(id)
+    {
+      var list = ["value", "change", "button", "cancel"];
+      list.forEach(function(value) {
+        var e = document.getElementById(setPostfix(id, value));
+        if (e.style.visibility == "hidden") {
+          e.style.visibility = "visible";
+        }
+        else {
+          e.style.visibility = "hidden";
+        }
+      });
+    }
+
+    function timeout()
+    {
+      var date_now = Date.now();
+      for (index = 0; index < requestIdList.length; index++) {
+          if ((date_now - requestIdList[index].date) > requestIdList[index].timeout) {
+              requestIdList[index].fn.call(this, "Timeout", 2);
+              requestIdList.splice(index, 1);
+          }
+      }
+      setTimeout(timeout, 1000);
+    }
+
+    function prettifyString(str)
+    {
+      str = str.toString();
+      str = str.replace(/\\0$/g, '');
+      str = str.replace(/\\0/g, '\n');
+      str = str.replace(/^\"/, '');
+      str = str.replace(/\"$/, '');
+      str = str.replace(/\"\"/, '');
+      return str;
+    }
+
+    function setPrefix(prefix, id)
+    {
+      return prefix + id[0].toUpperCase() + id.substring(1, id.length);;
+    }
+
+    function setPostfix(id, postfix)
+    {
+      if (postfix.length == 0) {
+        return id;
+      }
+      else {
+        return id + postfix[0].toUpperCase() + postfix.substring(1, postfix.length);
+      }
+    }
+
+    function applicationLoadingInProgress(value) 
+    {
+      var text = "Loading in progress ...";
+      var e = document.getElementById("applicationsField").children;
+      if (e.length > 1) {
+        text = "Reloading in progress ...";
+      }
+
+      if (value) {
+        document.getElementById("applicationsField").firstElementChild.innerHTML = text;
+        document.getElementById("availableApplicationsField").firstElementChild.innerHTML = text;
+      } else {
+        document.getElementById("applicationsField").firstElementChild.innerHTML = "";
+        document.getElementById("availableApplicationsField").firstElementChild.innerHTML = "";   
+      }
+    }
+
+    function restartDevice()
+    {
+      showAlert('warning', 'Device will be restarted.');
+      setTimeout(function(){ callShvMethod("apt", agentPath, "runCmd", "\"sudo systemctl reboot\"", 5000, null); }, 2000);
+      setTimeout(function(){ stopWebSocket(); }, 5000);
+    }
+
+    function status()
+    {
+      s = document.getElementById("status");
+      if ( s != null) {
+        document.getElementById("status").remove();
+      }
+      s = document.createElement('div');
+      s.setAttribute("id", "status");
+      document.getElementById("statusField").appendChild(s);
+
+      var template = "<div class='row' > \
+      <div class='column c7'><span>DESC</span></div> \
+      <div class='column c8'><span id='IDResult'></span></div> \
+      </div>";
+
+      for (i = 0; i < statusList.length; i++) {
+        var tmp = template;
+        tmp = tmp.replace(/DESC/g, statusList[i].name);
+        tmp = tmp.replace(/ID/g, statusList[i].id);
+        var element = document.createRange().createContextualFragment(tmp);
+        document.getElementById("status").appendChild(element);
+
+        params = "[1, \""+statusList[i].script+"\",  2]";
+        clean(statusList[i].id);
+        callShvMethod(statusList[i].id, agentPath, "runScript", params, 20000, null);
+      }
+    }
+
+    function addApplication(app)
+    {
+      var template = "\
+      <div id='IDField' class='row' > \
+        <div class='column c7'> \
+          <button class='btn' id='IDButtonRemove' title='Remove' onClick='remove(this, \"ID\")' value='remove' >&#10006;</button> \
+          <span>APP</span></div> \
+        <div class='column c8'><span id='IDStatus' style='color:black;'>STATUS</span></div> \
+        <div class='column c5'> \
+          <button class='btn' id='IDButtonService' title='Start/Stop' onClick='service(this, \"ID\")' value='VALUE' >ACTION</button> \
+          <span id='IDResult'></span> \
+        </div> \
+      </div>";
+
+      app = app.replace(/\n/g, '');
+      var tmp = template
+      var app_lst = app.split(":");
+      tmp = tmp.replace(/ID/g, app_lst[0]);
+      tmp = tmp.replace(/APP/g, app_lst[1]);
+
+      if (app_lst[2]=="enabled" || app_lst[3]=="active") {
+        tmp = tmp.replace(/color:black/g, appStatusColor(app_lst[2]+":"+app_lst[3]));
+        tmp = tmp.replace(/STATUS/g, app_lst[2] +":"+app_lst[3]);
+        tmp = tmp.replace(/ACTION/g, app_lst[3]=="active"?"&#9724;":"&#9654;");
+        tmp = tmp.replace(/VALUE/g, app_lst[3]=="active"?"stop":"start");
+
+        element = document.createRange().createContextualFragment(tmp);
+        document.getElementById("applications").appendChild(element);
+      }
+    }
+
+
+    function applications(app_list)
+    {
+      cleanApplications();
+      applicationLoadingInProgress(false);
+
+      app = document.createElement('div');
+      app.setAttribute("id", "applications");
+      document.getElementById("applicationsField").appendChild(app);
+
+      app_list = app_list.replace(/\n/g, '');
+      var lst = app_list.split(",");
+      for (i = 0; i < lst.length; i++) {
+        addApplication(lst[i]);
+      }
+
+      var template2 = "<div class='row' >\
+      <div class='column c8'> \
+      <select id='availableApplicationsSelect' style='width: 100%'>";
+      for (i = 0; i < lst.length; i++) {
+        var app = lst[i].split(":");
+        if (app[2]=="enabled" || app[3]=="active") {
+          continue;
+        }
+        template2 += "<option label="+app[1]+" value="+app[0]+">"+app[1]+"</option>";
+      }
+      template2 += "</select></div>\
+      <div class='column c4'> \
+        <button class='btn' title='Install' onClick='install()'>&#10010;</button> \
+      </div></div>"
+
+      app = document.createElement('div');
+      app.setAttribute("id", "availableApplications");
+      document.getElementById("availableApplicationsField").appendChild(app);
+      element = document.createRange().createContextualFragment(template2);
+      document.getElementById("availableApplications").appendChild(element);
+  
+    }
+
+    function appStatusColor(st)
+    {
+      if (st.includes("enabled:active")) {
+        return "color:green";
+      }
+      if (st.includes("failed")) {
+        return "color:crimson";
+      }
+      return "color:gray";
+    }
+
+    function log(str)
+    {
+      // console.log(str);
+      var e = document.getElementById("callShvMethodOutput");
+      e.innerHTML += str + "\n"; 
+      e.value += str + "\n"; 
+      e.scrollTop = e.scrollHeight;
+    }
+
+    function install()
+    {
+      var select = document.getElementById("availableApplicationsSelect");
+
+      app = select.options[select.selectedIndex].text;
+      app_id = select.value.toString();
+      app_name=app_id.replace(/[0-9]/g, '');
+      log(app_id);
+      log(app_name);
+
+      callShvMethod("apt", agentPath, "runCmd", "\"sudo apt install -y "+app_name+"\"", 20000, function(result, code){
+          if (code == 0 ) {
+            showAlert('success', 'Application ' + app_name + " (" + app_id + ") was installed.");
+            params = "[ 1, \""+enable+"\", \{\"APP\":\""+app_id+"\"\}, 2 ]";
+            callShvMethod(app_id, agentPath, "runScript", params, 15000, function(result, code)
+            { 
+              if (code == 0) {
+                showAlert('success', 'Application ' + app_name + " (" + app_id + ") was enabled.");
+                addApplication(app_id+":"+app+":enabled:active");
+                loadApplications();
+              }
+              else {
+                showAlert('error', 'Application ' + app_name + " (" + app_id + ") service error.");
+              }
+            });
+          }
+          else {
+            showAlert('error', 'Application ' + app_name + " (" + app_id + ") installation error.");
+          }
+      });
+    }
+
+    function remove(element, app_id)
+    {
+      params = "[ 1, \""+disable+"\", \{\"APP\":\""+app_id+"\"\}, 2 ]";
+      callShvMethod(app_id, agentPath, "runScript", params, 15000, function(result, code)
+      {
+        if (code == 0) {
+          app_name=app_id.replace(/[0-9]/g, '');
+          document.getElementById(setPostfix(app_id, "Field")).remove();
+          loadApplications();
+          showAlert('success', 'Application ' + app_name + " (" + app_id + ") was removed.");
+        }
+        else {
+          showAlert('error', 'Application ' + app_name + " (" + app_id + ") unable to remove.");
+        }
+
+      });
+    }
+
+    function service(element, app_id)
+    {
+      var el = document.getElementById(element.id).value;
+      switch(el){
+        case "stop":
+          params = "[ 1, \""+stop+"\", \{\"APP\":\""+app_id+"\"\}, 2 ]";
+          var new_value = "start";
+          var new_innerHTML = "&#9654;";
+        break;
+        case "start":
+          params = "[ 1, \""+start+"\", \{\"APP\":\""+app_id+"\"\}, 2 ]";
+          var new_value = "stop";
+          var new_innerHTML = "&#9724;";
+        break;
+        default: 
+          return;
+      }
+
+      callShvMethod(app_id, agentPath, "runScript", params, 15000, function(result, code)
+      {
+        log("RESULT:" + result.toString() + "(" + code + ")");
+        document.getElementById(setPostfix(app_id, "Status")).innerHTML = result.toString();
+        document.getElementById(setPostfix(app_id, "Status")).setAttribute("style", appStatusColor(result.toString()));
+        app_name=app_id.replace(/[0-9]/g, '');
+        if (code == 0) {
+          showAlert('success', 'Application ' + app_name + " (" + app_id + ") was " + element.value + "ed.");
+          element.value = new_value;
+          element.innerHTML = new_innerHTML;
+	        loadApplications();
+        }
+        else {
+          showAlert('error', 'Application ' + app_name + " (" + app_id + ") unable to " + element.value + ".");
+        }
+      });
+    }
+
+    function cleanAlertsField()
+    {
+      var list = document.getElementById("alerts");
+      while(list.hasChildNodes()) {
+       list.removeChild(list.childNodes[0]);  
+      }
+    }
+
+    function load()
+    {
+      requestIdList = new Array();
+
+      cleanApplications();
+      cleanAlertsField();
+
+
+      for (i = 0; i < configurationList.length; i++) {
+        clean(configurationList[i].id);
+      }
+      for (i = 0; i < statusList.length; i++) {
+        clean(statusList[i].id);
+      }
+      
+      document.getElementById("callShvMethodOutput").innerHTML = "";
+
+      params = "[1,  \""+aptTest+"\", 2]";
+      callShvMethod("apt", agentPath, "runScript", params, 1000, function(result, code){
+        if ( code != 0) {
+          if ( result.search("Error") >= 0 || result.search("Timeout") >= 0 ) {
+              document.getElementById("packagesStatus").innerHTML = "Predator is not available.";
+          }
+          else {
+              document.getElementById("packagesStatus").innerHTML = "Updating packages ...";
+          }
+        }
+        else {
+          document.getElementById("packagesStatus").innerHTML = "Updating packages.";
+          callShvMethod("apt", agentPath, "runCmd", "\"sudo apt update\"", 20000, function(result){
+            log(result.toString());
+
+            if ( result.search("--upgradable") > 0 ){
+              document.getElementById("packagesStatus").innerHTML = "Some packages can be upgraded.";
+              showAlert('warning', 'Some packages can be upgraded.');
+              callShvMethod("apt", agentPath, "runCmd", "\"apt list --upgradable\"", 20000, function(result){
+                log(result);
+              });
+              document.getElementById("packagesUpgradeBtn").style.visibility = "visible";
+            } else if ( result.search("All packages are up to date.") > 0 ) {
+              document.getElementById("packagesUpgradeBtn").style.visibility = "hidden";
+              document.getElementById("packagesStatus").innerHTML = "All packages are up to date.";
+              showAlert('info', 'All packages are up to date.');
+
+            }
+            status();
+
+            var params;
+            for (i = 0; i < configurationList.length; i++) {
+              env_value = document.getElementById(setPostfix(configurationList[i].id, "Input")).value;
+              env_name = configurationList[i].env_name;
+              params = "[1, \""+configurationList[i].script+"\", \{\""+env_name+"\":\""+env_value+"\"\} , 2]";
+              clean(configurationList[i].id);
+              callShvMethod(configurationList[i].id, agentPath, "runScript", params, 5000, null);
+            }
+
+            loadApplications();
+          });
+        }
+      });
+    }
+
+    function cleanApplications()
+    {
+      var app_div = document.getElementById("applications");
+      if(app_div  != null){
+        document.getElementById("applications").remove();
+      }
+      var available_app_div = document.getElementById("availableApplications");
+      if(available_app_div  != null){
+        document.getElementById("availableApplications").remove();
+      }
+    }    
+
+    function loadApplications()
+    {
+      applicationLoadingInProgress(true);
+      params = "[ 1, \""+app1+"\", 2 ]";
+      callShvMethod("app", agentPath, "runScript", params, 25000, applications);
+    }
+
+    function runScript(id)
+    {
+      var params;
+      for (i = 0; i < configurationList.length; i++) {
+        if (configurationList[i].id == id) {
+          env_value = document.getElementById(setPostfix(configurationList[i].id, "Input")).value;
+          env_name = configurationList[i].env_name;
+          params = "[1, \""+configurationList[i].script+"\", \{\""+env_name+"\":\""+env_value+"\"\} , 2]";
+          break;
+        }
+      }
+      callShvMethod(id, agentPath, "runScript", params, 5000, null)
+    }
+
+    function callShvMethod(id, path, method, params, timeout, fn)
+    {
+        if (websocket && websocket.readyState == 1) {
+
+            function shvCallBack(result, code)
+            {
+                //log("RESULT: shvCallBack: " + rq_id + ", " + id + ", response: "+ result + "  with code: " + code);
+                var result_request_id = setPostfix(id, "result");
+                if (code == 0) {
+                  if (document.getElementById(result_request_id) != null) {
+                    document.getElementById(result_request_id).innerHTML = "Ok";
+                    document.getElementById(result_request_id).style.color = "green";
+                  }
+                  if (id.length > 0) {
+                    if (document.getElementById(id) != null) {
+                      document.getElementById(id).innerHTML = result.toString();
+                    }
+                  }
+                  if (fn != null) {
+                    fn.call(this, result, 0);
+                  } 
+                  else {
+                    log("WARNING: No callback function.");
+                  }
+                }
+                else {
+                  if (document.getElementById(result_request_id) != null) {
+                    document.getElementById(result_request_id).innerHTML = result.toString();
+                    document.getElementById(result_request_id).style.color = "red";
+                  }
+                  if (fn != null) {
+                    fn.call(this, result, 1);
+                  }
+                }
+            }
+
+            var rq_id = callRpcMethod(path, method, params);
+            var date = Date.now();
+
+            requestIdList.push({"rq_id":rq_id, "fn":shvCallBack, "date":date, "timeout":timeout});
+
+        }
+    }
+
+    function onClickConfBtn(btn, id)
+    {
+      var c = document.getElementById(setPostfix(id, "cancel"));
+      var i = document.getElementById(setPostfix(id, "input"));
+      var v = document.getElementById(id.toString());
+      
+      if (btn.innerHTML.includes("Cancel")) {
+        document.getElementById(setPostfix(id, "Button")).innerHTML = "Edit";
+        c.style.visibility = "hidden";
+        v.style.display = "block";
+        v.innerHTML = i.innerHTML;
+        v.value = i.innerHTML;
+        i.style.display = "none";
+      }
+      else if (btn.innerHTML.includes("Edit")) {
+        btn.innerHTML = "Confirm"
+        c.style.visibility = "visible"; 
+        i.style.display = "block";
+        i.innerHTML = v.innerHTML;
+        i.value = v.innerHTML;
+        i.select();
+        i.focus();
+        v.style.display = "none";
+      }
+      else if (btn.innerHTML.includes("Confirm")) {
+        runScript(id);
+        btn.innerHTML = "Edit"
+        c.style.visibility = "hidden";
+        v.style.display = "block";
+        i.style.display = "none";
+        showAlert('warning', 'Changes to take effect after a restart of the device.');
+      }
+      clean(id);
+    }
+
+    function onClickConfigurationCancelBtn(id)
+    {
+    }
+
+    function sendMessage() {
+      if (websocket && websocket.readyState == 1) {
+        let shv_path = document.getElementById("edShvPath").value;
+        let method = document.getElementById("edMethod").value;
+        let params = document.getElementById("edParams").value;
+
+        callRpcMethod(shv_path, method, params);
+      }
+    }
+
+    let wsUri = "";
+    let websocket = null;
+    let hello_phase = false;
+    let login_phase = false;
+    let broker_connected = false;
+    let request_id = 1
+    let isUseCpon = false
+    let agentPath = "shv/agent";
+
+    var template = " \
+    <div class='row'> \
+      <div class='column c7'> \
+         <span>ROWNAME</span>  \
+      </div> \
+      <div class='column c8'> \
+        <span id='ROWID' style='display: block'></span> \
+        <input id='ROWIDInput' style='display: none'></input> \
+      </div> \
+      <div class='column c5' style='min-width: 200px;'>  \
+        <button class='btn' id='ROWIDButton' onClick=\"onClickConfBtn(this, 'ROWID');\">Edit</button> \
+        <button class='btn' id='ROWIDCancel' style='visibility: hidden;' onClick=\"onClickConfBtn(this, 'ROWID');\">Cancel</button> \
+        <span id='ROWIDResult'></span> \
+      </div> \
+    </div>";
+
+    
+
+    for (i = 0; i < configurationList.length; i++) {
+      var tmp = template;
+      tmp = tmp.replace(/ROWNAME/g, configurationList[i].name);
+      tmp = tmp.replace(/ROWID/g, configurationList[i].id);
+      var element = document.createRange().createContextualFragment(tmp);
+      document.getElementById("configurationField").appendChild(element);
+    }
+
+    function showAlert(type, str) {
+      var alerts = document.getElementsByClassName("alert_text");
+      for (i = 0; i < alerts.length; i++) {
+          var text = alerts[i].textContent.toString();
+          if (text.includes(str)) {
+            return;
+          }
+      }
+
+      var template = "\
+      <div class='alert type'> \
+        <span class='closebtn'>&times;</span> \
+        <strong class='alert_text'>TYPE! alertText</strong> \
+      </div>";
+      template = template.replace(/alertText/g, str);   
+      template = template.replace(/type/g, type.toLowerCase());   
+      template = template.replace(/TYPE/g, type.toUpperCase());   
+
+      var element = document.createRange().createContextualFragment(template);
+      document.getElementById("alerts").appendChild(element);
+      
+      var close = document.getElementsByClassName("closebtn");
+      var i;
+
+      for (i = 0; i < close.length; i++) {
+        close[i].onclick = function(){
+          var div = this.parentElement;
+              setTimeout(function(){ div.parentNode.removeChild(div); }, 300);
+        }
+      }
+    }
+
+    function isJsonString(str) {
+        try {
+            JSON.parse(str);
+        } catch (e) {
+            return false;
+        }
+        return true;
+    }
+
+    function initWebSocket(use_chainpack) {
+      var path = document.getElementById("shvPath").value.toString();
+      wsUri = document.getElementById("wsUri").value.toString();
+      if (path.length == 0) {
+        agentPath = "shv/agent";
+      }
+      else {
+        agentPath = path + "/agent";
+      }
+      log("INFO: Connecting to " + wsUri + "/" + agentPath);
+
+      isUseCpon = !use_chainpack
+      request_id = 1;
+      try {
+        checkSocket();
+        if (websocket && websocket.readyState == 1)
+          websocket.close();
+        checkSocket();
+        websocket = new WebSocket(wsUri);
+        websocket.binaryType = "arraybuffer";
+        checkSocket();
+
+        websocket.onopen = function(evt) {
+          checkSocket();
+          log("INFO: CONNECTED");
+          callRpcMethod(null, "hello")
+          hello_phase = true;
+        };
+        websocket.onclose = function(evt) {
+          checkSocket();
+          log("INFO: DISCONNECTED");
+        };
+        websocket.onmessage = function(evt) {
+          let rpc_val = datatoRpcValue(evt.data);
+          let rpc_msg = new RpcMessage(rpc_val);
+          if (hello_phase) {
+            let rqid = rpc_msg.requestId().toInt();
+            if (rqid == 1) {
+              let user = document.getElementById("shvUser").value.toString();
+              let password = document.getElementById("shvPassword").value.toString();
+              let params = '{"login":{"password":"' + password + '","type":"PLAIN","user":"' + user + '"},"options":{"device":{"mountPoint":"test/webconfigure"},"idleWatchDogTimeOut":60}}'
+              callRpcMethod(null, "login", params)
+              hello_phase = false;
+              login_phase = true;
+            }
+          } 
+          else if (login_phase) {
+            let rqid = rpc_msg.requestId().toInt();
+            if (rpc_msg.error()) {
+              log("ERROR: Invalid authentication.");
+              stopWebSocket();
+              document.getElementById("lblState").innerHTML = "Invalid authentication";
+              checkSocket();
+              return;
+            } 
+            if (rqid == 2) {
+              login_phase = false;
+              broker_connected = true;
+              if (wsUri.includes("wss")) {
+                document.getElementById("onPath").innerHTML = wsUri.substring(6, wsUri.length) +"/" + agentPath; //
+              } else {
+                document.getElementById("onPath").innerHTML = wsUri.substring(5, wsUri.length) +"/" + agentPath; //
+              }
+              document.getElementById("shvPath").value;
+              document.getElementById("onShowShvConnected").style.display = "block";
+              document.getElementById("onHideShvConnected").style.display = "none";
+              document.getElementById("packagesUpgradeBtn").style.visibility = "hidden";
+              log('INFO: connected to shv broker');              
+              load();
+            }
+          }
+          else if (broker_connected) {
+              log("INFO:  Received RPC message:" + prettifyString(rpc_msg));
+              log("INFO:  RequestIdList length: " + requestIdList.length);
+              for (index = 0; index < requestIdList.length; index++) {
+                log("INFO: RequestIdList: " + requestIdList[index].rq_id + " Received request: " + rpc_msg.requestId());
+                if (requestIdList[index].rq_id == rpc_msg.requestId()) {
+                  var err = rpc_msg.error();
+                  if (err) {
+                    log("ERROR: Received response on request id: " + rpc_msg.requestId() + ". Error: " + err.toString());
+                    requestIdList[index].fn.call(this, "Error", 1);
+                  }
+                  else {
+                    var result = rpc_msg.result();
+                    log("INFO: Received response on request id: " + rpc_msg.requestId() + ". Result: \n" + prettifyString(result.toString()));
+                    if (result.value.length > 1) {
+                      // var msg = result.value[1]==0?result.value[0]:result.value[2];
+                      if (result.value[2].toString().length > 2){
+                        var msg = result.value[2];
+                        requestIdList[index].fn.call(this, prettifyString(msg), 1);
+                        log("ERROR: " + msg);
+                      }
+                      else {
+                        var msg = result.value[0];
+                        requestIdList[index].fn.call(this, prettifyString(msg), result.value[1]);
+                        log("INFO: Result RPC message Ok.");
+                      }
+                    }
+                    else {
+                      var msg = result.toString();
+                      requestIdList[index].fn.call(this, prettifyString(msg), 0);
+                    }
+                    requestIdList.splice(index, 1);
+                  }
+                  return;
+                }
+              }
+             
+              log("WARNING: Reveived unknown id: " + rpc_msg.requestId());
+           }
+        };
+        websocket.onerror = function(evt) {
+          document.getElementById("onHideShvConnected").style.display = "block";
+          document.getElementById("onShowShvConnected").style.display = "none";
+          document.getElementById("lblState").innerHTML = "Unable connect to server";
+          og('ERROR: ' + evt.data);
+          checkSocket();
+        };
+        websocket.onclose = function(evt) {          
+          document.getElementById("onHideShvConnected").style.display = "block";
+          document.getElementById("onShowShvConnected").style.display = "none";
+          log('ERROR: socket close code: ' + evt.code);
+        };
+      } catch (exception) {
+        log('EXCEPTION: ' + exception);
+      }
+    }
+
+    function stopWebSocket() {
+      document.getElementById("onPath").innerHTML = "";
+      if (websocket)
+        websocket.close();
+        document.getElementById("onHideShvConnected").style.display = "block";
+        document.getElementById("onShowShvConnected").style.display = "none";
+    }
+
+    function checkSocket()
+     {
+
+        let lblState = document.getElementById("lblState");
+        if (websocket != null) {
+          let stateStr;
+          switch (websocket.readyState) {
+            case 0: {
+              stateStr = "Connecting ...";
+              break;
+            }
+            case 1: {
+              stateStr = "Open";
+              setTimeout(function() {
+                callShvMethod("", ".broker/app", "ping", "", 1000, function(result, code) {
+                  log("INFO: ping: " + result.toString());
+                  checkSocket(); 
+                });
+              } , 10000);
+
+              break;
+            }
+            case 2: {
+
+            }
+            case 3: {
+              setTimeout(function(){ lblState.innerHTML = "Connect" }, 2000);
+              return;
+            }
+            default: {
+              stateStr = "Unknown";
+              setTimeout(function(){ lblState.innerHTML = "Connect" }, 2000);
+              break;
+            }
+          }
+          log("INFO: WebSocket state = " + websocket.readyState + " ( " + stateStr + " )");
+          lblState.innerHTML = stateStr
+        } else {
+          log("WARNING: WebSocket is null");
+        }
+      }
+
+    function callRpcMethod(shv_path, method, params) {
+      let rq = new RpcMessage();
+      rq_id = request_id;
+      rq.setRequestId(request_id++);
+      if (shv_path)
+        rq.setShvPath(shv_path);
+      rq.setMethod(method);
+      if (params)
+        rq.setParams(RpcValue.fromCpon(params));
+      sendRpcMessage(rq);
+      return rq_id;
+    }
+
+    function sendRpcMessage(rpc_msg) {
+      if (websocket && websocket.readyState == 1) {
+        log("INFO: Sending rpc message:" + rpc_msg.toString());
+        if (isUseCpon)
+          var msg_data = new Uint8Array(rpc_msg.toCpon());
+        else
+          var msg_data = new Uint8Array(rpc_msg.toChainPack());
+
+        let wr = new ChainPackWriter();
+        wr.writeUIntData(msg_data.length + 1)
+        let dgram = new Uint8Array(wr.ctx.length + 1 + msg_data.length)
+        let ix = 0
+        for (let i = 0; i < wr.ctx.length; i++)
+          dgram[ix++] = wr.ctx.data[i]
+
+        if (isUseCpon)
+          dgram[ix++] = Cpon.ProtocolType
+        else
+          dgram[ix++] = ChainPack.ProtocolType
+
+        for (let i = 0; i < msg_data.length; i++)
+          dgram[ix++] = msg_data[i]
+        log("INFO: sending " + dgram.length + " bytes of data")
+        websocket.send(dgram.buffer)
+      }
+    }
+
+    function datatoRpcValue(buff) {
+      let rd = new ChainPackReader(new UnpackContext(buff));
+      let len = rd.readUIntData()
+      let proto = rd.ctx.getByte();
+      if (proto == Cpon.ProtocolType)
+        rd = new CponReader(rd.ctx)
+      else
+        rd = new ChainPackReader(rd.ctx)
+      let rpc_val = rd.read();
+      return rpc_val;
+    }
+  </script>
+</body>
+
+</html>
