@@ -9,6 +9,7 @@
 #include <QBrush>
 
 namespace cp = shv::chainpack;
+using namespace std;
 
 AccessModel::AccessModel(QObject *parent)
 	: Super(parent)
