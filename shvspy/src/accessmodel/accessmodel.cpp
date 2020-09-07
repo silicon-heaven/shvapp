@@ -11,6 +11,20 @@
 namespace cp = shv::chainpack;
 using namespace std;
 
+QString AccessModel::columnName(int col)
+{
+	switch (col){
+	case Columns::ColPath:
+		return tr("Path");
+	case Columns::ColMethod:
+		return tr("Method");
+	case Columns::ColGrant:
+		return tr("Grant");
+	default:
+		return tr("Unknown");
+	}
+}
+
 AccessModel::AccessModel(QObject *parent)
 	: Super(parent)
 {
@@ -90,20 +104,23 @@ bool AccessModel::setData(const QModelIndex &ix, const QVariant &val, int role)
 		shv::broker::AclAccessRule &rule = m_rules[ix.row()];
 		if (ix.column() == Columns::ColPath) {
 			rule.pathPattern = val.toString().toStdString();
+			return true;
 		}
 		else if (ix.column() == Columns::ColMethod) {
 			rule.method = val.toString().toStdString();
+			return true;
 		}
 		else if (ix.column() == Columns::ColGrant) {
 			std::string cpon = val.toString().toStdString();
 			std::string err;
 			shv::chainpack::RpcValue rv = cp::RpcValue::fromCpon(cpon, &err);
+
 			if(err.empty()) {
 				rule.grant = shv::chainpack::AccessGrant::fromRpcValue(rv);
+				return true;
 			}
 			else {
-				//shvError() << "Invalid access grant definition:" << cpon;
-				throw shv::core::Exception(tr("Invalid access grant definition: %1").arg(val.toString()).toStdString());
+				return false;
 			}
 		}
 	}
@@ -116,16 +133,7 @@ QVariant AccessModel::headerData(int section, Qt::Orientation orientation, int r
 	QVariant ret;
 	if(orientation == Qt::Horizontal) {
 		if(role == Qt::DisplayRole) {
-			switch (section){
-			case Columns::ColPath:
-				return tr("Path");
-			case Columns::ColMethod:
-				return tr("Method");
-			case Columns::ColGrant:
-				return tr("Grant");
-			default:
-				return tr("Unknown");
-			}
+			return columnName(section);
 		}
 	}
 
@@ -146,5 +154,15 @@ void AccessModel::deleteRule(int index)
 		m_rules.erase(m_rules.begin() + index);
 		endResetModel();
 	}
+}
+
+bool AccessModel::isRulesValid()
+{
+	for (int i = 0; i < rowCount(); i++){
+		if (!m_rules[i].isValid())
+			return false;
+	}
+
+	return true;
 }
 

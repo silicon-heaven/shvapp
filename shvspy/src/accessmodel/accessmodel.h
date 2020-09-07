@@ -12,6 +12,7 @@ private:
 	typedef QAbstractTableModel Super;
 public:
 	enum Columns {ColPath = 0, ColMethod, ColGrant, ColCount};
+	static QString columnName(int col);
 
 public:
 	AccessModel(QObject *parent = nullptr);
@@ -28,6 +29,7 @@ public:
 	QVariant headerData (int section, Qt::Orientation orientation, int role = Qt::DisplayRole ) const Q_DECL_OVERRIDE;
 	void addRule();
 	void deleteRule(int index);
+	bool isRulesValid();
 
 private:
 	shv::broker::AclRoleAccessRules m_rules;

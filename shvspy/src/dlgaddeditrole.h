@@ -2,6 +2,7 @@
 #define DLGADDEDITROLE_H
 
 #include "accessmodel/accessmodel.h"
+#include "accessmodel/accessitemdelegate.h"
 
 #include "shv/chainpack/rpcvalue.h"
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
@@ -14,15 +15,6 @@
 namespace Ui {
 class DlgAddEditRole;
 }
-
-class AccessPathsView : public QTableView
-{
-	using Super = QTableView;
-public:
-	explicit AccessPathsView(QWidget *parent = nullptr) : Super(parent) {}
-protected:
-	void commitData(QWidget *editor) override;
-};
 
 class DlgAddEditRole : public QDialog
 {
@@ -39,14 +31,11 @@ public:
 	void accept() Q_DECL_OVERRIDE;
 
 private:
-	void callAddRole();
-	void callEditRole();
+	void callSetRoleSettings();
 	void callGetRoleSettings();
 
-	void callSetAccessForRole();
-	void callGetPathsForRole();
-
-	shv::chainpack::RpcValue paths();
+	void callSetAccessRulesForRole();
+	void callGetAccessRulesForRole();
 
 	std::vector<std::string> roles();
 	void setRoles(const std::vector<std::string> &roles);

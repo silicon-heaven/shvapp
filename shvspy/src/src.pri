@@ -1,4 +1,5 @@
 HEADERS += \
+    $$PWD/accessmodel/accessitemdelegate.h \
     $$PWD/dlgaddeditmount.h \
     $$PWD/dlgaddeditrole.h \
     $$PWD/dlgmountseditor.h \
@@ -28,6 +29,7 @@ HEADERS += \
 
 
 SOURCES += \
+    $$PWD/accessmodel/accessitemdelegate.cpp \
     $$PWD/dlgaddeditmount.cpp \
     $$PWD/dlgaddeditrole.cpp \
     $$PWD/dlgmountseditor.cpp \

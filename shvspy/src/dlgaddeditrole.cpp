@@ -5,16 +5,6 @@
 
 #include <QMessageBox>
 
-void AccessPathsView::commitData(QWidget *editor)
-{
-	try {
-		Super::commitData(editor);
-	}
-	catch (const std::exception &e) {
-		QMessageBox::warning(this, tr("Commit data error"), e.what());
-	}
-}
-
 static const std::string VALUE_METHOD = "value";
 static const std::string SET_VALUE_METHOD = "setValue";
 
@@ -31,17 +21,20 @@ DlgAddEditRole::DlgAddEditRole(QWidget *parent, shv::iotqt::rpc::ClientConnectio
 	ui->groupBox->setTitle(edit_mode ? tr("Edit role") : tr("New role"));
 	setWindowTitle(edit_mode ? tr("Edit role dialog") : tr("New role dialog"));
 
-	ui->tvPaths->setModel(&m_accessModel);
-	ui->tvPaths->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
-	ui->tvPaths->verticalHeader()->setDefaultSectionSize(static_cast<int>(fontMetrics().height() * 1.3));
-	ui->tvPaths->setColumnWidth(AccessModel::Columns::ColPath, frameGeometry().width() * 0.6);
+	ui->tvAccessRules->setModel(&m_accessModel);
+	ui->tvAccessRules->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
+	ui->tvAccessRules->verticalHeader()->setDefaultSectionSize(static_cast<int>(fontMetrics().height() * 1.3));
+	ui->tvAccessRules->setColumnWidth(AccessModel::Columns::ColPath, frameGeometry().width() * 0.6);
+
+	AccessItemDelegate *del = new AccessItemDelegate(ui->tvAccessRules);
+	ui->tvAccessRules->setItemDelegate(del);
 
 	connect(ui->tbAddRow, &QToolButton::clicked, this, &DlgAddEditRole::onAddRowClicked);
 	connect(ui->tbDeleteRow, &QToolButton::clicked, this, &DlgAddEditRole::onDeleteRowClicked);
 
 	m_rpcConnection = rpc_connection;
 
-	setStatusText((m_rpcConnection == nullptr)? tr("Connection to shv does not exist."): QString());
+	setStatusText((m_rpcConnection == nullptr) ? tr("Connection to shv does not exist.") : QString());
 }
 
 DlgAddEditRole::~DlgAddEditRole()
@@ -58,26 +51,33 @@ void DlgAddEditRole::init(const QString &role_name)
 {
 	ui->leRoleName->setText(role_name);
 	callGetRoleSettings();
-	callGetPathsForRole();
+	callGetAccessRulesForRole();
 }
 
 void DlgAddEditRole::accept()
 {
+	if (roleName().isEmpty()){
+		QMessageBox::critical(this, tr("Invalid data"), tr("Role name is empty."));
+		return;
+	}
+	else if (!m_accessModel.isRulesValid()){
+		QMessageBox::critical(this, tr("Invalid data"), 	tr("Access rules are invalid."));
+		return;
+	}
+
+	setStatusText(QString());
+
 	if (dialogType() == DialogType::Add){
-		if (!roleName().isEmpty()){
-			setStatusText(tr("Adding new role ..."));
-			callAddRole();
-		}
-		else {
-			setStatusText(tr("Role name is empty."));
-		}
+		setStatusText(tr("Adding new role ..."));
+		callSetRoleSettings();
 	}
 	else if (dialogType() == DialogType::Edit){
-		callEditRole();
+		setStatusText(tr("Updating role ..."));
+		callSetRoleSettings();
 	}
 }
 
-void DlgAddEditRole::callAddRole()
+void DlgAddEditRole::callSetRoleSettings()
 {
 	if (m_rpcConnection == nullptr)
 		return;
@@ -88,41 +88,10 @@ void DlgAddEditRole::callAddRole()
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if (response.isValid()){
 			if(response.isError()) {
-				setStatusText(tr("Failed to add role.") + QString::fromStdString(response.error().toString()));
+				setStatusText(tr("Failed:") + QString::fromStdString(response.error().toString()));
 			}
 			else{
-				callSetAccessForRole();
-			}
-		}
-		else{
-			setStatusText(tr("Request timeout expired"));
-		}
-	});
-
-	m_role.roles = roles();
-	m_role.weight = weight();
-
-	shv::chainpack::RpcValue::List params{roleName().toStdString(), m_role.toRpcValueMap()};
-	m_rpcConnection->callShvMethod(rqid, aclEtcRoleNodePath(), SET_VALUE_METHOD, params);
-}
-
-void DlgAddEditRole::callEditRole()
-{
-	if (m_rpcConnection == nullptr)
-		return;
-
-	setStatusText(tr("Updating role ..."));
-
-	int rqid = m_rpcConnection->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
-
-	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
-		if (response.isValid()){
-			if(response.isError()) {
-				setStatusText(tr("Failed to edit role.") + QString::fromStdString(response.error().toString()));
-			}
-			else{
-				callSetAccessForRole();
+				callSetAccessRulesForRole();
 			}
 		}
 		else{
@@ -165,12 +134,12 @@ void DlgAddEditRole::callGetRoleSettings()
 	m_rpcConnection->callShvMethod(rqid, roleShvPath(), VALUE_METHOD);
 }
 
-void DlgAddEditRole::callGetPathsForRole()
+void DlgAddEditRole::callGetAccessRulesForRole()
 {
 	if (m_rpcConnection == nullptr)
 		return;
 
-	setStatusText(tr("Getting paths ..."));
+	setStatusText(tr("Getting access rules ..."));
 
 	int rqid = m_rpcConnection->nextRequestId();
 	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
@@ -178,7 +147,7 @@ void DlgAddEditRole::callGetPathsForRole()
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if(response.isValid()){
 			if(response.isError()) {
-				setStatusText(tr("Get paths error: %1").arg(QString::fromStdString(response.error().toString())));
+				setStatusText(tr("Error: %1").arg(QString::fromStdString(response.error().toString())));
 			}
 			else{
 				m_accessModel.setRules(response.result());
@@ -195,17 +164,13 @@ void DlgAddEditRole::callGetPathsForRole()
 	m_rpcConnection->callShvMethod(rqid, accessShvPath(), VALUE_METHOD);
 }
 
-shv::chainpack::RpcValue DlgAddEditRole::paths()
+void DlgAddEditRole::callSetAccessRulesForRole()
 {
-	return m_accessModel.rules();
-}
-
-void DlgAddEditRole::callSetAccessForRole()
-{
-	if (m_rpcConnection == nullptr)
+	if (m_rpcConnection == nullptr) {
 		return;
+	}
 
-	setStatusText(tr("Updating paths ..."));
+	setStatusText(tr("Updating access rules ..."));
 
 	int rqid = m_rpcConnection->nextRequestId();
 	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(m_rpcConnection, rqid, this);
@@ -213,7 +178,7 @@ void DlgAddEditRole::callSetAccessForRole()
 	cb->start(this, [this](const shv::chainpack::RpcResponse &response) {
 		if(response.isValid()){
 			if(response.isError()) {
-				setStatusText(tr("Update paths error: %1").arg(QString::fromStdString(response.error().toString())));
+				setStatusText(tr("Error: %1").arg(QString::fromStdString(response.error().toString())));
 			}
 			else{
 				QDialog::accept();
@@ -224,7 +189,7 @@ void DlgAddEditRole::callSetAccessForRole()
 		}
 	});
 
-	shv::chainpack::RpcValue::List params{roleName().toStdString(), paths()};
+	shv::chainpack::RpcValue::List params{roleName().toStdString(), m_accessModel.rules()};
 	m_rpcConnection->callShvMethod(rqid, aclEtcAcessNodePath(), SET_VALUE_METHOD, params);
 }
 
@@ -300,7 +265,7 @@ void DlgAddEditRole::onAddRowClicked()
 
 void DlgAddEditRole::onDeleteRowClicked()
 {
-	m_accessModel.deleteRule(ui->tvPaths->currentIndex().row());
+	m_accessModel.deleteRule(ui->tvAccessRules->currentIndex().row());
 }
 
 void DlgAddEditRole::setStatusText(const QString &txt)
