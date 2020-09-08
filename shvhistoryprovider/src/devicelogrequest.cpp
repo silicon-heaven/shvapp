@@ -23,12 +23,34 @@ DeviceLogRequest::DeviceLogRequest(const QString &shv_path, const QDateTime &sin
 	, m_until(until)
 	, m_logDir(shv_path)
 	, m_askElesys(true)
+	, m_appendLog(false)
 {
 	m_askElesys = Application::instance()->deviceMonitor()->isElesysDevice(m_shvPath);
 }
 
 void DeviceLogRequest::getChunk()
 {
+	m_appendLog = false;
+	if (m_since.isValid()) {
+		LogDir log_dir(m_shvPath);
+		QStringList all_files = log_dir.findFiles(m_since.addMSecs(-1), m_since);
+		if (all_files.count() == 1) {
+			std::ifstream in_file;
+			in_file.open(all_files[0].toStdString(), std::ios::in | std::ios::binary);
+			if (in_file) {
+				cp::RpcValue::MetaData metadata;
+				cp::ChainPackReader(in_file).read(metadata);
+				int orig_record_count = metadata.value("recordCount").toInt();
+				cp::RpcValue orig_until_cp = metadata.value("until");
+				if (!orig_until_cp.isDateTime()) {
+					SHV_QT_EXCEPTION("Missing until in file " + all_files[0]);
+				}
+				int64_t orig_until = orig_until_cp.toDateTime().msecsSinceEpoch();
+				m_appendLog = (orig_until == m_since.toMSecsSinceEpoch() && orig_record_count < Application::CHUNK_RECORD_COUNT);
+			}
+		}
+	}
+
 	auto *conn = Application::instance()->deviceConnection();
 	int rq_id = conn->nextRequestId();
 	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(conn, rq_id, this);
@@ -50,14 +72,14 @@ void DeviceLogRequest::getChunk()
 		}
 		cp::RpcValue::Map param_map;
 		param_map["shvPath"] = cp::RpcValue::fromValue(path);
-		param_map["logParams"] = logParams().toRpcValue();
+		param_map["logParams"] = logParams(!m_appendLog).toRpcValue();
 
 		path = QString::fromStdString(Application::instance()->cliOptions()->elesysPath());
 		params = param_map;
 	}
 	else {
 		path = "shv/" + m_shvPath;
-		params = logParams().toRpcValue();
+		params = logParams(!m_appendLog).toRpcValue();
 	}
 
 	conn->callShvMethod(rq_id, path.toStdString(), cp::Rpc::METH_GET_LOG, params);
@@ -78,13 +100,12 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 
 	try {
 		const cp::RpcValue &result = response.result();
-		ShvMemoryJournal log(logParams());
+		ShvMemoryJournal log(logParams(!m_appendLog));
 		log.loadLog(result);
 
 		QDateTime first_record_time;
 		QDateTime last_record_time;
 		bool is_finished;
-		ShvGetLogParams params = logParams();
 		QDateTime until = m_until;
 		if (m_since.isValid() && m_until.isValid() && log.entries().size() == 0) {
 			log.append(ShvJournalEntry{
@@ -131,16 +152,17 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 		shvInfo() << "received log for" << m_shvPath << "with" << log.size() << "records"
 				  << "since" << first_record_time
 				  << "until" << last_record_time;
-		if (!m_since.isValid() || !tryAppendToPreviousFile(log, until)) {
+		if (m_appendLog) {
+			appendToPreviousFile(log, until);
 			if (!m_since.isValid() && log.size() == 0) {
 				fixFirstLogFile();
 			}
-			else {
-				if (Application::instance()->deviceMonitor()->isElesysDevice(m_shvPath) || !log.hasSnapshot()) {
-					tryReplayPreviousFile(log);
-				}
-				saveToNewFile(log, until);
+		}
+		else {
+			if (Application::instance()->deviceMonitor()->isElesysDevice(m_shvPath) || !log.hasSnapshot()) {
+				tryReplayPreviousFile(log);
 			}
+			saveToNewFile(log, until);
 		}
 		if (m_logDir.exists(m_logDir.dirtyLogName())) {
 			trimDirtyLog(until);
@@ -164,78 +186,63 @@ void DeviceLogRequest::exec()
 	getChunk();
 }
 
-ShvGetLogParams DeviceLogRequest::logParams() const
+ShvGetLogParams DeviceLogRequest::logParams(bool with_snapshot) const
 {
 	ShvGetLogParams params;
 	params.since = cp::RpcValue::fromValue(m_since);
 	params.until = cp::RpcValue::fromValue(m_until);
 	params.recordCountLimit = Application::CHUNK_RECORD_COUNT;
-	params.withSnapshot = true;
+	params.withSnapshot = with_snapshot;
 	params.withTypeInfo = true;
 	return params;
 }
 
-bool DeviceLogRequest::tryAppendToPreviousFile(ShvMemoryJournal &log, const QDateTime &until)
+void DeviceLogRequest::appendToPreviousFile(ShvMemoryJournal &log, const QDateTime &until)
 {
-	if ((int)log.size() < Application::CHUNK_RECORD_COUNT) {  //check append to previous file to avoid fragmentation
-		LogDir log_dir(m_shvPath);
-		QStringList all_files = log_dir.findFiles(m_since.addMSecs(-1), m_since);
-		if (all_files.count() == 1) {
-			std::ifstream in_file;
-			in_file.open(all_files[0].toStdString(), std::ios::in | std::ios::binary);
-			if (in_file) {
-				cp::ChainPackReader log_reader(in_file);
-				std::string error;
-				cp::RpcValue orig_log = log_reader.read(&error);
-				cp::RpcValue hp_metadata = orig_log.metaValue("HP");
-				if (!error.empty() || !orig_log.isList()) {
-					SHV_QT_EXCEPTION("Cannot parse file " + all_files[0]);
-				}
-				int orig_record_count = (int)orig_log.toList().size();
-				cp::RpcValue orig_until_cp = orig_log.metaValue("until");
-				if (!orig_until_cp.isDateTime()) {
-					SHV_QT_EXCEPTION("Missing until in file " + all_files[0]);
-				}
-				int64_t orig_until = orig_until_cp.toDateTime().msecsSinceEpoch();
-				if (orig_until == m_since.toMSecsSinceEpoch() && orig_record_count + (int)log.size() <= Application::CHUNK_RECORD_COUNT + 1000) {
-					ShvGetLogParams joined_params;
-					joined_params.recordCountLimit = Application::CHUNK_RECORD_COUNT + 1000;
-					joined_params.withSnapshot = true;
-					joined_params.withTypeInfo = true;
-					ShvMemoryJournal joined_log(joined_params);
-					joined_log.loadLog(orig_log);
-
-					for (const auto &entry : log.entries()) {
-						joined_log.append(entry);
-					}
-					QString temp_filename = all_files[0];
-					temp_filename.replace(".chp", ".tmp");
-
-					QFile temp_file(temp_filename);
-					if (!temp_file.open(QFile::WriteOnly | QFile::Truncate)) {
-						SHV_QT_EXCEPTION("Cannot open file " + temp_file.fileName());
-					}
-					cp::RpcValue result = joined_log.getLog(joined_params);
-					result.setMetaValue("until", cp::RpcValue::fromValue(until));
-					if (hp_metadata.isMap()) {
-						result.setMetaValue("HP", hp_metadata);
-					}
-					temp_file.write(QByteArray::fromStdString(result.toChainPack()));
-					temp_file.close();
-
-					QFile old_log_file(all_files[0]);
-					if (!old_log_file.remove()) {
-						SHV_QT_EXCEPTION("Cannot remove file " + all_files[0]);
-					}
-					if (!temp_file.rename(old_log_file.fileName())) {
-						SHV_QT_EXCEPTION("Cannot rename file " + temp_file.fileName());
-					}
-					return true;
-				}
-			}
-		}
+	LogDir log_dir(m_shvPath);
+	QStringList all_files = log_dir.findFiles(m_since.addMSecs(-1), m_since);
+	std::ifstream in_file;
+	in_file.open(all_files[0].toStdString(), std::ios::in | std::ios::binary);
+	cp::ChainPackReader log_reader(in_file);
+	std::string error;
+	cp::RpcValue orig_log = log_reader.read(&error);
+	cp::RpcValue hp_metadata = orig_log.metaValue("HP");
+	if (!error.empty() || !orig_log.isList()) {
+		SHV_QT_EXCEPTION("Cannot parse file " + all_files[0]);
 	}
-	return false;
+
+	ShvGetLogParams joined_params;
+	joined_params.recordCountLimit = 2 * Application::CHUNK_RECORD_COUNT;
+	joined_params.withSnapshot = true;
+	joined_params.withTypeInfo = true;
+	ShvMemoryJournal joined_log(joined_params);
+	joined_log.loadLog(orig_log);
+
+	for (const auto &entry : log.entries()) {
+		joined_log.append(entry);
+	}
+	QString temp_filename = all_files[0];
+	temp_filename.replace(".chp", ".tmp");
+
+	QFile temp_file(temp_filename);
+	if (!temp_file.open(QFile::WriteOnly | QFile::Truncate)) {
+		SHV_QT_EXCEPTION("Cannot open file " + temp_file.fileName());
+	}
+	cp::RpcValue result = joined_log.getLog(joined_params);
+	result.setMetaValue("until", cp::RpcValue::fromValue(until));
+	if (hp_metadata.isMap()) {
+		result.setMetaValue("HP", hp_metadata);
+	}
+	temp_file.write(QByteArray::fromStdString(result.toChainPack()));
+	temp_file.close();
+
+	QFile old_log_file(all_files[0]);
+	if (!old_log_file.remove()) {
+		SHV_QT_EXCEPTION("Cannot remove file " + all_files[0]);
+	}
+	if (!temp_file.rename(old_log_file.fileName())) {
+		SHV_QT_EXCEPTION("Cannot rename file " + temp_file.fileName());
+	}
 }
 
 void DeviceLogRequest::tryReplayPreviousFile(ShvMemoryJournal &log)
