@@ -2,6 +2,8 @@
 
 #include <shv/chainpack/rpcmessage.h>
 
+#include <QDateTime>
+
 namespace cp = shv::chainpack;
 
 RpcNotificationsModel::RpcNotificationsModel(QObject *parent)
@@ -13,6 +15,7 @@ QVariant RpcNotificationsModel::headerData(int section, Qt::Orientation orientat
 {
 	if(orientation == Qt::Horizontal && role == Qt::DisplayRole) {
 		switch (section) {
+		case ColTimeStamp: return tr("Received");
 		case ColBroker: return tr("Connection");
 		case ColShvPath: return tr("Source");
 		case ColMethod: return tr("Method");
@@ -29,6 +32,7 @@ void RpcNotificationsModel::addLogRow(const std::string &broker_name, const shv:
 		cp::RpcSignal ntf(msg);
 		shv::visu::LogTableModelRow rw;
 		rw.resize(ColCnt);
+		rw[ColTimeStamp] = QDateTime::currentDateTime().toString(Qt::ISODateWithMs);
 		rw[ColBroker] = QString::fromStdString(broker_name);
 		rw[ColShvPath] = QString::fromStdString(ntf.shvPath().toString());
 		rw[ColMethod] = QString::fromStdString(ntf.method().toString());

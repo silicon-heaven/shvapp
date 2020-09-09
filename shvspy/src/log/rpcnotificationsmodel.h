@@ -10,7 +10,7 @@ class RpcNotificationsModel : public shv::visu::LogTableModelBase
 
 	using Super = shv::visu::LogTableModelBase;
 public:
-	enum Columns {ColBroker = 0, ColShvPath, ColMethod, ColParams, ColCnt};
+	enum Columns {ColTimeStamp = 0, ColBroker, ColShvPath, ColMethod, ColParams, ColCnt};
 public:
 	RpcNotificationsModel(QObject *parent = nullptr);
 
