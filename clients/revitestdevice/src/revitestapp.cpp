@@ -56,8 +56,9 @@ RevitestApp::RevitestApp(int &argc, char **argv, AppCliOptions* cli_opts)
 							{"ModeService", 10},
 							{"MainSwitch", 11},
 						},
+						ShvLogTypeDescr::SampleType::Continuous,
+						{},
 						"PosOff = 0, PosOn = 1, PosMiddle = 2, PosError= 3, BatteryLow = 4, BatteryHigh = 5, DoorOpenCabinet = 6, DoorOpenMotor = 7, ModeAuto= 8, ModeRemote = 9, ModeService = 10, MainSwitch = 11, ErrorRtc = 12",
-						ShvLogTypeDescr::SampleType::Continuous
 					}
 				},
 			},
