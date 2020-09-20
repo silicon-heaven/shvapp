@@ -4,7 +4,7 @@
 #include "accessmodel/accessmodel.h"
 #include "accessmodel/accessitemdelegate.h"
 
-#include "shv/chainpack/rpcvalue.h"
+#include <shv/chainpack/rpcvalue.h>
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
 #include <shv/iotqt/rpc/clientconnection.h>
 #include <shv/broker/aclrole.h>
@@ -37,12 +37,16 @@ private:
 	void callSetAccessRulesForRole();
 	void callGetAccessRulesForRole();
 
-	std::vector<std::string> roles();
+	QString roleName() const;
+
+	std::vector<std::string> roles() const;
 	void setRoles(const std::vector<std::string> &roles);
 
-	QString roleName();
-	int weight();
+	int weight() const;
 	void setWeight(int weight);
+
+	shv::chainpack::RpcValue profile() const;
+	void setProfile(const shv::chainpack::RpcValue &p);
 
 	std::string aclEtcRoleNodePath();
 	std::string aclEtcAcessNodePath();

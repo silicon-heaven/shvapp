@@ -1,9 +1,13 @@
 #include "dlgaddeditrole.h"
 #include "ui_dlgaddeditrole.h"
 
-#include "shv/core/log.h"
+#include "shv/coreqt/log.h"
 
 #include <QMessageBox>
+
+namespace cp = shv::chainpack;
+
+using namespace std;
 
 static const std::string VALUE_METHOD = "value";
 static const std::string SET_VALUE_METHOD = "setValue";
@@ -101,6 +105,7 @@ void DlgAddEditRole::callSetRoleSettings()
 
 	m_role.roles = roles();
 	m_role.weight = weight();
+	m_role.profile = profile();
 
 	shv::chainpack::RpcValue::List params{roleName().toStdString(), m_role.toRpcValueMap()};
 	m_rpcConnection->callShvMethod(rqid, aclEtcRoleNodePath(), SET_VALUE_METHOD, params);
@@ -124,6 +129,7 @@ void DlgAddEditRole::callGetRoleSettings()
 				m_role = shv::broker::AclRole::fromRpcValue(response.result());
 				setRoles(m_role.roles);
 				setWeight(m_role.weight);
+				setProfile(m_role.profile);
 			}
 		}
 		else{
@@ -193,9 +199,8 @@ void DlgAddEditRole::callSetAccessRulesForRole()
 	m_rpcConnection->callShvMethod(rqid, aclEtcAcessNodePath(), SET_VALUE_METHOD, params);
 }
 
-std::vector<std::string> DlgAddEditRole::roles()
+std::vector<std::string> DlgAddEditRole::roles() const
 {
-	std::vector<std::string> roles;
 #if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
 		auto skip_empty_parts = QString::SkipEmptyParts;
 #else
@@ -203,11 +208,12 @@ std::vector<std::string> DlgAddEditRole::roles()
 #endif
 	QStringList lst = ui->leRoles->text().split(",", skip_empty_parts);
 
+	std::vector<std::string> rlst;
 	for (int i = 0; i < lst.count(); i++){
-		roles.push_back(lst.at(i).trimmed().toStdString());
+		rlst.push_back(lst.at(i).trimmed().toStdString());
 	}
 
-	return roles;
+	return rlst;
 }
 
 void DlgAddEditRole::setRoles(const std::vector<std::string> &roles)
@@ -223,12 +229,12 @@ void DlgAddEditRole::setRoles(const std::vector<std::string> &roles)
 	ui->leRoles->setText(g);
 }
 
-QString DlgAddEditRole::roleName()
+QString DlgAddEditRole::roleName() const
 {
 	return ui->leRoleName->text();
 }
 
-int DlgAddEditRole::weight()
+int DlgAddEditRole::weight() const
 {
 	return ui->sbWeight->value();
 }
@@ -236,6 +242,26 @@ int DlgAddEditRole::weight()
 void DlgAddEditRole::setWeight(int weight)
 {
 	ui->sbWeight->setValue(weight);
+}
+
+shv::chainpack::RpcValue DlgAddEditRole::profile() const
+{
+	string s = ui->leProfile->text().trimmed().toStdString();
+	if(s.empty())
+		return cp::RpcValue();
+	string err;
+	auto rv = cp::RpcValue::fromCpon(s, &err);
+	if(!err.empty())
+		shvWarning() << roleName() << "invalid profile definition:" << s;
+	return rv;
+}
+
+void DlgAddEditRole::setProfile(const shv::chainpack::RpcValue &p)
+{
+	if(p.isMap())
+		ui->leProfile->setText(QString::fromStdString(p.toCpon()));
+	else
+		ui->leProfile->setText(QString());
 }
 
 std::string DlgAddEditRole::aclEtcRoleNodePath()
