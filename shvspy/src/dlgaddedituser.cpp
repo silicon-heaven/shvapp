@@ -35,7 +35,7 @@ DlgAddEditUser::DlgAddEditUser(QWidget *parent, shv::iotqt::rpc::ClientConnectio
 	}
 
 	connect(ui->tbShowPassword, &QToolButton::clicked, this, &DlgAddEditUser::onShowPasswordClicked);
-	connect(ui->pbSelectRoles, &QPushButton::clicked, this, &DlgAddEditUser::onSelectRolesClicked);
+	connect(ui->pbSelectRoles, &QAbstractButton::clicked, this, &DlgAddEditUser::onSelectRolesClicked);
 }
 
 DlgAddEditUser::~DlgAddEditUser()
@@ -241,13 +241,11 @@ std::vector<std::string> DlgAddEditUser::roles()
 
 void DlgAddEditUser::setRoles(const std::vector<std::string> &roles)
 {
-	QStringList roles_list;
-
-	for (const std::string role : roles){
-		roles_list.append(QString::fromStdString(role));
-	}
-
-	ui->leRoles->setText(roles_list.join(","));
+	QString rls;
+	if(!roles.empty())
+		rls = std::accumulate(std::next(roles.begin()), roles.end(), QString::fromStdString(roles[0]),
+					   [](const QString &s1, const std::string &s2) -> QString { return s1 + ',' + QString::fromStdString(s2); });
+	ui->leRoles->setText(rls);
 }
 
 void DlgAddEditUser::setRoles(const shv::chainpack::RpcValue::List &roles)

@@ -54,7 +54,7 @@ RC_ICONS = $$TARGET.ico
 }
 
 TRANSLATIONS += \
-#        ../eyassrv.pl_PL.ts \
+    jn50view.cs_CZ.ts \
 
 include (src/src.pri)
 

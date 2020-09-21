@@ -218,15 +218,11 @@ std::vector<std::string> DlgAddEditRole::roles() const
 
 void DlgAddEditRole::setRoles(const std::vector<std::string> &roles)
 {
-	QString g;
-
-	for (size_t i = 0; i < roles.size(); i++){
-		if(i > 0)
-			g += ',';
-		g += QString::fromStdString(roles[i]);
-	}
-
-	ui->leRoles->setText(g);
+	QString rls;
+	if(!roles.empty())
+		rls = std::accumulate(std::next(roles.begin()), roles.end(), QString::fromStdString(roles[0]),
+					   [](const QString &s1, const std::string &s2) -> QString { return s1 + ',' + QString::fromStdString(s2); });
+	ui->leRoles->setText(rls);	QString g;
 }
 
 QString DlgAddEditRole::roleName() const
