@@ -7,12 +7,16 @@
 		"password":{"format":"SHA1", "password":"ff2e1086753ca76fe84b7fadd738d76caf2072d0"},
 		"roles":["device"]
 	},
+	"guest":{
+		"password":{"format":"SHA1", "password":"35675e68f4b5af7b995d9205ad0fc43842f16450"},
+		"roles":["client", "guest"]
+	},
 	"hscope":{
 		"password":{"format":"SHA1", "password":"8884a26b82a69838092fd4fc824bbfde56719e02"},
 		"roles":["device"]
 	},
 	"iot":{
-		"password":{"format":"PLAIN", "password":"good password"},
+		"password":{"format":"SHA1", "password":"8884a26b82a69838092fd4fc824bbfde56719e02"},
 		"roles":["device", "tester"]
 	},
 	"shvgate":{

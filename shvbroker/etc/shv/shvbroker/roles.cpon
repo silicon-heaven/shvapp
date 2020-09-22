@@ -1,62 +1,40 @@
 {
 	"admin":{
-		"roles":["su"],
+		"profile":{
+			"FL":{"showAll":true},
+			"foo":"bar"
+		},
+		"roles":["su", "tester"],
 		"weight":0
 	},
-	"bws":{
-		"roles":[],
-		"weight":0
-	},
-	"cfg":{
-		"roles":[],
-		"weight":40
-	},
+	"bws":{"weight":0},
+	"cfg":{"weight":40},
 	"client":{
 		"roles":["ping", "subscribe"],
 		"weight":0
 	},
-	"cmd":{
-		"roles":[],
-		"weight":30
-	},
-	"dev":{
-		"roles":[],
-		"weight":60
-	},
+	"cmd":{"weight":30},
+	"dev":{"weight":60},
 	"device":{
 		"roles":["client"],
 		"weight":0
 	},
+	"guest":{"weight":0},
 	"masterBroker":{
 		"roles":["subscribe"],
 		"weight":0
 	},
-	"ping":{
-		"roles":[],
-		"weight":0
-	},
-	"rd":{
-		"roles":[],
-		"weight":10
-	},
-	"srv":{
-		"roles":[],
-		"weight":50
-	},
-	"su":{
-		"roles":[],
-		"weight":70
-	},
-	"subscribe":{
-		"roles":[],
-		"weight":0
-	},
+	"ping":{"weight":0},
+	"rd":{"weight":10},
+	"srv":{"weight":50},
+	"su":{"weight":70},
+	"subscribe":{"weight":0},
 	"tester":{
+		"profile":{
+			"FL":{"siteRoot":"cze/prg/aux/eline"}
+		},
 		"roles":["device"],
 		"weight":0
 	},
-	"wr":{
-		"roles":[],
-		"weight":20
-	}
+	"wr":{"weight":20}
 }
