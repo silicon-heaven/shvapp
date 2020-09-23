@@ -34,7 +34,7 @@
 	},
 	{
 		"id": "GET_1"
-		"descr": "Get value on node conected to the same broker via relative shv_path call",
+		"descr": "Get value on node conected to lowes broker in hierarchy",
 		"cmd": "call",
 		"method": "get",
 		"shvPath": "test/broker1/brokerA/agentA1/tester/prop1/propA",
