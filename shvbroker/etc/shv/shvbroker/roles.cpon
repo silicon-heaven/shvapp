@@ -5,7 +5,7 @@
 			"foo":"bar"
 		},
 		"roles":["su", "tester"],
-		"weight":0
+		"weight":100
 	},
 	"bws":{"weight":0},
 	"cfg":{"weight":40},

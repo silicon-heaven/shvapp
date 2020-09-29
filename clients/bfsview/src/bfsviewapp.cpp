@@ -351,7 +351,7 @@ const std::string &BfsViewApp::bfsStatusShvPath()
 	if(shv_path.empty()) {
 		QSettings qsettings;
 		Settings settings(qsettings);
-		shv_path = shv::core::utils::ShvPath::join(settings.bfsShvPath().toStdString(), "status");
+		shv_path = shv::core::utils::ShvPath::join(settings.bfsShvPath().toStdString(), std::string("status"));
 	}
 	return shv_path;
 }

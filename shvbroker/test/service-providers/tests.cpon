@@ -1,48 +1,70 @@
 [
+
 	{
-		"id": "SUBS_1"
-		"descr": "Subscribe value change of node on the same broker via relative shv_path call",
+		"descr": "SET method on service provider relative",
+		"cmd": "call",
+		"method": "set",
+		"shvPath": "test/sites~:/tester/prop2",
+		"params": 42,
+		"result": true,
+	},
+	{
+		"descr": "GET method on service provider relative",
+		"cmd": "call",
+		"method": "get",
+		"shvPath": "test/sites~:/tester/prop2",
+		"result": 42,
+	},
+	{
+		"descr": "GET method on service provider absolute",
+		"cmd": "call",
+		"method": "get",
+		"shvPath": "test/sites|:/broker1/brokerA/agentB2/tester/prop2",
+		"result": 42,
+	},
+	
+	// relative service path subscription
+	{
+		"descr": "Relative service path subscription",
 		"cmd": "call",
 		"method": "subscribe",
 		"shvPath": ".broker/app",
-		"params": {"method":"chng", "path":"../agentB1"},
+		"params": {"method":"chng", "path":"test/sites~:/tester/prop1/propA"},
 		"result": true
-		"onSuccess": {"skip": 1}, // default
+		"onSuccess": {"skip": 1}, // default, goto next step on success
 		"onError": {"abort": true}, // default
 		"onTimeout": {"abort": true}, // default
 	},
 	{
-		"id": "NTF_1"
 		"descr": "Wait for value change notify",
 		"cmd": "sigTrap",
 		"method": "chng",
-		"shvPath": "../agentB1/tester/prop1",
+		"shvPath": "test/sites~:/tester/prop1/propA",
 		"params": 42,
 		"timeout": 500
-		"onSuccess": {"skip": 2}
+		"onSuccess": {"skip": 2} // goto GET_1 on success
 	},
 	{
-		"id": "SET_1"
 		"descr": "Set value on node conected to the same broker via relative shv_path call",
 		"cmd": "call",
 		"method": "set",
-		"shvPath": "../agentB1/tester/prop1",
+		"shvPath": "test/sites~:/tester/prop1/propA",
 		"params": 42,
 		"result": true,
 		"waitForResult": false
-		"onSuccess": {"skip": 0}
+		"onSuccess": {"skip": 0} // skip == 0 means do not proceed next step on success
 	},
 	{
 		"id": "GET_1"
 		"descr": "Get value on node conected to the same broker via relative shv_path call",
 		"cmd": "call",
 		"method": "get",
-		"shvPath": "../agentB1/tester/prop1",
+		"shvPath": "test/sites~:/tester/prop1/propA",
 		"result": 42,
 	},
+	/*
 
 	{
-		"id": "SUBS-cross-1"
 		"descr": "Subscribe value change of node on different broker via relative shv_path call",
 		"cmd": "call",
 		"method": "subscribe",
@@ -51,7 +73,6 @@
 		"result": true
 	},
 	{
-		"id": "NTF-cross-1"
 		"descr": "Wait for value change notify",
 		"cmd": "sigTrap",
 		"method": "chng",
@@ -76,4 +97,5 @@
 		"shvPath": "../../broker1/agentA1/tester/prop1/propA",
 		"result": 3,
 	},
+	*/
 ]

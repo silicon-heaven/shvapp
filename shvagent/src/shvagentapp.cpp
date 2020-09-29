@@ -560,8 +560,11 @@ void ShvAgentApp::tester_processShvCalls()
 	};
 
 	auto test_no = m_currentTestIndex;
+	string test_id = task.value("id").toString();
+	if(test_id.empty())
+		test_id = "TEST_STEP_" + to_string(test_no);
 	logTesterI() << "=========================================";
-	logTesterI() << "#" << test_no << "ID:" << task.value("id").toString() << "COMMAND:" << cmd;
+	logTesterI() << "#" << test_no << "ID:" << test_id << "COMMAND:" << cmd;
 	logTesterI() << "DESCR:" << descr;
 	if(cmd == "call") {
 		std::string shv_path = task.value("shvPath").toString();

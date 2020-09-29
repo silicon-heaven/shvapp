@@ -13,5 +13,6 @@
 	"client": {"roles": ["ping", "subscribe"]},
 	"device": {"roles": ["client"]},
 	"ping": {},
+	"subscribe": {},
 	"masterBroker": {"roles": ["subscribe"]},
 }
