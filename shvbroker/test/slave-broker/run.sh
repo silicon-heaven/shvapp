@@ -6,7 +6,7 @@ BINDIR=/home/fanda/proj/_build/shv/bin
 # SRCDIR=/home/fanda/proj/shv
 CFGDIR=$TSTDIR/../etc/broker
 
-BROKER_TOPICS=rpcmsg,subscr,AclResolve #,sigres
+BROKER_TOPICS=rpcmsg,subscr #,AclResolve #,sigres
 SLEEP_SETTLE=0.5
 
 # tmux set option remain-on-exit on
