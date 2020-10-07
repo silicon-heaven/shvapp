@@ -266,7 +266,7 @@ void AttributesModel::callGetters()
 	for (unsigned i = 0; i < m_rows.size(); ++i) {
 		const ShvMetaMethod *mm = metaMethodAt(i);
 		if(mm) {
-			if(mm->method == cp::Rpc::METH_GET || ((mm->flags & cp::MetaMethod::Flag::IsGetter) && !(mm->flags & cp::MetaMethod::Flag::LargeResultHint))) {
+			if((mm->flags & cp::MetaMethod::Flag::IsGetter) && !(mm->flags & cp::MetaMethod::Flag::LargeResultHint)) {
 				callMethod(i);
 			}
 		}
