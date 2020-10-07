@@ -1,4 +1,3 @@
 {
-	"DS:3224A8190000":{"mountPoint":"shv/pol/lub/discon/1203"},
-	"bfsview-001":{"description":"neco", "mountPoint":"bfs/plzen/bfsView"}
+	"sitesprovider":{"mountPoint":"sites"},
 }
