@@ -71,13 +71,14 @@ int main(int argc, char *argv[])
 
 	shvInfo() << "======================================================================================";
 	shvInfo() << "Starting SHV BROKER server ver:" << APP_VERSION
-				 << "PID:" << QCoreApplication::applicationPid()
-				 << "build:" << __DATE__ << __TIME__;
+				 << "PID:" << QCoreApplication::applicationPid();
+				// << "build:" << __DATE__ << __TIME__;
 #ifdef GIT_COMMIT
 	shvInfo() << "GIT commit:" << SHV_EXPAND_AND_QUOTE(GIT_COMMIT);
 #endif
 	shvInfo() << QDateTime::currentDateTime().toString(Qt::ISODate).toStdString() << "UTC:" << QDateTime::currentDateTimeUtc().toString(Qt::ISODate).toStdString();
 	shvInfo() << "======================================================================================";
+	shvInfo() << "Broker ID:" << cli_opts.brokerId();
 	shvInfo() << "Log tresholds:" << NecroLog::tresholdsLogInfo();
 	shvInfo() << "Config dir:" << cli_opts.configDir();
 	if(cli_opts.isSqlConfigEnabled())

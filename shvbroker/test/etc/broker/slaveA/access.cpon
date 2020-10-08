@@ -15,7 +15,11 @@
 		{"method":"subscribe", "pathPattern":".broker/app", "role":"rd"},
 		{"method":"unsubscribe", "pathPattern":".broker/app", "role":"wr"}
 	],
+	"slaveBroker":[
+		{"pathPattern":".broker/app", "role":"rd"},
+	],
 	"tester":[
+		{"pathPattern":".broker/app", "role":"rd"},
 		{"method":"", "pathPattern":"test/**", "role":"wr"}
 	]
 }

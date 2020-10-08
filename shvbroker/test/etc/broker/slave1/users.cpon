@@ -14,7 +14,7 @@
     }
   },
   "broker":{
-    "roles":["device","tester"],
+    "roles":["device","tester","slaveBroker"],
     "password": {
       "password":"ffee1086753ca76fe84b7fadd738d76caf2072d0",
       "format":"sha1"

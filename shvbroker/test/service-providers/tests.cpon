@@ -22,7 +22,7 @@
 		"shvPath": "test/sites|:/broker1/brokerA/agentB2/tester/prop3",
 		"result": 42,
 	},
-	
+
 	// relative service path subscription
 	{
 		"descr": "Relative service path subscription",
@@ -101,5 +101,37 @@
 		"method": "get",
 		"shvPath": "test/sites|:/broker1/brokerA/agentB2/tester/prop1/propA",
 		"result": 27,
+	},
+	{
+		"id": "GET_2"
+		"descr": "Get value on root broker via absolute shv_path call",
+		"cmd": "call",
+		"method": "get",
+		"shvPath": "test/sites@|:/broker1/brokerA/agentB2/tester/prop1/propA",
+		"result": 27,
+	},
+	{
+		"id": "GET_3"
+		"descr": "Get value on root broker via absolute shv_path call",
+		"cmd": "call",
+		"method": "brokerId",
+		"shvPath": ".broker@|:/app",
+		"result": "master",
+	},
+	{
+		"id": "GET_4"
+		"descr": "Get value on this broker via absolute shv_path call",
+		"cmd": "call",
+		"method": "brokerId",
+		"shvPath": ".broker@slave1|:/app",
+		"result": "slave1",
+	},
+	{
+		"id": "GET_5"
+		"descr": "Get value on this broker via absolute shv_path call",
+		"cmd": "call",
+		"method": "brokerId",
+		"shvPath": ".broker|:/app",
+		"result": "slaveA",
 	},
 ]

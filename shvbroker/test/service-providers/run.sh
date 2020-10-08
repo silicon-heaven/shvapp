@@ -6,12 +6,12 @@ BINDIR=/home/fanda/proj/_build/shv/bin
 # SRCDIR=/home/fanda/proj/shv
 CFGDIR=$TSTDIR/../etc/broker
 
-BROKER_TOPICS=rpcmsg,subscr,ServiceProviders,SigRes
+BROKER_TOPICS=rpcmsg,subscr,ServiceProviders,SigRes,AclResolve
 SLEEP_SETTLE=0.5
 
-#tmux set remain-on-exit on
-
-tmux new-window $BINDIR/shvbroker --config-dir $CFGDIR/master/ -v $BROKER_TOPICS 
+# tmux set remain-on-exit on
+tmux new-window $BINDIR/shvbroker --config-dir $CFGDIR/master/ -v $BROKER_TOPICS
+# tmux new-window  remain-on-exit on $BINDIR/shvbroker --config-dir $CFGDIR/master/ -v $BROKER_TOPICS
 
 # sleep 1
 tmux split-window $BINDIR/shvbroker --config-dir $CFGDIR/slave1/ -v $BROKER_TOPICS

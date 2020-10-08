@@ -14,5 +14,6 @@
 	"device": {"roles": ["client"]},
 	"ping": {},
 	"subscribe": {},
+	"slaveBroker": {},
 	"masterBroker": {"roles": ["subscribe"]},
 }
