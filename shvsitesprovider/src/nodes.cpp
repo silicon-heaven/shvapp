@@ -53,6 +53,11 @@ static std::vector<cp::MetaMethod> meta_leaf_meta_methods {
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 };
 
+static std::vector<cp::MetaMethod> file_dir_meta_methods {
+	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
+	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
+};
+
 static std::vector<cp::MetaMethod> file_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
@@ -181,6 +186,9 @@ const std::vector<shv::chainpack::MetaMethod> &AppRootNode::metaMethods(const sh
 	}
 	else if (shv_path[shv_path.size() - 1] == "_meta") {
 		return meta_leaf_meta_methods;
+	}
+	else if (isDir(shv_path)) {
+		return file_dir_meta_methods;
 	}
 	else if (isFile(shv_path)) {
 		return file_meta_methods;
@@ -492,5 +500,11 @@ bool AppRootNode::isFile(const shv::iotqt::node::ShvNode::StringViewList &shv_pa
 {
 	QFileInfo fi(nodeLocalPath(shv_path.join('/')));
 	return fi.isFile();
+}
+
+bool AppRootNode::isDir(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
+{
+	QFileInfo fi(nodeLocalPath(shv_path.join('/')));
+	return fi.isDir();
 }
 

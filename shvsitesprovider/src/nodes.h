@@ -43,6 +43,7 @@ private:
 	QString nodeLocalPath(const QString &shv_path) const;
 	QString nodeLocalPath(const std::string &shv_path) const { return nodeLocalPath(QString::fromStdString(shv_path)); }
 	bool isFile(const shv::iotqt::node::ShvNode::StringViewList &shv_path);
+	bool isDir(const shv::iotqt::node::ShvNode::StringViewList &shv_path);
 
 	shv::chainpack::RpcValue lsDir(const shv::core::StringViewList &shv_path);
 
