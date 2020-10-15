@@ -10,14 +10,14 @@ BROKER_TOPICS=rpcmsg,subscr,ServiceProviders,SigRes,AclResolve
 SLEEP_SETTLE=0.5
 
 # tmux set remain-on-exit on
-tmux new-window $BINDIR/shvbroker --config-dir $CFGDIR/master/ -v $BROKER_TOPICS
-# tmux new-window  remain-on-exit on $BINDIR/shvbroker --config-dir $CFGDIR/master/ -v $BROKER_TOPICS
+tmux new-window sh -c "$BINDIR/shvbroker --config-dir $CFGDIR/master/ -v $BROKER_TOPICS || read a"
+#tmux new-window sh -c "$BINDIR/shvbroker --config-dir $CFGDIR/master/ -v $BROKER_TOPICS 2>&1 | tee ~/t/bmaster.log"
 
 # sleep 1
-tmux split-window $BINDIR/shvbroker --config-dir $CFGDIR/slave1/ -v $BROKER_TOPICS
+tmux split-window sh -c "$BINDIR/shvbroker --config-dir $CFGDIR/slave1/ -v $BROKER_TOPICS || read a"
 
 # sleep 1
-tmux split-window $BINDIR/shvbroker --config-dir $CFGDIR/slaveA/ -v $BROKER_TOPICS
+tmux split-window sh -c "$BINDIR/shvbroker --config-dir $CFGDIR/slaveA/ -v $BROKER_TOPICS || read a"
 
 #tmux split-window -h $BINDIR/revitestdevice -p 3755 -u iot --password iotpwd --lt plain -m test/slave/lub1
 # sleep 1
