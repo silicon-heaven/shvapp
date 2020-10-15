@@ -138,7 +138,7 @@ cp::RpcValue RootNode::ls(const shv::core::StringViewList &shv_path, size_t inde
 		if (site_item->children().count() == 0) {
 			items.push_back(Application::DIRTY_LOG_NODE);
 		}
-		return std::move(items);
+		return items;
 	}
 	QString key = QString::fromStdString(shv_path[index].toString());
 	SiteItem *child = site_item->findChild<SiteItem*>(key);
@@ -148,7 +148,7 @@ cp::RpcValue RootNode::ls(const shv::core::StringViewList &shv_path, size_t inde
 	if (index + 1 == shv_path.size() && key == Application::DIRTY_LOG_NODE) {
 		cp::RpcValue::List items;
 		items.push_back(Application::START_TS_NODE);
-		return std::move(items);
+		return items;
 	}
 	return cp::RpcValue::List();
 }

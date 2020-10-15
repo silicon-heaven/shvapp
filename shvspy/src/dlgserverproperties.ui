@@ -83,42 +83,52 @@
        </property>
       </widget>
      </item>
-     <item row="5" column="0">
+     <item row="7" column="0">
       <widget class="QLabel" name="label_6">
        <property name="text">
         <string>Connection type</string>
        </property>
       </widget>
      </item>
-     <item row="5" column="1">
+     <item row="7" column="1">
       <widget class="QComboBox" name="cbxConnectionType">
        <property name="toolTip">
         <string>Connection type</string>
        </property>
       </widget>
      </item>
-     <item row="6" column="0">
+     <item row="8" column="0">
       <widget class="QLabel" name="label_7">
        <property name="text">
         <string>Protocol type</string>
        </property>
       </widget>
      </item>
-     <item row="6" column="1">
+     <item row="8" column="1">
       <widget class="QComboBox" name="rpc_protocolType">
        <property name="toolTip">
         <string>Connection type</string>
        </property>
       </widget>
      </item>
-     <item row="8" column="0">
+     <item row="9" column="0">
+      <widget class="QLabel" name="label_13">
+       <property name="text">
+        <string>SHV root</string>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="1">
+      <widget class="QLineEdit" name="shvRoot"/>
+     </item>
+     <item row="10" column="0">
       <widget class="QLabel" name="label_10">
        <property name="text">
         <string>Reconnect interval</string>
        </property>
       </widget>
      </item>
-     <item row="8" column="1">
+     <item row="10" column="1">
       <widget class="QSpinBox" name="rpc_reconnectInterval">
        <property name="toolTip">
         <string>Reconnect to broker if connection lost at least after recoonect-interval seconds. Disabled when set to 0</string>
@@ -140,14 +150,14 @@
        </property>
       </widget>
      </item>
-     <item row="9" column="0">
+     <item row="11" column="0">
       <widget class="QLabel" name="label_11">
        <property name="text">
         <string>Heart beat interval</string>
        </property>
       </widget>
      </item>
-     <item row="9" column="1">
+     <item row="11" column="1">
       <widget class="QSpinBox" name="rpc_heartbeatInterval">
        <property name="toolTip">
         <string>Send heart beat to broker every n sec. Disabled when set to 0.</string>
@@ -169,7 +179,39 @@
        </property>
       </widget>
      </item>
-     <item row="11" column="0" colspan="2">
+     <item row="12" column="0">
+      <widget class="QLabel" name="label_12">
+       <property name="text">
+        <string>RPC Timeout</string>
+       </property>
+      </widget>
+     </item>
+     <item row="12" column="1">
+      <widget class="QSpinBox" name="rpc_timeout">
+       <property name="toolTip">
+        <string>Send heart beat to broker every n sec. Disabled when set to 0.</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
+       <property name="suffix">
+        <string> sec</string>
+       </property>
+       <property name="minimum">
+        <number>1</number>
+       </property>
+       <property name="maximum">
+        <number>999999999</number>
+       </property>
+       <property name="singleStep">
+        <number>10</number>
+       </property>
+       <property name="value">
+        <number>5</number>
+       </property>
+      </widget>
+     </item>
+     <item row="13" column="0" colspan="2">
       <widget class="QGroupBox" name="grpDevice">
        <property name="title">
         <string>Device</string>
@@ -198,47 +240,36 @@
        </layout>
       </widget>
      </item>
-     <item row="10" column="0">
-      <widget class="QLabel" name="label_12">
+     <item row="5" column="0">
+      <widget class="QLabel" name="label_14">
        <property name="text">
-        <string>RPC Timeout</string>
+        <string>Security type</string>
        </property>
       </widget>
      </item>
-     <item row="10" column="1">
-      <widget class="QSpinBox" name="rpc_timeout">
+     <item row="5" column="1">
+      <widget class="QComboBox" name="securityType">
        <property name="toolTip">
-        <string>Send heart beat to broker every n sec. Disabled when set to 0.</string>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-       </property>
-       <property name="suffix">
-        <string> sec</string>
-       </property>
-       <property name="minimum">
-        <number>1</number>
-       </property>
-       <property name="maximum">
-        <number>999999999</number>
-       </property>
-       <property name="singleStep">
-        <number>10</number>
-       </property>
-       <property name="value">
-        <number>5</number>
+        <string>Security type</string>
        </property>
       </widget>
      </item>
-     <item row="7" column="0">
-      <widget class="QLabel" name="label_13">
+     <item row="6" column="0">
+      <widget class="QLabel" name="label_15">
        <property name="text">
-        <string>SHV root</string>
+        <string>Peer verify</string>
        </property>
       </widget>
      </item>
-     <item row="7" column="1">
-      <widget class="QLineEdit" name="shvRoot"/>
+     <item row="6" column="1">
+      <widget class="QCheckBox" name="peerVerify">
+       <property name="layoutDirection">
+        <enum>Qt::LeftToRight</enum>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
      </item>
     </layout>
    </item>
