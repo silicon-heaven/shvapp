@@ -158,7 +158,7 @@ void RootNode::trimDirtyLog(const QString &shv_path)
 	Application::instance()->logSanitizer()->trimDirtyLog(shv_path);
 }
 
-void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &log, int64_t &since, int64_t &until)
+void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &log, int64_t &log_since_ms, int64_t &log_until_ms)
 {
 	ShvLogRpcValueReader log_reader(log);
 	LogDir log_dir(shv_path);
@@ -170,8 +170,12 @@ void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &
 	}
 	QStringList matching_files = log_dir.findFiles(log_since, log_until);
 
-	int64_t log_since_ms = log_since.toMSecsSinceEpoch();
-	int64_t log_until_ms = log_until.toMSecsSinceEpoch();
+	log_since_ms = log_since.toMSecsSinceEpoch();
+	if(log_since_ms == 0)
+		SHV_EXCEPTION("Pushed log 'since' param is invalid.");
+	log_until_ms = log_until.toMSecsSinceEpoch();
+	if(log_until_ms == 0)
+		SHV_EXCEPTION("Pushed log 'until' param is invalid.");
 
 	QVector<ShvJournalEntry> entries_to_prepend;
 	QVector<ShvJournalEntry> entries_to_append;
@@ -202,7 +206,6 @@ void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &
 	for (const QString &file : matching_files) {
 		QFile(file).remove();
 	}
-	since = until = log_since.toMSecsSinceEpoch();
 
 	ShvGetLogParams params;
 	params.recordCountLimit = Application::CHUNK_RECORD_COUNT;
@@ -212,7 +215,7 @@ void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &
 	bool first_log = log_dir.findFiles(QDateTime(), QDateTime()).count() == 0;
 
 	ShvMemoryJournal output_log(params);
-	auto save_log = [&output_log, &shv_path, &params, &log_dir, &first_log]() {
+	auto save_log = [&output_log, &shv_path, &params, &first_log]() {
 		cp::RpcValue log_cp = output_log.getLog(params);
 		if (first_log) {
 			log_cp.setMetaValue("HP", cp::RpcValue::Map{{ "firstLog", true }});
@@ -229,8 +232,12 @@ void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &
 		output_log = ShvMemoryJournal(params);
 	};
 
-	auto append_log = [&output_log, &until, &save_log](const ShvJournalEntry &entry) {
-		until = entry.epochMsec;
+	auto append_log = [&output_log, &save_log, log_since_ms, log_until_ms](const ShvJournalEntry &entry) {
+		auto msec = entry.epochMsec;
+		if(log_since_ms > msec)
+			SHV_EXCEPTION("Pushed log entry date-time is younger than 'since' param.");
+		if(log_until_ms < msec)
+			SHV_EXCEPTION("Pushed log entry date-time is older than 'until' param.");
 		output_log.append(entry);
 		if ((int)output_log.size() >= Application::CHUNK_RECORD_COUNT) {
 			save_log();
