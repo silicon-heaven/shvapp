@@ -152,6 +152,8 @@ void ShvBrokerNodeItem::open()
 	//cli->setServerName(props.value("name").toString());
 	cli->setHost(m_serverPropeties.value("host").toString().toStdString());
 	cli->setPort(m_serverPropeties.value("port").toInt());
+	cli->setSecurityType(m_serverPropeties.value("securityType").toString().toStdString());
+	cli->setPeerVerify(m_serverPropeties.value("peerVerify").toBool());
 	cli->setUser(m_serverPropeties.value("user").toString().toStdString());
 	std::string pwd = m_serverPropeties.value("password").toString().toStdString();
 	cli->setPassword(pwd);

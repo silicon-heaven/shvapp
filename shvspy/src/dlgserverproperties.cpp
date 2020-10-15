@@ -2,8 +2,11 @@
 #include "ui_dlgserverproperties.h"
 
 #include <shv/chainpack/irpcconnection.h>
+#include <shv/iotqt/rpc/clientconnection.h>
 
 #include <QSettings>
+
+#include <shv/core/log.h>
 
 namespace cp = shv::chainpack;
 
@@ -26,6 +29,15 @@ DlgServerProperties::DlgServerProperties(QWidget *parent) :
 	ui->rpc_protocolType->addItem(cp::Rpc::protocolTypeToString(cp::Rpc::ProtocolType::JsonRpc), (int)cp::Rpc::ProtocolType::JsonRpc);
 	ui->rpc_protocolType->setCurrentIndex(0);
 
+	using shv::iotqt::rpc::ClientConnection;
+	ui->securityType->addItem(QString::fromStdString(ClientConnection::stringFromSecurityType(ClientConnection::Ssl)));
+	ui->securityType->addItem(QString::fromStdString(ClientConnection::stringFromSecurityType(ClientConnection::None)));
+	ui->securityType->setCurrentIndex(0);
+	ui->peerVerify->setChecked(true);
+
+	connect(ui->securityType, &QComboBox::currentTextChanged,
+			[this] (const QString &security_type_text) { ui->peerVerify->setDisabled(security_type_text == "none"); });
+
 	QSettings settings;
 	restoreGeometry(settings.value(QStringLiteral("ui/dlgServerProperties/geometry")).toByteArray());
 }
@@ -43,6 +55,8 @@ QVariantMap DlgServerProperties::serverProperties() const
 	ret["port"] = ui->edPort->value();
 	ret["user"] = ui->edUser->text();
 	ret["password"] = ui->edPassword->text();
+	ret["securityType"] = ui->securityType->currentText();
+	ret["peerVerify"] = ui->peerVerify->isChecked();
 	ret["connectionType"] = ui->cbxConnectionType->currentData().toString();
 	ret["rpc.protocolType"] = ui->rpc_protocolType->currentData().toInt();
 	ret["rpc.reconnectInterval"] = ui->rpc_reconnectInterval->value();
@@ -62,7 +76,7 @@ void DlgServerProperties::setServerProperties(const QVariantMap &props)
 
 	ui->edName->setText(props.value("name").toString());
 	ui->edHost->setText(props.value("host").toString());
-	ui->edPort->setValue(props.value("port", shv::chainpack::IRpcConnection::DEFAULT_RPC_BROKER_PORT).toInt());
+	ui->edPort->setValue(props.value("port", shv::chainpack::IRpcConnection::DEFAULT_RPC_BROKER_PORT_NONSECURED).toInt());
 	ui->edUser->setText(props.value("user").toString());
 	ui->edPassword->setText(props.value("password").toString());
 	{
@@ -90,6 +104,16 @@ void DlgServerProperties::setServerProperties(const QVariantMap &props)
 		if(v.isValid())
 			ui->device_mountPoint->setText(v.toString());
 	}
+
+	QString security_type = props.value("securityType").toString();
+	for (int i = 0; i < ui->securityType->count(); ++i) {
+		if (ui->securityType->itemText(i) == security_type) {
+			ui->securityType->setCurrentIndex(i);
+			break;
+		}
+	}
+
+	ui->peerVerify->setChecked(props.value("peerVerify").toBool());
 
 	QString conn_type = props.value("connectionType").toString();
 	ui->cbxConnectionType->setCurrentIndex(0);
