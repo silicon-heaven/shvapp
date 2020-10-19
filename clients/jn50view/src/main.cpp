@@ -106,6 +106,10 @@ int main(int argc, char *argv[])
 
 	Jn50ViewApp a(argc, argv, &cli_opts);
 
+	QTranslator tr;
+	tr.load(QLocale(), QCoreApplication::applicationName(), QLatin1String("_"), QLatin1String(":/i18n"));
+	a.installTranslator(&tr);
+
 	MainWindow w;
 	w.show();
 

@@ -35,7 +35,13 @@ VisuWidget::VisuWidget(QWidget *parent)
 
 	m_scene = new QGraphicsScene(this);
 	setScene(m_scene);
-	load(":/images/visu.svg");
+
+	switch(QLocale::system().language()) {
+		case QLocale::Language::English: load(":/images/visu_en.svg"); break;
+		case QLocale::Language::Czech: load(":/images/visu_cs.svg"); break;
+		default: load(":/images/visu_en.svg");break;
+	}
+
 	for(VisuController *vc : findVisuControllers()) {
 		vc->updateValue();
 	}
