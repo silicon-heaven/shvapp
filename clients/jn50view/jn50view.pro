@@ -54,8 +54,11 @@ RC_ICONS = $$TARGET.ico
 }
 
 TRANSLATIONS += \
-    jn50view.cs_CZ.ts \
+    translations/jn50view.cs_CZ.ts \
 
 include (src/src.pri)
+
+DISTFILES += \
+    translations/jn50view.cs_CZ.ts
 
 

@@ -3,5 +3,7 @@
         <file>images/visu_en.svg</file>
         <file>images/eline.svg</file>
         <file>images/visu_cs.svg</file>
+        <file>translations/jn50view.cs_CZ.ts</file>
+        <file>translations/jn50view.cs_CZ.qm</file>
     </qresource>
 </RCC>
