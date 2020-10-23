@@ -30,10 +30,11 @@ DlgServerProperties::DlgServerProperties(QWidget *parent) :
 	ui->rpc_protocolType->setCurrentIndex(0);
 
 	using shv::iotqt::rpc::ClientConnection;
-	ui->securityType->addItem(QString::fromStdString(ClientConnection::securityTypeToString(ClientConnection::Ssl)));
 	ui->securityType->addItem(QString::fromStdString(ClientConnection::securityTypeToString(ClientConnection::None)));
+	ui->securityType->addItem(QString::fromStdString(ClientConnection::securityTypeToString(ClientConnection::Ssl)));
 	ui->securityType->setCurrentIndex(0);
-	ui->peerVerify->setChecked(true);
+	ui->peerVerify->setChecked(false);
+	ui->peerVerify->setDisabled(true);
 
 	connect(ui->securityType, &QComboBox::currentTextChanged,
 			[this] (const QString &security_type_text) { ui->peerVerify->setDisabled(security_type_text == "none"); });
