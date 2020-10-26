@@ -46,6 +46,8 @@ private:
 	bool isDir(const shv::iotqt::node::ShvNode::StringViewList &shv_path);
 
 	shv::chainpack::RpcValue lsDir(const shv::core::StringViewList &shv_path);
+	shv::chainpack::RpcValue readAndMergeTempl(const QString &path);
+	shv::chainpack::RpcValue mergeRpcValue(const shv::chainpack::RpcValue &base, const shv::chainpack::RpcValue &extend);
 
 	shv::chainpack::RpcValue::Map m_sites;
 	QElapsedTimer m_sitesSyncedBefore;
