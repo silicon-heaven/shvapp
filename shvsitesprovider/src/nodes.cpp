@@ -19,6 +19,8 @@ namespace cp = shv::chainpack;
 using namespace std;
 
 const string FILES_NODE = "_files";
+const QString CPON_SUFFIX = QStringLiteral("cpon");
+const QString CPTEMPL_SUFFIX = QStringLiteral("cptempl");
 
 static const char METH_GET_SITES[] = "getSites";
 static const char METH_GET_CONFIG[] = "getConfig";
@@ -276,14 +278,14 @@ cp::RpcValue AppRootNode::lsDir(const shv::core::StringViewList &shv_path)
 		QFileInfoList file_infos = dir.entryInfoList(QDir::Filter::Dirs | QDir::Filter::Files | QDir::Filter::NoDotAndDotDot, QDir::SortFlag::Name);
 		for (const QFileInfo &file_info : file_infos) {
 			std::string new_item;
-			if (file_info.suffix() == "cptempl") {
-				new_item = (file_info.completeBaseName() + ".cpon").toStdString();
+			if (file_info.suffix() == CPTEMPL_SUFFIX) {
+				new_item = (file_info.completeBaseName() + "." + CPON_SUFFIX).toStdString();
 			}
 			else {
 				new_item = file_info.fileName().toStdString();
 			}
 			auto it = std::find(items.begin(), items.end(), new_item);
-			if (it != items.end() && file_info.suffix() == "cpon") {
+			if (it != items.end() && file_info.suffix() == CPON_SUFFIX) {
 				items.erase(it);
 			}
 			items.push_back(new_item);
@@ -469,9 +471,9 @@ shv::chainpack::RpcValue AppRootNode::readConfig(const QString &path)
 {
 	QFile f(path);
 	if (!f.open(QFile::ReadOnly)) {
-		if (path.endsWith(".cpon")) {
+		if (path.endsWith(CPON_SUFFIX)) {
 			QString filename = path;
-			filename.replace(filename.length() - 5, 5, ".cptempl");
+			filename.replace(filename.length() - 4, 4, CPTEMPL_SUFFIX);
 			f.setFileName(filename);
 			if (!f.open(QFile::ReadOnly)) {
 				SHV_QT_EXCEPTION("Cannot open template: " + f.fileName() + " for reading.");
@@ -556,8 +558,8 @@ bool AppRootNode::isFile(const shv::iotqt::node::ShvNode::StringViewList &shv_pa
 	if (fi.isFile())
 		return true;
 
-	if (filename.endsWith(".cpon")) {
-		filename.replace(filename.length() - 5, 5, ".cptempl");
+	if (filename.endsWith(CPON_SUFFIX)) {
+		filename.replace(filename.length() - 4, 4, CPTEMPL_SUFFIX);
 		QFileInfo fi(filename);
 		if (fi.isFile())
 			return true;
