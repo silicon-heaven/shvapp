@@ -283,13 +283,10 @@ cp::RpcValue AppRootNode::lsDir(const shv::core::StringViewList &shv_path)
 				new_item = file_info.fileName().toStdString();
 			}
 			auto it = std::find(items.begin(), items.end(), new_item);
-			if (it != items.end()) {
+			if (it != items.end() && file_info.suffix() == "cpon") {
 				items.erase(it);
-				shvWarning() << "Duplicate template name with real file" << shv_path.join('/');
 			}
-			else {
-				items.push_back(new_item);
-			}
+			items.push_back(new_item);
 		}
 	}
 	return items;
@@ -459,85 +456,55 @@ shv::chainpack::RpcValue AppRootNode::get(const shv::core::StringViewList &shv_p
 
 shv::chainpack::RpcValue AppRootNode::readFile(const shv::core::StringViewList &shv_path)
 {
-	QFile f(nodeLocalPath(shv_path.join('/')));
+	QString filename = nodeLocalPath(shv_path.join('/'));
+	QFile f(filename);
 	if (f.open(QFile::ReadOnly)) {
 		QByteArray file_content = f.readAll();
 		return file_content.toStdString();
 	}
-	QString templ_filename = nodeLocalPath(shv_path.join('/'));
-	if (templ_filename.endsWith(".cpon")) {
-		templ_filename.replace(templ_filename.length() - 5, 5, ".cptempl");
-		if (QFile(templ_filename).exists()) {
-			cp::RpcValue result = readAndMergeTempl(templ_filename);
-			return result.toCpon("\t");
-		}
-	}
-	SHV_EXCEPTION("Cannot open file: " + f.fileName().toStdString() + " for reading.");
+	return readConfig(filename).toCpon("  ");
 }
 
-shv::chainpack::RpcValue AppRootNode::readAndMergeTempl(const QString &path)
+shv::chainpack::RpcValue AppRootNode::readConfig(const QString &path)
 {
-	static const char BASED_ON_KEY[] = "basedOn";
-
 	QFile f(path);
 	if (!f.open(QFile::ReadOnly)) {
-		QString filename = path;
-		if (filename.endsWith(".cpon")) {
+		if (path.endsWith(".cpon")) {
+			QString filename = path;
 			filename.replace(filename.length() - 5, 5, ".cptempl");
-			f.setFileName(path);
+			f.setFileName(filename);
 			if (!f.open(QFile::ReadOnly)) {
 				SHV_QT_EXCEPTION("Cannot open template: " + f.fileName() + " for reading.");
 			}
 		}
 	}
-	cp::RpcValue file_content = cp::RpcValue::fromCpon(f.readAll().toStdString());
-	if (file_content.isMap()) {
-		cp::RpcValue::Map file_content_map = file_content.toMap();
-		if (file_content_map.hasKey(BASED_ON_KEY)) {
-			QString templ_path = QString::fromStdString(file_content.toMap().value(BASED_ON_KEY).toString());
+	return readAndMergeConfig(f);
+}
+
+shv::chainpack::RpcValue AppRootNode::readAndMergeConfig(QFile &file)
+{
+	static const char BASED_ON_KEY[] = "basedOn";
+
+	shv::chainpack::RpcValue config = cp::RpcValue::fromCpon(file.readAll().toStdString());
+	if (config.isMap()) {
+		QString templ_path = QString::fromStdString(config.toMap().value(BASED_ON_KEY).toString());
+		if (!templ_path.isEmpty()) {
 			QStringList templ_path_parts = templ_path.split('/');
 			templ_path_parts.insert(templ_path_parts.count() - 1, QString::fromStdString(FILES_NODE));
 			templ_path = templ_path_parts.join('/');
 			if (templ_path.startsWith('/')) {
-				templ_path = QString::fromStdString(SitesProviderApp::instance()->cliOptions()->localSitesDir()) + '/' + templ_path;
+				templ_path = nodeLocalPath(templ_path);
 			}
 			else {
-				templ_path = QFileInfo(path).absolutePath() + "/../" + templ_path;
+				templ_path = QFileInfo(file.fileName()).absolutePath() + "/../" + templ_path;
 			}
+			cp::RpcValue::Map file_content_map = config.toMap();
 			file_content_map.erase(BASED_ON_KEY);
-			cp::RpcValue templ = readAndMergeTempl(templ_path);
-			templ = mergeRpcValue(templ, file_content_map);
-			return templ;
+			cp::RpcValue templ = readConfig(templ_path);
+			return shv::chainpack::Utils::mergeMaps(templ, file_content_map);
 		}
 	}
-	return file_content;
-}
-
-shv::chainpack::RpcValue AppRootNode::mergeRpcValue(const shv::chainpack::RpcValue &base, const shv::chainpack::RpcValue &extend)
-{
-	cp::RpcValue::Map result;
-	const cp::RpcValue::Map &base_map = base.toMap();
-	const cp::RpcValue::Map &extend_map = extend.toMap();
-
-	for (const std::string &base_key : base_map.keys()) {
-		if (extend_map.hasKey(base_key)) {
-			if (base_map.at(base_key).type() != cp::RpcValue::Type::Map || extend_map.at(base_key).type() != cp::RpcValue::Type::Map) {
-				result.setValue(base_key, extend_map.at(base_key));
-			}
-			else {
-				result.setValue(base_key, mergeRpcValue(base_map.at(base_key), extend_map.at(base_key)));
-			}
-		}
-		else {
-			result.setValue(base_key, base_map.at(base_key));
-		}
-	}
-	for (const std::string &extend_key : extend_map.keys()) {
-		if (!base_map.hasKey(extend_key)) {
-			result.setValue(extend_key, extend_map.at(extend_key));
-		}
-	}
-	return result;
+	return config;
 }
 
 void AppRootNode::saveConfig(const QString &shv_path, const QByteArray &value)
