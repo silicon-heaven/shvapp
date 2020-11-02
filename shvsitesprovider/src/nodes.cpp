@@ -18,6 +18,10 @@ namespace cp = shv::chainpack;
 
 using namespace std;
 
+const string FILES_NODE = "_files";
+const QString CPON_SUFFIX = QStringLiteral("cpon");
+const QString CPTEMPL_SUFFIX = QStringLiteral("cptempl");
+
 static const char METH_GET_SITES[] = "getSites";
 static const char METH_GET_CONFIG[] = "getConfig";
 static const char METH_SAVE_CONFIG[] = "saveConfig";
@@ -187,7 +191,7 @@ const std::vector<shv::chainpack::MetaMethod> &AppRootNode::metaMethods(const sh
 	else if (shv_path[shv_path.size() - 1] == "_meta") {
 		return meta_leaf_meta_methods;
 	}
-	else if (isDir(shv_path)) {
+	else if (isDir(shv_path) || shv_path[shv_path.size() - 1] == FILES_NODE) {
 		return file_dir_meta_methods;
 	}
 	else if (isFile(shv_path)) {
@@ -273,7 +277,18 @@ cp::RpcValue AppRootNode::lsDir(const shv::core::StringViewList &shv_path)
 		QDir dir(nodeLocalPath(shv_path.join('/')));
 		QFileInfoList file_infos = dir.entryInfoList(QDir::Filter::Dirs | QDir::Filter::Files | QDir::Filter::NoDotAndDotDot, QDir::SortFlag::Name);
 		for (const QFileInfo &file_info : file_infos) {
-			items.push_back(file_info.fileName().toStdString());
+			std::string new_item;
+			if (file_info.suffix() == CPTEMPL_SUFFIX) {
+				new_item = (file_info.completeBaseName() + "." + CPON_SUFFIX).toStdString();
+			}
+			else {
+				new_item = file_info.fileName().toStdString();
+			}
+			auto it = std::find(items.begin(), items.end(), new_item);
+			if (it != items.end() && file_info.suffix() == CPON_SUFFIX) {
+				items.erase(it);
+			}
+			items.push_back(new_item);
 		}
 	}
 	return items;
@@ -282,7 +297,6 @@ cp::RpcValue AppRootNode::lsDir(const shv::core::StringViewList &shv_path)
 cp::RpcValue AppRootNode::ls(const shv::core::StringViewList &shv_path, size_t index, const cp::RpcValue::Map &object)
 {
 	shvLogFuncFrame() << shv_path.join('/');
-	const string FILES = "_files";
 	if (shv_path.size() == index) {
 		cp::RpcValue::List items;
 		for (const auto &kv : object) {
@@ -290,11 +304,11 @@ cp::RpcValue AppRootNode::ls(const shv::core::StringViewList &shv_path, size_t i
 		}
 		QFileInfo fi(nodeLocalPath(shv_path.join('/')));
 		if(fi.isDir())
-			items.insert(items.begin(), FILES);
+			items.insert(items.begin(), FILES_NODE);
 		return cp::RpcValue(items);
 	}
 	std::string node_name = shv_path[index].toString();
-	if(node_name == FILES) {
+	if(node_name == FILES_NODE) {
 		return lsDir(shv_path);
 	}
 	const shv::chainpack::RpcValue val = object.value(node_name);
@@ -444,12 +458,55 @@ shv::chainpack::RpcValue AppRootNode::get(const shv::core::StringViewList &shv_p
 
 shv::chainpack::RpcValue AppRootNode::readFile(const shv::core::StringViewList &shv_path)
 {
-	QFile f(nodeLocalPath(shv_path.join('/')));
-	if (!f.open(QFile::ReadOnly))
-		SHV_EXCEPTION("Cannot open file: " + f.fileName().toStdString() + " for reading.");
+	QString filename = nodeLocalPath(shv_path.join('/'));
+	QFile f(filename);
+	if (f.open(QFile::ReadOnly)) {
+		QByteArray file_content = f.readAll();
+		return file_content.toStdString();
+	}
+	return readConfig(filename).toCpon("  ");
+}
 
-	QByteArray file_content = f.readAll();
-	return file_content.toStdString();
+shv::chainpack::RpcValue AppRootNode::readConfig(const QString &path)
+{
+	QFile f(path);
+	if (!f.open(QFile::ReadOnly)) {
+		if (path.endsWith(CPON_SUFFIX)) {
+			QString filename = path;
+			filename.replace(filename.length() - 4, 4, CPTEMPL_SUFFIX);
+			f.setFileName(filename);
+			if (!f.open(QFile::ReadOnly)) {
+				SHV_QT_EXCEPTION("Cannot open template: " + f.fileName() + " for reading.");
+			}
+		}
+	}
+	return readAndMergeConfig(f);
+}
+
+shv::chainpack::RpcValue AppRootNode::readAndMergeConfig(QFile &file)
+{
+	static const char BASED_ON_KEY[] = "basedOn";
+
+	shv::chainpack::RpcValue config = cp::RpcValue::fromCpon(file.readAll().toStdString());
+	if (config.isMap()) {
+		QString templ_path = QString::fromStdString(config.toMap().value(BASED_ON_KEY).toString());
+		if (!templ_path.isEmpty()) {
+			QStringList templ_path_parts = templ_path.split('/');
+			templ_path_parts.insert(templ_path_parts.count() - 1, QString::fromStdString(FILES_NODE));
+			templ_path = templ_path_parts.join('/');
+			if (templ_path.startsWith('/')) {
+				templ_path = nodeLocalPath(templ_path);
+			}
+			else {
+				templ_path = QFileInfo(file.fileName()).absolutePath() + "/../" + templ_path;
+			}
+			cp::RpcValue::Map file_content_map = config.toMap();
+			file_content_map.erase(BASED_ON_KEY);
+			cp::RpcValue templ = readConfig(templ_path);
+			return shv::chainpack::Utils::mergeMaps(templ, file_content_map);
+		}
+	}
+	return config;
 }
 
 void AppRootNode::saveConfig(const QString &shv_path, const QByteArray &value)
@@ -475,9 +532,7 @@ void AppRootNode::saveConfig(const QString &shv_path, const QByteArray &value)
 
 QString AppRootNode::nodeFilesPath(const QString &shv_path) const
 {
-	QString path = nodeLocalPath(shv_path);
-	path += "/_files";
-	return path;
+	return nodeLocalPath(shv_path) + "/" + QString::fromStdString(FILES_NODE);
 }
 
 QString AppRootNode::nodeConfigPath(const QString &shv_path) const
@@ -498,8 +553,18 @@ QString AppRootNode::nodeLocalPath(const QString &shv_path) const
 
 bool AppRootNode::isFile(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
 {
-	QFileInfo fi(nodeLocalPath(shv_path.join('/')));
-	return fi.isFile();
+	QString filename = nodeLocalPath(shv_path.join('/'));
+	QFileInfo fi(filename);
+	if (fi.isFile())
+		return true;
+
+	if (filename.endsWith(CPON_SUFFIX)) {
+		filename.replace(filename.length() - 4, 4, CPTEMPL_SUFFIX);
+		QFileInfo fi(filename);
+		if (fi.isFile())
+			return true;
+	}
+	return false;
 }
 
 bool AppRootNode::isDir(const shv::iotqt::node::ShvNode::StringViewList &shv_path)

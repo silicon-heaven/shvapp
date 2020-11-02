@@ -4,6 +4,8 @@
 
 #include <QElapsedTimer>
 
+class QFile;
+
 class AppRootNode : public shv::iotqt::node::ShvRootNode
 {
 	Q_OBJECT
@@ -46,6 +48,8 @@ private:
 	bool isDir(const shv::iotqt::node::ShvNode::StringViewList &shv_path);
 
 	shv::chainpack::RpcValue lsDir(const shv::core::StringViewList &shv_path);
+	shv::chainpack::RpcValue readConfig(const QString &filename);
+	shv::chainpack::RpcValue readAndMergeConfig(QFile &file);
 
 	shv::chainpack::RpcValue::Map m_sites;
 	QElapsedTimer m_sitesSyncedBefore;
