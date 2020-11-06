@@ -10,6 +10,7 @@ class AppCliOptions;
 class RootNode;
 class DeviceMonitor;
 class DirtyLogManager;
+class DiskCleaner;
 class LogSanitizer;
 
 class Application : public QCoreApplication
@@ -44,6 +45,7 @@ private:
 	QElapsedTimer m_uptime;
 	DeviceMonitor *m_deviceMonitor;
 	LogSanitizer *m_logSanitizer;
+	DiskCleaner *m_diskCleaner;
 	DirtyLogManager *m_dirtyLogManager;
 	shv::iotqt::rpc::DeviceConnection *m_rpcConnection;
 	shv::iotqt::node::ShvNodeTree *m_shvTree;

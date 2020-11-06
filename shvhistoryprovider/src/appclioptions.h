@@ -16,5 +16,6 @@ public:
 	CLIOPTION_GETTER_SETTER2(std::string, "sitesPath", s, setS, itesPath)
 	CLIOPTION_GETTER_SETTER2(std::string, "elesysPath", e, setE, lesysPath)
 	CLIOPTION_GETTER_SETTER2(bool, "app.test", t, setT, est)
+	CLIOPTION_GETTER_SETTER2(std::string, "app.cacheSizeLimit", c, setC, acheSizeLimit)
 };
 

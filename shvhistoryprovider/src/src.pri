@@ -12,7 +12,8 @@ HEADERS += \
     $$PWD/logsanitizer.h \
     $$PWD/dirtylogmanager.h \
     $$PWD/shvsubscription.h \
-    $$PWD/logdirreader.h
+    $$PWD/logdirreader.h \
+    $$PWD/diskcleaner.h
 
 SOURCES += \
     $$PWD/checklogtask.cpp \
@@ -28,7 +29,8 @@ SOURCES += \
     $$PWD/logsanitizer.cpp \
     $$PWD/dirtylogmanager.cpp \
     $$PWD/shvsubscription.cpp \
-    $$PWD/logdirreader.cpp
+    $$PWD/logdirreader.cpp \
+    $$PWD/diskcleaner.cpp
 
 FORMS +=
 
