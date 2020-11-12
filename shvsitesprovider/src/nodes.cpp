@@ -132,7 +132,7 @@ cp::RpcValue AppRootNode::callMethod(const StringViewList &shv_path, const std::
 		return readFile(shv_path);
 	}
 	else if (method == METH_FILE_HASH) {
-		const string &bytes = readFile(shv_path).toString();
+		const string bytes = readFile(shv_path).toString();
 		QCryptographicHash h(QCryptographicHash::Sha1);
 		h.addData(bytes.data(), bytes.size());
 		return h.result().toHex().toStdString();
