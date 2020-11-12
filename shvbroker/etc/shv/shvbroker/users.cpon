@@ -27,6 +27,10 @@
 		"password":{"format":"SHA1", "password":"19b9eab2dea2882d328caa6bc26b0b66c002813b"},
 		"roles":["device"]
 	},
+	"historyprovider":{
+		"password":{"format":"SHA1", "password":"19b9eab2dea2882d328caa6bc26b0b66c002813b"},
+		"roles":["device", "HP"]
+	},
 	"tester":{
 		"password":{"format":"PLAIN", "password":"good password"},
 		"roles":["tester", "ping"]

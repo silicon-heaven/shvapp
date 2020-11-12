@@ -1,3 +1,5 @@
 {
 	"sitesprovider":{"mountPoint":"sites"},
+	"historyprovider":{"mountPoint":"history"},
+	"cate":{"mountPoint":"shv/test/cze/prg/cate"},
 }

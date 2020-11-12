@@ -29,6 +29,7 @@
 	"srv":{"weight":50},
 	"su":{"weight":70},
 	"subscribe":{"weight":0},
+	"HP":{},
 	"tester":{
 		"profile":{
 			"FL":{"siteRoot":"cze/prg/aux/eline"}
