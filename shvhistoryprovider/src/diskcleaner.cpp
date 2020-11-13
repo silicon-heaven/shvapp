@@ -3,6 +3,7 @@
 #include "application.h"
 #include "appclioptions.h"
 
+#include <bits/std_mutex.h>
 #include <shv/core/log.h>
 #include <shv/core/utils/shvfilejournal.h>
 
@@ -11,7 +12,6 @@ namespace cp = shv::chainpack;
 DiskCleaner::DiskCleaner(int64_t cache_size_limit, QObject *parent)
 	: QObject(parent)
 	, m_cleanTimer(this)
-	, m_isChecking(false)
 	, m_cacheSizeLimit(cache_size_limit)
 {
 	connect(&m_cleanTimer, &QTimer::timeout, this, &DiskCleaner::checkDiskOccupation);
@@ -46,10 +46,11 @@ void DiskCleaner::scanDir(const QDir &dir, DiskCleaner::CheckDiskContext &ctx)
 
 void DiskCleaner::checkDiskOccupation()
 {
-	if (m_isChecking) {
+	std::unique_lock<ScopeGuard> lock(m_checkingScopeGuard, std::defer_lock);
+	if (!lock.try_lock()) {
 		return;
 	}
-	m_isChecking = true;
+
 	while (true) {
 		CheckDiskContext ctx;
 		QDir cache_dir(QString::fromStdString(Application::instance()->cliOptions()->logCacheDir()));
@@ -74,5 +75,18 @@ void DiskCleaner::checkDiskOccupation()
 		}
 		QFile(ctx.oldest_file_info.absoluteFilePath()).remove();
 	}
-	m_isChecking = false;
+}
+
+bool DiskCleaner::ScopeGuard::try_lock()
+{
+	if (!m_lock) {
+		m_lock = true;
+		return true;
+	}
+	return false;
+}
+
+void DiskCleaner::ScopeGuard::unlock()
+{
+	m_lock = false;
 }

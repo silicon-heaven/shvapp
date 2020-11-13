@@ -20,11 +20,20 @@ private:
 		int64_t oldest_file_ts = std::numeric_limits<int64_t>::max();
 	};
 
+	class ScopeGuard
+	{
+	public:
+		bool try_lock();
+		void unlock();
+	private:
+		bool m_lock = false;
+	};
+
 	void checkDiskOccupation();
 	void scanDir(const QDir &dir, CheckDiskContext &ctx);
 
 	QTimer m_cleanTimer;
-	bool m_isChecking;
+	ScopeGuard m_checkingScopeGuard;
 	int64_t m_cacheSizeLimit;
 };
 
