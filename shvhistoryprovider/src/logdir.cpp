@@ -8,7 +8,7 @@
 #include <shv/core/utils/shvfilejournal.h>
 
 LogDir::LogDir(const QString &shv_path)
-	: m_dir(dirPath(shv_path), "*.chp", QDir::SortFlag::Name, QDir::Filter::Files)
+	: m_dir(dirPath(shv_path), "*", QDir::SortFlag::Name, QDir::Filter::Files)
 {
 	if (!m_dir.exists()) {
 		QDir(QString::fromStdString(Application::instance()->cliOptions()->logCacheDir())).mkpath(shv_path);
@@ -27,13 +27,23 @@ QStringList LogDir::findFiles(const QDateTime &since, const QDateTime &until)
 	QStringList file_names;
 	QVector<int64_t> file_dates;
 	for (int i = 0; i < file_infos.count(); ++i) {
-		QString filename = file_infos[i].fileName();
-		try {
-			int64_t datetime = shv::core::utils::ShvFileJournal::JournalContext::fileNameToFileMsec(filename.toStdString());
-			file_names << filename;
-			file_dates << datetime;
+		const QFileInfo &file_info = file_infos[i];
+		QString filename = file_info.fileName();
+		if (file_info.suffix() != "chp") {
+			if (filename != dirtyLogName()) {
+				Application::instance()->registerAlienFile(file_info.absoluteFilePath());
+			}
 		}
-		catch(...) {}
+		else {
+			try {
+				int64_t datetime = shv::core::utils::ShvFileJournal::JournalContext::fileNameToFileMsec(filename.toStdString());
+				file_names << filename;
+				file_dates << datetime;
+			}
+			catch (...) {
+				Application::instance()->registerAlienFile(file_info.absoluteFilePath());
+			}
+		}
 	}
 
 	if (file_dates.count() == 0) {

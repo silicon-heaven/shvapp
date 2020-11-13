@@ -23,6 +23,7 @@ Application::Application(int &argc, char **argv, AppCliOptions* cli_opts)
 	, m_cliOptions(cli_opts)
 	, m_root(nullptr)
 	, m_diskCleaner(nullptr)
+	, m_logAlienFilesTimer(this)
 {
 	if (!cli_opts->deviceId_isset()) {
 		cli_opts->setDeviceId("shvhistoryprovider");
@@ -79,6 +80,8 @@ Application::Application(int &argc, char **argv, AppCliOptions* cli_opts)
 			m_diskCleaner = new DiskCleaner(cache_size_limit, this);
 		}
 	}
+	m_logAlienFilesTimer.setInterval(24 * 60 * 60 * 1000); //one day
+	connect(&m_logAlienFilesTimer, &QTimer::timeout, this, &Application::logAlienFiles);
 }
 
 Application::~Application()
@@ -89,6 +92,13 @@ Application::~Application()
 shv::iotqt::rpc::DeviceConnection *Application::deviceConnection()
 {
 	return m_rpcConnection;
+}
+
+void Application::registerAlienFile(const QString &filename)
+{
+	if (!m_alienFiles.contains(filename)) {
+		m_alienFiles << filename;
+	}
 }
 
 void Application::connectToShv()
@@ -115,6 +125,19 @@ void Application::quit()
 	}
 	else {
 		Super::quit();
+	}
+}
+
+void Application::logAlienFiles()
+{
+	for (int i = 0; i < m_alienFiles.count(); ++i) {
+		const QString &filename = m_alienFiles[i];
+		if (QFile(filename).exists()) {
+			shvWarning() << "Alien file in HP cache:" << filename;
+		}
+		else {
+			m_alienFiles.removeAt(i--);
+		}
 	}
 }
 

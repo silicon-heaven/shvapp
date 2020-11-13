@@ -78,7 +78,6 @@ CacheState CheckLogTask::checkLogCache(const QString &shv_path, bool with_good_f
 	LogDir m_logDir(shv_path);
 
 	QStringList dir_entries = m_logDir.findFiles(QDateTime(), QDateTime());
-	dir_entries = m_logDir.findFiles(QDateTime(), QDateTime());
 	QDateTime requested_since;
 	for (int i = 0; i < dir_entries.count(); ++i) {
 		CacheFileState file_state;

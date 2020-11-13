@@ -5,6 +5,7 @@
 
 #include <QCoreApplication>
 #include <QElapsedTimer>
+#include <QTimer>
 
 class AppCliOptions;
 class RootNode;
@@ -31,7 +32,7 @@ public:
 	DeviceMonitor *deviceMonitor() { return m_deviceMonitor; }
 	LogSanitizer *logSanitizer() { return m_logSanitizer; }
 	shv::iotqt::rpc::DeviceConnection *deviceConnection();
-
+	void registerAlienFile(const QString &filename);
 	QString uptime() const;
 
 private:
@@ -39,6 +40,7 @@ private:
 	void connectToShv();
 	void disconnectFromShv();
 	void quit();
+	void logAlienFiles();
 
 	AppCliOptions *m_cliOptions;
 	RootNode *m_root;
@@ -49,4 +51,6 @@ private:
 	DirtyLogManager *m_dirtyLogManager;
 	shv::iotqt::rpc::DeviceConnection *m_rpcConnection;
 	shv::iotqt::node::ShvNodeTree *m_shvTree;
+	QStringList m_alienFiles;
+	QTimer m_logAlienFilesTimer;
 };
