@@ -6,7 +6,7 @@ TSTDIR=`dirname "$(readlink -f "$0")"`
 # SRCDIR=/home/fanda/proj/shv
 CFGDIR=$TSTDIR/../etc/broker
 
-BROKER_TOPICS=rpcmsg,subscr #,AclResolve #,sigres
+BROKER_TOPICS=rpcmsg,subscr,AclResolve #,sigres
 SLEEP_SETTLE=0.5
 
 if [[ -z "$BINDIR" ]]
@@ -20,13 +20,12 @@ fi
 
 # tmux set option remain-on-exit on
 
-tmux new-window $BINDIR/shvbroker --config-dir $CFGDIR/master/ -v $BROKER_TOPICS
+tmux new-window sh -c "$BINDIR/shvbroker --config-dir $CFGDIR/master/ -v $BROKER_TOPICS || read a"
+# sleep 10
+tmux split-window sh -c "$BINDIR/shvbroker --config-dir $CFGDIR/slave1/ -v $BROKER_TOPICS || read a"
 
 # sleep 1
-tmux split-window $BINDIR/shvbroker --config-dir $CFGDIR/slave1/ -v $BROKER_TOPICS
-
-# sleep 1
-tmux split-window $BINDIR/shvbroker --config-dir $CFGDIR/slaveA/ -v $BROKER_TOPICS
+tmux split-window sh -c "$BINDIR/shvbroker --config-dir $CFGDIR/slaveA/ -v $BROKER_TOPICS || read a"
 
 #tmux split-window -h $BINDIR/revitestdevice -p 3755 -u iot --password iotpwd --lt plain -m test/slave/lub1 --hbi 0
 # sleep 1
