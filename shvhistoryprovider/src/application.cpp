@@ -4,6 +4,7 @@
 #include "dirtylogmanager.h"
 #include "logsanitizer.h"
 #include "rootnode.h"
+#include "diskcleaner.h"
 
 #include <shv/coreqt/log.h>
 #include <shv/coreqt/exception.h>
@@ -21,6 +22,7 @@ Application::Application(int &argc, char **argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
 	, m_root(nullptr)
+	, m_diskCleaner(nullptr)
 {
 	if (!cli_opts->deviceId_isset()) {
 		cli_opts->setDeviceId("shvhistoryprovider");
@@ -52,6 +54,31 @@ Application::Application(int &argc, char **argv, AppCliOptions* cli_opts)
 
 	m_logSanitizer = new LogSanitizer(this);
 	m_dirtyLogManager = new DirtyLogManager(this);
+
+	if (cli_opts->cacheSizeLimit_isset()) {
+		QString limit = QString::fromStdString(cli_opts->cacheSizeLimit());
+		char suffix = 0;
+		if (limit.endsWith('k') || limit.endsWith('M') || limit.endsWith('G')) {
+			suffix = limit[limit.length() - 1].toLatin1();
+			limit = limit.left(limit.length() - 1);
+		}
+		int64_t cache_size_limit = limit.toLongLong();
+
+		switch (suffix) {
+		case 'k':
+			cache_size_limit *= 1000;
+			break;
+		case 'M':
+			cache_size_limit *= 1000000;
+			break;
+		case 'G':
+			cache_size_limit *= 1000000000;
+			break;
+		}
+		if (cache_size_limit > 0) {
+			m_diskCleaner = new DiskCleaner(cache_size_limit, this);
+		}
+	}
 }
 
 Application::~Application()
@@ -62,6 +89,14 @@ Application::~Application()
 shv::iotqt::rpc::DeviceConnection *Application::deviceConnection()
 {
 	return m_rpcConnection;
+}
+
+void Application::registerAlienFile(const QString &filename)
+{
+	if (!m_alienFiles.contains(filename)) {
+		m_alienFiles << filename;
+		shvWarning() << "Alien file in HP cache:" << filename;
+	}
 }
 
 void Application::connectToShv()
