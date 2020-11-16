@@ -23,13 +23,11 @@ private:
 	class ScopeGuard
 	{
 	public:
-	  ScopeGuard(bool &val) : m_value(val) { val = true; }
-	  ~ScopeGuard() { m_value = false; }
-
+		ScopeGuard(bool &val) : m_value(val) { val = true; }
+		~ScopeGuard() { m_value = false; }
 	private:
-	  bool &m_value;
+		bool &m_value;
 	};
-
 
 	void checkDiskOccupation();
 	void scanDir(const QDir &dir, CheckDiskContext &ctx);
