@@ -40,7 +40,6 @@ private:
 	void connectToShv();
 	void disconnectFromShv();
 	void quit();
-	void logAlienFiles();
 
 	AppCliOptions *m_cliOptions;
 	RootNode *m_root;
@@ -52,5 +51,4 @@ private:
 	shv::iotqt::rpc::DeviceConnection *m_rpcConnection;
 	shv::iotqt::node::ShvNodeTree *m_shvTree;
 	QStringList m_alienFiles;
-	QTimer m_logAlienFilesTimer;
 };

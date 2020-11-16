@@ -12,6 +12,7 @@ namespace cp = shv::chainpack;
 DiskCleaner::DiskCleaner(int64_t cache_size_limit, QObject *parent)
 	: QObject(parent)
 	, m_cleanTimer(this)
+	, m_isChecking(false)
 	, m_cacheSizeLimit(cache_size_limit)
 {
 	connect(&m_cleanTimer, &QTimer::timeout, this, &DiskCleaner::checkDiskOccupation);
@@ -46,10 +47,10 @@ void DiskCleaner::scanDir(const QDir &dir, DiskCleaner::CheckDiskContext &ctx)
 
 void DiskCleaner::checkDiskOccupation()
 {
-	std::unique_lock<ScopeGuard> lock(m_checkingScopeGuard, std::defer_lock);
-	if (!lock.try_lock()) {
+	if (m_isChecking) {
 		return;
 	}
+	ScopeGuard sg(m_isChecking);
 
 	while (true) {
 		CheckDiskContext ctx;
@@ -75,18 +76,4 @@ void DiskCleaner::checkDiskOccupation()
 		}
 		QFile(ctx.oldest_file_info.absoluteFilePath()).remove();
 	}
-}
-
-bool DiskCleaner::ScopeGuard::try_lock()
-{
-	if (!m_lock) {
-		m_lock = true;
-		return true;
-	}
-	return false;
-}
-
-void DiskCleaner::ScopeGuard::unlock()
-{
-	m_lock = false;
 }

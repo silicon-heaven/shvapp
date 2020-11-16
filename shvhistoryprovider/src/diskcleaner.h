@@ -23,17 +23,19 @@ private:
 	class ScopeGuard
 	{
 	public:
-		bool try_lock();
-		void unlock();
+	  ScopeGuard(bool &val) : m_value(val) { val = true; }
+	  ~ScopeGuard() { m_value = false; }
+
 	private:
-		bool m_lock = false;
+	  bool &m_value;
 	};
+
 
 	void checkDiskOccupation();
 	void scanDir(const QDir &dir, CheckDiskContext &ctx);
 
 	QTimer m_cleanTimer;
-	ScopeGuard m_checkingScopeGuard;
+	bool m_isChecking;
 	int64_t m_cacheSizeLimit;
 };
 
