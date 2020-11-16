@@ -13,7 +13,7 @@
 	],
 	"subscribe":[
 		{"method":"subscribe", "pathPattern":".broker/app", "role":"rd"},
-		{"method":"unsubscribe", "pathPattern":".broker/app", "role":"wr"}
+		{"method":"unsubscribe", "pathPattern":".broker/app", "role":"rd"}
 	],
 	"HP":[
 		{"method":"", "pathPattern":"sites/**", "role":"rd"}
