@@ -301,7 +301,8 @@ cp::RpcValue AppRootNode::lsDir(const shv::core::StringViewList &shv_path)
 		for (const QFileInfo &file_info : file_infos) {
 			std::string new_item;
 			if (file_info.suffix() == CPTEMPL_SUFFIX) {
-				new_item = (file_info.completeBaseName()).toStdString();
+				items.push_back(file_info.fileName().toStdString());
+				new_item = file_info.completeBaseName().toStdString();
 			}
 			else {
 				new_item = file_info.fileName().toStdString();
