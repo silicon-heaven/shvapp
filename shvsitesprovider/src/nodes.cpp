@@ -301,7 +301,7 @@ cp::RpcValue AppRootNode::lsDir(const shv::core::StringViewList &shv_path)
 		for (const QFileInfo &file_info : file_infos) {
 			std::string new_item;
 			if (file_info.suffix() == CPTEMPL_SUFFIX) {
-				new_item = (file_info.completeBaseName() + "." + CPON_SUFFIX).toStdString();
+				new_item = (file_info.completeBaseName()).toStdString();
 			}
 			else {
 				new_item = file_info.fileName().toStdString();
@@ -540,8 +540,7 @@ shv::chainpack::RpcValue AppRootNode::readConfig(const QString &path)
 	QFile f(path);
 	if (!f.open(QFile::ReadOnly)) {
 		if (path.endsWith(CPON_SUFFIX)) {
-			QString filename = path;
-			filename.replace(filename.length() - 4, 4, CPTEMPL_SUFFIX);
+			QString filename = path + "." + CPTEMPL_SUFFIX;
 			f.setFileName(filename);
 			if (!f.open(QFile::ReadOnly)) {
 				SHV_QT_EXCEPTION("Cannot open template: " + f.fileName() + " for reading.");
@@ -627,7 +626,7 @@ bool AppRootNode::isFile(const shv::iotqt::node::ShvNode::StringViewList &shv_pa
 		return true;
 
 	if (filename.endsWith(CPON_SUFFIX)) {
-		filename.replace(filename.length() - 4, 4, CPTEMPL_SUFFIX);
+		filename.append("." + CPTEMPL_SUFFIX);
 		QFileInfo fi(filename);
 		if (fi.isFile())
 			return true;
