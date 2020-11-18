@@ -8,6 +8,7 @@
 #include <shv/chainpack/cponreader.h>
 
 #include <QDir>
+#include <QDirIterator>
 #include <QFile>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
@@ -29,7 +30,9 @@ static const char METH_RELOAD_SITES[] = "reloadSites";
 static const char METH_SITES_SYNCED_BEFORE[] = "sitesSyncedBefore";
 static const char METH_SITES_RELOADED[] = "reloaded";
 static const char METH_FILE_READ[] = "read";
+static const char METH_FILE_WRITE[] = "write";
 static const char METH_FILE_HASH[] = "hash";
+static const char METH_FILE_MK[] = "mkfile";
 
 static std::vector<cp::MetaMethod> root_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
@@ -62,10 +65,17 @@ static std::vector<cp::MetaMethod> file_dir_meta_methods {
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 };
 
+static std::vector<cp::MetaMethod> files_node_dir_meta_methods {
+	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
+	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
+	{ METH_FILE_MK, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
+};
+
 static std::vector<cp::MetaMethod> file_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ METH_FILE_READ, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
+	{ METH_FILE_WRITE, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
 	{ METH_FILE_HASH, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
 };
 
@@ -131,6 +141,14 @@ cp::RpcValue AppRootNode::callMethod(const StringViewList &shv_path, const std::
 	else if (method == METH_FILE_READ) {
 		return readFile(shv_path);
 	}
+	else if (method == METH_FILE_WRITE) {
+		if(!params.isString())
+			throw shv::core::Exception("Content must be string.");
+		return writeFile(shv_path, params.toString());
+	}
+	else if (method == METH_FILE_MK) {
+		return mkFile(shv_path, params);
+	}
 	else if (method == METH_FILE_HASH) {
 		auto rv = readFile(shv_path);
 		const string &bytes = rv.toString();
@@ -192,7 +210,10 @@ const std::vector<shv::chainpack::MetaMethod> &AppRootNode::metaMethods(const sh
 	else if (shv_path[shv_path.size() - 1] == "_meta") {
 		return meta_leaf_meta_methods;
 	}
-	else if (isDir(shv_path) || shv_path[shv_path.size() - 1] == FILES_NODE) {
+	else if (shv_path[shv_path.size() - 1] == FILES_NODE) {
+		return files_node_dir_meta_methods;
+	}
+	else if (isDir(shv_path)) {
 		return file_dir_meta_methods;
 	}
 	else if (isFile(shv_path)) {
@@ -266,7 +287,7 @@ cp::RpcValue AppRootNode::getConfig(const cp::RpcValue &params)
 shv::chainpack::RpcValue AppRootNode::ls(const shv::core::StringViewList &shv_path, const shv::chainpack::RpcValue &params)
 {
 	Q_UNUSED(params);
-	return ls(shv_path, 0, m_sites);
+	return ls_helper(shv_path, 0, m_sites);
 }
 
 cp::RpcValue AppRootNode::lsDir(const shv::core::StringViewList &shv_path)
@@ -295,26 +316,32 @@ cp::RpcValue AppRootNode::lsDir(const shv::core::StringViewList &shv_path)
 	return items;
 }
 
-cp::RpcValue AppRootNode::ls(const shv::core::StringViewList &shv_path, size_t index, const cp::RpcValue::Map &object)
+cp::RpcValue AppRootNode::ls_helper(const shv::core::StringViewList &shv_path, size_t index, const cp::RpcValue::Map &sites_node)
 {
-	shvLogFuncFrame() << shv_path.join('/');
+	//shvLogFuncFrame() << shv_path.join('/');
 	if (shv_path.size() == index) {
 		cp::RpcValue::List items;
-		for (const auto &kv : object) {
+		for (const auto &kv : sites_node) {
 			items.push_back(kv.first);
 		}
-		QFileInfo fi(nodeLocalPath(shv_path.join('/')));
-		if(fi.isDir())
-			items.insert(items.begin(), FILES_NODE);
+		QString local_dir = nodeLocalPath(shv_path.join('/'));
+		QDirIterator it(local_dir, QStringList{"_*"}, QDir::NoDotAndDotDot | QDir::Dirs | QDir::Files, QDirIterator::NoIteratorFlags);
+		//shvDebug() << local_dir << "---------------------------------------";
+		while (it.hasNext()) {
+			QString fn = it.next();
+			fn = QFileInfo(fn).baseName();
+			//shvDebug() << fn;
+			items.insert(items.begin(), fn.toStdString());
+		}
 		return cp::RpcValue(items);
 	}
 	std::string node_name = shv_path[index].toString();
 	if(node_name == FILES_NODE) {
 		return lsDir(shv_path);
 	}
-	const shv::chainpack::RpcValue val = object.value(node_name);
+	const shv::chainpack::RpcValue val = sites_node.value(node_name);
 	if (val.isMap())
-		return ls(shv_path, index + 1, val.toMap());
+		return ls_helper(shv_path, index + 1, val.toMap());
 	return cp::RpcValue::List();
 }
 
@@ -466,6 +493,46 @@ shv::chainpack::RpcValue AppRootNode::readFile(const shv::core::StringViewList &
 		return file_content.toStdString();
 	}
 	return readConfig(filename).toCpon("  ");
+}
+
+shv::chainpack::RpcValue AppRootNode::writeFile(const shv::core::StringViewList &shv_path, const string &content)
+{
+	QString filename = nodeLocalPath(shv_path.join('/'));
+	QFile f(filename);
+	if (f.open(QFile::WriteOnly)) {
+		qint64 n = f.write(content.data(), content.size());
+		return n >= 0;
+	}
+	else {
+		throw shv::core::Exception("Cannot open file '" + shv_path.join('/') + "' for writing.");
+	}
+	return readConfig(filename).toCpon("  ");
+}
+
+shv::chainpack::RpcValue AppRootNode::mkFile(const shv::core::StringViewList &shv_path, const shv::chainpack::RpcValue &params)
+{
+	std::string error;
+	string file_name;
+	bool has_content = false;
+	if (params.isString()) {
+		file_name = params.toString();
+
+	}
+	else if(params.isList()) {
+		const cp::RpcValue::List &lst = params.toList();
+		if (lst.size() != 2)
+			throw shv::core::Exception("Invalid params, [\"name\", \"content\"] expected.");
+		file_name = lst[0].toString();
+		has_content = true;
+	}
+	if (file_name.empty())
+		throw shv::core::Exception("File name is empty.");
+	shv::core::StringViewList file_path = shv_path;
+	file_path.push_back(file_name);
+	if(has_content)
+		return writeFile(file_path, params.toList()[1].toString());
+	else
+		return writeFile(file_path, "");
 }
 
 shv::chainpack::RpcValue AppRootNode::readConfig(const QString &path)

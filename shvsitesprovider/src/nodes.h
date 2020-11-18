@@ -33,12 +33,14 @@ private:
 
 	Q_SIGNAL void downloadFinished();
 
-	shv::chainpack::RpcValue ls(const shv::core::StringViewList &shv_path, size_t index, const shv::chainpack::RpcValue::Map &object);
+	shv::chainpack::RpcValue ls_helper(const shv::core::StringViewList &shv_path, size_t index, const shv::chainpack::RpcValue::Map &sites_node);
 
 	shv::chainpack::RpcValue leaf(const shv::core::StringViewList &shv_path);
 	shv::chainpack::RpcValue getConfig(const QString &shv_path) const;
 	shv::chainpack::RpcValue get(const shv::core::StringViewList &shv_path);
 	shv::chainpack::RpcValue readFile(const shv::core::StringViewList &shv_path);
+	shv::chainpack::RpcValue writeFile(const shv::core::StringViewList &shv_path, const std::string &content);
+	shv::chainpack::RpcValue mkFile(const shv::core::StringViewList &shv_path, const shv::chainpack::RpcValue &params);
 	void saveConfig(const QString &shv_path, const QByteArray &value);
 	QString nodeFilesPath(const QString &shv_path) const;
 	QString nodeConfigPath(const QString &shv_path) const;
