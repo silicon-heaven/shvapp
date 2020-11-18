@@ -160,7 +160,7 @@ void RootNode::trimDirtyLog(const QString &shv_path)
 
 void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &log, int64_t &log_since_ms, int64_t &log_until_ms)
 {
-	ShvLogRpcValueReader log_reader(log);
+	ShvLogRpcValueReader log_reader(log, true);
 	LogDir log_dir(shv_path);
 	QDateTime log_since = rpcvalue_cast<QDateTime>(log_reader.logHeader().since());
 	QDateTime log_until = rpcvalue_cast<QDateTime>(log_reader.logHeader().until());
