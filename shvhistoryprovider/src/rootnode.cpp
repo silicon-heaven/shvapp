@@ -396,8 +396,8 @@ shv::chainpack::RpcValue RootNode::callMethod(const shv::iotqt::node::ShvNode::S
 			err = e.what();
 		}
 		cp::RpcValue::Map result;
-		result["since"] = cp::RpcValue::DateTime::fromMSecsSinceEpoch(since);
-		result["until"] = cp::RpcValue::DateTime::fromMSecsSinceEpoch(until);
+		result["since"] = since == 0LL ? cp::RpcValue(nullptr) : cp::RpcValue::DateTime::fromMSecsSinceEpoch(since);
+		result["until"] = until == 0LL ? cp::RpcValue(nullptr) : cp::RpcValue::DateTime::fromMSecsSinceEpoch(until);
 		result["msg"] = err;
 		return result;
 	}
