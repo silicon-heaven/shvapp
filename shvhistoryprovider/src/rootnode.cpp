@@ -18,6 +18,7 @@
 #include <shv/core/utils/shvlogrpcvaluereader.h>
 
 #include <QElapsedTimer>
+#include <QScopeGuard>
 
 namespace cp = shv::chainpack;
 using namespace shv::core::utils;
@@ -164,6 +165,8 @@ void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &
 	LogDir log_dir(shv_path);
 	QDateTime log_since = rpcvalue_cast<QDateTime>(log_reader.logHeader().since());
 	QDateTime log_until = rpcvalue_cast<QDateTime>(log_reader.logHeader().until());
+	bool with_snapshot = log_reader.logHeader().withSnapShot();
+	auto typeinfo = log_reader.logHeader().typeInfo();
 
 	if (!log_since.isValid() || !log_until.isValid()) {
 		SHV_EXCEPTION("Invalid log - missing since or until");
@@ -183,6 +186,8 @@ void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &
 	if (matching_files.count()) {
 		ShvLogFileReader first_file(matching_files[0].toStdString());
 		if (first_file.logHeader().since().toDateTime().msecsSinceEpoch() < log_since_ms) {
+			log_since = rpcvalue_cast<QDateTime>(first_file.logHeader().since());
+			with_snapshot = first_file.logHeader().withSnapShot();
 			while (first_file.next()) {
 				const ShvJournalEntry &entry = first_file.entry();
 				if (entry.epochMsec < log_since_ms) {
@@ -195,6 +200,7 @@ void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &
 		}
 		ShvLogFileReader last_file(matching_files.last().toStdString());
 		if (last_file.logHeader().until().toDateTime().msecsSinceEpoch() >= log_until_ms) {
+			log_until = rpcvalue_cast<QDateTime>(last_file.logHeader().until());
 			while (last_file.next()) {
 				const ShvJournalEntry &entry = first_file.entry();
 				if (entry.epochMsec >= log_until_ms) {
@@ -203,41 +209,44 @@ void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &
 			}
 		}
 	}
-	for (const QString &file : matching_files) {
-		QFile(file).remove();
-	}
 
 	ShvGetLogParams params;
 	params.recordCountLimit = Application::CHUNK_RECORD_COUNT;
-	params.withSnapshot = true;
+	params.withSnapshot = with_snapshot;
 	params.withTypeInfo = true;
+	params.since = cp::RpcValue::fromValue(log_since);
+	params.until = cp::RpcValue::fromValue(log_until);
 
-	bool first_log = log_dir.findFiles(QDateTime(), QDateTime()).count() == 0;
+	bool first_log = log_dir.findFiles(QDateTime(), QDateTime()).count()  - matching_files.count() == 0;
+
+	QStringList new_files;
+	auto cleanup = qScopeGuard([&new_files]{
+		for (const QString &file : new_files) {
+			QFile(file).remove();
+		}
+	});
 
 	ShvMemoryJournal output_log(params);
-	auto save_log = [&output_log, &shv_path, &params, &first_log]() {
+	auto save_log = [&output_log, &shv_path, &params, &first_log, &new_files, &typeinfo]() {
+		output_log.setTypeInfo(typeinfo);
 		cp::RpcValue log_cp = output_log.getLog(params);
 		if (first_log) {
 			log_cp.setMetaValue("HP", cp::RpcValue::Map{{ "firstLog", true }});
 			first_log = false;
 		}
-//		log_cp.setMetaValue("until", cp::RpcValue::fromValue(until));
 		QDateTime since = rpcvalue_cast<QDateTime>(log_cp.metaValue("since"));
-		QFile file(LogDir(shv_path).filePath(since));
+		QFile file(LogDir(shv_path).filePath(since) + ".new");
 		if (!file.open(QFile::WriteOnly)) {
 			SHV_QT_EXCEPTION("Cannot open file " + file.fileName());
 		}
+		new_files << file.fileName();
 		file.write(QByteArray::fromStdString(log_cp.toChainPack()));
 		file.close();
+		params.since = log_cp.metaValue("until");
 		output_log = ShvMemoryJournal(params);
 	};
 
-	auto append_log = [&output_log, &save_log, log_since_ms, log_until_ms](const ShvJournalEntry &entry) {
-		auto msec = entry.epochMsec;
-		if(log_since_ms > msec)
-			SHV_EXCEPTION("Pushed log entry date-time is younger than 'since' param.");
-		if(log_until_ms < msec)
-			SHV_EXCEPTION("Pushed log entry date-time is older than 'until' param.");
+	auto append_log = [&output_log, &save_log](const ShvJournalEntry &entry) {
 		output_log.append(entry);
 		if ((int)output_log.size() >= Application::CHUNK_RECORD_COUNT) {
 			save_log();
@@ -248,7 +257,15 @@ void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &
 		append_log(entry);
 	}
 	while (log_reader.next()) {
-		append_log(log_reader.entry());
+		const ShvJournalEntry &entry = log_reader.entry();
+		auto msec = entry.epochMsec;
+		if (log_since_ms > msec) {
+			SHV_EXCEPTION("Pushed log entry date-time is younger than 'since' param.");
+		}
+		if (log_until_ms < msec) {
+			SHV_EXCEPTION("Pushed log entry date-time is older than 'until' param.");
+		}
+		append_log(entry);
 	}
 	for (const ShvJournalEntry &entry : entries_to_append) {
 		append_log(entry);
@@ -256,6 +273,13 @@ void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &
 	if (output_log.size()) {
 		save_log();
 	}
+	for (const QString &file : matching_files) {
+		QFile(file).remove();
+	}
+	for (const QString &file : new_files) {
+		QFile(file).rename(file.chopped(4));
+	}
+	new_files.clear();
 }
 
 shv::chainpack::RpcValue RootNode::getStartTS(const QString &shv_path)
