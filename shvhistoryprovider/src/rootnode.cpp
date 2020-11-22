@@ -167,6 +167,7 @@ void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &
 	QDateTime log_until = rpcvalue_cast<QDateTime>(log_reader.logHeader().until());
 	bool with_snapshot = log_reader.logHeader().withSnapShot();
 	auto typeinfo = log_reader.logHeader().typeInfo();
+	bool has_type_info = !typeinfo.isEmpty();
 
 	if (!log_since.isValid() || !log_until.isValid()) {
 		SHV_EXCEPTION("Invalid log - missing since or until");
@@ -213,7 +214,7 @@ void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &
 	ShvGetLogParams params;
 	params.recordCountLimit = Application::CHUNK_RECORD_COUNT;
 	params.withSnapshot = with_snapshot;
-	params.withTypeInfo = true;
+	params.withTypeInfo = has_type_info;
 	params.since = cp::RpcValue::fromValue(log_since);
 	params.until = cp::RpcValue::fromValue(log_until);
 
