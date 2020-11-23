@@ -82,7 +82,7 @@ static std::vector<cp::MetaMethod> file_meta_methods {
 static std::vector<cp::MetaMethod> data_leaf_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
-	{ cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
+	{ cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, shv::chainpack::Rpc::ROLE_READ },
 };
 
 
@@ -207,24 +207,23 @@ const std::vector<shv::chainpack::MetaMethod> &AppRootNode::metaMethods(const sh
 	if (shv_path.empty()) {
 		return root_meta_methods;
 	}
-	else if (shv_path[shv_path.size() - 1] == "_meta") {
-		return meta_leaf_meta_methods;
+	else if (shv_path.indexOf("_meta") != -1) {
+		if (hasData(shv_path)) {
+			return data_leaf_meta_methods;
+		}
+		else {
+			return meta_leaf_meta_methods;
+		}
 	}
-	else if (shv_path[shv_path.size() - 1] == FILES_NODE) {
-		return files_node_dir_meta_methods;
+	else if (shv_path.indexOf(FILES_NODE) != -1) {
+		if (isFile(shv_path)) {
+			return file_meta_methods;
+		}
+		else {
+			return file_dir_meta_methods;
+		}
 	}
-	else if (isDir(shv_path)) {
-		return file_dir_meta_methods;
-	}
-	else if (isFile(shv_path)) {
-		return file_meta_methods;
-	}
-	else if (hasData(shv_path)) {
-		return data_leaf_meta_methods;
-	}
-	else {
-		return empty_leaf_meta_methods;
-	}
+	return empty_leaf_meta_methods;
 }
 
 shv::chainpack::RpcValue AppRootNode::leaf(const shv::core::StringViewList &shv_path)
