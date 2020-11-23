@@ -77,7 +77,7 @@ void DirtyLogManager::onShvStateChanged(shv::iotqt::rpc::ClientConnection::State
 		if (!shv_sites_path.isEmpty()) {
 			path += '/' + shv_sites_path;
 		}
-		m_chngSubscription = new ShvSubscription(conn, path, "chng", this);
+		m_chngSubscription = new ShvSubscription(conn, path, shv::chainpack::Rpc::SIG_VAL_CHANGED, this);
 		connect(m_chngSubscription, &ShvSubscription::notificationReceived, this, &DirtyLogManager::onDeviceDataChanged);
 	}
 	else if (state == shv::iotqt::rpc::ClientConnection::State::NotConnected && m_chngSubscription) {

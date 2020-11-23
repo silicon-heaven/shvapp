@@ -41,7 +41,7 @@ Qt::ItemFlags SubscriptionsModel::flags(const QModelIndex &ix) const
 		return Qt::NoItemFlags;
 	}
 
-	if(ix.column() == Columns::ColMethod){
+	if(ix.column() == Columns::ColMethod || ix.column() == Columns::ColPath){
 		return  Super::flags(ix) |= Qt::ItemIsEditable;
 	}
 
@@ -135,6 +135,22 @@ bool SubscriptionsModel::setData(const QModelIndex &ix, const QVariant &val, int
 
 			nd->enableSubscription(sub.shvPath().toStdString(), sub.method().toStdString(), false);
 			sub.setMethod(val.toString());
+			nd->enableSubscription(sub.shvPath().toStdString(), sub.method().toStdString(), true);
+
+			QVariantList new_subs = brokerSubscriptions(sub.brokerId());
+			nd->setSubscriptionList(new_subs);
+			return true;
+		}
+		else if (ix.column() == Columns::ColPath){
+			Subscription &sub = m_subscriptions[ix.row()];
+
+			ShvBrokerNodeItem *nd = TheApp::instance()->serverTreeModel()->brokerById(sub.brokerId());
+			if (nd == nullptr){
+				return false;
+			}
+
+			nd->enableSubscription(sub.shvPath().toStdString(), sub.method().toStdString(), false);
+			sub.setShvPath(val.toString());
 			nd->enableSubscription(sub.shvPath().toStdString(), sub.method().toStdString(), true);
 
 			QVariantList new_subs = brokerSubscriptions(sub.brokerId());

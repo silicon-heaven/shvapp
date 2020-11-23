@@ -68,7 +68,7 @@ void DeviceMonitor::onShvStateChanged()
 			path += '/' + shv_sites_path;
 		}
 
-		m_mntSubscription = new ShvSubscription(conn, path, "mntchng", this);
+		m_mntSubscription = new ShvSubscription(conn, path, cp::Rpc::SIG_MOUNTED_CHANGED, this);
 		connect(m_mntSubscription, &ShvSubscription::notificationReceived, this, &DeviceMonitor::onDeviceMountChanged);
 
 		downloadSites();
