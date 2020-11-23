@@ -82,7 +82,7 @@ static std::vector<cp::MetaMethod> file_meta_methods {
 static std::vector<cp::MetaMethod> data_leaf_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
-	{ cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
+	{ cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, shv::chainpack::Rpc::ROLE_READ },
 };
 
 
@@ -207,24 +207,23 @@ const std::vector<shv::chainpack::MetaMethod> &AppRootNode::metaMethods(const sh
 	if (shv_path.empty()) {
 		return root_meta_methods;
 	}
-	else if (shv_path[shv_path.size() - 1] == "_meta") {
-		return meta_leaf_meta_methods;
+	else if (shv_path.indexOf("_meta") != -1) {
+		if (hasData(shv_path)) {
+			return data_leaf_meta_methods;
+		}
+		else {
+			return meta_leaf_meta_methods;
+		}
 	}
-	else if (shv_path[shv_path.size() - 1] == FILES_NODE) {
-		return files_node_dir_meta_methods;
+	else if (shv_path.indexOf(FILES_NODE) != -1) {
+		if (isFile(shv_path)) {
+			return file_meta_methods;
+		}
+		else {
+			return file_dir_meta_methods;
+		}
 	}
-	else if (isDir(shv_path)) {
-		return file_dir_meta_methods;
-	}
-	else if (isFile(shv_path)) {
-		return file_meta_methods;
-	}
-	else if (hasData(shv_path)) {
-		return data_leaf_meta_methods;
-	}
-	else {
-		return empty_leaf_meta_methods;
-	}
+	return empty_leaf_meta_methods;
 }
 
 shv::chainpack::RpcValue AppRootNode::leaf(const shv::core::StringViewList &shv_path)
@@ -301,7 +300,8 @@ cp::RpcValue AppRootNode::lsDir(const shv::core::StringViewList &shv_path)
 		for (const QFileInfo &file_info : file_infos) {
 			std::string new_item;
 			if (file_info.suffix() == CPTEMPL_SUFFIX) {
-				new_item = (file_info.completeBaseName() + "." + CPON_SUFFIX).toStdString();
+				items.push_back(file_info.fileName().toStdString());
+				new_item = file_info.completeBaseName().toStdString();
 			}
 			else {
 				new_item = file_info.fileName().toStdString();
@@ -540,8 +540,7 @@ shv::chainpack::RpcValue AppRootNode::readConfig(const QString &path)
 	QFile f(path);
 	if (!f.open(QFile::ReadOnly)) {
 		if (path.endsWith(CPON_SUFFIX)) {
-			QString filename = path;
-			filename.replace(filename.length() - 4, 4, CPTEMPL_SUFFIX);
+			QString filename = path + "." + CPTEMPL_SUFFIX;
 			f.setFileName(filename);
 			if (!f.open(QFile::ReadOnly)) {
 				SHV_QT_EXCEPTION("Cannot open template: " + f.fileName() + " for reading.");
@@ -627,7 +626,7 @@ bool AppRootNode::isFile(const shv::iotqt::node::ShvNode::StringViewList &shv_pa
 		return true;
 
 	if (filename.endsWith(CPON_SUFFIX)) {
-		filename.replace(filename.length() - 4, 4, CPTEMPL_SUFFIX);
+		filename.append("." + CPTEMPL_SUFFIX);
 		QFileInfo fi(filename);
 		if (fi.isFile())
 			return true;
