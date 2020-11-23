@@ -19,6 +19,7 @@ public:
 	bool exists(const QString &file) const { return m_dir.exists(file); }
 	bool remove(const QString &file) { return m_dir.remove(file); }
 	bool rename(const QString &old_name, const QString &new_name) { return m_dir.rename(old_name, new_name); }
+	void refresh() { m_dir.refresh(); }
 	QString absoluteFilePath(const QString &file) const { return m_dir.absoluteFilePath(file); }
 
 private:

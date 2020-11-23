@@ -4,7 +4,7 @@ AppCliOptions::AppCliOptions()
 {
 	addOption("version").setType(shv::chainpack::RpcValue::Type::Bool).setNames("--version").setComment("Application version");
 	addOption("app.logCacheDir").setType(shv::chainpack::RpcValue::Type::String).setNames("--log-cache-dir")
-			.setComment("Local file system directory, which contains log files.");
+			.setComment("Local file system directory, which contains log files.").setDefaultValue("/tmp/hp");
 	addOption("app.sitesRootPath").setType(shv::chainpack::RpcValue::Type::String).setNames("--sites-root-path")
 			.setComment("Maintained path in shvtree");
 	addOption("app.trimDirtyLogInterval").setType(shv::chainpack::RpcValue::Type::Int).setNames("--trim-dirty-log-interval")
