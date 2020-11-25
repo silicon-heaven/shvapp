@@ -140,8 +140,8 @@ QString Application::uptime() const
 	elapsed /= 60;
 	int min = elapsed % 60;
 	elapsed /= 60;
-	int hour = elapsed % 60;
-	int day = (int)elapsed / 60;
+	int hour = elapsed % 24;
+	int day = (int)elapsed / 24;
 	return QString("%1 day(s) %2:%3:%4.%5")
 			.arg(day)
 			.arg(hour, 2, 10, QChar('0'))
