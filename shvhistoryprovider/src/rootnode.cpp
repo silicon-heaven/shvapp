@@ -24,6 +24,7 @@ namespace cp = shv::chainpack;
 using namespace shv::core::utils;
 
 static const char METH_GET_VERSION[] = "version";
+static const char METH_GIT_COMMIT[] = "gitCommit";
 static const char METH_RELOAD_SITES[] = "reloadSites";
 static const char METH_GET_UPTIME[] = "uptime";
 static const char METH_GET_LOGVERBOSITY[] = "logVerbosity";
@@ -38,7 +39,8 @@ static std::vector<cp::MetaMethod> root_meta_methods {
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE },
 	{ cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ },
 	{ cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ },
-    { METH_GET_VERSION, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ },
+	{ METH_GET_VERSION, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ },
+	{ METH_GIT_COMMIT, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 	{ METH_RELOAD_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_COMMAND },
 	{ METH_GET_UPTIME, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ },
 	{ METH_GET_LOGVERBOSITY, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ },
@@ -327,6 +329,13 @@ shv::chainpack::RpcValue RootNode::callMethod(const shv::iotqt::node::ShvNode::S
 	}
 	else if (method == METH_GET_VERSION) {
 		return Application::instance()->applicationVersion().toStdString();
+	}
+	else if(method == METH_GIT_COMMIT) {
+#ifdef GIT_COMMIT
+		return SHV_EXPAND_AND_QUOTE(GIT_COMMIT);
+#else
+		return "N/A";
+#endif
 	}
 	else if (method == METH_GET_UPTIME) {
 		return Application::instance()->uptime().toStdString();
