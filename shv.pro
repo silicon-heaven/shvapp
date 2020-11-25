@@ -8,11 +8,6 @@ SUBDIRS += \
 
 }
 
-!no-gui:qtHaveModule(gui) {
-SUBDIRS += \
-	shvspy \
-}
-
 unix {
 SUBDIRS += \
     shvbroker \

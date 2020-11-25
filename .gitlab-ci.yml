@@ -23,7 +23,7 @@ linux:
     - /opt/qt/5.14.1/gcc_64/bin/qmake -r CONFIG+=release CONFIG-=qml_debug CONFIG-=qtquickcompiler CONFIG+=with-shvwebsockets ../shv.pro DEFINES+=GIT_COMMIT=${CI_BUILD_REF}
     - make -j2
     #- rsync -av --exclude '*.debug' lib bin /opt/shv/
-    - ../make-linux-artifacts.sh
+    #- ../make-linux-artifacts.sh
 
 linux-bb:
   only:
