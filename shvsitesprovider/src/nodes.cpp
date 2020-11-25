@@ -25,8 +25,6 @@ const QString CPTEMPL_SUFFIX = QStringLiteral("cptempl");
 
 static const char METH_GIT_COMMIT[] = "gitCommit";
 static const char METH_GET_SITES[] = "getSites";
-static const char METH_GET_CONFIG[] = "getConfig";
-static const char METH_SAVE_CONFIG[] = "saveConfig";
 static const char METH_RELOAD_SITES[] = "reloadSites";
 static const char METH_SITES_SYNCED_BEFORE[] = "sitesSyncedBefore";
 static const char METH_SITES_RELOADED[] = "reloaded";
@@ -43,8 +41,6 @@ static std::vector<cp::MetaMethod> root_meta_methods {
 	{ cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
 	{ METH_GIT_COMMIT, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 	{ METH_GET_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
-	{ METH_GET_CONFIG, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
-	{ METH_SAVE_CONFIG, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_ADMIN },
 	{ METH_RELOAD_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_COMMAND},
 	{ METH_SITES_SYNCED_BEFORE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
 	{ METH_SITES_RELOADED, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::IsSignal, shv::chainpack::Rpc::ROLE_READ }
@@ -53,8 +49,6 @@ static std::vector<cp::MetaMethod> root_meta_methods {
 static std::vector<cp::MetaMethod> empty_leaf_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
-	{ METH_GET_CONFIG, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
-	{ METH_SAVE_CONFIG, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
 };
 
 static std::vector<cp::MetaMethod> meta_leaf_meta_methods {
@@ -121,31 +115,6 @@ cp::RpcValue AppRootNode::callMethod(const StringViewList &shv_path, const std::
 	}
 	else if (method == METH_GET_SITES) {
 		return getSites();
-	}
-	else if (method == METH_GET_CONFIG) {
-		if (shv_path.empty()) {
-			return getConfig(params);
-		}
-		else {
-			cp::RpcValue::List params;
-			params.push_back(shv::core::StringView::join(shv_path.cbegin(), shv_path.cend(), '/'));
-			return getConfig(params);
-		}
-	}
-	else if (method == METH_SAVE_CONFIG) {
-		if (shv_path.empty()) {
-			saveConfig(params);
-		}
-		else {
-			if (!params.isList() || params.toList().size() != 1) {
-				SHV_QT_EXCEPTION("Missing argument for saveConfig method");
-			}
-			cp::RpcValue::List param_list;
-			param_list.push_back(shv_path.join('/'));
-			param_list.push_back(params.toList()[0]);
-			saveConfig(params);
-		}
-		return cp::RpcValue();
 	}
 	else if (method == METH_FILE_READ) {
 		return readFile(shv_path);
@@ -256,42 +225,6 @@ cp::RpcValue AppRootNode::getSites()
 	return m_sites;
 }
 
-cp::RpcValue AppRootNode::getConfig(const cp::RpcValue &params)
-{
-	cp::RpcValue param;
-	if (!params.isList() && !params.isMap() && !params.isString()) {
-		SHV_EXCEPTION("getConfig: invalid parameters type");
-	}
-	if (params.isList()) {
-		cp::RpcValue::List param_list = params.toList();
-		if (param_list.size() != 1) {
-			SHV_EXCEPTION("getConfig: invalid parameter count");
-		}
-		param = param_list[0];
-	}
-	else if (params.isMap()) {
-		cp::RpcValue::Map param_map = params.toMap();
-		if (param_map.size() != 1) {
-			SHV_EXCEPTION("saveConfig: invalid parameter count");
-		}
-		if (!param_map.hasKey("shvPath")) {
-			SHV_EXCEPTION("getConfig: missing parameter shvPath");
-		}
-		param = param_map["shvPath"];
-	}
-	else {
-		param = params;
-	}
-	if (!param.isString()) {
-		SHV_EXCEPTION("getConfig: invalid parameter type");
-	}
-	QString shv_path = QString::fromStdString(param.toString());
-	if (shv_path.isEmpty()) {
-		SHV_EXCEPTION("getConfig: parameter type must not be empty");
-	}
-	return getConfig(shv_path);
-}
-
 shv::chainpack::RpcValue AppRootNode::ls(const shv::core::StringViewList &shv_path, const shv::chainpack::RpcValue &params)
 {
 	Q_UNUSED(params);
@@ -360,49 +293,6 @@ bool AppRootNode::hasData(const shv::iotqt::node::ShvNode::StringViewList &shv_p
 	return !leaf.isMap();
 }
 
-void AppRootNode::saveConfig(const cp::RpcValue &params)
-{
-	cp::RpcValue param1;
-	cp::RpcValue param2;
-	if (!params.isList() && !params.isMap()) {
-		SHV_EXCEPTION("saveConfig: invalid parameters type");
-	}
-	if (params.isList()) {
-		cp::RpcValue::List param_list = params.toList();
-		if (param_list.size() != 2) {
-			SHV_EXCEPTION("saveConfig: invalid parameter count");
-		}
-		param1 = param_list[0];
-		param2 = param_list[1];
-	}
-	else if (params.isMap()) {
-		cp::RpcValue::Map param_map = params.toMap();
-		if (param_map.size() != 2) {
-			SHV_EXCEPTION("saveConfig: invalid parameter count");
-		}
-		if (!param_map.hasKey("shvPath")) {
-			SHV_EXCEPTION("saveConfig: missing parameter shvPath");
-		}
-		if (!param_map.hasKey("config")) {
-			SHV_EXCEPTION("saveConfig: missing parameter config");
-		}
-		param1 = param_map["shvPath"];
-		param2 = param_map["config"];
-	}
-	if (!param1.isString()) {
-		SHV_EXCEPTION("saveConfig: invalid shvPath type");
-	}
-	if (!param2.isString()) {
-		SHV_EXCEPTION("saveConfig: invalid config type");
-	}
-	QString shv_path = QString::fromStdString(param1.toString());
-	if (shv_path.isEmpty()) {
-		SHV_EXCEPTION("saveConfig: shvPath type must not be empty");
-	}
-	QByteArray config = QByteArray::fromStdString(param2.toString());
-	saveConfig(shv_path, config);
-}
-
 void AppRootNode::downloadSites(std::function<void ()> callback)
 {
 	if (m_downloadingSites) {
@@ -465,27 +355,6 @@ void AppRootNode::downloadSites(std::function<void ()> callback)
 bool AppRootNode::checkSites() const
 {
 	return m_downloadSitesError.empty() && (m_sitesSyncedBefore.isValid() && m_sitesSyncedBefore.elapsed() < 3600 * 1000);
-}
-
-shv::chainpack::RpcValue AppRootNode::getConfig(const QString &shv_path) const
-{
-	cp::RpcValue result;
-
-	std::string file_name = nodeConfigPath(shv_path).toStdString();
-	std::ifstream in_file;
-	in_file.open(file_name, std::ios::in | std::ios::binary);
-	if (in_file) {
-		std::string err;
-		result = cp::CponReader(in_file).read(&err);
-		in_file.close();
-		if (!err.empty()) {
-			SHV_EXCEPTION(err);
-		}
-	}
-	if (!result.isValid()){
-		result = cp::RpcValue::Map();
-	}
-	return result;
 }
 
 shv::chainpack::RpcValue AppRootNode::get(const shv::core::StringViewList &shv_path)
@@ -585,37 +454,9 @@ shv::chainpack::RpcValue AppRootNode::readAndMergeConfig(QFile &file)
 	return config;
 }
 
-void AppRootNode::saveConfig(const QString &shv_path, const QByteArray &value)
-{
-	QFile f(nodeConfigPath(shv_path));
-	QDir dir = QFileInfo(f).dir();
-
-	if (!dir.exists()){
-		if(!dir.mkpath(dir.absolutePath())) {
-			shvError() << "Cannot create directory:" << dir.absolutePath();
-			return;
-		}
-	}
-
-	if (f.open(QFile::WriteOnly)) {
-		f.write(value);
-	}
-	else {
-		shvError() << "Cannot write to config file:" << nodeConfigPath(shv_path);
-	}
-	f.close();
-}
-
 QString AppRootNode::nodeFilesPath(const QString &shv_path) const
 {
 	return nodeLocalPath(shv_path) + "/" + QString::fromStdString(FILES_NODE);
-}
-
-QString AppRootNode::nodeConfigPath(const QString &shv_path) const
-{
-	QString path = nodeLocalPath(shv_path);
-	path += "/config.cpon";
-	return path;
 }
 
 QString AppRootNode::nodeLocalPath(const QString &shv_path) const
