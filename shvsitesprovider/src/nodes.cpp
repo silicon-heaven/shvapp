@@ -23,6 +23,7 @@ const string FILES_NODE = "_files";
 const QString CPON_SUFFIX = QStringLiteral("cpon");
 const QString CPTEMPL_SUFFIX = QStringLiteral("cptempl");
 
+static const char METH_GIT_COMMIT[] = "gitCommit";
 static const char METH_GET_SITES[] = "getSites";
 static const char METH_GET_CONFIG[] = "getConfig";
 static const char METH_SAVE_CONFIG[] = "saveConfig";
@@ -40,6 +41,7 @@ static std::vector<cp::MetaMethod> root_meta_methods {
 	{ cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, shv::chainpack::Rpc::ROLE_READ },
 	{ cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, shv::chainpack::Rpc::ROLE_READ },
 	{ cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
+	{ METH_GIT_COMMIT, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 	{ METH_GET_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
 	{ METH_GET_CONFIG, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
 	{ METH_SAVE_CONFIG, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_ADMIN },
@@ -109,6 +111,13 @@ cp::RpcValue AppRootNode::callMethod(const StringViewList &shv_path, const std::
 {
 	if (method == cp::Rpc::METH_APP_NAME) {
 		return QCoreApplication::instance()->applicationName().toStdString();
+	}
+	else if(method == METH_GIT_COMMIT) {
+#ifdef GIT_COMMIT
+		return SHV_EXPAND_AND_QUOTE(GIT_COMMIT);
+#else
+		return "N/A";
+#endif
 	}
 	else if (method == METH_GET_SITES) {
 		return getSites();
