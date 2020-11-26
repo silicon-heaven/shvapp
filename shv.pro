@@ -4,19 +4,18 @@ CONFIG += ordered
 !debpkg {
 SUBDIRS += \
     3rdparty \
-    clients \
+	clients \
 
 }
 
 unix {
 SUBDIRS += \
     shvbroker \
-    shvagent \
-    shvrexec \
-    shvrsh \
-    shvsitesprovider \
-    shvbrclabprovider \
-    shvhistoryprovider \
-    #eyassrvctl \
+	shvagent \
+	shvrexec \
+	shvrsh \
+	shvsitesprovider \
+	shvbrclabprovider \
+	shvhistoryprovider \
 }
 

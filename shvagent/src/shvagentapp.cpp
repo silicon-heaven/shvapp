@@ -185,7 +185,7 @@ shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::Rp
 			}
 
 			ShvAgentApp *app = ShvAgentApp::instance();
-			shv::chainpack::RpcRequest rq2 = rq.clone();
+			shv::chainpack::RpcRequest rq2 = rq;
 			std::string cmd = "bash";
 			std::string fn = (script_dir + sha1).toStdString();
 			args.insert(args.begin(), fn);

@@ -193,7 +193,7 @@ BfsViewApp::BfsViewApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	if(!cli_opts->serverPort_isset())
 		cli_opts->setServerPort(settings.shvBrokerPort());
 	if(!cli_opts->password_isset()) {
-		cli_opts->setPassword("8884a26b82a69838092fd4fc824bbfde56719e02");
+		cli_opts->setPassword("5885873ccd3418a7f532d1008ed08fd3756b9ce1");
 		cli_opts->setLoginType("SHA1");
 	}
 
