@@ -1,7 +1,7 @@
 #!/bin/sh
 
-APP_NAME=shvspy
-APP_VER=1.0.0
+#APP_NAME=shvspy
+#APP_VER=1.0.0
 
 # QT_DIR=/home/fanda/programs/qt5/5.14.1/gcc_64
 QT_DIR=/opt/qt/5.14.1/gcc_64
@@ -58,7 +58,7 @@ $RSYNC -R  $QT_DIR/plugins/./imageformats/libqsvg.so $DIST_BIN_DIR/
 # $RSYNC $QT_DIR/qml/QtQuick.2/ $DIST_BIN_DIR/QtQuick.2
 
 echo `pwd`
-cp ../shvspy/script/shvspy.sh $DIST_DIR/
+#cp ../shvspy/script/shvspy.sh $DIST_DIR/
 
-cd $DIST_DIR
-tar -cvzf $APP_NAME-$APP_VER-gcc_64.tgz  bin lib shvspy.sh
+#cd $DIST_DIR
+#tar -cvzf $APP_NAME-$APP_VER-gcc_64.tgz  bin lib shvspy.sh
