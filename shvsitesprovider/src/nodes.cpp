@@ -24,6 +24,7 @@ const QString CPON_SUFFIX = QStringLiteral("cpon");
 const QString CPTEMPL_SUFFIX = QStringLiteral("cptempl");
 
 static const char METH_GIT_COMMIT[] = "gitCommit";
+static const char METH_APP_VERSION[] = "version";
 static const char METH_GET_SITES[] = "getSites";
 static const char METH_RELOAD_SITES[] = "reloadSites";
 static const char METH_SITES_SYNCED_BEFORE[] = "sitesSyncedBefore";
@@ -37,6 +38,7 @@ static std::vector<cp::MetaMethod> root_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, shv::chainpack::Rpc::ROLE_READ },
+	{ METH_APP_VERSION, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, shv::chainpack::Rpc::ROLE_READ },
 	{ cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, shv::chainpack::Rpc::ROLE_READ },
 	{ cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
 	{ METH_GIT_COMMIT, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
@@ -113,6 +115,9 @@ cp::RpcValue AppRootNode::callMethod(const StringViewList &shv_path, const std::
 		return "N/A";
 #endif
 	}
+	else if (method == METH_APP_VERSION) {
+		return QCoreApplication::instance()->applicationVersion().toStdString();
+	}
 	else if (method == METH_GET_SITES) {
 		return getSites();
 	}
@@ -153,7 +158,7 @@ cp::RpcValue AppRootNode::callMethod(const StringViewList &shv_path, const std::
 		return true;
 	}
 	else if (method == METH_SITES_SYNCED_BEFORE) {
-		if(m_sitesSyncedBefore.isValid())
+		if(!m_sitesSyncedBefore.isValid())
 			return nullptr;
 		return static_cast<int>(m_sitesSyncedBefore.elapsed() / 1000);
 	}
