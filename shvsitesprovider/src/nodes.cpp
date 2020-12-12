@@ -61,11 +61,6 @@ static std::vector<cp::MetaMethod> meta_leaf_meta_methods {
 static std::vector<cp::MetaMethod> file_dir_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
-};
-
-static std::vector<cp::MetaMethod> files_node_dir_meta_methods {
-	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
-	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ METH_FILE_MK, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
 };
 
@@ -198,7 +193,7 @@ const std::vector<shv::chainpack::MetaMethod> &AppRootNode::metaMethods(const sh
 			return meta_leaf_meta_methods;
 		}
 	}
-	else if (shv_path.indexOf(FILES_NODE) != -1) {
+	else if (shv_path.indexOf(FILES_NODE) >= -1) {
 		if (isFile(shv_path)) {
 			return file_meta_methods;
 		}
