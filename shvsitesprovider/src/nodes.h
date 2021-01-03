@@ -34,6 +34,8 @@ private:
 
 	void downloadSites(std::function<void()> callback);
 	bool checkSites() const;
+	void execGitPush();
+	void execGitCommand(const QStringList &arguments, std::function<void()> callback);
 
 	Q_SIGNAL void downloadFinished();
 
