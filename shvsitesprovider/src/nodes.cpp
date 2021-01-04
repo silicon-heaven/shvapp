@@ -2,9 +2,12 @@
 #include "sitesproviderapp.h"
 #include "appclioptions.h"
 
+#include <shv/core/utils/shvpath.h>
 #include <shv/coreqt/log.h>
 #include <shv/coreqt/exception.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
+#include <shv/iotqt/rpc/rpc.h>
+#include <shv/iotqt/rpc/rpcresponsecallback.h>
 #include <shv/chainpack/cponreader.h>
 
 #include <QDir>
@@ -32,6 +35,7 @@ static const char METH_SITES_RELOADED[] = "reloaded";
 static const char METH_FILE_READ[] = "read";
 static const char METH_FILE_WRITE[] = "write";
 static const char METH_FILE_HASH[] = "hash";
+static const char METH_SYNC_FROM_DEVICE[] = "syncFromDevice";
 static const char METH_FILE_MK[] = "mkfile";
 
 static std::vector<cp::MetaMethod> root_meta_methods {
@@ -62,6 +66,7 @@ static std::vector<cp::MetaMethod> file_dir_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ METH_FILE_MK, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
+	{ METH_SYNC_FROM_DEVICE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
 };
 
 static std::vector<cp::MetaMethod> file_meta_methods {
@@ -98,8 +103,11 @@ const cp::MetaMethod *AppRootNode::metaMethod(const StringViewList &shv_path, si
 	return &(meta_methods[ix]);
 }
 
-cp::RpcValue AppRootNode::callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
+cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 {
+	shv::core::StringViewList shv_path = shv::core::utils::ShvPath::split(rq.shvPath().toString());
+	const cp::RpcValue::String &method = rq.method().toString();
+
 	if (method == cp::Rpc::METH_APP_NAME) {
 		return QCoreApplication::instance()->applicationName().toStdString();
 	}
@@ -117,18 +125,35 @@ cp::RpcValue AppRootNode::callMethod(const StringViewList &shv_path, const std::
 		return getSites();
 	}
 	else if (method == METH_FILE_READ) {
-		return readFile(shv_path);
+		return readFile(rpcvalue_cast<QString>(rq.shvPath()));
 	}
 	else if (method == METH_FILE_WRITE) {
+		cp::RpcValue params = rq.params();
 		if(!params.isString())
 			throw shv::core::Exception("Content must be string.");
-		return writeFile(shv_path, params.toString());
+		return writeFile(rpcvalue_cast<QString>(rq.shvPath()), params.toString());
 	}
 	else if (method == METH_FILE_MK) {
-		return mkFile(shv_path, params);
+		return mkFile(shv_path, rq.params());
+	}
+	else if (method == METH_SYNC_FROM_DEVICE) {
+		QSharedPointer<SyncContext> context(new SyncContext);
+		context->callback = [this, rq](const cp::RpcValue &result) {
+			cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
+			resp.setResult(result);
+			emitSendRpcMessage(resp);
+		};
+
+		if (shv_path.at(shv_path.length() - 1) == FILES_NODE) {
+			syncFilesFromDevice(rpcvalue_cast<QString>(rq.shvPath()), context);
+		}
+		else {
+			syncFilesFromDeviceGroup(shv_path, context);
+		}
+		return cp::RpcValue();
 	}
 	else if (method == METH_FILE_HASH) {
-		auto rv = readFile(shv_path);
+		auto rv = readFile(rpcvalue_cast<QString>(rq.shvPath()));
 		const string &bytes = rv.toString();
 		QCryptographicHash h(QCryptographicHash::Sha1);
 		h.addData(bytes.data(), bytes.size());
@@ -157,7 +182,7 @@ cp::RpcValue AppRootNode::callMethod(const StringViewList &shv_path, const std::
 			return nullptr;
 		return static_cast<int>(m_sitesSyncedBefore.elapsed() / 1000);
 	}
-	return Super::callMethod(shv_path, method, params);
+	return Super::callMethodRq(rq);
 }
 
 void AppRootNode::handleRpcRequest(const shv::chainpack::RpcRequest &rq)
@@ -225,28 +250,141 @@ cp::RpcValue AppRootNode::getSites()
 	return m_sites;
 }
 
+void AppRootNode::syncFilesFromDevice(const QString &shv_path, QSharedPointer<SyncContext> context)
+{
+	auto *conn = SitesProviderApp::instance()->rpcConnection();
+	int rqid = conn->nextRequestId();
+	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(conn, rqid, this);
+	cb->start([this, shv_path, context](const shv::chainpack::RpcResponse &resp) {
+		if (resp.isSuccess()) {
+			try {
+				QStringList local_ls = lsDir(shv_path);
+				cp::RpcValue::List remote_ls = resp.result().toList();
+				for (const cp::RpcValue &remote_ls_item : remote_ls) {
+					QString remote_file = rpcvalue_cast<QString>(remote_ls_item);
+
+					if (!remote_file.endsWith(CPTEMPL_SUFFIX)) {
+						if (local_ls.contains(remote_file)) {
+							syncFileFromDevice(shv_path + "/" + remote_file, context);
+						}
+						else {
+							getFileFromDevice(shv_path + "/" + remote_file, context);
+						}
+					}
+				}
+				context->success();
+			}
+			catch (const shv::core::Exception &ex) {
+				context->error(ex.message());
+			}
+		}
+		else {
+			context->error(resp.errorString());
+		}
+	});
+	++context->unfinishedCalls;
+	conn->callShvMethod(rqid, "shv/" + shv_path.toStdString(), cp::Rpc::METH_LS, cp::RpcValue());
+}
+
+void AppRootNode::syncFileFromDevice(const QString &shv_path, QSharedPointer<SyncContext> context)
+{
+	auto *conn = SitesProviderApp::instance()->rpcConnection();
+	int rqid = conn->nextRequestId();
+	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(conn, rqid, this);
+	cb->start([this, shv_path, context](const shv::chainpack::RpcResponse &resp) {
+		if (resp.isSuccess()) {
+			try {
+				std::string remote_hash = resp.result().toString();
+
+				const std::string &bytes = readFile(shv_path).toString();
+				QCryptographicHash h(QCryptographicHash::Sha1);
+				h.addData(bytes.data(), bytes.size());
+				std::string local_hash = h.result().toHex().toStdString();
+				if (local_hash != remote_hash) {
+					getFileFromDevice(shv_path, context);
+				}
+				context->success();
+			}
+			catch (const shv::core::Exception &ex) {
+				context->error(ex.message());
+			}
+		}
+		else {
+			context->error(resp.errorString());
+		}
+	});
+	++context->unfinishedCalls;
+	conn->callShvMethod(rqid, "shv/" + shv_path.toStdString(), "hash", cp::RpcValue());
+}
+
+void AppRootNode::getFileFromDevice(const QString &shv_path, QSharedPointer<SyncContext> context)
+{
+	auto *conn = SitesProviderApp::instance()->rpcConnection();
+	int rqid = conn->nextRequestId();
+	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(conn, rqid, this);
+	cb->start([this, shv_path, context](const shv::chainpack::RpcResponse &resp) {
+		if (resp.isSuccess()) {
+			try {
+				context->synchronizedFiles << shv_path;
+				writeFile(shv_path, resp.result().toString());
+				context->success();
+			}
+			catch (const shv::core::Exception &ex) {
+				context->error(ex.message());
+			}
+		}
+		else {
+			context->error(resp.errorString());
+		}
+	});
+	++context->unfinishedCalls;
+	conn->callShvMethod(rqid, "shv/" + shv_path.toStdString(), "read", cp::RpcValue());
+}
+
+void AppRootNode::syncFilesFromDeviceGroup(const shv::core::StringViewList &shv_path, QSharedPointer<SyncContext> context)
+{
+	try {
+		cp::RpcValue::List ls_result = ls_helper(shv_path, 0, m_sites).toList();
+		if (shv_path.at(shv_path.length() - 1) == FILES_NODE) {
+			syncFilesFromDevice(QString::fromStdString(shv_path.join('/')), context);
+		}
+		else {
+			for (const cp::RpcValue &ls_result_item : ls_result) {
+				std::string last_path_item = ls_result_item.toString();
+				shv::core::StringViewList new_shv_path(shv_path);
+				new_shv_path.push_back(last_path_item);
+				syncFilesFromDeviceGroup(new_shv_path, context);
+			}
+		}
+	}
+	catch (const shv::core::Exception &ex) {
+		++context->unfinishedCalls;
+		context->error(ex.message());
+	}
+}
+
 shv::chainpack::RpcValue AppRootNode::ls(const shv::core::StringViewList &shv_path, const shv::chainpack::RpcValue &params)
 {
 	Q_UNUSED(params);
 	return ls_helper(shv_path, 0, m_sites);
 }
 
-cp::RpcValue AppRootNode::lsDir(const shv::core::StringViewList &shv_path)
+QStringList AppRootNode::lsDir(const QString &shv_path)
 {
-	cp::RpcValue::List items;
-	QString path = nodeLocalPath(shv_path.join('/'));
+	QStringList items;
+	QString path = nodeLocalPath(shv_path);
 	QFileInfo fi(path);
 	if(fi.isDir()) {
-		QDir dir(nodeLocalPath(shv_path.join('/')));
+		QDir dir(nodeLocalPath(shv_path));
 		QFileInfoList file_infos = dir.entryInfoList(QDir::Filter::Dirs | QDir::Filter::Files | QDir::Filter::NoDotAndDotDot, QDir::SortFlag::Name);
 		for (const QFileInfo &file_info : file_infos) {
-			std::string new_item;
+			QString new_item;
 			if (file_info.suffix() == CPTEMPL_SUFFIX) {
-				items.push_back(file_info.fileName().toStdString());
-				new_item = file_info.completeBaseName().toStdString();
+				items.push_back(file_info.fileName());
+				new_item = file_info.completeBaseName();
 			}
 			else {
-				new_item = file_info.fileName().toStdString();
+				new_item = file_info.fileName();
 			}
 			auto it = std::find(items.begin(), items.end(), new_item);
 			if (it != items.end() && file_info.suffix() == CPON_SUFFIX) {
@@ -278,8 +416,13 @@ cp::RpcValue AppRootNode::ls_helper(const shv::core::StringViewList &shv_path, s
 		return cp::RpcValue(items);
 	}
 	std::string node_name = shv_path[index].toString();
-	if(node_name == FILES_NODE) {
-		return lsDir(shv_path);
+	if (node_name == FILES_NODE) {
+		QStringList ls_dir = lsDir(QString::fromStdString(shv_path.join('/')));
+		cp::RpcValue::List ret;
+		for (const QString &ls_dir_item : ls_dir) {
+			ret.push_back(ls_dir_item.toStdString());
+		}
+		return ret;
 	}
 	const shv::chainpack::RpcValue val = sites_node.value(node_name);
 	if (val.isMap())
@@ -362,9 +505,9 @@ shv::chainpack::RpcValue AppRootNode::get(const shv::core::StringViewList &shv_p
 	return leaf(shv_path);
 }
 
-shv::chainpack::RpcValue AppRootNode::readFile(const shv::core::StringViewList &shv_path)
+shv::chainpack::RpcValue AppRootNode::readFile(const QString &shv_path)
 {
-	QString filename = nodeLocalPath(shv_path.join('/'));
+	QString filename = nodeLocalPath(shv_path);
 	QFile f(filename);
 	if (f.open(QFile::ReadOnly)) {
 		QByteArray file_content = f.readAll();
@@ -373,16 +516,16 @@ shv::chainpack::RpcValue AppRootNode::readFile(const shv::core::StringViewList &
 	return readConfig(filename).toCpon("  ");
 }
 
-shv::chainpack::RpcValue AppRootNode::writeFile(const shv::core::StringViewList &shv_path, const string &content)
+shv::chainpack::RpcValue AppRootNode::writeFile(const QString &shv_path, const string &content)
 {
-	QString filename = nodeLocalPath(shv_path.join('/'));
+	QString filename = nodeLocalPath(shv_path);
 	QFile f(filename);
 	if (f.open(QFile::WriteOnly)) {
 		qint64 n = f.write(content.data(), content.size());
 		return n >= 0;
 	}
 	else {
-		throw shv::core::Exception("Cannot open file '" + shv_path.join('/') + "' for writing.");
+		throw shv::coreqt::Exception("Cannot open file '" + shv_path + "' for writing.");
 	}
 	return readConfig(filename).toCpon("  ");
 }
@@ -405,8 +548,7 @@ shv::chainpack::RpcValue AppRootNode::mkFile(const shv::core::StringViewList &sh
 	}
 	if (file_name.empty())
 		throw shv::core::Exception("File name is empty.");
-	shv::core::StringViewList file_path = shv_path;
-	file_path.push_back(file_name);
+	QString file_path = QString::fromStdString(shv_path.join('/')) + "/" + QString::fromStdString(file_name);
 	if(has_content)
 		return writeFile(file_path, params.toList()[1].toString());
 	else
@@ -490,3 +632,35 @@ bool AppRootNode::isDir(const shv::iotqt::node::ShvNode::StringViewList &shv_pat
 	return fi.isDir();
 }
 
+
+void SyncContext::error(const std::string &error_msg)
+{
+	shvError() << error_msg;
+	errors.push_back(error_msg);
+	if (--unfinishedCalls == 0) {
+		callback(toRpcValue());
+	}
+}
+
+shv::chainpack::RpcValue SyncContext::toRpcValue() const
+{
+	cp::RpcValue::Map map;
+	cp::RpcValue::List file_list;
+	for (const QString &file : synchronizedFiles) {
+		file_list.push_back(file.toStdString());
+	}
+	map["synchronizedFiles"] = file_list;
+	cp::RpcValue::List error_list;
+	for (const std::string &error : errors) {
+		error_list.push_back(error);
+	}
+	map["errors"] = error_list;
+	return map;
+}
+
+void SyncContext::success()
+{
+	if (--unfinishedCalls == 0) {
+		callback(toRpcValue());
+	}
+}
