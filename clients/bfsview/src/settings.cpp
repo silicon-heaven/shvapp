@@ -11,13 +11,26 @@ QString Settings::bfsShvPath()
 {
 	QString path = m_settings.value("predatorShvPath").toString();
 	if(path.isEmpty())
-		path = "../bfs1";
+		path = "bfs/plzen/bfs1";
 	return path;
 }
 
 void Settings::setBfsShvPath(const QString &s)
 {
 	m_settings.setValue("predatorShvPath", s);
+}
+
+QString Settings::shvBrokerUser()
+{
+	QString s = m_settings.value("shvBrokerUser").toString();
+	if(s.isEmpty())
+		s = "bfsview";
+	return s;
+}
+
+void Settings::setShvBrokerUser(const QString &s)
+{
+	m_settings.setValue("shvBrokerUser", s);
 }
 
 QString Settings::shvBrokerHost()

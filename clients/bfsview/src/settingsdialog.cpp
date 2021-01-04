@@ -55,10 +55,10 @@ void SettingsDialog::done(int status)
 		QSettings qsettings;
 		Settings settings(qsettings);
 		settings.setBfsShvPath(ui->bfsShvPath->text());
+		settings.setShvBrokerUser(ui->shvBrokerUser->text());
 		settings.setShvBrokerHost(ui->shvBrokerHost->text());
 		settings.setShvBrokerPort(ui->shvBrokerPort->value());
 		settings.setPowerFileName(ui->edPowerSwitchesFile->text());
-		//settings.setPowerSwitchName(ui->edPowerSwitchName->text());
 		settings.setCheckPowerFileInterval(ui->edCheckInterval->value());
 	}
 	Super::done(status);

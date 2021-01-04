@@ -131,7 +131,8 @@ private:
 	void checkPlcConnected();
 	void sendGetStatusRequest();
 
-	const std::string& bfsStatusShvPath();
+	const std::string& bfsPlcShvPath();
+	std::string bfsPlcShvPathForStatus();
 private:
 	shv::iotqt::rpc::DeviceConnection *m_rpcConnection = nullptr;
 	AppCliOptions* m_cliOptions;

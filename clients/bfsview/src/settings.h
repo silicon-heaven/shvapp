@@ -12,6 +12,8 @@ public:
 
 	QString bfsShvPath();
 	void setBfsShvPath(const QString &s);
+	QString shvBrokerUser();
+	void setShvBrokerUser(const QString &s);
 	QString shvBrokerHost();
 	void setShvBrokerHost(const QString &s);
 	int shvBrokerPort();

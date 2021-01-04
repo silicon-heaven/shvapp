@@ -193,7 +193,7 @@ BfsViewApp::BfsViewApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	if(!cli_opts->serverPort_isset())
 		cli_opts->setServerPort(settings.shvBrokerPort());
 	if(!cli_opts->password_isset()) {
-		cli_opts->setPassword("5885873ccd3418a7f532d1008ed08fd3756b9ce1");
+		cli_opts->setPassword("8884a26b82a69838092fd4fc824bbfde56719e02");
 		cli_opts->setLoginType("SHA1");
 	}
 
@@ -212,7 +212,6 @@ BfsViewApp::BfsViewApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	m_shvTree->mount(BFS1_PWR_STATUS, m_pwrStatusNode);
 	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &shv::iotqt::rpc::DeviceConnection::sendMessage);
 
-	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
 	if(cli_opts->pwrStatusPublishInterval() > 0) {
 		shvInfo() << "pwrStatus publish interval set to:" << cli_opts->pwrStatusPublishInterval() << "sec.";
 		QTimer *tm = new QTimer(this);
@@ -223,6 +222,7 @@ BfsViewApp::BfsViewApp(int &argc, char **argv, AppCliOptions* cli_opts)
 		tm->start(m_cliOptions->pwrStatusPublishInterval() * 1000);
 	}
 	loadSettings();
+	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
 }
 
 BfsViewApp::~BfsViewApp()
@@ -340,19 +340,25 @@ void BfsViewApp::sendGetStatusRequest()
 {
 	auto *conn = rpcConnection();
 	if(conn->isBrokerConnected()) {
-		m_getStatusRpcId = conn->callShvMethod(bfsStatusShvPath(), cp::Rpc::METH_GET);
+		m_getStatusRpcId = conn->callShvMethod(bfsPlcShvPathForStatus(), cp::Rpc::METH_GET);
 		shvDebug() << "Sending get status request id:" << m_getStatusRpcId;
 	}
 }
 
-const std::string &BfsViewApp::bfsStatusShvPath()
+const std::string &BfsViewApp::bfsPlcShvPath()
 {
 	static std::string shv_path;
 	if(shv_path.empty()) {
 		QSettings qsettings;
 		Settings settings(qsettings);
-		shv_path = shv::core::utils::ShvPath::join(settings.bfsShvPath().toStdString(), std::string("status"));
+		shv_path = settings.bfsShvPath().toStdString();
 	}
+	return shv_path;
+}
+
+std::string BfsViewApp::bfsPlcShvPathForStatus()
+{
+	std::string shv_path = shv::core::utils::ShvPath::join(bfsPlcShvPath(), std::string("status"));
 	return shv_path;
 }
 
@@ -387,7 +393,7 @@ void BfsViewApp::setOmpag(bool val)
 #else
 	if(rpcConnection()->isBrokerConnected()) {
 		setOmpagRequiredSwitchStatus(val? SwitchStatus::On: SwitchStatus::Off);
-		rpcConnection()->callShvMethod("../bfs1", "setOmpag", val);
+		rpcConnection()->callShvMethod(bfsPlcShvPath(), "setOmpag", val);
 	}
 #endif
 }
@@ -402,7 +408,7 @@ void BfsViewApp::setConv(bool val)
 #else
 	if(rpcConnection()->isBrokerConnected()) {
 		setConvRequiredSwitchStatus(val? SwitchStatus::On: SwitchStatus::Off);
-		rpcConnection()->callShvMethod("../bfs1", "setConv", val);
+		rpcConnection()->callShvMethod(bfsPlcShvPath(), "setConv", val);
 	}
 #endif
 }
@@ -439,7 +445,7 @@ QString BfsViewApp::switchStatusToString(BfsViewApp::SwitchStatus status)
 void BfsViewApp::onBrokerConnectedChanged(bool is_connected)
 {
 	if(is_connected) {
-		rpcConnection()->callMethodSubscribe(bfsStatusShvPath(), cp::Rpc::SIG_VAL_CHANGED);
+		rpcConnection()->callMethodSubscribe(bfsPlcShvPathForStatus(), cp::Rpc::SIG_VAL_CHANGED);
 		m_pwrStatusNode->sendPwrStatusChanged();
 		sendGetStatusRequest();
 		//shvInfo() << "get status rq id:" << m_getStatusRpcId;
@@ -512,7 +518,7 @@ void BfsViewApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 		shvInfo() << "RPC notify received:" << ntf.toCpon();
 #else
 		if(ntf.method() == cp::Rpc::SIG_VAL_CHANGED) {
-			if(ntf.shvPath() == bfsStatusShvPath()) {
+			if(ntf.shvPath() == bfsPlcShvPathForStatus()) {
 				setBfsStatus(ntf.params().toInt());
 			}
 		}
