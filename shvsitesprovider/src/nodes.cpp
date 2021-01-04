@@ -40,7 +40,7 @@ static const char METH_FILE_HASH[] = "hash";
 static const char METH_SYNC_FROM_DEVICE[] = "syncFromDevice";
 static const char METH_SYNC_FROM_DEVICES[] = "syncFromDevices";
 static const char METH_FILE_MK[] = "mkfile";
-static const char METH_GIT_PUSH[] = "gitPush";
+static const char METH_GIT_PUSH[] = "pushFilesToGit";
 
 static std::vector<cp::MetaMethod> root_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
@@ -489,7 +489,7 @@ void AppRootNode::execGitCommand(const QStringList &arguments, std::function<voi
 		command->deleteLater();
 	});
 	QString sites_dir = QString::fromStdString(SitesProviderApp::instance()->cliOptions()->localSitesDir());
-	command->start("git", QStringList{ "--git-dir=" + sites_dir + "/.git", "--work-tree=" + sites_dir } + arguments);
+	command->start("git", QStringList{ "-C", sites_dir } + arguments);
 }
 
 shv::chainpack::RpcValue AppRootNode::get(const shv::core::StringViewList &shv_path)
