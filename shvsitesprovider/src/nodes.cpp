@@ -148,7 +148,7 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 			syncFilesFromDevice(rpcvalue_cast<QString>(rq.shvPath()), context);
 		}
 		else {
-			syncFilesFromDeviceGroup(shv_path, context);
+			syncFilesFromSubTree(shv_path, context);
 		}
 		return cp::RpcValue();
 	}
@@ -262,14 +262,11 @@ void AppRootNode::syncFilesFromDevice(const QString &shv_path, QSharedPointer<Sy
 				cp::RpcValue::List remote_ls = resp.result().toList();
 				for (const cp::RpcValue &remote_ls_item : remote_ls) {
 					QString remote_file = rpcvalue_cast<QString>(remote_ls_item);
-
-					if (!remote_file.endsWith(CPTEMPL_SUFFIX)) {
-						if (local_ls.contains(remote_file)) {
-							syncFileFromDevice(shv_path + "/" + remote_file, context);
-						}
-						else {
-							getFileFromDevice(shv_path + "/" + remote_file, context);
-						}
+					if (local_ls.contains(remote_file)) {
+						syncFileFromDevice(shv_path + "/" + remote_file, context);
+					}
+					else {
+						getFileFromDevice(shv_path + "/" + remote_file, context);
 					}
 				}
 				context->success();
@@ -341,7 +338,7 @@ void AppRootNode::getFileFromDevice(const QString &shv_path, QSharedPointer<Sync
 	conn->callShvMethod(rqid, "shv/" + shv_path.toStdString(), "read", cp::RpcValue());
 }
 
-void AppRootNode::syncFilesFromDeviceGroup(const shv::core::StringViewList &shv_path, QSharedPointer<SyncContext> context)
+void AppRootNode::syncFilesFromSubTree(const shv::core::StringViewList &shv_path, QSharedPointer<SyncContext> context)
 {
 	try {
 		cp::RpcValue::List ls_result = ls_helper(shv_path, 0, m_sites).toList();
@@ -353,7 +350,7 @@ void AppRootNode::syncFilesFromDeviceGroup(const shv::core::StringViewList &shv_
 				std::string last_path_item = ls_result_item.toString();
 				shv::core::StringViewList new_shv_path(shv_path);
 				new_shv_path.push_back(last_path_item);
-				syncFilesFromDeviceGroup(new_shv_path, context);
+				syncFilesFromSubTree(new_shv_path, context);
 			}
 		}
 	}
@@ -650,11 +647,14 @@ shv::chainpack::RpcValue SyncContext::toRpcValue() const
 		file_list.push_back(file.toStdString());
 	}
 	map["synchronizedFiles"] = file_list;
-	cp::RpcValue::List error_list;
-	for (const std::string &error : errors) {
-		error_list.push_back(error);
+
+	if (errors.count()) {
+		cp::RpcValue::List error_list;
+		for (const std::string &error : errors) {
+			error_list.push_back(error);
+		}
+		map["errors"] = error_list;
 	}
-	map["errors"] = error_list;
 	return map;
 }
 

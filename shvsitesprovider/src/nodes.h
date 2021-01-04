@@ -43,7 +43,7 @@ private:
 	void syncFilesFromDevice(const QString &shv_path, QSharedPointer<SyncContext> context);
 	void syncFileFromDevice(const QString &shv_path, QSharedPointer<SyncContext> context);
 	void getFileFromDevice(const QString &shv_path, QSharedPointer<SyncContext> context);
-	void syncFilesFromDeviceGroup(const shv::core::StringViewList &shv_path, QSharedPointer<SyncContext> context);
+	void syncFilesFromSubTree(const shv::core::StringViewList &shv_path, QSharedPointer<SyncContext> context);
 	shv::chainpack::RpcValue ls(const shv::core::StringViewList &shv_path, const shv::chainpack::RpcValue &params) override;
 	bool hasData(const shv::iotqt::node::ShvNode::StringViewList &shv_path);
 
