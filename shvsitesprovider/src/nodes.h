@@ -46,6 +46,7 @@ private:
 	void syncFilesFromSubTree(const shv::core::StringViewList &shv_path, QSharedPointer<SyncContext> context);
 	shv::chainpack::RpcValue ls(const shv::core::StringViewList &shv_path, const shv::chainpack::RpcValue &params) override;
 	bool hasData(const shv::iotqt::node::ShvNode::StringViewList &shv_path);
+	bool isDevice(const shv::iotqt::node::ShvNode::StringViewList &shv_path);
 
 	void downloadSites(std::function<void()> callback);
 	bool checkSites() const;

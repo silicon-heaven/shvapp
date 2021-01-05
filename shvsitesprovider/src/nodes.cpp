@@ -36,6 +36,7 @@ static const char METH_FILE_READ[] = "read";
 static const char METH_FILE_WRITE[] = "write";
 static const char METH_FILE_HASH[] = "hash";
 static const char METH_SYNC_FROM_DEVICE[] = "syncFromDevice";
+static const char METH_SYNC_FROM_DEVICES[] = "syncFromDevices";
 static const char METH_FILE_MK[] = "mkfile";
 
 static std::vector<cp::MetaMethod> root_meta_methods {
@@ -49,20 +50,34 @@ static std::vector<cp::MetaMethod> root_meta_methods {
 	{ METH_GET_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
 	{ METH_RELOAD_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_COMMAND},
 	{ METH_SITES_SYNCED_BEFORE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
-	{ METH_SITES_RELOADED, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::IsSignal, shv::chainpack::Rpc::ROLE_READ }
+	{ METH_SITES_RELOADED, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::IsSignal, shv::chainpack::Rpc::ROLE_READ },
+	{ METH_SYNC_FROM_DEVICES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
 };
 
-static std::vector<cp::MetaMethod> empty_leaf_meta_methods {
+static std::vector<cp::MetaMethod> branch_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
+	{ METH_SYNC_FROM_DEVICES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
 };
 
-static std::vector<cp::MetaMethod> meta_leaf_meta_methods {
+static std::vector<cp::MetaMethod> device_meta_methods {
+	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
+	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
+	{ METH_SYNC_FROM_DEVICE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
+};
+
+static std::vector<cp::MetaMethod> meta_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 };
 
 static std::vector<cp::MetaMethod> file_dir_meta_methods {
+	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
+	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
+	{ METH_FILE_MK, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
+};
+
+static std::vector<cp::MetaMethod> device_file_dir_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ METH_FILE_MK, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
@@ -77,7 +92,7 @@ static std::vector<cp::MetaMethod> file_meta_methods {
 	{ METH_FILE_HASH, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
 };
 
-static std::vector<cp::MetaMethod> data_leaf_meta_methods {
+static std::vector<cp::MetaMethod> data_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, shv::chainpack::Rpc::ROLE_READ },
@@ -136,6 +151,16 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 	else if (method == METH_FILE_MK) {
 		return mkFile(shv_path, rq.params());
 	}
+	else if (method == METH_SYNC_FROM_DEVICES) {
+		QSharedPointer<SyncContext> context(new SyncContext);
+		context->callback = [this, rq](const cp::RpcValue &result) {
+			cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
+			resp.setResult(result);
+			emitSendRpcMessage(resp);
+		};
+		syncFilesFromSubTree(shv_path, context);
+		return cp::RpcValue();
+	}
 	else if (method == METH_SYNC_FROM_DEVICE) {
 		QSharedPointer<SyncContext> context(new SyncContext);
 		context->callback = [this, rq](const cp::RpcValue &result) {
@@ -143,13 +168,12 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 			resp.setResult(result);
 			emitSendRpcMessage(resp);
 		};
-
-		if (shv_path.at(shv_path.length() - 1) == FILES_NODE) {
-			syncFilesFromDevice(rpcvalue_cast<QString>(rq.shvPath()), context);
+		QString shv_path = rpcvalue_cast<QString>(rq.shvPath());
+		QString qfiles_node = QString::fromStdString(FILES_NODE);
+		if (!shv_path.endsWith(qfiles_node)) {
+			shv_path += "/" + qfiles_node;
 		}
-		else {
-			syncFilesFromSubTree(shv_path, context);
-		}
+		syncFilesFromDevice(shv_path, context);
 		return cp::RpcValue();
 	}
 	else if (method == METH_FILE_HASH) {
@@ -212,21 +236,31 @@ const std::vector<shv::chainpack::MetaMethod> &AppRootNode::metaMethods(const sh
 	}
 	else if (shv_path.indexOf("_meta") != -1) {
 		if (hasData(shv_path)) {
-			return data_leaf_meta_methods;
+			return data_meta_methods;
 		}
 		else {
-			return meta_leaf_meta_methods;
+			return meta_meta_methods;
 		}
 	}
-	else if (shv_path.indexOf(FILES_NODE) >= -1) {
+	else if (shv_path.indexOf(FILES_NODE) != -1) {
 		if (isFile(shv_path)) {
 			return file_meta_methods;
 		}
 		else {
-			return file_dir_meta_methods;
+			if (shv_path.at(shv_path.length() - 1) == FILES_NODE && isDevice(shv_path.mid(0, shv_path.size() - 1))) {
+				return device_file_dir_meta_methods;
+			}
+			else {
+				return file_dir_meta_methods;
+			}
 		}
 	}
-	return empty_leaf_meta_methods;
+	if (isDevice(shv_path)) {
+		return device_meta_methods;
+	}
+	else {
+		return branch_meta_methods;
+	}
 }
 
 shv::chainpack::RpcValue AppRootNode::leaf(const shv::core::StringViewList &shv_path)
@@ -342,14 +376,16 @@ void AppRootNode::syncFilesFromSubTree(const shv::core::StringViewList &shv_path
 {
 	try {
 		cp::RpcValue::List ls_result = ls_helper(shv_path, 0, m_sites).toList();
-		if (shv_path.at(shv_path.length() - 1) == FILES_NODE) {
-			syncFilesFromDevice(QString::fromStdString(shv_path.join('/')), context);
-		}
-		else {
-			for (const cp::RpcValue &ls_result_item : ls_result) {
-				std::string last_path_item = ls_result_item.toString();
-				shv::core::StringViewList new_shv_path(shv_path);
-				new_shv_path.push_back(last_path_item);
+		for (const cp::RpcValue &ls_result_item : ls_result) {
+			std::string last_path_item = ls_result_item.toString();
+			shv::core::StringViewList new_shv_path(shv_path);
+			new_shv_path.push_back(last_path_item);
+			if (last_path_item[0] == '_') {
+				if (last_path_item == FILES_NODE && isDevice(shv_path)) {
+					syncFilesFromDevice(QString::fromStdString(new_shv_path.join('/')), context);
+				}
+			}
+			else {
 				syncFilesFromSubTree(new_shv_path, context);
 			}
 		}
@@ -398,17 +434,11 @@ cp::RpcValue AppRootNode::ls_helper(const shv::core::StringViewList &shv_path, s
 	//shvLogFuncFrame() << shv_path.join('/');
 	if (shv_path.size() == index) {
 		cp::RpcValue::List items;
+		if (shv_path.indexOf("_meta") == -1) {
+			items.push_back(FILES_NODE);
+		}
 		for (const auto &kv : sites_node) {
 			items.push_back(kv.first);
-		}
-		QString local_dir = nodeLocalPath(shv_path.join('/'));
-		QDirIterator it(local_dir, QStringList{"_*"}, QDir::NoDotAndDotDot | QDir::Dirs | QDir::Files, QDirIterator::NoIteratorFlags);
-		//shvDebug() << local_dir << "---------------------------------------";
-		while (it.hasNext()) {
-			QString fn = it.next();
-			fn = QFileInfo(fn).baseName();
-			//shvDebug() << fn;
-			items.insert(items.begin(), fn.toStdString());
 		}
 		return cp::RpcValue(items);
 	}
@@ -431,6 +461,19 @@ bool AppRootNode::hasData(const shv::iotqt::node::ShvNode::StringViewList &shv_p
 {
 	cp::RpcValue leaf = this->leaf(shv_path);
 	return !leaf.isMap();
+}
+
+bool AppRootNode::isDevice(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
+{
+	if (shv_path.indexOf("_meta") != -1 || shv_path.indexOf(FILES_NODE) != -1) {
+		return false;
+	}
+	cp::RpcValue leaf = this->leaf(shv_path);
+	if (!leaf.isMap()) {
+		return false;
+	}
+	const cp::RpcValue::Map &leaf_map = leaf.toMap();
+	return leaf_map.size() == 1 && leaf_map.hasKey("_meta") && leaf_map.value("_meta").toMap().hasKey("type");
 }
 
 void AppRootNode::downloadSites(std::function<void ()> callback)
@@ -516,6 +559,11 @@ shv::chainpack::RpcValue AppRootNode::readFile(const QString &shv_path)
 shv::chainpack::RpcValue AppRootNode::writeFile(const QString &shv_path, const string &content)
 {
 	QString filename = nodeLocalPath(shv_path);
+	QStringList shv_path_parts = shv_path.split('/');
+	QString dirname = shv_path_parts.mid(0, shv_path_parts.count() - 1).join('/');
+	if (!QDir(dirname).exists()) {
+		QDir(nodeLocalPath(QString())).mkpath(dirname);
+	}
 	QFile f(filename);
 	if (f.open(QFile::WriteOnly)) {
 		qint64 n = f.write(content.data(), content.size());
