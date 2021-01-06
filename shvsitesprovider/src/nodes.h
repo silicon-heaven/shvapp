@@ -3,25 +3,8 @@
 #include <shv/iotqt/node/shvnode.h>
 
 #include <QElapsedTimer>
-#include <QSharedPointer>
 
 class QFile;
-
-class SyncContext
-{
-public:
-	int unfinishedCalls = 0;
-	QStringList synchronizedFiles;
-	QVector<std::string> errors;
-
-	std::function<void(const shv::chainpack::RpcValue &)> callback;
-
-	void success();
-	void error(const std::string &error_msg);
-
-	shv::chainpack::RpcValue toRpcValue() const;
-};
-
 
 class AppRootNode : public shv::iotqt::node::ShvRootNode
 {
@@ -36,14 +19,15 @@ public:
 	shv::chainpack::RpcValue callMethodRq(const shv::chainpack::RpcRequest &rq) override;
 	void handleRpcRequest(const shv::chainpack::RpcRequest &rq) override;
 
+	QString nodeLocalPath(const QString &shv_path) const;
+	shv::chainpack::RpcValue readFile(const QString &shv_path);
+	shv::chainpack::RpcValue writeFile(const QString &shv_path, const std::string &content);
+
 private:
 	const std::vector<shv::chainpack::MetaMethod> &metaMethods(const StringViewList &shv_path);
 
 	shv::chainpack::RpcValue getSites();
-	void syncFilesFromDevice(const QString &shv_path, QSharedPointer<SyncContext> context);
-	void syncFileFromDevice(const QString &shv_path, QSharedPointer<SyncContext> context);
-	void getFileFromDevice(const QString &shv_path, QSharedPointer<SyncContext> context);
-	void syncFilesFromSubTree(const shv::core::StringViewList &shv_path, QSharedPointer<SyncContext> context);
+	void findDevicesToSync(const StringViewList &shv_path, QStringList &result);
 	shv::chainpack::RpcValue ls(const shv::core::StringViewList &shv_path, const shv::chainpack::RpcValue &params) override;
 	bool hasData(const shv::iotqt::node::ShvNode::StringViewList &shv_path);
 	bool isDevice(const shv::iotqt::node::ShvNode::StringViewList &shv_path);
@@ -57,11 +41,8 @@ private:
 
 	shv::chainpack::RpcValue leaf(const shv::core::StringViewList &shv_path);
 	shv::chainpack::RpcValue get(const shv::core::StringViewList &shv_path);
-	shv::chainpack::RpcValue readFile(const QString &shv_path);
-	shv::chainpack::RpcValue writeFile(const QString &shv_path, const std::string &content);
 	shv::chainpack::RpcValue mkFile(const shv::core::StringViewList &shv_path, const shv::chainpack::RpcValue &params);
 	QString nodeFilesPath(const QString &shv_path) const;
-	QString nodeLocalPath(const QString &shv_path) const;
 	QString nodeLocalPath(const std::string &shv_path) const { return nodeLocalPath(QString::fromStdString(shv_path)); }
 	bool isFile(const shv::iotqt::node::ShvNode::StringViewList &shv_path);
 	bool isDir(const shv::iotqt::node::ShvNode::StringViewList &shv_path);
