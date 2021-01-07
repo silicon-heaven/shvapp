@@ -36,12 +36,12 @@ public:
 private:
 	void timeout();
 
-	void startLs(const QString &shv_path);
+	void callLs(const QString &shv_path);
 	void onLsFinished(const QString &shv_path, const shv::chainpack::RpcResponse &resp);
 	bool isLsComplete();
 	void checkLsIsComplete();
 
-	void startDir(const QString &shv_path);
+	void callDir(const QString &shv_path);
 	void onDirFinished(const QString &shv_path, const shv::chainpack::RpcResponse &resp);
 
 	void startFileSync(const QString &shv_path);

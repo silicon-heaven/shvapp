@@ -15,6 +15,7 @@ SyncTask::SyncTask(AppRootNode *parent)
 	, m_timeoutTimer(this)
 {
 	connect(&m_timeoutTimer, &QTimer::timeout, this, &SyncTask::timeout);
+	connect(this, &SyncTask::finished, this, &SyncTask::deleteLater);
 	m_timeoutTimer.setSingleShot(true);
 	m_timeoutTimer.start(5 * 60 * 1000);
 }
@@ -32,7 +33,7 @@ shv::chainpack::RpcValue SyncTask::result() const
 	for (auto it = m_filesToSync.begin(); it != m_filesToSync.end(); ++it) {
 		cp::RpcValue::Map file_map;
 		file_map["path"] = it.key().toStdString();
-		file_map["status"] = it.value().status == RpcCallStatus::Ok ? "ok" : "error";
+		file_map["status"] = it.value().status == RpcCallStatus::Ok ? true : false;
 		if (it.value().status == RpcCallStatus::Error) {
 			file_map["error"] = it.value().error;
 			overall_status = RpcCallStatus::Error;
@@ -40,14 +41,14 @@ shv::chainpack::RpcValue SyncTask::result() const
 		file_list.push_back(file_map);
 	}
 	map["synchronizedFiles"] = file_list;
-	map["overallStatus"] = overall_status == RpcCallStatus::Ok ? "ok" : "error";
+	map["overallStatus"] = overall_status == RpcCallStatus::Ok ? true : false;
 	return map;
 }
 
 void SyncTask::start()
 {
 	for (const QString &dir : m_dirsToSync.keys()) {
-		startLs(dir);
+		callLs(dir);
 	}
 }
 
@@ -66,7 +67,7 @@ void SyncTask::timeout()
 	}
 }
 
-void SyncTask::startLs(const QString &shv_path)
+void SyncTask::callLs(const QString &shv_path)
 {
 	auto *conn = SitesProviderApp::instance()->rpcConnection();
 	int rqid = conn->nextRequestId();
@@ -85,7 +86,7 @@ void SyncTask::onLsFinished(const QString &shv_path, const shv::chainpack::RpcRe
 			QString file_path = shv_path + "/" + rpcvalue_cast<QString>(ls_item);
 			m_lsResult << file_path;
 			m_dirsToSync[shv_path].status = RpcCallStatus::Ok;
-			startDir(file_path);
+			callDir(file_path);
 		}
 	}
 	else {
@@ -117,7 +118,7 @@ void SyncTask::checkLsIsComplete()
 	}
 }
 
-void SyncTask::startDir(const QString &shv_path)
+void SyncTask::callDir(const QString &shv_path)
 {
 	auto *conn = SitesProviderApp::instance()->rpcConnection();
 	int rqid = conn->nextRequestId();
@@ -144,7 +145,7 @@ void SyncTask::onDirFinished(const QString &shv_path, const shv::chainpack::RpcR
 		}
 		else {
 			m_dirsToSync[shv_path] = DirToSync();
-			startLs(shv_path);
+			callLs(shv_path);
 		}
 		m_lsResult.removeOne(shv_path);
 		checkLsIsComplete();

@@ -55,7 +55,7 @@ static std::vector<cp::MetaMethod> root_meta_methods {
 	{ METH_SYNC_FROM_DEVICES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
 };
 
-static std::vector<cp::MetaMethod> branch_meta_methods {
+static std::vector<cp::MetaMethod> dir_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ METH_SYNC_FROM_DEVICES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
@@ -178,7 +178,6 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 				resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, sync_task->error()));
 			}
 			emitSendRpcMessage(resp);
-			sync_task->deleteLater();
 		});
 		sync_task->start();
 		return cp::RpcValue();
@@ -265,7 +264,7 @@ const std::vector<shv::chainpack::MetaMethod> &AppRootNode::metaMethods(const sh
 		return device_meta_methods;
 	}
 	else {
-		return branch_meta_methods;
+		return dir_meta_methods;
 	}
 }
 
