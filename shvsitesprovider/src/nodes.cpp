@@ -268,7 +268,7 @@ const std::vector<shv::chainpack::MetaMethod> &AppRootNode::metaMethods(const sh
 	}
 }
 
-shv::chainpack::RpcValue AppRootNode::leaf(const shv::core::StringViewList &shv_path)
+shv::chainpack::RpcValue AppRootNode::findSitesTreeValue(const shv::core::StringViewList &shv_path)
 {
 	cp::RpcValue::Map object = m_sites;
 	cp::RpcValue value;
@@ -370,21 +370,18 @@ cp::RpcValue AppRootNode::ls_helper(const shv::core::StringViewList &shv_path, s
 
 bool AppRootNode::hasData(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
 {
-	cp::RpcValue leaf = this->leaf(shv_path);
+	cp::RpcValue leaf = this->findSitesTreeValue(shv_path);
 	return !leaf.isMap();
 }
 
 bool AppRootNode::isDevice(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
 {
-	if (shv_path.indexOf("_meta") != -1 || shv_path.indexOf(FILES_NODE) != -1) {
+	cp::RpcValue node = this->findSitesTreeValue(shv_path);
+	if (!node.isMap()) {
 		return false;
 	}
-	cp::RpcValue leaf = this->leaf(shv_path);
-	if (!leaf.isMap()) {
-		return false;
-	}
-	const cp::RpcValue::Map &leaf_map = leaf.toMap();
-	return leaf_map.size() == 1 && leaf_map.hasKey("_meta") && leaf_map.value("_meta").toMap().hasKey("type");
+	const cp::RpcValue::Map &node_map = node.toMap();
+	return node_map.size() == 1 && node_map.hasKey("_meta") && node_map.value("_meta").toMap().hasKey("type");
 }
 
 void AppRootNode::downloadSites(std::function<void ()> callback)
@@ -453,7 +450,7 @@ bool AppRootNode::checkSites() const
 
 shv::chainpack::RpcValue AppRootNode::get(const shv::core::StringViewList &shv_path)
 {
-	return leaf(shv_path);
+	return findSitesTreeValue(shv_path);
 }
 
 shv::chainpack::RpcValue AppRootNode::readFile(const QString &shv_path)

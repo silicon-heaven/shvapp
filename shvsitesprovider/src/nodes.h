@@ -39,7 +39,7 @@ private:
 
 	shv::chainpack::RpcValue ls_helper(const shv::core::StringViewList &shv_path, size_t index, const shv::chainpack::RpcValue::Map &sites_node);
 
-	shv::chainpack::RpcValue leaf(const shv::core::StringViewList &shv_path);
+	shv::chainpack::RpcValue findSitesTreeValue(const shv::core::StringViewList &shv_path);
 	shv::chainpack::RpcValue get(const shv::core::StringViewList &shv_path);
 	shv::chainpack::RpcValue mkFile(const shv::core::StringViewList &shv_path, const shv::chainpack::RpcValue &params);
 	QString nodeFilesPath(const QString &shv_path) const;
