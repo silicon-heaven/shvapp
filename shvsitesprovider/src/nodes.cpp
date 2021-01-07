@@ -1,4 +1,5 @@
 #include "nodes.h"
+#include "gitpushtask.h"
 #include "sitesproviderapp.h"
 #include "synctask.h"
 #include "appclioptions.h"
@@ -16,6 +17,7 @@
 #include <QFile>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
+#include <QProcess>
 
 #include <fstream>
 
@@ -39,6 +41,7 @@ static const char METH_FILE_HASH[] = "hash";
 static const char METH_SYNC_FROM_DEVICE[] = "syncFromDevice";
 static const char METH_SYNC_FROM_DEVICES[] = "syncFromDevices";
 static const char METH_FILE_MK[] = "mkfile";
+static const char METH_GIT_PUSH[] = "pushFilesToGit";
 
 static std::vector<cp::MetaMethod> root_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
@@ -53,6 +56,7 @@ static std::vector<cp::MetaMethod> root_meta_methods {
 	{ METH_SITES_SYNCED_BEFORE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
 	{ METH_SITES_RELOADED, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::IsSignal, shv::chainpack::Rpc::ROLE_READ },
 	{ METH_SYNC_FROM_DEVICES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
+	{ METH_GIT_PUSH, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_ADMIN },
 };
 
 static std::vector<cp::MetaMethod> dir_meta_methods {
@@ -210,6 +214,21 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 		if(!m_sitesSyncedBefore.isValid())
 			return nullptr;
 		return static_cast<int>(m_sitesSyncedBefore.elapsed() / 1000);
+	}
+	else if (method == METH_GIT_PUSH) {
+		GitPushTask *git_task = new GitPushTask(QString::fromStdString(rq.userId().toString()), this);
+		connect(git_task, &GitPushTask::finished, [this, rq, git_task](bool success) {
+			cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
+			if (success) {
+				resp.setResult(true);
+			}
+			else {
+				resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, git_task->error().toStdString()));
+			}
+			emitSendRpcMessage(resp);
+		});
+		git_task->start();
+		return cp::RpcValue();
 	}
 	return Super::callMethodRq(rq);
 }
