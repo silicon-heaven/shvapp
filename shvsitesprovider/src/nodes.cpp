@@ -1,4 +1,5 @@
 #include "nodes.h"
+#include "gitpushtask.h"
 #include "sitesproviderapp.h"
 #include "synctask.h"
 #include "appclioptions.h"
@@ -215,8 +216,19 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 		return static_cast<int>(m_sitesSyncedBefore.elapsed() / 1000);
 	}
 	else if (method == METH_GIT_PUSH) {
-		execGitPush();
-		return true;
+		GitPushTask *git_task = new GitPushTask(QString::fromStdString(rq.userId().toString()), this);
+		connect(git_task, &GitPushTask::finished, [this, rq, git_task](bool success) {
+			cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
+			if (success) {
+				resp.setResult(true);
+			}
+			else {
+				resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, git_task->error().toStdString()));
+			}
+			emitSendRpcMessage(resp);
+		});
+		git_task->start();
+		return cp::RpcValue();
 	}
 	return Super::callMethodRq(rq);
 }
@@ -453,43 +465,6 @@ void AppRootNode::downloadSites(std::function<void ()> callback)
 bool AppRootNode::checkSites() const
 {
 	return m_downloadSitesError.empty() && (m_sitesSyncedBefore.isValid() && m_sitesSyncedBefore.elapsed() < 3600 * 1000);
-}
-
-void AppRootNode::execGitPush()
-{
-	execGitCommand({ "pull" }, [this]() {
-		execGitCommand({ "add", "./" }, [this]() {
-			// by " + QString::fromStdString(SitesProviderApp::instance()->rpcConnection()->user())
-			execGitCommand({ "commit", "-a", "-m", "commit from sitesprovider" }, [this]() {
-				execGitCommand({ "push" }, [](){});
-			});
-		});
-	});
-}
-
-void AppRootNode::execGitCommand(const QStringList &arguments, std::function<void ()> callback)
-{
-	QProcess *command = new QProcess(this);
-	connect(command, &QProcess::errorOccurred, [this, command](QProcess::ProcessError error) {
-		if (error == QProcess::FailedToStart) {
-			shvError() << "error on git command" << command->errorString();
-			command->deleteLater();
-		}
-	});
-	connect(command, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), [this, command, callback](int exit_code, QProcess::ExitStatus exit_status){
-		if (exit_status == QProcess::ExitStatus::NormalExit && exit_code == 0) {
-			callback();
-		}
-		else {
-			shvError() << "error on git command" << command->errorString();
-			if (exit_code != 0) {
-				shvError() << command->readAllStandardError();
-			}
-		}
-		command->deleteLater();
-	});
-	QString sites_dir = QString::fromStdString(SitesProviderApp::instance()->cliOptions()->localSitesDir());
-	command->start("git", QStringList{ "-C", sites_dir } + arguments);
 }
 
 shv::chainpack::RpcValue AppRootNode::get(const shv::core::StringViewList &shv_path)
