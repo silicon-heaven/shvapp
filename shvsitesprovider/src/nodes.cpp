@@ -38,10 +38,9 @@ static const char METH_SITES_RELOADED[] = "reloaded";
 static const char METH_FILE_READ[] = "read";
 static const char METH_FILE_WRITE[] = "write";
 static const char METH_FILE_HASH[] = "hash";
-static const char METH_SYNC_FROM_DEVICE[] = "syncFromDevice";
-static const char METH_SYNC_FROM_DEVICES[] = "syncFromDevices";
+static const char METH_PULL_FILES[] = "pullFiles";
 static const char METH_FILE_MK[] = "mkfile";
-static const char METH_GIT_PUSH[] = "pushFilesToGit";
+static const char METH_GIT_PUSH[] = "addFilesToVersionControl";
 
 static std::vector<cp::MetaMethod> root_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
@@ -55,20 +54,20 @@ static std::vector<cp::MetaMethod> root_meta_methods {
 	{ METH_RELOAD_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_COMMAND},
 	{ METH_SITES_SYNCED_BEFORE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
 	{ METH_SITES_RELOADED, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::IsSignal, shv::chainpack::Rpc::ROLE_READ },
-	{ METH_SYNC_FROM_DEVICES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
+	{ METH_PULL_FILES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
 	{ METH_GIT_PUSH, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_ADMIN },
 };
 
 static std::vector<cp::MetaMethod> dir_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
-	{ METH_SYNC_FROM_DEVICES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
+	{ METH_PULL_FILES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
 };
 
 static std::vector<cp::MetaMethod> device_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
-	{ METH_SYNC_FROM_DEVICE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
+	{ METH_PULL_FILES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
 };
 
 static std::vector<cp::MetaMethod> meta_meta_methods {
@@ -86,7 +85,7 @@ static std::vector<cp::MetaMethod> device_file_dir_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ METH_FILE_MK, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
-	{ METH_SYNC_FROM_DEVICE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
+	{ METH_PULL_FILES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
 };
 
 static std::vector<cp::MetaMethod> file_meta_methods {
@@ -125,8 +124,7 @@ const cp::MetaMethod *AppRootNode::metaMethod(const StringViewList &shv_path, si
 
 cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 {
-	shv::core::StringViewList shv_path = shv::core::utils::ShvPath::split(rq.shvPath().toString());
-	const cp::RpcValue::String &method = rq.method().toString();
+	std::string method = rq.method().toString();
 
 	if (method == cp::Rpc::METH_APP_NAME) {
 		return QCoreApplication::instance()->applicationName().toStdString();
@@ -154,21 +152,24 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 		return writeFile(rpcvalue_cast<QString>(rq.shvPath()), params.toString());
 	}
 	else if (method == METH_FILE_MK) {
-		return mkFile(shv_path, rq.params());
+		std::string shv_path = rq.shvPath().toString();
+		return mkFile(shv::core::utils::ShvPath::split(shv_path), rq.params());
 	}
-	else if (method == METH_SYNC_FROM_DEVICES || method == METH_SYNC_FROM_DEVICE) {
+	else if (method == METH_PULL_FILES) {
 		SyncTask *sync_task = new SyncTask(this);
-		if (method == METH_SYNC_FROM_DEVICE) {
-			QString shv_path = rpcvalue_cast<QString>(rq.shvPath());
+		std::string shv_path = rq.shvPath().toString();
+		shv::core::StringViewList shv_path_view = shv::core::utils::ShvPath::split(shv_path);
+		if (isDevice(shv_path_view)) {
+			QString qshv_path = QString::fromStdString(shv_path);
 			QString qfiles_node = QString::fromStdString(FILES_NODE);
-			if (!shv_path.endsWith(qfiles_node)) {
-				shv_path += "/" + qfiles_node;
+			if (!qshv_path.endsWith(qfiles_node)) {
+				qshv_path += "/" + qfiles_node;
 			}
-			sync_task->addDir(shv_path);
+			sync_task->addDir(qshv_path);
 		}
 		else {
 			QStringList devices;
-			findDevicesToSync(shv_path, devices);
+			findDevicesToSync(shv_path_view, devices);
 			for (const QString &device_path : devices) {
 				sync_task->addDir(device_path);
 			}
@@ -193,7 +194,8 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 		return h.result().toHex().toStdString();
 	}
 	else if (method == cp::Rpc::METH_GET) {
-		return get(shv_path);
+		std::string shv_path = rq.shvPath().toString();
+		return get(shv::core::utils::ShvPath::split(shv_path));
 	}
 	else if (method == cp::Rpc::METH_DEVICE_ID) {
 		SitesProviderApp *app = SitesProviderApp::instance();
