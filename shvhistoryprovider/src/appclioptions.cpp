@@ -17,5 +17,5 @@ AppCliOptions::AppCliOptions()
 			.setComment("runs in test mode, shv/test/.. asks from elesys as \"normal\", otherwise doesn't care about them")
 			.setDefaultValue(false);
 	addOption("app.cacheSizeLimit").setType(shv::chainpack::RpcValue::Type::String).setNames("--cache-size-limit")
-			.setComment("set cache size limit (suffixes: k, M, G)").setDefaultValue("0");
+			.setComment("set cache size limit (suffixes: k, M, G)").setDefaultValue("10G");
 }
