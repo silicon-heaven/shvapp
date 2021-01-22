@@ -3,7 +3,7 @@ CONFIG += ordered
 
 !debpkg {
 SUBDIRS += \
-	libshv/3rdparty/necrolog/libnecrolog \
+    necrolog/libnecrolog \
 	libshv/libshvchainpack \
 	libshv/libshvcore \
 	libshv/libshvcoreqt \
