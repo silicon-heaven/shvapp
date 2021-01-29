@@ -12,6 +12,7 @@ LogDirReader::LogDirReader(const QString &shv_path, int prefix_length, const QDa
 	, m_journalReader(nullptr)
 	, m_until(until.isValid() ? until.toMSecsSinceEpoch() : 0LL)
 	, m_firstFile(true)
+	, m_dirtyLogBegin(0LL)
 {
 	LogDir log_dir(shv_path);
 	m_logs = log_dir.findFiles(since, until);
@@ -104,6 +105,7 @@ void LogDirReader::openNextFile()
 			m_journalReader = new ShvJournalFileReader(m_logs[0].toStdString());
 			if (m_journalReader->next()) {
 				current_file_since = m_journalReader->entry().epochMsec;
+				m_dirtyLogBegin = current_file_since;
 				cache_dirty_entry = true;
 			}
 		}

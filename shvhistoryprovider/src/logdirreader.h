@@ -20,6 +20,8 @@ public:
 	const shv::core::utils::ShvJournalEntry &entry() const { return m_entry; }
 	const std::string &pathPrefix() const { return m_pathPrefix; }
 	const shv::core::utils::ShvLogTypeInfo &typeInfo() const { return m_typeInfo; }
+	int64_t dirtyLogBegin() const { return m_dirtyLogBegin; }
+
 private:
 	void openNextFile();
 
@@ -35,6 +37,7 @@ private:
 	int64_t m_until;
 	shv::core::utils::ShvJournalEntry m_entry;
 	bool m_firstFile;
+	int64_t m_dirtyLogBegin;
 };
 
 #endif // LOGDIRREADER_H

@@ -92,9 +92,13 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 			--usable_readers;
 		}
 	}
+	cp::RpcValue::Map dirty_log_info;
 	for (int i = 0; i < readers.count(); ++i) {
 		if (reader_infos[i].used) {
 			m_mergedLog.setTypeInfo(readers[i]->typeInfo(), readers[i]->pathPrefix());
+			if (readers[i]->dirtyLogBegin()) {
+				dirty_log_info[readers[i]->pathPrefix()] = cp::RpcValue::Map{{ "startTS", cp::RpcValue::DateTime::fromMSecsSinceEpoch(readers[i]->dirtyLogBegin()) }};
+			}
 		}
 	}
 	qDeleteAll(readers);
@@ -103,5 +107,6 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 	if (!since.isNull() && first_record_since && first_record_since > since.toMSecsSinceEpoch()) {
 		res.setMetaValue("since", cp::RpcValue::DateTime::fromMSecsSinceEpoch(first_record_since));
 	}
+	res.setMetaValue("dirtyLog", dirty_log_info);
 	return res;
 }
