@@ -64,18 +64,18 @@ Application::Application(int &argc, char **argv, AppCliOptions* cli_opts)
 		}
 		int64_t cache_size_limit = limit.toLongLong();
 
-		switch (suffix) {
-		case 'k':
-			cache_size_limit *= 1000;
-			break;
-		case 'M':
-			cache_size_limit *= 1000000;
-			break;
-		case 'G':
-			cache_size_limit *= 1000000000;
-			break;
-		}
-		if (cache_size_limit > 0) {
+		if (cache_size_limit > 0LL) {
+			switch (suffix) {
+			case 'k':
+				cache_size_limit *= 1000;
+				break;
+			case 'M':
+				cache_size_limit *= 1000000;
+				break;
+			case 'G':
+				cache_size_limit *= 1000000000;
+				break;
+			}
 			m_diskCleaner = new DiskCleaner(cache_size_limit, this);
 		}
 	}

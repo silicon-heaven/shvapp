@@ -2,8 +2,8 @@
 
 #include "application.h"
 #include "appclioptions.h"
+#include "devicemonitor.h"
 
-#include <bits/std_mutex.h>
 #include <shv/core/log.h>
 #include <shv/core/utils/shvfilejournal.h>
 
@@ -19,29 +19,44 @@ DiskCleaner::DiskCleaner(int64_t cache_size_limit, QObject *parent)
 	m_cleanTimer.start(15 * 60 * 1000);
 }
 
-void DiskCleaner::scanDir(const QDir &dir, DiskCleaner::CheckDiskContext &ctx)
+void DiskCleaner::scanDir(QDir &dir, DiskCleaner::CheckDiskContext &ctx)
 {
 	QFileInfoList entries = dir.entryInfoList(QDir::Filter::AllEntries | QDir::Filter::NoDotAndDotDot);
+	int entry_count = entries.count();
     for (const QFileInfo &info : entries) {
         if (info.isDir()) {
             QDir child_dir(info.absoluteFilePath());
             scanDir(child_dir, ctx);
         }
         else if (info.isFile()) {
-			if (info.fileName().length() == 27 && info.suffix() == "chp") {
-				QString filename = info.fileName();
-				try {
-					int64_t ts = shv::core::utils::ShvFileJournal::JournalContext::fileNameToFileMsec(info.fileName().toStdString());
-					if (ts < ctx.oldest_file_ts) {
-						ctx.oldest_file_ts = ts;
-						ctx.oldest_file_info = info;
+			int cache_dir_path_length = Application::instance()->cliOptions()->logCacheDir().size();
+			QString device_shv_path = dir.absolutePath().mid(cache_dir_path_length + 1);
+			if (ctx.deviceOccupationInfo.contains(device_shv_path)) {
+				if (info.fileName().length() == 27 && info.suffix() == "chp") {
+					DeviceOccupationInfo &occupation_info = ctx.deviceOccupationInfo[device_shv_path];
+					QString filename = info.fileName();
+					try {
+						int64_t ts = shv::core::utils::ShvFileJournal::JournalContext::fileNameToFileMsec(info.fileName().toStdString());
+						if (ts < occupation_info.oldestFileTs) {
+							occupation_info.oldestFileTs = ts;
+							occupation_info.oldestFileInfo = info;
+						}
+						occupation_info.occupiedSize += info.size();
 					}
+					catch(...) {}
 				}
-				catch(...) {}
+				ctx.totalSize += info.size();
 			}
-            ctx.total_size += info.size();
+			else {
+				shvInfo() << "removing file for not existing device" << device_shv_path.toStdString() << info.fileName().toStdString();
+				dir.remove(info.fileName());
+				--entry_count;
+			}
         }
     }
+	if (entry_count == 0) {
+		dir.removeRecursively();
+	}
 	QCoreApplication::processEvents();
 }
 
@@ -54,26 +69,34 @@ void DiskCleaner::checkDiskOccupation()
 
 	while (true) {
 		CheckDiskContext ctx;
+		for (const QString &device_path : Application::instance()->deviceMonitor()->monitoredDevices()) {
+			ctx.deviceOccupationInfo[device_path] = DeviceOccupationInfo();
+		}
 		QDir cache_dir(QString::fromStdString(Application::instance()->cliOptions()->logCacheDir()));
 		scanDir(cache_dir, ctx);
-		if (ctx.total_size < m_cacheSizeLimit) {
+		if (ctx.totalSize < m_cacheSizeLimit) {
 			break;
 		}
-//		shvInfo() << "removing " << ctx.oldest_file_info.absoluteFilePath().toStdString() << "due to big cache size";
 
-		QDir dir(ctx.oldest_file_info.absolutePath(), "*.chp", QDir::SortFlag::Name, QDir::Filter::Files);
-		QStringList file_names = dir.entryList();
-		if (file_names.count() > 1) {
-			QFile second_oldest_file(dir.absoluteFilePath(file_names[1]));
-			if (second_oldest_file.open(QFile::ReadOnly)) {
-				cp::RpcValue log = cp::RpcValue::fromChainPack(second_oldest_file.readAll().toStdString());
-				log.setMetaValue("HP", cp::RpcValue::Map{{ "firstLog", true }});
-				second_oldest_file.close();
-				if (second_oldest_file.open(QFile::WriteOnly | QFile::Truncate)) {
-					second_oldest_file.write(QByteArray::fromStdString(log.toChainPack()));
+		int limit_per_device = m_cacheSizeLimit / ctx.deviceOccupationInfo.count();
+		for (const auto &occupation_info : ctx.deviceOccupationInfo) {
+			if (occupation_info.occupiedSize > limit_per_device) {
+				QDir dir(occupation_info.oldestFileInfo.absolutePath(), "*.chp", QDir::SortFlag::Name, QDir::Filter::Files);
+				QStringList file_names = dir.entryList();
+				if (file_names.count() > 1) {
+					QFile second_oldest_file(dir.absoluteFilePath(file_names[1]));
+					if (second_oldest_file.open(QFile::ReadOnly)) {
+						cp::RpcValue log = cp::RpcValue::fromChainPack(second_oldest_file.readAll().toStdString());
+						log.setMetaValue("HP", cp::RpcValue::Map{{ "firstLog", true }});
+						second_oldest_file.close();
+						if (second_oldest_file.open(QFile::WriteOnly | QFile::Truncate)) {
+							second_oldest_file.write(QByteArray::fromStdString(log.toChainPack()));
+						}
+					}
 				}
+				shvInfo() << "removing " << occupation_info.oldestFileInfo.absoluteFilePath().toStdString() << "due to big cache size";
+				QFile(occupation_info.oldestFileInfo.absoluteFilePath()).remove();
 			}
 		}
-		QFile(ctx.oldest_file_info.absoluteFilePath()).remove();
 	}
 }

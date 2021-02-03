@@ -3,6 +3,7 @@
 
 #include <QDateTime>
 #include <QDir>
+#include <QMap>
 #include <QObject>
 #include <QTimer>
 
@@ -14,10 +15,16 @@ public:
 	explicit DiskCleaner(int64_t cache_size_limit, QObject *parent = nullptr);
 
 private:
-	struct CheckDiskContext {
-		int64_t total_size = 0LL;
-		QFileInfo oldest_file_info;
-		int64_t oldest_file_ts = std::numeric_limits<int64_t>::max();
+	struct DeviceOccupationInfo
+	{
+		int64_t occupiedSize = 0LL;
+		QFileInfo oldestFileInfo;
+		int64_t oldestFileTs = std::numeric_limits<int64_t>::max();
+	};
+	struct CheckDiskContext
+	{
+		int64_t totalSize = 0LL;
+		QMap<QString, DeviceOccupationInfo> deviceOccupationInfo;
 	};
 
 	class ScopeGuard
@@ -30,7 +37,7 @@ private:
 	};
 
 	void checkDiskOccupation();
-	void scanDir(const QDir &dir, CheckDiskContext &ctx);
+	void scanDir(QDir &dir, CheckDiskContext &ctx);
 
 	QTimer m_cleanTimer;
 	bool m_isChecking;
