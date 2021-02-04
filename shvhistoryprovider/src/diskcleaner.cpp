@@ -19,7 +19,7 @@ DiskCleaner::DiskCleaner(int64_t cache_size_limit, QObject *parent)
 	m_cleanTimer.start(15 * 60 * 1000);
 }
 
-void DiskCleaner::scanDir(QDir &dir, DiskCleaner::CheckDiskContext &ctx)
+void DiskCleaner::scanDir(const QDir &dir, DiskCleaner::CheckDiskContext &ctx)
 {
 	QFileInfoList entries = dir.entryInfoList(QDir::Filter::AllEntries | QDir::Filter::NoDotAndDotDot);
 	int entry_count = entries.count();
@@ -49,13 +49,14 @@ void DiskCleaner::scanDir(QDir &dir, DiskCleaner::CheckDiskContext &ctx)
 			}
 			else {
 				shvInfo() << "removing file for not existing device" << device_shv_path.toStdString() << info.fileName().toStdString();
-				dir.remove(info.fileName());
+				QFile::remove(info.absoluteFilePath());
 				--entry_count;
 			}
         }
     }
 	if (entry_count == 0) {
-		dir.removeRecursively();
+		QDir copy_dir(dir);
+		copy_dir.removeRecursively();
 	}
 	QCoreApplication::processEvents();
 }
