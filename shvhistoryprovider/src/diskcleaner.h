@@ -37,7 +37,7 @@ private:
 	};
 
 	void checkDiskOccupation();
-	void scanDir(QDir &dir, CheckDiskContext &ctx);
+	void scanDir(const QDir &dir, CheckDiskContext &ctx);
 
 	QTimer m_cleanTimer;
 	bool m_isChecking;
