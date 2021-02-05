@@ -9,7 +9,7 @@
 		{"method":"", "pathPattern":"shv/**", "role":"rd"}
 	],
 	"ping":[
-		{"method":"ping", "pathPattern":".broker/app", "role":"srv"}
+		{"method":"ping", "pathPattern":".broker/app", "role":"rd"}
 	],
 	"subscribe":[
 		{"method":"subscribe", "pathPattern":".broker/app", "role":"rd"},
