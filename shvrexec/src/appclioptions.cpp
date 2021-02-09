@@ -9,5 +9,5 @@ AppCliOptions::AppCliOptions()
 			.setComment(tr("Terminal window size in form WIDTHxHEIGHT ie: 80x25 ."));
 	*/
 
-	setHeartbeatInterval(0);
+	setHeartBeatInterval(0);
 }

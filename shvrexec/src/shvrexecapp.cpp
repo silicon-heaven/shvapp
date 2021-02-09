@@ -100,7 +100,7 @@ ShvRExecApp::ShvRExecApp(int &argc, char **argv, AppCliOptions* cli_opts)
 		startup_opts = cp::RpcValue::fromCpon(s);
 	}
 
-	cli_opts->setHeartbeatInterval(0);
+	cli_opts->setHeartBeatInterval(0);
 	cli_opts->setReconnectInterval(0);
 	m_rpcConnection->setCliOptions(cli_opts);
 	{
