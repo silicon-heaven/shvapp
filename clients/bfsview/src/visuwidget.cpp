@@ -419,6 +419,24 @@ void VisuWidget::refreshVisualization()
 							BfsViewApp::isBit(app->bfsStatus(), BfsStatus::ShvDisconnected)
 							|| !app->isPlcConnected()
 							));
+	shvMessage() << "BFS status:" << app->bfsStatus();
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::BfsOn)) shvMessage() << (int)BfsStatus::BfsOn << "BfsOn";
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::BfsOff)) shvMessage() << (int)BfsStatus::BfsOff << "BfsOff";
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::Buffering)) shvMessage() << (int)BfsStatus::Buffering << "Buffering";
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::Charging)) shvMessage() << (int)BfsStatus::Charging << "Charging";
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::ConvOn)) shvMessage() << (int)BfsStatus::ConvOn << "ConvOn";
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::OmpagOn)) shvMessage() << (int)BfsStatus::OmpagOn << "OmpagOn";
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::OmpagOff)) shvMessage() << (int)BfsStatus::OmpagOff << "OmpagOff";
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::Cooling)) shvMessage() << (int)BfsStatus::Cooling << "Cooling";
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::Error)) shvMessage() << (int)BfsStatus::Error << "Error";
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::Warning)) shvMessage() << (int)BfsStatus::Warning << "Warning";
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::ShvDisconnected)) shvMessage() << (int)BfsStatus::ShvDisconnected << "ShvDisconnected";
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::MswOn)) shvMessage() << (int)BfsStatus::MswOn << "MswOn";
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::MswOff)) shvMessage() << (int)BfsStatus::MswOff << "MswOff";
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::HsswTOn)) shvMessage() << (int)BfsStatus::HsswTOn << "HsswTOn";
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::DoorOpen)) shvMessage() << (int)BfsStatus::DoorOpen << "DoorOpen";
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::FswOn)) shvMessage() << (int)BfsStatus::FswOn << "FswOn";
+
 	setElementFillColor(QStringLiteral("shv_rect_doorOpen"), badBitToColor(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::DoorOpen)));
 	setElementFillColor(QStringLiteral("shv_rect_fswOn"), badBitToColor(!BfsViewApp::isBit(app->bfsStatus(), BfsStatus::FswOn)));
 
