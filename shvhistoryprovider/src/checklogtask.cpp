@@ -266,17 +266,21 @@ void CheckLogTask::checkDirtyLogState()
 		ShvJournalFileReader reader(m_logDir.dirtyLogPath().toStdString());
 		if (reader.next()) {
 			ShvJournalEntry first_entry = reader.entry();
-			int rec_count = 1;
-			while (reader.next()) {
-				++rec_count;
-			}
 			QDateTime journal_since = QDateTime::fromMSecsSinceEpoch(first_entry.epochMsec, Qt::TimeSpec::UTC);
 			if (log_since.isValid() && log_since > journal_since) {
 				journal_since = log_since;
 			}
 			QDateTime current = QDateTime::currentDateTimeUtc();
-			if (rec_count >= Application::CHUNK_RECORD_COUNT || journal_since.secsTo(current) > Application::instance()->cliOptions()->trimDirtyLogInterval() * 60) {
+			if (journal_since.secsTo(current) > Application::instance()->cliOptions()->trimDirtyLogInterval() * 60) {
 				getLog(journal_since, current);
+			}
+			int rec_count = 1;
+			while (reader.next()) {
+				++rec_count;
+				if (rec_count >= Application::CHUNK_RECORD_COUNT) {
+					getLog(journal_since, current);
+					break;
+				}
 			}
 		}
 	}
