@@ -93,7 +93,7 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 		return;
 	}
 	if (response.isError()) {
-		shvError() << (m_askElesys ? "elesys error:" : "device error:") << response.error().message();
+		shvError() << (m_askElesys ? "elesys error:" : "device error:") << m_shvPath << response.error().message();
 		Q_EMIT finished(false);
 		return;
 	}
@@ -108,6 +108,7 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 		bool is_finished;
 		QDateTime until = m_until;
 		if (m_since.isValid() && m_until.isValid() && log.entries().size() == 0) {
+			log.setSince(cp::RpcValue::fromValue(m_since));
 			log.append(ShvJournalEntry{
 						   ShvJournalEntry::PATH_DATA_MISSING,
 						   ShvJournalEntry::DATA_MISSING_NOT_EXISTS,
