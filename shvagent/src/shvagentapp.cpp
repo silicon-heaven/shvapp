@@ -130,7 +130,7 @@ shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path,
 	return Super::callMethod(shv_path, method, params);
 }
 
-shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::RpcRequest &rq)
+shv::chainpack::RpcValue AppRootNode::callMethodRq(const shv::chainpack::RpcRequest &rq)
 {
 	if(rq.shvPath().toString().empty()) {
 		if(rq.method() == cp::Rpc::METH_DEVICE_ID) {
@@ -225,7 +225,7 @@ shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::Rp
 			return cp::RpcValue();
 		}
 	}
-	return Super::processRpcRequest(rq);
+	return Super::callMethodRq(rq);
 }
 
 #ifdef HANDLE_UNIX_SIGNALS
