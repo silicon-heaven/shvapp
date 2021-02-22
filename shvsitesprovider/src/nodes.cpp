@@ -159,12 +159,13 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 		SyncTask *sync_task = new SyncTask(this);
 		std::string shv_path = rq.shvPath().toString();
 		shv::core::StringViewList shv_path_view = shv::core::utils::ShvPath::split(shv_path);
-		if (isDevice(shv_path_view)) {
-			QString qshv_path = QString::fromStdString(shv_path);
-			QString qfiles_node = QString::fromStdString(FILES_NODE);
-			if (!qshv_path.endsWith(qfiles_node)) {
-				qshv_path += "/" + qfiles_node;
-			}
+		QString qshv_path = QString::fromStdString(shv_path);
+		QString qfiles_node = QString::fromStdString(FILES_NODE);
+		if (qshv_path.endsWith(qfiles_node)) {
+			sync_task->addDir(qshv_path);
+		}
+		else if (isDevice(shv_path_view)) {
+			qshv_path += "/" + qfiles_node;
 			sync_task->addDir(qshv_path);
 		}
 		else {

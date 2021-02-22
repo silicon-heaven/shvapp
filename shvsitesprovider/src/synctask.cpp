@@ -47,6 +47,10 @@ shv::chainpack::RpcValue SyncTask::result() const
 
 void SyncTask::start()
 {
+	if (!m_dirsToSync.count()) {
+		Q_EMIT finished(true);
+		return;
+	}
 	for (const QString &dir : m_dirsToSync.keys()) {
 		callLs(dir);
 	}
