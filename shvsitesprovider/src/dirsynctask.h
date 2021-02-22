@@ -19,12 +19,12 @@ struct FileToSync
 	RpcCallStatus status = RpcCallStatus::Unfinished;
 };
 
-class SyncTask : public QObject
+class DirSyncTask : public QObject
 {
 	Q_OBJECT
 
 public:
-	SyncTask(AppRootNode *parent);
+	DirSyncTask(AppRootNode *parent);
 
 	void addDir(const QString &shv_path);
 	shv::chainpack::RpcValue result() const;
