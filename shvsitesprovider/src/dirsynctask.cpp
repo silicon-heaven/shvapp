@@ -1,4 +1,4 @@
-#include "synctask.h"
+#include "dirsynctask.h"
 #include "sitesproviderapp.h"
 
 #include <shv/iotqt/rpc/deviceconnection.h>
@@ -10,22 +10,22 @@
 
 namespace cp = shv::chainpack;
 
-SyncTask::SyncTask(AppRootNode *parent)
+DirSyncTask::DirSyncTask(AppRootNode *parent)
 	: QObject(parent)
 	, m_timeoutTimer(this)
 {
-	connect(&m_timeoutTimer, &QTimer::timeout, this, &SyncTask::timeout);
-	connect(this, &SyncTask::finished, this, &SyncTask::deleteLater);
+	connect(&m_timeoutTimer, &QTimer::timeout, this, &DirSyncTask::timeout);
+	connect(this, &DirSyncTask::finished, this, &DirSyncTask::deleteLater);
 	m_timeoutTimer.setSingleShot(true);
 	m_timeoutTimer.start(5 * 60 * 1000);
 }
 
-void SyncTask::addDir(const QString &shv_path)
+void DirSyncTask::addDir(const QString &shv_path)
 {
 	m_dirsToSync[shv_path] = DirToSync();
 }
 
-shv::chainpack::RpcValue SyncTask::result() const
+shv::chainpack::RpcValue DirSyncTask::result() const
 {
 	cp::RpcValue::Map map;
 	cp::RpcValue::List file_list;
@@ -45,14 +45,18 @@ shv::chainpack::RpcValue SyncTask::result() const
 	return map;
 }
 
-void SyncTask::start()
+void DirSyncTask::start()
 {
+	if (!m_dirsToSync.count()) {
+		Q_EMIT finished(true);
+		return;
+	}
 	for (const QString &dir : m_dirsToSync.keys()) {
 		callLs(dir);
 	}
 }
 
-void SyncTask::timeout()
+void DirSyncTask::timeout()
 {
 	if (!isLsComplete()) {
 		m_error = "Timeout";
@@ -67,7 +71,7 @@ void SyncTask::timeout()
 	}
 }
 
-void SyncTask::callLs(const QString &shv_path)
+void DirSyncTask::callLs(const QString &shv_path)
 {
 	auto *conn = SitesProviderApp::instance()->rpcConnection();
 	int rqid = conn->nextRequestId();
@@ -79,7 +83,7 @@ void SyncTask::callLs(const QString &shv_path)
 	cb->start();
 }
 
-void SyncTask::onLsFinished(const QString &shv_path, const shv::chainpack::RpcResponse &resp)
+void DirSyncTask::onLsFinished(const QString &shv_path, const shv::chainpack::RpcResponse &resp)
 {
 	if (resp.isSuccess()) {
 		for (const cp::RpcValue &ls_item : resp.result().toList()) {
@@ -96,7 +100,7 @@ void SyncTask::onLsFinished(const QString &shv_path, const shv::chainpack::RpcRe
 	checkLsIsComplete();
 }
 
-bool SyncTask::isLsComplete()
+bool DirSyncTask::isLsComplete()
 {
 	if (m_lsResult.count()) {
 		return false;
@@ -109,7 +113,7 @@ bool SyncTask::isLsComplete()
 	return true;
 }
 
-void SyncTask::checkLsIsComplete()
+void DirSyncTask::checkLsIsComplete()
 {
 	if (isLsComplete()) {
 		for (const QString &shv_path : m_filesToSync.keys()) {
@@ -118,7 +122,7 @@ void SyncTask::checkLsIsComplete()
 	}
 }
 
-void SyncTask::callDir(const QString &shv_path)
+void DirSyncTask::callDir(const QString &shv_path)
 {
 	auto *conn = SitesProviderApp::instance()->rpcConnection();
 	int rqid = conn->nextRequestId();
@@ -130,7 +134,7 @@ void SyncTask::callDir(const QString &shv_path)
 	cb->start();
 }
 
-void SyncTask::onDirFinished(const QString &shv_path, const shv::chainpack::RpcResponse &resp)
+void DirSyncTask::onDirFinished(const QString &shv_path, const shv::chainpack::RpcResponse &resp)
 {
 	if (resp.isSuccess()) {
 		bool has_read = false;
@@ -156,7 +160,7 @@ void SyncTask::onDirFinished(const QString &shv_path, const shv::chainpack::RpcR
 	}
 }
 
-void SyncTask::startFileSync(const QString &shv_path)
+void DirSyncTask::startFileSync(const QString &shv_path)
 {
 	AppRootNode *root = qobject_cast<AppRootNode*>(parent());
 	QString local_file_path = root->nodeLocalPath(shv_path);
@@ -168,7 +172,7 @@ void SyncTask::startFileSync(const QString &shv_path)
 	}
 }
 
-void SyncTask::getFileHash(const QString &shv_path)
+void DirSyncTask::getFileHash(const QString &shv_path)
 {
 	auto *conn = SitesProviderApp::instance()->rpcConnection();
 	int rqid = conn->nextRequestId();
@@ -180,7 +184,7 @@ void SyncTask::getFileHash(const QString &shv_path)
 	cb->start();
 }
 
-void SyncTask::onHashReceived(const QString &shv_path, const shv::chainpack::RpcResponse &resp)
+void DirSyncTask::onHashReceived(const QString &shv_path, const shv::chainpack::RpcResponse &resp)
 {
 	if (resp.isSuccess()) {
 		std::string remote_hash = resp.result().toString();
@@ -204,7 +208,7 @@ void SyncTask::onHashReceived(const QString &shv_path, const shv::chainpack::Rpc
 	}
 }
 
-void SyncTask::getFile(const QString &shv_path)
+void DirSyncTask::getFile(const QString &shv_path)
 {
 	auto *conn = SitesProviderApp::instance()->rpcConnection();
 	int rqid = conn->nextRequestId();
@@ -216,7 +220,7 @@ void SyncTask::getFile(const QString &shv_path)
 	cb->start();
 }
 
-void SyncTask::onFileReceived(const QString &shv_path, const shv::chainpack::RpcResponse &resp)
+void DirSyncTask::onFileReceived(const QString &shv_path, const shv::chainpack::RpcResponse &resp)
 {
 	if (resp.isSuccess()) {
 		std::string remote_hash = resp.result().toString();
@@ -232,7 +236,7 @@ void SyncTask::onFileReceived(const QString &shv_path, const shv::chainpack::Rpc
 	}
 }
 
-void SyncTask::checkSyncFilesIsComplete()
+void DirSyncTask::checkSyncFilesIsComplete()
 {
 	for (const FileToSync &file : m_filesToSync) {
 		if (file.status == RpcCallStatus::Unfinished) {

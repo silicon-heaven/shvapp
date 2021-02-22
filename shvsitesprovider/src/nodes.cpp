@@ -1,7 +1,7 @@
 #include "nodes.h"
 #include "gitpushtask.h"
 #include "sitesproviderapp.h"
-#include "synctask.h"
+#include "dirsynctask.h"
 #include "appclioptions.h"
 
 #include <shv/core/utils/shvpath.h>
@@ -156,15 +156,16 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 		return mkFile(shv::core::utils::ShvPath::split(shv_path), rq.params());
 	}
 	else if (method == METH_PULL_FILES) {
-		SyncTask *sync_task = new SyncTask(this);
+		DirSyncTask *sync_task = new DirSyncTask(this);
 		std::string shv_path = rq.shvPath().toString();
 		shv::core::StringViewList shv_path_view = shv::core::utils::ShvPath::split(shv_path);
-		if (isDevice(shv_path_view)) {
-			QString qshv_path = QString::fromStdString(shv_path);
-			QString qfiles_node = QString::fromStdString(FILES_NODE);
-			if (!qshv_path.endsWith(qfiles_node)) {
-				qshv_path += "/" + qfiles_node;
-			}
+		QString qshv_path = QString::fromStdString(shv_path);
+		QString qfiles_node = QString::fromStdString(FILES_NODE);
+		if (qshv_path.endsWith(qfiles_node)) {
+			sync_task->addDir(qshv_path);
+		}
+		else if (isDevice(shv_path_view)) {
+			qshv_path += "/" + qfiles_node;
 			sync_task->addDir(qshv_path);
 		}
 		else {
@@ -174,7 +175,7 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 				sync_task->addDir(device_path);
 			}
 		}
-		connect(sync_task, &SyncTask::finished, [this, rq, sync_task](bool success) {
+		connect(sync_task, &DirSyncTask::finished, [this, rq, sync_task](bool success) {
 			cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
 			if (success) {
 				resp.setResult(sync_task->result());
