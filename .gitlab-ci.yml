@@ -102,26 +102,26 @@ test-deploy:
   environment:
     name: jessie
 
-win-build:
-  tags:
-    - windows
-  stage:
-    build
-  script: 
-    - bash build-win.sh
-  artifacts:
-    paths:
-      - _inno/
-
-win-deploy:
-  only:
-    - production
-  tags:
-    - windows
-  stage:
-    deploy
-  script:
-    - cmd /Q /C deploy-win.sh
-  environment:
-    name: claudius
+#win-build:
+#  tags:
+#    - windows
+#  stage:
+#    build
+#  script: 
+#    - bash build-win.sh
+#  artifacts:
+#    paths:
+#      - _inno/
+#
+#win-deploy:
+#  only:
+#    - production
+#  tags:
+#    - windows
+#  stage:
+#    deploy
+#  script:
+#    - cmd /Q /C deploy-win.sh
+#  environment:
+#    name: claudius
 
