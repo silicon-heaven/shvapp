@@ -32,6 +32,10 @@ void LogSanitizer::setupTimer()
 
 void LogSanitizer::trimDirtyLog(const QString &shv_path)
 {
+	if (Application::instance()->deviceMonitor()->isPushLogDevice(shv_path)) {
+		return;
+	}
+
 	if (Application::instance()->deviceMonitor()->onlineDevices().contains(shv_path)) {
 		CheckLogTask *running_task = findChild<CheckLogTask*>(shv_path, Qt::FindChildOption::FindDirectChildrenOnly);
 		if (running_task) {
