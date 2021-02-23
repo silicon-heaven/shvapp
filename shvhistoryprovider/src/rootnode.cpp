@@ -167,6 +167,8 @@ void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &
 	LogDir log_dir(shv_path);
 	QDateTime log_since = rpcvalue_cast<QDateTime>(log_reader.logHeader().since());
 	QDateTime log_until = rpcvalue_cast<QDateTime>(log_reader.logHeader().until());
+	shvInfo() << "pushLog request from shv_path: since" << log_since.toString(Qt::ISODate).toStdString()
+			  << "until" << log_until.toString(Qt::ISODate).toStdString() << "recordCount" << log.toList().size();
 	bool with_snapshot = log_reader.logHeader().withSnapShot();
 	auto typeinfo = log_reader.logHeader().typeInfo();
 	bool has_type_info = !typeinfo.isEmpty();
@@ -220,7 +222,7 @@ void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &
 	params.since = cp::RpcValue::fromValue(log_since);
 	params.until = cp::RpcValue::fromValue(log_until);
 
-	bool first_log = log_dir.findFiles(QDateTime(), QDateTime()).count()  - matching_files.count() == 0;
+	bool first_log = log_dir.findFiles(QDateTime(), QDateTime()).count() - matching_files.count() == 0;
 
 	QStringList new_files;
 	auto cleanup = qScopeGuard([&new_files]{
@@ -229,7 +231,7 @@ void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &
 		}
 	});
 
-	ShvMemoryJournal output_log(params);
+	ShvMemoryJournal output_log;
 	auto save_log = [&output_log, &shv_path, &params, &first_log, &new_files, &typeinfo]() {
 		output_log.setTypeInfo(typeinfo);
 		cp::RpcValue log_cp = output_log.getLog(params);
@@ -246,7 +248,7 @@ void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &
 		file.write(QByteArray::fromStdString(log_cp.toChainPack()));
 		file.close();
 		params.since = log_cp.metaValue("until");
-		output_log = ShvMemoryJournal(params);
+		output_log = ShvMemoryJournal();
 	};
 
 	auto append_log = [&output_log, &save_log](const ShvJournalEntry &entry) {
@@ -420,6 +422,7 @@ shv::chainpack::RpcValue RootNode::callMethod(const shv::iotqt::node::ShvNode::S
 		if (!app->deviceMonitor()->isPushLogDevice(q_shv_path)) {
 			SHV_QT_EXCEPTION("Cannot push log to this device");
 		}
+
 		int64_t since = 0LL;
 		int64_t until = 0LL;
 		std::string err = "success";
@@ -428,6 +431,7 @@ shv::chainpack::RpcValue RootNode::callMethod(const shv::iotqt::node::ShvNode::S
 		}
 		catch(const std::exception &e) {
 			err = e.what();
+			shvWarning() << err;
 		}
 		cp::RpcValue::Map result;
 		result["since"] = since == 0LL ? cp::RpcValue(nullptr) : cp::RpcValue::DateTime::fromMSecsSinceEpoch(since);
