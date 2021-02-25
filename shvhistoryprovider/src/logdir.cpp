@@ -6,6 +6,11 @@
 #include <QVector>
 
 #include <shv/core/utils/shvfilejournal.h>
+#include <shv/chainpack/chainpackreader.h>
+#include <shv/iotqt/rpc/rpc.h>
+
+#include <iostream>
+#include <fstream>
 
 LogDir::LogDir(const QString &shv_path)
 	: m_dir(dirPath(shv_path), "*", QDir::SortFlag::Name, QDir::Filter::Files)
@@ -62,6 +67,17 @@ QStringList LogDir::findFiles(const QDateTime &since, const QDateTime &until)
 	if (until.isValid()) {
 		auto it = std::upper_bound(file_dates.begin(), file_dates.end(), until.toMSecsSinceEpoch());
 		until_pos = (int)(it - file_dates.begin());
+	}
+	if (until_pos - since_pos == 1 && until_pos == file_dates.count()) { //we are on a last file, we must check until
+		std::ifstream in_file;
+		in_file.open(m_dir.absoluteFilePath(file_names[0]).toLocal8Bit().toStdString(), std::ios::in | std::ios::binary);
+		shv::chainpack::ChainPackReader log_reader(in_file);
+		shv::chainpack::RpcValue::MetaData meta_data;
+		log_reader.read(meta_data);
+		QDateTime file_until = rpcvalue_cast<QDateTime>(meta_data.value("until"));
+		if (file_until < since) {
+			return QStringList();
+		}
 	}
 	QStringList result;
 	for (int i = since_pos; i < until_pos; ++i) {
