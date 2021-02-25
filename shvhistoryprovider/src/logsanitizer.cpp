@@ -33,7 +33,7 @@ void LogSanitizer::setupTimer()
 void LogSanitizer::trimDirtyLog(const QString &shv_path)
 {
 	if (Application::instance()->deviceMonitor()->isPushLogDevice(shv_path)) {
-		return;
+		SHV_EXCEPTION("Can not trim dirty log of pushLog device");
 	}
 
 	if (Application::instance()->deviceMonitor()->onlineDevices().contains(shv_path)) {

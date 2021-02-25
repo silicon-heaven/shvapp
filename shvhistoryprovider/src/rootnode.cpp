@@ -167,8 +167,8 @@ void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &
 	LogDir log_dir(shv_path);
 	QDateTime log_since = rpcvalue_cast<QDateTime>(log_reader.logHeader().since());
 	QDateTime log_until = rpcvalue_cast<QDateTime>(log_reader.logHeader().until());
-	shvInfo() << "pushLog request from shv_path: since" << log_since.toString(Qt::ISODate).toStdString()
-			  << "until" << log_until.toString(Qt::ISODate).toStdString() << "recordCount" << log.toList().size();
+	shvInfo() << "pushLog request from shv_path:" << shv_path << "since:" << log_since.toString(Qt::ISODate).toStdString()
+			  << "until:" << log_until.toString(Qt::ISODate).toStdString() << "recordCount:" << log.toList().size();
 	bool with_snapshot = log_reader.logHeader().withSnapShot();
 	auto typeinfo = log_reader.logHeader().typeInfo();
 	bool has_type_info = !typeinfo.isEmpty();
