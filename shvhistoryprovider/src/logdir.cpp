@@ -70,7 +70,7 @@ QStringList LogDir::findFiles(const QDateTime &since, const QDateTime &until)
 	}
 	if (until_pos - since_pos == 1 && until_pos == file_dates.count()) { //we are on a last file, we must check until
 		std::ifstream in_file;
-		in_file.open(m_dir.absoluteFilePath(file_names[0]).toLocal8Bit().toStdString(), std::ios::in | std::ios::binary);
+		in_file.open(m_dir.absoluteFilePath(file_names[0]).toStdString(), std::ios::in | std::ios::binary);
 		shv::chainpack::ChainPackReader log_reader(in_file);
 		shv::chainpack::RpcValue::MetaData meta_data;
 		log_reader.read(meta_data);

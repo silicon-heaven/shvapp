@@ -19,7 +19,7 @@ using namespace shv::core::utils;
 GetLogMerge::GetLogMerge(const QString &shv_path, const shv::core::utils::ShvGetLogParams &log_params)
 	: m_shvPath(shv_path)
 	, m_logParams(log_params)
-	, m_mergedLog(log_params)
+	, m_logFilter(log_params)
 {
 	const SiteItem *site_item = Application::instance()->deviceMonitor()->sites()->itemByShvPath(shv_path);
 	if (!site_item) {
@@ -82,8 +82,11 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 			first_record_since = entry.epochMsec;
 		}
 		entry.path = reader->pathPrefix() + entry.path;
+		if (!m_logFilter.match(entry)) {
+			continue;
+		}
 		m_mergedLog.append(entry);
-		if ((int)m_mergedLog.size() >= m_mergedLog.inputFilterRecordCountLimit()) {
+		if ((int)m_mergedLog.size() >= m_logParams.recordCountLimit) {
 			break;
 		}
 		reader_infos[oldest_index].used = true;
