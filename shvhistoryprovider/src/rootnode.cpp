@@ -460,6 +460,9 @@ cp::RpcValue RootNode::getLog(const QString &shv_path, const shv::chainpack::Rpc
 	QElapsedTimer tm;
 	tm.start();
 	shvMessage() << "got request" << request_no << "for log" << shv_path << "with params:\n" << log_params.toRpcValue().toCpon("    ");
+	if (log_params.recordCountLimit > shv::core::utils::AbstractShvJournal::DEFAULT_GET_LOG_RECORD_COUNT_LIMIT) {
+		log_params.recordCountLimit = shv::core::utils::AbstractShvJournal::DEFAULT_GET_LOG_RECORD_COUNT_LIMIT;
+	}
 	GetLogMerge request(shv_path, log_params);
 	try {
 		shv::chainpack::RpcValue result = request.getLog();

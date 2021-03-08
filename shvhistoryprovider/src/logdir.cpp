@@ -28,9 +28,12 @@ QString LogDir::dirPath(const QString &shv_path)
 
 QStringList LogDir::findFiles(const QDateTime &since, const QDateTime &until)
 {
+	struct File {
+		QString filename;
+		int64_t date;
+	};
+	QVector<File> files;
 	QFileInfoList file_infos = m_dir.entryInfoList();
-	QStringList file_names;
-	QVector<int64_t> file_dates;
 	for (int i = 0; i < file_infos.count(); ++i) {
 		const QFileInfo &file_info = file_infos[i];
 		QString filename = file_info.fileName();
@@ -42,8 +45,7 @@ QStringList LogDir::findFiles(const QDateTime &since, const QDateTime &until)
 		else {
 			try {
 				int64_t datetime = shv::core::utils::ShvFileJournal::JournalContext::fileNameToFileMsec(filename.toStdString());
-				file_names << filename;
-				file_dates << datetime;
+				files << File{ filename, datetime };
 			}
 			catch (...) {
 				Application::instance()->registerAlienFile(file_info.absoluteFilePath());
@@ -51,26 +53,30 @@ QStringList LogDir::findFiles(const QDateTime &since, const QDateTime &until)
 		}
 	}
 
-	if (file_dates.count() == 0) {
+	if (files.count() == 0) {
 		return QStringList();
 	}
 
 	int since_pos = 0;
 	if (since.isValid()) {
-		auto it = std::upper_bound(file_dates.begin(), file_dates.end(), since.toMSecsSinceEpoch());
-		if (it != file_dates.begin()) {
+		auto it = std::upper_bound(files.begin(), files.end(), File { QString(), since.toMSecsSinceEpoch() }, [](const File &f1, const File &f2) {
+			return f1.date < f2.date;
+		});
+		if (it != files.begin()) {
 			--it;
 		}
-		since_pos = (int)(it - file_dates.begin());
+		since_pos = (int)(it - files.begin());
 	}
-	int until_pos = file_dates.count();
+	int until_pos = files.count();
 	if (until.isValid()) {
-		auto it = std::upper_bound(file_dates.begin(), file_dates.end(), until.toMSecsSinceEpoch());
-		until_pos = (int)(it - file_dates.begin());
+		auto it = std::upper_bound(files.begin(), files.end(), File { QString(), until.toMSecsSinceEpoch() }, [](const File &f1, const File &f2) {
+			return f1.date < f2.date;
+		});
+		until_pos = (int)(it - files.begin());
 	}
-	if (until_pos - since_pos == 1 && until_pos == file_dates.count()) { //we are on a last file, we must check until
+	if (until_pos - since_pos == 1 && until_pos == files.count()) { //we are on a last file, we must check until
 		std::ifstream in_file;
-		in_file.open(m_dir.absoluteFilePath(file_names[0]).toLocal8Bit().toStdString(), std::ios::in | std::ios::binary);
+		in_file.open(m_dir.absoluteFilePath(files[0].filename).toStdString(), std::ios::in | std::ios::binary);
 		shv::chainpack::ChainPackReader log_reader(in_file);
 		shv::chainpack::RpcValue::MetaData meta_data;
 		log_reader.read(meta_data);
@@ -81,7 +87,7 @@ QStringList LogDir::findFiles(const QDateTime &since, const QDateTime &until)
 	}
 	QStringList result;
 	for (int i = since_pos; i < until_pos; ++i) {
-		result << m_dir.absoluteFilePath(file_names[i]);
+		result << m_dir.absoluteFilePath(files[i].filename);
 	}
 	return result;
 }

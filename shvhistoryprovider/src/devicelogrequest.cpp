@@ -100,7 +100,7 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 
 	try {
 		const cp::RpcValue &result = response.result();
-		ShvMemoryJournal log(logParams(!m_appendLog));
+		ShvMemoryJournal log;
 		log.loadLog(result);
 
 		QDateTime first_record_time;
@@ -161,7 +161,7 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 		}
 		else {
 			if (Application::instance()->deviceMonitor()->isElesysDevice(m_shvPath) || !log.hasSnapshot()) {
-				tryReplayPreviousFile(log);
+				prependPreviousFile(log);  //predradime minuly soubor aby se prehral do snapshotu
 			}
 			saveToNewFile(log, until);
 		}
@@ -212,11 +212,7 @@ void DeviceLogRequest::appendToPreviousFile(ShvMemoryJournal &log, const QDateTi
 		SHV_QT_EXCEPTION("Cannot parse file " + all_files[0]);
 	}
 
-	ShvGetLogParams joined_params;
-	joined_params.recordCountLimit = 2 * Application::CHUNK_RECORD_COUNT;
-	joined_params.withSnapshot = true;
-	joined_params.withTypeInfo = true;
-	ShvMemoryJournal joined_log(joined_params);
+	ShvMemoryJournal joined_log;
 	joined_log.loadLog(orig_log);
 
 	for (const auto &entry : log.entries()) {
@@ -229,6 +225,11 @@ void DeviceLogRequest::appendToPreviousFile(ShvMemoryJournal &log, const QDateTi
 	if (!temp_file.open(QFile::WriteOnly | QFile::Truncate)) {
 		SHV_QT_EXCEPTION("Cannot open file " + temp_file.fileName());
 	}
+	ShvGetLogParams joined_params;
+	joined_params.recordCountLimit = 2 * Application::CHUNK_RECORD_COUNT;
+	joined_params.withSnapshot = true;
+	joined_params.withTypeInfo = true;
+
 	cp::RpcValue result = joined_log.getLog(joined_params);
 	result.setMetaValue("until", cp::RpcValue::fromValue(until));
 	if (hp_metadata.isMap()) {
@@ -246,12 +247,12 @@ void DeviceLogRequest::appendToPreviousFile(ShvMemoryJournal &log, const QDateTi
 	}
 }
 
-void DeviceLogRequest::tryReplayPreviousFile(ShvMemoryJournal &log)
+void DeviceLogRequest::prependPreviousFile(ShvMemoryJournal &log)
 {
 	LogDir log_dir(m_shvPath);
 	QStringList all_files = log_dir.findFiles(m_since.addMSecs(-1), m_since);
 	if (all_files.count() == 1) {
-		ShvMemoryJournal new_log(logParams());
+		ShvMemoryJournal new_log;
 		ShvLogFileReader previous_log(all_files[0].toStdString());
 		while (previous_log.next()) {
 			new_log.append(previous_log.entry());
