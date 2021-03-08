@@ -8,5 +8,6 @@ private:
 	using Super = shv::broker::AppCliOptions;
 public:
 	AppCliOptions();
+	~AppCliOptions() override {}
 };
 
