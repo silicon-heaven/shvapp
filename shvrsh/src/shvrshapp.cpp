@@ -76,8 +76,14 @@ ShvRshApp::ShvRshApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	if(!cli_opts->password_isset())
 		cli_opts->setPassword("lub42DUB");
 
-	cli_opts->setHeartBeatInterval(0);
-	cli_opts->setReconnectInterval(0);
+	if(cli_opts->reconnectInterval() > 0) {
+		shvInfo() << "Ignoring reconnect interval option, setting it to 0.";
+		cli_opts->setReconnectInterval(0);
+	}
+	if(cli_opts->heartBeatInterval() > 0) {
+		shvInfo() << "Ignoring heart-beat interval option, setting it to 0. If set, then shvrsh can be disconnected in case of user inactivity.";
+		cli_opts->setHeartBeatInterval(0);
+	}
 	m_rpcConnection->setCliOptions(cli_opts);
 
 	connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::socketConnectedChanged, [](bool connected) {
@@ -134,7 +140,7 @@ void ShvRshApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 	}
 	else if(msg.isResponse()) {
 		cp::RpcResponse resp(msg);
-		shvInfo() << "RPC response received request id:" << resp.requestId().toCpon() << resp.toPrettyString();
+		shvMessage() << "RPC response received request id:" << resp.requestId().toCpon() << resp.toPrettyString();
 		//shvInfo() << __LINE__ << m_tunnelRequestId << m_tunnelShvPath;
 		//shv::chainpack::RpcValue v = rsp.requestId();
 		if(resp.requestId() == m_readTunnelRequestId) {

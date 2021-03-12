@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
 	}
 
 	shvInfo() << "======================================================================================";
-	shvInfo() << "Starting SHV Remote Exec, PID:" << QCoreApplication::applicationPid() << "build:" << __DATE__ << __TIME__;
+	shvInfo() << "Starting SHV Remote Exec, PID:" << QCoreApplication::applicationPid() << "ver:" << QCoreApplication::applicationVersion();
 #ifdef GIT_COMMIT
 	shvInfo() << "GIT commit:" << SHV_EXPAND_AND_QUOTE(GIT_COMMIT);
 #endif
