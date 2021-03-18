@@ -253,6 +253,7 @@ void DeviceLogRequest::prependPreviousFile(ShvMemoryJournal &log)
 	QStringList all_files = log_dir.findFiles(m_since.addMSecs(-1), m_since);
 	if (all_files.count() == 1) {
 		ShvMemoryJournal new_log;
+		new_log.setTypeInfo(log.typeInfo());
 		ShvLogFileReader previous_log(all_files[0].toStdString());
 		while (previous_log.next()) {
 			new_log.append(previous_log.entry());
