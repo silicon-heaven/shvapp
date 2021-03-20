@@ -1,6 +1,6 @@
 {
 	"admin":{
-		"password":{"format":"SHA1", "password":"8284a26b82a69838092fd4fc824bbfde56719e02"},
+		"password":{"format":"SHA1", "password":"8e4be763494d4d3d3eb4d93aa3b1976a40addb5b"},
 		"roles":["admin", "ping"]
 	},
 	"broker":{
