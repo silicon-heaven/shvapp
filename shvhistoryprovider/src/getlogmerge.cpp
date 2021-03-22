@@ -46,23 +46,28 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 		bool exhausted = false;
 	};
 
-	shv::core::utils::ShvGetLogParams path_params;
-	shv::core::utils::ShvGetLogParams since_params;
+	shv::core::utils::ShvGetLogParams first_step_params;
+	shv::core::utils::ShvGetLogParams final_params;
 	if (!m_logParams.pathPattern.empty()) {
-		path_params.pathPattern = m_logParams.pathPattern;
-		path_params.pathPatternType = m_logParams.pathPatternType;
+		first_step_params.pathPattern = m_logParams.pathPattern;
+		first_step_params.pathPatternType = m_logParams.pathPatternType;
 	}
 	if (since.isValid()) {
-		since_params.since = m_logParams.since;
+		if (m_logParams.withSnapshot) {
+			final_params.since = m_logParams.since;
+		}
+		else {
+			first_step_params.since = m_logParams.since;
+		}
 	}
-	shv::core::utils::ShvLogFilter path_filter(path_params);
-	shv::core::utils::ShvLogFilter since_filter(since_params);
+	shv::core::utils::ShvLogFilter first_step_filter(first_step_params);
+	shv::core::utils::ShvLogFilter final_filter(final_params);
 
 	QVector<LogDirReader*> readers;
 	QVector<ReaderInfo> reader_infos;
 	for (const QString &shv_path : m_shvPaths) {
 		int prefix_length = shv_path.length() - m_shvPath.length();
-		LogDirReader *reader = new LogDirReader(shv_path, prefix_length, since, until);
+		LogDirReader *reader = new LogDirReader(shv_path, prefix_length, since, until, m_logParams.withSnapshot);
 		if (reader->next()) {
 			readers << reader;
 			reader_infos << ReaderInfo();
@@ -91,12 +96,12 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 			break;
 		}
 		entry.path = reader->pathPrefix() + entry.path;
-		if (path_filter.match(entry)) {
+		if (first_step_filter.match(entry)) {
 			if (!first_record_since) {
 				first_record_since = entry.epochMsec;
 			}
 			m_mergedLog.append(entry);
-			if (since_filter.match(entry)) {
+			if (final_filter.match(entry)) {
 				++record_count;
 				if (record_count > m_logParams.recordCountLimit) {
 					break;

@@ -7,7 +7,7 @@
 namespace cp = shv::chainpack;
 using namespace shv::core::utils;
 
-LogDirReader::LogDirReader(const QString &shv_path, int prefix_length, const QDateTime &since, const QDateTime &until)
+LogDirReader::LogDirReader(const QString &shv_path, int prefix_length, const QDateTime &since, const QDateTime &until, bool with_snapshot)
 	: m_logReader(nullptr)
 	, m_journalReader(nullptr)
 	, m_until(until.isValid() ? until.toMSecsSinceEpoch() : 0LL)
@@ -20,7 +20,14 @@ LogDirReader::LogDirReader(const QString &shv_path, int prefix_length, const QDa
 	if (m_logs.count() == 0) {
 		QStringList all_logs = log_dir.findFiles(QDateTime(), QDateTime());
 		if (all_logs.count()) {
-			m_logs << all_logs.last(); //use one regular file to obtain snapshot
+			if (with_snapshot) {
+				m_logs << all_logs.last(); //use last regular file to obtain snapshot
+			}
+			else {
+				ShvLogFileReader log_reader(all_logs.last().toStdString());
+				m_header = log_reader.logHeader();
+				m_typeInfo = m_header.typeInfo();
+			}
 			if (!until.isValid() || until.toMSecsSinceEpoch() > m_header.untilMsec()) {
 				m_logs << m_dirtyLog;
 			}
