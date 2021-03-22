@@ -19,7 +19,6 @@ using namespace shv::core::utils;
 GetLogMerge::GetLogMerge(const QString &shv_path, const shv::core::utils::ShvGetLogParams &log_params)
 	: m_shvPath(shv_path)
 	, m_logParams(log_params)
-	, m_logFilter(log_params)
 {
 	const SiteItem *site_item = Application::instance()->deviceMonitor()->sites()->itemByShvPath(shv_path);
 	if (!site_item) {
@@ -47,11 +46,28 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 		bool exhausted = false;
 	};
 
+	shv::core::utils::ShvGetLogParams first_step_params;
+	shv::core::utils::ShvGetLogParams final_params;
+	if (!m_logParams.pathPattern.empty()) {
+		first_step_params.pathPattern = m_logParams.pathPattern;
+		first_step_params.pathPatternType = m_logParams.pathPatternType;
+	}
+	if (since.isValid()) {
+		if (m_logParams.withSnapshot) {
+			final_params.since = m_logParams.since;
+		}
+		else {
+			first_step_params.since = m_logParams.since;
+		}
+	}
+	shv::core::utils::ShvLogFilter first_step_filter(first_step_params);
+	shv::core::utils::ShvLogFilter final_filter(final_params);
+
 	QVector<LogDirReader*> readers;
 	QVector<ReaderInfo> reader_infos;
 	for (const QString &shv_path : m_shvPaths) {
 		int prefix_length = shv_path.length() - m_shvPath.length();
-		LogDirReader *reader = new LogDirReader(shv_path, prefix_length, since, until);
+		LogDirReader *reader = new LogDirReader(shv_path, prefix_length, since, until, m_logParams.withSnapshot);
 		if (reader->next()) {
 			readers << reader;
 			reader_infos << ReaderInfo();
@@ -63,6 +79,7 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 
 	int64_t until_msecs = until.isNull() ? std::numeric_limits<int64_t>::max() : until.toMSecsSinceEpoch();
 
+	int record_count = 0;
 	int usable_readers = readers.count();
 	while (usable_readers) {
 		int64_t oldest = std::numeric_limits<int64_t>::max();
@@ -79,13 +96,16 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 			break;
 		}
 		entry.path = reader->pathPrefix() + entry.path;
-		if (m_logFilter.match(entry)) {
+		if (first_step_filter.match(entry)) {
 			if (!first_record_since) {
 				first_record_since = entry.epochMsec;
 			}
 			m_mergedLog.append(entry);
-			if ((int)m_mergedLog.size() > m_logParams.recordCountLimit) {
-				break;
+			if (final_filter.match(entry)) {
+				++record_count;
+				if (record_count > m_logParams.recordCountLimit) {
+					break;
+				}
 			}
 		}
 		reader_infos[oldest_index].used = true;

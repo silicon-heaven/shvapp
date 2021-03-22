@@ -19,7 +19,6 @@ private:
 	QStringList m_shvPaths;
 	shv::core::utils::ShvGetLogParams m_logParams;
 	shv::core::utils::ShvMemoryJournal m_mergedLog;
-	shv::core::utils::ShvLogFilter m_logFilter;
 };
 
 #endif // GETLOGMERGE_H
