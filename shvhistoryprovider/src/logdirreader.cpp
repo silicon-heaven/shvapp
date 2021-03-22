@@ -20,9 +20,7 @@ LogDirReader::LogDirReader(const QString &shv_path, int prefix_length, const QDa
 	if (m_logs.count() == 0) {
 		QStringList all_logs = log_dir.findFiles(QDateTime(), QDateTime());
 		if (all_logs.count()) {
-			ShvLogFileReader log_reader(all_logs.last().toStdString());
-			m_header = log_reader.logHeader();
-			m_typeInfo = m_header.typeInfo();
+			m_logs << all_logs.last(); //use one regular file to obtain snapshot
 			if (!until.isValid() || until.toMSecsSinceEpoch() > m_header.untilMsec()) {
 				m_logs << m_dirtyLog;
 			}

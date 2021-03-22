@@ -19,7 +19,6 @@ using namespace shv::core::utils;
 GetLogMerge::GetLogMerge(const QString &shv_path, const shv::core::utils::ShvGetLogParams &log_params)
 	: m_shvPath(shv_path)
 	, m_logParams(log_params)
-	, m_logFilter(log_params)
 {
 	const SiteItem *site_item = Application::instance()->deviceMonitor()->sites()->itemByShvPath(shv_path);
 	if (!site_item) {
@@ -47,6 +46,18 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 		bool exhausted = false;
 	};
 
+	shv::core::utils::ShvGetLogParams path_params;
+	shv::core::utils::ShvGetLogParams since_params;
+	if (!m_logParams.pathPattern.empty()) {
+		path_params.pathPattern = m_logParams.pathPattern;
+		path_params.pathPatternType = m_logParams.pathPatternType;
+	}
+	if (since.isValid()) {
+		since_params.since = m_logParams.since;
+	}
+	shv::core::utils::ShvLogFilter path_filter(path_params);
+	shv::core::utils::ShvLogFilter since_filter(since_params);
+
 	QVector<LogDirReader*> readers;
 	QVector<ReaderInfo> reader_infos;
 	for (const QString &shv_path : m_shvPaths) {
@@ -63,6 +74,7 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 
 	int64_t until_msecs = until.isNull() ? std::numeric_limits<int64_t>::max() : until.toMSecsSinceEpoch();
 
+	int record_count = 0;
 	int usable_readers = readers.count();
 	while (usable_readers) {
 		int64_t oldest = std::numeric_limits<int64_t>::max();
@@ -79,13 +91,16 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 			break;
 		}
 		entry.path = reader->pathPrefix() + entry.path;
-		if (m_logFilter.match(entry)) {
+		if (path_filter.match(entry)) {
 			if (!first_record_since) {
 				first_record_since = entry.epochMsec;
 			}
 			m_mergedLog.append(entry);
-			if ((int)m_mergedLog.size() > m_logParams.recordCountLimit) {
-				break;
+			if (since_filter.match(entry)) {
+				++record_count;
+				if (record_count > m_logParams.recordCountLimit) {
+					break;
+				}
 			}
 		}
 		reader_infos[oldest_index].used = true;
