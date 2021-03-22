@@ -56,6 +56,7 @@ private:
 	QStringList m_lsResult;
 	std::string m_error;
 	QTimer m_timeoutTimer;
+	QStringList m_offlineDevices;
 };
 
 #endif // SYNCTASK_H
