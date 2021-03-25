@@ -26,18 +26,21 @@ public:
 private:
 	const std::vector<shv::chainpack::MetaMethod> &metaMethods(const StringViewList &shv_path);
 
-	shv::chainpack::RpcValue getSites();
+	shv::chainpack::RpcValue getSites(const std::string &path);
 	void findDevicesToSync(const StringViewList &shv_path, QStringList &result);
 	shv::chainpack::RpcValue ls(const shv::core::StringViewList &shv_path, const shv::chainpack::RpcValue &params) override;
 	bool hasData(const shv::iotqt::node::ShvNode::StringViewList &shv_path);
 	bool isDevice(const shv::iotqt::node::ShvNode::StringViewList &shv_path);
 
 	void downloadSites(std::function<void()> callback);
+	void downloadSitesByNetworkManager(std::function<void(const shv::chainpack::RpcValue &)> callback);
+	void downloadSitesFromShv(std::function<void(const shv::chainpack::RpcValue &)> callback);
 	bool checkSites() const;
 
 	Q_SIGNAL void downloadFinished();
 
 	shv::chainpack::RpcValue ls_helper(const shv::core::StringViewList &shv_path, size_t index, const shv::chainpack::RpcValue::Map &sites_node);
+	QString sitesFileName() const;
 
 	shv::chainpack::RpcValue findSitesTreeValue(const shv::core::StringViewList &shv_path);
 	shv::chainpack::RpcValue get(const shv::core::StringViewList &shv_path);
