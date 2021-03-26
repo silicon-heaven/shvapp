@@ -60,11 +60,6 @@ QString SitesProviderApp::remoteSitesUrl() const
 	return QString::fromStdString(m_cliOptions->remoteSitesUrl());
 }
 
-QString SitesProviderApp::remoteSitesUrlScheme() const
-{
-	return QUrl(remoteSitesUrl()).scheme();
-}
-
 void SitesProviderApp::onRpcMessageReceived(const cp::RpcMessage &msg)
 {
 	shvLogFuncFrame() << msg.toCpon();

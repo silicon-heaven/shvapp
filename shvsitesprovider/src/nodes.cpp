@@ -436,7 +436,7 @@ void AppRootNode::downloadSites(std::function<void ()> callback)
 {
 	if (m_downloadingSites) {
 		QMetaObject::Connection *connection = new QMetaObject::Connection();
-		*connection = connect(this, &AppRootNode::downloadFinished, [connection, callback]() {
+		*connection = connect(this, &AppRootNode::sitesDownloaded, [connection, callback]() {
 			disconnect(*connection);
 			delete connection;
 			callback();
@@ -462,23 +462,23 @@ void AppRootNode::downloadSites(std::function<void ()> callback)
 			sites_file.write(QByteArray::fromStdString(cp::RpcValue(m_sites).toCpon("  ")));
 			sites_file.close();
 		}
-		Q_EMIT downloadFinished();
+		Q_EMIT sitesDownloaded();
 		callback();
 	};
-
-	if (SitesProviderApp::instance()->remoteSitesUrlScheme().startsWith("shv")) {
-		downloadSitesFromShv(on_sites_received);
+	QString url_scheme = QUrl(SitesProviderApp::instance()->remoteSitesUrl()).scheme();
+	if (url_scheme.startsWith("shv")) {
+		downloadSitesFromShv(this, on_sites_received);
 	}
 	else {
-		downloadSitesByNetworkManager(on_sites_received);
+		downloadSitesByNetworkManager(this, on_sites_received);
 	}
 }
 
-void AppRootNode::downloadSitesByNetworkManager(std::function<void(const shv::chainpack::RpcValue &)> callback)
+void AppRootNode::downloadSitesByNetworkManager(QObject *context, std::function<void(const shv::chainpack::RpcValue &)> callback)
 {
 	QNetworkAccessManager *network_manager = new QNetworkAccessManager(this);
 	network_manager->setRedirectPolicy(QNetworkRequest::NoLessSafeRedirectPolicy);
-	connect(network_manager, &QNetworkAccessManager::finished, [this, network_manager, callback](QNetworkReply *reply) {
+	connect(network_manager, &QNetworkAccessManager::finished, context, [this, network_manager, callback](QNetworkReply *reply) {
 		cp::RpcValue res;
 		try {
 			if (reply->error()) {
@@ -513,17 +513,18 @@ void AppRootNode::downloadSitesByNetworkManager(std::function<void(const shv::ch
 	network_manager->get(QNetworkRequest(SitesProviderApp::instance()->remoteSitesUrl()));
 }
 
-void AppRootNode::downloadSitesFromShv(std::function<void(const shv::chainpack::RpcValue &)> callback)
+void AppRootNode::downloadSitesFromShv(QObject *context, std::function<void(const shv::chainpack::RpcValue &)> callback)
 {
 	shv::iotqt::rpc::RpcCall *rpc_call = shv::iotqt::rpc::RpcCall::create(SitesProviderApp::instance()->rpcConnection());
-	SitesProviderApp *app = SitesProviderApp::instance();
-	rpc_call->setShvPath(app->remoteSitesUrl().mid(app->remoteSitesUrlScheme().length() + 3))
+	QString url = SitesProviderApp::instance()->remoteSitesUrl();
+	QString url_scheme = QUrl(url).scheme();
+	rpc_call->setShvPath(url.mid(url_scheme.length() + 3))
 			->setMethod("getSites");
-	connect(rpc_call, &shv::iotqt::rpc::RpcCall::error, this, [this, callback](const QString &err) {
+	connect(rpc_call, &shv::iotqt::rpc::RpcCall::error, context, [this, callback](const QString &err) {
 		m_downloadSitesError = err.toStdString();
 		callback(cp::RpcValue());
 	});
-	connect(rpc_call, &shv::iotqt::rpc::RpcCall::result, this, [this, callback](const cp::RpcValue &res) {
+	connect(rpc_call, &shv::iotqt::rpc::RpcCall::result, context, [this, callback](const cp::RpcValue &res) {
 		callback(res);
 	});
 	rpc_call->start();
@@ -531,8 +532,9 @@ void AppRootNode::downloadSitesFromShv(std::function<void(const shv::chainpack::
 
 bool AppRootNode::checkSites() const
 {
+	QString url_scheme = QUrl(SitesProviderApp::instance()->remoteSitesUrl()).scheme();
 	return m_downloadSitesError.empty() && ((m_sitesSyncedBefore.isValid() &&
-			m_sitesSyncedBefore.elapsed() < 3600 * 1000) || !SitesProviderApp::instance()->remoteSitesUrlScheme().startsWith("http"));
+			m_sitesSyncedBefore.elapsed() < 3600 * 1000) || !url_scheme.startsWith("http"));
 }
 
 shv::chainpack::RpcValue AppRootNode::get(const shv::core::StringViewList &shv_path)

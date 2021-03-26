@@ -33,11 +33,11 @@ private:
 	bool isDevice(const shv::iotqt::node::ShvNode::StringViewList &shv_path);
 
 	void downloadSites(std::function<void()> callback);
-	void downloadSitesByNetworkManager(std::function<void(const shv::chainpack::RpcValue &)> callback);
-	void downloadSitesFromShv(std::function<void(const shv::chainpack::RpcValue &)> callback);
+	void downloadSitesByNetworkManager(QObject *context, std::function<void(const shv::chainpack::RpcValue &)> callback);
+	void downloadSitesFromShv(QObject *context, std::function<void(const shv::chainpack::RpcValue &)> callback);
 	bool checkSites() const;
 
-	Q_SIGNAL void downloadFinished();
+	Q_SIGNAL void sitesDownloaded();
 
 	shv::chainpack::RpcValue ls_helper(const shv::core::StringViewList &shv_path, size_t index, const shv::chainpack::RpcValue::Map &sites_node);
 	QString sitesFileName() const;
