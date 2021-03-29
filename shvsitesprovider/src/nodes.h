@@ -32,7 +32,7 @@ private:
 	bool hasData(const shv::iotqt::node::ShvNode::StringViewList &shv_path);
 	bool isDevice(const shv::iotqt::node::ShvNode::StringViewList &shv_path);
 
-	void downloadSites(std::function<void()> callback);
+	void downloadSites();
 	void downloadSitesByNetworkManager(QObject *context, std::function<void(const shv::chainpack::RpcValue &)> callback);
 	void downloadSitesFromShv(QObject *context, std::function<void(const shv::chainpack::RpcValue &)> callback);
 	bool checkSites() const;

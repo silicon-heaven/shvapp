@@ -227,7 +227,7 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 	}
 	else if (method == METH_RELOAD_SITES) {
 		if (!m_sitesSyncedBefore.isValid() || m_sitesSyncedBefore.elapsed() > 5000) {
-			downloadSites([](){});
+			downloadSites();
 		}
 		return true;
 	}
@@ -257,7 +257,10 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 void AppRootNode::handleRpcRequest(const shv::chainpack::RpcRequest &rq)
 {
 	if (!checkSites()) {
-		downloadSites([this, rq]() {
+		QMetaObject::Connection *conn = new QMetaObject::Connection();
+		*conn = connect(this, &AppRootNode::sitesDownloaded, this, [this, conn, rq]() {
+			disconnect(*conn);
+			delete conn;
 			if (!m_downloadSitesError.empty()) {
 				shvError() << m_downloadSitesError;
 				cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
@@ -267,7 +270,9 @@ void AppRootNode::handleRpcRequest(const shv::chainpack::RpcRequest &rq)
 			else {
 				Super::handleRpcRequest(rq);
 			}
+
 		});
+		downloadSites();
 	}
 	else {
 		Super::handleRpcRequest(rq);
@@ -432,20 +437,14 @@ bool AppRootNode::isDevice(const shv::iotqt::node::ShvNode::StringViewList &shv_
 	return node_map.size() == 1 && node_map.hasKey("_meta") && node_map.value("_meta").toMap().hasKey("type");
 }
 
-void AppRootNode::downloadSites(std::function<void ()> callback)
+void AppRootNode::downloadSites()
 {
 	if (m_downloadingSites) {
-		QMetaObject::Connection *connection = new QMetaObject::Connection();
-		*connection = connect(this, &AppRootNode::sitesDownloaded, [connection, callback]() {
-			disconnect(*connection);
-			delete connection;
-			callback();
-		});
 		return;
 	}
 	m_downloadingSites = true;
 	m_downloadSitesError.clear();
-	auto on_sites_received = [this, callback](const shv::chainpack::RpcValue &res) {
+	auto on_sites_received = [this](const shv::chainpack::RpcValue &res) {
 		if (res.isMap()) {
 			m_sites = res.toMap();
 			shvInfo() << "Downloaded sites.json";
@@ -463,7 +462,6 @@ void AppRootNode::downloadSites(std::function<void ()> callback)
 			sites_file.close();
 		}
 		Q_EMIT sitesDownloaded();
-		callback();
 	};
 	QString url_scheme = QUrl(SitesProviderApp::instance()->remoteSitesUrl()).scheme();
 	if (url_scheme.startsWith("shv")) {
