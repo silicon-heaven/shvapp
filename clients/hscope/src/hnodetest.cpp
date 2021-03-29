@@ -77,7 +77,7 @@ void HNodeTest::load()
 	shv::chainpack::RpcValue run_every = configValueOnPath(KEY_RUN_EVERY);
 	int interval = 0;
 	if(run_every.isString()) {
-		shv::core::StringView sv = run_every.toString();
+		shv::core::StringView sv = run_every.asString();
 		if(sv.endsWith('s'))
 			interval = sv.mid(0, sv.length() - 1).toInt();
 		else if(sv.endsWith('m'))
@@ -110,8 +110,8 @@ void HNodeTest::load()
 shv::chainpack::RpcValue HNodeTest::callMethodRq(const shv::chainpack::RpcRequest &rq)
 {
 	shv::chainpack::RpcValue shv_path = rq.shvPath();
-	if(shv_path.toString().empty()) {
-		const shv::chainpack::RpcValue::String &method = rq.method().toString();
+	if(shv_path.asString().empty()) {
+		const shv::chainpack::RpcValue::String &method = rq.method().asString();
 		if(method == METH_RUN_TEST) {
 			runTest(rq, USE_SCRIPT_CACHE);
 			return cp::RpcValue();
@@ -168,7 +168,7 @@ void HNodeTest::runTest(const shv::chainpack::RpcRequest &rq, bool use_script_ca
 		SHV_EXCEPTION("Parent broker node missing!");
 
 	std::string shv_path = agnd->agentShvPath();
-	const std::string &script_fn = templatesDir() + '/' + configValueOnPath(KEY_SCRIPT).toString();
+	const std::string script_fn = templatesDir() + '/' + configValueOnPath(KEY_SCRIPT).toString();
 	QFile f(QString::fromStdString(script_fn));
 	if(!f.open(QFile::ReadOnly))
 		SHV_EXCEPTION("Cannot open test script file " + script_fn + " for reading!");

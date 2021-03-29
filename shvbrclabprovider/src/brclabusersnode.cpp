@@ -156,7 +156,7 @@ bool BrclabUsersNode::addUser(const cp::RpcValue &params)
 
 bool BrclabUsersNode::delUser(const shv::chainpack::RpcValue &params)
 {
-	if (!params.isString() || params.toString().empty()){
+	if (!params.isString() || params.asString().empty()){
 		SHV_EXCEPTION("Invalid parameters format. Param must be non empty RpcValue::String.");
 	}
 

@@ -28,7 +28,7 @@ NodeStatus NodeStatus::fromRpcValue(const shv::chainpack::RpcValue &val)
 		if(val.isInt() || val.isUInt())
 			ret.level = (NodeStatus::Level)val.toInt();
 		else if(val.isString()) {
-			const std::string &val_str = val.toString();
+			const std::string &val_str = val.asString();
 			if(val_str.size()) {
 				char c = val_str.at(0);
 				switch (c) {

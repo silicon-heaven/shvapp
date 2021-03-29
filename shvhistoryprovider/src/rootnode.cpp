@@ -303,7 +303,7 @@ void RootNode::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 		cp::RpcRequest rq(msg);
 		cp::RpcResponse resp = cp::RpcResponse::forRequest(rq.metaData());
 		try {
-			rq.setShvPath(rq.shvPath().toString());
+			rq.setShvPath(rq.shvPath().asString());
 			shv::chainpack::RpcValue result = processRpcRequest(rq);
 			if (result.isValid()) {
 				resp.setResult(result);
@@ -412,7 +412,7 @@ shv::chainpack::RpcValue RootNode::callMethod(const shv::iotqt::node::ShvNode::S
 		return NecroLog::topicsLogTresholds();
 	}
 	else if (method == METH_SET_LOGVERBOSITY) {
-		const std::string &s = params.toString();
+		const std::string &s = params.asString();
 		NecroLog::setTopicsLogTresholds(s);
 		return true;
 	}

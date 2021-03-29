@@ -144,7 +144,7 @@ void DirSyncTask::onDirFinished(const QString &shv_path, const shv::chainpack::R
 	if (resp.isSuccess()) {
 		bool has_read = false;
 		for (const cp::RpcValue &dir_item : resp.result().toList()) {
-			if (dir_item.toString() == "read") {
+			if (dir_item.asString() == "read") {
 				has_read = true;
 				break;
 			}
@@ -230,7 +230,7 @@ void DirSyncTask::onFileReceived(const QString &shv_path, const shv::chainpack::
 	if (resp.isSuccess()) {
 		std::string remote_hash = resp.result().toString();
 		AppRootNode *root = qobject_cast<AppRootNode*>(parent());
-		root->writeFile(shv_path, resp.result().toString());
+		root->writeFile(shv_path, resp.result().asString());
 		m_filesToSync[shv_path].status = RpcCallStatus::Ok;
 		checkSyncFilesIsComplete();
 	}

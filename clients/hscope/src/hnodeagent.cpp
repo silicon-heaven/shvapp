@@ -72,7 +72,7 @@ void HNodeAgent::onParentBrokerRpcMessageReceived(const shv::chainpack::RpcMessa
 	shvLogFuncFrame() << shvPath() << msg.toCpon();
 	if(msg.isSignal()) {
 		cp::RpcSignal sig(msg);
-		if(sig.method().toString() == cp::Rpc::SIG_MOUNTED_CHANGED && sig.shvPath().toString() == agentShvPath()) {
+		if(sig.method().asString() == cp::Rpc::SIG_MOUNTED_CHANGED && sig.shvPath().asString() == agentShvPath()) {
 			bool is_mounted = sig.params().toBool();
 			if(is_mounted) {
 				checkAgentConnected();

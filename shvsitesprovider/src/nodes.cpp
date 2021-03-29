@@ -167,7 +167,7 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 		cp::RpcValue params = rq.params();
 		if(!params.isString())
 			throw shv::core::Exception("Content must be string.");
-		return writeFile(rpcvalue_cast<QString>(rq.shvPath()), params.toString());
+		return writeFile(rpcvalue_cast<QString>(rq.shvPath()), params.asString());
 	}
 	else if (method == METH_FILE_MK) {
 		std::string shv_path = rq.shvPath().toString();
@@ -237,7 +237,7 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 		return static_cast<int>(m_sitesSyncedBefore.elapsed() / 1000);
 	}
 	else if (method == METH_GIT_PUSH) {
-		GitPushTask *git_task = new GitPushTask(QString::fromStdString(rq.userId().toString()), this);
+		GitPushTask *git_task = new GitPushTask(QString::fromStdString(rq.userId().asString()), this);
 		connect(git_task, &GitPushTask::finished, [this, rq, git_task](bool success) {
 			cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
 			if (success) {
@@ -616,7 +616,7 @@ shv::chainpack::RpcValue AppRootNode::readAndMergeConfig(QFile &file)
 
 	shv::chainpack::RpcValue config = cp::RpcValue::fromCpon(file.readAll().toStdString());
 	if (config.isMap()) {
-		QString templ_path = QString::fromStdString(config.toMap().value(BASED_ON_KEY).toString());
+		QString templ_path = QString::fromStdString(config.toMap().value(BASED_ON_KEY).asString());
 		if (!templ_path.isEmpty()) {
 			QStringList templ_path_parts = templ_path.split('/');
 			templ_path_parts.insert(templ_path_parts.count() - 1, QString::fromStdString(FILES_NODE));

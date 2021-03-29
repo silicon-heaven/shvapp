@@ -40,11 +40,11 @@ shv::iotqt::rpc::ClientConnection *HNodeBroker::rpcConnection()
 		m_rpcConnection = new shv::iotqt::rpc::ClientConnection(this);
 
 		shv::iotqt::rpc::ClientAppCliOptions opts;
-		opts.setServerHost(configValueOnPath(KEY_HOST).toString());
+		opts.setServerHost(configValueOnPath(KEY_HOST).asString());
 		opts.setServerPort(configValueOnPath(KEY_PORT).toInt());
-		opts.setUser(configValueOnPath(KEY_USER).toString());
-		opts.setPassword(configValueOnPath(KEY_PASSWORD).toString());
-		opts.setLoginType(configValueOnPath(KEY_LOGIN_TYPE).toString());
+		opts.setUser(configValueOnPath(KEY_USER).asString());
+		opts.setPassword(configValueOnPath(KEY_PASSWORD).asString());
+		opts.setLoginType(configValueOnPath(KEY_LOGIN_TYPE).asString());
 		m_rpcConnection->setCliOptions(&opts);
 
 		connect(m_rpcConnection, &shv::iotqt::rpc::ClientConnection::brokerConnectedChanged, this, &HNodeBroker::brokerConnectedChanged);

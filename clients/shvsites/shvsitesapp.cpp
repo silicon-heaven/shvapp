@@ -46,7 +46,7 @@ void ShvSitesApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 		shvDebug() << "RPC notify received:" << sig.toPrettyString();
 		if(sig.method() == cp::Rpc::SIG_MOUNTED_CHANGED) {
 			shvInfo() << "mount changed on" << sig.shvPath().toString() << sig.params().toBool();
-			sitesModel()->setSiteBrokerConnected(sig.shvPath().toString(), sig.params().toBool());
+			sitesModel()->setSiteBrokerConnected(sig.shvPath().asString(), sig.params().toBool());
 		}
 	}
 }
@@ -89,7 +89,7 @@ void ShvSitesApp::loadSitesHelper(std::vector<std::string> &paths, const shv::ch
 				GPS gps(gpsl[0].toDouble(), gpsl[1].toDouble());
 				sitesModel()->addSite(
 							QString::fromStdString(shv::core::String::join(paths, '/')),
-							QString::fromStdString(name.toString()) ,
+							QString::fromStdString(name.asString()) ,
 							gps);
 				{
 					std::string shv_path = shv::core::String::join(paths, '/');

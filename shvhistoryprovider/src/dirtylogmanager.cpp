@@ -133,7 +133,7 @@ void DirtyLogManager::insertDataMissingToDirtyLog(const QString &shv_path)
 	}
 	if (last_entry.path == ShvJournalEntry::PATH_DATA_MISSING &&
 		last_entry.value.isString() &&
-		last_entry.value.toString() == ShvJournalEntry::DATA_MISSING_UNAVAILABLE) {
+		last_entry.value.asString() == ShvJournalEntry::DATA_MISSING_UNAVAILABLE) {
 		return;
 	}
 	ShvJournalFileWriter dirty_writer(log_dir.dirtyLogPath().toStdString());
