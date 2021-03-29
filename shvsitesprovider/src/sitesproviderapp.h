@@ -26,6 +26,7 @@ public:
 	static SitesProviderApp *instance();
 	shv::iotqt::rpc::DeviceConnection *rpcConnection() const { return m_rpcConnection; }
 	AppCliOptions* cliOptions() {return m_cliOptions;}
+	QString remoteSitesUrl() const;
 
 private:
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);

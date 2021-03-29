@@ -55,6 +55,11 @@ SitesProviderApp *SitesProviderApp::instance()
 	return qobject_cast<SitesProviderApp *>(QCoreApplication::instance());
 }
 
+QString SitesProviderApp::remoteSitesUrl() const
+{
+	return QString::fromStdString(m_cliOptions->remoteSitesUrl());
+}
+
 void SitesProviderApp::onRpcMessageReceived(const cp::RpcMessage &msg)
 {
 	shvLogFuncFrame() << msg.toCpon();

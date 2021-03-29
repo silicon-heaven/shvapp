@@ -55,19 +55,21 @@ static std::vector<cp::MetaMethod> root_meta_methods {
 	{ METH_SITES_SYNCED_BEFORE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
 	{ METH_SITES_RELOADED, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::IsSignal, shv::chainpack::Rpc::ROLE_READ },
 	{ METH_PULL_FILES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
-	{ METH_GIT_PUSH, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_ADMIN },
+//	{ METH_GIT_PUSH, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_ADMIN },
 };
 
 static std::vector<cp::MetaMethod> dir_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ METH_PULL_FILES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
+	{ METH_GET_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
 };
 
 static std::vector<cp::MetaMethod> device_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ METH_PULL_FILES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
+	{ METH_GET_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
 };
 
 static std::vector<cp::MetaMethod> meta_meta_methods {
@@ -106,6 +108,22 @@ static std::vector<cp::MetaMethod> data_meta_methods {
 AppRootNode::AppRootNode(QObject *parent)
 	: Super(parent)
 {
+	if (QDir(QString::fromStdString(SitesProviderApp::instance()->cliOptions()->localSitesDir()) + "/.git").exists()) {
+		shvInfo() << "sites directory" << SitesProviderApp::instance()->cliOptions()->localSitesDir() << "identified as git repository";
+		root_meta_methods.push_back({ METH_GIT_PUSH, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_ADMIN });
+	}
+	QFile sites_file(sitesFileName());
+	if (sites_file.open(QFile::ReadOnly)) {
+		cp::RpcValue sites = cp::RpcValue::fromCpon(sites_file.readAll().toStdString());
+		if (sites.isMap()) {
+			m_sites = sites.toMap();
+		}
+	}
+}
+
+QString AppRootNode::sitesFileName() const
+{
+	return QString::fromStdString(SitesProviderApp::instance()->cliOptions()->configDir()) + "/sites.json";
 }
 
 size_t AppRootNode::methodCount(const StringViewList &shv_path)
@@ -140,7 +158,7 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 		return QCoreApplication::instance()->applicationVersion().toStdString();
 	}
 	else if (method == METH_GET_SITES) {
-		return getSites();
+		return getSites(rq.shvPath().toString());
 	}
 	else if (method == METH_FILE_READ) {
 		return readFile(rpcvalue_cast<QString>(rq.shvPath()));
@@ -209,7 +227,7 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 	}
 	else if (method == METH_RELOAD_SITES) {
 		if (!m_sitesSyncedBefore.isValid() || m_sitesSyncedBefore.elapsed() > 5000) {
-			downloadSites([](){});
+			downloadSites();
 		}
 		return true;
 	}
@@ -239,7 +257,10 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 void AppRootNode::handleRpcRequest(const shv::chainpack::RpcRequest &rq)
 {
 	if (!checkSites()) {
-		downloadSites([this, rq]() {
+		QMetaObject::Connection *conn = new QMetaObject::Connection();
+		*conn = connect(this, &AppRootNode::sitesDownloaded, this, [this, conn, rq]() {
+			disconnect(*conn);
+			delete conn;
 			if (!m_downloadSitesError.empty()) {
 				shvError() << m_downloadSitesError;
 				cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
@@ -249,7 +270,9 @@ void AppRootNode::handleRpcRequest(const shv::chainpack::RpcRequest &rq)
 			else {
 				Super::handleRpcRequest(rq);
 			}
+
 		});
+		downloadSites();
 	}
 	else {
 		Super::handleRpcRequest(rq);
@@ -306,9 +329,17 @@ shv::chainpack::RpcValue AppRootNode::findSitesTreeValue(const shv::core::String
 	return value;
 }
 
-cp::RpcValue AppRootNode::getSites()
+cp::RpcValue AppRootNode::getSites(const std::string &path)
 {
-	return m_sites;
+	std::vector<std::string> path_parts = shv::core::String::split(path, '/');
+	cp::RpcValue res = m_sites;
+	for (const std::string &path_part : path_parts) {
+		res = res.at(path_part);
+		if (!res.isMap()) {
+			return cp::RpcValue(nullptr);
+		}
+	}
+	return res;
 }
 
 void AppRootNode::findDevicesToSync(const StringViewList &shv_path, QStringList &result)
@@ -406,28 +437,52 @@ bool AppRootNode::isDevice(const shv::iotqt::node::ShvNode::StringViewList &shv_
 	return node_map.size() == 1 && node_map.hasKey("_meta") && node_map.value("_meta").toMap().hasKey("type");
 }
 
-void AppRootNode::downloadSites(std::function<void ()> callback)
+void AppRootNode::downloadSites()
 {
 	if (m_downloadingSites) {
-		QMetaObject::Connection *connection = new QMetaObject::Connection();
-		*connection = connect(this, &AppRootNode::downloadFinished, [connection, callback]() {
-			disconnect(*connection);
-			delete connection;
-			callback();
-		});
 		return;
 	}
 	m_downloadingSites = true;
 	m_downloadSitesError.clear();
+	auto on_sites_received = [this](const shv::chainpack::RpcValue &res) {
+		if (res.isMap()) {
+			m_sites = res.toMap();
+			shvInfo() << "Downloaded sites.json";
+			m_sitesSyncedBefore.start();
+			if (SitesProviderApp::instance()->rpcConnection()->isBrokerConnected()) {
+				cp::RpcSignal ntf;
+				ntf.setMethod(METH_SITES_RELOADED);
+				rootNode()->emitSendRpcMessage(ntf);
+			}
+		}
+		m_downloadingSites = false;
+		QFile sites_file(sitesFileName());
+		if (sites_file.open(QFile::WriteOnly | QFile::Truncate)) {
+			sites_file.write(QByteArray::fromStdString(cp::RpcValue(m_sites).toCpon("  ")));
+			sites_file.close();
+		}
+		Q_EMIT sitesDownloaded();
+	};
+	QString url_scheme = QUrl(SitesProviderApp::instance()->remoteSitesUrl()).scheme();
+	if (url_scheme.startsWith("shv")) {
+		downloadSitesFromShv(this, on_sites_received);
+	}
+	else {
+		downloadSitesByNetworkManager(this, on_sites_received);
+	}
+}
+
+void AppRootNode::downloadSitesByNetworkManager(QObject *context, std::function<void(const shv::chainpack::RpcValue &)> callback)
+{
 	QNetworkAccessManager *network_manager = new QNetworkAccessManager(this);
 	network_manager->setRedirectPolicy(QNetworkRequest::NoLessSafeRedirectPolicy);
-	connect(network_manager, &QNetworkAccessManager::finished, [this, network_manager, callback](QNetworkReply *reply) {
+	connect(network_manager, &QNetworkAccessManager::finished, context, [this, network_manager, callback](QNetworkReply *reply) {
+		cp::RpcValue res;
 		try {
 			if (reply->error()) {
 				SHV_QT_EXCEPTION("Download sites.json error:" + reply->errorString());
 			}
 			std::string sites_string = reply->readAll().toStdString();
-			m_sitesSyncedBefore.start();
 			std::string err;
 			cp::RpcValue sites_cp = cp::RpcValue::fromCpon(sites_string, &err);
 			if (!err.empty()) {
@@ -441,16 +496,9 @@ void AppRootNode::downloadSites(std::function<void ()> callback)
 			if (!sites_cp_map.hasKey("shv")) {
 				SHV_EXCEPTION("Sites.json does not have root key shv");
 			}
-			cp::RpcValue shv_cp = sites_cp_map.value("shv");
-			if (!shv_cp.isMap()) {
+			res = sites_cp_map.value("shv");
+			if (!res.isMap()) {
 				SHV_EXCEPTION("Shv key in sites.json must be map");
-			}
-			m_sites = shv_cp.toMap();
-			shvInfo() << "Downloaded sites.json";
-			if (SitesProviderApp::instance()->rpcConnection()->isBrokerConnected()) {
-				cp::RpcSignal ntf;
-				ntf.setMethod(METH_SITES_RELOADED);
-				rootNode()->emitSendRpcMessage(ntf);
 			}
 		}
 		catch (std::exception &e) {
@@ -458,16 +506,33 @@ void AppRootNode::downloadSites(std::function<void ()> callback)
 		}
 		reply->deleteLater();
 		network_manager->deleteLater();
-		m_downloadingSites = false;
-		Q_EMIT downloadFinished();
-		callback();
+		callback(res);
 	});
-	network_manager->get(QNetworkRequest(QUrl(QString::fromStdString(SitesProviderApp::instance()->cliOptions()->remoteSitesUrl()))));
+	network_manager->get(QNetworkRequest(SitesProviderApp::instance()->remoteSitesUrl()));
+}
+
+void AppRootNode::downloadSitesFromShv(QObject *context, std::function<void(const shv::chainpack::RpcValue &)> callback)
+{
+	shv::iotqt::rpc::RpcCall *rpc_call = shv::iotqt::rpc::RpcCall::create(SitesProviderApp::instance()->rpcConnection());
+	QString url = SitesProviderApp::instance()->remoteSitesUrl();
+	QString url_scheme = QUrl(url).scheme();
+	rpc_call->setShvPath(url.mid(url_scheme.length() + 3))
+			->setMethod("getSites");
+	connect(rpc_call, &shv::iotqt::rpc::RpcCall::error, context, [this, callback](const QString &err) {
+		m_downloadSitesError = err.toStdString();
+		callback(cp::RpcValue());
+	});
+	connect(rpc_call, &shv::iotqt::rpc::RpcCall::result, context, [this, callback](const cp::RpcValue &res) {
+		callback(res);
+	});
+	rpc_call->start();
 }
 
 bool AppRootNode::checkSites() const
 {
-	return m_downloadSitesError.empty() && (m_sitesSyncedBefore.isValid() && m_sitesSyncedBefore.elapsed() < 3600 * 1000);
+	QString url_scheme = QUrl(SitesProviderApp::instance()->remoteSitesUrl()).scheme();
+	return m_downloadSitesError.empty() && ((m_sitesSyncedBefore.isValid() &&
+			m_sitesSyncedBefore.elapsed() < 3600 * 1000) || !url_scheme.startsWith("http"));
 }
 
 shv::chainpack::RpcValue AppRootNode::get(const shv::core::StringViewList &shv_path)
