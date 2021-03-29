@@ -41,7 +41,12 @@ shv::chainpack::RpcValue DirSyncTask::result() const
 		file_list.push_back(file_map);
 	}
 	map["synchronizedFiles"] = file_list;
-	map["overallStatus"] = overall_status == RpcCallStatus::Ok ? true : false;
+	cp::RpcValue::List offline_devices;
+	for (const QString &offline_device : m_offlineDevices) {
+		offline_devices.push_back(offline_device.toStdString());
+	}
+	map["offlineDevices"] = offline_devices;
+	map["overallStatus"] = overall_status == RpcCallStatus::Ok ? (m_offlineDevices.count() ? "Warning" : "OK") : "Error";
 	return map;
 }
 
@@ -94,8 +99,8 @@ void DirSyncTask::onLsFinished(const QString &shv_path, const shv::chainpack::Rp
 		}
 	}
 	else {
-		m_error = resp.errorString();
-		Q_EMIT finished(false);
+		m_offlineDevices << shv_path;
+		m_dirsToSync[shv_path].status = RpcCallStatus::Error;
 	}
 	checkLsIsComplete();
 }
