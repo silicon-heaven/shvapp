@@ -68,7 +68,7 @@ void Telegram::onAlertStatusChanged(const std::string &shv_path, const NodeStatu
 
 QString Telegram::apiToken()
 {
-	return QString::fromStdString(m_configNode->valueOnPath("apiToken", !shv::core::Exception::Throw).toString());
+	return QString::fromStdString(m_configNode->valueOnPath("apiToken", !shv::core::Exception::Throw).asString());
 }
 
 QTimeZone Telegram::peerTimeZone(int peer_id) const

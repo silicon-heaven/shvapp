@@ -190,7 +190,7 @@ void ShvRExecApp::onBrokerConnectedChanged(bool is_connected)
 					cp::CreateTunnelRespCtl create_tunnel_response(tctl);
 					m_writeTunnelCallerIds = resp.revCallerIds();
 					const shv::chainpack::RpcValue::Map &call_p = m_onConnectedCall.toMap();
-					const shv::chainpack::RpcValue::String &method = call_p.value(cp::Rpc::JSONRPC_METHOD).toString();
+					const shv::chainpack::RpcValue::String method = call_p.value(cp::Rpc::JSONRPC_METHOD).toString();
 					const shv::chainpack::RpcValue &params = call_p.value(cp::Rpc::JSONRPC_PARAMS);
 					/*
 					int rqid = call_p.value(cp::Rpc::JSONRPC_REQUEST_ID).toInt();
@@ -273,7 +273,7 @@ void ShvRExecApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 				data = result;
 			}
 			if(channel == 0) {
-				const shv::chainpack::RpcValue::String &blob = data.toString();
+				const shv::chainpack::RpcValue::String &blob = data.asString();
 				if(blob.size()) {
 					qint64 len = ShvRExecApp::instance()->writeCmdProcessStdIn(blob.data(), blob.size());
 					if(len < 0)
@@ -351,7 +351,7 @@ void ShvRExecApp::runCmd(const shv::chainpack::RpcValue &params)
 		this->closeAndQuit();
 	});
 	const shv::chainpack::RpcValue::List &cmd_lst = params.toList();
-	QString cmd = QString::fromStdString(params.isString()? params.toString(): cmd_lst.value(0).toString());
+	QString cmd = QString::fromStdString(params.isString()? params.asString(): cmd_lst.value(0).asString());
 	QStringList pars;
 	for (size_t i = 1; i < cmd_lst.size(); ++i)
 		pars << QString::fromStdString(cmd_lst[i].toString());
@@ -400,7 +400,7 @@ void ShvRExecApp::runPtyCmd(const shv::chainpack::RpcValue &params)
 		m_ptyCmdProc->disconnect();
 		closeAndQuit();
 	});
-	QString cmd = QString::fromStdString(cmd_params.isString()? cmd_params.toString(): cmd_params.toList().value(0).toString());
+	QString cmd = QString::fromStdString(cmd_params.isString()? cmd_params.asString(): cmd_params.toList().value(0).asString());
 	QStringList pars;
 	const shv::chainpack::RpcValue::List &cmd_lst = cmd_params.toList();
 	for (size_t i = 1; i < cmd_lst.size(); ++i)

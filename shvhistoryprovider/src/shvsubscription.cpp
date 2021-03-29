@@ -13,8 +13,8 @@ void ShvSubscription::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg
 {
 	if (msg.isSignal()) {
 		shv::chainpack::RpcSignal ntf(msg);
-		QString path = QString::fromStdString(ntf.shvPath().toString());
-		QString method = QString::fromStdString(ntf.method().toString());
+		QString path = QString::fromStdString(ntf.shvPath().asString());
+		QString method = QString::fromStdString(ntf.method().asString());
 		if (path.startsWith(m_path) && m_method == method) {
 			Q_EMIT notificationReceived(path, method, ntf.params());
 		}

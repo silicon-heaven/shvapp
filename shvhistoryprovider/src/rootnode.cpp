@@ -412,7 +412,7 @@ shv::chainpack::RpcValue RootNode::callMethod(const shv::iotqt::node::ShvNode::S
 		return NecroLog::topicsLogTresholds();
 	}
 	else if (method == METH_SET_LOGVERBOSITY) {
-		const std::string &s = params.toString();
+		const std::string &s = params.asString();
 		NecroLog::setTopicsLogTresholds(s);
 		return true;
 	}

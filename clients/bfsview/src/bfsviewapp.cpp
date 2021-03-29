@@ -480,7 +480,7 @@ void BfsViewApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 			//shvInfo() << "RPC request received:" << rq.toCpon();
 			const cp::RpcValue shv_path = rq.shvPath();
 			std::string path_rest;
-			shv::iotqt::node::ShvNode *nd = m_shvTree->cd(shv_path.toString(), &path_rest);
+			shv::iotqt::node::ShvNode *nd = m_shvTree->cd(shv_path.asString(), &path_rest);
 			if(!nd)
 				SHV_EXCEPTION("Path not found: " + shv_path.toString());
 			rq.setShvPath(path_rest);

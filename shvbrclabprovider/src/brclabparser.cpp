@@ -18,7 +18,7 @@ cp::RpcValue BrclabParser::parse(const QString &fn)
 	shv::chainpack::RpcValue data = readBrclabFile(fn);
 	cp::RpcValue::MetaData md = data.metaData();
 
-	const shv::chainpack::RpcValue::String &s = data.toString();
+	const shv::chainpack::RpcValue::String &s = data.asString();
 	QByteArray ba = qUncompress((const uchar*)s.data(), s.size());
 	shv::chainpack::RpcValue body = cp::RpcValue::fromChainPack(ba.toStdString());
 

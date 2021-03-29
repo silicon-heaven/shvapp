@@ -357,7 +357,7 @@ void MainWindow::setLogData(const shv::chainpack::RpcValue &data, LogDataType ty
 		shvDebug() << data.metaData().toPrettyString();
 		if(data.metaData().value("compression").toString() == "qCompress") {
 			shvDebug() << "uncompressing started ...";
-			const shv::chainpack::RpcValue::String &s = data.toString();
+			const shv::chainpack::RpcValue::String &s = data.asString();
 			QByteArray ba = qUncompress((const uchar*)s.data(), (int)s.size());
 			shvDebug() << "decoding started ...";
 			shv::chainpack::RpcValue body = cp::RpcValue::fromChainPack(ba.toStdString());
@@ -438,7 +438,7 @@ void MainWindow::addLogEntry(const shv::chainpack::RpcValue &entry)
 	cp::RpcValue rv_path = row.value(1);
 	if(rv_path.isUInt() || rv_path.isInt())
 		rv_path = m_pathsDict.value(rv_path.toInt());
-	const shv::chainpack::RpcValue::String &path = rv_path.toString();
+	const shv::chainpack::RpcValue::String &path = rv_path.asString();
 	if(path.empty()) {
 		shvError() << "invalid entry path:" << entry.toCpon();
 		return;

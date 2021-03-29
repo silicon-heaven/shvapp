@@ -154,7 +154,7 @@ shv::chainpack::RpcValue AppRootNode::callMethodRq(const shv::chainpack::RpcRequ
 			if(rq.params().isList()) {
 				for(auto p : rq.params().toList()) {
 					if(p.isString())
-						script = QByteArray::fromStdString(p.toString());
+						script = QByteArray::fromStdString(p.asString());
 				}
 			}
 			else {
@@ -447,7 +447,7 @@ void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq, bool std_out_only
 			}
 			else if(p.isList()) {
 				for(auto kv : p.toList())
-					args << QString::fromStdString(kv.toString());
+					args << QString::fromStdString(kv.asString());
 			}
 			else if(p.isMap()) {
 				for(auto kv : p.toMap())

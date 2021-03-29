@@ -185,7 +185,7 @@ void DlgLogView::parseLog(shv::chainpack::RpcValue log)
 			cp::RpcValue rv_path = row.value(1);
 			if(rv_path.isUInt() || rv_path.isInt())
 				rv_path = dict.value(rv_path.toInt());
-			const shv::chainpack::RpcValue::String &path = rv_path.toString();
+			const shv::chainpack::RpcValue::String &path = rv_path.asString();
 			if(path.empty()) {
 				shvError() << "invalid entry path:" << rec.toCpon();
 				continue;
