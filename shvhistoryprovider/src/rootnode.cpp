@@ -303,7 +303,7 @@ void RootNode::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 		cp::RpcRequest rq(msg);
 		cp::RpcResponse resp = cp::RpcResponse::forRequest(rq.metaData());
 		try {
-			rq.setShvPath(rq.shvPath().toString());
+			rq.setShvPath(rq.shvPath().asString());
 			shv::chainpack::RpcValue result = processRpcRequest(rq);
 			if (result.isValid()) {
 				resp.setResult(result);

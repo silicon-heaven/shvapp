@@ -290,7 +290,7 @@ void MainWindow::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 	if(msg.isSignal()) {
 		cp::RpcSignal ntf(msg);
 		shvDebug() << "SIG:" << ntf.toCpon();
-		if(shv::core::String::endsWith(ntf.shvPath().toString(), "/data") && ntf.method() == cp::Rpc::SIG_VAL_CHANGED) {
+		if(shv::core::String::endsWith(ntf.shvPath().asString(), "/data") && ntf.method() == cp::Rpc::SIG_VAL_CHANGED) {
 			if(!m_paused) {
 				/*
 				const cp::RpcValue::List& data = ntf.params().toList();
@@ -355,7 +355,7 @@ void MainWindow::setLogData(const shv::chainpack::RpcValue &data, LogDataType ty
 	}
 	else if(type == LogDataType::BrcLab) {
 		shvDebug() << data.metaData().toPrettyString();
-		if(data.metaData().value("compression").toString() == "qCompress") {
+		if(data.metaData().value("compression").asString() == "qCompress") {
 			shvDebug() << "uncompressing started ...";
 			const shv::chainpack::RpcValue::String &s = data.asString();
 			QByteArray ba = qUncompress((const uchar*)s.data(), (int)s.size());

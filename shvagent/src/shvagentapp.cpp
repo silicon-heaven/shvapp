@@ -132,7 +132,7 @@ shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path,
 
 shv::chainpack::RpcValue AppRootNode::callMethodRq(const shv::chainpack::RpcRequest &rq)
 {
-	if(rq.shvPath().toString().empty()) {
+	if(rq.shvPath().asString().empty()) {
 		if(rq.method() == cp::Rpc::METH_DEVICE_ID) {
 			ShvAgentApp *app = ShvAgentApp::instance();
 			const cp::RpcValue::Map& opts = app->rpcConnection()->connectionOptions().toMap();
@@ -158,7 +158,7 @@ shv::chainpack::RpcValue AppRootNode::callMethodRq(const shv::chainpack::RpcRequ
 				}
 			}
 			else {
-				script = QByteArray::fromStdString(rq.params().toString());
+				script = QByteArray::fromStdString(rq.params().asString());
 			}
 			QString script_dir = "/tmp/shvagent/scripts/";
 			QByteArray sha1;
