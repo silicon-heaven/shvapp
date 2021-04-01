@@ -230,7 +230,7 @@ void DirSyncTask::onFileReceived(const QString &shv_path, const shv::chainpack::
 	if (resp.isSuccess()) {
 		std::string remote_hash = resp.result().toString();
 		AppRootNode *root = qobject_cast<AppRootNode*>(parent());
-		root->writeFile(shv_path, resp.result().asString());
+		root->writeFile(shv_path, resp.result().toString());
 		m_filesToSync[shv_path].status = RpcCallStatus::Ok;
 		checkSyncFilesIsComplete();
 	}
