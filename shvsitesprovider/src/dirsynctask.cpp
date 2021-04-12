@@ -10,9 +10,10 @@
 
 namespace cp = shv::chainpack;
 
-DirSyncTask::DirSyncTask(AppRootNode *parent)
+DirSyncTask::DirSyncTask(const QString &master_broker_path, AppRootNode *parent)
 	: QObject(parent)
 	, m_timeoutTimer(this)
+	, m_masterBrokerPath(master_broker_path)
 {
 	connect(&m_timeoutTimer, &QTimer::timeout, this, &DirSyncTask::timeout);
 	connect(this, &DirSyncTask::finished, this, &DirSyncTask::deleteLater);
@@ -84,19 +85,21 @@ void DirSyncTask::callLs(const QString &shv_path)
 	connect(cb, &shv::iotqt::rpc::RpcResponseCallBack::finished, this, [this, shv_path](const shv::chainpack::RpcResponse &resp) {
 		onLsFinished(shv_path, resp);
 	});
-	conn->callShvMethod(rqid, "shv/" + shv_path.toStdString(), cp::Rpc::METH_LS, cp::RpcValue());
+	conn->callShvMethod(rqid, makeShvPath(shv_path), cp::Rpc::METH_LS, cp::RpcValue());
 	cb->start();
 }
 
 void DirSyncTask::onLsFinished(const QString &shv_path, const shv::chainpack::RpcResponse &resp)
 {
 	if (resp.isSuccess()) {
+		m_dirsToSync[shv_path].status = RpcCallStatus::Ok;
 		for (const cp::RpcValue &ls_item : resp.result().toList()) {
 			QString file_path = shv_path + "/" + rpcvalue_cast<QString>(ls_item);
+			if (m_masterBrokerPath.isEmpty() || !file_path.endsWith(".cptempl")) {
 			m_lsResult << file_path;
-			m_dirsToSync[shv_path].status = RpcCallStatus::Ok;
 			callDir(file_path);
 		}
+	}
 	}
 	else {
 		m_offlineDevices << shv_path;
@@ -135,7 +138,7 @@ void DirSyncTask::callDir(const QString &shv_path)
 	connect(cb, &shv::iotqt::rpc::RpcResponseCallBack::finished, this, [this, shv_path](const shv::chainpack::RpcResponse &resp) {
 		onDirFinished(shv_path, resp);
 	});
-	conn->callShvMethod(rqid, "shv/" + shv_path.toStdString(), cp::Rpc::METH_DIR, cp::RpcValue());
+	conn->callShvMethod(rqid, makeShvPath(shv_path), cp::Rpc::METH_DIR, cp::RpcValue());
 	cb->start();
 }
 
@@ -185,7 +188,7 @@ void DirSyncTask::getFileHash(const QString &shv_path)
 	connect(cb, &shv::iotqt::rpc::RpcResponseCallBack::finished, this, [this, shv_path](const shv::chainpack::RpcResponse &resp) {
 		onHashReceived(shv_path, resp);
 	});
-	conn->callShvMethod(rqid, "shv/" + shv_path.toStdString(), "hash", cp::RpcValue());
+	conn->callShvMethod(rqid, makeShvPath(shv_path), "hash", cp::RpcValue());
 	cb->start();
 }
 
@@ -221,7 +224,7 @@ void DirSyncTask::getFile(const QString &shv_path)
 	connect(cb, &shv::iotqt::rpc::RpcResponseCallBack::finished, this, [this, shv_path](const shv::chainpack::RpcResponse &resp) {
 		onFileReceived(shv_path, resp);
 	});
-	conn->callShvMethod(rqid, "shv/" + shv_path.toStdString(), "read", cp::RpcValue());
+	conn->callShvMethod(rqid, makeShvPath(shv_path), "read", cp::RpcValue());
 	cb->start();
 }
 
@@ -249,4 +252,14 @@ void DirSyncTask::checkSyncFilesIsComplete()
 		}
 	}
 	Q_EMIT finished(true);
+}
+
+std::string DirSyncTask::makeShvPath(const QString &site_path)
+{
+	if (m_masterBrokerPath.isEmpty()) {
+		return ("shv/" + site_path).toStdString();
+	}
+	else {
+		return (m_masterBrokerPath + '/' + site_path).toStdString();
+	}
 }

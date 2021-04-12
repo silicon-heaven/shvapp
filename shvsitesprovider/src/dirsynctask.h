@@ -24,7 +24,7 @@ class DirSyncTask : public QObject
 	Q_OBJECT
 
 public:
-	DirSyncTask(AppRootNode *parent);
+	DirSyncTask(const QString &master_broker_path, AppRootNode *parent);
 
 	void addDir(const QString &shv_path);
 	shv::chainpack::RpcValue result() const;
@@ -50,6 +50,7 @@ private:
 	void getFile(const QString &shv_path);
 	void onFileReceived(const QString &shv_path, const shv::chainpack::RpcResponse &resp);
 	void checkSyncFilesIsComplete();
+	std::string makeShvPath(const QString &site_path);
 
 	QMap<QString, DirToSync> m_dirsToSync;
 	QMap<QString, FileToSync> m_filesToSync;
@@ -57,6 +58,7 @@ private:
 	std::string m_error;
 	QTimer m_timeoutTimer;
 	QStringList m_offlineDevices;
+	QString m_masterBrokerPath;
 };
 
 #endif // SYNCTASK_H
