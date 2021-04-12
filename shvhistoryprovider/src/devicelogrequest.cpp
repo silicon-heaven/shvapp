@@ -103,10 +103,6 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 		ShvMemoryJournal log;
 		log.loadLog(result);
 
-		QDateTime first_record_time;
-		QDateTime last_record_time;
-		bool is_finished;
-		QDateTime until = m_until;
 		if (m_since.isValid() && m_until.isValid() && log.entries().size() == 0) {
 			log.setSince(cp::RpcValue::fromValue(m_since));
 			log.append(ShvJournalEntry{
@@ -127,46 +123,32 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 					   });
 		}
 
-		if (log.size()) {
-			first_record_time = QDateTime::fromMSecsSinceEpoch(log.entries()[0].epochMsec, Qt::TimeSpec::UTC);
-			last_record_time = QDateTime::fromMSecsSinceEpoch(log.entries()[log.size() - 1].epochMsec, Qt::TimeSpec::UTC);
-			is_finished = (int)log.size() < Application::CHUNK_RECORD_COUNT;
-			if (!is_finished) {
-				until = last_record_time;
-			}
-		}
-		else {
-			is_finished = true;
-		}
+		bool is_finished = (int)log.size() < Application::CHUNK_RECORD_COUNT;
+		QDateTime until = rpcvalue_cast<QDateTime>(result.metaValue("until"));
 
 		if (is_finished && m_askElesys) {
 			m_askElesys = false;
 			is_finished = false;
-			if (log.size()) {
-				until = last_record_time;
-			}
-			else {
-				getChunk();
-				return;
-			}
 		}
 		shvInfo() << "received log for" << m_shvPath << "with" << log.size() << "records"
-				  << "since" << first_record_time
-				  << "until" << last_record_time;
-		if (m_appendLog) {
-			appendToPreviousFile(log, until);
-			if (!m_since.isValid() && log.size() == 0) {
-				fixFirstLogFile();
+				  << "since" << result.metaValue("since").toCpon()
+				  << "until" << result.metaValue("until").toCpon();
+		if (log.size()) {
+			if (m_appendLog) {
+				appendToPreviousFile(log, until);
+				if (!m_since.isValid() && log.size() == 0) {
+					fixFirstLogFile();
+				}
 			}
-		}
-		else {
-			if (Application::instance()->deviceMonitor()->isElesysDevice(m_shvPath) || !log.hasSnapshot()) {
-				prependPreviousFile(log);  //predradime minuly soubor aby se prehral do snapshotu
+			else {
+				if (Application::instance()->deviceMonitor()->isElesysDevice(m_shvPath) || !log.hasSnapshot()) {
+					prependPreviousFile(log);  //predradime minuly soubor aby se prehral do snapshotu
+				}
+				saveToNewFile(log, until);
 			}
-			saveToNewFile(log, until);
-		}
-		if (m_logDir.exists(m_logDir.dirtyLogName())) {
-			trimDirtyLog(until);
+			if (m_logDir.exists(m_logDir.dirtyLogName())) {
+				trimDirtyLog(until);
+			}
 		}
 		m_since = until;
 
@@ -180,7 +162,6 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 		Q_EMIT finished(false);
 	}
 }
-
 
 void DeviceLogRequest::exec()
 {
@@ -297,6 +278,7 @@ void DeviceLogRequest::trimDirtyLog(const QDateTime &until)
 			SHV_QT_EXCEPTION("cannot remove file " + m_logDir.absoluteFilePath(temp_filename));
 		}
 	}
+
 	if (dirty_reader.next() && dirty_reader.entry().epochMsec < until_msec) {
 		ShvJournalFileWriter dirty_writer(m_logDir.absoluteFilePath(temp_filename).toStdString());
 		dirty_writer.append(ShvJournalEntry{
@@ -307,33 +289,15 @@ void DeviceLogRequest::trimDirtyLog(const QDateTime &until)
 								ShvJournalEntry::SampleType::Continuous,
 								until_msec
 							});
-		bool first = true;
 		int64_t old_start_ts = 0LL;
-		std::string data_missing_value;
 		while (dirty_reader.next()) {
 			const ShvJournalEntry &entry = dirty_reader.entry();
 			if (!old_start_ts) {
 				old_start_ts = entry.epochMsec;
 			}
 			if (entry.epochMsec > until_msec) {
-				if (first) {
-					first = false;
-					if (!data_missing_value.empty()) {
-						dirty_writer.append(ShvJournalEntry {
-												ShvJournalEntry::PATH_DATA_MISSING,
-												data_missing_value,
-												ShvJournalEntry::DOMAIN_VAL_CHANGE,
-												ShvJournalEntry::NO_SHORT_TIME,
-												ShvJournalEntry::SampleType::Continuous,
-												until_msec
-											});
-					}
-				}
-				dirty_writer.append(dirty_reader.entry());
-			}
-			else {
-				if (entry.path == ShvJournalEntry::PATH_DATA_MISSING && entry.value.isString()) {
-					data_missing_value = entry.value.toString();
+				if (entry.path != ShvJournalEntry::PATH_DATA_MISSING) {
+					dirty_writer.append(entry);
 				}
 			}
 		}
