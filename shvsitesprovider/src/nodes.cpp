@@ -33,6 +33,7 @@ static const char METH_GIT_COMMIT[] = "gitCommit";
 static const char METH_APP_VERSION[] = "version";
 static const char METH_GET_SITES[] = "getSites";
 static const char METH_RELOAD_SITES[] = "reloadSites";
+static const char METH_DOWNLOAD_SITES_FILES[] = "downloadSitesFiles";
 static const char METH_SITES_SYNCED_BEFORE[] = "sitesSyncedBefore";
 static const char METH_SITES_RELOADED[] = "reloaded";
 static const char METH_FILE_READ[] = "read";
@@ -112,6 +113,14 @@ AppRootNode::AppRootNode(QObject *parent)
 		shvInfo() << "sites directory" << SitesProviderApp::instance()->cliOptions()->localSitesDir() << "identified as git repository";
 		root_meta_methods.push_back({ METH_GIT_PUSH, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_ADMIN });
 	}
+	QString url_scheme = QUrl(SitesProviderApp::instance()->remoteSitesUrl()).scheme();
+	if (url_scheme.startsWith("shv")) {
+		cp::MetaMethod download_sites_files{ METH_DOWNLOAD_SITES_FILES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE };
+		root_meta_methods.push_back(download_sites_files);
+		dir_meta_methods.push_back(download_sites_files);
+		device_meta_methods.push_back(download_sites_files);
+		device_file_dir_meta_methods.push_back(download_sites_files);
+	}
 	QFile sites_file(sitesFileName());
 	if (sites_file.open(QFile::ReadOnly)) {
 		cp::RpcValue sites = cp::RpcValue::fromCpon(sites_file.readAll().toStdString());
@@ -174,7 +183,43 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 		return mkFile(shv::core::utils::ShvPath::split(shv_path), rq.params());
 	}
 	else if (method == METH_PULL_FILES) {
-		DirSyncTask *sync_task = new DirSyncTask(this);
+		DirSyncTask *sync_task = new DirSyncTask(QString(), this);
+		std::string shv_path = rq.shvPath().toString();
+		shv::core::StringViewList shv_path_view = shv::core::utils::ShvPath::split(shv_path);
+		QString qshv_path = QString::fromStdString(shv_path);
+		QString qfiles_node = QString::fromStdString(FILES_NODE);
+		if (qshv_path.endsWith(qfiles_node)) {
+			sync_task->addDir(qshv_path);
+		}
+		else if (isDevice(shv_path_view)) {
+			qshv_path += "/" + qfiles_node;
+			sync_task->addDir(qshv_path);
+		}
+		else {
+			QStringList devices;
+			findDevicesToSync(shv_path_view, devices);
+			for (const QString &device_path : devices) {
+				sync_task->addDir(device_path);
+			}
+		}
+		connect(sync_task, &DirSyncTask::finished, [this, rq, sync_task](bool success) {
+			cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
+			if (success) {
+				resp.setResult(sync_task->result());
+			}
+			else {
+				resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, sync_task->error()));
+			}
+			emitSendRpcMessage(resp);
+		});
+		sync_task->start();
+		return cp::RpcValue();
+	}
+	else if (method == METH_DOWNLOAD_SITES_FILES) {
+		QString url = SitesProviderApp::instance()->remoteSitesUrl();
+		QString url_scheme = QUrl(url).scheme();
+		QString master_shv_path = url.mid(url_scheme.length() + 3);
+		DirSyncTask *sync_task = new DirSyncTask(master_shv_path, this);
 		std::string shv_path = rq.shvPath().toString();
 		shv::core::StringViewList shv_path_view = shv::core::utils::ShvPath::split(shv_path);
 		QString qshv_path = QString::fromStdString(shv_path);
