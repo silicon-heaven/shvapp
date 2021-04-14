@@ -33,7 +33,7 @@ Application::Application(int &argc, char **argv, AppCliOptions* cli_opts)
         cli_opts->setServerHost("localhost");
     }
     if (!cli_opts->user_isset()) {
-        cli_opts->setUser("iot");
+        cli_opts->setUser("shvhistoryprovider");
     }
     if (!cli_opts->password_isset()) {
         cli_opts->setPassword("lub42DUB");
