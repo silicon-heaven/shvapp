@@ -3,6 +3,8 @@
 #include "sitesproviderapp.h"
 #include "dirsynctask.h"
 #include "appclioptions.h"
+#include "tardirtask.h"
+#include "untardirtask.h"
 
 #include <shv/core/utils/shvpath.h>
 #include <shv/coreqt/log.h>
@@ -33,7 +35,7 @@ static const char METH_GIT_COMMIT[] = "gitCommit";
 static const char METH_APP_VERSION[] = "version";
 static const char METH_GET_SITES[] = "getSites";
 static const char METH_RELOAD_SITES[] = "reloadSites";
-static const char METH_DOWNLOAD_SITES_FILES[] = "downloadSitesFiles";
+static const char METH_PULL_DIR_FILES_TREE_ARCHIVE[] = "pullDirFilesTreeArchive";
 static const char METH_SITES_SYNCED_BEFORE[] = "sitesSyncedBefore";
 static const char METH_SITES_RELOADED[] = "reloaded";
 static const char METH_FILE_READ[] = "read";
@@ -42,6 +44,7 @@ static const char METH_FILE_HASH[] = "hash";
 static const char METH_PULL_FILES[] = "pullFiles";
 static const char METH_FILE_MK[] = "mkfile";
 static const char METH_GIT_PUSH[] = "addFilesToVersionControl";
+static const char METH_DIR_FILES_TREE_ARCHIVE[] = "dirFilesTreeArchive";
 
 static std::vector<cp::MetaMethod> root_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
@@ -52,6 +55,7 @@ static std::vector<cp::MetaMethod> root_meta_methods {
 	{ cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
 	{ METH_GIT_COMMIT, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 	{ METH_GET_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
+	{ METH_DIR_FILES_TREE_ARCHIVE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
 	{ METH_RELOAD_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_COMMAND},
 	{ METH_SITES_SYNCED_BEFORE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
 	{ METH_SITES_RELOADED, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::IsSignal, shv::chainpack::Rpc::ROLE_READ },
@@ -64,6 +68,7 @@ static std::vector<cp::MetaMethod> dir_meta_methods {
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ METH_PULL_FILES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
 	{ METH_GET_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
+	{ METH_DIR_FILES_TREE_ARCHIVE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
 };
 
 static std::vector<cp::MetaMethod> device_meta_methods {
@@ -71,6 +76,7 @@ static std::vector<cp::MetaMethod> device_meta_methods {
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ METH_PULL_FILES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
 	{ METH_GET_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
+	{ METH_DIR_FILES_TREE_ARCHIVE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
 };
 
 static std::vector<cp::MetaMethod> meta_meta_methods {
@@ -115,7 +121,7 @@ AppRootNode::AppRootNode(QObject *parent)
 	}
 	QString url_scheme = QUrl(SitesProviderApp::instance()->remoteSitesUrl()).scheme();
 	if (url_scheme.startsWith("shv")) {
-		cp::MetaMethod download_sites_files{ METH_DOWNLOAD_SITES_FILES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE };
+		cp::MetaMethod download_sites_files{ METH_PULL_DIR_FILES_TREE_ARCHIVE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE };
 		root_meta_methods.push_back(download_sites_files);
 		dir_meta_methods.push_back(download_sites_files);
 		device_meta_methods.push_back(download_sites_files);
@@ -169,6 +175,25 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 	else if (method == METH_GET_SITES) {
 		return getSites(rq.shvPath().toString());
 	}
+	else if (method == METH_DIR_FILES_TREE_ARCHIVE) {
+		if (!QDir(nodeLocalPath(rq.shvPath().toString())).exists()) {
+			return std::string();
+		}
+		TarDirTask *tar_task = new TarDirTask(nodeLocalPath(rq.shvPath().toString()), this);
+		connect(tar_task, &TarDirTask::finished, this, [this, rq, tar_task](bool success) {
+			cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
+			if (success) {
+				resp.setResult(tar_task->result());
+			}
+			else {
+				resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, tar_task->error()));
+			}
+			tar_task->deleteLater();
+			emitSendRpcMessage(resp);
+		});
+		tar_task->start();
+		return cp::RpcValue();
+	}
 	else if (method == METH_FILE_READ) {
 		return readFile(rpcvalue_cast<QString>(rq.shvPath()));
 	}
@@ -215,40 +240,41 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 		sync_task->start();
 		return cp::RpcValue();
 	}
-	else if (method == METH_DOWNLOAD_SITES_FILES) {
+	else if (method == METH_PULL_DIR_FILES_TREE_ARCHIVE) {
 		QString url = SitesProviderApp::instance()->remoteSitesUrl();
 		QString url_scheme = QUrl(url).scheme();
 		QString master_shv_path = url.mid(url_scheme.length() + 3);
-		DirSyncTask *sync_task = new DirSyncTask(master_shv_path, this);
-		std::string shv_path = rq.shvPath().toString();
-		shv::core::StringViewList shv_path_view = shv::core::utils::ShvPath::split(shv_path);
-		QString qshv_path = QString::fromStdString(shv_path);
-		QString qfiles_node = QString::fromStdString(FILES_NODE);
-		if (qshv_path.endsWith(qfiles_node)) {
-			sync_task->addDir(qshv_path);
-		}
-		else if (isDevice(shv_path_view)) {
-			qshv_path += "/" + qfiles_node;
-			sync_task->addDir(qshv_path);
-		}
-		else {
-			QStringList devices;
-			findDevicesToSync(shv_path_view, devices);
-			for (const QString &device_path : devices) {
-				sync_task->addDir(device_path);
-			}
-		}
-		connect(sync_task, &DirSyncTask::finished, [this, rq, sync_task](bool success) {
+
+		auto *rpc_call = shv::iotqt::rpc::RpcCall::create(SitesProviderApp::instance()->rpcConnection())
+						 ->setShvPath(master_shv_path)
+						 ->setMethod(METH_DIR_FILES_TREE_ARCHIVE);
+		connect(rpc_call, &shv::iotqt::rpc::RpcCall::error, this, [this, rq](const QString &error) {
 			cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
-			if (success) {
-				resp.setResult(sync_task->result());
-			}
-			else {
-				resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, sync_task->error()));
-			}
+			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, error.toStdString()));
 			emitSendRpcMessage(resp);
 		});
-		sync_task->start();
+		connect(rpc_call, &shv::iotqt::rpc::RpcCall::result, this, [this, rq](const shv::chainpack::RpcValue &result) {
+			if (result.toString().empty()) {
+				cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
+				resp.setResult(true);
+				emitSendRpcMessage(resp);
+				return;
+			}
+			UntarDirTask *untar_task = new UntarDirTask(nodeLocalPath(rq.shvPath().toString()), QByteArray::fromStdString(result.toString()), this);
+			connect(untar_task, &UntarDirTask::finished, this, [this, untar_task, rq](bool success) {
+				cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
+				if (success) {
+					resp.setResult(true);
+				}
+				else {
+					resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, untar_task->error()));
+				}
+				untar_task->deleteLater();
+				emitSendRpcMessage(resp);
+			});
+			untar_task->start();
+		});
+		rpc_call->start();
 		return cp::RpcValue();
 	}
 	else if (method == METH_FILE_HASH) {
