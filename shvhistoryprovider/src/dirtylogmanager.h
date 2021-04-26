@@ -25,7 +25,7 @@ private:
 	void insertDataMissingToDirtyLog(const QString &shv_path);
 	void writeDirtyLog(const QString &shv_path, const QString &path, const shv::chainpack::RpcValue &value, int64_t timestamp, std::string domain, bool is_connected);
 	void checkDirtyLog(const QString &shv_path, bool is_connected);
-	void onDeviceDataChanged(const QString &path, const QString &method, shv::chainpack::RpcValue data);
+	void onDeviceDataChanged(const QString &path, const QString &method, const shv::chainpack::RpcValue &data);
 
 	ShvSubscription *m_chngSubscription;
 };

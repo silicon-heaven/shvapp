@@ -91,11 +91,12 @@ void DirtyLogManager::onShvStateChanged(shv::iotqt::rpc::ClientConnection::State
 	}
 }
 
-void DirtyLogManager::onDeviceDataChanged(const QString &path, const QString &method, shv::chainpack::RpcValue data)
+void DirtyLogManager::onDeviceDataChanged(const QString &path, const QString &method, const shv::chainpack::RpcValue &data)
 {
 	Q_UNUSED(method);
 	Application *app = Application::instance();
 	DeviceMonitor *dm = app->deviceMonitor();
+	shv::chainpack::RpcValue value = data;
 
 	QString p = path.mid(4);
 	QString shv_path;
@@ -110,21 +111,21 @@ void DirtyLogManager::onDeviceDataChanged(const QString &path, const QString &me
 	if (!shv_path.isEmpty() && !dm->isPushLogDevice(shv_path)) {
 		int64_t timestamp = 0;
 		std::string domain = ShvJournalEntry::DOMAIN_VAL_CHANGE;
-		if (shv::chainpack::DataChange::isDataChange(data)) {
-			shv::chainpack::DataChange d = shv::chainpack::DataChange::fromRpcValue(data);
+		if (shv::chainpack::DataChange::isDataChange(value)) {
+			shv::chainpack::DataChange d = shv::chainpack::DataChange::fromRpcValue(value);
 			if (d.hasDateTime()) {
 				timestamp = d.epochMSec();
 			}
 			if (!d.domain().empty()) {
 				domain = d.domain();
 			}
-			data = d.value();
+			value = d.value();
 		}
 		if (!timestamp) {
 			timestamp = QDateTime::currentDateTimeUtc().toMSecsSinceEpoch();
 		}
 
-		writeDirtyLog(shv_path, property, data, timestamp, domain, true);
+		writeDirtyLog(shv_path, property, value, timestamp, domain, true);
 	}
 }
 
