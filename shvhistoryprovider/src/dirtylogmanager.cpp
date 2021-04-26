@@ -50,6 +50,7 @@ void DirtyLogManager::onDeviceAppeared(const QString &shv_path)
 		writeDirtyLog(shv_path,
 					  ShvJournalEntry::PATH_DATA_MISSING,
 					  "",
+					  QDateTime::currentDateTimeUtc().toMSecsSinceEpoch(),
 					  ShvJournalEntry::DOMAIN_SHV_SYSTEM,
 					  true);
 	}
@@ -61,6 +62,7 @@ void DirtyLogManager::onDeviceDisappeared(const QString &shv_path)
 		writeDirtyLog(shv_path,
 					  ShvJournalEntry::PATH_DATA_MISSING,
 					  ShvJournalEntry::DATA_MISSING_UNAVAILABLE,
+					  QDateTime::currentDateTimeUtc().toMSecsSinceEpoch(),
 					  ShvJournalEntry::DOMAIN_SHV_SYSTEM,
 					  false);
 	}
@@ -94,6 +96,7 @@ void DirtyLogManager::onDeviceDataChanged(const QString &path, const QString &me
 	Q_UNUSED(method);
 	Application *app = Application::instance();
 	DeviceMonitor *dm = app->deviceMonitor();
+	shv::chainpack::RpcValue value = data;
 
 	QString p = path.mid(4);
 	QString shv_path;
@@ -106,7 +109,23 @@ void DirtyLogManager::onDeviceDataChanged(const QString &path, const QString &me
 		}
 	}
 	if (!shv_path.isEmpty() && !dm->isPushLogDevice(shv_path)) {
-		writeDirtyLog(shv_path, property, data, ShvJournalEntry::DOMAIN_VAL_CHANGE, true);
+		int64_t timestamp = 0;
+		std::string domain = ShvJournalEntry::DOMAIN_VAL_CHANGE;
+		if (shv::chainpack::DataChange::isDataChange(value)) {
+			shv::chainpack::DataChange d = shv::chainpack::DataChange::fromRpcValue(value);
+			if (d.hasDateTime()) {
+				timestamp = d.epochMSec();
+			}
+			if (!d.domain().empty()) {
+				domain = d.domain();
+			}
+			value = d.value();
+		}
+		if (!timestamp) {
+			timestamp = QDateTime::currentDateTimeUtc().toMSecsSinceEpoch();
+		}
+
+		writeDirtyLog(shv_path, property, value, timestamp, domain, true);
 	}
 }
 
@@ -147,30 +166,19 @@ void DirtyLogManager::insertDataMissingToDirtyLog(const QString &shv_path)
 						});
 }
 
-void DirtyLogManager::writeDirtyLog(const QString &shv_path, const QString &path, shv::chainpack::RpcValue value, std::string domain, bool is_connected)
+void DirtyLogManager::writeDirtyLog(const QString &shv_path, const QString &path, const shv::chainpack::RpcValue &value, int64_t timestamp, std::string domain, bool is_connected)
 {
 	checkDirtyLog(shv_path, is_connected);
 	LogDir log_dir(shv_path);
 	ShvJournalFileWriter dirty_writer(log_dir.dirtyLogPath().toStdString());
 
-	int64_t ts = 0;
-	if (shv::chainpack::DataChange::isDataChange(value)) {
-		shv::chainpack::DataChange d = shv::chainpack::DataChange::fromRpcValue(value);
-		if (d.hasDateTime()) {
-			ts = d.epochMSec();
-		}
-		value = d.value();
-	}
-	if (!ts) {
-		ts = QDateTime::currentDateTimeUtc().toMSecsSinceEpoch();
-	}
 	dirty_writer.append(ShvJournalEntry{
 							path.toStdString(),
 							value,
 							domain,
 							ShvJournalEntry::NO_SHORT_TIME,
 							ShvJournalEntry::SampleType::Continuous,
-							ts
+							timestamp
 						});
 }
 
