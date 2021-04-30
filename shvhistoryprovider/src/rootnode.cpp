@@ -281,8 +281,13 @@ void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &
 	for (const QString &file : matching_files) {
 		QFile(file).remove();
 	}
-	for (const QString &file : new_files) {
-		QFile(file).rename(file.chopped(4));
+	for (const QString &new_file : new_files) {
+		QString regular_filename = new_file.chopped(4);
+		QFile regular_file(regular_filename);
+		if (regular_file.exists()) {
+			regular_file.remove();
+		}
+		QFile(new_file).rename(regular_filename);
 	}
 	new_files.clear();
 }
