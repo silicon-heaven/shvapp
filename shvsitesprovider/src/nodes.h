@@ -23,6 +23,8 @@ public:
 	shv::chainpack::RpcValue readFile(const QString &shv_path);
 	shv::chainpack::RpcValue writeFile(const QString &shv_path, const std::string &content);
 
+	shv::chainpack::RpcValue readFileCompressed(const shv::chainpack::RpcRequest &request);
+
 private:
 	const std::vector<shv::chainpack::MetaMethod> &metaMethods(const StringViewList &shv_path);
 

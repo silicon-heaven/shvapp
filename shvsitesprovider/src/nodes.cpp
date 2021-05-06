@@ -39,9 +39,12 @@ static const char METH_PULL_DIR_FILES_TREE_ARCHIVE[] = "pullDirFilesTreeArchive"
 static const char METH_SITES_SYNCED_BEFORE[] = "sitesSyncedBefore";
 static const char METH_SITES_RELOADED[] = "reloaded";
 static const char METH_FILE_READ[] = "read";
+static const char METH_FILE_READ_COMPRESSED[] = "readCompressed";
 static const char METH_FILE_WRITE[] = "write";
 static const char METH_FILE_HASH[] = "hash";
 static const char METH_PULL_FILES[] = "pullFilesFromDevice";
+static const char METH_FILE_SIZE[] = "size";
+static const char METH_FILE_SIZE_COMPRESSED[] = "sizeCompressed";
 static const char METH_FILE_MK[] = "mkfile";
 static const char METH_GIT_PUSH[] = "addFilesToVersionControl";
 static const char METH_DIR_FILES_TREE_ARCHIVE[] = "dirFilesTreeArchive";
@@ -100,7 +103,10 @@ static std::vector<cp::MetaMethod> device_file_dir_meta_methods {
 static std::vector<cp::MetaMethod> file_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
+	{ METH_FILE_SIZE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
+	{ METH_FILE_SIZE_COMPRESSED, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ METH_FILE_READ, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
+	{ METH_FILE_READ_COMPRESSED, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
 	{ METH_FILE_WRITE, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
 	{ METH_FILE_HASH, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
 };
@@ -111,6 +117,20 @@ static std::vector<cp::MetaMethod> data_meta_methods {
 	{ cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, shv::chainpack::Rpc::ROLE_READ },
 };
 
+enum class CompressAlgorithm {
+	Invalid,
+	QCompress,
+};
+
+static CompressAlgorithm compress_algorithm_from_string(const std::string &algo, CompressAlgorithm default_algo)
+{
+	if (algo.empty())
+		return default_algo;
+	else if (algo == "qCompress")
+		return CompressAlgorithm::QCompress;
+	else
+		return CompressAlgorithm::Invalid;
+}
 
 AppRootNode::AppRootNode(QObject *parent)
 	: Super(parent)
@@ -196,6 +216,15 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 	}
 	else if (method == METH_FILE_READ) {
 		return readFile(rpcvalue_cast<QString>(rq.shvPath()));
+	}
+	else if (method == METH_FILE_READ_COMPRESSED) {
+		return readFileCompressed(rq);
+	}
+	else if (method == METH_FILE_SIZE) {
+		return readFile(rpcvalue_cast<QString>(rq.shvPath())).asData().second;
+	}
+	else if (method == METH_FILE_SIZE_COMPRESSED) {
+		return readFileCompressed(rq).asData().second;
 	}
 	else if (method == METH_FILE_WRITE) {
 		cp::RpcValue params = rq.params();
@@ -639,6 +668,24 @@ shv::chainpack::RpcValue AppRootNode::writeFile(const QString &shv_path, const s
 		throw shv::coreqt::Exception("Cannot open file '" + shv_path + "' for writing.");
 	}
 	return readConfig(filename).toCpon("  ");
+}
+
+shv::chainpack::RpcValue AppRootNode::readFileCompressed(const shv::chainpack::RpcRequest &request)
+{
+	const auto algo_str = request.params().asMap().value("algorithm").toString();
+	const auto algo = compress_algorithm_from_string(algo_str, CompressAlgorithm::QCompress);
+	if (algo == CompressAlgorithm::Invalid) {
+		SHV_EXCEPTION("Invalid compress algorithm: " + algo_str + " on path: " + request.shvPath().asString());
+	}
+
+	cp::RpcValue result;
+	const auto blob = readFile(rpcvalue_cast<QString>(request.shvPath())).asData();
+	if (algo == CompressAlgorithm::QCompress) {
+		const auto compressed_blob = qCompress(QByteArray::fromRawData(blob.first, blob.second));
+		result = cp::RpcValue::Blob(compressed_blob.cbegin(), compressed_blob.cend());
+	}
+
+	return result;
 }
 
 shv::chainpack::RpcValue AppRootNode::mkFile(const shv::core::StringViewList &shv_path, const shv::chainpack::RpcValue &params)
