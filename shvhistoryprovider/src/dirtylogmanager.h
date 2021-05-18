@@ -28,6 +28,7 @@ private:
 	void onDeviceDataChanged(const QString &path, const QString &method, const shv::chainpack::RpcValue &data);
 
 	ShvSubscription *m_chngSubscription;
+	ShvSubscription *m_cmdSubscription;
 };
 
 #endif // DIRTYLOGMANAGER_H
