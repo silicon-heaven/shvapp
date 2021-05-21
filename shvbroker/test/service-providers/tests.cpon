@@ -115,7 +115,7 @@
 		"descr": "Get value on root broker via absolute shv_path call",
 		"cmd": "call",
 		"method": "brokerId",
-		"shvPath": ".broker@|:/app",
+		"shvPath": ".broker@master|:/app",
 		"result": "master",
 	},
 	{
