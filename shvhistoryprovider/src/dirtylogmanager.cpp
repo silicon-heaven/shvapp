@@ -16,7 +16,7 @@ using namespace shv::core::utils;
 DirtyLogManager::DirtyLogManager(QObject *parent)
 	: QObject(parent)
 	, m_chngSubscription(nullptr)
-	, m_cmdSubscription(nullptr)
+	, m_cmdLogSubscription(nullptr)
 {
 	Application *app = Application::instance();
 	auto *conn = app->deviceConnection();
@@ -43,8 +43,8 @@ DirtyLogManager::~DirtyLogManager()
 	if (m_chngSubscription) {
 		delete m_chngSubscription;
 	}
-	if (m_cmdSubscription) {
-		delete m_cmdSubscription;
+	if (m_cmdLogSubscription) {
+		delete m_cmdLogSubscription;
 	}
 }
 
@@ -85,17 +85,17 @@ void DirtyLogManager::onShvStateChanged(shv::iotqt::rpc::ClientConnection::State
 		}
 		m_chngSubscription = new ShvSubscription(conn, path, shv::chainpack::Rpc::SIG_VAL_CHANGED, this);
 		connect(m_chngSubscription, &ShvSubscription::notificationReceived, this, &DirtyLogManager::onDeviceDataChanged);
-		m_cmdSubscription = new ShvSubscription(conn, path, shv::chainpack::Rpc::SIG_COMMAND_LOGGED, this);
-		connect(m_cmdSubscription, &ShvSubscription::notificationReceived, this, &DirtyLogManager::onDeviceDataChanged);
+		m_cmdLogSubscription = new ShvSubscription(conn, path, shv::chainpack::Rpc::SIG_COMMAND_LOGGED, this);
+		connect(m_cmdLogSubscription, &ShvSubscription::notificationReceived, this, &DirtyLogManager::onDeviceDataChanged);
 	}
 	else if (state == shv::iotqt::rpc::ClientConnection::State::NotConnected) {
 		if (m_chngSubscription) {
 			delete m_chngSubscription;
 			m_chngSubscription = nullptr;
 		}
-		if (m_cmdSubscription) {
-			delete m_cmdSubscription;
-			m_cmdSubscription = nullptr;
+		if (m_cmdLogSubscription) {
+			delete m_cmdLogSubscription;
+			m_cmdLogSubscription = nullptr;
 		}
 		insertDataMissingToDirtyLog();
 	}
