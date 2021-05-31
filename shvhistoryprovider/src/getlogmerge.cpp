@@ -78,7 +78,7 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 	}
 
 	int64_t until_msecs = until.isNull() ? std::numeric_limits<int64_t>::max() : until.toMSecsSinceEpoch();
-
+	int64_t last_record_ts = 0LL;
 	int record_count = 0;
 	int usable_readers = readers.count();
 	while (usable_readers) {
@@ -101,6 +101,7 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 				first_record_since = entry.epochMsec;
 			}
 			m_mergedLog.append(entry);
+			last_record_ts = entry.epochMsec;
 			if (final_filter.match(entry)) {
 				++record_count;
 				if (record_count > m_logParams.recordCountLimit) {
@@ -126,6 +127,9 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 	qDeleteAll(readers);
 
 	ShvGetLogParams params = m_logParams;
+	if (params.since.toDateTime().msecsSinceEpoch() > last_record_ts) {
+		params.since = cp::RpcValue::DateTime::fromMSecsSinceEpoch(last_record_ts);
+	}
 	params.pathPattern = std::string();
 	cp::RpcValue res = m_mergedLog.getLog(params);
 	if (!since.isNull() && first_record_since && first_record_since > since.toMSecsSinceEpoch()) {
