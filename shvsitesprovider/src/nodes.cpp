@@ -158,7 +158,7 @@ AppRootNode::AppRootNode(QObject *parent)
 
 QString AppRootNode::sitesFileName() const
 {
-	return QString::fromStdString(SitesProviderApp::instance()->cliOptions()->effectiveConfigDir()) + "/sites.json";
+	return QString::fromStdString(SitesProviderApp::instance()->cliOptions()->sitesFilePath());
 }
 
 size_t AppRootNode::methodCount(const StringViewList &shv_path)

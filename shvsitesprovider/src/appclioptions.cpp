@@ -9,3 +9,8 @@ AppCliOptions::AppCliOptions()
 			.setComment("Url location to remote server file which contains all Elektroline sites.")
 			.setDefaultValue("https://gitlab.com/revitest-predator/sites/raw/master/sites.json");
 }
+
+std::string AppCliOptions::sitesFilePath()
+{
+	return effectiveConfigDir() + "/sites.json";
+}

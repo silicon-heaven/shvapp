@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
 	QCoreApplication::setOrganizationName("Elektroline");
 	QCoreApplication::setOrganizationDomain("elektroline.cz");
 	QCoreApplication::setApplicationName("shvsitesprovider");
-	QCoreApplication::setApplicationVersion("1.0.8");
+	QCoreApplication::setApplicationVersion("1.0.9");
 
 	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);
 
@@ -51,6 +51,7 @@ int main(int argc, char *argv[])
 	shvInfo() << QDateTime::currentDateTime().toString(Qt::ISODate).toStdString() << "UTC:" << QDateTime::currentDateTimeUtc().toString(Qt::ISODate).toStdString();
 	shvInfo() << "======================================================================================";
 	shvInfo() << "Log tresholds:" << NecroLog::tresholdsLogInfo();
+	shvInfo() << "Sites file path:" << cli_opts.sitesFilePath();
 	shvInfo() << "Sites root dir:" << cli_opts.localSitesDir();
 	shvInfo() << "--------------------------------------------------------------------------------------";
 

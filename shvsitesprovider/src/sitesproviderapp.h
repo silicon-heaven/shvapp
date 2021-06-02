@@ -1,12 +1,8 @@
 #pragma once
 
 #include <shv/iotqt/node/shvnode.h>
-#include <shv/chainpack/rpcmessage.h>
 
 #include <QCoreApplication>
-#include <QDateTime>
-#include <QMap>
-
 
 class AppCliOptions;
 class AppRootNode;
