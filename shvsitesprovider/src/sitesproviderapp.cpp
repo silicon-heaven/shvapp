@@ -3,23 +3,10 @@
 #include "nodes.h"
 
 #include <shv/iotqt/node/shvnodetree.h>
-#include <shv/iotqt/rpc/rpc.h>
 #include <shv/coreqt/log.h>
-#include <shv/coreqt/exception.h>
-#include <shv/chainpack/metamethod.h>
-#include <shv/core/stringview.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
 
-#include <QDir>
-#include <QFileInfo>
-#include <QNetworkReply>
 #include <QTimer>
-
-#ifdef Q_OS_UNIX
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#endif
 
 namespace cp = shv::chainpack;
 
@@ -27,7 +14,6 @@ SitesProviderApp::SitesProviderApp(int &argc, char **argv, AppCliOptions* cli_op
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
 {
-	//cp::RpcMessage::setMetaTypeExplicit(cli_opts->isMetaTypeExplicit());
 	m_rpcConnection = new shv::iotqt::rpc::DeviceConnection(this);
 
 	if (!cli_opts->deviceId_isset()) {
