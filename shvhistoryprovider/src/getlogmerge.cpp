@@ -50,22 +50,17 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 		bool exhausted = false;
 	};
 
-	ShvGetLogParams first_step_params;
-	ShvGetLogParams final_params;
+	ShvGetLogParams log_params;
 	if (!m_logParams.pathPattern.empty()) {
-		first_step_params.pathPattern = m_logParams.pathPattern;
-		first_step_params.pathPatternType = m_logParams.pathPatternType;
+		log_params.pathPattern = m_logParams.pathPattern;
+		log_params.pathPatternType = m_logParams.pathPatternType;
 	}
-	if (since.isValid()) {
-		if (m_logParams.withSnapshot) {
-			final_params.since = m_logParams.since;
-		}
-		else {
-			first_step_params.since = m_logParams.since;
-		}
+	if (since.isValid() && m_logParams.withSnapshot) {
+			log_params.since = m_logParams.since;
 	}
-	ShvLogFilter first_step_filter(first_step_params);
-	ShvLogFilter final_filter(final_params);
+	int64_t param_since = m_logParams.since.isDateTime() ? m_logParams.since.toDateTime().msecsSinceEpoch() : 0;
+
+	ShvLogFilter first_step_filter(log_params);
 
 	QVector<LogDirReader*> readers;
 	QVector<ReaderInfo> reader_infos;
@@ -106,12 +101,9 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 			}
 			m_mergedLog.append(entry);
 			last_record_ts = entry.epochMsec;
-			if (!since_now) {
-				if (final_filter.match(entry)) {
-					++record_count;
-					if (record_count > m_logParams.recordCountLimit) {
-						break;
-					}
+			if (!since_now && entry.epochMsec >= param_since) {
+				if (++record_count > m_logParams.recordCountLimit) {
+					break;
 				}
 			}
 		}
