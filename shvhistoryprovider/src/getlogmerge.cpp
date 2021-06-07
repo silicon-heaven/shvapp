@@ -32,11 +32,15 @@ GetLogMerge::GetLogMerge(const QString &shv_path, const shv::core::utils::ShvGet
 			m_shvPaths << device->shvPath();
 		}
 	}
+	if (log_params.since.asString() == ShvGetLogParams::SINCE_NOW && m_shvPaths.count() > 1) {
+		SHV_EXCEPTION("Since now is valid only with single device");
+	}
 }
 
 shv::chainpack::RpcValue GetLogMerge::getLog()
 {
-	QDateTime since = rpcvalue_cast<QDateTime>(m_logParams.since);
+	bool since_now = (m_logParams.since.asString() == ShvGetLogParams::SINCE_NOW);
+	QDateTime since = since_now ? QDateTime::currentDateTimeUtc() : rpcvalue_cast<QDateTime>(m_logParams.since);
 	QDateTime until = rpcvalue_cast<QDateTime>(m_logParams.until);
 
 	int64_t first_record_since = 0LL;
@@ -46,8 +50,8 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 		bool exhausted = false;
 	};
 
-	shv::core::utils::ShvGetLogParams first_step_params;
-	shv::core::utils::ShvGetLogParams final_params;
+	ShvGetLogParams first_step_params;
+	ShvGetLogParams final_params;
 	if (!m_logParams.pathPattern.empty()) {
 		first_step_params.pathPattern = m_logParams.pathPattern;
 		first_step_params.pathPatternType = m_logParams.pathPatternType;
@@ -60,8 +64,8 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 			first_step_params.since = m_logParams.since;
 		}
 	}
-	shv::core::utils::ShvLogFilter first_step_filter(first_step_params);
-	shv::core::utils::ShvLogFilter final_filter(final_params);
+	ShvLogFilter first_step_filter(first_step_params);
+	ShvLogFilter final_filter(final_params);
 
 	QVector<LogDirReader*> readers;
 	QVector<ReaderInfo> reader_infos;
@@ -102,10 +106,12 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 			}
 			m_mergedLog.append(entry);
 			last_record_ts = entry.epochMsec;
-			if (final_filter.match(entry)) {
-				++record_count;
-				if (record_count > m_logParams.recordCountLimit) {
-					break;
+			if (!since_now) {
+				if (final_filter.match(entry)) {
+					++record_count;
+					if (record_count > m_logParams.recordCountLimit) {
+						break;
+					}
 				}
 			}
 		}
@@ -127,12 +133,25 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 	qDeleteAll(readers);
 
 	ShvGetLogParams params = m_logParams;
-	if (params.since.toDateTime().msecsSinceEpoch() > last_record_ts) {
-		params.since = cp::RpcValue::DateTime::fromMSecsSinceEpoch(last_record_ts);
+	if (since_now || params.since.toDateTime().msecsSinceEpoch() > last_record_ts) {
+		if (last_record_ts) {
+			params.since = cp::RpcValue::DateTime::fromMSecsSinceEpoch(last_record_ts);
+		}
+		else {
+			params.since = cp::RpcValue::DateTime::now();
+		}
 	}
 	params.pathPattern = std::string();
 	cp::RpcValue res = m_mergedLog.getLog(params);
-	if (!since.isNull() && first_record_since && first_record_since > since.toMSecsSinceEpoch()) {
+	if (since_now) {
+		if (last_record_ts) {
+			res.setMetaValue("since", cp::RpcValue::DateTime::fromMSecsSinceEpoch(last_record_ts));
+		}
+		else {
+			res.setMetaValue("since", cp::RpcValue::DateTime::now());
+		}
+	}
+	else if (!since.isNull() && first_record_since && first_record_since > since.toMSecsSinceEpoch()) {
 		res.setMetaValue("since", cp::RpcValue::DateTime::fromMSecsSinceEpoch(first_record_since));
 	}
 	res.setMetaValue("dirtyLog", dirty_log_info);
