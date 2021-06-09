@@ -3,31 +3,24 @@
 #include "sitesproviderapp.h"
 #include "dirsynctask.h"
 #include "appclioptions.h"
-#include "tardirtask.h"
-#include "untardirtask.h"
 
-#include <shv/core/utils/shvpath.h>
 #include <shv/coreqt/log.h>
 #include <shv/coreqt/exception.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/rpc/rpc.h>
-#include <shv/iotqt/rpc/rpcresponsecallback.h>
-#include <shv/chainpack/cponreader.h>
 
+#include <QCryptographicHash>
 #include <QDir>
-#include <QDirIterator>
 #include <QFile>
-#include <QNetworkAccessManager>
-#include <QNetworkReply>
 #include <QProcess>
-
-#include <fstream>
 
 namespace cp = shv::chainpack;
 
 using namespace std;
 
-const string FILES_NODE = "_files";
+const QString FILES_NODE = QStringLiteral("_files");
+const QString META_NODE = QStringLiteral("_meta");
+const QString META_FILE = QStringLiteral("_meta.json");
 const QString CPON_SUFFIX = QStringLiteral("cpon");
 const QString CPTEMPL_SUFFIX = QStringLiteral("cptempl");
 
@@ -35,7 +28,6 @@ static const char METH_GIT_COMMIT[] = "gitCommit";
 static const char METH_APP_VERSION[] = "version";
 static const char METH_GET_SITES[] = "getSites";
 static const char METH_RELOAD_SITES[] = "reloadSites";
-static const char METH_PULL_DIR_FILES_TREE_ARCHIVE[] = "pullDirFilesTreeArchive";
 static const char METH_SITES_SYNCED_BEFORE[] = "sitesSyncedBefore";
 static const char METH_SITES_RELOADED[] = "reloaded";
 static const char METH_FILE_READ[] = "read";
@@ -47,7 +39,6 @@ static const char METH_FILE_SIZE[] = "size";
 static const char METH_FILE_SIZE_COMPRESSED[] = "sizeCompressed";
 static const char METH_FILE_MK[] = "mkfile";
 static const char METH_GIT_PUSH[] = "addFilesToVersionControl";
-static const char METH_DIR_FILES_TREE_ARCHIVE[] = "dirFilesTreeArchive";
 
 static std::vector<cp::MetaMethod> root_meta_methods {
 	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
@@ -58,7 +49,6 @@ static std::vector<cp::MetaMethod> root_meta_methods {
 	{ cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
 	{ METH_GIT_COMMIT, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 	{ METH_GET_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
-	{ METH_DIR_FILES_TREE_ARCHIVE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
 	{ METH_RELOAD_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_COMMAND},
 	{ METH_SITES_SYNCED_BEFORE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
 	{ METH_SITES_RELOADED, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::IsSignal, shv::chainpack::Rpc::ROLE_READ },
@@ -71,7 +61,6 @@ static std::vector<cp::MetaMethod> dir_meta_methods {
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ METH_PULL_FILES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
 	{ METH_GET_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
-	{ METH_DIR_FILES_TREE_ARCHIVE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
 };
 
 static std::vector<cp::MetaMethod> device_meta_methods {
@@ -79,7 +68,6 @@ static std::vector<cp::MetaMethod> device_meta_methods {
 	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
 	{ METH_PULL_FILES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
 	{ METH_GET_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
-	{ METH_DIR_FILES_TREE_ARCHIVE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
 };
 
 static std::vector<cp::MetaMethod> meta_meta_methods {
@@ -134,31 +122,16 @@ static CompressAlgorithm compress_algorithm_from_string(const std::string &algo,
 
 AppRootNode::AppRootNode(QObject *parent)
 	: Super(parent)
+	, m_downloadSitesTimer(this)
 {
 	if (QDir(QString::fromStdString(SitesProviderApp::instance()->cliOptions()->localSitesDir()) + "/.git").exists()) {
 		shvInfo() << "sites directory" << SitesProviderApp::instance()->cliOptions()->localSitesDir() << "identified as git repository";
 		root_meta_methods.push_back({ METH_GIT_PUSH, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_ADMIN });
 	}
-	QString url_scheme = QUrl(SitesProviderApp::instance()->remoteSitesUrl()).scheme();
-	if (url_scheme.startsWith("shv")) {
-		cp::MetaMethod download_sites_files{ METH_PULL_DIR_FILES_TREE_ARCHIVE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE };
-		root_meta_methods.push_back(download_sites_files);
-		dir_meta_methods.push_back(download_sites_files);
-		device_meta_methods.push_back(download_sites_files);
-		device_file_dir_meta_methods.push_back(download_sites_files);
-	}
-	QFile sites_file(sitesFileName());
-	if (sites_file.open(QFile::ReadOnly)) {
-		cp::RpcValue sites = cp::RpcValue::fromCpon(sites_file.readAll().toStdString());
-		if (sites.isMap()) {
-			m_sites = sites.toMap();
-		}
-	}
-}
-
-QString AppRootNode::sitesFileName() const
-{
-	return QString::fromStdString(SitesProviderApp::instance()->cliOptions()->sitesFilePath());
+	m_downloadSitesTimer.setInterval(30 * 60 * 1000);
+	connect(&m_downloadSitesTimer, &QTimer::timeout, this, &AppRootNode::downloadSites);
+	m_downloadSitesTimer.start();
+	QTimer::singleShot(500, this, &AppRootNode::downloadSites);
 }
 
 size_t AppRootNode::methodCount(const StringViewList &shv_path)
@@ -193,26 +166,7 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 		return QCoreApplication::instance()->applicationVersion().toStdString();
 	}
 	else if (method == METH_GET_SITES) {
-		return getSites(rq.shvPath().toString());
-	}
-	else if (method == METH_DIR_FILES_TREE_ARCHIVE) {
-		if (!QDir(nodeLocalPath(rq.shvPath().toString())).exists()) {
-			return std::string();
-		}
-		TarDirTask *tar_task = new TarDirTask(nodeLocalPath(rq.shvPath().toString()), this);
-		connect(tar_task, &TarDirTask::finished, this, [this, rq, tar_task](bool success) {
-			cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
-			if (success) {
-				resp.setResult(tar_task->result());
-			}
-			else {
-				resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, tar_task->error()));
-			}
-			tar_task->deleteLater();
-			emitSendRpcMessage(resp);
-		});
-		tar_task->start();
-		return cp::RpcValue();
+		return getSites(rpcvalue_cast<QString>(rq.shvPath()));
 	}
 	else if (method == METH_FILE_READ) {
 		return readFile(rpcvalue_cast<QString>(rq.shvPath()));
@@ -233,25 +187,20 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 		return writeFile(rpcvalue_cast<QString>(rq.shvPath()), params.asString());
 	}
 	else if (method == METH_FILE_MK) {
-		std::string shv_path = rq.shvPath().toString();
-		return mkFile(shv::core::utils::ShvPath::split(shv_path), rq.params());
+		return mkFile(rpcvalue_cast<QString>(rq.shvPath()), rq.params());
 	}
 	else if (method == METH_PULL_FILES) {
 		DirSyncTask *sync_task = new DirSyncTask(QString(), this);
-		std::string shv_path = rq.shvPath().toString();
-		shv::core::StringViewList shv_path_view = shv::core::utils::ShvPath::split(shv_path);
-		QString qshv_path = QString::fromStdString(shv_path);
-		QString qfiles_node = QString::fromStdString(FILES_NODE);
-		if (qshv_path.endsWith(qfiles_node)) {
-			sync_task->addDir(qshv_path);
+		QString shv_path = rpcvalue_cast<QString>(rq.shvPath());
+		if (shv_path.endsWith(FILES_NODE)) {
+			sync_task->addDir(shv_path);
 		}
-		else if (isDevice(shv_path_view)) {
-			qshv_path += "/" + qfiles_node;
-			sync_task->addDir(qshv_path);
+		else if (isDevice(shv_path)) {
+			sync_task->addDir(shv_path + '/' + FILES_NODE);
 		}
 		else {
 			QStringList devices;
-			findDevicesToSync(shv_path_view, devices);
+			findDevicesToSync(shv_path, devices);
 			for (const QString &device_path : devices) {
 				sync_task->addDir(device_path);
 			}
@@ -269,43 +218,6 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 		sync_task->start();
 		return cp::RpcValue();
 	}
-	else if (method == METH_PULL_DIR_FILES_TREE_ARCHIVE) {
-		QString url = SitesProviderApp::instance()->remoteSitesUrl();
-		QString url_scheme = QUrl(url).scheme();
-		QString master_shv_path = url.mid(url_scheme.length() + 3);
-
-		auto *rpc_call = shv::iotqt::rpc::RpcCall::create(SitesProviderApp::instance()->rpcConnection())
-						 ->setShvPath(master_shv_path)
-						 ->setMethod(METH_DIR_FILES_TREE_ARCHIVE);
-		connect(rpc_call, &shv::iotqt::rpc::RpcCall::error, this, [this, rq](const QString &error) {
-			cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
-			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, error.toStdString()));
-			emitSendRpcMessage(resp);
-		});
-		connect(rpc_call, &shv::iotqt::rpc::RpcCall::result, this, [this, rq](const shv::chainpack::RpcValue &result) {
-			if (result.toString().empty()) {
-				cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
-				resp.setResult(true);
-				emitSendRpcMessage(resp);
-				return;
-			}
-			UntarDirTask *untar_task = new UntarDirTask(nodeLocalPath(rq.shvPath().toString()), QByteArray::fromStdString(result.toString()), this);
-			connect(untar_task, &UntarDirTask::finished, this, [this, untar_task, rq](bool success) {
-				cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
-				if (success) {
-					resp.setResult(true);
-				}
-				else {
-					resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, untar_task->error()));
-				}
-				untar_task->deleteLater();
-				emitSendRpcMessage(resp);
-			});
-			untar_task->start();
-		});
-		rpc_call->start();
-		return cp::RpcValue();
-	}
 	else if (method == METH_FILE_HASH) {
 		string bytes = readFile(rpcvalue_cast<QString>(rq.shvPath())).toString();
 		QCryptographicHash h(QCryptographicHash::Sha1);
@@ -313,8 +225,7 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 		return h.result().toHex().toStdString();
 	}
 	else if (method == cp::Rpc::METH_GET) {
-		std::string shv_path = rq.shvPath().toString();
-		return get(shv::core::utils::ShvPath::split(shv_path));
+		return metaValue(rpcvalue_cast<QString>(rq.shvPath()));
 	}
 	else if (method == cp::Rpc::METH_DEVICE_ID) {
 		SitesProviderApp *app = SitesProviderApp::instance();
@@ -351,53 +262,37 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 		git_task->start();
 		return cp::RpcValue();
 	}
+	else if (method == cp::Rpc::METH_LS) {
+		cp::RpcValue::List res;
+		for (const QString &s : lsNode(rpcvalue_cast<QString>(rq.shvPath()))) {
+			res.push_back(s.toStdString());
+		}
+		return res;
+	}
 	return Super::callMethodRq(rq);
 }
 
-void AppRootNode::handleRpcRequest(const shv::chainpack::RpcRequest &rq)
+const std::vector<shv::chainpack::MetaMethod> &AppRootNode::metaMethods(const shv::iotqt::node::ShvNode::StringViewList &shv_path_list)
 {
-	if (!checkSites()) {
-		QMetaObject::Connection *conn = new QMetaObject::Connection();
-		*conn = connect(this, &AppRootNode::sitesDownloaded, this, [this, conn, rq]() {
-			disconnect(*conn);
-			delete conn;
-			if (!m_downloadSitesError.empty()) {
-				shvError() << m_downloadSitesError;
-				cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
-				resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, m_downloadSitesError));
-				sendRpcMessage(resp);
-			}
-			else {
-				Super::handleRpcRequest(rq);
-			}
-
-		});
-		downloadSites();
-	}
-	else {
-		Super::handleRpcRequest(rq);
-	}
-}
-
-const std::vector<shv::chainpack::MetaMethod> &AppRootNode::metaMethods(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
-{
-	if (shv_path.empty()) {
+	if (shv_path_list.empty()) {
 		return root_meta_methods;
 	}
-	else if (shv_path.indexOf("_meta") != -1) {
-		if (hasData(shv_path)) {
-			return data_meta_methods;
-		}
-		else {
+	QString shv_path = QString::fromStdString(shv_path_list.join('/'));
+	cp::RpcValue meta = metaValue(shv_path);
+	if (meta.isValid()) {
+		if (meta.isMap()) {
 			return meta_meta_methods;
 		}
+		else {
+			return data_meta_methods;
+		}
 	}
-	else if (shv_path.indexOf(FILES_NODE) != -1) {
+	else if (shv_path.contains(FILES_NODE)) {
 		if (isFile(shv_path)) {
 			return file_meta_methods;
 		}
 		else {
-			if (shv_path.at(shv_path.length() - 1) == FILES_NODE && isDevice(shv_path.mid(0, shv_path.size() - 1))) {
+			if (shv_path.endsWith(FILES_NODE) && isDevice(shv_path.chopped(FILES_NODE.length() + 1))) {
 				return device_file_dir_meta_methods;
 			}
 			else {
@@ -413,45 +308,60 @@ const std::vector<shv::chainpack::MetaMethod> &AppRootNode::metaMethods(const sh
 	}
 }
 
-shv::chainpack::RpcValue AppRootNode::findSitesTreeValue(const shv::core::StringViewList &shv_path)
+shv::chainpack::RpcValue AppRootNode::metaValue(const QString &shv_path)
 {
-	cp::RpcValue::Map object = m_sites;
-	cp::RpcValue value;
-	for (size_t i = 0; i < shv_path.size(); ++i) {
-		value = object.value(shv_path[i].toString());
-		if (value.isMap()) {
-			object = value.toMap();
-		}
-		else {
-			break;
-		}
-	}
-	return value;
-}
-
-cp::RpcValue AppRootNode::getSites(const std::string &path)
-{
-	std::vector<std::string> path_parts = shv::core::String::split(path, '/');
-	cp::RpcValue res = m_sites;
-	for (const std::string &path_part : path_parts) {
-		res = res.at(path_part);
-		if (!res.isMap()) {
-			return cp::RpcValue(nullptr);
+	cp::RpcValue meta;
+	int meta_ix = shv_path.indexOf(META_NODE);
+	if (meta_ix != -1) {
+		QFile meta_file(nodeMetaPath(shv_path.mid(0, meta_ix)));
+		if (meta_file.open(QFile::ReadOnly)) {
+			QByteArray meta_content = meta_file.readAll();
+			meta = cp::RpcValue::fromCpon(meta_content.toStdString());
+			meta_file.close();
+			QStringList meta_keys = shv_path.mid(meta_ix).split('/');
+			for (int i = 1; i < meta_keys.count(); ++i) {
+				meta = meta.at(meta_keys[i].toStdString());
+			}
 		}
 	}
-	return res;
+	return meta;
 }
 
-void AppRootNode::findDevicesToSync(const StringViewList &shv_path, QStringList &result)
+QString AppRootNode::nodeMetaPath(const QString &shv_path) const
 {
-	cp::RpcValue::List ls_result = ls_helper(shv_path, 0, m_sites).toList();
-	for (const cp::RpcValue &ls_result_item : ls_result) {
-		std::string last_path_item = ls_result_item.toString();
-		shv::core::StringViewList new_shv_path(shv_path);
-		new_shv_path.push_back(last_path_item);
-		if (last_path_item[0] == '_') {
-			if (last_path_item == FILES_NODE && isDevice(shv_path)) {
-				result << QString::fromStdString(new_shv_path.join('/'));
+	return nodeLocalPath(shv_path) + "/" + META_FILE;
+}
+
+cp::RpcValue AppRootNode::getSites(const QString &shv_path)
+{
+	cp::RpcValue::Map res;
+    QDir dir(nodeLocalPath(shv_path));
+    for (const QFileInfo &info : dir.entryInfoList(QDir::Filter::AllEntries | QDir::Filter::NoDotAndDotDot)) {
+        if (info.fileName() == META_FILE) {
+            QFile meta_file(info.filePath());
+            if (!meta_file.open(QFile::ReadOnly)) {
+                shvWarning() << "Cannot open" << meta_file.fileName() << "for reading";
+            }
+            else {
+                res[META_NODE.toStdString()] = cp::RpcValue::fromCpon(meta_file.readAll().toStdString());
+                meta_file.close();
+            }
+        }
+        else if (info.isDir() && !info.fileName().startsWith('_')) {
+            res[info.fileName().toStdString()] = getSites(shv_path + "/" + info.fileName());
+        }
+    }
+    return res;
+}
+
+void AppRootNode::findDevicesToSync(const QString &shv_path, QStringList &result)
+{
+	QStringList ls_result = lsNode(shv_path);
+	for (const QString &ls_result_item : ls_result) {
+		QString new_shv_path = shv_path + '/' + ls_result_item;
+		if (ls_result_item[0] == '_') {
+			if (ls_result_item == FILES_NODE && isDevice(shv_path)) {
+				result << new_shv_path;
 			}
 		}
 		else {
@@ -460,10 +370,26 @@ void AppRootNode::findDevicesToSync(const StringViewList &shv_path, QStringList 
 	}
 }
 
-shv::chainpack::RpcValue AppRootNode::ls(const shv::core::StringViewList &shv_path, const shv::chainpack::RpcValue &params)
+QStringList AppRootNode::lsNode(const QString &shv_path)
 {
-	Q_UNUSED(params);
-	return ls_helper(shv_path, 0, m_sites);
+	QStringList ret;
+	cp::RpcValue meta = metaValue(shv_path);
+	if (meta.isValid()) {
+		for (const std::string &meta_item : meta.asMap().keys()) {
+			ret.push_back(QString::fromStdString(meta_item));
+		}
+	}
+	else {
+		for (const QString &dir_item : lsDir(shv_path)) {
+			if (dir_item == META_FILE) {
+				ret.push_back(META_NODE);
+			}
+			else {
+				ret.push_back(dir_item);
+			}
+		}
+	}
+	return ret;
 }
 
 QStringList AppRootNode::lsDir(const QString &shv_path)
@@ -493,48 +419,37 @@ QStringList AppRootNode::lsDir(const QString &shv_path)
 	return items;
 }
 
-cp::RpcValue AppRootNode::ls_helper(const shv::core::StringViewList &shv_path, size_t index, const cp::RpcValue::Map &sites_node)
+bool AppRootNode::isDevice(const QString &shv_path)
 {
-	//shvLogFuncFrame() << shv_path.join('/');
-	if (shv_path.size() == index) {
-		cp::RpcValue::List items;
-		if (shv_path.indexOf("_meta") == -1) {
-			items.push_back(FILES_NODE);
+	QString file_path = nodeLocalPath(shv_path);
+	QFileInfo fi(file_path);
+	if (fi.isDir()) {
+		QStringList entries = QDir(file_path).entryList(QDir::Filter::AllEntries | QDir::Filter::NoDotAndDotDot);
+		if (entries.contains(META_FILE) && (entries.count() == 1 || (entries.count() == 2 && entries.contains(FILES_NODE)))) {
+			return metaValue(shv_path + '/' + META_NODE).toMap().hasKey("type");
 		}
-		for (const auto &kv : sites_node) {
-			items.push_back(kv.first);
-		}
-		return cp::RpcValue(items);
 	}
-	std::string node_name = shv_path[index].toString();
-	if (node_name == FILES_NODE) {
-		QStringList ls_dir = lsDir(QString::fromStdString(shv_path.join('/')));
-		cp::RpcValue::List ret;
-		for (const QString &ls_dir_item : ls_dir) {
-			ret.push_back(ls_dir_item.toStdString());
-		}
-		return ret;
-	}
-	const shv::chainpack::RpcValue val = sites_node.value(node_name);
-	if (val.isMap())
-		return ls_helper(shv_path, index + 1, val.toMap());
-	return cp::RpcValue::List();
+	return false;
 }
 
-bool AppRootNode::hasData(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
+void AppRootNode::onSitesDownloaded()
 {
-	cp::RpcValue leaf = this->findSitesTreeValue(shv_path);
-	return !leaf.isMap();
-}
-
-bool AppRootNode::isDevice(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
-{
-	cp::RpcValue node = this->findSitesTreeValue(shv_path);
-	if (!node.isMap()) {
-		return false;
+	if (!m_downloadSitesError.isEmpty()) {
+		shvError() << m_downloadSitesError;
+		shvInfo() << "Sync with git was not successfull";
 	}
-	const cp::RpcValue::Map &node_map = node.toMap();
-	return node_map.size() == 1 && node_map.hasKey("_meta") && node_map.value("_meta").toMap().hasKey("type");
+	else {
+		shvInfo() << "Sync with git finished";
+	}
+	m_sitesSyncedBefore.start();
+	if (SitesProviderApp::instance()->rpcConnection()->isBrokerConnected()) {
+		cp::RpcSignal ntf;
+		ntf.setMethod(METH_SITES_RELOADED);
+		rootNode()->emitSendRpcMessage(ntf);
+	}
+
+	m_downloadingSites = false;
+	Q_EMIT sitesDownloaded();
 }
 
 void AppRootNode::downloadSites()
@@ -544,100 +459,88 @@ void AppRootNode::downloadSites()
 	}
 	m_downloadingSites = true;
 	m_downloadSitesError.clear();
-	auto on_sites_received = [this](const shv::chainpack::RpcValue &res) {
-		if (res.isMap()) {
-			m_sites = res.toMap();
-			shvInfo() << "Downloaded sites.json";
-			m_sitesSyncedBefore.start();
-			if (SitesProviderApp::instance()->rpcConnection()->isBrokerConnected()) {
-				cp::RpcSignal ntf;
-				ntf.setMethod(METH_SITES_RELOADED);
-				rootNode()->emitSendRpcMessage(ntf);
+
+	shvInfo() << "Syncing with sites git repository";
+	QProcess *git = new QProcess(this);
+	git->setWorkingDirectory("/tmp");
+	QString git_path = SitesProviderApp::instance()->cliOptions()->gitPath().empty() ? "git" : QString::fromStdString(SitesProviderApp::instance()->cliOptions()->gitPath());
+	QStringList arguments;
+	arguments << "clone" << SitesProviderApp::instance()->remoteSitesUrl();
+	connect(git, qOverload<int, QProcess::ExitStatus>(&QProcess::finished), this, [this, git](int exit_code, QProcess::ExitStatus exit_status) {
+		git->deleteLater();
+		if (exit_status == QProcess::ExitStatus::CrashExit) {
+			m_downloadSitesError = git->errorString();
+		}
+		else if (exit_code) {
+			m_downloadSitesError = git->readAllStandardError();
+		}
+		else {
+			mergeSitesDirs(nodeLocalPath(), "/tmp/sites/sites");
+			QDir("/tmp/sites").removeRecursively();
+		}
+		onSitesDownloaded();
+	});
+	connect(git, &QProcess::errorOccurred, this, [this, git](QProcess::ProcessError error) {
+		if (error == QProcess::FailedToStart) {
+			git->deleteLater();
+			m_downloadSitesError = git->errorString();
+			onSitesDownloaded();
+		}
+	});
+	git->start(git_path, arguments);
+}
+
+void AppRootNode::mergeSitesDirs(const QString &files_path, const QString &git_path)
+{
+	QDir files_dir(files_path);
+	QDir git_dir(git_path);
+
+	QFileInfoList files_entries = files_dir.entryInfoList(QDir::Filter::AllEntries | QDir::Filter::NoDotAndDotDot);
+	QFileInfoList git_entries = git_dir.entryInfoList(QDir::Filter::AllEntries | QDir::Filter::NoDotAndDotDot);
+
+	for (const QFileInfo &files_entry : files_entries) {
+		if (files_entry.isDir() || files_entry.fileName() == "_meta.json") {
+			bool is_in_git = false;
+			for (const QFileInfo &git_entry : git_entries) {
+				if (files_entry.fileName() == git_entry.fileName()) {
+					is_in_git = true;
+					break;
+				}
+			}
+			if (!is_in_git) {
+				QDir(files_path + '/' + files_entry.fileName()).removeRecursively();
 			}
 		}
-		m_downloadingSites = false;
-		QFile sites_file(sitesFileName());
-		if (sites_file.open(QFile::WriteOnly | QFile::Truncate)) {
-			sites_file.write(QByteArray::fromStdString(cp::RpcValue(m_sites).toCpon("  ")));
-			sites_file.close();
-		}
-		Q_EMIT sitesDownloaded();
-	};
-	QString url_scheme = QUrl(SitesProviderApp::instance()->remoteSitesUrl()).scheme();
-	if (url_scheme.startsWith("shv")) {
-		downloadSitesFromShv(this, on_sites_received);
 	}
-	else {
-		downloadSitesByNetworkManager(this, on_sites_received);
+	for (const QFileInfo &git_entry : git_entries) {
+		if (git_entry.fileName() != "_template" && git_entry.fileName() != "_target") {
+			bool is_in_files = false;
+			for (const QFileInfo &files_entry : files_entries) {
+				if (git_entry.fileName() == files_entry.fileName()) {
+					is_in_files = true;
+					break;
+				}
+			}
+			if (!is_in_files) {
+				if (git_entry.isDir()) {
+					files_dir.mkdir(git_entry.fileName());
+					mergeSitesDirs(files_path + '/' + git_entry.fileName(), git_path + '/' + git_entry.fileName());
+				}
+				else {
+					QFile::rename(git_entry.filePath(), files_dir.filePath(git_entry.fileName()));
+				}
+			}
+			else {
+				if (git_entry.isDir()) {
+					mergeSitesDirs(files_path + '/' + git_entry.fileName(), git_path + '/' + git_entry.fileName());
+				}
+				else {
+					QFile::remove(files_dir.filePath(git_entry.fileName()));
+					QFile::rename(git_entry.filePath(), files_dir.filePath(git_entry.fileName()));
+				}
+			}
+		}
 	}
-}
-
-void AppRootNode::downloadSitesByNetworkManager(QObject *context, std::function<void(const shv::chainpack::RpcValue &)> callback)
-{
-	QNetworkAccessManager *network_manager = new QNetworkAccessManager(this);
-	network_manager->setRedirectPolicy(QNetworkRequest::NoLessSafeRedirectPolicy);
-	connect(network_manager, &QNetworkAccessManager::finished, context, [this, network_manager, callback](QNetworkReply *reply) {
-		cp::RpcValue res;
-		try {
-			if (reply->error()) {
-				SHV_QT_EXCEPTION("Download sites.json error:" + reply->errorString());
-			}
-			std::string sites_string = reply->readAll().toStdString();
-			std::string err;
-			cp::RpcValue sites_cp = cp::RpcValue::fromCpon(sites_string, &err);
-			if (!err.empty()) {
-				shvError() << sites_string;
-				SHV_EXCEPTION(err);
-			}
-			if (!sites_cp.isMap()) {
-				SHV_EXCEPTION("Sites.json must be map");
-			}
-			const cp::RpcValue::Map &sites_cp_map = sites_cp.toMap();
-			if (!sites_cp_map.hasKey("shv")) {
-				SHV_EXCEPTION("Sites.json does not have root key shv");
-			}
-			res = sites_cp_map.value("shv");
-			if (!res.isMap()) {
-				SHV_EXCEPTION("Shv key in sites.json must be map");
-			}
-		}
-		catch (std::exception &e) {
-			m_downloadSitesError = e.what();
-		}
-		reply->deleteLater();
-		network_manager->deleteLater();
-		callback(res);
-	});
-	network_manager->get(QNetworkRequest(SitesProviderApp::instance()->remoteSitesUrl()));
-}
-
-void AppRootNode::downloadSitesFromShv(QObject *context, std::function<void(const shv::chainpack::RpcValue &)> callback)
-{
-	shv::iotqt::rpc::RpcCall *rpc_call = shv::iotqt::rpc::RpcCall::create(SitesProviderApp::instance()->rpcConnection());
-	QString url = SitesProviderApp::instance()->remoteSitesUrl();
-	QString url_scheme = QUrl(url).scheme();
-	rpc_call->setShvPath(url.mid(url_scheme.length() + 3))
-			->setMethod("getSites");
-	connect(rpc_call, &shv::iotqt::rpc::RpcCall::error, context, [this, callback](const QString &err) {
-		m_downloadSitesError = err.toStdString();
-		callback(cp::RpcValue());
-	});
-	connect(rpc_call, &shv::iotqt::rpc::RpcCall::result, context, [this, callback](const cp::RpcValue &res) {
-		callback(res);
-	});
-	rpc_call->start();
-}
-
-bool AppRootNode::checkSites() const
-{
-	QString url_scheme = QUrl(SitesProviderApp::instance()->remoteSitesUrl()).scheme();
-	return m_downloadSitesError.empty() && ((m_sitesSyncedBefore.isValid() &&
-			m_sitesSyncedBefore.elapsed() < 3600 * 1000) || !url_scheme.startsWith("http"));
-}
-
-shv::chainpack::RpcValue AppRootNode::get(const shv::core::StringViewList &shv_path)
-{
-	return findSitesTreeValue(shv_path);
 }
 
 shv::chainpack::RpcValue AppRootNode::readFile(const QString &shv_path)
@@ -688,25 +591,25 @@ shv::chainpack::RpcValue AppRootNode::readFileCompressed(const shv::chainpack::R
 	return result;
 }
 
-shv::chainpack::RpcValue AppRootNode::mkFile(const shv::core::StringViewList &shv_path, const shv::chainpack::RpcValue &params)
+shv::chainpack::RpcValue AppRootNode::mkFile(const QString &shv_path, const shv::chainpack::RpcValue &params)
 {
 	std::string error;
-	string file_name;
+	QString file_name;
 	bool has_content = false;
 	if (params.isString()) {
-		file_name = params.toString();
+		file_name = rpcvalue_cast<QString>(params);
 
 	}
 	else if(params.isList()) {
 		const cp::RpcValue::List &lst = params.toList();
 		if (lst.size() != 2)
 			throw shv::core::Exception("Invalid params, [\"name\", \"content\"] expected.");
-		file_name = lst[0].toString();
+		file_name = rpcvalue_cast<QString>(lst[0]);
 		has_content = true;
 	}
-	if (file_name.empty())
+	if (file_name.isEmpty())
 		throw shv::core::Exception("File name is empty.");
-	QString file_path = QString::fromStdString(shv_path.join('/')) + "/" + QString::fromStdString(file_name);
+	QString file_path = shv_path + '/' + file_name;
 	if(has_content)
 		return writeFile(file_path, params.toList()[1].toString());
 	else
@@ -737,7 +640,7 @@ shv::chainpack::RpcValue AppRootNode::readAndMergeConfig(QFile &file)
 		QString templ_path = QString::fromStdString(config.toMap().value(BASED_ON_KEY).asString());
 		if (!templ_path.isEmpty()) {
 			QStringList templ_path_parts = templ_path.split('/');
-			templ_path_parts.insert(templ_path_parts.count() - 1, QString::fromStdString(FILES_NODE));
+			templ_path_parts.insert(templ_path_parts.count() - 1, FILES_NODE);
 			templ_path = templ_path_parts.join('/');
 			if (templ_path.startsWith('/')) {
 				templ_path = nodeLocalPath(templ_path);
@@ -756,7 +659,7 @@ shv::chainpack::RpcValue AppRootNode::readAndMergeConfig(QFile &file)
 
 QString AppRootNode::nodeFilesPath(const QString &shv_path) const
 {
-	return nodeLocalPath(shv_path) + "/" + QString::fromStdString(FILES_NODE);
+	return nodeLocalPath(shv_path) + '/' + FILES_NODE;
 }
 
 QString AppRootNode::nodeLocalPath(const QString &shv_path) const
@@ -768,9 +671,9 @@ QString AppRootNode::nodeLocalPath(const QString &shv_path) const
 	return path + shv_path;
 }
 
-bool AppRootNode::isFile(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
+bool AppRootNode::isFile(const QString &shv_path)
 {
-	QString filename = nodeLocalPath(shv_path.join('/'));
+	QString filename = nodeLocalPath(shv_path);
 	QFileInfo fi(filename);
 	if (fi.isFile())
 		return true;
@@ -784,8 +687,8 @@ bool AppRootNode::isFile(const shv::iotqt::node::ShvNode::StringViewList &shv_pa
 	return false;
 }
 
-bool AppRootNode::isDir(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
+bool AppRootNode::isDir(const QString &shv_path)
 {
-	QFileInfo fi(nodeLocalPath(shv_path.join('/')));
+	QFileInfo fi(nodeLocalPath(shv_path));
 	return fi.isDir();
 }

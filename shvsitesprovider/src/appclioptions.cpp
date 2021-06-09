@@ -7,10 +7,7 @@ AppCliOptions::AppCliOptions()
 			.setDefaultValue("/tmp/sites");
 	addOption("app.remoteSitesUrl").setType(shv::chainpack::RpcValue::Type::String).setNames("--rsu", "--remote-sites-url")
 			.setComment("Url location to remote server file which contains all Elektroline sites.")
-			.setDefaultValue("https://gitlab+deploy-token-478855:uQMhvdiGpd-6FmUAKnQU@gitlab.com/revitest-predator/sites/raw/master/sites.json");
-}
-
-std::string AppCliOptions::sitesFilePath()
-{
-	return effectiveConfigDir() + "/sites.json";
+			.setDefaultValue("https://gitlab+deploy-token-478855:uQMhvdiGpd-6FmUAKnQU@gitlab.com/revitest-predator/sites");
+	addOption("app.gitPath").setType(shv::chainpack::RpcValue::Type::String).setNames("--git-path")
+			.setComment("git path");
 }

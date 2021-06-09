@@ -11,7 +11,6 @@ public:
 
 	CLIOPTION_GETTER_SETTER2(std::string, "app.localSitesDir", l, setL, ocalSitesDir)
 	CLIOPTION_GETTER_SETTER2(std::string, "app.remoteSitesUrl", r, setR, emoteSitesUrl)
-
-	std::string sitesFilePath();
+	CLIOPTION_GETTER_SETTER2(std::string, "app.gitPath", g, setG, itPath)
 };
 
