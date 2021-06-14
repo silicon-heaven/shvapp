@@ -53,7 +53,6 @@ private:
 	QElapsedTimer m_sitesSyncedBefore;
 	QTimer m_downloadSitesTimer;
 	bool m_downloadingSites = false;
-	QString m_downloadSitesError;
 };
 
 

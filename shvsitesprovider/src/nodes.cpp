@@ -18,6 +18,8 @@ namespace cp = shv::chainpack;
 
 using namespace std;
 
+const QString TEMPLATE_DIR = QStringLiteral("_template");
+const QString TARGET_DIR = QStringLiteral("_target");
 const QString FILES_NODE = QStringLiteral("_files");
 const QString META_NODE = QStringLiteral("_meta");
 const QString META_FILE = QStringLiteral("_meta.json");
@@ -192,7 +194,7 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 	else if (method == METH_PULL_FILES) {
 		DirSyncTask *sync_task = new DirSyncTask(QString(), this);
 		QString shv_path = rpcvalue_cast<QString>(rq.shvPath());
-		if (shv_path.endsWith(FILES_NODE)) {
+		if (shv_path.endsWith('/' + FILES_NODE)) {
 			sync_task->addDir(shv_path);
 		}
 		else if (isDevice(shv_path)) {
@@ -287,12 +289,12 @@ const std::vector<shv::chainpack::MetaMethod> &AppRootNode::metaMethods(const sh
 			return data_meta_methods;
 		}
 	}
-	else if (shv_path.contains(FILES_NODE)) {
+	else if (shv_path.contains('/' + FILES_NODE)) {
 		if (isFile(shv_path)) {
 			return file_meta_methods;
 		}
 		else {
-			if (shv_path.endsWith(FILES_NODE) && isDevice(shv_path.chopped(FILES_NODE.length() + 1))) {
+			if (shv_path.endsWith('/' + FILES_NODE) && isDevice(shv_path.chopped(FILES_NODE.length() + 1))) {
 				return device_file_dir_meta_methods;
 			}
 			else {
@@ -311,16 +313,19 @@ const std::vector<shv::chainpack::MetaMethod> &AppRootNode::metaMethods(const sh
 shv::chainpack::RpcValue AppRootNode::metaValue(const QString &shv_path)
 {
 	cp::RpcValue meta;
-	int meta_ix = shv_path.indexOf(META_NODE);
+	int meta_ix = shv_path.indexOf('/' + META_NODE);
 	if (meta_ix != -1) {
-		QFile meta_file(nodeMetaPath(shv_path.mid(0, meta_ix)));
-		if (meta_file.open(QFile::ReadOnly)) {
-			QByteArray meta_content = meta_file.readAll();
-			meta = cp::RpcValue::fromCpon(meta_content.toStdString());
-			meta_file.close();
-			QStringList meta_keys = shv_path.mid(meta_ix).split('/');
-			for (int i = 1; i < meta_keys.count(); ++i) {
-				meta = meta.at(meta_keys[i].toStdString());
+		QString path_rest = shv_path.mid(meta_ix);
+		if (path_rest.isEmpty() || path_rest[0] == '/') {
+			QFile meta_file(nodeMetaPath(shv_path.mid(0, meta_ix)));
+			if (meta_file.open(QFile::ReadOnly)) {
+				QByteArray meta_content = meta_file.readAll();
+				meta = cp::RpcValue::fromCpon(meta_content.toStdString());
+				meta_file.close();
+				QStringList meta_keys = path_rest.split('/', Qt::SkipEmptyParts);
+				for (int i = 1; i < meta_keys.count(); ++i) {
+					meta = meta.at(meta_keys[i].toStdString());
+				}
 			}
 		}
 	}
@@ -335,23 +340,22 @@ QString AppRootNode::nodeMetaPath(const QString &shv_path) const
 cp::RpcValue AppRootNode::getSites(const QString &shv_path)
 {
 	cp::RpcValue::Map res;
-    QDir dir(nodeLocalPath(shv_path));
-    for (const QFileInfo &info : dir.entryInfoList(QDir::Filter::AllEntries | QDir::Filter::NoDotAndDotDot)) {
-        if (info.fileName() == META_FILE) {
-            QFile meta_file(info.filePath());
-            if (!meta_file.open(QFile::ReadOnly)) {
-                shvWarning() << "Cannot open" << meta_file.fileName() << "for reading";
-            }
-            else {
-                res[META_NODE.toStdString()] = cp::RpcValue::fromCpon(meta_file.readAll().toStdString());
-                meta_file.close();
-            }
-        }
-        else if (info.isDir() && !info.fileName().startsWith('_')) {
-            res[info.fileName().toStdString()] = getSites(shv_path + "/" + info.fileName());
-        }
-    }
-    return res;
+	QDir dir(nodeLocalPath(shv_path));
+	for (const QFileInfo &info : dir.entryInfoList(QDir::Filter::AllEntries | QDir::Filter::NoDotAndDotDot)) {
+		if (info.fileName() == META_FILE) {
+			QFile meta_file(info.filePath());
+			if (meta_file.open(QFile::ReadOnly)) {
+				res[META_NODE.toStdString()] = cp::RpcValue::fromCpon(meta_file.readAll().toStdString());
+			}
+			else {
+				shvWarning() << "Cannot open" << meta_file.fileName() << "for reading";
+			}
+		}
+		else if (info.isDir() && !info.fileName().startsWith('_')) {
+			res[info.fileName().toStdString()] = getSites(shv_path + "/" + info.fileName());
+		}
+	}
+	return res;
 }
 
 void AppRootNode::findDevicesToSync(const QString &shv_path, QStringList &result)
@@ -425,7 +429,7 @@ bool AppRootNode::isDevice(const QString &shv_path)
 	QFileInfo fi(file_path);
 	if (fi.isDir()) {
 		QStringList entries = QDir(file_path).entryList(QDir::Filter::AllEntries | QDir::Filter::NoDotAndDotDot);
-		if (entries.contains(META_FILE) && (entries.count() == 1 || (entries.count() == 2 && entries.contains(FILES_NODE)))) {
+		if ((entries.count() == 1 || (entries.count() == 2 && entries.contains(FILES_NODE))) && entries.contains(META_FILE)) {
 			return metaValue(shv_path + '/' + META_NODE).toMap().hasKey("type");
 		}
 	}
@@ -434,13 +438,6 @@ bool AppRootNode::isDevice(const QString &shv_path)
 
 void AppRootNode::onSitesDownloaded()
 {
-	if (!m_downloadSitesError.isEmpty()) {
-		shvError() << m_downloadSitesError;
-		shvInfo() << "Sync with git was not successfull";
-	}
-	else {
-		shvInfo() << "Sync with git finished";
-	}
 	m_sitesSyncedBefore.start();
 	if (SitesProviderApp::instance()->rpcConnection()->isBrokerConnected()) {
 		cp::RpcSignal ntf;
@@ -458,21 +455,18 @@ void AppRootNode::downloadSites()
 		return;
 	}
 	m_downloadingSites = true;
-	m_downloadSitesError.clear();
 
-	shvInfo() << "Syncing with sites git repository";
 	QProcess *git = new QProcess(this);
 	git->setWorkingDirectory("/tmp");
-	QString git_path = SitesProviderApp::instance()->cliOptions()->gitPath().empty() ? "git" : QString::fromStdString(SitesProviderApp::instance()->cliOptions()->gitPath());
 	QStringList arguments;
 	arguments << "clone" << SitesProviderApp::instance()->remoteSitesUrl();
 	connect(git, qOverload<int, QProcess::ExitStatus>(&QProcess::finished), this, [this, git](int exit_code, QProcess::ExitStatus exit_status) {
 		git->deleteLater();
 		if (exit_status == QProcess::ExitStatus::CrashExit) {
-			m_downloadSitesError = git->errorString();
+			shvError() << git->errorString();
 		}
 		else if (exit_code) {
-			m_downloadSitesError = git->readAllStandardError();
+			shvError() << git->readAllStandardError();
 		}
 		else {
 			mergeSitesDirs(nodeLocalPath(), "/tmp/sites/sites");
@@ -483,11 +477,11 @@ void AppRootNode::downloadSites()
 	connect(git, &QProcess::errorOccurred, this, [this, git](QProcess::ProcessError error) {
 		if (error == QProcess::FailedToStart) {
 			git->deleteLater();
-			m_downloadSitesError = git->errorString();
+			shvError() << git->errorString();
 			onSitesDownloaded();
 		}
 	});
-	git->start(git_path, arguments);
+	git->start("git", arguments);
 }
 
 void AppRootNode::mergeSitesDirs(const QString &files_path, const QString &git_path)
@@ -498,39 +492,18 @@ void AppRootNode::mergeSitesDirs(const QString &files_path, const QString &git_p
 	QFileInfoList files_entries = files_dir.entryInfoList(QDir::Filter::AllEntries | QDir::Filter::NoDotAndDotDot);
 	QFileInfoList git_entries = git_dir.entryInfoList(QDir::Filter::AllEntries | QDir::Filter::NoDotAndDotDot);
 
-	for (const QFileInfo &files_entry : files_entries) {
-		if (files_entry.isDir() || files_entry.fileName() == "_meta.json") {
-			bool is_in_git = false;
-			for (const QFileInfo &git_entry : git_entries) {
-				if (files_entry.fileName() == git_entry.fileName()) {
-					is_in_git = true;
-					break;
-				}
-			}
-			if (!is_in_git) {
-				QDir(files_path + '/' + files_entry.fileName()).removeRecursively();
-			}
-		}
-	}
 	for (const QFileInfo &git_entry : git_entries) {
-		if (git_entry.fileName() != "_template" && git_entry.fileName() != "_target") {
+		if (git_entry.fileName() != TEMPLATE_DIR && git_entry.fileName() != TARGET_DIR) {
 			bool is_in_files = false;
-			for (const QFileInfo &files_entry : files_entries) {
+			for (int i = 0; i < files_entries.count(); ++i) {
+				const QFileInfo &files_entry = files_entries[i];
 				if (git_entry.fileName() == files_entry.fileName()) {
 					is_in_files = true;
+					files_entries.removeAt(i);
 					break;
 				}
 			}
-			if (!is_in_files) {
-				if (git_entry.isDir()) {
-					files_dir.mkdir(git_entry.fileName());
-					mergeSitesDirs(files_path + '/' + git_entry.fileName(), git_path + '/' + git_entry.fileName());
-				}
-				else {
-					QFile::rename(git_entry.filePath(), files_dir.filePath(git_entry.fileName()));
-				}
-			}
-			else {
+			if (is_in_files) {
 				if (git_entry.isDir()) {
 					mergeSitesDirs(files_path + '/' + git_entry.fileName(), git_path + '/' + git_entry.fileName());
 				}
@@ -539,6 +512,21 @@ void AppRootNode::mergeSitesDirs(const QString &files_path, const QString &git_p
 					QFile::rename(git_entry.filePath(), files_dir.filePath(git_entry.fileName()));
 				}
 			}
+			else {
+				if (git_entry.isDir()) {
+					files_dir.mkdir(git_entry.fileName());
+					mergeSitesDirs(files_path + '/' + git_entry.fileName(), git_path + '/' + git_entry.fileName());
+				}
+				else {
+					QFile::rename(git_entry.filePath(), files_dir.filePath(git_entry.fileName()));
+				}
+			}
+		}
+	}
+
+	for (const QFileInfo &files_entry : files_entries) {
+		if (files_entry.isDir() || files_entry.fileName() == META_FILE) {
+			QDir(files_path + '/' + files_entry.fileName()).removeRecursively();
 		}
 	}
 }
