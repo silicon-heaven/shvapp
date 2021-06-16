@@ -315,7 +315,7 @@ shv::chainpack::RpcValue AppRootNode::metaValue(const QString &shv_path)
 	cp::RpcValue meta;
 	int meta_ix = shv_path.indexOf('/' + META_NODE);
 	if (meta_ix != -1) {
-		QString path_rest = shv_path.mid(meta_ix);
+		QString path_rest = shv_path.mid(meta_ix + 1 + META_NODE.length());
 		if (path_rest.isEmpty() || path_rest[0] == '/') {
 			QFile meta_file(nodeMetaPath(shv_path.mid(0, meta_ix)));
 			if (meta_file.open(QFile::ReadOnly)) {
@@ -323,7 +323,7 @@ shv::chainpack::RpcValue AppRootNode::metaValue(const QString &shv_path)
 				meta = cp::RpcValue::fromCpon(meta_content.toStdString());
 				meta_file.close();
 				QStringList meta_keys = path_rest.split('/', Qt::SkipEmptyParts);
-				for (int i = 1; i < meta_keys.count(); ++i) {
+				for (int i = 0; i < meta_keys.count(); ++i) {
 					meta = meta.at(meta_keys[i].toStdString());
 				}
 			}
