@@ -444,8 +444,6 @@ void AppRootNode::onSitesDownloaded()
 		ntf.setMethod(METH_SITES_RELOADED);
 		rootNode()->emitSendRpcMessage(ntf);
 	}
-
-	m_downloadingSites = false;
 	Q_EMIT sitesDownloaded();
 }
 
@@ -471,14 +469,15 @@ void AppRootNode::downloadSites()
 		else {
 			mergeSitesDirs(nodeLocalPath(), "/tmp/sites/sites");
 			QDir("/tmp/sites").removeRecursively();
+			onSitesDownloaded();
 		}
-		onSitesDownloaded();
+		m_downloadingSites = false;
 	});
 	connect(git, &QProcess::errorOccurred, this, [this, git](QProcess::ProcessError error) {
 		if (error == QProcess::FailedToStart) {
 			git->deleteLater();
 			shvError() << git->errorString();
-			onSitesDownloaded();
+			m_downloadingSites = false;
 		}
 	});
 	git->start("git", arguments);
