@@ -454,6 +454,8 @@ void AppRootNode::downloadSites()
 	}
 	m_downloadingSites = true;
 
+	QDir("/tmp/sites").removeRecursively();
+
 	QProcess *git = new QProcess(this);
 	git->setWorkingDirectory("/tmp");
 	QStringList arguments;
@@ -524,7 +526,7 @@ void AppRootNode::mergeSitesDirs(const QString &files_path, const QString &git_p
 	}
 
 	for (const QFileInfo &files_entry : files_entries) {
-		if (files_entry.isDir() || files_entry.fileName() == META_FILE) {
+		if ((files_entry.isDir() && files_entry.fileName() != FILES_NODE) || files_entry.fileName() == META_FILE) {
 			QDir(files_path + '/' + files_entry.fileName()).removeRecursively();
 		}
 	}
