@@ -9,6 +9,7 @@
 #include <shv/coreqt/log.h>
 #include <shv/chainpack/metamethod.h>
 
+#include <shv/core/string.h>
 #include <shv/core/stringview.h>
 #include <shv/core/assert.h>
 

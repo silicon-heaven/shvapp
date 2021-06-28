@@ -187,7 +187,7 @@ bool HNode::isDisabled() const
 	return configValueOnPath(KEY_DISABLED).toBool();
 }
 
-shv::chainpack::RpcValue HNode::callMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
+shv::chainpack::RpcValue HNode::callMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params, const shv::chainpack::RpcValue &user_id)
 {
 	if(shv_path.empty()) {
 		if(method == METH_STATUS) {
@@ -205,7 +205,7 @@ shv::chainpack::RpcValue HNode::callMethod(const shv::iotqt::node::ShvNode::Stri
 			return true;
 		}
 	}
-	return Super::callMethod(shv_path, method, params);
+	return Super::callMethod(shv_path, method, params, user_id);
 }
 
 shv::iotqt::rpc::DeviceConnection *HNode::appRpcConnection()

@@ -132,7 +132,7 @@ shv::iotqt::node::ShvNode::StringList Lublicator::childNames(const StringViewLis
 	return shv::iotqt::node::ShvNode::StringList{};
 }
 
-shv::chainpack::RpcValue Lublicator::callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
+shv::chainpack::RpcValue Lublicator::callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params, const shv::chainpack::RpcValue &user_id)
 {
 	if(shv_path.empty()) {
 		if(method == cp::Rpc::METH_GET) {
@@ -218,7 +218,7 @@ shv::chainpack::RpcValue Lublicator::callMethod(const StringViewList &shv_path, 
 			return true;
 		}
 	}
-	return Super::callMethod(shv_path, method, params);
+	return Super::callMethod(shv_path, method, params, user_id);
 }
 
 shv::chainpack::RpcValue Lublicator::getLog(const shv::chainpack::RpcValue &params)

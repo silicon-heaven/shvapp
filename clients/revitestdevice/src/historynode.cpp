@@ -38,12 +38,12 @@ const shv::chainpack::MetaMethod *HistoryNode::metaMethod(const StringViewList &
 	return nullptr;
 }
 
-shv::chainpack::RpcValue HistoryNode::callMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
+shv::chainpack::RpcValue HistoryNode::callMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params, const shv::chainpack::RpcValue &user_id)
 {
 	if(shv_path.empty()) {
 		if(method == cp::Rpc::METH_GET_LOG) {
 			return RevitestApp::instance()->shvJournal()->getLog(shv::core::utils::ShvGetLogParams(params));
 		}
 	}
-	return Super::callMethod(shv_path, method, params);
+	return Super::callMethod(shv_path, method, params, user_id);
 }

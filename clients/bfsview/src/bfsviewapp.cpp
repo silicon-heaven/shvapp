@@ -51,7 +51,7 @@ const shv::chainpack::MetaMethod *AppRootNode::metaMethod(const StringViewList &
 	return &(meta_methods_root[ix]);
 }
 
-shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
+shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params, const shv::chainpack::RpcValue &user_id)
 {
 	if(shv_path.empty()) {
 		if(method == cp::Rpc::METH_APP_NAME) {
@@ -76,7 +76,7 @@ shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path,
 			return std::string();
 		}
 	}
-	return Super::callMethod(shv_path, method, params);
+	return Super::callMethod(shv_path, method, params, user_id);
 }
 /*
 shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::RpcRequest &rq)
@@ -128,7 +128,7 @@ const shv::chainpack::MetaMethod *PwrStatusNode::metaMethod(const StringViewList
 	return &(meta_methods_pwrstatus[ix]);
 }
 
-shv::chainpack::RpcValue PwrStatusNode::callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
+shv::chainpack::RpcValue PwrStatusNode::callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params, const shv::chainpack::RpcValue &user_id)
 {
 	if(shv_path.empty()) {
 		if(method == cp::Rpc::METH_GET) {
@@ -140,7 +140,7 @@ shv::chainpack::RpcValue PwrStatusNode::callMethod(const StringViewList &shv_pat
 			return true;
 		}
 	}
-	return Super::callMethod(shv_path, method, params);
+	return Super::callMethod(shv_path, method, params, user_id);
 }
 
 void PwrStatusNode::setPwrStatus(PwrStatus s)

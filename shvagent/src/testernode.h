@@ -21,7 +21,7 @@ class TesterPropertyNode : public shv::iotqt::node::MethodsTableNode
 public:
 	TesterPropertyNode(const std::string &name, shv::iotqt::node::ShvNode *parent);
 
-	shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params) override;
+	shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params, const shv::chainpack::RpcValue &user_id) override;
 private:
 	shv::chainpack::DataChange m_dataChange;
 };

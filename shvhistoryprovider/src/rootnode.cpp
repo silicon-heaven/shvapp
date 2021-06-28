@@ -326,7 +326,7 @@ void RootNode::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 	}
 }
 
-shv::chainpack::RpcValue RootNode::callMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
+shv::chainpack::RpcValue RootNode::callMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params, const shv::chainpack::RpcValue &user_id)
 {
 	if (method == cp::Rpc::METH_APP_NAME) {
 		return Application::instance()->applicationName().toStdString();
@@ -444,7 +444,7 @@ shv::chainpack::RpcValue RootNode::callMethod(const shv::iotqt::node::ShvNode::S
 		result["msg"] = err;
 		return result;
 	}
-	return Super::callMethod(shv_path, method, params);
+	return Super::callMethod(shv_path, method, params, user_id);
 }
 
 cp::RpcValue RootNode::getLog(const QString &shv_path, const shv::chainpack::RpcValue &params) const
