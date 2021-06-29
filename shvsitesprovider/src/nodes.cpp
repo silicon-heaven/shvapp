@@ -107,19 +107,19 @@ static std::vector<cp::MetaMethod> data_meta_methods {
 	{ cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, shv::chainpack::Rpc::ROLE_READ },
 };
 
-enum class CompressAlgorithm {
+enum class CompressionType {
 	Invalid,
 	QCompress,
 };
 
-static CompressAlgorithm compress_algorithm_from_string(const std::string &algo, CompressAlgorithm default_algo)
+static CompressionType compression_type_from_string(const std::string &type_str, CompressionType default_type)
 {
-	if (algo.empty())
-		return default_algo;
-	else if (algo == "qCompress")
-		return CompressAlgorithm::QCompress;
+	if (type_str.empty())
+		return default_type;
+	else if (type_str == "qcompress")
+		return CompressionType::QCompress;
 	else
-		return CompressAlgorithm::Invalid;
+		return CompressionType::Invalid;
 }
 
 AppRootNode::AppRootNode(QObject *parent)
@@ -562,15 +562,15 @@ shv::chainpack::RpcValue AppRootNode::writeFile(const QString &shv_path, const s
 
 shv::chainpack::RpcValue AppRootNode::readFileCompressed(const shv::chainpack::RpcRequest &request)
 {
-	const auto algo_str = request.params().asMap().value("algorithm").toString();
-	const auto algo = compress_algorithm_from_string(algo_str, CompressAlgorithm::QCompress);
-	if (algo == CompressAlgorithm::Invalid) {
-		SHV_EXCEPTION("Invalid compress algorithm: " + algo_str + " on path: " + request.shvPath().asString());
+	const std::string compression_type_str = request.params().asMap().value("compressionType").toString();
+	const CompressionType compression_type = compression_type_from_string(compression_type_str, CompressionType::QCompress);
+	if (compression_type == CompressionType::Invalid) {
+		SHV_EXCEPTION("Invalid compress type: " + compression_type_str + " on path: " + request.shvPath().asString());
 	}
 
 	cp::RpcValue result;
 	const auto blob = readFile(rpcvalue_cast<QString>(request.shvPath())).asData();
-	if (algo == CompressAlgorithm::QCompress) {
+	if (compression_type == CompressionType::QCompress) {
 		const auto compressed_blob = qCompress(QByteArray::fromRawData(blob.first, blob.second));
 		result = cp::RpcValue::Blob(compressed_blob.cbegin(), compressed_blob.cend());
 	}
