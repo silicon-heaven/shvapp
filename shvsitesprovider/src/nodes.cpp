@@ -322,7 +322,11 @@ shv::chainpack::RpcValue AppRootNode::metaValue(const QString &shv_path)
 				QByteArray meta_content = meta_file.readAll();
 				meta = cp::RpcValue::fromCpon(meta_content.toStdString());
 				meta_file.close();
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+				QStringList meta_keys = path_rest.split('/', QString::SkipEmptyParts);
+#else
 				QStringList meta_keys = path_rest.split('/', Qt::SkipEmptyParts);
+#endif
 				for (int i = 0; i < meta_keys.count(); ++i) {
 					meta = meta.at(meta_keys[i].toStdString());
 				}
