@@ -55,8 +55,8 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 		log_params.pathPattern = m_logParams.pathPattern;
 		log_params.pathPatternType = m_logParams.pathPatternType;
 	}
-	if (since.isValid() && m_logParams.withSnapshot) {
-			log_params.since = m_logParams.since;
+	if (since.isValid() && !m_logParams.withSnapshot) {
+		log_params.since = m_logParams.since;
 	}
 	int64_t param_since = m_logParams.since.isDateTime() ? m_logParams.since.toDateTime().msecsSinceEpoch() : 0;
 
