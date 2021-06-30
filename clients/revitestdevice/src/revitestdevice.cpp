@@ -65,14 +65,14 @@ void RevitestDevice::getSnapshot(std::vector<shv::core::utils::ShvJournalEntry> 
 		{
 			shv::core::utils::ShvJournalEntry e;
 			e.path = id + '/' + Lublicator::PROP_STATUS;
-			e.value = nd->callMethod(shv::iotqt::node::ShvNode::StringViewList{shv::iotqt::node::ShvNode::StringView(Lublicator::PROP_STATUS)}, cp::Rpc::METH_GET, cp::RpcValue(), 0);
+			e.value = nd->callMethod(shv::iotqt::node::ShvNode::StringViewList{shv::iotqt::node::ShvNode::StringView(Lublicator::PROP_STATUS)}, cp::Rpc::METH_GET, {}, {});
 			e.domain = shv::core::utils::ShvJournalEntry::DOMAIN_VAL_CHANGE;
 			snapshot.emplace_back(std::move(e));
 		}
 		{
 			shv::core::utils::ShvJournalEntry e;
 			e.path = id + '/' + Lublicator::PROP_BATTERY_VOLTAGE;
-			e.value = nd->callMethod(shv::iotqt::node::ShvNode::StringViewList{}, Lublicator::PROP_BATTERY_VOLTAGE, cp::RpcValue(), 0);
+			e.value = nd->callMethod(shv::iotqt::node::ShvNode::StringViewList{}, Lublicator::PROP_BATTERY_VOLTAGE, {}, {});
 			e.domain = shv::core::utils::ShvJournalEntry::DOMAIN_VAL_FASTCHANGE;
 			snapshot.emplace_back(std::move(e));
 		}
