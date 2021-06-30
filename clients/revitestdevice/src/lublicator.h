@@ -58,7 +58,7 @@ public:
 	shv::chainpack::RpcValue hasChildren(const StringViewList &shv_path) override;
 	StringList childNames(const StringViewList &shv_path) override;
 
-	shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params) override;
+	shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params, const shv::chainpack::RpcValue &user_id) override;
 private:
 	shv::chainpack::RpcValue getLog(const shv::chainpack::RpcValue &params);
 	void addLogEntry(const std::string &key, const shv::chainpack::RpcValue &value);

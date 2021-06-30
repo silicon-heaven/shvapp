@@ -27,7 +27,7 @@ public:
 	StringList childNames(const ShvNode::StringViewList &shv_path) override;
 	shv::chainpack::RpcValue hasChildren(const StringViewList &shv_path) override;
 
-	shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params) override;
+	shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params, const shv::chainpack::RpcValue &user_id) override;
 	shv::chainpack::RpcValue processRpcRequest(const shv::chainpack::RpcRequest &rq) override;
 
 private:

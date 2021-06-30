@@ -15,7 +15,7 @@ LogSanitizer::LogSanitizer(QObject *parent)
 
 	DeviceMonitor *monitor = Application::instance()->deviceMonitor();
 	connect(monitor, &DeviceMonitor::deviceConnectedToBroker, this, &LogSanitizer::onDeviceAppeared);
-	connect(monitor, &DeviceMonitor::deviceDisconnectedFromBroker, this, &LogSanitizer::setupTimer);
+	connect(monitor, &DeviceMonitor::deviceDisconnectedFromBroker, this, &LogSanitizer::onDeviceDisappeared);
 
 	setupTimer();
 }
@@ -66,8 +66,27 @@ void LogSanitizer::onDeviceAppeared(const QString &shv_path)
 	if (Application::instance()->deviceMonitor()->isPushLogDevice(shv_path)) {
 		return;
 	}
-	sanitizeLogCache(shv_path, CheckLogTask::CheckType::ReplaceDirtyLog);
+	QTimer *timer = new QTimer(this);
+	timer->setInterval(60000);  //let device to collect snapshot
+	timer->setSingleShot(true);
+	connect(timer, &QTimer::timeout, this, [this, shv_path]() {
+		sanitizeLogCache(shv_path, CheckLogTask::CheckType::ReplaceDirtyLog);
+		m_newDeviceTimers[shv_path]->deleteLater();
+		m_newDeviceTimers.remove(shv_path);
+	});
+	m_newDeviceTimers[shv_path] = new QTimer(this);
+	timer->start();
 	setupTimer();
+}
+
+void LogSanitizer::onDeviceDisappeared(const QString &shv_path)
+{
+	setupTimer();
+	if (m_newDeviceTimers.contains(shv_path)) {
+		m_newDeviceTimers[shv_path]->stop();
+		m_newDeviceTimers[shv_path]->deleteLater();
+		m_newDeviceTimers.remove(shv_path);
+	}
 }
 
 void LogSanitizer::sanitizeLogCache()

@@ -52,7 +52,7 @@ const shv::chainpack::MetaMethod *BrclabUsersNode::metaMethod(const shv::iotqt::
 	return Super::metaMethod(shv_path, ix);
 }
 
-shv::chainpack::RpcValue BrclabUsersNode::callMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
+shv::chainpack::RpcValue BrclabUsersNode::callMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params, const shv::chainpack::RpcValue &user_id)
 {
 	if(shv_path.empty()) {
 		if(method == M_ADD_USER) {
@@ -69,7 +69,7 @@ shv::chainpack::RpcValue BrclabUsersNode::callMethod(const shv::iotqt::node::Shv
 		}
 	}
 
-	return Super::callMethod(shv_path, method, params);
+	return Super::callMethod(shv_path, method, params, user_id);
 }
 
 void BrclabUsersNode::loadValues()

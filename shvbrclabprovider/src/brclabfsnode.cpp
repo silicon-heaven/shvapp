@@ -25,7 +25,7 @@ BrclabFsNode::BrclabFsNode(const QString &root_path, Super *parent):
 {
 }
 
-cp::RpcValue BrclabFsNode::callMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const std::string &method, const cp::RpcValue &params)
+cp::RpcValue BrclabFsNode::callMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const std::string &method, const cp::RpcValue &params, const shv::chainpack::RpcValue &user_id)
 {
 	if (method == M_LSMETA){
 		return ndLsMeta(shv_path, params);
@@ -34,7 +34,7 @@ cp::RpcValue BrclabFsNode::callMethod(const shv::iotqt::node::ShvNode::StringVie
 		return ndReadBrclabSummary(shv_path, params);
 	}
 
-	return Super::callMethod(shv_path, method, params);
+	return Super::callMethod(shv_path, method, params, user_id);
 }
 
 size_t BrclabFsNode::methodCount(const shv::iotqt::node::ShvNode::StringViewList &shv_path)

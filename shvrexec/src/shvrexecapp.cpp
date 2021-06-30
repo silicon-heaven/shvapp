@@ -60,7 +60,7 @@ const cp::MetaMethod *AppRootNode::metaMethod(const StringViewList &shv_path, si
 	return nullptr;
 }
 
-shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
+shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params, const shv::chainpack::RpcValue &user_id)
 {
 	if(shv_path.empty()) {
 		if(method == cp::Rpc::METH_APP_NAME) {
@@ -77,7 +77,7 @@ shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path,
 		}
 		*/
 	}
-	return Super::callMethod(shv_path, method, params);
+	return Super::callMethod(shv_path, method, params, user_id);
 }
 
 ShvRExecApp::ShvRExecApp(int &argc, char **argv, AppCliOptions* cli_opts)

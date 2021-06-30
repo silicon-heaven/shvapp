@@ -39,7 +39,7 @@ TesterPropertyNode::TesterPropertyNode(const std::string &name, shv::iotqt::node
 {
 }
 
-shv::chainpack::RpcValue TesterPropertyNode::callMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
+shv::chainpack::RpcValue TesterPropertyNode::callMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params, const shv::chainpack::RpcValue &user_id)
 {
 	if(shv_path.empty()) {
 		if(method == cp::Rpc::METH_GET) {
@@ -64,5 +64,5 @@ shv::chainpack::RpcValue TesterPropertyNode::callMethod(const shv::iotqt::node::
 			return true;
 		}
 	}
-	return Super::callMethod(shv_path, method, params);
+	return Super::callMethod(shv_path, method, params, user_id);
 }

@@ -88,7 +88,7 @@ shv::chainpack::RpcValue AppRootNode::hasChildren(const shv::iotqt::node::ShvNod
 	return Super::hasChildren(shv_path);
 }
 
-shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params)
+shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params, const shv::chainpack::RpcValue &user_id)
 {
 	if (!m_isRootNodeValid){
 		SHV_EXCEPTION("Invalid root path: " + m_rootDir.absolutePath().toStdString());
@@ -110,7 +110,7 @@ shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path,
 		}
 	}
 
-	return Super::callMethod(shv_path, method, params);
+	return Super::callMethod(shv_path, method, params, user_id);
 }
 
 shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::RpcRequest &rq)

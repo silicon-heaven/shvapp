@@ -57,7 +57,7 @@ public:
 	virtual void load();
 	void reload();
 
-	shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params) override;
+	shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params, const shv::chainpack::RpcValue &user_id) override;
 	//using Super::callMethod;
 	HNodeAgent* parentAgentNode();
 protected:

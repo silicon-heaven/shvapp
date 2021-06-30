@@ -4,6 +4,7 @@
 #include "checklogtask.h"
 #include <shv/iotqt/rpc/clientconnection.h>
 
+#include <QMap>
 #include <QObject>
 #include <QTimer>
 
@@ -19,11 +20,13 @@ public:
 
 private:
 	void onDeviceAppeared(const QString &shv_path);
+	void onDeviceDisappeared(const QString &shv_path);
 	void sanitizeLogCache();
 	void setupTimer();
 
 	int m_lastCheckedDevice;
 	QTimer m_timer;
+	QMap<QString, QTimer*> m_newDeviceTimers;
 };
 
 #endif // LOGSANITIZER_H
