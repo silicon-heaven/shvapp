@@ -20,6 +20,8 @@
 		"weight":0
 	},
 	"guest":{"weight":0},
+	"eyasdisp":{"roles":["client"]},
+	"eyassrv":{"roles":["device"]},
 	"masterBroker":{
 		"roles":["subscribe"],
 		"weight":0

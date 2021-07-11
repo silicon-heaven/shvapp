@@ -18,6 +18,12 @@
 	"HP":[
 		{"method":"", "pathPattern":"sites/**", "role":"rd"}
 	],
+	"eyassrv":[
+		{"method":"", "pathPattern":"shv/opc/**", "role":"wr"}
+	],
+	"eyasdisp":[
+		{"method":"", "pathPattern":"shv/app/**", "role":"wr"}
+	],
 	"tester":[
 		{"method":"", "pathPattern":"test/**", "role":"wr"}
 	]
