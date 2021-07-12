@@ -87,18 +87,14 @@ void DeviceLogRequest::getChunk()
 
 void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &response)
 {
-	if (!response.isValid()) {
-		shvError() << "invalid response";
-		Q_EMIT finished(false);
-		return;
-	}
-	if (response.isError()) {
-		shvError() << (m_askElesys ? "elesys error:" : "device error:") << m_shvPath << response.error().message();
-		Q_EMIT finished(false);
-		return;
-	}
-
 	try {
+		if (!response.isValid()) {
+			SHV_EXCEPTION("invalid response");
+		}
+		if (response.isError()) {
+			SHV_EXCEPTION((m_askElesys ? "elesys error:" : "device error:") + m_shvPath.toStdString() + response.error().message());
+		}
+
 		const cp::RpcValue &result = response.result();
 		ShvMemoryJournal log;
 		log.loadLog(result);
@@ -124,15 +120,22 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 		}
 
 		bool is_finished = (int)log.size() < Application::CHUNK_RECORD_COUNT;
-		QDateTime until = rpcvalue_cast<QDateTime>(result.metaValue("until"));
+
+		cp::RpcValue meta_since = result.metaValue("since");
+		cp::RpcValue meta_until = result.metaValue("until");
+
+		if (!meta_since.isDateTime() || !meta_until.isDateTime()) {
+			SHV_QT_EXCEPTION("Received invalid log from " + m_shvPath + ", missing since or until");
+		}
+		QDateTime until = rpcvalue_cast<QDateTime>(meta_until);
 
 		if (is_finished && m_askElesys) {
 			m_askElesys = false;
 			is_finished = false;
 		}
 		shvInfo() << "received log for" << m_shvPath << "with" << log.size() << "records"
-				  << "since" << result.metaValue("since").toCpon()
-				  << "until" << result.metaValue("until").toCpon();
+				  << "since" << meta_since.toCpon()
+				  << "until" << meta_until.toCpon();
 		if (log.size()) {
 			if (m_appendLog) {
 				appendToPreviousFile(log, until);
@@ -158,7 +161,8 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 		}
 		getChunk();
 	}
-	catch (const shv::core::Exception &) {
+	catch (const shv::core::Exception &e) {
+		shvError() << e.message();
 		Q_EMIT finished(false);
 	}
 }
