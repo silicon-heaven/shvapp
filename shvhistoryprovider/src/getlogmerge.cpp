@@ -113,12 +113,16 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 			--usable_readers;
 		}
 	}
-	cp::RpcValue::Map dirty_log_info;
+	cp::RpcValue::List dirty_log_info;
 	for (int i = 0; i < readers.count(); ++i) {
 		if (reader_infos[i].used) {
 			m_mergedLog.setTypeInfo(readers[i]->typeInfo(), readers[i]->pathPrefix());
 			if (readers[i]->dirtyLogBegin()) {
-				dirty_log_info[readers[i]->pathPrefix()] = cp::RpcValue::Map{{ "startTS", cp::RpcValue::DateTime::fromMSecsSinceEpoch(readers[i]->dirtyLogBegin()) }};
+				cp::RpcValue::Map m {
+					{ "startTS", cp::RpcValue::DateTime::fromMSecsSinceEpoch(readers[i]->dirtyLogBegin())},
+					{ "path", readers[i]->pathPrefix()},
+				};
+				dirty_log_info.push_back(m);
 			}
 		}
 	}
