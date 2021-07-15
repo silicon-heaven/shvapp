@@ -265,10 +265,10 @@ void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &
 		const ShvJournalEntry &entry = log_reader.entry();
 		auto msec = entry.epochMsec;
 		if (log_since_ms > msec) {
-			SHV_EXCEPTION("Pushed log entry date-time is younger than 'since' param.");
+			SHV_EXCEPTION("Pushed log entry date-time is earlier than 'since' param.");
 		}
 		if (log_until_ms < msec) {
-			SHV_EXCEPTION("Pushed log entry date-time is older than 'until' param.");
+			SHV_EXCEPTION("Pushed log entry date-time is past the 'until' param.");
 		}
 		append_log(entry);
 	}
