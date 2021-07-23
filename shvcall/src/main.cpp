@@ -29,9 +29,6 @@ int main(int argc, char *argv[])
 		}
 		return EXIT_SUCCESS;
 	}
-	QString path;
-	QString method;
-	shv::chainpack::RpcValue params;
 
 	Application a(argc, argv, &cli_opts);
 	return a.exec();
