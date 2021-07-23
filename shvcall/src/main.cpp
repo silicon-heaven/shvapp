@@ -13,21 +13,7 @@ int main(int argc, char *argv[])
 	QCoreApplication::setApplicationName("shvcall");
 	QCoreApplication::setApplicationVersion("0.1.0");
 
-	char **argv_modified = new char*[(uint)(argc + 2)];
-	bool has_debug_param = false;
-	for (int i = 0; i < argc; ++i) {
-		if (strcmp(argv[i], "-d") == 0) {
-			has_debug_param = true;
-		}
-		argv_modified[i] = argv[i];
-	}
-	if (!has_debug_param) {
-		argv_modified[argc] = new char[3];
-		strcpy(argv_modified[argc++], "-d");
-		argv_modified[argc] = new char[3];
-		strcpy(argv_modified[argc++], ":E");
-	}
-	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv_modified);
+	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);
 
 	AppCliOptions cli_opts;
 	cli_opts.parse(shv_args);
