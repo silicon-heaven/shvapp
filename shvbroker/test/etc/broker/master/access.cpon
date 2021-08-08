@@ -6,7 +6,8 @@
 		{"method":"", "pathPattern":"**", "role":"bws"}
 	],
 	"iot":[
-		{"method":"", "pathPattern":"shv/**", "role":"rd"}
+		{"method":"", "pathPattern":"shv/**", "role":"rd"},
+		{"service": "*", "method":"", "pathPattern":"test/**", "role":"rd"},
 	],
 	"ping":[
 		{"method":"ping", "pathPattern":".broker/app", "role":"srv"}

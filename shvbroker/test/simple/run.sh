@@ -20,7 +20,8 @@ fi
 
 # tmux set option remain-on-exit on
 
-tmux new-window $BINDIR/shvbroker --config-dir $CFGDIR/master/ -v $BROKER_TOPICS
+# tmux new-window $BINDIR/shvbroker --config-dir $CFGDIR/master/ -v $BROKER_TOPICS
+tmux new-window sh -c "$BINDIR/shvbroker --config-dir $CFGDIR/master/ -v $BROKER_TOPICS || read a"
 
 sleep $SLEEP_SETTLE
 

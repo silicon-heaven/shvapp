@@ -2,12 +2,12 @@
   "admin":{
     "roles":["admin"],
     "password": {
-      "password":"8284a26b82a69838092fd4fc824bbfde56719e02",
-      "format":"sha1"
+      "password":"shv3y45",
+      "format":"plain"
     }
   },
   "iot":{
-    "roles":["device","tester"],
+    "roles":["iot"],
     "password": {
       "password":"iotpwd",
       "format":"plain"

@@ -6,7 +6,7 @@ TSTDIR=`dirname "$(readlink -f "$0")"`
 # SRCDIR=/home/fanda/proj/shv
 CFGDIR=$TSTDIR/../etc/broker
 
-BROKER_TOPICS=rpcmsg,subscr,AclResolve #,sigres
+BROKER_TOPICS=rpcmsg,subscr,AclResolve,ServiceProviders
 SLEEP_SETTLE=0.5
 
 if [[ -z "$BINDIR" ]]
@@ -22,7 +22,7 @@ fi
 
 tmux new-window sh -c "$BINDIR/shvbroker --config-dir $CFGDIR/master/ -v $BROKER_TOPICS || read a"
 # sleep 10
-tmux split-window sh -c "$BINDIR/shvbroker --config-dir $CFGDIR/slave1/ -v $BROKER_TOPICS || read a"
+tmux split-window sh -c "$BINDIR/shvbroker --config-dir $CFGDIR/slave1/ -v $BROKER_TOPICS -d shvnode || read a"
 
 # sleep 1
 tmux split-window sh -c "$BINDIR/shvbroker --config-dir $CFGDIR/slaveA/ -v $BROKER_TOPICS || read a"
@@ -40,7 +40,7 @@ tmux split-window -hf $BINDIR/shvagent -p 37577 --sec-type ssl --peer-verify fal
 # sleep $SLEEP_SETTLE
 
 # tmux select-pane -t0
-# tmux split-window $BINDIR/shvagent -p 3757 -u iot --password iotpwd --lt plain -m test/agentB1 --hbi 0 --tester -v tester
+tmux split-window $BINDIR/shvagent -p 3756 -u iot --password iotpwd --lt plain -m test/agent11 --hbi 0
 
 sleep $SLEEP_SETTLE
 

@@ -34,10 +34,26 @@
 	},
 	{
 		"id": "GET_1"
-		"descr": "Get value on node conected to lowes broker in hierarchy",
+		"descr": "Get value on node conected to lowest broker in hierarchy",
 		"cmd": "call",
 		"method": "get",
 		"shvPath": "test/broker1/brokerA/agentA1/tester/prop1/propA",
+		"result": 42,
+	},
+	{
+		"id": "GET_DOWN_TREE1"
+		"descr": "Get value on service 'agentA1'",
+		"cmd": "call",
+		"method": "appName",
+		"shvPath": "test>:/test/broker1/agent11",
+		"result": "shvagent",
+	},
+	{
+		"id": "GET_DOWN_TREE2"
+		"descr": "Get value on service 'brokerA'",
+		"cmd": "call",
+		"method": "get",
+		"shvPath": "test@slaveA>:/test/broker1/brokerA/agentA1/tester/prop1/propA",
 		"result": 42,
 	},
 
