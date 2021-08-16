@@ -51,9 +51,9 @@ static std::vector<cp::MetaMethod> root_meta_methods {
 	{ cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
 	{ METH_GIT_COMMIT, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 	{ METH_GET_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
-	{ METH_RELOAD_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_COMMAND},
-	{ METH_SITES_SYNCED_BEFORE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
-	{ METH_SITES_RELOADED, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::IsSignal, shv::chainpack::Rpc::ROLE_READ },
+//	{ METH_RELOAD_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_COMMAND},
+//	{ METH_SITES_SYNCED_BEFORE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
+//	{ METH_SITES_RELOADED, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::IsSignal, shv::chainpack::Rpc::ROLE_READ },
 	{ METH_PULL_FILES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
 //	{ METH_GIT_PUSH, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_ADMIN },
 };
@@ -130,10 +130,16 @@ AppRootNode::AppRootNode(QObject *parent)
 		shvInfo() << "sites directory" << SitesProviderApp::instance()->cliOptions()->localSitesDir() << "identified as git repository";
 		root_meta_methods.push_back({ METH_GIT_PUSH, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_ADMIN });
 	}
-	m_downloadSitesTimer.setInterval(30 * 60 * 1000);
-	connect(&m_downloadSitesTimer, &QTimer::timeout, this, &AppRootNode::downloadSites);
-	m_downloadSitesTimer.start();
-	QTimer::singleShot(500, this, &AppRootNode::downloadSites);
+	if (SitesProviderApp::instance()->cliOptions()->syncSites()) {
+		root_meta_methods.push_back({ METH_RELOAD_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_COMMAND});
+		root_meta_methods.push_back({ METH_SITES_SYNCED_BEFORE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ });
+		root_meta_methods.push_back({ METH_SITES_RELOADED, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::IsSignal, shv::chainpack::Rpc::ROLE_READ });
+
+		m_downloadSitesTimer.setInterval(30 * 60 * 1000);
+		connect(&m_downloadSitesTimer, &QTimer::timeout, this, &AppRootNode::downloadSites);
+		m_downloadSitesTimer.start();
+		QTimer::singleShot(500, this, &AppRootNode::downloadSites);
+	}
 }
 
 size_t AppRootNode::methodCount(const StringViewList &shv_path)
