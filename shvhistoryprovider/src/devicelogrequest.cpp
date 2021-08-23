@@ -63,7 +63,12 @@ void DeviceLogRequest::getChunk()
 	}
 	QString path;
 	cp::RpcValue params;
-	if (m_askElesys) {
+	if (Application::instance()->deviceMonitor()->isPushLogDevice(m_shvPath)) {
+		QString sync_log_broker = Application::instance()->deviceMonitor()->syncLogBroker(m_shvPath);
+		path = "history@" + sync_log_broker + ">:/shv/" + m_shvPath;
+		params = logParams(!m_appendLog).toRpcValue();
+	}
+	else if (m_askElesys) {
 		path = m_shvPath;
 		if (Application::instance()->cliOptions()->test()) {
 			if (path.startsWith("test/")) {

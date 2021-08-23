@@ -46,6 +46,7 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 	int64_t first_record_since = 0LL;
 
 	struct ReaderInfo {
+		QString shvPath;
 		bool used = false;
 		bool exhausted = false;
 	};
@@ -65,11 +66,13 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 	QVector<LogDirReader*> readers;
 	QVector<ReaderInfo> reader_infos;
 	for (const QString &shv_path : m_shvPaths) {
+		const SitesHPDevice *site_item = qobject_cast<const SitesHPDevice *>(Application::instance()->deviceMonitor()->sites()->itemByShvPath(shv_path));
 		int prefix_length = shv_path.length() - m_shvPath.length();
-		LogDirReader *reader = new LogDirReader(shv_path, prefix_length, since, until, m_logParams.withSnapshot);
+		LogDirReader *reader = new LogDirReader(shv_path, site_item->isPushLog(), prefix_length, since, until, m_logParams.withSnapshot);
 		if (reader->next()) {
 			readers << reader;
 			reader_infos << ReaderInfo();
+			reader_infos.last().shvPath = shv_path;
 		}
 		else {
 			delete reader;
@@ -150,6 +153,38 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 	else if (!since.isNull() && first_record_since && first_record_since > since.toMSecsSinceEpoch()) {
 		res.setMetaValue("since", cp::RpcValue::DateTime::fromMSecsSinceEpoch(first_record_since));
 	}
+
+	int used_readers = 0;
+	const ReaderInfo *used_exhausted_reader = nullptr;
+	for (const ReaderInfo &info : reader_infos) {
+		if (info.used) {
+			++used_readers;
+			if (info.exhausted) {
+				used_exhausted_reader = &info;
+			}
+		}
+	}
+	if (used_readers == 1 && used_exhausted_reader) {
+		const QString &shv_path = used_exhausted_reader->shvPath;
+		const SiteItem *site_item = Application::instance()->deviceMonitor()->sites()->itemByShvPath(shv_path);
+		if (site_item) {
+			const SitesHPDevice *hp_site_item = qobject_cast<const SitesHPDevice *>(site_item);
+			if (hp_site_item && hp_site_item->isPushLog()) {
+
+				LogDir log_dir(shv_path);
+				QStringList all_logs = log_dir.findFiles(QDateTime(), QDateTime());
+
+				if (all_logs.count()) {
+					ShvLogFileReader log_reader(all_logs.last().toStdString());
+					const ShvLogHeader &header = log_reader.logHeader();
+					if (header.until().toDateTime().msecsSinceEpoch() < until_msecs) {
+						res.setMetaValue("until", header.until());
+					}
+				}
+			}
+		}
+	}
+
 	res.setMetaValue("dirtyLog", dirty_log_info);
 	return res;
 }

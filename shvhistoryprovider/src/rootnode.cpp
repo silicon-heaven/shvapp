@@ -68,6 +68,7 @@ static std::vector<cp::MetaMethod> push_log_leaf_meta_methods {
 	{ cp::Rpc::METH_GET_LOG, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ },
 	{ METH_CHECK_LOG_CACHE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_SERVICE,
 				"Checks state of file cache. Use param {\"withGoodFiles\": true} or 1 to see complete output" },
+	{ METH_SANITIZE_LOG_CACHE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_SERVICE },
 	{ METH_PUSH_LOG, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE },
 };
 
@@ -139,7 +140,10 @@ cp::RpcValue RootNode::ls(const shv::core::StringViewList &shv_path, size_t inde
 			items.push_back(cp::RpcValue::fromValue(site_item->children()[i]->objectName()));
 		}
 		if (site_item->children().count() == 0) {
-			items.push_back(Application::DIRTY_LOG_NODE);
+			const SitesHPDevice *hp_site_item = qobject_cast<const SitesHPDevice*>(site_item);
+			if (hp_site_item && !hp_site_item->isPushLog()) {
+				items.push_back(Application::DIRTY_LOG_NODE);
+			}
 		}
 		return items;
 	}
@@ -357,7 +361,7 @@ shv::chainpack::RpcValue RootNode::callMethod(const shv::iotqt::node::ShvNode::S
 	else if (method == METH_SANITIZE_LOG_CACHE) {
 		Application *app = Application::instance();
 		QString q_shv_path = QString::fromStdString(shv_path.join('/'));
-		if (app->deviceMonitor()->isPushLogDevice(q_shv_path)) {
+		if (app->deviceMonitor()->isPushLogDevice(q_shv_path) && app->deviceMonitor()->syncLogBroker(q_shv_path).isEmpty()) {
 			SHV_QT_EXCEPTION("Cannot sanitize logs on pushLog device");
 		}
 		return app->logSanitizer()->sanitizeLogCache(q_shv_path, CheckLogTask::CheckType::CheckDirtyLogState);
