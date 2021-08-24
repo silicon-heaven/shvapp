@@ -154,32 +154,17 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 		res.setMetaValue("since", cp::RpcValue::DateTime::fromMSecsSinceEpoch(first_record_since));
 	}
 
-	int used_readers = 0;
-	const ReaderInfo *used_exhausted_reader = nullptr;
-	for (const ReaderInfo &info : reader_infos) {
-		if (info.used) {
-			++used_readers;
-			if (info.exhausted) {
-				used_exhausted_reader = &info;
-			}
-		}
-	}
-	if (used_readers == 1 && used_exhausted_reader) {
-		const QString &shv_path = used_exhausted_reader->shvPath;
-		const SiteItem *site_item = Application::instance()->deviceMonitor()->sites()->itemByShvPath(shv_path);
-		if (site_item) {
-			const SitesHPDevice *hp_site_item = qobject_cast<const SitesHPDevice *>(site_item);
-			if (hp_site_item && hp_site_item->isPushLog()) {
+	if (reader_infos.count() == 1 && reader_infos[0].exhausted) {
+		const QString &shv_path = reader_infos[0].shvPath;
+		LogDir log_dir(shv_path);
+		if (!log_dir.existsDirtyLog()) {
+			QStringList all_logs = log_dir.findFiles(QDateTime(), QDateTime());
 
-				LogDir log_dir(shv_path);
-				QStringList all_logs = log_dir.findFiles(QDateTime(), QDateTime());
-
-				if (all_logs.count()) {
-					ShvLogFileReader log_reader(all_logs.last().toStdString());
-					const ShvLogHeader &header = log_reader.logHeader();
-					if (header.until().toDateTime().msecsSinceEpoch() < until_msecs) {
-						res.setMetaValue("until", header.until());
-					}
+			if (all_logs.count()) {
+				ShvLogFileReader log_reader(all_logs.last().toStdString());
+				const ShvLogHeader &header = log_reader.logHeader();
+				if (header.until().toDateTime().msecsSinceEpoch() < until_msecs) {
+					res.setMetaValue("until", header.until());
 				}
 			}
 		}

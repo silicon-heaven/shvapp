@@ -30,7 +30,7 @@ void CheckLogTask::exec()
 		if (m_checkType == CheckType::TrimDirtyLogOnly) {
 			int64_t dirty_begin = 0LL;
 			int64_t regular_end = 0LL;
-			if (m_logDir.exists(m_logDir.dirtyLogName())) {
+			if (m_logDir.existsDirtyLog()) {
 				ShvJournalFileReader reader(m_logDir.dirtyLogPath().toStdString());
 				if (reader.next()) {
 					dirty_begin = reader.entry().epochMsec;
@@ -138,7 +138,7 @@ CacheState CheckLogTask::checkLogCache(const QString &shv_path, bool with_good_f
 	}
 	CacheFileState dirty_file_state;
 	dirty_file_state.fileName = m_logDir.dirtyLogName();
-	bool exists_dirty = m_logDir.exists(m_logDir.dirtyLogName());
+	bool exists_dirty = m_logDir.existsDirtyLog();
 	if (!exists_dirty) {
 		dirty_file_state.errors << CacheError { CacheStatus::Warning, CacheError::Type::DirtLogMissing, "missing dirty log" };
 	}
@@ -211,7 +211,7 @@ void CheckLogTask::checkOldDataConsistency()
 		}
 		requested_since = file_until;
 	}
-	bool exists_dirty = m_logDir.exists(m_logDir.dirtyLogName());
+	bool exists_dirty = m_logDir.existsDirtyLog();
 	QDateTime requested_until;
 	if (m_checkType == CheckType::ReplaceDirtyLog || !exists_dirty) {
 		requested_until = QDateTime::currentDateTimeUtc();
@@ -246,7 +246,7 @@ void CheckLogTask::checkOldDataConsistency()
 
 void CheckLogTask::checkDirtyLogState()
 {
-	if (m_logDir.exists(m_logDir.dirtyLogName())) {
+	if (m_logDir.existsDirtyLog()) {
 
 		//Zjisteni datumu od kdy chceme nahradit dirty log normalnim logem:
 		//Existuji 2 zdroje, konec posledniho radneho logu a zacatek dirty logu.

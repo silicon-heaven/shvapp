@@ -154,7 +154,7 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 				}
 				saveToNewFile(log, until);
 			}
-			if (m_logDir.exists(m_logDir.dirtyLogName())) {
+			if (m_logDir.existsDirtyLog()) {
 				trimDirtyLog(until);
 			}
 		}

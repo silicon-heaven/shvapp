@@ -195,7 +195,7 @@ void DirtyLogManager::writeDirtyLog(const QString &shv_path, const QString &path
 void DirtyLogManager::checkDirtyLog(const QString &shv_path, bool is_connected)
 {
 	LogDir log_dir(shv_path);
-	if (!log_dir.exists(log_dir.dirtyLogName())) {
+	if (!log_dir.existsDirtyLog()) {
 		QDateTime current = QDateTime::currentDateTimeUtc();
 		QDateTime since = current;
 		QStringList log_files = log_dir.findFiles(QDateTime(), QDateTime());

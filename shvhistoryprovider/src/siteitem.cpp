@@ -124,7 +124,7 @@ void SitesHPDevice::parseMetaRpcValue(const shv::chainpack::RpcValue::Map &meta)
 	if (hp_meta.hasKey("syncLog")) {
 		for (auto sync_log : hp_meta.at("syncLog").toList()) {
 			if (QString::fromStdString(sync_log.at("target").toString()) == Application::instance()->brokerId()) {
-				m_syncLog = QString::fromStdString(sync_log.at("source").toString());
+				m_syncLogSource = QString::fromStdString(sync_log.at("source").toString());
 			}
 		}
 	}

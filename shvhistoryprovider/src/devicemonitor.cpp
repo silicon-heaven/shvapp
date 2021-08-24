@@ -61,7 +61,7 @@ QString DeviceMonitor::syncLogBroker(const QString &shv_path) const
 {
 	const SitesHPDevice *hp_device = qobject_cast<const SitesHPDevice *>(m_sites->itemByShvPath(shv_path));
 	if (hp_device && hp_device->isPushLog()) {
-		return hp_device->syncLog();
+		return hp_device->syncLogSource();
 	}
 	return QString();
 }
@@ -149,7 +149,7 @@ void DeviceMonitor::onDeviceMountChanged(const QString &path, const QString &met
 			if (shv_path.startsWith(p)) {
 				isDeviceOnline(shv_path, [this, shv_path](bool is_online) {
 					if (is_online) {
-						shvInfo() << "device" << shv_path << "appeared";
+						shvInfo() << "device" << shv_path << "connected";
 						m_onlineDevices << shv_path;
 						Q_EMIT deviceConnectedToBroker(shv_path);
 					}
@@ -161,7 +161,7 @@ void DeviceMonitor::onDeviceMountChanged(const QString &path, const QString &met
 		for (const QString &shv_path : m_monitoredDevices) {
 			if (shv_path.startsWith(p)) {
 				if (m_onlineDevices.removeOne(shv_path)) {
-					shvInfo() << "device" << shv_path << "disappeared";
+					shvInfo() << "device" << shv_path << "disconnected";
 					Q_EMIT deviceDisconnectedFromBroker(shv_path);
 				}
 			}
