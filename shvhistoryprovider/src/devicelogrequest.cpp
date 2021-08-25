@@ -65,6 +65,11 @@ void DeviceLogRequest::getChunk()
 	cp::RpcValue params;
 	if (Application::instance()->deviceMonitor()->isPushLogDevice(m_shvPath)) {
 		QString sync_log_broker = Application::instance()->deviceMonitor()->syncLogBroker(m_shvPath);
+		if (sync_log_broker.isEmpty()) {
+			shvError() << "cannot get log for push log device" << m_shvPath << "because source HP is not set";
+			Q_EMIT finished(false);
+			return;
+		}
 		path = "history@" + sync_log_broker + ">:/shv/" + m_shvPath;
 		params = logParams(!m_appendLog).toRpcValue();
 	}
