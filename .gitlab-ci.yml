@@ -102,16 +102,16 @@ test-deploy:
   environment:
     name: jessie
 
-#win-build:
-#  tags:
-#    - windows
-#  stage:
-#    build
-#  script: 
-#    - bash build-win.sh
-#  artifacts:
-#    paths:
-#      - _inno/
+win-build:
+  tags:
+    - windows
+  stage:
+    build
+  script: 
+    - bash build-win.sh
+  artifacts:
+    paths:
+      - _inno/
 #
 #win-deploy:
 #  only:
