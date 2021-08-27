@@ -1,6 +1,6 @@
 echo "making SHV" $WORKSPACE
 PATH=/c/Qt5/Tools/mingw810_64/bin:$PATH
-c:/Qt5/5.15.2/mingw81_64/bin/qmake.exe DEFINES+=GIT_COMMIT=${CI_COMMIT_SHA} DEFINES+=GIT_BRANCH=${CI_COMMIT_REF_SLUG} DEFINES+=BUILD_ID=${CI_PIPELINE_ID} -r CONFIG+=release CONFIG+=do-updateqm flatline.pro || exit 2
+c:/Qt5/5.15.2/mingw81_64/bin/qmake.exe DEFINES+=GIT_COMMIT=${CI_COMMIT_SHA} DEFINES+=GIT_BRANCH=${CI_COMMIT_REF_SLUG} DEFINES+=BUILD_ID=${CI_PIPELINE_ID} -r CONFIG+=release shv.pro || exit 2
 
 c:/Qt5/Tools/mingw810_64/bin/mingw32-make.exe -j4 || exit 2
 
