@@ -8,8 +8,8 @@
 #define APP_NAME_LOWER "jn50view"
 #define COMPANY "elektroline"
 
-#define QT_DIR "C:\Qt\5.13.2\mingw73_64"
-#define MINGW_DIR "C:\Qt\Tools\mingw730_64"
+#define QT_DIR "c:\Qt5\5.15.2\mingw81_64"
+#define MINGW_DIR "C:\Qt\Tools\mingw810_64"
 
 #define BUILD_DIR "..\.."
 #define DOC_BUILD_DIR BUILD_DIR + "\clients\jn50view\doc\help\_build\html"
