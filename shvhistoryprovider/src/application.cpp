@@ -9,6 +9,7 @@
 #include <shv/coreqt/log.h>
 #include <shv/coreqt/exception.h>
 #include <shv/iotqt/rpc/rpc.h>
+#include <shv/iotqt/rpc/rpccall.h>
 
 #include <QTimer>
 
@@ -154,6 +155,16 @@ void Application::onShvStateChanged()
 {
 	if (m_rpcConnection->state() == shv::iotqt::rpc::ClientConnection::State::BrokerConnected) {
 		shvInfo() << "SHV Broker connected";
+		shv::iotqt::rpc::RpcCall *call = shv::iotqt::rpc::RpcCall::create(m_rpcConnection)
+										 ->setShvPath(".broker/app")
+										 ->setMethod("brokerId");
+		connect(call, &shv::iotqt::rpc::RpcCall::error, this, [](const QString &error) {
+			shvError() << "Cannot get broker ID";
+		});
+		connect(call, &shv::iotqt::rpc::RpcCall::result, this, [this](const cp::RpcValue &result) {
+			m_brokerId = QString::fromStdString(result.toString());
+		});
+		call->start();
 		if (!m_root) {
 			m_root = new RootNode();
 			m_shvTree = new shv::iotqt::node::ShvNodeTree(m_root, this);

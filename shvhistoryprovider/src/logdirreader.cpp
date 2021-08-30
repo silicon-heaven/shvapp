@@ -7,12 +7,13 @@
 namespace cp = shv::chainpack;
 using namespace shv::core::utils;
 
-LogDirReader::LogDirReader(const QString &shv_path, int prefix_length, const QDateTime &since, const QDateTime &until, bool with_snapshot)
+LogDirReader::LogDirReader(const QString &shv_path, bool is_push_log, int prefix_length, const QDateTime &since, const QDateTime &until, bool with_snapshot)
 	: m_logReader(nullptr)
 	, m_journalReader(nullptr)
 	, m_until(until.isValid() ? until.toMSecsSinceEpoch() : 0LL)
 	, m_firstFile(true)
 	, m_dirtyLogBegin(0LL)
+	, m_isPushLog(is_push_log)
 {
 	LogDir log_dir(shv_path);
 	m_logs = log_dir.findFiles(since, until);
@@ -28,7 +29,7 @@ LogDirReader::LogDirReader(const QString &shv_path, int prefix_length, const QDa
 				m_header = log_reader.logHeader();
 				m_typeInfo = m_header.typeInfo();
 			}
-			if (!until.isValid() || until.toMSecsSinceEpoch() > m_header.untilMsec()) {
+			if (!m_isPushLog && (!until.isValid() || until.toMSecsSinceEpoch() > m_header.untilMsec())) {
 				m_logs << m_dirtyLog;
 			}
 		}
@@ -81,7 +82,7 @@ bool LogDirReader::next()
 		if (m_logs[0] == m_dirtyLog) {
 			return false;
 		}
-		if (!m_until || m_previousFileUntil < m_until) {
+		if (!m_isPushLog && (!m_until || m_previousFileUntil < m_until)) {
 			m_logs << m_dirtyLog;
 		}
 		else {

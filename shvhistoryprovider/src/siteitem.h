@@ -42,6 +42,7 @@ public:
 
 	bool isElesys() const	{ return m_elesys; }
 	bool isPushLog() const { return m_pushLog; }
+	const QString &syncLogSource() const { return m_syncLogSource; }
 
 protected:
 	void parseMetaRpcValue(const shv::chainpack::RpcValue::Map &meta) override;
@@ -49,6 +50,7 @@ protected:
 private:
 	bool m_elesys;
 	bool m_pushLog;
+	QString m_syncLogSource;
 };
 
 #endif // SITEITEM_H

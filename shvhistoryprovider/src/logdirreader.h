@@ -12,7 +12,7 @@
 class LogDirReader
 {
 public:
-	LogDirReader(const QString &shv_path, int prefix_length, const QDateTime &since, const QDateTime &until, bool with_snapshot);
+	LogDirReader(const QString &shv_path, bool is_push_log, int prefix_length, const QDateTime &since, const QDateTime &until, bool with_snapshot);
 	LogDirReader(const LogDirReader &) = delete;
 	~LogDirReader();
 
@@ -38,6 +38,7 @@ private:
 	shv::core::utils::ShvJournalEntry m_entry;
 	bool m_firstFile;
 	int64_t m_dirtyLogBegin;
+	bool m_isPushLog;
 };
 
 #endif // LOGDIRREADER_H

@@ -34,6 +34,7 @@ public:
 	shv::iotqt::rpc::DeviceConnection *deviceConnection();
 	void registerAlienFile(const QString &filename);
 	QString uptime() const;
+	QString brokerId() const { return m_brokerId; }
 
 private:
 	void onShvStateChanged();
@@ -51,4 +52,5 @@ private:
 	shv::iotqt::rpc::DeviceConnection *m_rpcConnection;
 	shv::iotqt::node::ShvNodeTree *m_shvTree;
 	QStringList m_alienFiles;
+	QString m_brokerId;
 };

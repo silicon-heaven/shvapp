@@ -98,18 +98,23 @@ void LogSanitizer::sanitizeLogCache()
 		return;
 	}
 	QStringList online_devices = Application::instance()->deviceMonitor()->onlineDevices();
-	for (int i = 0; i < online_devices.count(); ++i) {
-		if (Application::instance()->deviceMonitor()->isPushLogDevice(online_devices[i])) {
-			online_devices.removeAt(i--);
+	QStringList all_devices = Application::instance()->deviceMonitor()->monitoredDevices();
+	QStringList sanitized_devices;
+	for (int i = 0; i < all_devices.count(); ++i) {
+		QString device = all_devices[i];
+		bool is_push_log = Application::instance()->deviceMonitor()->isPushLogDevice(device);
+		if ((online_devices.contains(device) && !is_push_log) ||
+			(is_push_log && !Application::instance()->deviceMonitor()->syncLogBroker(device).isEmpty())) {
+			sanitized_devices << device;
 		}
 	}
-	if (online_devices.count() == 0) {
+	if (sanitized_devices.count() == 0) {
 		return;
 	}
-	if (++m_lastCheckedDevice >= online_devices.count()) {
+	if (++m_lastCheckedDevice >= sanitized_devices.count()) {
 		m_lastCheckedDevice = 0;
 	}
-	sanitizeLogCache(online_devices[m_lastCheckedDevice], CheckLogTask::CheckType::CheckDirtyLogState);
+	sanitizeLogCache(sanitized_devices[m_lastCheckedDevice], CheckLogTask::CheckType::CheckDirtyLogState);
 }
 
 bool LogSanitizer::sanitizeLogCache(const QString &shv_path, CheckLogTask::CheckType check_type)

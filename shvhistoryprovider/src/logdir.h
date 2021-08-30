@@ -17,6 +17,7 @@ public:
 	static QString fileName(const QDateTime &datetime);
 
 	bool exists(const QString &file) const { return m_dir.exists(file); }
+	bool existsDirtyLog() const { return m_dir.exists(dirtyLogName()); }
 	bool remove(const QString &file) { return m_dir.remove(file); }
 	bool rename(const QString &old_name, const QString &new_name) { return m_dir.rename(old_name, new_name); }
 	void refresh() { m_dir.refresh(); }

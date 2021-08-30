@@ -63,7 +63,17 @@ void DeviceLogRequest::getChunk()
 	}
 	QString path;
 	cp::RpcValue params;
-	if (m_askElesys) {
+	if (Application::instance()->deviceMonitor()->isPushLogDevice(m_shvPath)) {
+		QString sync_log_broker = Application::instance()->deviceMonitor()->syncLogBroker(m_shvPath);
+		if (sync_log_broker.isEmpty()) {
+			shvError() << "cannot get log for push log device" << m_shvPath << "because source HP is not set";
+			Q_EMIT finished(false);
+			return;
+		}
+		path = "history@" + sync_log_broker + ">:/shv/" + m_shvPath;
+		params = logParams(!m_appendLog).toRpcValue();
+	}
+	else if (m_askElesys) {
 		path = m_shvPath;
 		if (Application::instance()->cliOptions()->test()) {
 			if (path.startsWith("test/")) {
@@ -149,7 +159,7 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 				}
 				saveToNewFile(log, until);
 			}
-			if (m_logDir.exists(m_logDir.dirtyLogName())) {
+			if (m_logDir.existsDirtyLog()) {
 				trimDirtyLog(until);
 			}
 		}
