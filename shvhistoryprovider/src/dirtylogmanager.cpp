@@ -228,7 +228,7 @@ void DirtyLogManager::checkDirtyLog(const QString &shv_path, bool is_connected)
 										ShvJournalEntry::DOMAIN_SHV_SYSTEM,
 										ShvJournalEntry::NO_SHORT_TIME,
 										ShvJournalEntry::SampleType::Continuous,
-										QDateTime::currentDateTimeUtc().toMSecsSinceEpoch()
+										current.toMSecsSinceEpoch()
 									});
 			}
 		}

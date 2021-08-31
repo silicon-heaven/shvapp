@@ -109,6 +109,17 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 		ShvMemoryJournal log;
 		log.loadLog(result);
 
+		cp::RpcValue meta_since = result.metaValue("since");
+		cp::RpcValue meta_until = result.metaValue("until");
+
+		if (meta_until.isNull()) {
+			if (log.entries().size() == 0) {   //no data obtained from device, let it for next time
+				Q_EMIT finished(true);
+				return;
+			}
+			meta_until = log.entries()[log.size() - 1].dateTime();
+		}
+
 		if (m_since.isValid() && m_until.isValid() && log.entries().size() == 0) {
 			log.setSince(cp::RpcValue::fromValue(m_since));
 			log.append(ShvJournalEntry{
@@ -130,9 +141,6 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 		}
 
 		bool is_finished = (int)log.size() < Application::CHUNK_RECORD_COUNT;
-
-		cp::RpcValue meta_since = result.metaValue("since");
-		cp::RpcValue meta_until = result.metaValue("until");
 
 		if (!meta_since.isDateTime() || !meta_until.isDateTime()) {
 			SHV_QT_EXCEPTION("Received invalid log from " + m_shvPath + ", missing since or until");

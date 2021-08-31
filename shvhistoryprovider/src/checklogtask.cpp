@@ -41,7 +41,7 @@ void CheckLogTask::exec()
 				regular_end = last_log.logHeader().until().toDateTime().msecsSinceEpoch();
 			}
 			if (dirty_begin && dirty_begin == regular_end) {
-				getLog(QDateTime::fromMSecsSinceEpoch(dirty_begin, Qt::TimeSpec::UTC), QDateTime::currentDateTimeUtc());
+				getLog(QDateTime::fromMSecsSinceEpoch(dirty_begin, Qt::TimeSpec::UTC), QDateTime());
 			}
 			else {
 				m_checkType = CheckType::ReplaceDirtyLog;
@@ -212,35 +212,18 @@ void CheckLogTask::checkOldDataConsistency()
 		requested_since = file_until;
 	}
 	bool exists_dirty = m_logDir.existsDirtyLog();
-	QDateTime requested_until;
 	if (m_checkType == CheckType::ReplaceDirtyLog || !exists_dirty) {
-		requested_until = QDateTime::currentDateTimeUtc();
+		getLog(requested_since, QDateTime());
 	}
 	else if (exists_dirty){
+		QDateTime requested_until;
 		ShvJournalFileReader dirty_log(m_logDir.dirtyLogPath().toStdString());
 		if (dirty_log.next()) {
 			requested_until = QDateTime::fromMSecsSinceEpoch(dirty_log.entry().epochMsec, Qt::TimeSpec::UTC);
-			if (dirty_log.next()) {
-				ShvJournalEntry second_entry = dirty_log.entry();
-				if (second_entry.path == ShvJournalEntry::PATH_DATA_MISSING && second_entry.value.asString() == ShvJournalEntry::DATA_MISSING_UNAVAILABLE) {
-					int64_t data_missing_begin = second_entry.epochMsec;
-					if (dirty_log.next()) {
-						ShvJournalEntry third_entry = dirty_log.entry();
-						if (third_entry.path == ShvJournalEntry::PATH_DATA_MISSING && third_entry.value.asString().empty()) {
-							int64_t data_missing_end = third_entry.epochMsec;
-							if (data_missing_end - data_missing_begin > 5) {
-								requested_until = QDateTime::currentDateTimeUtc();
-								m_checkType = CheckType::ReplaceDirtyLog;
-							}
-						}
-					}
-				}
+			if (requested_until.isValid() && (!requested_since.isValid() || requested_since < requested_until)) {
+				getLog(requested_since, requested_until);
 			}
 		}
-	}
-
-	if (requested_until.isValid() && (!requested_since.isValid() || requested_since < requested_until)) {
-		getLog(requested_since, requested_until);
 	}
 }
 
@@ -272,14 +255,16 @@ void CheckLogTask::checkDirtyLogState()
 			}
 			QDateTime current = QDateTime::currentDateTimeUtc();
 			if (journal_since.secsTo(current) > Application::instance()->cliOptions()->trimDirtyLogInterval() * 60) {
-				getLog(journal_since, current);
+				getLog(journal_since, QDateTime());
 			}
-			int rec_count = 1;
-			while (reader.next()) {
-				++rec_count;
-				if (rec_count >= Application::CHUNK_RECORD_COUNT) {
-					getLog(journal_since, current);
-					break;
+			else {
+				int rec_count = 1;
+				while (reader.next()) {
+					++rec_count;
+					if (rec_count >= Application::CHUNK_RECORD_COUNT) {
+						getLog(journal_since, QDateTime());
+						break;
+					}
 				}
 			}
 		}
