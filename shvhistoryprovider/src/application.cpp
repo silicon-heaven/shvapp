@@ -117,7 +117,7 @@ void Application::disconnectFromShv()
 void Application::quit()
 {
 	if (m_rpcConnection->state() == shv::iotqt::rpc::DeviceConnection::State::BrokerConnected) {
-		connect(m_rpcConnection, &shv::iotqt::rpc::DeviceConnection::stateChanged, [this]() {
+		connect(m_rpcConnection, &shv::iotqt::rpc::DeviceConnection::stateChanged, []() {
 			Super::quit();
 		});
 		m_rpcConnection->close();
@@ -159,7 +159,7 @@ void Application::onShvStateChanged()
 										 ->setShvPath(".broker/app")
 										 ->setMethod("brokerId");
 		connect(call, &shv::iotqt::rpc::RpcCall::error, this, [](const QString &error) {
-			shvError() << "Cannot get broker ID";
+			shvError() << "Cannot get broker ID:" << error;
 		});
 		connect(call, &shv::iotqt::rpc::RpcCall::result, this, [this](const cp::RpcValue &result) {
 			m_brokerId = QString::fromStdString(result.toString());
