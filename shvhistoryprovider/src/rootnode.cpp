@@ -167,6 +167,20 @@ void RootNode::trimDirtyLog(const QString &shv_path)
 
 void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &log, int64_t &log_since_ms, int64_t &log_until_ms)
 {
+	QString log_path = "/tmp/historyprovider/pushlog/" + shv_path;
+	if (QDir().mkpath(log_path)) {
+		QFile log_file(log_path + "/last_data.log");
+		if (log_file.open(QFile::WriteOnly | QFile::Truncate)) {
+			log_file.write(QByteArray::fromStdString(log.toCpon("  ")));
+			log_file.close();
+		}
+		else {
+			shvWarning() << "Cannot create file for logging of push log data";
+		}
+	}
+	else {
+		shvWarning() << "Cannot create directory for logging of push log data" << log_path;
+	}
 	ShvLogRpcValueReader log_reader(log, true);
 	LogDir log_dir(shv_path);
 	QDateTime log_since = rpcvalue_cast<QDateTime>(log_reader.logHeader().since());
