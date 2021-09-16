@@ -126,9 +126,6 @@ void DirtyLogManager::onDeviceDataChanged(const QString &path, const QString &me
 			if (d.hasDateTime()) {
 				timestamp = d.epochMSec();
 			}
-			if (!d.domain().empty()) {
-				domain = d.domain();
-			}
 			value = d.value();
 		}
 		if (!timestamp) {
@@ -171,7 +168,7 @@ void DirtyLogManager::insertDataMissingToDirtyLog(const QString &shv_path)
 							ShvJournalEntry::DATA_MISSING_UNAVAILABLE,
 							ShvJournalEntry::DOMAIN_SHV_SYSTEM,
 							ShvJournalEntry::NO_SHORT_TIME,
-							ShvJournalEntry::SampleType::Continuous,
+							ShvJournalEntry::NO_VALUE_FLAGS,
 							last_entry.epochMsec
 						});
 }
@@ -187,7 +184,7 @@ void DirtyLogManager::writeDirtyLog(const QString &shv_path, const QString &path
 							value,
 							domain,
 							ShvJournalEntry::NO_SHORT_TIME,
-							ShvJournalEntry::SampleType::Continuous,
+							ShvJournalEntry::NO_VALUE_FLAGS,
 							timestamp
 						});
 }
@@ -209,7 +206,7 @@ void DirtyLogManager::checkDirtyLog(const QString &shv_path, bool is_connected)
 								true,
 								ShvJournalEntry::DOMAIN_SHV_SYSTEM,
 								ShvJournalEntry::NO_SHORT_TIME,
-								ShvJournalEntry::SampleType::Continuous,
+								ShvJournalEntry::NO_VALUE_FLAGS,
 								since.toMSecsSinceEpoch()
 							});
 		if (!is_connected || since < current) {
@@ -218,7 +215,7 @@ void DirtyLogManager::checkDirtyLog(const QString &shv_path, bool is_connected)
 									ShvJournalEntry::DATA_MISSING_UNAVAILABLE,
 									ShvJournalEntry::DOMAIN_SHV_SYSTEM,
 									ShvJournalEntry::NO_SHORT_TIME,
-									ShvJournalEntry::SampleType::Continuous,
+									ShvJournalEntry::NO_VALUE_FLAGS,
 									since.toMSecsSinceEpoch()
 								});
 			if (is_connected) {
@@ -227,7 +224,7 @@ void DirtyLogManager::checkDirtyLog(const QString &shv_path, bool is_connected)
 										"",
 										ShvJournalEntry::DOMAIN_SHV_SYSTEM,
 										ShvJournalEntry::NO_SHORT_TIME,
-										ShvJournalEntry::SampleType::Continuous,
+										ShvJournalEntry::NO_VALUE_FLAGS,
 										current.toMSecsSinceEpoch()
 									});
 			}

@@ -4,6 +4,7 @@
 
 #include <shv/coreqt/log.h>
 #include <shv/iotqt/utils/network.h>
+#include <shv/coreqt/utils.h>
 
 #include <QHostAddress>
 
@@ -35,6 +36,10 @@ void send_log_entry_handler(NecroLog::Level level, const NecroLog::LogContext &c
 
 int main(int argc, char *argv[])
 {
+	// call something from shv::coreqt to avoid linker error:
+	// error while loading shared libraries: libshvcoreqt.so.1: cannot open shared object file: No such file or directory
+	shv::coreqt::Utils::isDefaultQVariantValue(QVariant());
+
 	QCoreApplication::setOrganizationName("Elektroline");
 	QCoreApplication::setOrganizationDomain("elektroline.cz");
 	QCoreApplication::setApplicationName("shvbroker");

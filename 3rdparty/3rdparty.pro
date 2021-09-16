@@ -9,15 +9,15 @@ SUBDIRS += \
 	libshv/libshvcoreqt \
 	libshv/libshviotqt \
 	libshv/libshvbroker \
-	libshv/samples/sampleshvbroker \
-	libshv/samples/sampleshvclient \
+	libshv/samples/cli/sampleshvbroker \
+	libshv/samples/cli/sampleshvclient \
 	libshv/utils \
-	libshv/tests \
+	#libshv/tests \
 
 qtHaveModule(gui) {
 SUBDIRS += \
     libshv/libshvvisu \
-    libshv/samples/samplegraph \
+	libshv/samples/gui/samplegraph \
 
 }
 }

@@ -132,22 +132,22 @@ void LogDirReader::openNextFile()
 	if (m_previousFileUntil && (!current_file_since || m_previousFileUntil < current_file_since)) {
 		if (!m_firstFile) {
 			m_fakeEntryList.push_back(ShvJournalEntry {
-									   ShvJournalEntry::PATH_DATA_MISSING,
-									   ShvJournalEntry::DATA_MISSING_UNAVAILABLE,
-									   ShvJournalEntry::DOMAIN_SHV_SYSTEM,
-									   ShvJournalEntry::NO_SHORT_TIME,
-									   ShvJournalEntry::SampleType::Continuous,
-									   m_previousFileUntil
-								   });
+							  ShvJournalEntry::PATH_DATA_MISSING,
+							  ShvJournalEntry::DATA_MISSING_UNAVAILABLE,
+							  ShvJournalEntry::DOMAIN_SHV_SYSTEM,
+							  ShvJournalEntry::NO_SHORT_TIME,
+							  ShvJournalEntry::NO_VALUE_FLAGS,
+							  m_previousFileUntil
+						  });
 			if (current_file_since) {
 				m_fakeEntryList.push_back(ShvJournalEntry {
-										   ShvJournalEntry::PATH_DATA_MISSING,
-										   "",
-										   ShvJournalEntry::DOMAIN_SHV_SYSTEM,
-										   ShvJournalEntry::NO_SHORT_TIME,
-										   ShvJournalEntry::SampleType::Continuous,
-										   current_file_since
-									   });
+							  ShvJournalEntry::PATH_DATA_MISSING,
+							  "",
+							  ShvJournalEntry::DOMAIN_SHV_SYSTEM,
+							  ShvJournalEntry::NO_SHORT_TIME,
+							  ShvJournalEntry::NO_VALUE_FLAGS,
+							  current_file_since
+						  });
 			}
 		}
 	}

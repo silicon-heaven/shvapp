@@ -127,7 +127,7 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 						   ShvJournalEntry::DATA_MISSING_NOT_EXISTS,
 						   ShvJournalEntry::DOMAIN_SHV_SYSTEM,
 						   ShvJournalEntry::NO_SHORT_TIME,
-						   ShvJournalEntry::SampleType::Continuous,
+						   ShvJournalEntry::NO_VALUE_FLAGS,
 						   m_since.toMSecsSinceEpoch()
 					   });
 			log.append(ShvJournalEntry{
@@ -135,7 +135,7 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 						   "",
 						   ShvJournalEntry::DOMAIN_SHV_SYSTEM,
 						   ShvJournalEntry::NO_SHORT_TIME,
-						   ShvJournalEntry::SampleType::Continuous,
+						   ShvJournalEntry::NO_VALUE_FLAGS,
 						   m_until.toMSecsSinceEpoch() - 1
 					   });
 		}
@@ -308,7 +308,7 @@ void DeviceLogRequest::trimDirtyLog(const QDateTime &until)
 								true,
 								ShvJournalEntry::DOMAIN_SHV_SYSTEM,
 								ShvJournalEntry::NO_SHORT_TIME,
-								ShvJournalEntry::SampleType::Continuous,
+								ShvJournalEntry::NO_VALUE_FLAGS,
 								until_msec
 							});
 		int64_t old_start_ts = 0LL;
