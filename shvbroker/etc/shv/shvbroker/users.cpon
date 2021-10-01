@@ -1,6 +1,6 @@
 {
 	"admin":{
-		"password":{"format":"SHA1", "password":"8e4be763494d4d3d3eb4d93aa3b1976a40addb5b"},
+		"password":{"format":"PLAIN", "password":"admin password"},
 		"roles":["admin", "ping"]
 	},
 	"broker":{
@@ -20,7 +20,7 @@
 		"roles":["device", "tester"]
 	},
 	"shvgate":{
-		"password":{"format":"SHA1", "password":"19b9eab2dea2882d328caa6bc26b0b66c002813b"},
+		"password":{"format":"PLAIN", "password":"gate!3y45"},
 		"roles":["device"]
 	},
 	"sitesprovider":{
