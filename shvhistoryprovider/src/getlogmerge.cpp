@@ -132,7 +132,7 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 	qDeleteAll(readers);
 
 	ShvGetLogParams params = m_logParams;
-	if (since_now || params.since.toDateTime().msecsSinceEpoch() > last_record_ts) {
+	if (since_now) { // || params.since.toDateTime().msecsSinceEpoch() > last_record_ts) {
 		if (last_record_ts) {
 			params.since = cp::RpcValue::DateTime::fromMSecsSinceEpoch(last_record_ts);
 		}
