@@ -32,15 +32,15 @@ GetLogMerge::GetLogMerge(const QString &shv_path, const shv::core::utils::ShvGet
 			m_shvPaths << device->shvPath();
 		}
 	}
-	if (log_params.since.asString() == ShvGetLogParams::SINCE_NOW && m_shvPaths.count() > 1) {
-		SHV_EXCEPTION("Since now is valid only with single device");
+	if (log_params.isSinceLast() && m_shvPaths.count() > 1) {
+		SHV_EXCEPTION("Since last is valid only with single device");
 	}
 }
 
 shv::chainpack::RpcValue GetLogMerge::getLog()
 {
-	bool since_now = (m_logParams.since.asString() == ShvGetLogParams::SINCE_NOW);
-	QDateTime since = since_now ? QDateTime::currentDateTimeUtc() : rpcvalue_cast<QDateTime>(m_logParams.since);
+	bool since_last = m_logParams.isSinceLast();
+	QDateTime since = since_last ? QDateTime::currentDateTimeUtc() : rpcvalue_cast<QDateTime>(m_logParams.since);
 	QDateTime until = rpcvalue_cast<QDateTime>(m_logParams.until);
 
 	int64_t first_record_since = 0LL;
@@ -104,7 +104,7 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 			}
 			m_mergedLog.append(entry);
 			last_record_ts = entry.epochMsec;
-			if (!since_now && entry.epochMsec >= param_since) {
+			if (!since_last && entry.epochMsec >= param_since) {
 				if (++record_count > m_logParams.recordCountLimit) {
 					break;
 				}
@@ -132,7 +132,7 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 	qDeleteAll(readers);
 
 	ShvGetLogParams params = m_logParams;
-	if (since_now) { // || params.since.toDateTime().msecsSinceEpoch() > last_record_ts) {
+	if (since_last) { // || params.since.toDateTime().msecsSinceEpoch() > last_record_ts) {
 		if (last_record_ts) {
 			params.since = cp::RpcValue::DateTime::fromMSecsSinceEpoch(last_record_ts);
 		}
@@ -142,7 +142,7 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 	}
 	params.pathPattern = std::string();
 	cp::RpcValue res = m_mergedLog.getLog(params);
-	if (since_now) {
+	if (since_last) {
 		if (last_record_ts) {
 			res.setMetaValue("since", cp::RpcValue::DateTime::fromMSecsSinceEpoch(last_record_ts));
 		}
