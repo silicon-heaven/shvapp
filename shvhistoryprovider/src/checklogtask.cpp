@@ -184,6 +184,8 @@ CacheState CheckLogTask::checkLogCache(const QString &shv_path, bool with_good_f
 
 void CheckLogTask::checkOldDataConsistency()
 {
+	QElapsedTimer elapsed;
+	elapsed.start();
 	m_dirEntries = m_logDir.findFiles(QDateTime(), QDateTime());
 	QDateTime requested_since;
 	for (int i = 0; i < m_dirEntries.count(); ++i) {
@@ -225,11 +227,16 @@ void CheckLogTask::checkOldDataConsistency()
 			}
 		}
 	}
+	logSanitizerTimes() << "checkOldDataConsistency for" << m_shvPath << "elapsed" << elapsed.elapsed() << "ms"
+						   " (dir has" << m_dirEntries.count() << "files)";
 }
 
 void CheckLogTask::checkDirtyLogState()
 {
 	if (m_logDir.existsDirtyLog()) {
+
+		QElapsedTimer elapsed;
+		elapsed.start();
 
 		//Zjisteni datumu od kdy chceme nahradit dirty log normalnim logem:
 		//Existuji 2 zdroje, konec posledniho radneho logu a zacatek dirty logu.
@@ -253,12 +260,12 @@ void CheckLogTask::checkDirtyLogState()
 			if (log_since.isValid() && log_since > journal_since) {
 				journal_since = log_since;
 			}
+			int rec_count = 1;
 			QDateTime current = QDateTime::currentDateTimeUtc();
 			if (journal_since.secsTo(current) > Application::instance()->cliOptions()->trimDirtyLogInterval() * 60) {
 				getLog(journal_since, QDateTime());
 			}
 			else {
-				int rec_count = 1;
 				while (reader.next()) {
 					++rec_count;
 					if (rec_count >= Application::CHUNK_RECORD_COUNT) {
@@ -267,6 +274,8 @@ void CheckLogTask::checkDirtyLogState()
 					}
 				}
 			}
+			logSanitizerTimes() << "checkDirtyLogState for" << m_shvPath << "elapsed" << elapsed.elapsed() << "ms"
+								   " (checked" << rec_count << "rows)";
 		}
 	}
 }

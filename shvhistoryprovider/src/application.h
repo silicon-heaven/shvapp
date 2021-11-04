@@ -14,6 +14,8 @@ class DirtyLogManager;
 class DiskCleaner;
 class LogSanitizer;
 
+#define logSanitizerTimes() shvCInfo("SanitizerTimes")
+
 class Application : public QCoreApplication
 {
 	Q_OBJECT
