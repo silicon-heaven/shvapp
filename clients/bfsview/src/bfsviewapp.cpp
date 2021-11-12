@@ -358,7 +358,7 @@ const std::string &BfsViewApp::bfsPlcShvPath()
 
 std::string BfsViewApp::bfsPlcShvPathForStatus()
 {
-	std::string shv_path = shv::core::utils::ShvPath::join(bfsPlcShvPath(), std::string("status"));
+	std::string shv_path = shv::core::utils::ShvPath::joinPath(bfsPlcShvPath(), std::string("status"));
 	return shv_path;
 }
 
