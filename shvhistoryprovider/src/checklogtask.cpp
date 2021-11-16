@@ -57,8 +57,8 @@ void CheckLogTask::exec()
 			Q_EMIT finished(true);
 		}
 	}
-	catch (shv::core::Exception &e) {
-		shvError() << e.message();
+	catch (const std::exception &e) {
+		shvError() << "CheckLogTask" << m_shvPath << e.what();
 		Q_EMIT finished(false);
 	}
 }
