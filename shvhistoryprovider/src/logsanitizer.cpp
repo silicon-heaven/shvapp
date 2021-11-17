@@ -74,7 +74,7 @@ void LogSanitizer::onDeviceAppeared(const QString &shv_path)
 		m_newDeviceTimers[shv_path]->deleteLater();
 		m_newDeviceTimers.remove(shv_path);
 	});
-	m_newDeviceTimers[shv_path] = new QTimer(this);
+	m_newDeviceTimers[shv_path] = timer;
 	timer->start();
 	setupTimer();
 }

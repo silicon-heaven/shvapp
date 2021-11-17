@@ -11,7 +11,7 @@ isEmpty(LIBSHV_SRC_DIR) {
     LIBSHV_SRC_DIR=$$SHV_PROJECT_TOP_SRCDIR/3rdparty/libshv
 }
 
-QT += core network
+QT += core network concurrent
 QT -= gui
 CONFIG += c++14
 CONFIG += console

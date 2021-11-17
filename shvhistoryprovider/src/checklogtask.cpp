@@ -11,6 +11,9 @@
 #include <shv/coreqt/exception.h>
 #include <shv/iotqt/rpc/rpc.h>
 
+#include <QFutureWatcher>
+#include <QtConcurrent>
+
 namespace cp = shv::chainpack;
 using namespace shv::core::utils;
 
@@ -48,12 +51,17 @@ void CheckLogTask::exec()
 			}
 		}
 		if (m_checkType == CheckType::ReplaceDirtyLog || m_checkType == CheckType::CheckDirtyLogState) {
-			checkOldDataConsistency();
-			if (m_checkType == CheckType::CheckDirtyLogState) {
-				checkDirtyLogState();
-			}
+			QFutureWatcher<QVector<Interval>> *watcher = new QFutureWatcher<QVector<Interval>>;
+			connect(watcher, &QFutureWatcher<QVector<Interval>>::finished, this, [this, watcher]() {
+				onConsistencyChecked(watcher->result());
+				watcher->deleteLater();
+			});
+
+			// Start the computation.
+			QFuture<QVector<Interval>> future = QtConcurrent::run([this](){ return checkDirConsistency(); });
+			watcher->setFuture(future);
 		}
-		if (m_requests.count() == 0) {
+		else if (m_requests.count() == 0) {
 			Q_EMIT finished(true);
 		}
 	}
@@ -182,8 +190,9 @@ CacheState CheckLogTask::checkLogCache(const QString &shv_path, bool with_good_f
 	return state;
 }
 
-void CheckLogTask::checkOldDataConsistency()
+QVector<Interval> CheckLogTask::checkDirConsistency()
 {
+	QVector<Interval> res;
 	QElapsedTimer elapsed;
 	elapsed.start();
 	m_dirEntries = m_logDir.findFiles(QDateTime(), QDateTime());
@@ -205,17 +214,17 @@ void CheckLogTask::checkOldDataConsistency()
 				has_first_log_mark = meta_first.isBool() && meta_first.toBool();
 			}
 			if (!has_first_log_mark) {
-				getLog(QDateTime(), file_since);
+				res << Interval{ QDateTime(), file_since };
 			}
 		}
 		else if (requested_since < file_since) {
-			getLog(requested_since, file_since);
+			res << Interval{ requested_since, file_since };
 		}
 		requested_since = file_until;
 	}
 	bool exists_dirty = m_logDir.existsDirtyLog();
 	if (m_checkType == CheckType::ReplaceDirtyLog || !exists_dirty) {
-		getLog(requested_since, QDateTime());
+		res << Interval { requested_since, QDateTime() };
 	}
 	else if (exists_dirty){
 		QDateTime requested_until;
@@ -223,12 +232,27 @@ void CheckLogTask::checkOldDataConsistency()
 		if (dirty_log.next()) {
 			requested_until = QDateTime::fromMSecsSinceEpoch(dirty_log.entry().epochMsec, Qt::TimeSpec::UTC);
 			if (requested_until.isValid() && (!requested_since.isValid() || requested_since < requested_until)) {
-				getLog(requested_since, requested_until);
+				res << Interval { requested_since, requested_until };
 			}
 		}
 	}
 	logSanitizerTimes() << "checkOldDataConsistency for" << m_shvPath << "elapsed" << elapsed.elapsed() << "ms"
 						   " (dir has" << m_dirEntries.count() << "files)";
+
+	return res;
+}
+
+void CheckLogTask::onConsistencyChecked(const QVector<Interval> &requested_intervals)
+{
+	for (const Interval &interval : requested_intervals) {
+		getLog(interval.since, interval.until);
+	}
+	if (m_checkType == CheckType::CheckDirtyLogState) {
+		checkDirtyLogState();
+	}
+	if (m_requests.count() == 0) {
+		Q_EMIT finished(true);
+	}
 }
 
 void CheckLogTask::checkDirtyLogState()
