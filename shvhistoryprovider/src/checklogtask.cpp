@@ -51,14 +51,14 @@ void CheckLogTask::exec()
 			}
 		}
 		if (m_checkType == CheckType::ReplaceDirtyLog || m_checkType == CheckType::CheckDirtyLogState) {
-			QFutureWatcher<QVector<Interval>> *watcher = new QFutureWatcher<QVector<Interval>>;
-			connect(watcher, &QFutureWatcher<QVector<Interval>>::finished, this, [this, watcher]() {
-				onConsistencyChecked(watcher->result());
+			QFutureWatcher<QVector<DateTimeInterval>> *watcher = new QFutureWatcher<QVector<DateTimeInterval>>;
+			connect(watcher, &QFutureWatcher<QVector<DateTimeInterval>>::finished, this, [this, watcher]() {
+				onDirConsistencyChecked(watcher->result());
 				watcher->deleteLater();
 			});
 
 			// Start the computation.
-			QFuture<QVector<Interval>> future = QtConcurrent::run([this](){ return checkDirConsistency(); });
+			QFuture<QVector<DateTimeInterval>> future = QtConcurrent::run([this](){ return checkDirConsistency(); });
 			watcher->setFuture(future);
 		}
 		else if (m_requests.count() == 0) {
@@ -190,9 +190,9 @@ CacheState CheckLogTask::checkLogCache(const QString &shv_path, bool with_good_f
 	return state;
 }
 
-QVector<Interval> CheckLogTask::checkDirConsistency()
+QVector<DateTimeInterval> CheckLogTask::checkDirConsistency()
 {
-	QVector<Interval> res;
+	QVector<DateTimeInterval> res;
 	QElapsedTimer elapsed;
 	elapsed.start();
 	m_dirEntries = m_logDir.findFiles(QDateTime(), QDateTime());
@@ -227,17 +227,17 @@ QVector<Interval> CheckLogTask::checkDirConsistency()
 				has_first_log_mark = meta_first.isBool() && meta_first.toBool();
 			}
 			if (!has_first_log_mark) {
-				res << Interval{ QDateTime(), file_since };
+				res << DateTimeInterval{ QDateTime(), file_since };
 			}
 		}
 		else if (requested_since < file_since) {
-			res << Interval{ requested_since, file_since };
+			res << DateTimeInterval{ requested_since, file_since };
 		}
 		requested_since = file_until;
 	}
 	bool exists_dirty = m_logDir.existsDirtyLog();
 	if (m_checkType == CheckType::ReplaceDirtyLog || !exists_dirty) {
-		res << Interval { requested_since, QDateTime() };
+		res << DateTimeInterval { requested_since, QDateTime() };
 	}
 	else if (exists_dirty){
 		QDateTime requested_until;
@@ -245,7 +245,7 @@ QVector<Interval> CheckLogTask::checkDirConsistency()
 		if (dirty_log.next()) {
 			requested_until = QDateTime::fromMSecsSinceEpoch(dirty_log.entry().epochMsec, Qt::TimeSpec::UTC);
 			if (requested_until.isValid() && (!requested_since.isValid() || requested_since < requested_until)) {
-				res << Interval { requested_since, requested_until };
+				res << DateTimeInterval { requested_since, requested_until };
 			}
 		}
 	}
@@ -255,9 +255,9 @@ QVector<Interval> CheckLogTask::checkDirConsistency()
 	return res;
 }
 
-void CheckLogTask::onConsistencyChecked(const QVector<Interval> &requested_intervals)
+void CheckLogTask::onDirConsistencyChecked(const QVector<DateTimeInterval> &requested_intervals)
 {
-	for (const Interval &interval : requested_intervals) {
+	for (const DateTimeInterval &interval : requested_intervals) {
 		getLog(interval.since, interval.until);
 	}
 	if (m_checkType == CheckType::CheckDirtyLogState) {

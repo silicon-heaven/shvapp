@@ -55,7 +55,7 @@ public:
 	QVector<CacheFileState> files;
 };
 
-class Interval
+class DateTimeInterval
 {
 public:
 	QDateTime since;
@@ -82,8 +82,8 @@ public:
 	static CacheState checkLogCache(const QString &shv_path, bool with_good_files);
 
 private:
-	QVector<Interval> checkDirConsistency();
-	void onConsistencyChecked(const QVector<Interval> &requested_intervals);
+	QVector<DateTimeInterval> checkDirConsistency();
+	void onDirConsistencyChecked(const QVector<DateTimeInterval> &requested_intervals);
 	void checkDirtyLogState();
 	void getLog(const QDateTime &since, const QDateTime &until);
 	void execRequest(DeviceLogRequest *request);
