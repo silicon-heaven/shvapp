@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
 	QCoreApplication::setOrganizationName("Elektroline");
 	QCoreApplication::setOrganizationDomain("elektroline.cz");
 	QCoreApplication::setApplicationName("shvhistoryprovider");
-	QCoreApplication::setApplicationVersion("2.4.20");
+	QCoreApplication::setApplicationVersion("2.4.21");
 
 	NecroLog::registerTopic("SanitizerTimes", "");
 	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);

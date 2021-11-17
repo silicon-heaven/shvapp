@@ -198,7 +198,20 @@ QVector<Interval> CheckLogTask::checkDirConsistency()
 	m_dirEntries = m_logDir.findFiles(QDateTime(), QDateTime());
 	QDateTime requested_since;
 	for (int i = 0; i < m_dirEntries.count(); ++i) {
-		ShvLogHeader header = ShvLogFileReader(m_dirEntries[i].toStdString()).logHeader();
+		ShvLogHeader header;
+		try {
+			header = ShvLogFileReader(m_dirEntries[i].toStdString()).logHeader();
+		}
+		catch(const shv::chainpack::AbstractStreamReader::ParseException &ex) {
+			//when occurs error on file parsing, delete file and start again
+			shvError() << "error on parsing log file" << m_dirEntries[i] << "deleting it (" << ex.what() << ")";
+			QFile(m_dirEntries[i]).remove();
+			res.clear();
+			m_logDir.refresh();
+			m_dirEntries = m_logDir.findFiles(QDateTime(), QDateTime());
+			i = -1;
+			continue;
+		}
 		QDateTime file_since = rpcvalue_cast<QDateTime>(header.since());
 		QDateTime file_until = rpcvalue_cast<QDateTime>(header.until());
 		if (!requested_since.isValid()) {
@@ -236,7 +249,7 @@ QVector<Interval> CheckLogTask::checkDirConsistency()
 			}
 		}
 	}
-	logSanitizerTimes() << "checkOldDataConsistency for" << m_shvPath << "elapsed" << elapsed.elapsed() << "ms"
+	logSanitizerTimes() << "checkDirConsistency for" << m_shvPath << "elapsed" << elapsed.elapsed() << "ms"
 						   " (dir has" << m_dirEntries.count() << "files)";
 
 	return res;
