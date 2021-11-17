@@ -25,6 +25,6 @@ tmux new-window sh -c "$BINDIR/shvbroker --config-dir $CFGDIR/master/ -v $BROKER
 
 sleep $SLEEP_SETTLE
 
-tmux split-window $BINDIR/shvagent --sec-type none -u iot --password iotpwd --lt plain -m test/agent1 --ts $TSTDIR/tests.cpon -v tester
+tmux split-window sh -c "$BINDIR/shvagent --sec-type none -u iot --password iotpwd --lt plain -m test/agent1 --ts $TSTDIR/tests.cpon -v tester || read a"
 
 # tmux select-layout tiled

@@ -4,6 +4,7 @@
 #include <shv/core/utils.h>
 
 #include <shv/coreqt/log.h>
+#include <shv/coreqt/utils.h>
 
 #include <QTextStream>
 #include <QTranslator>
@@ -21,8 +22,10 @@
 
 int main(int argc, char *argv[])
 {
-	//for (int i = 0; i < argc; ++i)
-	//	std::cerr << i << " " << argv[i] << std::endl;
+	// call something from shv::coreqt to avoid linker error:
+	// error while loading shared libraries: libshvcoreqt.so.1: cannot open shared object file: No such file or directory
+	shv::coreqt::Utils::qVariantToRpcValue(QVariant());
+
 #ifdef Q_OS_LINUX
 	::prctl(PR_SET_PDEATHSIG, SIGHUP);
 #endif
