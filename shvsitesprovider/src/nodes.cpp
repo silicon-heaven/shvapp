@@ -355,7 +355,12 @@ cp::RpcValue AppRootNode::getSites(const QString &shv_path)
 		if (info.fileName() == META_FILE) {
 			QFile meta_file(info.filePath());
 			if (meta_file.open(QFile::ReadOnly)) {
-				res[META_NODE.toStdString()] = cp::RpcValue::fromCpon(meta_file.readAll().toStdString());
+				std::string err;
+				res[META_NODE.toStdString()] = cp::RpcValue::fromCpon(meta_file.readAll().toStdString(), &err);
+				if (!err.empty()) {
+					res.erase(res.find(META_NODE.toStdString()));
+					shvWarning() << "Invalid json file" << meta_file.fileName() << err;
+				}
 			}
 			else {
 				shvWarning() << "Cannot open" << meta_file.fileName() << "for reading";
