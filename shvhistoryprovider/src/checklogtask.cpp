@@ -11,6 +11,9 @@
 #include <shv/coreqt/exception.h>
 #include <shv/iotqt/rpc/rpc.h>
 
+#include <QFutureWatcher>
+#include <QtConcurrent>
+
 namespace cp = shv::chainpack;
 using namespace shv::core::utils;
 
@@ -48,12 +51,17 @@ void CheckLogTask::exec()
 			}
 		}
 		if (m_checkType == CheckType::ReplaceDirtyLog || m_checkType == CheckType::CheckDirtyLogState) {
-			checkOldDataConsistency();
-			if (m_checkType == CheckType::CheckDirtyLogState) {
-				checkDirtyLogState();
-			}
+			QFutureWatcher<QVector<DateTimeInterval>> *watcher = new QFutureWatcher<QVector<DateTimeInterval>>;
+			connect(watcher, &QFutureWatcher<QVector<DateTimeInterval>>::finished, this, [this, watcher]() {
+				onDirConsistencyChecked(watcher->result());
+				watcher->deleteLater();
+			});
+
+			// Start the computation.
+			QFuture<QVector<DateTimeInterval>> future = QtConcurrent::run([this](){ return checkDirConsistency(); });
+			watcher->setFuture(future);
 		}
-		if (m_requests.count() == 0) {
+		else if (m_requests.count() == 0) {
 			Q_EMIT finished(true);
 		}
 	}
@@ -182,14 +190,28 @@ CacheState CheckLogTask::checkLogCache(const QString &shv_path, bool with_good_f
 	return state;
 }
 
-void CheckLogTask::checkOldDataConsistency()
+QVector<DateTimeInterval> CheckLogTask::checkDirConsistency()
 {
+	QVector<DateTimeInterval> res;
 	QElapsedTimer elapsed;
 	elapsed.start();
 	m_dirEntries = m_logDir.findFiles(QDateTime(), QDateTime());
 	QDateTime requested_since;
 	for (int i = 0; i < m_dirEntries.count(); ++i) {
-		ShvLogHeader header = ShvLogFileReader(m_dirEntries[i].toStdString()).logHeader();
+		ShvLogHeader header;
+		try {
+			header = ShvLogFileReader(m_dirEntries[i].toStdString()).logHeader();
+		}
+		catch(const shv::chainpack::AbstractStreamReader::ParseException &ex) {
+			//when occurs error on file parsing, delete file and start again
+			shvError() << "error on parsing log file" << m_dirEntries[i] << "deleting it (" << ex.what() << ")";
+			QFile(m_dirEntries[i]).remove();
+			res.clear();
+			m_logDir.refresh();
+			m_dirEntries = m_logDir.findFiles(QDateTime(), QDateTime());
+			i = -1;
+			continue;
+		}
 		QDateTime file_since = rpcvalue_cast<QDateTime>(header.since());
 		QDateTime file_until = rpcvalue_cast<QDateTime>(header.until());
 		if (!requested_since.isValid()) {
@@ -205,17 +227,17 @@ void CheckLogTask::checkOldDataConsistency()
 				has_first_log_mark = meta_first.isBool() && meta_first.toBool();
 			}
 			if (!has_first_log_mark) {
-				getLog(QDateTime(), file_since);
+				res << DateTimeInterval{ QDateTime(), file_since };
 			}
 		}
 		else if (requested_since < file_since) {
-			getLog(requested_since, file_since);
+			res << DateTimeInterval{ requested_since, file_since };
 		}
 		requested_since = file_until;
 	}
 	bool exists_dirty = m_logDir.existsDirtyLog();
 	if (m_checkType == CheckType::ReplaceDirtyLog || !exists_dirty) {
-		getLog(requested_since, QDateTime());
+		res << DateTimeInterval { requested_since, QDateTime() };
 	}
 	else if (exists_dirty){
 		QDateTime requested_until;
@@ -223,12 +245,27 @@ void CheckLogTask::checkOldDataConsistency()
 		if (dirty_log.next()) {
 			requested_until = QDateTime::fromMSecsSinceEpoch(dirty_log.entry().epochMsec, Qt::TimeSpec::UTC);
 			if (requested_until.isValid() && (!requested_since.isValid() || requested_since < requested_until)) {
-				getLog(requested_since, requested_until);
+				res << DateTimeInterval { requested_since, requested_until };
 			}
 		}
 	}
-	logSanitizerTimes() << "checkOldDataConsistency for" << m_shvPath << "elapsed" << elapsed.elapsed() << "ms"
+	logSanitizerTimes() << "checkDirConsistency for" << m_shvPath << "elapsed" << elapsed.elapsed() << "ms"
 						   " (dir has" << m_dirEntries.count() << "files)";
+
+	return res;
+}
+
+void CheckLogTask::onDirConsistencyChecked(const QVector<DateTimeInterval> &requested_intervals)
+{
+	for (const DateTimeInterval &interval : requested_intervals) {
+		getLog(interval.since, interval.until);
+	}
+	if (m_checkType == CheckType::CheckDirtyLogState) {
+		checkDirtyLogState();
+	}
+	if (m_requests.count() == 0) {
+		Q_EMIT finished(true);
+	}
 }
 
 void CheckLogTask::checkDirtyLogState()
