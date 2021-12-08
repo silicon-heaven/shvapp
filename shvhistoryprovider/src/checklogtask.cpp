@@ -2,6 +2,7 @@
 #include "appclioptions.h"
 #include "checklogtask.h"
 #include "devicelogrequest.h"
+#include "devicemonitor.h"
 #include "logdir.h"
 
 #include <shv/core/utils/shvjournalfilereader.h>
@@ -144,48 +145,51 @@ CacheState CheckLogTask::checkLogCache(const QString &shv_path, bool with_good_f
 			state.files << file_state;
 		}
 	}
-	CacheFileState dirty_file_state;
-	dirty_file_state.fileName = m_logDir.dirtyLogName();
-	bool exists_dirty = m_logDir.existsDirtyLog();
-	if (!exists_dirty) {
-		dirty_file_state.errors << CacheError { CacheStatus::Warning, CacheError::Type::DirtLogMissing, "missing dirty log" };
-	}
-	else {
-		ShvJournalFileReader dirty_log(m_logDir.dirtyLogPath().toStdString());
-		std::string entry_path;
-		QDateTime entry_ts;
-		if (dirty_log.next()) {
-			++state.recordCount;
-			entry_path = dirty_log.entry().path;
-			entry_ts = QDateTime::fromMSecsSinceEpoch(dirty_log.entry().epochMsec, Qt::UTC);
+
+	if (!Application::instance()->deviceMonitor()->isPushLogDevice(shv_path)) {
+		CacheFileState dirty_file_state;
+		dirty_file_state.fileName = m_logDir.dirtyLogName();
+		bool exists_dirty = m_logDir.existsDirtyLog();
+		if (!exists_dirty) {
+			dirty_file_state.errors << CacheError { CacheStatus::Warning, CacheError::Type::DirtLogMissing, "missing dirty log" };
 		}
-		if (entry_path != shv::core::utils::ShvJournalEntry::PATH_DATA_DIRTY) {
-			dirty_file_state.errors << CacheError { CacheStatus::Error, CacheError::Type::DirtyLogMarkMissing,
-							"missing dirty mark on begin of dirty log" };
+		else {
+			ShvJournalFileReader dirty_log(m_logDir.dirtyLogPath().toStdString());
+			std::string entry_path;
+			QDateTime entry_ts;
+			if (dirty_log.next()) {
+				++state.recordCount;
+				entry_path = dirty_log.entry().path;
+				entry_ts = QDateTime::fromMSecsSinceEpoch(dirty_log.entry().epochMsec, Qt::UTC);
+			}
+			if (entry_path != shv::core::utils::ShvJournalEntry::PATH_DATA_DIRTY) {
+				dirty_file_state.errors << CacheError { CacheStatus::Error, CacheError::Type::DirtyLogMarkMissing,
+								"missing dirty mark on begin of dirty log" };
+			}
+			if (!entry_ts.isValid()) {
+				dirty_file_state.errors << CacheError { CacheStatus::Error, CacheError::Type::SinceUntilGap,
+								("missing data since " + requested_since.toString(Qt::DateFormat::ISODateWithMs)) };
+			}
+			else if (entry_ts > requested_since) {
+				dirty_file_state.errors << CacheError { CacheStatus::Error, CacheError::Type::SinceUntilGap,
+								("missing data between " + requested_since.toString(Qt::DateFormat::ISODateWithMs)
+								 + " and " + entry_ts.toString(Qt::DateFormat::ISODateWithMs)) };
+			}
+			else if (entry_ts < requested_since) {
+				dirty_file_state.errors << CacheError { CacheStatus::Error, CacheError::Type::SinceUntilOverlap,
+								("data between " + requested_since.toString(Qt::DateFormat::ISODateWithMs)
+								 + " and " + entry_ts.toString(Qt::DateFormat::ISODateWithMs) + " overlaps") };
+			}
+			++state.fileCount;
+			while (dirty_log.next()) {
+				state.until = QDateTime::fromMSecsSinceEpoch(dirty_log.entry().epochMsec, Qt::UTC);
+				++state.recordCount;
+			}
 		}
-		if (!entry_ts.isValid()) {
-			dirty_file_state.errors << CacheError { CacheStatus::Error, CacheError::Type::SinceUntilGap,
-							("missing data since " + requested_since.toString(Qt::DateFormat::ISODateWithMs)) };
+		eval_status(dirty_file_state);
+		if (with_good_files || dirty_file_state.status != CacheStatus::OK) {
+			state.files << dirty_file_state;
 		}
-		else if (entry_ts > requested_since) {
-			dirty_file_state.errors << CacheError { CacheStatus::Error, CacheError::Type::SinceUntilGap,
-							("missing data between " + requested_since.toString(Qt::DateFormat::ISODateWithMs)
-							 + " and " + entry_ts.toString(Qt::DateFormat::ISODateWithMs)) };
-		}
-		else if (entry_ts < requested_since) {
-			dirty_file_state.errors << CacheError { CacheStatus::Error, CacheError::Type::SinceUntilOverlap,
-							("data between " + requested_since.toString(Qt::DateFormat::ISODateWithMs)
-							 + " and " + entry_ts.toString(Qt::DateFormat::ISODateWithMs) + " overlaps") };
-		}
-		++state.fileCount;
-		while (dirty_log.next()) {
-			state.until = QDateTime::fromMSecsSinceEpoch(dirty_log.entry().epochMsec, Qt::UTC);
-			++state.recordCount;
-		}
-	}
-	eval_status(dirty_file_state);
-	if (with_good_files || dirty_file_state.status != CacheStatus::OK) {
-		state.files << dirty_file_state;
 	}
 	return state;
 }
