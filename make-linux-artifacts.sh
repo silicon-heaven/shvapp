@@ -50,7 +50,7 @@ $RSYNC -R  $QT_DIR/plugins/./imageformats/libqjpeg.so $DIST_BIN_DIR/
 $RSYNC -R  $QT_DIR/plugins/./imageformats/libqsvg.so $DIST_BIN_DIR/
 
 # mkdir -p $DIST_BIN_DIR/sqldrivers
-# $RSYNC $QT_DIR/plugins/sqldrivers/libqsqlite.so $DIST_BIN_DIR/sqldrivers/
+$RSYNC $QT_DIR/plugins/sqldrivers/libqsqlite.so $DIST_BIN_DIR/sqldrivers/
 # $RSYNC $QT_DIR/plugins/sqldrivers/libqsqlpsql.so $DIST_BIN_DIR/sqldrivers/
 
 # mkdir -p $DIST_BIN_DIR/QtQuick/Window.2
