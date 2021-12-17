@@ -4,7 +4,7 @@
 #APP_VER=1.0.0
 
 # QT_DIR=/home/fanda/programs/qt5/5.14.1/gcc_64
-QT_DIR=/opt/qt/5.14.1/gcc_64
+QT_DIR=/opt/qt/5.15.2/gcc_64
 QT_LIB_DIR=$QT_DIR/lib
 
 # BUILD_DIR=.
