@@ -142,6 +142,7 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 	}
 	params.pathPattern = std::string();
 	cp::RpcValue res = m_mergedLog.getLog(params);
+	res.setMetaValue("logParams", m_logParams.toRpcValue(false));
 	if (since_last) {
 		if (last_record_ts) {
 			res.setMetaValue("since", cp::RpcValue::DateTime::fromMSecsSinceEpoch(last_record_ts));
