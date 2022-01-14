@@ -1,6 +1,6 @@
 {
 	"admin":{
-		"password":{"format":"PLAIN", "password":"admin password"},
+		"password":{"format":"PLAIN", "password":"admin!123"},
 		"roles":["admin", "ping"]
 	},
 	"broker":{
@@ -20,7 +20,7 @@
 		"roles":["device", "tester"]
 	},
 	"shvgate":{
-		"password":{"format":"PLAIN", "password":"gate!3y45"},
+		"password":{"format":"PLAIN", "password":"gate!123"},
 		"roles":["device"]
 	},
 	"sitesprovider":{
