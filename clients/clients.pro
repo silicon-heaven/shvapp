@@ -19,7 +19,7 @@ SUBDIRS += \
 
 unix {
 SUBDIRS += \
-    revitestdevice \
+	#revitestdevice \
     hscope \
 }
 
