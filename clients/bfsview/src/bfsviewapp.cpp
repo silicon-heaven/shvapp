@@ -279,6 +279,7 @@ void BfsViewApp::checkPowerSwitchStatusFile()
 	}
 	QDateTime curr_ts = QDateTime::currentDateTimeUtc();
 	PwrStatus overall_pwr_status = PwrStatus::Unknown;
+	int number_of_valid_lines = 0;
 	while(!file.atEnd()) {
 		QByteArray ba = file.readLine().trimmed();
 		if(ba.isEmpty())
@@ -308,7 +309,7 @@ void BfsViewApp::checkPowerSwitchStatusFile()
 			// line like: Bory-40 X 2018-6-4T12:01:12
 			continue;
 		}
-
+		number_of_valid_lines++;
 		TS &ts = m_powerSwitchStatus[name];
 		//shvDebug() << name << pwr_status << ts_str << "vs" << ts.timeStampString << "curr:" << curr_ts.toString(Qt::ISODateWithMs);
 		if(ts.timeStampString != ts_str) {
@@ -331,6 +332,8 @@ void BfsViewApp::checkPowerSwitchStatusFile()
 		}
 		//shvDebug() << "ON:" << name << ts_str << ts.when.toUTC().toString(Qt::ISODateWithMs);
 	}
+	if(number_of_valid_lines == 0)
+		shvWarning() << "File:" << file.fileName() << "does not contain any valid line, we cannot deduce pwr status, setting to UNKNOWN.";
 	setPwrStatus(overall_pwr_status);
 }
 
