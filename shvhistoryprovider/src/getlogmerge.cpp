@@ -32,9 +32,6 @@ GetLogMerge::GetLogMerge(const QString &shv_path, const shv::core::utils::ShvGet
 			m_shvPaths << device->shvPath();
 		}
 	}
-	if (log_params.isSinceLast() && m_shvPaths.count() > 1) {
-		SHV_EXCEPTION("Since last is valid only with single device");
-	}
 }
 
 shv::chainpack::RpcValue GetLogMerge::getLog()
