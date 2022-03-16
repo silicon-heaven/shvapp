@@ -24,6 +24,31 @@ CheckLogTask::CheckLogTask(const QString &shv_path, CheckType check_type, QObjec
 	, m_checkType(check_type)
 	, m_logDir(m_shvPath)
 {
+	connect(Application::instance()->deviceConnection(), &shv::iotqt::rpc::DeviceConnection::stateChanged, this, &CheckLogTask::onShvStateChanged);
+	connect(Application::instance()->deviceMonitor(), &DeviceMonitor::deviceDisconnectedFromBroker, this, &CheckLogTask::onDeviceDisappeared);
+}
+
+void CheckLogTask::onShvStateChanged()
+{
+	if (Application::instance()->deviceConnection()->state() == shv::iotqt::rpc::ClientConnection::State::NotConnected) {
+		abort();
+	}
+}
+
+void CheckLogTask::onDeviceDisappeared(const QString &shv_path)
+{
+	if (shv_path == m_shvPath) {
+		abort();
+	}
+}
+
+void CheckLogTask::abort()
+{
+	for (DeviceLogRequest *request : findChildren<DeviceLogRequest*>()) {
+		request->deleteLater();
+	}
+	m_dirEntries.clear();
+	Q_EMIT finished(false);
 }
 
 void CheckLogTask::exec()
@@ -53,13 +78,23 @@ void CheckLogTask::exec()
 		}
 		if (m_checkType == CheckType::ReplaceDirtyLog || m_checkType == CheckType::CheckDirtyLogState) {
 			QFutureWatcher<QVector<DateTimeInterval>> *watcher = new QFutureWatcher<QVector<DateTimeInterval>>;
+			connect(watcher, &QFutureWatcher<QVector<DateTimeInterval>>::finished, &QFutureWatcher<QVector<DateTimeInterval>>::deleteLater);
 			connect(watcher, &QFutureWatcher<QVector<DateTimeInterval>>::finished, this, [this, watcher]() {
-				onDirConsistencyChecked(watcher->result());
-				watcher->deleteLater();
+				try {
+					onDirConsistencyChecked(watcher->result());
+				}
+				catch (const QException &ex) {
+					shvError() << ex.what();
+					Q_EMIT finished(false);
+				}
+				catch (const std::exception &ex) {
+					shvError() << ex.what();
+					Q_EMIT finished(false);
+				}
 			});
 
 			// Start the computation.
-			QFuture<QVector<DateTimeInterval>> future = QtConcurrent::run([this](){ return checkDirConsistency(); });
+			QFuture<QVector<DateTimeInterval>> future = QtConcurrent::run(this, &CheckLogTask::checkDirConsistency);
 			watcher->setFuture(future);
 		}
 		else if (m_requests.count() == 0) {

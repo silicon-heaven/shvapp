@@ -19,6 +19,7 @@ public:
 	bool sanitizeLogCache(const QString &shv_path, CheckLogTask::CheckType check_type);
 
 private:
+	void onShvStateChanged();
 	void onDeviceAppeared(const QString &shv_path);
 	void onDeviceDisappeared(const QString &shv_path);
 	void sanitizeLogCache();

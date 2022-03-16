@@ -15,6 +15,7 @@ class DiskCleaner;
 class LogSanitizer;
 
 #define logSanitizerTimes() shvCInfo("SanitizerTimes")
+#define logSanitizing() shvCInfo("Sanitizing")
 
 class Application : public QCoreApplication
 {

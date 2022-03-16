@@ -82,6 +82,9 @@ public:
 	static CacheState checkLogCache(const QString &shv_path, bool with_good_files);
 
 private:
+	void onShvStateChanged();
+	void onDeviceDisappeared(const QString &shv_path);
+	void abort();
 	QVector<DateTimeInterval> checkDirConsistency();
 	void onDirConsistencyChecked(const QVector<DateTimeInterval> &requested_intervals);
 	void checkDirtyLogState();

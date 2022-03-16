@@ -30,69 +30,78 @@ DeviceLogRequest::DeviceLogRequest(const QString &shv_path, const QDateTime &sin
 
 void DeviceLogRequest::getChunk()
 {
-	m_appendLog = false;
-	if (m_since.isValid()) {
-		LogDir log_dir(m_shvPath);
-		QStringList all_files = log_dir.findFiles(m_since.addMSecs(-1), m_since);
-		if (all_files.count() == 1) {
-			std::ifstream in_file;
-			in_file.open(all_files[0].toStdString(), std::ios::in | std::ios::binary);
-			if (in_file) {
-				cp::RpcValue::MetaData metadata;
-				cp::ChainPackReader(in_file).read(metadata);
-				int orig_record_count = metadata.value("recordCount").toInt();
-				cp::RpcValue orig_until_cp = metadata.value("until");
-				if (!orig_until_cp.isDateTime()) {
-					SHV_QT_EXCEPTION("Missing until in file " + all_files[0]);
+	try {
+		m_appendLog = false;
+		if (m_since.isValid()) {
+			LogDir log_dir(m_shvPath);
+			QStringList all_files = log_dir.findFiles(m_since.addMSecs(-1), m_since);
+			if (all_files.count() == 1) {
+				std::ifstream in_file;
+				in_file.open(all_files[0].toStdString(), std::ios::in | std::ios::binary);
+				if (in_file) {
+					cp::RpcValue::MetaData metadata;
+					cp::ChainPackReader(in_file).read(metadata);
+					int orig_record_count = metadata.value("recordCount").toInt();
+					cp::RpcValue orig_until_cp = metadata.value("until");
+					if (!orig_until_cp.isDateTime()) {
+						SHV_QT_EXCEPTION("Missing until in file " + all_files[0]);
+					}
+					int64_t orig_until = orig_until_cp.toDateTime().msecsSinceEpoch();
+					m_appendLog = (orig_until == m_since.toMSecsSinceEpoch() && orig_record_count < Application::CHUNK_RECORD_COUNT);
 				}
-				int64_t orig_until = orig_until_cp.toDateTime().msecsSinceEpoch();
-				m_appendLog = (orig_until == m_since.toMSecsSinceEpoch() && orig_record_count < Application::CHUNK_RECORD_COUNT);
 			}
 		}
-	}
 
-	auto *conn = Application::instance()->deviceConnection();
-	int rq_id = conn->nextRequestId();
-	shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(conn, rq_id, this);
-	connect(cb, &shv::iotqt::rpc::RpcResponseCallBack::finished, this, &DeviceLogRequest::onChunkReceived);
-	cb->start(2 * 60 * 1000);
-	if (m_askElesys) {
-		if (m_since.isValid() && m_since.date().daysTo(QDate::currentDate()) < 3) {
+		auto *conn = Application::instance()->deviceConnection();
+		int rq_id = conn->nextRequestId();
+		shv::iotqt::rpc::RpcResponseCallBack *cb = new shv::iotqt::rpc::RpcResponseCallBack(conn, rq_id, this);
+		connect(cb, &shv::iotqt::rpc::RpcResponseCallBack::finished, this, &DeviceLogRequest::onChunkReceived);
+		cb->start(2 * 60 * 1000);
+		if (m_askElesys) {
+			if (m_since.isValid() && m_since.date().daysTo(QDate::currentDate()) < 3) {
+				m_askElesys = false;
+			}
+		}
+		if (m_askElesys && m_shvPath.startsWith("test/") && !Application::instance()->cliOptions()->test()) {
 			m_askElesys = false;
 		}
-	}
-	QString path;
-	cp::RpcValue params;
-	if (Application::instance()->deviceMonitor()->isPushLogDevice(m_shvPath)) {
-		QString sync_log_broker = Application::instance()->deviceMonitor()->syncLogBroker(m_shvPath);
-		if (sync_log_broker.isEmpty()) {
-			shvError() << "cannot get log for push log device" << m_shvPath << "because source HP is not set";
-			Q_EMIT finished(false);
-			return;
-		}
-		path = "history@" + sync_log_broker + ">:/shv/" + m_shvPath;
-		params = logParams(!m_appendLog).toRpcValue();
-	}
-	else if (m_askElesys) {
-		path = m_shvPath;
-		if (Application::instance()->cliOptions()->test()) {
-			if (path.startsWith("test/")) {
-				path = path.mid(5);
+		QString path;
+		cp::RpcValue params;
+		if (Application::instance()->deviceMonitor()->isPushLogDevice(m_shvPath)) {
+			QString sync_log_broker = Application::instance()->deviceMonitor()->syncLogBroker(m_shvPath);
+			if (sync_log_broker.isEmpty()) {
+				shvError() << "cannot get log for push log device" << m_shvPath << "because source HP is not set";
+				Q_EMIT finished(false);
+				return;
 			}
+			path = "history@" + sync_log_broker + ">:/shv/" + m_shvPath;
+			params = logParams(!m_appendLog).toRpcValue();
 		}
-		cp::RpcValue::Map param_map;
-		param_map["shvPath"] = cp::RpcValue::fromValue(path);
-		param_map["logParams"] = logParams(!m_appendLog).toRpcValue();
+		else if (m_askElesys) {
+			path = m_shvPath;
+			if (Application::instance()->cliOptions()->test()) {
+				if (path.startsWith("test/")) {
+					path = path.mid(5);
+				}
+			}
+			cp::RpcValue::Map param_map;
+			param_map["shvPath"] = cp::RpcValue::fromValue(path);
+			param_map["logParams"] = logParams(!m_appendLog).toRpcValue();
 
-		path = QString::fromStdString(Application::instance()->cliOptions()->elesysPath());
-		params = param_map;
-	}
-	else {
-		path = "shv/" + m_shvPath;
-		params = logParams(!m_appendLog).toRpcValue();
-	}
+			path = QString::fromStdString(Application::instance()->cliOptions()->elesysPath());
+			params = param_map;
+		}
+		else {
+			path = "shv/" + m_shvPath;
+			params = logParams(!m_appendLog).toRpcValue();
+		}
 
-	conn->callShvMethod(rq_id, path.toStdString(), cp::Rpc::METH_GET_LOG, params);
+		conn->callShvMethod(rq_id, path.toStdString(), cp::Rpc::METH_GET_LOG, params);
+	}
+	catch (const std::exception &ex) {
+		shvError() << "error on get chunk" << ex.what();
+		Q_EMIT finished(false);
+	}
 }
 
 void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &response)
@@ -102,7 +111,8 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 			SHV_EXCEPTION("invalid response");
 		}
 		if (response.isError()) {
-			SHV_EXCEPTION((m_askElesys ? "elesys error:" : "device error:") + m_shvPath.toStdString() + response.error().message());
+			SHV_EXCEPTION((m_askElesys ? "elesys error: " : "device error: ") + m_shvPath.toStdString() +
+						  " " + response.error().message());
 		}
 
 		const cp::RpcValue &result = response.result();

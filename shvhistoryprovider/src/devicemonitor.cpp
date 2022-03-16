@@ -94,6 +94,8 @@ void DeviceMonitor::onShvStateChanged()
 			delete  m_sitesSubscription;
 			m_sitesSubscription = nullptr;
 		}
+		m_monitoredDevices.clear();
+		m_onlineDevices.clear();
 	}
 }
 
