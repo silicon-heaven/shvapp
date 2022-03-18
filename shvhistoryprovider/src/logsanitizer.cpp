@@ -12,6 +12,7 @@ LogSanitizer::LogSanitizer(QObject *parent)
 	, m_timer(this)
 {
 	connect(&m_timer, &QTimer::timeout, this, qOverload<>(&LogSanitizer::sanitizeLogCache));
+	connect(Application::instance()->deviceConnection(), &shv::iotqt::rpc::DeviceConnection::stateChanged, this, &LogSanitizer::onShvStateChanged);
 
 	DeviceMonitor *monitor = Application::instance()->deviceMonitor();
 	connect(monitor, &DeviceMonitor::deviceConnectedToBroker, this, &LogSanitizer::onDeviceAppeared);
@@ -27,6 +28,7 @@ void LogSanitizer::setupTimer()
 		device_count = 1;
 	}
 	int interval = Application::instance()->cliOptions()->trimDirtyLogInterval() * 1000 * 60 / device_count;
+	logSanitizing() << "setup timer" << "device count" << device_count << "interval" << interval;
 	m_timer.start(interval);
 }
 
@@ -72,9 +74,9 @@ void LogSanitizer::onDeviceAppeared(const QString &shv_path)
 		timer->setInterval(60000);  //let device to collect snapshot
 		timer->setSingleShot(true);
 		connect(timer, &QTimer::timeout, this, [this, shv_path]() {
-			sanitizeLogCache(shv_path, CheckLogTask::CheckType::ReplaceDirtyLog);
 			m_newDeviceTimers[shv_path]->deleteLater();
 			m_newDeviceTimers.remove(shv_path);
+			sanitizeLogCache(shv_path, CheckLogTask::CheckType::ReplaceDirtyLog);
 		});
 		m_newDeviceTimers[shv_path] = timer;
 		timer->start();
@@ -94,10 +96,12 @@ void LogSanitizer::onDeviceDisappeared(const QString &shv_path)
 
 void LogSanitizer::sanitizeLogCache()
 {
+	logSanitizing() << "preparing to sanitize" << findChildren<CheckLogTask*>(QString(), Qt::FindChildOption::FindDirectChildrenOnly).count();
 	if (Application::instance()->deviceConnection()->state() != shv::iotqt::rpc::ClientConnection::State::BrokerConnected) {
 		return;
 	}
 	if (findChildren<CheckLogTask*>(QString(), Qt::FindChildOption::FindDirectChildrenOnly).count() > 0) {
+		logSanitizing() << "giving up, other checklog task is running";
 		return;
 	}
 	QStringList online_devices = Application::instance()->deviceMonitor()->onlineDevices();
@@ -117,6 +121,7 @@ void LogSanitizer::sanitizeLogCache()
 	if (++m_lastCheckedDevice >= sanitized_devices.count()) {
 		m_lastCheckedDevice = 0;
 	}
+	logSanitizing() << "sanitizing" << sanitized_devices[m_lastCheckedDevice];
 	sanitizeLogCache(sanitized_devices[m_lastCheckedDevice], CheckLogTask::CheckType::CheckDirtyLogState);
 }
 
@@ -126,16 +131,33 @@ bool LogSanitizer::sanitizeLogCache(const QString &shv_path, CheckLogTask::Check
 		return false;
 	}
 	if (findChild<CheckLogTask*>(shv_path, Qt::FindChildOption::FindDirectChildrenOnly)) {
+		logSanitizing() << "seems that sanitizing for" << shv_path << "is already running, giving up";
 		return false;
 	}
-	shvMessage() << "checking logs for" << shv_path;
+	if (m_newDeviceTimers.keys().contains(shv_path)) {
+		return false;
+	}
+
+	logSanitizing() << "checking logs for" << shv_path;
 	CheckLogTask *task = new CheckLogTask(shv_path, check_type, this);
 	task->setObjectName(shv_path);
-	connect(task, &CheckLogTask::finished, [shv_path, task](bool success) {
+	connect(task, &CheckLogTask::finished, [task](bool success) {
 		task->setParent(nullptr);
 		task->deleteLater();
-		shvMessage() << "checking logs for" << shv_path << (success ? "succesfully finished" : "finished with error");
+		logSanitizing() << "checking logs for" << task->objectName() << (success ? "succesfully finished" : "finished with error");
 	});
 	task->exec();
 	return true;
+}
+
+void LogSanitizer::onShvStateChanged()
+{
+	if (Application::instance()->deviceConnection()->state() == shv::iotqt::rpc::ClientConnection::State::NotConnected) {
+		m_timer.stop();
+		for (QTimer *timer : m_newDeviceTimers) {
+			timer->stop();
+			timer->deleteLater();
+		}
+		m_newDeviceTimers.clear();
+	}
 }
