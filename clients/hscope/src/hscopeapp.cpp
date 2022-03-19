@@ -82,7 +82,7 @@ HScopeApp::HScopeApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
 	, m_cliOptions(cli_opts)
 {
-	m_shvJournal = new shv::core::utils::ShvFileJournal(applicationName().toStdString(), [this](std::vector<shv::core::utils::ShvJournalEntry> &s) { this->getSnapshot(s); });
+	m_shvJournal = new shv::core::utils::ShvFileJournal(applicationName().toStdString());
 	if(cli_opts->shvJournalDir_isset())
 		m_shvJournal->setJournalDir(cli_opts->shvJournalDir());
 	m_shvJournal->setFileSizeLimit(cli_opts->shvJournalFileSizeLimit());
@@ -182,7 +182,7 @@ void HScopeApp::createNodes()
 	m_brokersNode->setParent(m_shvTree->root());
 	m_brokersNode->load();
 }
-
+/*
 void HScopeApp::getSnapshot(std::vector<shv::core::utils::ShvJournalEntry> &snapshot)
 {
 	auto lst = m_shvTree->root()->findChildren<HNodeTest*>(QString(), Qt::FindChildrenRecursively);
@@ -193,7 +193,7 @@ void HScopeApp::getSnapshot(std::vector<shv::core::utils::ShvJournalEntry> &snap
 		snapshot.push_back(std::move(e));
 	}
 }
-/*
+
 const std::string &HScopeApp::logFilePath()
 {
 	static std::string log_file_path = QDir::tempPath().toStdString() + "/" + applicationName().toStdString() + ".log";

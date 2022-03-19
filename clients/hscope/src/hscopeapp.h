@@ -62,7 +62,7 @@ private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	void createNodes();
-	void getSnapshot(std::vector<shv::core::utils::ShvJournalEntry> &snapshot);
+	//void getSnapshot(std::vector<shv::core::utils::ShvJournalEntry> &snapshot);
 private:
 	shv::iotqt::rpc::DeviceConnection *m_rpcConnection = nullptr;
 	AppCliOptions* m_cliOptions;
