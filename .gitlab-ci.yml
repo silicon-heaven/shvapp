@@ -1,6 +1,6 @@
 variables:
-  GIT_STRATEGY: clone
-  GIT_SUBMODULE_STRATEGY: normal
+  GIT_STRATEGY: clone # default strategy is fetch, we want to clone whole repo from scratch every build
+  GIT_SUBMODULE_STRATEGY: normal # default strategy does not update submodules every build
   SHV_NIRVANA_IP: "165.227.247.202"
   SHV_HEAVEN_IP: "138.68.112.73"
 
