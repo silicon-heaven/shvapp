@@ -28,8 +28,12 @@ void LogSanitizer::setupTimer()
 		device_count = 1;
 	}
 	int interval = Application::instance()->cliOptions()->trimDirtyLogInterval() * 1000 * 60 / device_count;
-	logSanitizing() << "setup timer" << "device count" << device_count << "interval" << interval;
-	m_timer.start(interval);
+	if (interval != m_interval) {
+		m_interval = interval;
+		int remaining = interval - (m_timer.interval() - m_timer.remainingTime());
+		m_timer.start(remaining);
+		logSanitizing() << "setup timer" << "device count" << device_count << "interval" << interval;
+	}
 }
 
 void LogSanitizer::trimDirtyLog(const QString &shv_path)
@@ -99,6 +103,9 @@ void LogSanitizer::sanitizeLogCache()
 	logSanitizing() << "preparing to sanitize" << findChildren<CheckLogTask*>(QString(), Qt::FindChildOption::FindDirectChildrenOnly).count();
 	if (Application::instance()->deviceConnection()->state() != shv::iotqt::rpc::ClientConnection::State::BrokerConnected) {
 		return;
+	}
+	if (m_interval != m_timer.interval()) {
+		m_timer.setInterval(m_interval);
 	}
 	if (findChildren<CheckLogTask*>(QString(), Qt::FindChildOption::FindDirectChildrenOnly).count() > 0) {
 		logSanitizing() << "giving up, other checklog task is running";

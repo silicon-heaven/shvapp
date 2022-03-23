@@ -27,6 +27,7 @@ private:
 
 	int m_lastCheckedDevice;
 	QTimer m_timer;
+	int m_interval = 0;
 	QMap<QString, QTimer*> m_newDeviceTimers;
 };
 

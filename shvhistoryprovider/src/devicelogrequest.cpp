@@ -222,6 +222,8 @@ void DeviceLogRequest::appendToPreviousFile(ShvMemoryJournal &log, const QDateTi
 	cp::RpcValue orig_log = log_reader.read(&error);
 	cp::RpcValue hp_metadata = orig_log.metaValue("HP");
 	if (!error.empty() || !orig_log.isList()) {
+		QFile(all_files[0]).remove();
+		shvError() << "error on parsing log file" << all_files[0] << "deleting it (" << error << ")";
 		SHV_QT_EXCEPTION("Cannot parse file " + all_files[0]);
 	}
 
