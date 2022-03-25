@@ -25,6 +25,9 @@ Application::Application(int &argc, char **argv, AppCliOptions* cli_opts)
 	, m_root(nullptr)
 	, m_diskCleaner(nullptr)
 {
+	qRegisterMetaType<DateTimeInterval>();
+	qRegisterMetaType<QVector<DateTimeInterval>>();
+
 	if (!cli_opts->deviceId_isset()) {
 		cli_opts->setDeviceId("shvhistoryprovider");
 	}

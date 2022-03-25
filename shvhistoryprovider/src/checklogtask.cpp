@@ -3,6 +3,7 @@
 #include "checklogtask.h"
 #include "devicelogrequest.h"
 #include "devicemonitor.h"
+#include "dirconsistencychecktask.h"
 #include "logdir.h"
 
 #include <shv/core/utils/shvjournalfilereader.h>
@@ -26,6 +27,11 @@ CheckLogTask::CheckLogTask(const QString &shv_path, CheckType check_type, QObjec
 {
 	connect(Application::instance()->deviceConnection(), &shv::iotqt::rpc::DeviceConnection::stateChanged, this, &CheckLogTask::onShvStateChanged);
 	connect(Application::instance()->deviceMonitor(), &DeviceMonitor::deviceDisconnectedFromBroker, this, &CheckLogTask::onDeviceDisappeared);
+	connect(this, &CheckLogTask::finished, [this]() {
+		if (m_dirConsistencyCheckTask && !m_dirConsistencyCheckTask->isFinished()) {
+			m_dirConsistencyCheckTask->requestInterruption();
+		}
+	});
 }
 
 void CheckLogTask::onShvStateChanged()
@@ -54,7 +60,7 @@ void CheckLogTask::abort()
 void CheckLogTask::exec()
 {
 	try {
-		QStringList m_dirEntries = m_logDir.findFiles(QDateTime(), QDateTime());
+		m_dirEntries = m_logDir.findFiles(QDateTime(), QDateTime());
 
 		if (m_checkType == CheckType::TrimDirtyLogOnly) {
 			int64_t dirty_begin = 0LL;
@@ -77,25 +83,37 @@ void CheckLogTask::exec()
 			}
 		}
 		if (m_checkType == CheckType::ReplaceDirtyLog || m_checkType == CheckType::CheckDirtyLogState) {
-			QFutureWatcher<QVector<DateTimeInterval>> *watcher = new QFutureWatcher<QVector<DateTimeInterval>>;
-			connect(watcher, &QFutureWatcher<QVector<DateTimeInterval>>::finished, &QFutureWatcher<QVector<DateTimeInterval>>::deleteLater);
-			connect(watcher, &QFutureWatcher<QVector<DateTimeInterval>>::finished, this, [this, watcher]() {
-				try {
-					onDirConsistencyChecked(watcher->result());
-				}
-				catch (const QException &ex) {
-					shvError() << ex.what();
-					Q_EMIT finished(false);
-				}
-				catch (const std::exception &ex) {
-					shvError() << ex.what();
-					Q_EMIT finished(false);
-				}
+			m_dirConsistencyCheckTask = new DirConsistencyCheckTask(m_shvPath, m_checkType, this);
+			connect(m_dirConsistencyCheckTask, &DirConsistencyCheckTask::checkCompleted, this, &CheckLogTask::onDirConsistencyChecked);
+			connect(m_dirConsistencyCheckTask, &DirConsistencyCheckTask::error, this, [this](QString msg) {
+				shvError() << msg;
+				Q_EMIT finished(false);
 			});
+			connect(m_dirConsistencyCheckTask, &DirConsistencyCheckTask::finished, this, [this]() {
+				m_dirConsistencyCheckTask = nullptr;
+			});
+			connect(m_dirConsistencyCheckTask, &DirConsistencyCheckTask::finished, m_dirConsistencyCheckTask, &DirConsistencyCheckTask::deleteLater);
+			m_dirConsistencyCheckTask->start(QThread::Priority::LowPriority);
 
-			// Start the computation.
-			QFuture<QVector<DateTimeInterval>> future = QtConcurrent::run(this, &CheckLogTask::checkDirConsistency);
-			watcher->setFuture(future);
+//			QFutureWatcher<QVector<DateTimeInterval>> *watcher = new QFutureWatcher<QVector<DateTimeInterval>>;
+//			connect(watcher, &QFutureWatcher<QVector<DateTimeInterval>>::finished, &QFutureWatcher<QVector<DateTimeInterval>>::deleteLater);
+//			connect(watcher, &QFutureWatcher<QVector<DateTimeInterval>>::finished, this, [this, watcher]() {
+//				try {
+//					onDirConsistencyChecked(watcher->result());
+//				}
+//				catch (const QException &ex) {
+//					shvError() << ex.what();
+//					Q_EMIT finished(false);
+//				}
+//				catch (const std::exception &ex) {
+//					shvError() << ex.what();
+//					Q_EMIT finished(false);
+//				}
+//			});
+
+//			// Start the computation.
+//			QFuture<QVector<DateTimeInterval>> future = QtConcurrent::run(this, &CheckLogTask::checkDirConsistency);
+//			watcher->setFuture(future);
 		}
 		else if (m_requests.count() == 0) {
 			Q_EMIT finished(true);
@@ -229,70 +247,70 @@ CacheState CheckLogTask::checkLogCache(const QString &shv_path, bool with_good_f
 	return state;
 }
 
-QVector<DateTimeInterval> CheckLogTask::checkDirConsistency()
-{
-	QVector<DateTimeInterval> res;
-	QElapsedTimer elapsed;
-	elapsed.start();
-	m_dirEntries = m_logDir.findFiles(QDateTime(), QDateTime());
-	QDateTime requested_since;
-	for (int i = 0; i < m_dirEntries.count(); ++i) {
-		ShvLogHeader header;
-		try {
-			header = ShvLogFileReader(m_dirEntries[i].toStdString()).logHeader();
-		}
-		catch(const shv::chainpack::AbstractStreamReader::ParseException &ex) {
-			//when occurs error on file parsing, delete file and start again
-			shvError() << "error on parsing log file" << m_dirEntries[i] << "deleting it (" << ex.what() << ")";
-			QFile(m_dirEntries[i]).remove();
-			res.clear();
-			m_logDir.refresh();
-			m_dirEntries = m_logDir.findFiles(QDateTime(), QDateTime());
-			i = -1;
-			continue;
-		}
-		QDateTime file_since = rpcvalue_cast<QDateTime>(header.since());
-		QDateTime file_until = rpcvalue_cast<QDateTime>(header.until());
-		if (!requested_since.isValid()) {
-			std::ifstream in_file;
-			in_file.open(m_dirEntries[i].toStdString(),  std::ios::in | std::ios::binary);
-			shv::chainpack::ChainPackReader first_file_reader(in_file);
-			cp::RpcValue::MetaData meta_data;
-			first_file_reader.read(meta_data);
-			cp::RpcValue meta_hp = meta_data.value("HP");
-			bool has_first_log_mark = false;
-			if (meta_hp.isMap()) {
-				cp::RpcValue meta_first = meta_hp.toMap().value("firstLog");
-				has_first_log_mark = meta_first.isBool() && meta_first.toBool();
-			}
-			if (!has_first_log_mark) {
-				res << DateTimeInterval{ QDateTime(), file_since };
-			}
-		}
-		else if (requested_since < file_since) {
-			res << DateTimeInterval{ requested_since, file_since };
-		}
-		requested_since = file_until;
-	}
-	bool exists_dirty = m_logDir.existsDirtyLog();
-	if (m_checkType == CheckType::ReplaceDirtyLog || !exists_dirty) {
-		res << DateTimeInterval { requested_since, QDateTime() };
-	}
-	else if (exists_dirty){
-		QDateTime requested_until;
-		ShvJournalFileReader dirty_log(m_logDir.dirtyLogPath().toStdString());
-		if (dirty_log.next()) {
-			requested_until = QDateTime::fromMSecsSinceEpoch(dirty_log.entry().epochMsec, Qt::TimeSpec::UTC);
-			if (requested_until.isValid() && (!requested_since.isValid() || requested_since < requested_until)) {
-				res << DateTimeInterval { requested_since, requested_until };
-			}
-		}
-	}
-	logSanitizerTimes() << "checkDirConsistency for" << m_shvPath << "elapsed" << elapsed.elapsed() << "ms"
-						   " (dir has" << m_dirEntries.count() << "files)";
+//QVector<DateTimeInterval> CheckLogTask::checkDirConsistency()
+//{
+//	QVector<DateTimeInterval> res;
+//	QElapsedTimer elapsed;
+//	elapsed.start();
+//	m_dirEntries = m_logDir.findFiles(QDateTime(), QDateTime());
+//	QDateTime requested_since;
+//	for (int i = 0; i < m_dirEntries.count(); ++i) {
+//		ShvLogHeader header;
+//		try {
+//			header = ShvLogFileReader(m_dirEntries[i].toStdString()).logHeader();
+//		}
+//		catch(const shv::chainpack::AbstractStreamReader::ParseException &ex) {
+//			//when occurs error on file parsing, delete file and start again
+//			shvError() << "error on parsing log file" << m_dirEntries[i] << "deleting it (" << ex.what() << ")";
+//			QFile(m_dirEntries[i]).remove();
+//			res.clear();
+//			m_logDir.refresh();
+//			m_dirEntries = m_logDir.findFiles(QDateTime(), QDateTime());
+//			i = -1;
+//			continue;
+//		}
+//		QDateTime file_since = rpcvalue_cast<QDateTime>(header.since());
+//		QDateTime file_until = rpcvalue_cast<QDateTime>(header.until());
+//		if (!requested_since.isValid()) {
+//			std::ifstream in_file;
+//			in_file.open(m_dirEntries[i].toStdString(),  std::ios::in | std::ios::binary);
+//			shv::chainpack::ChainPackReader first_file_reader(in_file);
+//			cp::RpcValue::MetaData meta_data;
+//			first_file_reader.read(meta_data);
+//			cp::RpcValue meta_hp = meta_data.value("HP");
+//			bool has_first_log_mark = false;
+//			if (meta_hp.isMap()) {
+//				cp::RpcValue meta_first = meta_hp.toMap().value("firstLog");
+//				has_first_log_mark = meta_first.isBool() && meta_first.toBool();
+//			}
+//			if (!has_first_log_mark) {
+//				res << DateTimeInterval{ QDateTime(), file_since };
+//			}
+//		}
+//		else if (requested_since < file_since) {
+//			res << DateTimeInterval{ requested_since, file_since };
+//		}
+//		requested_since = file_until;
+//	}
+//	bool exists_dirty = m_logDir.existsDirtyLog();
+//	if (m_checkType == CheckType::ReplaceDirtyLog || !exists_dirty) {
+//		res << DateTimeInterval { requested_since, QDateTime() };
+//	}
+//	else if (exists_dirty){
+//		QDateTime requested_until;
+//		ShvJournalFileReader dirty_log(m_logDir.dirtyLogPath().toStdString());
+//		if (dirty_log.next()) {
+//			requested_until = QDateTime::fromMSecsSinceEpoch(dirty_log.entry().epochMsec, Qt::TimeSpec::UTC);
+//			if (requested_until.isValid() && (!requested_since.isValid() || requested_since < requested_until)) {
+//				res << DateTimeInterval { requested_since, requested_until };
+//			}
+//		}
+//	}
+//	logSanitizerTimes() << "checkDirConsistency for" << m_shvPath << "elapsed" << elapsed.elapsed() << "ms"
+//						   " (dir has" << m_dirEntries.count() << "files)";
 
-	return res;
-}
+//	return res;
+//}
 
 void CheckLogTask::onDirConsistencyChecked(const QVector<DateTimeInterval> &requested_intervals)
 {

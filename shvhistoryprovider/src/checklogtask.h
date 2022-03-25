@@ -2,11 +2,13 @@
 #define CHECKLOGTASK_H
 
 #include "logdir.h"
+#include "datetimeinterval.h"
+#include "checktype.h"
 
-#include <QDateTime>
 #include <QVector>
 
 class DeviceLogRequest;
+class DirConsistencyCheckTask;
 
 enum class CacheStatus { OK, Warning, Error };
 
@@ -55,25 +57,12 @@ public:
 	QVector<CacheFileState> files;
 };
 
-class DateTimeInterval
-{
-public:
-	QDateTime since;
-	QDateTime until;
-};
-
 class CheckLogTask : public QObject
 {
 	Q_OBJECT
 	using Super = QObject;
 
 public:
-	enum class CheckType {
-		ReplaceDirtyLog,       //on device apperance we need to remove dirty log as soon as possible, because it is inconsistent
-		CheckDirtyLogState,    //periodic check, dirty log is replaced only if it is too big or too old
-		TrimDirtyLogOnly,      //only trim dirty log if it is possible
-	};
-
 	CheckLogTask(const QString &shv_path, CheckType check_type, QObject *parent);
 
 	void exec();
@@ -85,7 +74,7 @@ private:
 	void onShvStateChanged();
 	void onDeviceDisappeared(const QString &shv_path);
 	void abort();
-	QVector<DateTimeInterval> checkDirConsistency();
+//	QVector<DateTimeInterval> checkDirConsistency();
 	void onDirConsistencyChecked(const QVector<DateTimeInterval> &requested_intervals);
 	void checkDirtyLogState();
 	void getLog(const QDateTime &since, const QDateTime &until);
@@ -97,6 +86,7 @@ private:
 	LogDir m_logDir;
 	QVector<DeviceLogRequest*> m_requests;
 	QStringList m_dirEntries;
+	DirConsistencyCheckTask *m_dirConsistencyCheckTask = nullptr;
 };
 
 #endif // CHECKLOGTASK_H
