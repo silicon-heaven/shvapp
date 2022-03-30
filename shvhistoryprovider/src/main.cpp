@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
 	QCoreApplication::setOrganizationName("Elektroline");
 	QCoreApplication::setOrganizationDomain("elektroline.cz");
 	QCoreApplication::setApplicationName("shvhistoryprovider");
-	QCoreApplication::setApplicationVersion("2.4.26");
+	QCoreApplication::setApplicationVersion("2.4.27");
 
 	NecroLog::registerTopic("SanitizerTimes", "");
 	NecroLog::registerTopic("SanitizerTimes", "");

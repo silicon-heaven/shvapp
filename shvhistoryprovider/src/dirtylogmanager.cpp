@@ -119,20 +119,25 @@ void DirtyLogManager::onDeviceDataChanged(const QString &path, const QString &me
 		}
 	}
 	if (!shv_path.isEmpty() && !dm->isPushLogDevice(shv_path)) {
-		int64_t timestamp = 0;
-		std::string domain = ShvJournalEntry::DOMAIN_VAL_CHANGE;
-		if (shv::chainpack::DataChange::isDataChange(value)) {
-			shv::chainpack::DataChange d = shv::chainpack::DataChange::fromRpcValue(value);
-			if (d.hasDateTime()) {
-				timestamp = d.epochMSec();
+		if (ShvJournalEntry::isShvJournalEntry(value)) {
+			writeDirtyLog(shv_path, ShvJournalEntry::fromRpcValue(value), true);
+		}
+		else {
+			int64_t timestamp = 0;
+			std::string domain = ShvJournalEntry::DOMAIN_VAL_CHANGE;
+			if (shv::chainpack::DataChange::isDataChange(value)) {
+				shv::chainpack::DataChange d = shv::chainpack::DataChange::fromRpcValue(value);
+				if (d.hasDateTime()) {
+					timestamp = d.epochMSec();
+				}
+				value = d.value();
 			}
-			value = d.value();
-		}
-		if (!timestamp) {
-			timestamp = QDateTime::currentDateTimeUtc().toMSecsSinceEpoch();
-		}
+			if (!timestamp) {
+				timestamp = QDateTime::currentDateTimeUtc().toMSecsSinceEpoch();
+			}
 
-		writeDirtyLog(shv_path, property, value, timestamp, domain, true);
+			writeDirtyLog(shv_path, property, value, timestamp, domain, true);
+		}
 	}
 }
 
@@ -175,18 +180,23 @@ void DirtyLogManager::insertDataMissingToDirtyLog(const QString &shv_path)
 
 void DirtyLogManager::writeDirtyLog(const QString &shv_path, const QString &path, const shv::chainpack::RpcValue &value, int64_t timestamp, std::string domain, bool is_connected)
 {
+	writeDirtyLog(shv_path,
+				  ShvJournalEntry{
+					  path.toStdString(),
+					  value,
+					  domain,
+					  ShvJournalEntry::NO_SHORT_TIME,
+					  ShvJournalEntry::NO_VALUE_FLAGS,
+					  timestamp
+				  }, is_connected);
+}
+
+void DirtyLogManager::writeDirtyLog(const QString &shv_path, const ShvJournalEntry &entry, bool is_connected)
+{
 	checkDirtyLog(shv_path, is_connected);
 	LogDir log_dir(shv_path);
 	ShvJournalFileWriter dirty_writer(log_dir.dirtyLogPath().toStdString());
-
-	dirty_writer.append(ShvJournalEntry{
-							path.toStdString(),
-							value,
-							domain,
-							ShvJournalEntry::NO_SHORT_TIME,
-							ShvJournalEntry::NO_VALUE_FLAGS,
-							timestamp
-						});
+	dirty_writer.append(entry);
 }
 
 void DirtyLogManager::checkDirtyLog(const QString &shv_path, bool is_connected)
