@@ -9,6 +9,8 @@
 
 class ShvSubscription;
 
+namespace shv { namespace core { namespace utils { class ShvJournalEntry; }}}
+
 class DirtyLogManager : public QObject
 {
 	Q_OBJECT
@@ -24,6 +26,7 @@ private:
 	void insertDataMissingToDirtyLog();
 	void insertDataMissingToDirtyLog(const QString &shv_path);
 	void writeDirtyLog(const QString &shv_path, const QString &path, const shv::chainpack::RpcValue &value, int64_t timestamp, std::string domain, bool is_connected);
+	void writeDirtyLog(const QString &shv_path, const shv::core::utils::ShvJournalEntry &entry, bool is_connected);
 	void checkDirtyLog(const QString &shv_path, bool is_connected);
 	void onDeviceDataChanged(const QString &path, const QString &method, const shv::chainpack::RpcValue &data);
 
