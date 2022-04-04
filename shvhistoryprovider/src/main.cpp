@@ -14,7 +14,8 @@ int main(int argc, char *argv[])
 	QCoreApplication::setApplicationVersion("2.4.27");
 
 	NecroLog::registerTopic("SanitizerTimes", "");
-	NecroLog::registerTopic("SanitizerTimes", "");
+	NecroLog::registerTopic("Sanitizing", "");
+
 	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);
 
 	int ret = 0;

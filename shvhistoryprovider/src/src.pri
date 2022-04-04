@@ -13,7 +13,10 @@ HEADERS += \
     $$PWD/dirtylogmanager.h \
     $$PWD/shvsubscription.h \
     $$PWD/logdirreader.h \
-    $$PWD/diskcleaner.h
+    $$PWD/diskcleaner.h \
+    $$PWD/dirconsistencychecktask.h \
+    $$PWD/datetimeinterval.h \
+    $$PWD/checktype.h
 
 SOURCES += \
     $$PWD/checklogtask.cpp \
@@ -30,7 +33,8 @@ SOURCES += \
     $$PWD/dirtylogmanager.cpp \
     $$PWD/shvsubscription.cpp \
     $$PWD/logdirreader.cpp \
-    $$PWD/diskcleaner.cpp
+    $$PWD/diskcleaner.cpp \
+    $$PWD/dirconsistencychecktask.cpp
 
 FORMS +=
 

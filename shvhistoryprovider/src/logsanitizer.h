@@ -16,7 +16,7 @@ public:
 	explicit LogSanitizer(QObject *parent = nullptr);
 
 	void trimDirtyLog(const QString &shv_path);
-	bool sanitizeLogCache(const QString &shv_path, CheckLogTask::CheckType check_type);
+	bool sanitizeLogCache(const QString &shv_path, CheckType check_type);
 
 private:
 	void onShvStateChanged();
@@ -24,10 +24,13 @@ private:
 	void onDeviceDisappeared(const QString &shv_path);
 	void sanitizeLogCache();
 	void setupTimer();
+	void checkNewDevicesQueue();
 
 	int m_lastCheckedDevice;
 	QTimer m_timer;
+	int m_interval = 0;
 	QMap<QString, QTimer*> m_newDeviceTimers;
+	QStringList m_newDevices;
 };
 
 #endif // LOGSANITIZER_H

@@ -378,7 +378,7 @@ shv::chainpack::RpcValue RootNode::callMethod(const shv::iotqt::node::ShvNode::S
 		if (app->deviceMonitor()->isPushLogDevice(q_shv_path) && app->deviceMonitor()->syncLogBroker(q_shv_path).isEmpty()) {
 			SHV_QT_EXCEPTION("Cannot sanitize logs on pushLog device");
 		}
-		return app->logSanitizer()->sanitizeLogCache(q_shv_path, CheckLogTask::CheckType::CheckDirtyLogState);
+		return app->logSanitizer()->sanitizeLogCache(q_shv_path, CheckType::CheckDirtyLogState);
 	}
 	else if (method == METH_CHECK_LOG_CACHE) {
 		bool with_good_files = false;
