@@ -5,6 +5,7 @@
 #include "logsanitizer.h"
 #include "rootnode.h"
 #include "diskcleaner.h"
+#include "shvsubscription.h"
 
 #include <shv/coreqt/log.h>
 #include <shv/coreqt/exception.h>
@@ -24,6 +25,8 @@ Application::Application(int &argc, char **argv, AppCliOptions* cli_opts)
 	, m_cliOptions(cli_opts)
 	, m_root(nullptr)
 	, m_diskCleaner(nullptr)
+	, m_chngSubscription(nullptr)
+	, m_cmdLogSubscription(nullptr)
 {
 	qRegisterMetaType<DateTimeInterval>();
 	qRegisterMetaType<QVector<DateTimeInterval>>();
@@ -88,6 +91,12 @@ Application::Application(int &argc, char **argv, AppCliOptions* cli_opts)
 Application::~Application()
 {
 	shvInfo() << "destroying" << QCoreApplication::applicationName() << "application";
+	if (m_chngSubscription) {
+		delete m_chngSubscription;
+	}
+	if (m_cmdLogSubscription) {
+		delete m_cmdLogSubscription;
+	}
 }
 
 shv::iotqt::rpc::DeviceConnection *Application::deviceConnection()
@@ -174,8 +183,44 @@ void Application::onShvStateChanged()
 			connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
 			connect(m_rpcConnection, &shv::iotqt::rpc::DeviceConnection::rpcMessageReceived, m_root, &RootNode::onRpcMessageReceived);
 		}
+
+		QString shv_sites_path = QString::fromStdString(m_cliOptions->sitesRootPath());
+		QString path = "shv";
+		if (!shv_sites_path.isEmpty()) {
+			path += '/' + shv_sites_path;
+		}
+		m_chngSubscription = new ShvSubscription(m_rpcConnection, path, shv::chainpack::Rpc::SIG_VAL_CHANGED, this);
+		connect(m_chngSubscription, &ShvSubscription::notificationReceived, this, &Application::onDataChanged);
+		m_cmdLogSubscription = new ShvSubscription(m_rpcConnection, path, shv::chainpack::Rpc::SIG_COMMAND_LOGGED, this);
+		connect(m_cmdLogSubscription, &ShvSubscription::notificationReceived, this, &Application::onDataChanged);
 	}
 	else if (m_rpcConnection->state() == shv::iotqt::rpc::ClientConnection::State::NotConnected) {
 		shvInfo() << "SHV Broker disconnected";
+
+		if (m_chngSubscription) {
+			delete m_chngSubscription;
+			m_chngSubscription = nullptr;
+		}
+		if (m_cmdLogSubscription) {
+			delete m_cmdLogSubscription;
+			m_cmdLogSubscription = nullptr;
+		}
+	}
+}
+
+void Application::onDataChanged(const QString &path, const QString &method, const shv::chainpack::RpcValue &data)
+{
+	QString p = path.mid(4);
+	QString shv_path;
+	QString property;
+	for (const QString &device : m_deviceMonitor->monitoredDevices()) {
+		if (p.startsWith(device)) {
+			shv_path = device;
+			property = p.mid(device.length() + 1);
+			break;
+		}
+	}
+	if (!shv_path.isEmpty()) {
+		Q_EMIT deviceDataChanged(shv_path, property, method, data);
 	}
 }

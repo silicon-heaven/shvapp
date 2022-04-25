@@ -25,6 +25,8 @@ private:
 	void sanitizeLogCache();
 	void setupTimer();
 	void checkNewDevicesQueue();
+	void planDirtyLogTrim(const QString &shv_path);
+	void onDeviceDataChanged(const QString &shv_path, const QString &property, const QString &method, const shv::chainpack::RpcValue &data);
 
 	int m_lastCheckedDevice;
 	QTimer m_timer;

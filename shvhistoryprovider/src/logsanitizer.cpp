@@ -6,15 +6,21 @@
 
 #include <shv/coreqt/log.h>
 
+#include <shv/core/utils/shvjournalentry.h>
+
+using namespace shv::core::utils;
+
 LogSanitizer::LogSanitizer(QObject *parent)
 	: QObject(parent)
 	, m_lastCheckedDevice(-1)
 	, m_timer(this)
 {
 	connect(&m_timer, &QTimer::timeout, this, qOverload<>(&LogSanitizer::sanitizeLogCache));
-	connect(Application::instance()->deviceConnection(), &shv::iotqt::rpc::DeviceConnection::stateChanged, this, &LogSanitizer::onShvStateChanged);
+	Application *app = Application::instance();
+	connect(app->deviceConnection(), &shv::iotqt::rpc::DeviceConnection::stateChanged, this, &LogSanitizer::onShvStateChanged);
+	connect(app, &Application::deviceDataChanged, this, &LogSanitizer::onDeviceDataChanged);
 
-	DeviceMonitor *monitor = Application::instance()->deviceMonitor();
+	DeviceMonitor *monitor = app->deviceMonitor();
 	connect(monitor, &DeviceMonitor::deviceConnectedToBroker, this, &LogSanitizer::onDeviceAppeared);
 	connect(monitor, &DeviceMonitor::deviceDisconnectedFromBroker, this, &LogSanitizer::onDeviceDisappeared);
 
@@ -78,20 +84,7 @@ void LogSanitizer::onDeviceAppeared(const QString &shv_path)
 	if (Application::instance()->deviceMonitor()->isPushLogDevice(shv_path)) {
 		return;
 	}
-	QTimer *timer = m_newDeviceTimers.value(shv_path);
-	if (!timer) {
-		timer = new QTimer(this);
-		timer->setInterval(60000);  //let device to collect snapshot
-		timer->setSingleShot(true);
-		connect(timer, &QTimer::timeout, this, [this, shv_path]() {
-			m_newDeviceTimers[shv_path]->deleteLater();
-			m_newDeviceTimers.remove(shv_path);
-			m_newDevices << shv_path;
-			checkNewDevicesQueue();
-		});
-		m_newDeviceTimers[shv_path] = timer;
-		timer->start();
-	}
+	planDirtyLogTrim(shv_path);
 	setupTimer();
 }
 
@@ -102,6 +95,45 @@ void LogSanitizer::checkNewDevicesQueue()
 		sanitizeLogCache(shv_path, CheckType::ReplaceDirtyLog);
 	}
 
+}
+
+void LogSanitizer::planDirtyLogTrim(const QString &shv_path)
+{
+	QTimer *timer = m_newDeviceTimers.value(shv_path);
+	if (!timer) {
+		timer = new QTimer(this);
+		timer->setInterval(30000);  //let device to collect snapshot
+		timer->setSingleShot(true);
+		connect(timer, &QTimer::timeout, this, [this, shv_path]() {
+			m_newDeviceTimers[shv_path]->deleteLater();
+			m_newDeviceTimers.remove(shv_path);
+			m_newDevices << shv_path;
+			checkNewDevicesQueue();
+		});
+		m_newDeviceTimers[shv_path] = timer;
+	}
+	timer->start();
+}
+
+void LogSanitizer::onDeviceDataChanged(const QString &shv_path, const QString &property, const QString &method, const shv::chainpack::RpcValue &data)
+{
+	Q_UNUSED(method);
+
+	if (!Application::instance()->deviceMonitor()->isPushLogDevice(shv_path)) {
+		if (property.startsWith(".app/connector/") && property.endsWith("/state")) {
+			shv::chainpack::RpcValue value = data;
+			if (ShvJournalEntry::isShvJournalEntry(value)) {
+				value = ShvJournalEntry::fromRpcValue(value).value;
+			}
+			else if (shv::chainpack::DataChange::isDataChange(value)) {
+				value = shv::chainpack::DataChange::fromRpcValue(value).value();
+			}
+
+			if (value.asString() == "Connected") {
+				planDirtyLogTrim(shv_path);
+			}
+		}
+	}
 }
 
 void LogSanitizer::onDeviceDisappeared(const QString &shv_path)

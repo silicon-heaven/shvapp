@@ -3,7 +3,6 @@
 #include "devicemonitor.h"
 #include "dirtylogmanager.h"
 #include "logdir.h"
-#include "shvsubscription.h"
 
 #include <shv/core/log.h>
 #include <shv/core/utils/shvjournalfilereader.h>
@@ -15,8 +14,6 @@ using namespace shv::core::utils;
 
 DirtyLogManager::DirtyLogManager(QObject *parent)
 	: QObject(parent)
-	, m_chngSubscription(nullptr)
-	, m_cmdLogSubscription(nullptr)
 {
 	Application *app = Application::instance();
 	auto *conn = app->deviceConnection();
@@ -32,6 +29,7 @@ DirtyLogManager::DirtyLogManager(QObject *parent)
 	connect(monitor, &DeviceMonitor::deviceConnectedToBroker, this, &DirtyLogManager::onDeviceAppeared);
 	connect(monitor, &DeviceMonitor::deviceDisconnectedFromBroker, this, &DirtyLogManager::onDeviceDisappeared);
 	connect(monitor, &DeviceMonitor::deviceRemovedFromSites, this, &DirtyLogManager::onDeviceDisappeared);
+	connect(app, &Application::deviceDataChanged, this, &DirtyLogManager::onDeviceDataChanged);
 
 	if (conn->state() == shv::iotqt::rpc::DeviceConnection::State::BrokerConnected) {
 		onShvStateChanged(conn->state());
@@ -40,12 +38,6 @@ DirtyLogManager::DirtyLogManager(QObject *parent)
 
 DirtyLogManager::~DirtyLogManager()
 {
-	if (m_chngSubscription) {
-		delete m_chngSubscription;
-	}
-	if (m_cmdLogSubscription) {
-		delete m_cmdLogSubscription;
-	}
 }
 
 void DirtyLogManager::onDeviceAppeared(const QString &shv_path)
@@ -74,51 +66,17 @@ void DirtyLogManager::onDeviceDisappeared(const QString &shv_path)
 
 void DirtyLogManager::onShvStateChanged(shv::iotqt::rpc::ClientConnection::State state)
 {
-	if (state == shv::iotqt::rpc::ClientConnection::State::BrokerConnected) {
-		Application *app = Application::instance();
-		auto *conn = app->deviceConnection();
-
-		QString shv_sites_path = QString::fromStdString(app->cliOptions()->sitesRootPath());
-		QString path = "shv";
-		if (!shv_sites_path.isEmpty()) {
-			path += '/' + shv_sites_path;
-		}
-		m_chngSubscription = new ShvSubscription(conn, path, shv::chainpack::Rpc::SIG_VAL_CHANGED, this);
-		connect(m_chngSubscription, &ShvSubscription::notificationReceived, this, &DirtyLogManager::onDeviceDataChanged);
-		m_cmdLogSubscription = new ShvSubscription(conn, path, shv::chainpack::Rpc::SIG_COMMAND_LOGGED, this);
-		connect(m_cmdLogSubscription, &ShvSubscription::notificationReceived, this, &DirtyLogManager::onDeviceDataChanged);
-	}
-	else if (state == shv::iotqt::rpc::ClientConnection::State::NotConnected) {
-		if (m_chngSubscription) {
-			delete m_chngSubscription;
-			m_chngSubscription = nullptr;
-		}
-		if (m_cmdLogSubscription) {
-			delete m_cmdLogSubscription;
-			m_cmdLogSubscription = nullptr;
-		}
+	if (state == shv::iotqt::rpc::ClientConnection::State::NotConnected) {
 		insertDataMissingToDirtyLog();
 	}
 }
 
-void DirtyLogManager::onDeviceDataChanged(const QString &path, const QString &method, const shv::chainpack::RpcValue &data)
+void DirtyLogManager::onDeviceDataChanged(const QString &shv_path, const QString &property, const QString &method, const shv::chainpack::RpcValue &data)
 {
 	Q_UNUSED(method);
-	Application *app = Application::instance();
-	DeviceMonitor *dm = app->deviceMonitor();
-	shv::chainpack::RpcValue value = data;
 
-	QString p = path.mid(4);
-	QString shv_path;
-	QString property;
-	for (const QString &device : dm->monitoredDevices()) {
-		if (p.startsWith(device)) {
-			shv_path = device;
-			property = p.mid(device.length() + 1);
-			break;
-		}
-	}
-	if (!shv_path.isEmpty() && !dm->isPushLogDevice(shv_path)) {
+	if (!Application::instance()->deviceMonitor()->isPushLogDevice(shv_path)) {
+		shv::chainpack::RpcValue value = data;
 		if (ShvJournalEntry::isShvJournalEntry(value)) {
 			writeDirtyLog(shv_path, ShvJournalEntry::fromRpcValue(value), true);
 		}
@@ -135,7 +93,6 @@ void DirtyLogManager::onDeviceDataChanged(const QString &path, const QString &me
 			if (!timestamp) {
 				timestamp = QDateTime::currentDateTimeUtc().toMSecsSinceEpoch();
 			}
-
 			writeDirtyLog(shv_path, property, value, timestamp, domain, true);
 		}
 	}
