@@ -24,11 +24,11 @@
 		"roles":["device"]
 	},
 	"sitesprovider":{
-		"password":{"format":"SHA1", "password":"19b9eab2dea2882d328caa6bc26b0b66c002813b"},
-		"roles":["device"]
+		"password":{"format":"PLAIN", "password":"lub42DUB"},
+		"roles":["SP"]
 	},
 	"historyprovider":{
-		"password":{"format":"SHA1", "password":"19b9eab2dea2882d328caa6bc26b0b66c002813b"},
+		"password":{"format":"PLAIN", "password":"lub42DUB"},
 		"roles":["device", "HP"]
 	},
 	"tester":{

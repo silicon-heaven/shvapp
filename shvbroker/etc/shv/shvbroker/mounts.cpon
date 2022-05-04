@@ -2,6 +2,6 @@
 	"sitesprovider":{"mountPoint":"sites"},
 	"historyprovider":{"mountPoint":"history"},
 	"cate":{"mountPoint":"shv/test/cze/prg/cate"},
-	"shvgate":{"mountPoint":"shv/opc"},
+	"shvgate":{"mountPoint":"shv/visu"},
 	"eyassrv":{"mountPoint":"shv/app"},
 }

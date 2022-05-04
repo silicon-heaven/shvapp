@@ -32,11 +32,15 @@
 	"su":{"weight":70},
 	"subscribe":{"weight":0},
 	"HP":{},
+	"SP":{},
+	"FL":{
+		"roles":["client"],
+	},
 	"tester":{
-		"profile":{
-			"FL":{"siteRoot":"cze/prg/aux/eline"}
-		},
-		"roles":["device"],
+		// "profile":{
+		// 	"FL":{"siteRoot":"cze/prg/aux/eline"}
+		// },
+		"roles":["FL"],
 		"weight":0
 	},
 	"wr":{"weight":20}

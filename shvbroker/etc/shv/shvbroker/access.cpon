@@ -16,13 +16,26 @@
 		{"method":"unsubscribe", "pathPattern":".broker/app", "role":"rd"}
 	],
 	"HP":[
+		{"method":"chng", "pathPattern":"shv/**", "role":"rd"}
+		{"method":"cmdlog", "pathPattern":"shv/**", "role":"rd"}
+		{"method":"mntchng", "pathPattern":"shv/**", "role":"rd"}
+		{"method":"getLog", "pathPattern":"shv/**", "role":"rd"}
 		{"method":"", "pathPattern":"sites/**", "role":"rd"}
+		{"method":"brokerId", "pathPattern":".broker/app", "role":"rd"}
+	],
+	"SP":[
+		{"method":"", "pathPattern":"shv/**", "role":"rd"}
 	],
 	"eyassrv":[
 		{"method":"", "pathPattern":"shv/opc/**", "role":"wr"}
 	],
 	"eyasdisp":[
 		{"method":"", "pathPattern":"shv/app/**", "role":"wr"}
+	],
+	"FL":[
+		{"method":"", "pathPattern":"shv/**", "role":"srv"}
+		{"method":"", "pathPattern":"sites/**", "role":"rd"}
+		{"method":"", "pathPattern":"history/**", "role":"rd"}
 	],
 	"tester":[
 		{"method":"", "pathPattern":"test/**", "role":"wr"}
