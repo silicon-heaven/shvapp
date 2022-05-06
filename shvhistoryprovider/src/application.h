@@ -40,11 +40,11 @@ public:
 	QString uptime() const;
 	QString brokerId() const { return m_brokerId; }
 
-	Q_SIGNAL void deviceDataChanged(const QString &shv_path, const QString &property, const QString &method, const shv::chainpack::RpcValue &data);
+	Q_SIGNAL void deviceDataChanged(const QString &site_path, const QString &property, const QString &method, const shv::chainpack::RpcValue &data);
 
 private:
 	void onShvStateChanged();
-	void onDataChanged(const QString &path, const QString &method, const shv::chainpack::RpcValue &data);
+	void onDataChanged(const QString &shv_path, const QString &method, const shv::chainpack::RpcValue &data);
 	void connectToShv();
 	void disconnectFromShv();
 	void quit();

@@ -63,16 +63,16 @@ class CheckLogTask : public QObject
 	using Super = QObject;
 
 public:
-	CheckLogTask(const QString &shv_path, CheckType check_type, QObject *parent);
+	CheckLogTask(const QString &site_path, CheckType check_type, QObject *parent);
 
 	void exec();
 	Q_SIGNAL void finished(bool);
 	CheckType checkType() const { return m_checkType; }
-	static CacheState checkLogCache(const QString &shv_path, bool with_good_files);
+	static CacheState checkLogCache(const QString &site_path, bool with_good_files);
 
 private:
 	void onShvStateChanged();
-	void onDeviceDisappeared(const QString &shv_path);
+	void onDeviceDisappeared(const QString &site_path);
 	void abort();
 //	QVector<DateTimeInterval> checkDirConsistency();
 	void onDirConsistencyChecked(const QVector<DateTimeInterval> &requested_intervals);
@@ -81,7 +81,7 @@ private:
 	void execRequest(DeviceLogRequest *request);
 	void checkRequestQueue();
 
-	QString m_shvPath;
+	QString m_sitePath;
 	CheckType m_checkType;
 	LogDir m_logDir;
 	QVector<DeviceLogRequest*> m_requests;

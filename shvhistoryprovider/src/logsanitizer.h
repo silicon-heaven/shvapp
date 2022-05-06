@@ -15,18 +15,18 @@ class LogSanitizer : public QObject
 public:
 	explicit LogSanitizer(QObject *parent = nullptr);
 
-	void trimDirtyLog(const QString &shv_path);
-	bool sanitizeLogCache(const QString &shv_path, CheckType check_type);
+	void trimDirtyLog(const QString &site_path);
+	bool sanitizeLogCache(const QString &site_path, CheckType check_type);
 
 private:
 	void onShvStateChanged();
-	void onDeviceAppeared(const QString &shv_path);
-	void onDeviceDisappeared(const QString &shv_path);
+	void onDeviceAppeared(const QString &site_path);
+	void onDeviceDisappeared(const QString &site_path);
 	void sanitizeLogCache();
 	void setupTimer();
 	void checkNewDevicesQueue();
-	void planDirtyLogTrim(const QString &shv_path);
-	void onDeviceDataChanged(const QString &shv_path, const QString &property, const QString &method, const shv::chainpack::RpcValue &data);
+	void planDirtyLogTrim(const QString &site_path);
+	void onDeviceDataChanged(const QString &site_path, const QString &property, const QString &method, const shv::chainpack::RpcValue &data);
 
 	int m_lastCheckedDevice;
 	QTimer m_timer;

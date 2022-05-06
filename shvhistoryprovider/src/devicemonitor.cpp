@@ -45,21 +45,21 @@ const QStringList &DeviceMonitor::onlineDevices() const
 	return m_onlineDevices;
 }
 
-bool DeviceMonitor::isElesysDevice(const QString &shv_path) const
+bool DeviceMonitor::isElesysDevice(const QString &site_path) const
 {
-	const SitesHPDevice *hp_device = qobject_cast<const SitesHPDevice *>(m_sites->itemByShvPath(shv_path));
+	const SitesHPDevice *hp_device = qobject_cast<const SitesHPDevice *>(m_sites->itemBySitePath(site_path));
 	return hp_device && hp_device->isElesys();
 }
 
-bool DeviceMonitor::isPushLogDevice(const QString &shv_path) const
+bool DeviceMonitor::isPushLogDevice(const QString &site_path) const
 {
-	const SitesHPDevice *hp_device = qobject_cast<const SitesHPDevice *>(m_sites->itemByShvPath(shv_path));
+	const SitesHPDevice *hp_device = qobject_cast<const SitesHPDevice *>(m_sites->itemBySitePath(site_path));
 	return hp_device && hp_device->isPushLog();
 }
 
-QString DeviceMonitor::syncLogBroker(const QString &shv_path) const
+QString DeviceMonitor::syncLogBroker(const QString &site_path) const
 {
-	const SitesHPDevice *hp_device = qobject_cast<const SitesHPDevice *>(m_sites->itemByShvPath(shv_path));
+	const SitesHPDevice *hp_device = qobject_cast<const SitesHPDevice *>(m_sites->itemBySitePath(site_path));
 	if (hp_device && hp_device->isPushLog()) {
 		return hp_device->syncLogSource();
 	}
@@ -140,31 +140,31 @@ void DeviceMonitor::downloadSites()
 	}
 }
 
-void DeviceMonitor::onDeviceMountChanged(const QString &path, const QString &method, const shv::chainpack::RpcValue &data)
+void DeviceMonitor::onDeviceMountChanged(const QString &shv_path, const QString &method, const shv::chainpack::RpcValue &data)
 {
 	Q_UNUSED(method);
-	QString p = path.mid(4);  //remove shv/
+	QString mounted_site_path = shv_path.mid(4);  //remove shv/
 
 	bool mounted = data.toBool();
 	if (mounted) {
-		for (const QString &shv_path : m_monitoredDevices) {
-			if (shv_path.startsWith(p)) {
-				isDeviceOnline(shv_path, [this, shv_path](bool is_online) {
+		for (const QString &site_path : m_monitoredDevices) {
+			if (site_path.startsWith(mounted_site_path)) {
+				isDeviceOnline(site_path, [this, site_path](bool is_online) {
 					if (is_online) {
-						shvInfo() << "device" << shv_path << "connected";
-						m_onlineDevices << shv_path;
-						Q_EMIT deviceConnectedToBroker(shv_path);
+						shvInfo() << "device" << site_path << "connected";
+						m_onlineDevices << site_path;
+						Q_EMIT deviceConnectedToBroker(site_path);
 					}
 				});
 			}
 		}
 	}
 	else {
-		for (const QString &shv_path : m_monitoredDevices) {
-			if (shv_path.startsWith(p)) {
-				if (m_onlineDevices.removeOne(shv_path)) {
-					shvInfo() << "device" << shv_path << "disconnected";
-					Q_EMIT deviceDisconnectedFromBroker(shv_path);
+		for (const QString &site_path : m_monitoredDevices) {
+			if (site_path.startsWith(mounted_site_path)) {
+				if (m_onlineDevices.removeOne(site_path)) {
+					shvInfo() << "device" << site_path << "disconnected";
+					Q_EMIT deviceDisconnectedFromBroker(site_path);
 				}
 			}
 		}
@@ -175,31 +175,31 @@ void DeviceMonitor::scanDevices()
 {
 	QStringList old_monitores_devices = m_monitoredDevices;
 	for (const SitesHPDevice *device : m_sites->findChildren<SitesHPDevice*>()) {
-		QString shv_path = device->shvPath();
-		if (old_monitores_devices.removeOne(shv_path)) {
+		QString site_path = device->sitePath();
+		if (old_monitores_devices.removeOne(site_path)) {
 			continue;
 		}
-		m_monitoredDevices << shv_path;
-		isDeviceOnline(shv_path, [this, shv_path](bool is_online) {
+		m_monitoredDevices << site_path;
+		isDeviceOnline(site_path, [this, site_path](bool is_online) {
 			if (is_online) {
-				m_onlineDevices << shv_path;
-				Q_EMIT deviceConnectedToBroker(shv_path);
+				m_onlineDevices << site_path;
+				Q_EMIT deviceConnectedToBroker(site_path);
 			}
 		});
 	}
-	for (const QString &shv_path : old_monitores_devices) {
-		m_monitoredDevices.removeOne(shv_path);
-		m_onlineDevices.removeOne(shv_path);
-		Q_EMIT deviceRemovedFromSites(shv_path);
+	for (const QString &site_path : old_monitores_devices) {
+		m_monitoredDevices.removeOne(site_path);
+		m_onlineDevices.removeOne(site_path);
+		Q_EMIT deviceRemovedFromSites(site_path);
 	}
 	Q_EMIT sitesDownloadFinished();
 }
 
-void DeviceMonitor::isDeviceOnline(const QString &shv_path, std::function<void(bool)> callback)
+void DeviceMonitor::isDeviceOnline(const QString &site_path, std::function<void(bool)> callback)
 {
-	int slash = shv_path.lastIndexOf('/');
-	QString parent_path = shv_path.mid(0, slash == -1 ? 0 : slash);
-	std::string device_name = shv_path.mid(slash + 1).toStdString();
+	int slash = site_path.lastIndexOf('/');
+	QString parent_path = site_path.mid(0, slash == -1 ? 0 : slash);
+	std::string device_name = site_path.mid(slash + 1).toStdString();
 
 	auto *conn = Application::instance()->deviceConnection();
 	int rq_id = conn->nextRequestId();

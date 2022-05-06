@@ -19,11 +19,11 @@
 namespace cp = shv::chainpack;
 using namespace shv::core::utils;
 
-CheckLogTask::CheckLogTask(const QString &shv_path, CheckType check_type, QObject *parent)
+CheckLogTask::CheckLogTask(const QString &site_path, CheckType check_type, QObject *parent)
 	: Super(parent)
-	, m_shvPath(shv_path)
+	, m_sitePath(site_path)
 	, m_checkType(check_type)
-	, m_logDir(m_shvPath)
+	, m_logDir(m_sitePath)
 {
 	connect(Application::instance()->deviceConnection(), &shv::iotqt::rpc::DeviceConnection::stateChanged, this, &CheckLogTask::onShvStateChanged);
 	connect(Application::instance()->deviceMonitor(), &DeviceMonitor::deviceDisconnectedFromBroker, this, &CheckLogTask::onDeviceDisappeared);
@@ -41,9 +41,9 @@ void CheckLogTask::onShvStateChanged()
 	}
 }
 
-void CheckLogTask::onDeviceDisappeared(const QString &shv_path)
+void CheckLogTask::onDeviceDisappeared(const QString &site_path)
 {
-	if (shv_path == m_shvPath) {
+	if (site_path == m_sitePath) {
 		abort();
 	}
 }
@@ -83,7 +83,7 @@ void CheckLogTask::exec()
 			}
 		}
 		if (m_checkType == CheckType::ReplaceDirtyLog || m_checkType == CheckType::CheckDirtyLogState) {
-			m_dirConsistencyCheckTask = new DirConsistencyCheckTask(m_shvPath, m_checkType, this);
+			m_dirConsistencyCheckTask = new DirConsistencyCheckTask(m_sitePath, m_checkType, this);
 			connect(m_dirConsistencyCheckTask, &DirConsistencyCheckTask::checkCompleted, this, &CheckLogTask::onDirConsistencyChecked);
 			connect(m_dirConsistencyCheckTask, &DirConsistencyCheckTask::error, this, [this](QString msg) {
 				shvError() << msg;
@@ -120,12 +120,12 @@ void CheckLogTask::exec()
 		}
 	}
 	catch (const std::exception &e) {
-		shvError() << "CheckLogTask" << m_shvPath << e.what();
+		shvError() << "CheckLogTask" << m_sitePath << e.what();
 		Q_EMIT finished(false);
 	}
 }
 
-CacheState CheckLogTask::checkLogCache(const QString &shv_path, bool with_good_files)
+CacheState CheckLogTask::checkLogCache(const QString &site_path, bool with_good_files)
 {
 	auto eval_status = [](CacheFileState &file_state) {
 		file_state.status = CacheStatus::OK;
@@ -137,7 +137,7 @@ CacheState CheckLogTask::checkLogCache(const QString &shv_path, bool with_good_f
 	};
 
 	CacheState state;
-	LogDir m_logDir(shv_path);
+	LogDir m_logDir(site_path);
 
 	QStringList dir_entries = m_logDir.findFiles(QDateTime(), QDateTime());
 	QDateTime requested_since;
@@ -199,7 +199,7 @@ CacheState CheckLogTask::checkLogCache(const QString &shv_path, bool with_good_f
 		}
 	}
 
-	if (!Application::instance()->deviceMonitor()->isPushLogDevice(shv_path)) {
+	if (!Application::instance()->deviceMonitor()->isPushLogDevice(site_path)) {
 		CacheFileState dirty_file_state;
 		dirty_file_state.fileName = m_logDir.dirtyLogName();
 		bool exists_dirty = m_logDir.existsDirtyLog();
@@ -368,7 +368,7 @@ void CheckLogTask::checkDirtyLogState()
 					}
 				}
 			}
-			logSanitizerTimes() << "checkDirtyLogState for" << m_shvPath << "elapsed" << elapsed.elapsed() << "ms"
+			logSanitizerTimes() << "checkDirtyLogState for" << m_sitePath << "elapsed" << elapsed.elapsed() << "ms"
 								   " (checked" << rec_count << "rows)";
 		}
 	}
@@ -376,7 +376,7 @@ void CheckLogTask::checkDirtyLogState()
 
 void CheckLogTask::execRequest(DeviceLogRequest *request)
 {
-	shvInfo() << "requesting log" << m_shvPath << request->since() << "-" << request->until();
+	shvInfo() << "requesting log" << m_sitePath << request->since() << "-" << request->until();
 	connect(request, &DeviceLogRequest::finished, this, [this, request](bool success) {
 		request->deleteLater();
 		if (!success) {
@@ -396,7 +396,7 @@ void CheckLogTask::execRequest(DeviceLogRequest *request)
 
 void CheckLogTask::getLog(const QDateTime &since, const QDateTime &until)
 {
-	m_requests << new DeviceLogRequest(m_shvPath, since, until, this);
+	m_requests << new DeviceLogRequest(m_sitePath, since, until, this);
 	if (m_requests.count() == 1) {
 		execRequest(m_requests[0]);
 	}

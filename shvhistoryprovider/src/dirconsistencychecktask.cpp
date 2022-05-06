@@ -12,9 +12,9 @@
 namespace cp = shv::chainpack;
 using namespace shv::core::utils;
 
-DirConsistencyCheckTask::DirConsistencyCheckTask(const QString &shv_path, CheckType check_type, QObject *parent)
+DirConsistencyCheckTask::DirConsistencyCheckTask(const QString &site_path, CheckType check_type, QObject *parent)
 	: Super(parent)
-	, m_shvPath(shv_path)
+	, m_sitePath(site_path)
 	, m_checkType(check_type)
 {
 }
@@ -23,7 +23,7 @@ void DirConsistencyCheckTask::run()
 {
 	try {
 		QVector<DateTimeInterval> result;
-		LogDir log_dir(m_shvPath);
+		LogDir log_dir(m_sitePath);
 		QElapsedTimer elapsed;
 		elapsed.start();
 		QStringList dir_entries = log_dir.findFiles(QDateTime(), QDateTime());
@@ -84,7 +84,7 @@ void DirConsistencyCheckTask::run()
 				}
 			}
 		}
-		logSanitizerTimes() << "checkDirConsistency for" << m_shvPath << "elapsed" << elapsed.elapsed() << "ms"
+		logSanitizerTimes() << "checkDirConsistency for" << m_sitePath << "elapsed" << elapsed.elapsed() << "ms"
 							   " (dir has" << dir_entries.count() << "files)";
 		Q_EMIT checkCompleted(result);
 	}

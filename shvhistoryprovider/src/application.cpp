@@ -208,19 +208,19 @@ void Application::onShvStateChanged()
 	}
 }
 
-void Application::onDataChanged(const QString &path, const QString &method, const shv::chainpack::RpcValue &data)
+void Application::onDataChanged(const QString &shv_path, const QString &method, const shv::chainpack::RpcValue &data)
 {
-	QString p = path.mid(4);
-	QString shv_path;
+	QString p = shv_path.mid(4);
+	QString site_path;
 	QString property;
 	for (const QString &device : m_deviceMonitor->monitoredDevices()) {
 		if (p.startsWith(device)) {
-			shv_path = device;
+			site_path = device;
 			property = p.mid(device.length() + 1);
 			break;
 		}
 	}
-	if (!shv_path.isEmpty()) {
-		Q_EMIT deviceDataChanged(shv_path, property, method, data);
+	if (!site_path.isEmpty()) {
+		Q_EMIT deviceDataChanged(site_path, property, method, data);
 	}
 }

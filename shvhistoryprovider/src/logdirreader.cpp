@@ -7,7 +7,7 @@
 namespace cp = shv::chainpack;
 using namespace shv::core::utils;
 
-LogDirReader::LogDirReader(const QString &shv_path, bool is_push_log, int prefix_length, const QDateTime &since, const QDateTime &until, bool with_snapshot)
+LogDirReader::LogDirReader(const QString &site_path, bool is_push_log, int prefix_length, const QDateTime &since, const QDateTime &until, bool with_snapshot)
 	: m_logReader(nullptr)
 	, m_journalReader(nullptr)
 	, m_until(until.isValid() ? until.toMSecsSinceEpoch() : 0LL)
@@ -15,7 +15,7 @@ LogDirReader::LogDirReader(const QString &shv_path, bool is_push_log, int prefix
 	, m_dirtyLogBegin(0LL)
 	, m_isPushLog(is_push_log)
 {
-	LogDir log_dir(shv_path);
+	LogDir log_dir(site_path);
 	m_logs = log_dir.findFiles(since, until);
 	m_dirtyLog = log_dir.dirtyLogPath();
 	if (m_logs.count() == 0) {
@@ -35,7 +35,7 @@ LogDirReader::LogDirReader(const QString &shv_path, bool is_push_log, int prefix
 		}
 	}
 	if (prefix_length) {
-		m_pathPrefix = (shv_path.right(prefix_length - 1) + "/").toStdString();
+		m_pathPrefix = (site_path.right(prefix_length - 1) + "/").toStdString();
 	}
 
 

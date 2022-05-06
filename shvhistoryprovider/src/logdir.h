@@ -6,7 +6,7 @@
 class LogDir
 {
 public:
-	LogDir(const QString &shv_path);
+	LogDir(const QString &site_path);
 
 	QStringList findFiles(const QDateTime &since, const QDateTime &until);
 	QString filePath(const QDateTime &datetime);
@@ -24,7 +24,7 @@ public:
 	QString absoluteFilePath(const QString &file) const { return m_dir.absoluteFilePath(file); }
 
 private:
-	static QString dirPath(const QString &shv_path);
+	static QString dirPath(const QString &site_path);
 
 	QDir m_dir;
 };

@@ -12,8 +12,8 @@ class SiteItem : public QObject
 public:
 	SiteItem(QObject *parent = nullptr);
 
-	const SiteItem *itemByShvPath(const QString &shv_path) const;
-	QString shvPath() const;
+	const SiteItem *itemBySitePath(const QString &site_path) const;
+	QString sitePath() const;
 
 	void parseRpcValue(const shv::chainpack::RpcValue &value);
 
@@ -22,7 +22,7 @@ protected:
 	virtual void parseMetaRpcValue(const shv::chainpack::RpcValue::Map &meta);
 
 private:
-	const SiteItem *itemByShvPath(const QString &shv_path, int offset) const;
+	const SiteItem *itemBySitePath(const QString &site_path, int offset) const;
 };
 
 class SitesDevice : public SiteItem

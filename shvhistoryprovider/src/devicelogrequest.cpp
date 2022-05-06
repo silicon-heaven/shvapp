@@ -16,16 +16,16 @@
 namespace cp = shv::chainpack;
 using namespace shv::core::utils;
 
-DeviceLogRequest::DeviceLogRequest(const QString &shv_path, const QDateTime &since, const QDateTime &until, QObject *parent)
+DeviceLogRequest::DeviceLogRequest(const QString &site_path, const QDateTime &since, const QDateTime &until, QObject *parent)
 	: Super(parent)
-	, m_shvPath(shv_path)
+	, m_sitePath(site_path)
 	, m_since(since)
 	, m_until(until)
-	, m_logDir(shv_path)
+	, m_logDir(site_path)
 	, m_askElesys(true)
 	, m_appendLog(false)
 {
-	m_askElesys = Application::instance()->deviceMonitor()->isElesysDevice(m_shvPath);
+	m_askElesys = Application::instance()->deviceMonitor()->isElesysDevice(m_sitePath);
 }
 
 void DeviceLogRequest::getChunk()
@@ -33,7 +33,7 @@ void DeviceLogRequest::getChunk()
 	try {
 		m_appendLog = false;
 		if (m_since.isValid()) {
-			LogDir log_dir(m_shvPath);
+			LogDir log_dir(m_sitePath);
 			QStringList all_files = log_dir.findFiles(m_since.addMSecs(-1), m_since);
 			if (all_files.count() == 1) {
 				std::ifstream in_file;
@@ -62,23 +62,23 @@ void DeviceLogRequest::getChunk()
 				m_askElesys = false;
 			}
 		}
-		if (m_askElesys && m_shvPath.startsWith("test/") && !Application::instance()->cliOptions()->test()) {
+		if (m_askElesys && m_sitePath.startsWith("test/") && !Application::instance()->cliOptions()->test()) {
 			m_askElesys = false;
 		}
 		QString path;
 		cp::RpcValue params;
-		if (Application::instance()->deviceMonitor()->isPushLogDevice(m_shvPath)) {
-			QString sync_log_broker = Application::instance()->deviceMonitor()->syncLogBroker(m_shvPath);
+		if (Application::instance()->deviceMonitor()->isPushLogDevice(m_sitePath)) {
+			QString sync_log_broker = Application::instance()->deviceMonitor()->syncLogBroker(m_sitePath);
 			if (sync_log_broker.isEmpty()) {
-				shvError() << "cannot get log for push log device" << m_shvPath << "because source HP is not set";
+				shvError() << "cannot get log for push log device" << m_sitePath << "because source HP is not set";
 				Q_EMIT finished(false);
 				return;
 			}
-			path = "history@" + sync_log_broker + ">:/shv/" + m_shvPath;
+			path = "history@" + sync_log_broker + ">:/shv/" + m_sitePath;
 			params = logParams(!m_appendLog).toRpcValue();
 		}
 		else if (m_askElesys) {
-			path = m_shvPath;
+			path = m_sitePath;
 			if (Application::instance()->cliOptions()->test()) {
 				if (path.startsWith("test/")) {
 					path = path.mid(5);
@@ -92,7 +92,7 @@ void DeviceLogRequest::getChunk()
 			params = param_map;
 		}
 		else {
-			path = "shv/" + m_shvPath;
+			path = "shv/" + m_sitePath;
 			params = logParams(!m_appendLog).toRpcValue();
 		}
 
@@ -111,7 +111,7 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 			SHV_EXCEPTION("invalid response");
 		}
 		if (response.isError()) {
-			SHV_EXCEPTION((m_askElesys ? "elesys error: " : "device error: ") + m_shvPath.toStdString() +
+			SHV_EXCEPTION((m_askElesys ? "elesys error: " : "device error: ") + m_sitePath.toStdString() +
 						  " " + response.error().message());
 		}
 
@@ -153,7 +153,7 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 		bool is_finished = (int)log.size() < Application::CHUNK_RECORD_COUNT;
 
 		if (!meta_since.isDateTime() || !meta_until.isDateTime()) {
-			SHV_QT_EXCEPTION("Received invalid log from " + m_shvPath + ", missing since or until");
+			SHV_QT_EXCEPTION("Received invalid log from " + m_sitePath + ", missing since or until");
 		}
 		QDateTime until = rpcvalue_cast<QDateTime>(meta_until);
 
@@ -161,7 +161,7 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 			m_askElesys = false;
 			is_finished = false;
 		}
-		shvInfo() << "received log for" << m_shvPath << "with" << log.size() << "records"
+		shvInfo() << "received log for" << m_sitePath << "with" << log.size() << "records"
 				  << "since" << meta_since.toCpon()
 				  << "until" << meta_until.toCpon();
 		if (log.size()) {
@@ -172,7 +172,7 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 				}
 			}
 			else {
-				if (Application::instance()->deviceMonitor()->isElesysDevice(m_shvPath) || !log.hasSnapshot()) {
+				if (Application::instance()->deviceMonitor()->isElesysDevice(m_sitePath) || !log.hasSnapshot()) {
 					prependPreviousFile(log);  //predradime minuly soubor aby se prehral do snapshotu
 				}
 				saveToNewFile(log, until);
@@ -213,7 +213,7 @@ ShvGetLogParams DeviceLogRequest::logParams(bool with_snapshot) const
 
 void DeviceLogRequest::appendToPreviousFile(ShvMemoryJournal &log, const QDateTime &until)
 {
-	LogDir log_dir(m_shvPath);
+	LogDir log_dir(m_sitePath);
 	QStringList all_files = log_dir.findFiles(m_since.addMSecs(-1), m_since);
 	std::ifstream in_file;
 	in_file.open(all_files[0].toStdString(), std::ios::in | std::ios::binary);
@@ -264,7 +264,7 @@ void DeviceLogRequest::appendToPreviousFile(ShvMemoryJournal &log, const QDateTi
 
 void DeviceLogRequest::prependPreviousFile(ShvMemoryJournal &log)
 {
-	LogDir log_dir(m_shvPath);
+	LogDir log_dir(m_sitePath);
 	QStringList all_files = log_dir.findFiles(m_since.addMSecs(-1), m_since);
 	if (all_files.count() == 1) {
 		ShvMemoryJournal new_log;
@@ -293,7 +293,7 @@ void DeviceLogRequest::saveToNewFile(ShvMemoryJournal &log, const QDateTime &unt
 		log_cp.setMetaValue("HP", cp::RpcValue::Map{{ "firstLog", true }});
 	}
 	log_cp.setMetaValue("until", cp::RpcValue::fromValue(until));
-	QFile file(LogDir(m_shvPath).filePath(since));
+	QFile file(LogDir(m_sitePath).filePath(since));
 	if (!file.open(QFile::WriteOnly)) {
 		SHV_QT_EXCEPTION("Cannot open file " + file.fileName());
 	}
@@ -343,7 +343,7 @@ void DeviceLogRequest::trimDirtyLog(const QDateTime &until)
 		}
 		auto *conn = Application::instance()->deviceConnection();
 		if (until_msec != old_start_ts && conn->state() == shv::iotqt::rpc::DeviceConnection::State::BrokerConnected) {
-			conn->sendShvSignal((m_shvPath + "/" + Application::DIRTY_LOG_NODE + "/" + Application::START_TS_NODE).toStdString(),
+			conn->sendShvSignal((m_sitePath + "/" + Application::DIRTY_LOG_NODE + "/" + Application::START_TS_NODE).toStdString(),
 								cp::Rpc::SIG_VAL_CHANGED, cp::RpcValue::DateTime::fromMSecsSinceEpoch(until_msec));
 		}
 	}

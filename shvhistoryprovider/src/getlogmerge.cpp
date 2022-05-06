@@ -16,20 +16,20 @@
 namespace cp = shv::chainpack;
 using namespace shv::core::utils;
 
-GetLogMerge::GetLogMerge(const QString &shv_path, const shv::core::utils::ShvGetLogParams &log_params)
-	: m_shvPath(shv_path)
+GetLogMerge::GetLogMerge(const QString &site_path, const shv::core::utils::ShvGetLogParams &log_params)
+	: m_sitePath(site_path)
 	, m_logParams(log_params)
 {
-	const SiteItem *site_item = Application::instance()->deviceMonitor()->sites()->itemByShvPath(shv_path);
+	const SiteItem *site_item = Application::instance()->deviceMonitor()->sites()->itemBySitePath(site_path);
 	if (!site_item) {
 		SHV_EXCEPTION("Invalid shv_path");
 	}
 	if (qobject_cast<const SitesHPDevice *>(site_item)) {
-		m_shvPaths << m_shvPath;
+		m_sitePaths << m_sitePath;
 	}
 	else {
 		for (const SitesHPDevice *device : site_item->findChildren<const SitesHPDevice*>()) {
-			m_shvPaths << device->shvPath();
+			m_sitePaths << device->sitePath();
 		}
 	}
 }
@@ -43,7 +43,7 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 	int64_t first_record_since = 0LL;
 
 	struct ReaderInfo {
-		QString shvPath;
+		QString sitePath;
 		bool used = false;
 		bool exhausted = false;
 	};
@@ -62,14 +62,14 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 
 	QVector<LogDirReader*> readers;
 	QVector<ReaderInfo> reader_infos;
-	for (const QString &shv_path : m_shvPaths) {
-		const SitesHPDevice *site_item = qobject_cast<const SitesHPDevice *>(Application::instance()->deviceMonitor()->sites()->itemByShvPath(shv_path));
-		int prefix_length = shv_path.length() - m_shvPath.length();
-		LogDirReader *reader = new LogDirReader(shv_path, site_item->isPushLog(), prefix_length, since, until, m_logParams.withSnapshot);
+	for (const QString &site_path : m_sitePaths) {
+		const SitesHPDevice *site_item = qobject_cast<const SitesHPDevice *>(Application::instance()->deviceMonitor()->sites()->itemBySitePath(site_path));
+		int prefix_length = site_path.length() - m_sitePath.length();
+		LogDirReader *reader = new LogDirReader(site_path, site_item->isPushLog(), prefix_length, since, until, m_logParams.withSnapshot);
 		if (reader->next()) {
 			readers << reader;
 			reader_infos << ReaderInfo();
-			reader_infos.last().shvPath = shv_path;
+			reader_infos.last().sitePath = site_path;
 		}
 		else {
 			delete reader;
@@ -153,8 +153,8 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 	}
 
 	if (reader_infos.count() == 1 && reader_infos[0].exhausted) {
-		const QString &shv_path = reader_infos[0].shvPath;
-		LogDir log_dir(shv_path);
+		const QString &site_path = reader_infos[0].sitePath;
+		LogDir log_dir(site_path);
 		if (!log_dir.existsDirtyLog()) {
 			QStringList all_logs = log_dir.findFiles(QDateTime(), QDateTime());
 
