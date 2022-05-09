@@ -102,20 +102,38 @@ shv::chainpack::RpcValue AppRootNode::callMethodRq(const shv::chainpack::RpcRequ
 	std::cerr << "------\n"; \
 }
 
+namespace {
+template <int ArgNum, int ArgType, int... Rest>
+void impl_check_lua_args(lua_State* state, const char* lua_fn_name)
+{
+	if (auto type = lua_type(state, ArgNum); type != ArgType) {
+		luaL_error(state, "Argument #%d to `%s` must be of type `%s` (got `%s`)", ArgNum, lua_fn_name, lua_typename(state, ArgType), luaL_typename(state, ArgNum));
+	}
+
+	if constexpr (sizeof...(Rest) != 0)  {
+		impl_check_lua_args<ArgNum + 1, Rest...>(state, lua_fn_name);
+	}
+
+}
+
+template <int... ExpectedArgTypes>
+void check_lua_args(lua_State* state, const char* lua_fn_name)
+{
+	if (auto nargs = lua_gettop(state); nargs != sizeof...(ExpectedArgTypes)) {
+		luaL_error(state, "%s expects 2 arguments (got %d)", lua_fn_name, nargs);
+	}
+
+	if constexpr (sizeof...(ExpectedArgTypes) != 0) {
+		impl_check_lua_args<1, ExpectedArgTypes...>(state, lua_fn_name);
+	}
+}
+}
+
+
 extern "C" {
 static int subscribe_change(lua_State* state)
 {
-	if (auto nargs = lua_gettop(state); nargs != 2) {
-		luaL_error(state, "register_callback expects 2 arguments (got %d)", nargs);
-	}
-
-	if (lua_type(state, 1) != LUA_TSTRING) {
-		luaL_error(state, "arg 1 must be of type `string` (got %s)", luaL_typename(state, 1));
-	}
-
-	if (!lua_isfunction(state, 2)) {
-		luaL_error(state, "arg 2 must be of type `function` (got %s)", luaL_typename(state, 2));
-	}
+	check_lua_args<LUA_TSTRING, LUA_TFUNCTION>(state, "subscribe_change");
 
 	// Stack:
 	// 1) path
