@@ -7,6 +7,9 @@ end)
 
 shv.subscribe_change('test', function(path, new_value)
 	bot:sendMessage(5362232370, string.format("some other callback: path", path, new_value))
+	shv.rpc_call('.broker', 'dir', '', function (value)
+		bot:sendMessage(5362232370, string.format("RPC call returned: %s", value))
+	end)
 end)
 
 -- subscribe_change(22, function(path, new_value)

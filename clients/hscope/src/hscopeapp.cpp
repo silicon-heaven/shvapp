@@ -131,6 +131,45 @@ void check_lua_args(lua_State* state, const char* lua_fn_name)
 
 
 extern "C" {
+static int rpc_call(lua_State* state)
+{
+	check_lua_args<LUA_TSTRING, LUA_TSTRING, LUA_TSTRING, LUA_TFUNCTION>(state, "rpc_call");
+	auto hscope = static_cast<HolyScopeApp*>(lua_touserdata(state, lua_upvalueindex(1)));
+
+	// Stack:
+	// 1) path
+	// 2) method
+	// 3) params
+	// 4) callback
+
+	auto id = hscope->callShvMethod(lua_tostring(state, 1), lua_tostring(state, 2), lua_tostring(state, 3));
+	lua_getfield(state, LUA_REGISTRYINDEX, "rpc_call_handlers");
+	// Stack:
+	// 1) path
+	// 2) method
+	// 3) params
+	// 4) callback
+	// 5) registry["rpc_call_handlers"]
+
+	lua_insert(state, 4);
+	// Stack:
+	// 1) path
+	// 2) method
+	// 3) params
+	// 4) registry["rpc_call_handlers"]
+	// 5) callback
+
+	lua_seti(state, 4, id);
+	// Stack:
+	// 1) path
+	// 2) method
+	// 3) params
+	// 4) registry["rpc_call_handlers"]
+
+	lua_pop(state, 4);
+	return 0;
+}
+
 static int subscribe_change(lua_State* state)
 {
 	check_lua_args<LUA_TSTRING, LUA_TFUNCTION>(state, "subscribe_change");
@@ -241,6 +280,18 @@ HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
 	lua_setfield(m_state, 1, "subscribe_change");
 	// 1) our library table
 
+	lua_pushlightuserdata(m_state, this);
+	// 1) our library table
+	// 2) `this`
+
+	lua_pushcclosure(m_state, rpc_call, 1);
+	// 1) our library table
+	// 2) `this`
+	// 3) rpc_call
+
+	lua_setfield(m_state, 1, "rpc_call");
+	// 1) our library table
+
 	lua_setglobal(m_state, "shv");
 	// <empty stack>
 
@@ -248,6 +299,12 @@ HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
 	// 1) new table
 
 	lua_setfield(m_state, LUA_REGISTRYINDEX, "callbacks");
+	// <empty stack>
+
+	lua_newtable(m_state);
+	// 1) new table
+
+	lua_setfield(m_state, LUA_REGISTRYINDEX, "rpc_call_handlers");
 	// <empty stack>
 
 	evalLuaFile(m_cliOptions->luaFile());
@@ -284,6 +341,33 @@ void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
 	} else if (msg.isResponse()) {
 		cp::RpcResponse rp(msg);
 		shvDebug() << "RPC response received:" << rp.toPrettyString();
+		lua_getfield(m_state, LUA_REGISTRYINDEX, "rpc_call_handlers");
+		// Stack:
+		// 1) registry["rpc_call_handlers"]
+
+		lua_geti(m_state, 1, rp.requestId().toInt());
+		// 1) registry["rpc_call_handlers"]
+		// 2) registry["rpc_call_handlers"][req_id]
+
+		if (!lua_isnil(m_state, 2)) {
+			// A handler for this req_id exists, so it's from Lua.
+			auto resultStr = rp.result().toCpon();
+			lua_pushlstring(m_state, resultStr.c_str(), resultStr.size());
+			// 1) registry["rpc_call_handlers"]
+			// 2) registry["rpc_call_handlers"][req_id]
+			// 3) resultStr
+
+			lua_call(m_state, 1, 0);
+			// 1) registry["rpc_call_handlers"]
+
+		} else {
+			lua_pop(m_state, 1);
+			// 1) registry["rpc_call_handlers"]
+		}
+
+		lua_pop(m_state, 1);
+		// <empty stack>
+
 	} else if (msg.isSignal()) {
 		cp::RpcSignal nt(msg);
 		shvDebug() << "RPC notify received:" << nt.toPrettyString();
@@ -370,5 +454,9 @@ void HolyScopeApp::evalLuaFile(const std::string& fileName)
 void HolyScopeApp::subscribeLua(const std::string& path)
 {
 	m_luaSubscriptions.emplace_back(path);
+}
 
+int HolyScopeApp::callShvMethod(const std::string& path, const std::string& method, const shv::chainpack::RpcValue& params)
+{
+	return m_rpcConnection->callShvMethod(path, method, params);
 }

@@ -41,6 +41,7 @@ public:
 	AppCliOptions* cliOptions() {return m_cliOptions;}
 
 	void subscribeLua(const std::string& path);
+	int callShvMethod(const std::string& path, const std::string& method, const shv::chainpack::RpcValue& params = shv::chainpack::RpcValue());
 
 private:
 	void onBrokerConnectedChanged(bool is_connected);
