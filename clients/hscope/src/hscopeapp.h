@@ -60,6 +60,5 @@ private:
 	unsigned m_currentTestIndex = 0;
 
 	lua_State* m_state;
-	std::vector<std::string> m_luaSubscriptions;
 };
 

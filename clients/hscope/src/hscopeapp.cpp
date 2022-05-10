@@ -201,6 +201,10 @@ static int subscribe_change(lua_State* state)
 	// 2) callback
 
 	auto hscope = static_cast<HolyScopeApp*>(lua_touserdata(state, lua_upvalueindex(1)));
+	if (!hscope->rpcConnection()->isBrokerConnected()) {
+		luaL_error(state, "Broker is not connected!");
+	}
+
 	auto path = std::string{lua_tostring(state, 1)};
 	hscope->subscribeLua(path);
 
@@ -339,10 +343,6 @@ HolyScopeApp* HolyScopeApp::instance()
 void HolyScopeApp::onBrokerConnectedChanged(bool is_connected)
 {
 	m_isBrokerConnected = is_connected;
-
-	for (const auto& path : m_luaSubscriptions) {
-		m_rpcConnection->callMethodSubscribe(path, "chng");
-	}
 
 	lua_getfield(m_state, LUA_REGISTRYINDEX, "on_broker_connected_handlers");
 	// Stack:
@@ -490,7 +490,7 @@ void HolyScopeApp::evalLuaFile(const std::string& fileName)
 
 void HolyScopeApp::subscribeLua(const std::string& path)
 {
-	m_luaSubscriptions.emplace_back(path);
+	m_rpcConnection->callMethodSubscribe(path, "chng");
 }
 
 int HolyScopeApp::callShvMethod(const std::string& path, const std::string& method, const shv::chainpack::RpcValue& params)
