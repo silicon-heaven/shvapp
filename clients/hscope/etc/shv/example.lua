@@ -12,6 +12,10 @@ shv.subscribe_change('test', function(path, new_value)
 	end)
 end)
 
+shv.on_broker_connected(function()
+	bot:sendMessage(5362232370, "Broker connected!")
+end)
+
 -- subscribe_change(22, function(path, new_value)
 -- 	-- fail
 -- end)

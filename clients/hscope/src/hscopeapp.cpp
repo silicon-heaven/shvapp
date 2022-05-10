@@ -131,6 +131,28 @@ void check_lua_args(lua_State* state, const char* lua_fn_name)
 
 
 extern "C" {
+static int on_broker_connected(lua_State* state)
+{
+	check_lua_args<LUA_TFUNCTION>(state, "on_broker_connected");
+	// Stack:
+	// 1) function
+
+	lua_getfield(state, LUA_REGISTRYINDEX, "on_broker_connected_handlers");
+	// 1) function
+	// 2) registry["on_broker_connected_handlers"]
+
+	lua_insert(state, 1);
+	// 1) registry["on_broker_connected_handlers"]
+	// 2) function
+
+	lua_seti(state, 1, lua_rawlen(state, 1) + 1);
+	// 1) registry["on_broker_connected_handlers"]
+
+	lua_pop(state, 1);
+	// <empty stack>
+	return 0;
+}
+
 static int rpc_call(lua_State* state)
 {
 	check_lua_args<LUA_TSTRING, LUA_TSTRING, LUA_TSTRING, LUA_TFUNCTION>(state, "rpc_call");
@@ -282,6 +304,7 @@ HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
 	luaL_Reg functions_to_register[] = {
 		{"subscribe_change", subscribe_change},
 		{"rpc_call", rpc_call},
+		{"on_broker_connected", on_broker_connected},
 		{NULL, NULL}
 	};
 
@@ -298,6 +321,7 @@ HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
 
 	new_empty_registry_table(m_state, "callbacks");
 	new_empty_registry_table(m_state, "rpc_call_handlers");
+	new_empty_registry_table(m_state, "on_broker_connected_handlers");
 
 	evalLuaFile(m_cliOptions->luaFile());
 }
@@ -319,6 +343,27 @@ void HolyScopeApp::onBrokerConnectedChanged(bool is_connected)
 	for (const auto& path : m_luaSubscriptions) {
 		m_rpcConnection->callMethodSubscribe(path, "chng");
 	}
+
+	lua_getfield(m_state, LUA_REGISTRYINDEX, "on_broker_connected_handlers");
+	// Stack:
+	// 1) registry["on_broker_connected_handlers"]
+
+	lua_pushnil(m_state);
+	// 1) registry["on_broker_connected_handlers"]
+	// 2) nil
+
+	while (lua_next(m_state, 1)) {
+		// 1) registry["callbacks"]
+		// 2) key
+		// 3) on_broker_connected_handler
+
+		lua_call(m_state, 0, 0);
+		// 1) registry["callbacks"]
+		// 2) key
+	}
+
+	// 1) registry["callbacks"]
+	lua_pop(m_state, 1);
 }
 
 void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
