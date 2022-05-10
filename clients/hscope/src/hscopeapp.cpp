@@ -216,6 +216,17 @@ static int subscribe_change(lua_State* state)
 }
 }
 
+namespace {
+void new_empty_registry_table(lua_State* state, const char* name)
+{
+	lua_newtable(state);
+	// 1) new table
+
+	lua_setfield(state, LUA_REGISTRYINDEX, name);
+	// <empty stack>
+}
+}
+
 HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
 	  , m_cliOptions(cli_opts)
@@ -284,17 +295,9 @@ HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
 	lua_setglobal(m_state, "shv");
 	// <empty stack>
 
-	lua_newtable(m_state);
-	// 1) new table
 
-	lua_setfield(m_state, LUA_REGISTRYINDEX, "callbacks");
-	// <empty stack>
-
-	lua_newtable(m_state);
-	// 1) new table
-
-	lua_setfield(m_state, LUA_REGISTRYINDEX, "rpc_call_handlers");
-	// <empty stack>
+	new_empty_registry_table(m_state, "callbacks");
+	new_empty_registry_table(m_state, "rpc_call_handlers");
 
 	evalLuaFile(m_cliOptions->luaFile());
 }
