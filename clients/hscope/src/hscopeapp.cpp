@@ -268,28 +268,17 @@ HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
 	lua_newtable(m_state);
 	// 1) our library table
 
-	lua_pushlightuserdata(m_state, this);
-	// 1) our library table
-	// 2) `this`
-
-	lua_pushcclosure(m_state, subscribe_change, 1);
-	// 1) our library table
-	// 2) `this`
-	// 3) subscribe_change
-
-	lua_setfield(m_state, 1, "subscribe_change");
-	// 1) our library table
+	luaL_Reg functions_to_register[] = {
+		{"subscribe_change", subscribe_change},
+		{"rpc_call", rpc_call},
+		{NULL, NULL}
+	};
 
 	lua_pushlightuserdata(m_state, this);
 	// 1) our library table
 	// 2) `this`
 
-	lua_pushcclosure(m_state, rpc_call, 1);
-	// 1) our library table
-	// 2) `this`
-	// 3) rpc_call
-
-	lua_setfield(m_state, 1, "rpc_call");
+	luaL_setfuncs(m_state, functions_to_register, 1);
 	// 1) our library table
 
 	lua_setglobal(m_state, "shv");
