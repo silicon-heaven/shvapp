@@ -289,7 +289,7 @@ HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
 	// 1) global: package
 	// 2) package.path
 
-	auto new_path = std::string{lua_tostring(m_state, 2)} + ";" + m_cliOptions->configDir() + "/?;" + m_cliOptions->configDir() + "?.lua";
+	auto new_path = std::string{lua_tostring(m_state, 2)} + ";" + m_cliOptions->configDir() + "/lua-lib/?;" + m_cliOptions->configDir() + "/lua-lib/?.lua";
 	lua_pushstring(m_state, new_path.c_str());
 	// 1) global: package
 	// 2) package.path
