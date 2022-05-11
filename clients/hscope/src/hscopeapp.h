@@ -47,7 +47,6 @@ private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage& msg);
 
-	void evalLua(const std::string& code);
 	void evalLuaFile(const std::string& fileName);
 
 private:

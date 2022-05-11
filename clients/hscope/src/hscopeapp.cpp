@@ -474,11 +474,7 @@ void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
 	}
 }
 
-void HolyScopeApp::evalLua(const std::string& code)
 {
-	luaL_dostring(m_state, code.c_str());
-}
-
 void HolyScopeApp::evalLuaFile(const std::string& fileName)
 {
 	auto errors = luaL_dofile(m_state, fileName.c_str());
