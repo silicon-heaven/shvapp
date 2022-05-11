@@ -327,7 +327,11 @@ HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
 	new_empty_registry_table(m_state, "rpc_call_handlers");
 	new_empty_registry_table(m_state, "on_broker_connected_handlers");
 
-	evalLuaFile(m_cliOptions->luaFile());
+	auto lua_filename = QString::fromStdString(m_cliOptions->configDir() + "/hscope.lua");
+
+	if (auto file = QFileInfo(lua_filename); file.exists()) {
+		evalLuaFile(file.filePath());
+	}
 }
 
 HolyScopeApp::~HolyScopeApp()
@@ -474,10 +478,9 @@ void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
 	}
 }
 
+void HolyScopeApp::evalLuaFile(const QString& fileName)
 {
-void HolyScopeApp::evalLuaFile(const std::string& fileName)
-{
-	auto errors = luaL_dofile(m_state, fileName.c_str());
+	auto errors = luaL_dofile(m_state, fileName.toStdString().c_str());
 	if (errors) {
 		throw std::runtime_error(lua_tostring(m_state, 1));
 	}

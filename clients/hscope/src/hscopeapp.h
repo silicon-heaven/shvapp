@@ -47,7 +47,7 @@ private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage& msg);
 
-	void evalLuaFile(const std::string& fileName);
+	void evalLuaFile(const QString& fileName);
 
 private:
 	shv::iotqt::rpc::DeviceConnection* m_rpcConnection = nullptr;
