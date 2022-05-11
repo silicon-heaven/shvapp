@@ -1,8 +1,12 @@
 local telegram = require('telegram_bot')
 local bot = telegram.new("5221162017:AAFDDw7Ovp2XWUth4XZhoa90hSgqnCs9OX4")
+local hdspace = require('hdspace')
 
 shv.on_broker_connected(function()
 	bot:sendMessage(5362232370, "Broker connected!")
+	hdspace(function (space)
+		bot:sendMessage(5362232370, space)
+	end)
 
 	shv.subscribe_change('test', function(path, new_value)
 		bot:sendMessage(5362232370, string.format("CHANGE: path = %s, new_value = %s", path, new_value))
