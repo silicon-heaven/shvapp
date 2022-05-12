@@ -1,4 +1,5 @@
 #include "hscopeapp.h"
+#include "hscopenode.h"
 #include "appclioptions.h"
 
 #include <shv/iotqt/rpc/deviceconnection.h>
@@ -576,7 +577,7 @@ void HolyScopeApp::resolveConfTree(const QDir& dir, shv::iotqt::node::ShvNode* p
 	// -2) parent environment
 	// -1) new environment
 
-	auto newNode = new shv::iotqt::node::ShvNode(dir.dirName().toStdString(), parent);
+	auto new_node = new HscopeNode(dir.dirName().toStdString(), m_state, parent);
 
 	if (dir.exists("hscope.lua")) {
 		shvInfo() << "Lua file found" << dir.filePath("hscope.lua");
@@ -609,7 +610,7 @@ void HolyScopeApp::resolveConfTree(const QDir& dir, shv::iotqt::node::ShvNode* p
 	QDirIterator it(dir);
 	while (it.hasNext()) {
 		if (it.fileInfo().isDir() && it.fileName() != "." && it.fileName() != "..") {
-			resolveConfTree(it.filePath(), newNode);
+			resolveConfTree(it.filePath(), new_node);
 		}
 		it.next();
 	}
