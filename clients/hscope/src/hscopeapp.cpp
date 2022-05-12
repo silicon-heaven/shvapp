@@ -276,12 +276,6 @@ HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
 	m_shvTree = new si::node::ShvNodeTree(root, this);
 	connect(m_shvTree->root(), &si::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &si::rpc::ClientConnection::sendMessage);
 
-	if (auto conf_dir = QDir{QString::fromStdString(m_cliOptions->configDir())}; conf_dir.exists()) {
-		if (conf_dir.cd("hscope")) {
-			createPaths(conf_dir, root);
-		}
-	}
-
 	QTimer::singleShot(0, m_rpcConnection, &si::rpc::ClientConnection::open);
 
 	m_state = luaL_newstate();
@@ -332,6 +326,39 @@ HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
 	new_empty_registry_table(m_state, "callbacks");
 	new_empty_registry_table(m_state, "rpc_call_handlers");
 	new_empty_registry_table(m_state, "on_broker_connected_handlers");
+
+	if (auto conf_dir = QDir{QString::fromStdString(m_cliOptions->configDir())}; conf_dir.exists()) {
+		if (conf_dir.cd("hscope")) {
+			// resolveLua expects an environment on the top of the stack. The first one is empty.
+			lua_newtable(m_state);
+			// 1) new environment
+
+			lua_newtable(m_state);
+			// 1) new environment
+			// 2) metatable for the new environment
+
+			lua_pushglobaltable(m_state);
+			// 1) new environment
+			// 2) metatable for the new environment
+			// 3) the global environment
+
+			lua_setfield(m_state, 2, "__index");
+			// 1) new environment
+			// 2) metatable for the new environment
+
+			lua_setmetatable(m_state, 1);
+			// 1) new environment
+
+			resolveConfTree(conf_dir, root);
+			lua_pop(m_state, 1);
+			// <empty stack>
+		}
+	}
+
+	if (lua_gettop(m_state) != 0) {
+		DUMP_STACK(m_state);
+		throw std::runtime_error("Something went wrong, Lua stack's equilibrium wasn't maintained.");
+	}
 }
 
 HolyScopeApp::~HolyScopeApp()
@@ -487,22 +514,108 @@ void HolyScopeApp::evalLuaFile(const QString& fileName)
 
 }
 
-void HolyScopeApp::createPaths(const QDir& dir, shv::iotqt::node::ShvNode* parent)
+void HolyScopeApp::resolveConfTree(const QDir& dir, shv::iotqt::node::ShvNode* parent)
 {
-	shvInfo() << "Entering " << dir.path();
-	if (dir.exists("hscope.lua")) {
-		shvInfo() << "Lua file found" << dir.filePath("hscope.lua");
+	auto path = dir.path().toStdString();
+	shvInfo() << "Entering " << path;
+
+	// The parent environment is expected on the top of the lua stack.
+	// -1) parent environment
+
+	// Clone a new environment for this level:
+	lua_newtable(m_state);
+	// -2) parent environment
+	// -1) new environment
+
+	lua_pushnil(m_state);
+	// -3) parent environment
+	// -2) new environment
+	// -1) nil
+	while (lua_next(m_state, -3)) {
+		// -4) parent environment
+		// -3) new environment
+		// -2) key
+		// -1) value
+
+		lua_setfield(m_state, -3, lua_tostring(m_state, -2));
+		// -3) parent environment
+		// -2) new environment
+		// -1) key
 	}
+	// -2) parent environment
+	// -1) new environment
+
+	// Even though we copied all the fields from the parent environment, we still need to set the new environment's
+	// metatable to the global environment, so that it can still access libraries.
+	lua_newtable(m_state);
+	// -3) parent environment
+	// -2) new environment
+	// -1) metatable for the new environment
+
+	lua_pushglobaltable(m_state);
+	// -4) parent environment
+	// -3) new environment
+	// -2) metatable for the new environment
+	// -1) the global environment
+
+	lua_setfield(m_state, -2, "__index");
+	// -3) parent environment
+	// -2) new environment
+	// -1) metatable for the new environment
+
+	lua_setmetatable(m_state, -2);
+	// -2) parent environment
+	// -1) new environment
+
+	lua_pushlstring(m_state, path.c_str(), path.size());
+	// -3) parent environment
+	// -2) new environment
+	// -1) path
+
+	lua_setfield(m_state, -2, "cur_dir");
+	// -2) parent environment
+	// -1) new environment
 
 	auto newNode = new shv::iotqt::node::ShvNode(dir.dirName().toStdString(), parent);
+
+	if (dir.exists("hscope.lua")) {
+		shvInfo() << "Lua file found" << dir.filePath("hscope.lua");
+		luaL_loadfile(m_state, dir.filePath("hscope.lua").toStdString().c_str());
+		// -3) parent environment
+		// -2) new environment
+		// -1) hscope.lua
+
+		// lua_setupvalue pops from the stack, so we need a copy of the environment before setting it.
+		lua_pushvalue(m_state, -2);
+		// -4) parent environment
+		// -3) new environment
+		// -2) hscope.lua
+		// -1) new environment
+		lua_setupvalue(m_state, -2, 1);
+
+		// -3) parent environment
+		// -2) new environment
+		// -1) hscope.lua
+
+		auto errors = lua_pcall(m_state, 0, 0, 0);
+		// -2) parent environment
+		// -1) new environment
+		if (errors) {
+			throw std::runtime_error(lua_tostring(m_state, 1));
+		}
+	}
+
 
 	QDirIterator it(dir);
 	while (it.hasNext()) {
 		if (it.fileInfo().isDir() && it.fileName() != "." && it.fileName() != "..") {
-			createPaths(it.filePath(), newNode);
+			resolveConfTree(it.filePath(), newNode);
 		}
 		it.next();
 	}
+
+	lua_pop(m_state, 1);
+	// -1) parent environment
 }
 
 void HolyScopeApp::subscribeLua(const std::string& path)

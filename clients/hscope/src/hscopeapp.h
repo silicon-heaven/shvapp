@@ -49,7 +49,7 @@ private:
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage& msg);
 
 	void evalLuaFile(const QString& fileName);
-	void createPaths(const QDir& dir, shv::iotqt::node::ShvNode* node);
+	void resolveConfTree(const QDir& dir, shv::iotqt::node::ShvNode* node);
 
 private:
 	shv::iotqt::rpc::DeviceConnection* m_rpcConnection = nullptr;
