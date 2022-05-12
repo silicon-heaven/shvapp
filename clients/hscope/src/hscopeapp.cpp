@@ -13,6 +13,7 @@
 
 #include <lua.hpp>
 
+#include <QDirIterator>
 #include <QTimer>
 
 using namespace std;
@@ -276,6 +277,12 @@ HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
 	m_shvTree = new si::node::ShvNodeTree(root, this);
 	connect(m_shvTree->root(), &si::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &si::rpc::ClientConnection::sendMessage);
 
+	if (auto conf_dir = QDir{QString::fromStdString(m_cliOptions->configDir())}; conf_dir.exists()) {
+		if (conf_dir.cd("hscope")) {
+			createPaths(conf_dir, root);
+		}
+	}
+
 	QTimer::singleShot(0, m_rpcConnection, &si::rpc::ClientConnection::open);
 
 	m_state = luaL_newstate();
@@ -326,12 +333,6 @@ HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
 	new_empty_registry_table(m_state, "callbacks");
 	new_empty_registry_table(m_state, "rpc_call_handlers");
 	new_empty_registry_table(m_state, "on_broker_connected_handlers");
-
-	auto lua_filename = QString::fromStdString(m_cliOptions->configDir() + "/hscope.lua");
-
-	if (auto file = QFileInfo(lua_filename); file.exists()) {
-		evalLuaFile(file.filePath());
-	}
 }
 
 HolyScopeApp::~HolyScopeApp()
@@ -485,6 +486,24 @@ void HolyScopeApp::evalLuaFile(const QString& fileName)
 		throw std::runtime_error(lua_tostring(m_state, 1));
 	}
 
+}
+
+void HolyScopeApp::createPaths(const QDir& dir, shv::iotqt::node::ShvNode* parent)
+{
+	shvInfo() << "Entering " << dir.path();
+	if (dir.exists("hscope.lua")) {
+		shvInfo() << "Lua file found" << dir.filePath("hscope.lua");
+	}
+
+	auto newNode = new shv::iotqt::node::ShvNode(dir.dirName().toStdString(), parent);
+
+	QDirIterator it(dir);
+	while (it.hasNext()) {
+		if (it.fileInfo().isDir() && it.fileName() != "." && it.fileName() != "..") {
+			createPaths(it.filePath(), newNode);
+		}
+		it.next();
+	}
 }
 
 void HolyScopeApp::subscribeLua(const std::string& path)
