@@ -1,11 +1,13 @@
 #pragma once
 
+#include "hscopenode.h"
 #include <shv/iotqt/node/shvnode.h>
 
 #include <QCoreApplication>
 
 class AppCliOptions;
 class QDir;
+class QFileInfo;
 class QTimer;
 
 namespace shv { namespace chainpack { class RpcMessage; }}
@@ -48,7 +50,7 @@ private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage& msg);
 
-	void evalLuaFile(const QString& fileName);
+	HasTester evalLuaFile(const QFileInfo& file);
 	void resolveConfTree(const QDir& dir, shv::iotqt::node::ShvNode* node);
 
 private:

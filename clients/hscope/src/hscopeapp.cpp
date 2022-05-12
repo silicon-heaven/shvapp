@@ -273,6 +273,7 @@ HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
 	new_empty_registry_table(m_state, "callbacks");
 	new_empty_registry_table(m_state, "rpc_call_handlers");
 	new_empty_registry_table(m_state, "on_broker_connected_handlers");
+	new_empty_registry_table(m_state, "testers");
 
 	if (auto conf_dir = QDir{QString::fromStdString(m_cliOptions->configDir())}; conf_dir.exists()) {
 		if (conf_dir.cd("hscope")) {
@@ -452,13 +453,97 @@ void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
 	}
 }
 
-void HolyScopeApp::evalLuaFile(const QString& fileName)
+HasTester HolyScopeApp::evalLuaFile(const QFileInfo& file)
 {
-	auto errors = luaL_dofile(m_state, fileName.toStdString().c_str());
+	auto path = file.filePath().toStdString();
+	luaL_loadfile(m_state, path.c_str());
+	// -3) parent environment
+	// -2) new environment
+	// -1) hscope.lua
+
+	// lua_setupvalue pops from the stack, so we need a copy of the environment before setting it.
+	lua_pushvalue(m_state, -2);
+	// -4) parent environment
+	// -3) new environment
+	// -2) hscope.lua
+	// -1) new environment
+	lua_setupvalue(m_state, -2, 1);
+
+	// -3) parent environment
+	// -2) new environment
+	// -1) hscope.lua
+
+	auto stack_size = lua_gettop(m_state);
+	auto errors = lua_pcall(m_state, 0, LUA_MULTRET, 0);
+	// -2) parent environment
+	// -1) new environment
 	if (errors) {
-		throw std::runtime_error(lua_tostring(m_state, 1));
+		// -3) parent environment
+		// -2) new environment
+		// -1) error
+		shvError() << "Error in " << path;
+		shvError() << lua_tostring(m_state, -1);
+		lua_pop(m_state, 1);
+		// -2) parent environment
+		// -1) new environment
+
+		return HasTester::No;
 	}
 
+	auto nresults = lua_gettop(m_state) - stack_size + 1 /* the function gets popped */;
+	if (!nresults) {
+		// -2) parent environment
+		// -1) new environment
+		return HasTester::No;
+	}
+
+	if (nresults != 1) {
+		shvError() << "Error in " << path;
+		shvError() << "Lua function returned multiple results";
+		shvError() << "One value of type `function` expected";
+		lua_pop(m_state, nresults);
+		return HasTester::No;
+	}
+
+	if (!lua_isfunction(m_state, -1)) {
+		// -3) parent environment
+		// -2) new environment
+		// -1) some invalid value
+
+		shvError() << "Error in " << path;
+		shvError() << "Lua function returned a result of type " << luaL_typename(m_state, -1);
+		shvError() << "A value of type `function` expected";
+
+		lua_pop(m_state, -1);
+		// -2) parent environment
+		// -1) new environment
+		return HasTester::No;
+	}
+	// -3) parent environment
+	// -2) new environment
+	// -1) tester function
+
+	lua_getfield(m_state, LUA_REGISTRYINDEX, "testers");
+	// -4) parent environment
+	// -3) new environment
+	// -2) tester function
+	// -1) registry["testers"]
+
+	lua_insert(m_state, -2);
+	// -4) parent environment
+	// -3) new environment
+	// -2) registry["testers"]
+	// -1) tester function
+
+	lua_setfield(m_state, -2, file.path().toStdString().c_str());
+	// -3) parent environment
+	// -2) new environment
+	// -1) registry["testers"]
+
+	lua_pop(m_state, 1);
+	// -2) parent environment
+	// -1) new environment
+	return HasTester::Yes;
 }
 
 void HolyScopeApp::resolveConfTree(const QDir& dir, shv::iotqt::node::ShvNode* parent)
@@ -523,35 +608,16 @@ void HolyScopeApp::resolveConfTree(const QDir& dir, shv::iotqt::node::ShvNode* p
 	// -2) parent environment
 	// -1) new environment
 
-	auto new_node = new HscopeNode(dir.dirName().toStdString(), m_state, parent);
+	auto hasTester = HasTester::No;
 
 	if (dir.exists("hscope.lua")) {
 		shvInfo() << "Lua file found" << dir.filePath("hscope.lua");
-		luaL_loadfile(m_state, dir.filePath("hscope.lua").toStdString().c_str());
-		// -3) parent environment
-		// -2) new environment
-		// -1) hscope.lua
-
-		// lua_setupvalue pops from the stack, so we need a copy of the environment before setting it.
-		lua_pushvalue(m_state, -2);
-		// -4) parent environment
-		// -3) new environment
-		// -2) hscope.lua
-		// -1) new environment
-		lua_setupvalue(m_state, -2, 1);
-
-		// -3) parent environment
-		// -2) new environment
-		// -1) hscope.lua
-
-		auto errors = lua_pcall(m_state, 0, 0, 0);
-		// -2) parent environment
-		// -1) new environment
-		if (errors) {
-			throw std::runtime_error(lua_tostring(m_state, 1));
-		}
+		hasTester = evalLuaFile(QFileInfo(dir.filePath("hscope.lua")));
 	}
 
+	auto new_node = hasTester == HasTester::Yes
+		? new HscopeNode(dir.dirName().toStdString(), m_state, path, parent)
+		: new HscopeNode(dir.dirName().toStdString(), parent);
 
 	QDirIterator it(dir);
 	while (it.hasNext()) {

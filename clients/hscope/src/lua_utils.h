@@ -1,4 +1,5 @@
 #include <lua.hpp>
+#include <shv/coreqt/log.h>
 
 template <int ArgNum, int ArgType, int... Rest>
 void impl_check_lua_args(lua_State* state, const char* lua_fn_name)
