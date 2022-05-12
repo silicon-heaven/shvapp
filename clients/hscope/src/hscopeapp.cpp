@@ -77,30 +77,29 @@ shv::chainpack::RpcValue AppRootNode::callMethodRq(const shv::chainpack::RpcRequ
 
 #define DUMP_STACK(state) { \
 	int top = lua_gettop(state); \
-	std::cerr << "Stack:\n"; \
-	std::cerr << "------\n"; \
+	shvInfo() << "Stack:"; \
+	shvInfo() << "------"; \
 	for (int i = 1; i <= top; i++) { \
-		std::cerr << "#" << i << "\ttype: " << luaL_typename(state,i) << "\tvalue: "; \
+		shvInfo() << "#" << i << "\ttype: " << luaL_typename(state,i) << "\tvalue: "; \
 		switch (lua_type(state, i)) { \
 			case LUA_TNUMBER: \
-				std::cerr << lua_tonumber(state, i); \
+				shvInfo() << lua_tonumber(state, i); \
 				break; \
 			case LUA_TSTRING: \
-				std::cerr << lua_tostring(state, i); \
+				shvInfo() << lua_tostring(state, i); \
 				break; \
 			case LUA_TBOOLEAN: \
-				std::cerr << (lua_toboolean(state, i) ? "true" : "false"); \
+				shvInfo() << (lua_toboolean(state, i) ? "true" : "false"); \
 				break; \
 			case LUA_TNIL: \
-				std::cerr << "nil"; \
+				shvInfo() << "nil"; \
 				break; \
 			default: \
-				std::cerr << lua_topointer(state,i);; \
+				shvInfo() << lua_topointer(state,i);; \
 				break; \
 		} \
-		std::cerr << "\n"; \
 	} \
-	std::cerr << "------\n"; \
+	shvInfo() << "------"; \
 }
 
 namespace {
