@@ -165,16 +165,16 @@ static int subscribe_change(lua_State* state)
 	lua_setfield(state, 1, "path");
 	// 1) the newly created table
 
-	lua_getfield(state, LUA_REGISTRYINDEX, "callbacks");
+	lua_getfield(state, LUA_REGISTRYINDEX, "change_callbacks");
 	// 1) the newly created table
-	// 2) registry["callbacks"]
+	// 2) registry["change_callbacks"]
 
 	lua_insert(state, 1);
-	// 1) registry["callbacks"]
+	// 1) registry["change_callbacks"]
 	// 2) the newly created table
 
 	lua_seti(state, 1, lua_rawlen(state, 1) + 1);
-	// 1) registry["callbacks"]
+	// 1) registry["change_callbacks"]
 
 	lua_pop(state, 1);
 	// <empty stack>
@@ -262,7 +262,7 @@ HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
 	// <empty stack>
 
 
-	new_empty_registry_table(m_state, "callbacks");
+	new_empty_registry_table(m_state, "change_callbacks");
 	new_empty_registry_table(m_state, "rpc_call_handlers");
 	new_empty_registry_table(m_state, "on_broker_connected_handlers");
 	new_empty_registry_table(m_state, "testers");
@@ -385,38 +385,38 @@ void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
 		cp::RpcSignal nt(msg);
 		shvDebug() << "RPC notify received:" << nt.toPrettyString();
 		if (nt.method() == cp::Rpc::SIG_VAL_CHANGED) {
-			lua_getfield(m_state, LUA_REGISTRYINDEX, "callbacks");
-			// 1) registry["callbacks"]
+			lua_getfield(m_state, LUA_REGISTRYINDEX, "change_callbacks");
+			// 1) registry["change_callbacks"]
 
 			lua_pushnil(m_state);
-			// 1) registry["callbacks"]
+			// 1) registry["change_callbacks"]
 			// 2) nil
 
 			while (lua_next(m_state, 1)) {
-				// 1) registry["callbacks"]
+				// 1) registry["change_callbacks"]
 				// 2) key
 				// 3) {callback: function, path: string}
 
 				lua_getfield(m_state, 3, "path");
-				// 1) registry["callbacks"]
+				// 1) registry["change_callbacks"]
 				// 2) key
 				// 3) {callback: function, path: string}
 				// 4) .path
 
 				if (nt.shvPath().asString().find(lua_tostring(m_state, 4)) == 0) {
 					lua_pop(m_state, 1);
-					// 1) registry["callbacks"]
+					// 1) registry["change_callbacks"]
 					// 2) key
 					// 3) {callback: function, path: string}
 
 					lua_getfield(m_state, 3, "callback");
-					// 1) registry["callbacks"]
+					// 1) registry["change_callbacks"]
 					// 2) key
 					// 3) {callback: function, path: string}
 					// 4) .callback
 
 					lua_pushstring(m_state, nt.shvPath().asString().c_str());
-					// 1) registry["callbacks"]
+					// 1) registry["change_callbacks"]
 					// 2) key
 					// 3) {callback: function, path: string}
 					// 4) .callback
@@ -424,7 +424,7 @@ void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
 
 					auto new_value = nt.params().toStdString();
 					lua_pushlstring(m_state, new_value.c_str(), new_value.size());
-					// 1) registry["callbacks"]
+					// 1) registry["change_callbacks"]
 					// 2) key
 					// 3) {callback: function, path: string}
 					// 4) .callback
@@ -432,16 +432,16 @@ void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
 					// 6) arg2
 
 					lua_call(m_state, 2, 0);
-					// 1) registry["callbacks"]
+					// 1) registry["change_callbacks"]
 					// 2) key
 					// 3) {callback: function, path: string}
 
 					lua_pop(m_state, 1);
-					// 1) registry["callbacks"]
+					// 1) registry["change_callbacks"]
 					// 2) key
 				}
 			}
-			// 1) registry["callbacks"]
+			// 1) registry["change_callbacks"]
 
 			lua_pop(m_state, 1);
 			// <empty stack>
