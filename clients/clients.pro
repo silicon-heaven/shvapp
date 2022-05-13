@@ -20,6 +20,6 @@ SUBDIRS += \
 unix {
 SUBDIRS += \
 	#revitestdevice \
-	#hscope-old \
+	hscope
 }
 
