@@ -9,7 +9,8 @@ SOURCES += \
 		  $$PWD/main.cpp\
 		  $$PWD/appclioptions.cpp \
 		  $$PWD/hscopeapp.cpp \
-		  $$PWD/hscopenode.cpp
+		  $$PWD/hscopenode.cpp \
+		  $$PWD/lua_utils.cpp \
 
 #include ($$PWD/rpc/rpc.pri)
 

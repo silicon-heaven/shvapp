@@ -80,6 +80,7 @@ shv::chainpack::RpcValue AppRootNode::callMethodRq(const shv::chainpack::RpcRequ
 extern "C" {
 static int on_broker_connected(lua_State* state)
 {
+	auto sg = StackGuard(state, StackGuard::ShouldPopStack::Yes);
 	check_lua_args<LUA_TFUNCTION>(state, "on_broker_connected");
 	// 1) function
 
@@ -101,6 +102,7 @@ static int on_broker_connected(lua_State* state)
 
 static int rpc_call(lua_State* state)
 {
+	auto sg = StackGuard(state, StackGuard::ShouldPopStack::Yes);
 	check_lua_args<LUA_TSTRING, LUA_TSTRING, LUA_TSTRING, LUA_TFUNCTION>(state, "rpc_call");
 	// 1) path
 	// 2) method
@@ -136,6 +138,7 @@ static int rpc_call(lua_State* state)
 
 static int subscribe_change(lua_State* state)
 {
+	auto sg = StackGuard(state, StackGuard::ShouldPopStack::Yes);
 	check_lua_args<LUA_TSTRING, LUA_TFUNCTION>(state, "subscribe_change");
 	// 1) path
 	// 2) callback
@@ -219,6 +222,7 @@ HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
 	QTimer::singleShot(0, m_rpcConnection, &si::rpc::ClientConnection::open);
 
 	m_state = luaL_newstate();
+	auto sg = StackGuard(m_state);
 	luaL_openlibs(m_state);
 
 	lua_getglobal(m_state, "package");
@@ -451,6 +455,7 @@ void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
 
 HasTester HolyScopeApp::evalLuaFile(const QFileInfo& file)
 {
+	auto sg = StackGuard(m_state);
 	auto path = file.filePath().toStdString();
 	luaL_loadfile(m_state, path.c_str());
 	// -3) parent environment
@@ -548,6 +553,7 @@ HasTester HolyScopeApp::evalLuaFile(const QFileInfo& file)
 
 void HolyScopeApp::resolveConfTree(const QDir& dir, shv::iotqt::node::ShvNode* parent)
 {
+	auto sg = StackGuard(m_state);
 	auto path = dir.path().toStdString();
 	shvInfo() << "Entering " << path;
 

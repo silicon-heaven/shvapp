@@ -52,3 +52,18 @@ void check_lua_args(lua_State* state, const char* lua_fn_name)
 	} \
 	shvInfo() << "------"; \
 }
+
+class StackGuard
+{
+public:
+	enum class ShouldPopStack {
+		Yes,
+		No
+	};
+
+	[[nodiscard]] StackGuard(lua_State* state, ShouldPopStack shouldPopStack = ShouldPopStack::No);
+	~StackGuard();
+private:
+	lua_State* m_state;
+	int m_targetSize;
+};
