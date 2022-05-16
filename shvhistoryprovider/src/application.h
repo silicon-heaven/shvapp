@@ -13,6 +13,7 @@ class DeviceMonitor;
 class DirtyLogManager;
 class DiskCleaner;
 class LogSanitizer;
+class ShvSubscription;
 
 #define logSanitizerTimes() shvCInfo("SanitizerTimes")
 #define logSanitizing() shvCInfo("Sanitizing")
@@ -39,8 +40,11 @@ public:
 	QString uptime() const;
 	QString brokerId() const { return m_brokerId; }
 
+	Q_SIGNAL void deviceDataChanged(const QString &site_path, const QString &property, const QString &method, const shv::chainpack::RpcValue &data);
+
 private:
 	void onShvStateChanged();
+	void onDataChanged(const QString &shv_path, const QString &method, const shv::chainpack::RpcValue &data);
 	void connectToShv();
 	void disconnectFromShv();
 	void quit();
@@ -56,4 +60,6 @@ private:
 	shv::iotqt::node::ShvNodeTree *m_shvTree;
 	QStringList m_alienFiles;
 	QString m_brokerId;
+	ShvSubscription *m_chngSubscription;
+	ShvSubscription *m_cmdLogSubscription;
 };

@@ -53,7 +53,7 @@ void SiteItem::parseRpcValue(const cp::RpcValue::Map &map)
 
 			c->setObjectName(QString::fromStdString(it->first));
 			if (qobject_cast<SitesDevice*>(c) &&
-				!c->shvPath().startsWith(QString::fromStdString(Application::instance()->cliOptions()->sitesRootPath()))) {
+				!c->sitePath().startsWith(QString::fromStdString(Application::instance()->cliOptions()->sitesRootPath()))) {
 				delete c;
 			}
 			else {
@@ -71,27 +71,27 @@ void SiteItem::parseMetaRpcValue(const shv::chainpack::RpcValue::Map &meta)
 	Q_UNUSED(meta);
 }
 
-const SiteItem *SiteItem::itemByShvPath(const QString &shv_path) const
+const SiteItem *SiteItem::itemBySitePath(const QString &site_path) const
 {
-	if (shv_path.isEmpty()) {
+	if (site_path.isEmpty()) {
 		return this;
 	}
-	return itemByShvPath(shv_path, 0);
+	return itemBySitePath(site_path, 0);
 }
 
-const SiteItem *SiteItem::itemByShvPath(const QString &shv_path, int offset) const
+const SiteItem *SiteItem::itemBySitePath(const QString &site_path, int offset) const
 {
-	int slash = shv_path.indexOf('/', offset);
-	QString part = shv_path.mid(offset, slash - offset);
+	int slash = site_path.indexOf('/', offset);
+	QString part = site_path.mid(offset, slash - offset);
 
 	SiteItem *item = findChild<SiteItem *>(part, Qt::FindDirectChildrenOnly);
-	if (!item || slash == -1 || slash == shv_path.length() - 1) {
+	if (!item || slash == -1 || slash == site_path.length() - 1) {
 		return item;
 	}
-	return item->itemByShvPath(shv_path, slash + 1);
+	return item->itemBySitePath(site_path, slash + 1);
 }
 
-QString SiteItem::shvPath() const
+QString SiteItem::sitePath() const
 {
 	QStringList result;
 	const SiteItem *item = this;

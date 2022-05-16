@@ -15,7 +15,7 @@ class DeviceLogRequest : public QObject
 	using Super = QObject;
 
 public:
-	explicit DeviceLogRequest(const QString &shv_path, const QDateTime &since, const QDateTime &until, QObject *parent = nullptr);
+	explicit DeviceLogRequest(const QString &site_path, const QDateTime &since, const QDateTime &until, QObject *parent = nullptr);
 
 	void exec();
 
@@ -34,7 +34,7 @@ private:
 	void trimDirtyLog(const QDateTime &until);
 	void fixFirstLogFile();
 
-	const QString m_shvPath;
+	const QString m_sitePath;
 	QDateTime m_since;
 	QDateTime m_until;
 	LogDir m_logDir;

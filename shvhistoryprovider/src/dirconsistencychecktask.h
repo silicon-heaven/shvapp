@@ -10,7 +10,7 @@ class DirConsistencyCheckTask : public QThread
 	using Super = QThread;
 
 public:
-	DirConsistencyCheckTask(const QString &shv_path, CheckType check_type, QObject *parent);
+	DirConsistencyCheckTask(const QString &site_path, CheckType check_type, QObject *parent);
 
 	Q_SIGNAL void checkCompleted(QVector<DateTimeInterval>);
 	Q_SIGNAL void error(QString);
@@ -19,6 +19,6 @@ protected:
 	void run() override;
 
 private:
-	QString m_shvPath;
+	QString m_sitePath;
 	CheckType m_checkType;
 };

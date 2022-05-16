@@ -6,15 +6,21 @@
 
 #include <shv/coreqt/log.h>
 
+#include <shv/core/utils/shvjournalentry.h>
+
+using namespace shv::core::utils;
+
 LogSanitizer::LogSanitizer(QObject *parent)
 	: QObject(parent)
 	, m_lastCheckedDevice(-1)
 	, m_timer(this)
 {
 	connect(&m_timer, &QTimer::timeout, this, qOverload<>(&LogSanitizer::sanitizeLogCache));
-	connect(Application::instance()->deviceConnection(), &shv::iotqt::rpc::DeviceConnection::stateChanged, this, &LogSanitizer::onShvStateChanged);
+	Application *app = Application::instance();
+	connect(app->deviceConnection(), &shv::iotqt::rpc::DeviceConnection::stateChanged, this, &LogSanitizer::onShvStateChanged);
+	connect(app, &Application::deviceDataChanged, this, &LogSanitizer::onDeviceDataChanged);
 
-	DeviceMonitor *monitor = Application::instance()->deviceMonitor();
+	DeviceMonitor *monitor = app->deviceMonitor();
 	connect(monitor, &DeviceMonitor::deviceConnectedToBroker, this, &LogSanitizer::onDeviceAppeared);
 	connect(monitor, &DeviceMonitor::deviceDisconnectedFromBroker, this, &LogSanitizer::onDeviceDisappeared);
 
@@ -42,77 +48,103 @@ void LogSanitizer::setupTimer()
 	}
 }
 
-void LogSanitizer::trimDirtyLog(const QString &shv_path)
+void LogSanitizer::trimDirtyLog(const QString &site_path)
 {
-	if (Application::instance()->deviceMonitor()->isPushLogDevice(shv_path)) {
+	if (Application::instance()->deviceMonitor()->isPushLogDevice(site_path)) {
 		SHV_EXCEPTION("Can not trim dirty log of pushLog device");
 	}
 
-	if (Application::instance()->deviceMonitor()->onlineDevices().contains(shv_path)) {
-		CheckLogTask *running_task = findChild<CheckLogTask*>(shv_path, Qt::FindChildOption::FindDirectChildrenOnly);
+	if (Application::instance()->deviceMonitor()->onlineDevices().contains(site_path)) {
+		CheckLogTask *running_task = findChild<CheckLogTask*>(site_path, Qt::FindChildOption::FindDirectChildrenOnly);
 		if (running_task) {
 			if (running_task->checkType() == CheckType::TrimDirtyLogOnly || running_task->checkType() == CheckType::ReplaceDirtyLog) {
 				return;
 			}
-			SHV_EXCEPTION("Device " + shv_path.toStdString() + " is currently sanitized.");
+			SHV_EXCEPTION("Device " + site_path.toStdString() + " is currently sanitized.");
 		}
 		else {
-			shvMessage() << "trim dirty log for" << shv_path;
-			CheckLogTask *task = new CheckLogTask(shv_path, CheckType::TrimDirtyLogOnly, this);
-			task->setObjectName(shv_path);
-			connect(task, &CheckLogTask::finished, [shv_path, task](bool success) {
+			shvMessage() << "trim dirty log for" << site_path;
+			CheckLogTask *task = new CheckLogTask(site_path, CheckType::TrimDirtyLogOnly, this);
+			task->setObjectName(site_path);
+			connect(task, &CheckLogTask::finished, [site_path, task](bool success) {
 				task->setParent(nullptr);
 				task->deleteLater();
-				shvMessage() << "trimming dirty log for" << shv_path << (success ? "succesfully finished" : "finished with error");
+				shvMessage() << "trimming dirty log for" << site_path << (success ? "succesfully finished" : "finished with error");
 			});
 			task->exec();
 		}
 	}
 	else {
-		SHV_EXCEPTION("Device " + shv_path.toStdString() + " is offline.");
+		SHV_EXCEPTION("Device " + site_path.toStdString() + " is offline.");
 	}
 }
 
-void LogSanitizer::onDeviceAppeared(const QString &shv_path)
+void LogSanitizer::onDeviceAppeared(const QString &site_path)
 {
-	if (Application::instance()->deviceMonitor()->isPushLogDevice(shv_path)) {
+	if (Application::instance()->deviceMonitor()->isPushLogDevice(site_path)) {
 		return;
 	}
-	QTimer *timer = m_newDeviceTimers.value(shv_path);
-	if (!timer) {
-		timer = new QTimer(this);
-		timer->setInterval(60000);  //let device to collect snapshot
-		timer->setSingleShot(true);
-		connect(timer, &QTimer::timeout, this, [this, shv_path]() {
-			m_newDeviceTimers[shv_path]->deleteLater();
-			m_newDeviceTimers.remove(shv_path);
-			m_newDevices << shv_path;
-			checkNewDevicesQueue();
-		});
-		m_newDeviceTimers[shv_path] = timer;
-		timer->start();
-	}
+	planDirtyLogTrim(site_path);
 	setupTimer();
 }
 
 void LogSanitizer::checkNewDevicesQueue()
 {
 	if (!m_newDevices.isEmpty() && findChildren<CheckLogTask*>(QString(), Qt::FindChildOption::FindDirectChildrenOnly).count() == 0) {
-		QString shv_path = m_newDevices.takeFirst();
-		sanitizeLogCache(shv_path, CheckType::ReplaceDirtyLog);
+		QString site_path = m_newDevices.takeFirst();
+		sanitizeLogCache(site_path, CheckType::ReplaceDirtyLog);
 	}
 
 }
 
-void LogSanitizer::onDeviceDisappeared(const QString &shv_path)
+void LogSanitizer::planDirtyLogTrim(const QString &site_path)
+{
+	QTimer *timer = m_newDeviceTimers.value(site_path);
+	if (!timer) {
+		timer = new QTimer(this);
+		timer->setInterval(30000);  //let device to collect snapshot
+		timer->setSingleShot(true);
+		connect(timer, &QTimer::timeout, this, [this, site_path]() {
+			m_newDeviceTimers[site_path]->deleteLater();
+			m_newDeviceTimers.remove(site_path);
+			m_newDevices << site_path;
+			checkNewDevicesQueue();
+		});
+		m_newDeviceTimers[site_path] = timer;
+	}
+	timer->start();
+}
+
+void LogSanitizer::onDeviceDataChanged(const QString &site_path, const QString &property, const QString &method, const shv::chainpack::RpcValue &data)
+{
+	Q_UNUSED(method);
+
+	if (!Application::instance()->deviceMonitor()->isPushLogDevice(site_path)) {
+		if (property.startsWith(".app/connector/") && property.endsWith("/state")) {
+			shv::chainpack::RpcValue value = data;
+			if (ShvJournalEntry::isShvJournalEntry(value)) {
+				value = ShvJournalEntry::fromRpcValue(value).value;
+			}
+			else if (shv::chainpack::DataChange::isDataChange(value)) {
+				value = shv::chainpack::DataChange::fromRpcValue(value).value();
+			}
+
+			if (value.asString() == "Connected") {
+				planDirtyLogTrim(site_path);
+			}
+		}
+	}
+}
+
+void LogSanitizer::onDeviceDisappeared(const QString &site_path)
 {
 	setupTimer();
-	if (m_newDeviceTimers.contains(shv_path)) {
-		m_newDeviceTimers[shv_path]->stop();
-		m_newDeviceTimers[shv_path]->deleteLater();
-		m_newDeviceTimers.remove(shv_path);
+	if (m_newDeviceTimers.contains(site_path)) {
+		m_newDeviceTimers[site_path]->stop();
+		m_newDeviceTimers[site_path]->deleteLater();
+		m_newDeviceTimers.remove(site_path);
 	}
-	m_newDevices.removeOne(shv_path);
+	m_newDevices.removeOne(site_path);
 }
 
 void LogSanitizer::sanitizeLogCache()
@@ -149,25 +181,25 @@ void LogSanitizer::sanitizeLogCache()
 	sanitizeLogCache(sanitized_devices[m_lastCheckedDevice], CheckType::CheckDirtyLogState);
 }
 
-bool LogSanitizer::sanitizeLogCache(const QString &shv_path, CheckType check_type)
+bool LogSanitizer::sanitizeLogCache(const QString &site_path, CheckType check_type)
 {
 	if (Application::instance()->deviceConnection()->state() != shv::iotqt::rpc::ClientConnection::State::BrokerConnected) {
 		return false;
 	}
-	if (findChild<CheckLogTask*>(shv_path, Qt::FindChildOption::FindDirectChildrenOnly)) {
-		logSanitizing() << "seems that sanitizing for" << shv_path << "is already running, giving up";
+	if (findChild<CheckLogTask*>(site_path, Qt::FindChildOption::FindDirectChildrenOnly)) {
+		logSanitizing() << "seems that sanitizing for" << site_path << "is already running, giving up";
 		return false;
 	}
-	if (m_newDeviceTimers.keys().contains(shv_path)) {
+	if (m_newDeviceTimers.keys().contains(site_path)) {
 		return false;
 	}
-	if (m_newDevices.contains(shv_path)) {
+	if (m_newDevices.contains(site_path)) {
 		return false;
 	}
 
-	logSanitizing() << "checking logs for" << shv_path;
-	CheckLogTask *task = new CheckLogTask(shv_path, check_type, this);
-	task->setObjectName(shv_path);
+	logSanitizing() << "checking logs for" << site_path;
+	CheckLogTask *task = new CheckLogTask(site_path, check_type, this);
+	task->setObjectName(site_path);
 	connect(task, &CheckLogTask::finished, [this, task](bool success) {
 		task->setParent(nullptr);
 		task->deleteLater();

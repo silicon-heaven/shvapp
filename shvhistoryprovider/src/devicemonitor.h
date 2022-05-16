@@ -20,26 +20,25 @@ public:
 
 	const QStringList &monitoredDevices() const;
 	const QStringList &onlineDevices() const;
-	bool isElesysDevice(const QString &shv_path) const;
-	bool isPushLogDevice(const QString &shv_path) const;
-	QString syncLogBroker(const QString &shv_path) const;
+	bool isElesysDevice(const QString &site_path) const;
+	bool isPushLogDevice(const QString &site_path) const;
+	QString syncLogBroker(const QString &site_path) const;
 
 	void downloadSites();
 	const SiteItem *sites() const { return m_sites; }
 
-	Q_SIGNAL void deviceRemovedFromSites(const QString &device);
-	Q_SIGNAL void deviceConnectedToBroker(const QString &device);
-	Q_SIGNAL void deviceDisconnectedFromBroker(const QString &device);
+	Q_SIGNAL void deviceRemovedFromSites(const QString &site_path);
+	Q_SIGNAL void deviceConnectedToBroker(const QString &site_path);
+	Q_SIGNAL void deviceDisconnectedFromBroker(const QString &site_path);
 
 	Q_SIGNAL void sitesDownloadFinished();
 private:
 
 	void onShvStateChanged();
-	void onDeviceMountChanged(const QString &path, const QString &method, const shv::chainpack::RpcValue &data);
-	void onDeviceDataChanged(const QString &path, const QString &method, const shv::chainpack::RpcValue &data);
+	void onDeviceMountChanged(const QString &shv_path, const QString &method, const shv::chainpack::RpcValue &data);
 
 	void scanDevices();
-	void isDeviceOnline(const QString &shv_path, std::function<void(bool)> callback);
+	void isDeviceOnline(const QString &site_path, std::function<void(bool)> callback);
 
 	ShvSubscription *m_mntSubscription;
 	ShvSubscription *m_sitesSubscription;

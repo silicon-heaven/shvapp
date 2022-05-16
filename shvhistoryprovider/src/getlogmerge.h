@@ -10,13 +10,13 @@
 class GetLogMerge
 {
 public:
-	explicit GetLogMerge(const QString &shv_path, const shv::core::utils::ShvGetLogParams &log_params);
+	explicit GetLogMerge(const QString &site_path, const shv::core::utils::ShvGetLogParams &log_params);
 
 	shv::chainpack::RpcValue getLog();
 
 private:
-	QString m_shvPath;
-	QStringList m_shvPaths;
+	QString m_sitePath;
+	QStringList m_sitePaths;
 	shv::core::utils::ShvGetLogParams m_logParams;
 	shv::core::utils::ShvMemoryJournal m_mergedLog;
 };

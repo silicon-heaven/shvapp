@@ -30,10 +30,10 @@ void DiskCleaner::scanDir(const QDir &dir, DiskCleaner::CheckDiskContext &ctx)
         }
         else if (info.isFile()) {
 			int cache_dir_path_length = Application::instance()->cliOptions()->logCacheDir().size();
-			QString device_shv_path = dir.absolutePath().mid(cache_dir_path_length + 1);
-			if (ctx.deviceOccupationInfo.contains(device_shv_path)) {
+			QString site_path = dir.absolutePath().mid(cache_dir_path_length + 1);
+			if (ctx.deviceOccupationInfo.contains(site_path)) {
 				if (info.fileName().length() == 27 && info.suffix() == "chp") {
-					DeviceOccupationInfo &occupation_info = ctx.deviceOccupationInfo[device_shv_path];
+					DeviceOccupationInfo &occupation_info = ctx.deviceOccupationInfo[site_path];
 					QString filename = info.fileName();
 					try {
 						int64_t ts = shv::core::utils::ShvFileJournal::JournalContext::fileNameToFileMsec(info.fileName().toStdString());
@@ -48,7 +48,7 @@ void DiskCleaner::scanDir(const QDir &dir, DiskCleaner::CheckDiskContext &ctx)
 				ctx.totalSize += info.size();
 			}
 			else {
-				shvInfo() << "removing file for not existing device" << device_shv_path.toStdString() << info.fileName().toStdString();
+				shvInfo() << "removing file for not existing device" << site_path.toStdString() << info.fileName().toStdString();
 				QFile::remove(info.absoluteFilePath());
 				--entry_count;
 			}

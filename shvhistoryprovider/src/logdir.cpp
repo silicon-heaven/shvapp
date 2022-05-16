@@ -12,18 +12,18 @@
 #include <iostream>
 #include <fstream>
 
-LogDir::LogDir(const QString &shv_path)
-	: m_dir(dirPath(shv_path), "*", QDir::SortFlag::Name, QDir::Filter::Files)
+LogDir::LogDir(const QString &site_path)
+	: m_dir(dirPath(site_path), "*", QDir::SortFlag::Name, QDir::Filter::Files)
 {
 	if (!m_dir.exists()) {
-		QDir(QString::fromStdString(Application::instance()->cliOptions()->logCacheDir())).mkpath(shv_path);
+		QDir(QString::fromStdString(Application::instance()->cliOptions()->logCacheDir())).mkpath(site_path);
 		m_dir.refresh();
 	}
 }
 
-QString LogDir::dirPath(const QString &shv_path)
+QString LogDir::dirPath(const QString &site_path)
 {
-	return QString::fromStdString(Application::instance()->cliOptions()->logCacheDir()) + QDir::separator() + shv_path;
+	return QString::fromStdString(Application::instance()->cliOptions()->logCacheDir()) + QDir::separator() + site_path;
 }
 
 QStringList LogDir::findFiles(const QDateTime &since, const QDateTime &until)
