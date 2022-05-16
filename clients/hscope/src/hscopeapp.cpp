@@ -551,6 +551,21 @@ HasTester HolyScopeApp::evalLuaFile(const QFileInfo& file)
 	return HasTester::Yes;
 }
 
+extern "C" {
+static int set_status(lua_State* state)
+{
+	check_lua_args<LUA_TSTRING>(state, "set_status");
+	// Stack:
+	// 1) string
+	auto node = static_cast<HscopeNode*>(lua_touserdata(state, lua_upvalueindex(1)));
+	node->setStatus(lua_tostring(state, 1));
+
+	lua_pop(state, 1);
+	// <empty stack>
+	return 0;
+}
+}
+
 void HolyScopeApp::resolveConfTree(const QDir& dir, shv::iotqt::node::ShvNode* parent)
 {
 	auto sg = StackGuard(m_state);
@@ -614,16 +629,26 @@ void HolyScopeApp::resolveConfTree(const QDir& dir, shv::iotqt::node::ShvNode* p
 	// -2) parent environment
 	// -1) new environment
 
-	auto hasTester = HasTester::No;
+	auto new_node = new HscopeNode(dir.dirName().toStdString(), parent);
+
+	lua_pushlightuserdata(m_state, new_node);
+	// -3) parent environment
+	// -2) new environment
+	// -1) new_node
+
+	lua_pushcclosure(m_state, set_status, 1);
+	// -3) parent environment
+	// -2) new environment
+	// -1) set_status
+	lua_setfield(m_state, -2, "set_status");
 
 	if (dir.exists("hscope.lua")) {
 		shvInfo() << "Lua file found" << dir.filePath("hscope.lua");
-		hasTester = evalLuaFile(QFileInfo(dir.filePath("hscope.lua")));
+		auto has_tester = evalLuaFile(QFileInfo(dir.filePath("hscope.lua")));
+		if (has_tester == HasTester::Yes) {
+			new_node->attachTester(m_state, path);
+		}
 	}
-
-	auto new_node = hasTester == HasTester::Yes
-		? new HscopeNode(dir.dirName().toStdString(), m_state, path, parent)
-		: new HscopeNode(dir.dirName().toStdString(), parent);
 
 	QDirIterator it(dir);
 	while (it.hasNext()) {

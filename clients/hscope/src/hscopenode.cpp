@@ -18,35 +18,32 @@ std::vector<cp::MetaMethod> methodsWithTester {
 }
 
 HscopeNode::HscopeNode(const std::string& name, shv::iotqt::node::ShvNode* parent)
-	: Super(name, &methods, parent)
+	: Super(name, parent)
+	, m_state(nullptr)
 {
 }
 
-HscopeNode::HscopeNode(const std::string &name, lua_State* state, const std::string& testerLocation, shv::iotqt::node::ShvNode *parent)
-	: Super(name, &methodsWithTester, parent)
-	, m_state(state)
-	, m_testerLocation(testerLocation)
+size_t HscopeNode::methodCount(const StringViewList&)
 {
+	if (!m_state) {
+		return methods.size();
+	}
+
+	return methodsWithTester.size();
 }
 
-extern "C" {
-static int set_status(lua_State* state)
+const shv::chainpack::MetaMethod* HscopeNode::metaMethod(const StringViewList&, size_t index)
 {
-	check_lua_args<LUA_TSTRING>(state, "set_status");
-	// Stack:
-	// 1) string
-	auto node = static_cast<HscopeNode*>(lua_touserdata(state, lua_upvalueindex(1)));
-	node->setStatus(lua_tostring(state, 1));
+	if (!m_state) {
+		return &methods.at(index);
+	}
 
-	lua_pop(state, 1);
-	// <empty stack>
-	return 0;
-}
+	return &methodsWithTester.at(index);
 }
 
 shv::chainpack::RpcValue HscopeNode::callMethod(const shv::iotqt::node::ShvNode::StringViewList& shv_path, const std::string &method, const shv::chainpack::RpcValue& params, const shv::chainpack::RpcValue& user_id)
 {
-	if (method == "status") {
+	if (m_state && method == "status") {
 		return m_status;
 	}
 
@@ -58,17 +55,7 @@ shv::chainpack::RpcValue HscopeNode::callMethod(const shv::iotqt::node::ShvNode:
 		// -2) registry["tester"]
 		// -1) registry["tester"][m_testerLocation]
 
-		lua_pushlightuserdata(m_state, this);
-		// -3) registry["tester"]
-		// -2) registry["tester"][m_testerLocation]
-		// -1) this
-
-		lua_pushcclosure(m_state, set_status, 1);
-		// -3) registry["tester"]
-		// -2) registry["tester"][m_testerLocation]
-		// -1) set_status
-
-		auto errors = lua_pcall(m_state, 1, 0, 0);
+		auto errors = lua_pcall(m_state, 0, 0, 0);
 		if (errors) {
 			// -2) registry["tester"]
 			// -1) error
@@ -91,4 +78,10 @@ shv::chainpack::RpcValue HscopeNode::callMethod(const shv::iotqt::node::ShvNode:
 void HscopeNode::setStatus(const std::string& status)
 {
 	m_status = status;
+}
+
+void HscopeNode::attachTester(lua_State* state, const std::string& tester_location)
+{
+	m_state = state;
+	m_testerLocation = tester_location;
 }

@@ -11,19 +11,21 @@ enum class HasTester {
 	No
 };
 
-class HscopeNode : public shv::iotqt::node::MethodsTableNode
+class HscopeNode : public shv::iotqt::node::ShvNode
 {
 	Q_OBJECT
 
-	using Super = shv::iotqt::node::MethodsTableNode;
+	using Super = shv::iotqt::node::ShvNode;
 
 public:
 	HscopeNode(const std::string &name, shv::iotqt::node::ShvNode *parent);
-	HscopeNode(const std::string &name, lua_State* state, const std::string& testerLocation, shv::iotqt::node::ShvNode *parent);
 
-	shv::chainpack::RpcValue callMethod(const StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params, const shv::chainpack::RpcValue &user_id) override;
+	size_t methodCount(const StringViewList& shv_path) override;
+	const shv::chainpack::MetaMethod* metaMethod(const StringViewList& shv_path, size_t ix) override;
+	shv::chainpack::RpcValue callMethod(const StringViewList& shv_path, const std::string& method, const shv::chainpack::RpcValue& params, const shv::chainpack::RpcValue& user_id) override;
 
 	void setStatus(const std::string& status);
+	void attachTester(lua_State* state, const std::string& tester_location);
 
 private:
 	lua_State* m_state;

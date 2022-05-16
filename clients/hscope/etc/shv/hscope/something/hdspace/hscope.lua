@@ -1,1 +1,1 @@
-return require('hdspace')()
+return require('hdspace')(set_status)
