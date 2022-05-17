@@ -1,4 +1,5 @@
 #include "hscopeapp.h"
+#include "hscopenode.h"
 #include "appclioptions.h"
 
 #include <shv/iotqt/rpc/deviceconnection.h>
@@ -12,7 +13,9 @@
 #include <shv/core/stringview.h>
 
 #include <lua.hpp>
+#include "lua_utils.h"
 
+#include <QDirIterator>
 #include <QTimer>
 
 using namespace std;
@@ -74,67 +77,11 @@ shv::chainpack::RpcValue AppRootNode::callMethodRq(const shv::chainpack::RpcRequ
 	return Super::callMethodRq(rq);
 }
 
-#define DUMP_STACK(state) { \
-	int top = lua_gettop(state); \
-	std::cerr << "Stack:\n"; \
-	std::cerr << "------\n"; \
-	for (int i = 1; i <= top; i++) { \
-		std::cerr << "#" << i << "\ttype: " << luaL_typename(state,i) << "\tvalue: "; \
-		switch (lua_type(state, i)) { \
-			case LUA_TNUMBER: \
-				std::cerr << lua_tonumber(state, i); \
-				break; \
-			case LUA_TSTRING: \
-				std::cerr << lua_tostring(state, i); \
-				break; \
-			case LUA_TBOOLEAN: \
-				std::cerr << (lua_toboolean(state, i) ? "true" : "false"); \
-				break; \
-			case LUA_TNIL: \
-				std::cerr << "nil"; \
-				break; \
-			default: \
-				std::cerr << lua_topointer(state,i);; \
-				break; \
-		} \
-		std::cerr << "\n"; \
-	} \
-	std::cerr << "------\n"; \
-}
-
-namespace {
-template <int ArgNum, int ArgType, int... Rest>
-void impl_check_lua_args(lua_State* state, const char* lua_fn_name)
-{
-	if (auto type = lua_type(state, ArgNum); type != ArgType) {
-		luaL_error(state, "Argument #%d to `%s` must be of type `%s` (got `%s`)", ArgNum, lua_fn_name, lua_typename(state, ArgType), luaL_typename(state, ArgNum));
-	}
-
-	if constexpr (sizeof...(Rest) != 0)  {
-		impl_check_lua_args<ArgNum + 1, Rest...>(state, lua_fn_name);
-	}
-
-}
-
-template <int... ExpectedArgTypes>
-void check_lua_args(lua_State* state, const char* lua_fn_name)
-{
-	if (auto nargs = lua_gettop(state); nargs != sizeof...(ExpectedArgTypes)) {
-		luaL_error(state, "%s expects 2 arguments (got %d)", lua_fn_name, nargs);
-	}
-
-	if constexpr (sizeof...(ExpectedArgTypes) != 0) {
-		impl_check_lua_args<1, ExpectedArgTypes...>(state, lua_fn_name);
-	}
-}
-}
-
-
 extern "C" {
 static int on_broker_connected(lua_State* state)
 {
+	auto sg = StackGuard(state, StackGuard::ShouldPopStack::Yes);
 	check_lua_args<LUA_TFUNCTION>(state, "on_broker_connected");
-	// Stack:
 	// 1) function
 
 	lua_getfield(state, LUA_REGISTRYINDEX, "on_broker_connected_handlers");
@@ -155,18 +102,17 @@ static int on_broker_connected(lua_State* state)
 
 static int rpc_call(lua_State* state)
 {
+	auto sg = StackGuard(state, StackGuard::ShouldPopStack::Yes);
 	check_lua_args<LUA_TSTRING, LUA_TSTRING, LUA_TSTRING, LUA_TFUNCTION>(state, "rpc_call");
-	auto hscope = static_cast<HolyScopeApp*>(lua_touserdata(state, lua_upvalueindex(1)));
-
-	// Stack:
 	// 1) path
 	// 2) method
 	// 3) params
 	// 4) callback
 
+	auto hscope = static_cast<HolyScopeApp*>(lua_touserdata(state, lua_upvalueindex(1)));
+
 	auto id = hscope->callShvMethod(lua_tostring(state, 1), lua_tostring(state, 2), lua_tostring(state, 3));
 	lua_getfield(state, LUA_REGISTRYINDEX, "rpc_call_handlers");
-	// Stack:
 	// 1) path
 	// 2) method
 	// 3) params
@@ -174,7 +120,6 @@ static int rpc_call(lua_State* state)
 	// 5) registry["rpc_call_handlers"]
 
 	lua_insert(state, 4);
-	// Stack:
 	// 1) path
 	// 2) method
 	// 3) params
@@ -182,7 +127,6 @@ static int rpc_call(lua_State* state)
 	// 5) callback
 
 	lua_seti(state, 4, id);
-	// Stack:
 	// 1) path
 	// 2) method
 	// 3) params
@@ -194,9 +138,8 @@ static int rpc_call(lua_State* state)
 
 static int subscribe_change(lua_State* state)
 {
+	auto sg = StackGuard(state, StackGuard::ShouldPopStack::Yes);
 	check_lua_args<LUA_TSTRING, LUA_TFUNCTION>(state, "subscribe_change");
-
-	// Stack:
 	// 1) path
 	// 2) callback
 
@@ -225,16 +168,16 @@ static int subscribe_change(lua_State* state)
 	lua_setfield(state, 1, "path");
 	// 1) the newly created table
 
-	lua_getfield(state, LUA_REGISTRYINDEX, "callbacks");
+	lua_getfield(state, LUA_REGISTRYINDEX, "change_callbacks");
 	// 1) the newly created table
-	// 2) registry["callbacks"]
+	// 2) registry["change_callbacks"]
 
 	lua_insert(state, 1);
-	// 1) registry["callbacks"]
+	// 1) registry["change_callbacks"]
 	// 2) the newly created table
 
 	lua_seti(state, 1, lua_rawlen(state, 1) + 1);
-	// 1) registry["callbacks"]
+	// 1) registry["change_callbacks"]
 
 	lua_pop(state, 1);
 	// <empty stack>
@@ -279,17 +222,17 @@ HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
 	QTimer::singleShot(0, m_rpcConnection, &si::rpc::ClientConnection::open);
 
 	m_state = luaL_newstate();
+	auto sg = StackGuard(m_state);
 	luaL_openlibs(m_state);
 
 	lua_getglobal(m_state, "package");
-	// Stack:
 	// 1) global: package
 
 	lua_getfield(m_state, 1, "path");
 	// 1) global: package
 	// 2) package.path
 
-	auto new_path = std::string{lua_tostring(m_state, 2)} + ";" + m_cliOptions->configDir() + "/?;" + m_cliOptions->configDir() + "?.lua";
+	auto new_path = std::string{lua_tostring(m_state, 2)} + ";" + m_cliOptions->configDir() + "/lua-lib/?;" + m_cliOptions->configDir() + "/lua-lib/?.lua";
 	lua_pushstring(m_state, new_path.c_str());
 	// 1) global: package
 	// 2) package.path
@@ -323,11 +266,43 @@ HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
 	// <empty stack>
 
 
-	new_empty_registry_table(m_state, "callbacks");
+	new_empty_registry_table(m_state, "change_callbacks");
 	new_empty_registry_table(m_state, "rpc_call_handlers");
 	new_empty_registry_table(m_state, "on_broker_connected_handlers");
+	new_empty_registry_table(m_state, "testers");
 
-	evalLuaFile(m_cliOptions->luaFile());
+	if (auto conf_dir = QDir{QString::fromStdString(m_cliOptions->configDir())}; conf_dir.exists()) {
+		if (conf_dir.cd("instances")) {
+			// resolveLua expects an environment on the top of the stack. The first environment is empty.
+			lua_newtable(m_state);
+			// 1) new environment
+
+			lua_newtable(m_state);
+			// 1) new environment
+			// 2) metatable for the new environment
+
+			lua_pushglobaltable(m_state);
+			// 1) new environment
+			// 2) metatable for the new environment
+			// 3) the global environment
+
+			lua_setfield(m_state, 2, "__index");
+			// 1) new environment
+			// 2) metatable for the new environment
+
+			lua_setmetatable(m_state, 1);
+			// 1) new environment
+
+			resolveConfTree(conf_dir, root);
+			lua_pop(m_state, 1);
+			// <empty stack>
+		}
+	}
+
+	if (lua_gettop(m_state) != 0) {
+		DUMP_STACK(m_state);
+		throw std::runtime_error("Something went wrong, Lua stack's equilibrium wasn't maintained.");
+	}
 }
 
 HolyScopeApp::~HolyScopeApp()
@@ -345,7 +320,6 @@ void HolyScopeApp::onBrokerConnectedChanged(bool is_connected)
 	m_isBrokerConnected = is_connected;
 
 	lua_getfield(m_state, LUA_REGISTRYINDEX, "on_broker_connected_handlers");
-	// Stack:
 	// 1) registry["on_broker_connected_handlers"]
 
 	lua_pushnil(m_state);
@@ -353,17 +327,18 @@ void HolyScopeApp::onBrokerConnectedChanged(bool is_connected)
 	// 2) nil
 
 	while (lua_next(m_state, 1)) {
-		// 1) registry["callbacks"]
+		// 1) registry["on_broker_connected_handlers"]
 		// 2) key
 		// 3) on_broker_connected_handler
 
 		lua_call(m_state, 0, 0);
-		// 1) registry["callbacks"]
+		// 1) registry["on_broker_connected_handlers"]
 		// 2) key
 	}
 
-	// 1) registry["callbacks"]
+	// 1) registry["on_broker_connected_handlers"]
 	lua_pop(m_state, 1);
+	// <empty stack>
 }
 
 void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
@@ -379,7 +354,6 @@ void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
 		cp::RpcResponse rp(msg);
 		shvDebug() << "RPC response received:" << rp.toPrettyString();
 		lua_getfield(m_state, LUA_REGISTRYINDEX, "rpc_call_handlers");
-		// Stack:
 		// 1) registry["rpc_call_handlers"]
 
 		lua_geti(m_state, 1, rp.requestId().toInt());
@@ -387,6 +361,9 @@ void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
 		// 2) registry["rpc_call_handlers"][req_id]
 
 		if (!lua_isnil(m_state, 2)) {
+			// 1) registry["rpc_call_handlers"]
+			// 2) function
+
 			// A handler for this req_id exists, so it's from Lua.
 			auto resultStr = rp.result().toCpon();
 			lua_pushlstring(m_state, resultStr.c_str(), resultStr.size());
@@ -398,6 +375,9 @@ void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
 			// 1) registry["rpc_call_handlers"]
 
 		} else {
+			// 1) registry["rpc_call_handlers"]
+			// 2) nil
+
 			lua_pop(m_state, 1);
 			// 1) registry["rpc_call_handlers"]
 		}
@@ -409,39 +389,38 @@ void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
 		cp::RpcSignal nt(msg);
 		shvDebug() << "RPC notify received:" << nt.toPrettyString();
 		if (nt.method() == cp::Rpc::SIG_VAL_CHANGED) {
-			lua_getfield(m_state, LUA_REGISTRYINDEX, "callbacks");
-			// Stack:
-			// 1) registry["callbacks"]
+			lua_getfield(m_state, LUA_REGISTRYINDEX, "change_callbacks");
+			// 1) registry["change_callbacks"]
 
 			lua_pushnil(m_state);
-			// 1) registry["callbacks"]
+			// 1) registry["change_callbacks"]
 			// 2) nil
 
 			while (lua_next(m_state, 1)) {
-				// 1) registry["callbacks"]
+				// 1) registry["change_callbacks"]
 				// 2) key
 				// 3) {callback: function, path: string}
 
 				lua_getfield(m_state, 3, "path");
-				// 1) registry["callbacks"]
+				// 1) registry["change_callbacks"]
 				// 2) key
 				// 3) {callback: function, path: string}
 				// 4) .path
 
 				if (nt.shvPath().asString().find(lua_tostring(m_state, 4)) == 0) {
 					lua_pop(m_state, 1);
-					// 1) registry["callbacks"]
+					// 1) registry["change_callbacks"]
 					// 2) key
 					// 3) {callback: function, path: string}
 
 					lua_getfield(m_state, 3, "callback");
-					// 1) registry["callbacks"]
+					// 1) registry["change_callbacks"]
 					// 2) key
 					// 3) {callback: function, path: string}
 					// 4) .callback
 
 					lua_pushstring(m_state, nt.shvPath().asString().c_str());
-					// 1) registry["callbacks"]
+					// 1) registry["change_callbacks"]
 					// 2) key
 					// 3) {callback: function, path: string}
 					// 4) .callback
@@ -449,7 +428,7 @@ void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
 
 					auto new_value = nt.params().toStdString();
 					lua_pushlstring(m_state, new_value.c_str(), new_value.size());
-					// 1) registry["callbacks"]
+					// 1) registry["change_callbacks"]
 					// 2) key
 					// 3) {callback: function, path: string}
 					// 4) .callback
@@ -457,16 +436,16 @@ void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
 					// 6) arg2
 
 					lua_call(m_state, 2, 0);
-					// 1) registry["callbacks"]
+					// 1) registry["change_callbacks"]
 					// 2) key
 					// 3) {callback: function, path: string}
 
 					lua_pop(m_state, 1);
-					// 1) registry["callbacks"]
+					// 1) registry["change_callbacks"]
 					// 2) key
 				}
 			}
-			// 1) registry["callbacks"]
+			// 1) registry["change_callbacks"]
 
 			lua_pop(m_state, 1);
 			// <empty stack>
@@ -474,18 +453,213 @@ void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
 	}
 }
 
-void HolyScopeApp::evalLua(const std::string& code)
+HasTester HolyScopeApp::evalLuaFile(const QFileInfo& file)
 {
-	luaL_dostring(m_state, code.c_str());
-}
+	auto sg = StackGuard(m_state);
+	auto path = file.filePath().toStdString();
+	luaL_loadfile(m_state, path.c_str());
+	// -3) parent environment
+	// -2) new environment
+	// -1) hscope.lua
 
-void HolyScopeApp::evalLuaFile(const std::string& fileName)
-{
-	auto errors = luaL_dofile(m_state, fileName.c_str());
+	// lua_setupvalue pops from the stack, so before setting it as an upvalue for the lua file, we need to copy the
+	// reference (for the upvalue)
+	lua_pushvalue(m_state, -2);
+	// -4) parent environment
+	// -3) new environment
+	// -2) hscope.lua
+	// -1) new environment
+
+	lua_setupvalue(m_state, -2, 1);
+	// -3) parent environment
+	// -2) new environment
+	// -1) hscope.lua
+
+	auto stack_size = lua_gettop(m_state);
+	auto errors = lua_pcall(m_state, 0, LUA_MULTRET, 0);
+	// -2) parent environment
+	// -1) new environment
+
 	if (errors) {
-		throw std::runtime_error(lua_tostring(m_state, 1));
+		// -3) parent environment
+		// -2) new environment
+		// -1) error
+		shvError() << "Error in " << path;
+		shvError() << lua_tostring(m_state, -1);
+		lua_pop(m_state, 1);
+		// -2) parent environment
+		// -1) new environment
+
+		return HasTester::No;
 	}
 
+	auto nresults = lua_gettop(m_state) - stack_size + 1 /* the function gets popped */;
+	if (!nresults) {
+		// -2) parent environment
+		// -1) new environment
+		return HasTester::No;
+	}
+
+	if (nresults != 1) {
+		shvError() << "Error in " << path;
+		shvError() << "Lua function returned multiple results";
+		shvError() << "One value of type `function` expected";
+		lua_pop(m_state, nresults);
+		// -2) parent environment
+		// -1) new environment
+		return HasTester::No;
+	}
+
+	if (!lua_isfunction(m_state, -1)) {
+		// -3) parent environment
+		// -2) new environment
+		// -1) some invalid value
+
+		shvError() << "Error in " << path;
+		shvError() << "Lua function returned a result of type " << luaL_typename(m_state, -1);
+		shvError() << "A value of type `function` expected";
+
+		lua_pop(m_state, -1);
+		// -2) parent environment
+		// -1) new environment
+		return HasTester::No;
+	}
+	// -3) parent environment
+	// -2) new environment
+	// -1) tester function
+
+	lua_getfield(m_state, LUA_REGISTRYINDEX, "testers");
+	// -4) parent environment
+	// -3) new environment
+	// -2) tester function
+	// -1) registry["testers"]
+
+	lua_insert(m_state, -2);
+	// -4) parent environment
+	// -3) new environment
+	// -2) registry["testers"]
+	// -1) tester function
+
+	lua_setfield(m_state, -2, file.path().toStdString().c_str());
+	// -3) parent environment
+	// -2) new environment
+	// -1) registry["testers"]
+
+	lua_pop(m_state, 1);
+	// -2) parent environment
+	// -1) new environment
+	return HasTester::Yes;
+}
+
+extern "C" {
+static int set_status(lua_State* state)
+{
+	check_lua_args<LUA_TSTRING>(state, "set_status");
+	// Stack:
+	// 1) string
+	auto node = static_cast<HscopeNode*>(lua_touserdata(state, lua_upvalueindex(1)));
+	node->setStatus(lua_tostring(state, 1));
+
+	lua_pop(state, 1);
+	// <empty stack>
+	return 0;
+}
+}
+
+void HolyScopeApp::resolveConfTree(const QDir& dir, shv::iotqt::node::ShvNode* parent)
+{
+	auto sg = StackGuard(m_state);
+	auto path = dir.path().toStdString();
+	shvInfo() << "Entering " << path;
+
+	// The parent environment is expected on the top of the lua stack.
+	// -1) parent environment
+
+	// Clone a new environment for this level:
+	lua_newtable(m_state);
+	// -2) parent environment
+	// -1) new environment
+
+	lua_pushnil(m_state);
+	// -3) parent environment
+	// -2) new environment
+	// -1) nil
+	while (lua_next(m_state, -3)) {
+		// -4) parent environment
+		// -3) new environment
+		// -2) key
+		// -1) value
+
+		lua_setfield(m_state, -3, lua_tostring(m_state, -2));
+		// -3) parent environment
+		// -2) new environment
+		// -1) key
+	}
+	// -2) parent environment
+	// -1) new environment
+
+	// Even though we copied all the fields from the parent environment, we still need to set the new environment's
+	// metatable to the global environment, so that it can still access libraries.
+	lua_newtable(m_state);
+	// -3) parent environment
+	// -2) new environment
+	// -1) metatable for the new environment
+
+	lua_pushglobaltable(m_state);
+	// -4) parent environment
+	// -3) new environment
+	// -2) metatable for the new environment
+	// -1) the global environment
+
+	lua_setfield(m_state, -2, "__index");
+	// -3) parent environment
+	// -2) new environment
+	// -1) metatable for the new environment
+
+	lua_setmetatable(m_state, -2);
+	// -2) parent environment
+	// -1) new environment
+
+	lua_pushlstring(m_state, path.c_str(), path.size());
+	// -3) parent environment
+	// -2) new environment
+	// -1) path
+
+	lua_setfield(m_state, -2, "cur_dir");
+	// -2) parent environment
+	// -1) new environment
+
+	auto new_node = new HscopeNode(dir.dirName().toStdString(), parent);
+
+	lua_pushlightuserdata(m_state, new_node);
+	// -3) parent environment
+	// -2) new environment
+	// -1) new_node
+
+	lua_pushcclosure(m_state, set_status, 1);
+	// -3) parent environment
+	// -2) new environment
+	// -1) set_status
+	lua_setfield(m_state, -2, "set_status");
+
+	if (dir.exists("hscope.lua")) {
+		shvInfo() << "Lua file found" << dir.filePath("hscope.lua");
+		auto has_tester = evalLuaFile(QFileInfo(dir.filePath("hscope.lua")));
+		if (has_tester == HasTester::Yes) {
+			new_node->attachTester(m_state, path);
+		}
+	}
+
+	QDirIterator it(dir);
+	while (it.hasNext()) {
+		if (it.fileInfo().isDir() && it.fileName() != "." && it.fileName() != "..") {
+			resolveConfTree(it.filePath(), new_node);
+		}
+		it.next();
+	}
+
+	lua_pop(m_state, 1);
+	// -1) parent environment
 }
 
 void HolyScopeApp::subscribeLua(const std::string& path)

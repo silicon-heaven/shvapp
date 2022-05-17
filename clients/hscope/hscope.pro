@@ -11,20 +11,20 @@ LIBDIR = $$DESTDIR
 unix: LIBDIR = $$SHV_PROJECT_TOP_BUILDDIR/lib
 
 LIBS += \
-        -L$$LIBDIR \
+	-L$$LIBDIR \
 
 LIBS += \
-    -lnecrolog \
-    -lshvchainpack \
-    -lshvcore \
-    -lshvcoreqt \
-    -lshviotqt \
+	-lnecrolog \
+	-lshvchainpack \
+	-lshvcore \
+	-lshvcoreqt \
+	-lshviotqt \
 
 PKGCONFIG += lua
 
 unix {
-        LIBS += \
-                -Wl,-rpath,\'\$\$ORIGIN/../lib\'
+	LIBS += \
+		-Wl,-rpath,\'\$\$ORIGIN/../lib\'
 }
 
 INCLUDEPATH += \
@@ -36,7 +36,7 @@ INCLUDEPATH += \
 
 
 RESOURCES += \
-        #shvbroker.qrc \
+	#shvbroker.qrc \
 
 
 TRANSLATIONS += \
