@@ -272,7 +272,7 @@ HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
 	new_empty_registry_table(m_state, "testers");
 
 	if (auto conf_dir = QDir{QString::fromStdString(m_cliOptions->configDir())}; conf_dir.exists()) {
-		if (conf_dir.cd("hscope")) {
+		if (conf_dir.cd("instances")) {
 			// resolveLua expects an environment on the top of the stack. The first environment is empty.
 			lua_newtable(m_state);
 			// 1) new environment
