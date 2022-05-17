@@ -26,7 +26,7 @@ MainWindow::MainWindow(QWidget *parent)
 	ui->setupUi(this);
 
 	setWindowIcon(QIcon(":/images/eline"));
-	setWindowTitle(tr("Měnič JN50"));
+	setWindowTitle(tr("Converter JN50"));
 
 #ifdef TESTING
 	connect(ui->oclOn, &QCheckBox::toggled, [](bool on) {
@@ -82,7 +82,7 @@ MainWindow::MainWindow(QWidget *parent)
 	connect(ui->actSettingsConnection, &QAction::triggered, [this]() {
 		SettingsDialog dlg(this);
 		if(dlg.exec()) {
-			QMessageBox::information(this, "JN50 View", "Změny se projeví až po restartu aplikace");
+			QMessageBox::information(this, "JN50 View", tr("The changes will take effect until the application is restarted.")); //Změny se projeví až po restartu aplikace
 		}
 	});
 	connect(ui->actSettingsTresholds, &QAction::triggered, [this]() {
@@ -92,7 +92,7 @@ MainWindow::MainWindow(QWidget *parent)
 	connect(ui->actChangePassword, &QAction::triggered, [this]() {
 		if(checkPassword()) {
 			bool ok;
-			QString pwd = QInputDialog::getText(this, tr("Dialog"), tr("Nové heslo:"), QLineEdit::Password, QString(), &ok);
+			QString pwd = QInputDialog::getText(this, tr("Dialog"), tr("New password:"), QLineEdit::Password, QString(), &ok); //Nové heslo
 			if (ok && !pwd.isEmpty()) {
 				Settings settings;
 				settings.setPassword(pwd);
@@ -110,7 +110,7 @@ MainWindow::MainWindow(QWidget *parent)
 						   , "JN50 View"
 						   , "<p><b>JN50 View</b></p>"
 							 "<p>ver. " + QCoreApplication::applicationVersion() + "</p>"
-							 "<p>Program pro vizualizaci měniče JN 50</p>"
+							 "<p>Program for visualization of converter JN 50</p>"
 							 "<p>2019 Elektroline a.s.</p>"
 							 "<p><a href=\"www.elektroline.cz\">www.elektroline.cz</a></p>"
 						   );
@@ -138,7 +138,7 @@ MainWindow::~MainWindow()
 bool MainWindow::checkPassword()
 {
 	bool ok;
-	QString pwd = QInputDialog::getText(this, tr("Dialog"), tr("Heslo:"), QLineEdit::Password, QString(), &ok);
+	QString pwd = QInputDialog::getText(this, tr("Dialog"), tr("Password:"), QLineEdit::Password, QString(), &ok); //Heslo
 	if (ok && !pwd.isEmpty()) {
 		Settings settings;
 		QString correct_pwd = settings.password();
@@ -146,7 +146,7 @@ bool MainWindow::checkPassword()
 			return true;
 		}
 		else {
-			QMessageBox::warning(this, tr("Message"), tr("Nesprávné heslo!"));
+			QMessageBox::warning(this, tr("Message"), tr("Bad password!")); //Nesprávné heslo
 		}
 	}
 	return false;

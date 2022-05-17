@@ -210,16 +210,16 @@
      <x>0</x>
      <y>0</y>
      <width>815</width>
-     <height>32</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuM_ni">
     <property name="title">
-     <string>Měnič</string>
+     <string>Converter</string>
     </property>
     <widget class="QMenu" name="menuNastaven">
      <property name="title">
-      <string>Nastavení</string>
+      <string>Settings</string>
      </property>
      <addaction name="actSettingsConnection"/>
      <addaction name="actSettingsTresholds"/>
@@ -250,37 +250,55 @@
   </widget>
   <action name="actSwitchOn">
    <property name="text">
-    <string>Zapnout</string>
+    <string>Switch on</string>
+   </property>
+   <property name="toolTip">
+    <string>Switch on</string>
    </property>
   </action>
   <action name="actSwitchOff">
    <property name="text">
-    <string>Vypnout</string>
+    <string>Switch off</string>
+   </property>
+   <property name="toolTip">
+    <string>Switch off</string>
    </property>
   </action>
   <action name="actResetOutputEnergy">
    <property name="text">
-    <string>Vymazat počítadlo výstupní energie</string>
+    <string>Reset output energy counter</string>
+   </property>
+   <property name="toolTip">
+    <string>Reset output energy counter</string>
    </property>
   </action>
   <action name="actSettingsConnection">
    <property name="text">
-    <string>Připojení</string>
+    <string>Connection</string>
+   </property>
+   <property name="toolTip">
+    <string>Connection</string>
    </property>
   </action>
   <action name="actSettingsTresholds">
    <property name="text">
-    <string>Pásma necitlivosti</string>
+    <string>Settings tresholds</string>
    </property>
   </action>
   <action name="actHelpAbout">
    <property name="text">
-    <string>O aplikaci</string>
+    <string>About</string>
+   </property>
+   <property name="toolTip">
+    <string>About</string>
    </property>
   </action>
   <action name="actHelpAppLog">
    <property name="text">
-    <string>Aplikačni log</string>
+    <string>Application log</string>
+   </property>
+   <property name="toolTip">
+    <string>Application log</string>
    </property>
   </action>
   <action name="actHelpHelp">
@@ -290,12 +308,18 @@
   </action>
   <action name="actChangePassword">
    <property name="text">
-    <string>Změnit heslo</string>
+    <string>Change password</string>
+   </property>
+   <property name="toolTip">
+    <string>Change password</string>
    </property>
   </action>
   <action name="actShowLog">
    <property name="text">
-    <string>Zobrazit log</string>
+    <string>Show log</string>
+   </property>
+   <property name="toolTip">
+    <string>Show log</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+L</string>

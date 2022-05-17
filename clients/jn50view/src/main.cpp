@@ -106,6 +106,29 @@ int main(int argc, char *argv[])
 
 	Jn50ViewApp a(argc, argv, &cli_opts);
 
+	QString locale;
+	switch(QLocale::system().language()) {
+		case QLocale::Language::Czech: locale = "cs_CZ"; break;
+		default:break;
+	}
+
+	if (locale.length() > 0) {
+		QTranslator *qt_translator = new QTranslator(&a);
+		QString tr_name = ":/translations/" + QCoreApplication::applicationName() + "." + locale + ".qm";
+		bool ok = qt_translator->load(tr_name);
+
+		if(ok) {
+			ok = a.installTranslator(qt_translator);
+			if(!ok){
+				shvError() << "Error installing translation file:" << (tr_name);
+			}
+		}
+		else {
+			shvError() << "Error loading translation file:" << (tr_name);
+		}
+	}
+
+
 	MainWindow w;
 	w.show();
 
