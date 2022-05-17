@@ -1,6 +1,7 @@
 #include "lua_utils.h"
 #include "hscopenode.h"
 #include <lua.hpp>
+#include <shv/core/utils/shvpath.h>
 
 namespace cp = shv::chainpack;
 namespace {
@@ -14,6 +15,7 @@ std::vector<cp::MetaMethod> methodsWithTester {
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
 	{"status", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 	{"run", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
+	{cp::Rpc::SIG_VAL_CHANGED, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::IsSignal},
 };
 }
 
@@ -78,6 +80,11 @@ shv::chainpack::RpcValue HscopeNode::callMethod(const shv::iotqt::node::ShvNode:
 void HscopeNode::setStatus(const std::string& status)
 {
 	m_status = status;
+	cp::RpcSignal ntf;
+	ntf.setMethod(cp::Rpc::SIG_VAL_CHANGED);
+	ntf.setParams(shv::chainpack::RpcValue::fromValue(m_status));
+	ntf.setShvPath(shvPath());
+	emitSendRpcMessage(ntf);
 }
 
 void HscopeNode::attachTester(lua_State* state, const std::string& tester_location)
