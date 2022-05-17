@@ -188,6 +188,7 @@ static int subscribe_change(lua_State* state)
 namespace {
 void new_empty_registry_table(lua_State* state, const char* name)
 {
+	auto sg = StackGuard(state);
 	lua_newtable(state);
 	// 1) new table
 
@@ -319,6 +320,8 @@ void HolyScopeApp::onBrokerConnectedChanged(bool is_connected)
 {
 	m_isBrokerConnected = is_connected;
 
+	auto sg = StackGuard(m_state);
+
 	lua_getfield(m_state, LUA_REGISTRYINDEX, "on_broker_connected_handlers");
 	// 1) registry["on_broker_connected_handlers"]
 
@@ -343,6 +346,7 @@ void HolyScopeApp::onBrokerConnectedChanged(bool is_connected)
 
 void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
 {
+	auto sg = StackGuard(m_state);
 	shvLogFuncFrame() << msg.toCpon();
 	if (msg.isRequest()) {
 		cp::RpcRequest rq(msg);
@@ -554,6 +558,7 @@ HasTester HolyScopeApp::evalLuaFile(const QFileInfo& file)
 extern "C" {
 static int set_status(lua_State* state)
 {
+	auto sg = StackGuard(state, StackGuard::ShouldPopStack::Yes);
 	check_lua_args<LUA_TSTRING>(state, "set_status");
 	// Stack:
 	// 1) string
