@@ -183,6 +183,28 @@ static int subscribe_change(lua_State* state)
 	// <empty stack>
 	return 0;
 }
+
+static int cpon_to_string(lua_State* state)
+{
+	auto sg = StackGuard(state, 1);
+	check_lua_args<LUA_TSTRING>(state, "cpon_to_string");
+	// Stack:
+	// 1) string
+	auto value = shv::chainpack::RpcValue::RpcValue::fromCpon(lua_tostring(state, 1));
+	if (value.type() != shv::chainpack::RpcValue::RpcValue::Type::String) {
+		luaL_error(state, "cpon_to_string: type is not string");
+	}
+
+	auto str_value = value.toString();
+
+	lua_pop(state, 1);
+	// <empty stack>
+
+	lua_pushlstring(state, str_value.c_str(), str_value.size());
+	// 1) str_value
+
+	return 1;
+}
 }
 
 namespace {
@@ -253,6 +275,7 @@ HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
 		{"subscribe_change", subscribe_change},
 		{"rpc_call", rpc_call},
 		{"on_broker_connected", on_broker_connected},
+		{"cpon_to_string", cpon_to_string},
 		{NULL, NULL}
 	};
 
