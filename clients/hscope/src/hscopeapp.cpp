@@ -183,28 +183,6 @@ static int subscribe_change(lua_State* state)
 	// <empty stack>
 	return 0;
 }
-
-static int cpon_to_string(lua_State* state)
-{
-	auto sg = StackGuard(state, 1);
-	check_lua_args<LUA_TSTRING>(state, "cpon_to_string");
-	// Stack:
-	// 1) string
-	auto value = shv::chainpack::RpcValue::RpcValue::fromCpon(lua_tostring(state, 1));
-	if (value.type() != shv::chainpack::RpcValue::RpcValue::Type::String) {
-		luaL_error(state, "cpon_to_string: type is not string");
-	}
-
-	auto str_value = value.toString();
-
-	lua_pop(state, 1);
-	// <empty stack>
-
-	lua_pushlstring(state, str_value.c_str(), str_value.size());
-	// 1) str_value
-
-	return 1;
-}
 }
 
 namespace {
@@ -275,7 +253,6 @@ HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
 		{"subscribe_change", subscribe_change},
 		{"rpc_call", rpc_call},
 		{"on_broker_connected", on_broker_connected},
-		{"cpon_to_string", cpon_to_string},
 		{NULL, NULL}
 	};
 
@@ -367,6 +344,104 @@ void HolyScopeApp::onBrokerConnectedChanged(bool is_connected)
 	// <empty stack>
 }
 
+namespace {
+void push_rpc_value(lua_State* state, const shv::chainpack::RpcValue& value)
+{
+	auto sg = StackGuard(state, lua_gettop(state) + 1);
+	lua_newtable(state);
+	// -1) new table
+
+	switch (value.type()) {
+	case shv::chainpack::RpcValue::Type::String: {
+		auto str_val = value.toString();
+		lua_pushlstring(state, str_val.c_str(), str_val.size());
+		// -2) new table
+		// -1) str_val
+		break;
+	}
+	case shv::chainpack::RpcValue::Type::Int:
+		lua_pushinteger(state, value.toInt());
+		// -2) new table
+		// -1) int
+		break;
+	case shv::chainpack::RpcValue::Type::UInt:
+		lua_pushinteger(state, value.toUInt());
+		// -2) new table
+		// -1) int
+		break;
+	case shv::chainpack::RpcValue::Type::Bool:
+		lua_pushboolean(state, value.toBool());
+		// -2) new table
+		// -1) bool
+		break;
+	case shv::chainpack::RpcValue::Type::Double:
+		lua_pushnumber(state, value.toDouble());
+		// -2) new table
+		// -1) double
+		break;
+	case shv::chainpack::RpcValue::Type::Null:
+		lua_pushnil(state);
+		// -2) new table
+		// -1) nil
+		break;
+	case shv::chainpack::RpcValue::Type::List:
+		lua_newtable(state);
+		// -2) new table
+		// -1) table for list
+
+		for (const auto& value : value.asList()) {
+			push_rpc_value(state, value);
+			// -3) new table
+			// -2) table for list
+			// -1) new value for list
+
+			lua_seti(state, -1, lua_rawlen(state, 1) + 1);
+			// -2) new table
+			// -1) table for list
+		}
+		break;
+	case shv::chainpack::RpcValue::Type::IMap:
+		lua_newtable(state);
+		// -2) new table
+		// -1) table for IMap
+		for (const auto& [k, v] : value.asIMap()) {
+			push_rpc_value(state, v);
+			// -3) new table
+			// -2) table for map
+			// -1) value for map table
+
+			lua_seti(state, -1, k + 1/* lua arrays are indexed from 1 */);
+			// -2) new table
+			// -1) table for map
+		}
+		break;
+	case shv::chainpack::RpcValue::Type::Map:
+		lua_newtable(state);
+		// -2) new table
+		// -1) table for Map
+
+		for (const auto& [k, v] : value.asMap()) {
+			push_rpc_value(state, v);
+			// -3) new table
+			// -2) table for map
+			// -1) value for map table
+
+			lua_setfield(state, -1, k.c_str());
+			// -2) new table
+			// -1) table for map
+		}
+		break;
+	default:
+		throw std::runtime_error("Can't convert RpcValue to lua value: unsupported type "s + value.typeName());
+	}
+	// -2) new table
+	// -1) value
+
+	lua_setfield(state, -2, "value");
+	// -1) new table
+}
+}
+
 void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
 {
 	auto sg = StackGuard(m_state);
@@ -392,11 +467,10 @@ void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
 			// 2) function
 
 			// A handler for this req_id exists, so it's from Lua.
-			auto resultStr = rp.result().toCpon();
-			lua_pushlstring(m_state, resultStr.c_str(), resultStr.size());
+			push_rpc_value(m_state, rp.result());
 			// 1) registry["rpc_call_handlers"]
 			// 2) registry["rpc_call_handlers"][req_id]
-			// 3) resultStr
+			// 3) result
 
 			lua_call(m_state, 1, 0);
 			// 1) registry["rpc_call_handlers"]

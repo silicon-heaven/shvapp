@@ -9,7 +9,7 @@ return function (set_status, path_to_agent, filesystem_path)
 
 	return function ()
 		shv.rpc_call(path_to_agent, "runScript", string.format([[df %s | sed -n -r '1n;s/[^ ]+ +[^ ]+ +[^ ]+ +[^ ]+ +([^ ]+)%% +[^\n ]+/\1/;p']], filesystem_path), function (result)
-			local percent = tonumber(shv.cpon_to_string(result))
+			local percent = tonumber(result.value)
 			local res = {
 				message = tostring(percent) .. "% usage"
 			}
