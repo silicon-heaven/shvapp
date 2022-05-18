@@ -80,7 +80,7 @@ shv::chainpack::RpcValue AppRootNode::callMethodRq(const shv::chainpack::RpcRequ
 extern "C" {
 static int on_broker_connected(lua_State* state)
 {
-	auto sg = StackGuard(state, StackGuard::ShouldPopStack::Yes);
+	auto sg = StackGuard(state, 0);
 	check_lua_args<LUA_TFUNCTION>(state, "on_broker_connected");
 	// 1) function
 
@@ -102,7 +102,7 @@ static int on_broker_connected(lua_State* state)
 
 static int rpc_call(lua_State* state)
 {
-	auto sg = StackGuard(state, StackGuard::ShouldPopStack::Yes);
+	auto sg = StackGuard(state, 0);
 	check_lua_args<LUA_TSTRING, LUA_TSTRING, LUA_TSTRING, LUA_TFUNCTION>(state, "rpc_call");
 	// 1) path
 	// 2) method
@@ -138,7 +138,7 @@ static int rpc_call(lua_State* state)
 
 static int subscribe_change(lua_State* state)
 {
-	auto sg = StackGuard(state, StackGuard::ShouldPopStack::Yes);
+	auto sg = StackGuard(state, 0);
 	check_lua_args<LUA_TSTRING, LUA_TFUNCTION>(state, "subscribe_change");
 	// 1) path
 	// 2) callback
@@ -558,7 +558,7 @@ HasTester HolyScopeApp::evalLuaFile(const QFileInfo& file)
 extern "C" {
 static int set_status(lua_State* state)
 {
-	auto sg = StackGuard(state, StackGuard::ShouldPopStack::Yes);
+	auto sg = StackGuard(state, 0);
 	check_lua_args<LUA_TSTRING>(state, "set_status");
 	// Stack:
 	// 1) string
