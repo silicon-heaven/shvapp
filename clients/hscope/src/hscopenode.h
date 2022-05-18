@@ -24,12 +24,13 @@ public:
 	const shv::chainpack::MetaMethod* metaMethod(const StringViewList& shv_path, size_t ix) override;
 	shv::chainpack::RpcValue callMethod(const StringViewList& shv_path, const std::string& method, const shv::chainpack::RpcValue& params, const shv::chainpack::RpcValue& user_id) override;
 
-	void setStatus(const std::string& status);
+	void setStatus(const std::string& severity, const std::string& message);
 	void attachTester(lua_State* state, const std::string& tester_location);
 
 private:
+
 	lua_State* m_state;
-	std::string m_status;
+	shv::chainpack::RpcValue m_status;
 	std::string m_testerLocation;
 };
 #endif /*HSCOPENODE_H*/

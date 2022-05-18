@@ -582,13 +582,42 @@ extern "C" {
 static int set_status(lua_State* state)
 {
 	auto sg = StackGuard(state, 0);
-	check_lua_args<LUA_TSTRING>(state, "set_status");
+	check_lua_args<LUA_TTABLE>(state, "set_status");
 	// Stack:
-	// 1) string
+	// 1) table
 	auto node = static_cast<HscopeNode*>(lua_touserdata(state, lua_upvalueindex(1)));
-	node->setStatus(lua_tostring(state, 1));
+	lua_getfield(state, 1, "severity");
+	// 1) table
+	// 2) table["severity"]
 
-	lua_pop(state, 1);
+	if (lua_type(state, -1) != LUA_TSTRING) {
+		// 1) table
+		// 2) nil
+		luaL_error(state, "set_status: severity must be of type string");
+	}
+
+	auto severity = lua_tostring(state, -1);
+	lua_getfield(state, 1, "message");
+
+	// 1) table
+	// 2) table["severity"]
+	// 3) table["message"]
+	std::string message;
+
+	if (auto type = lua_type(state, -1); type != LUA_TNIL) {
+		// 1) table
+		// 2) table["severity"]
+		// 3) table["message"]
+		if (type == LUA_TSTRING) {
+			message = lua_tostring(state, -1);
+		} else {
+			luaL_error(state, "set_status: message must be of type string");
+		}
+	}
+
+	node->setStatus(severity, message);
+
+	lua_pop(state, 3);
 	// <empty stack>
 	return 0;
 }
@@ -668,7 +697,10 @@ void HolyScopeApp::resolveConfTree(const QDir& dir, shv::iotqt::node::ShvNode* p
 	// -3) parent environment
 	// -2) new environment
 	// -1) set_status
+
 	lua_setfield(m_state, -2, "set_status");
+	// -2) parent environment
+	// -1) new environment
 
 	if (dir.exists("hscope.lua")) {
 		shvInfo() << "Lua file found" << dir.filePath("hscope.lua");

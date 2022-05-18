@@ -22,6 +22,7 @@ std::vector<cp::MetaMethod> methodsWithTester {
 HscopeNode::HscopeNode(const std::string& name, shv::iotqt::node::ShvNode* parent)
 	: Super(name, parent)
 	, m_state(nullptr)
+	, m_status(shv::chainpack::RpcValue::Map{})
 {
 }
 
@@ -77,12 +78,20 @@ shv::chainpack::RpcValue HscopeNode::callMethod(const shv::iotqt::node::ShvNode:
 	return Super::callMethod(shv_path, method, params, user_id);
 }
 
-void HscopeNode::setStatus(const std::string& status)
+void HscopeNode::setStatus(const std::string& severity, const std::string& message)
 {
-	m_status = status;
+	if (severity != "good" && severity != "warn" && severity != "error") {
+		throw std::logic_error(std::string{"Invalid severity value: "} + severity + "Allowed values for severity are 'good', 'warn', or 'error'");
+	}
+
+	m_status = shv::chainpack::RpcValue::Map{
+		{"message", message},
+		{"severity", severity}
+	};
+
 	cp::RpcSignal ntf;
 	ntf.setMethod(cp::Rpc::SIG_VAL_CHANGED);
-	ntf.setParams(shv::chainpack::RpcValue::fromValue(m_status));
+	ntf.setParams((m_status));
 	ntf.setShvPath(shvPath());
 	emitSendRpcMessage(ntf);
 }
