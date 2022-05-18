@@ -1,8 +1,14 @@
 #include "lua_utils.h"
 
-[[nodiscard]] StackGuard::StackGuard(lua_State* state, ShouldPopStack shouldPopStack)
+[[nodiscard]] StackGuard::StackGuard(lua_State* state, int target_size)
     : m_state(state)
-    , m_targetSize(shouldPopStack == ShouldPopStack::Yes ? 0 : lua_gettop(m_state))
+    , m_targetSize(target_size)
+{
+}
+
+[[nodiscard]] StackGuard::StackGuard(lua_State* state)
+    : m_state(state)
+    , m_targetSize(lua_gettop(m_state))
 {
 }
 

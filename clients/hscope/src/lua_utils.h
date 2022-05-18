@@ -56,12 +56,8 @@ void check_lua_args(lua_State* state, const char* lua_fn_name)
 class StackGuard
 {
 public:
-	enum class ShouldPopStack {
-		Yes,
-		No
-	};
-
-	[[nodiscard]] StackGuard(lua_State* state, ShouldPopStack shouldPopStack = ShouldPopStack::No);
+	[[nodiscard]] StackGuard(lua_State* state, int target_size);
+	[[nodiscard]] StackGuard(lua_State* state);
 	~StackGuard();
 private:
 	lua_State* m_state;

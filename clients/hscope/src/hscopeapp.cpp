@@ -80,7 +80,7 @@ shv::chainpack::RpcValue AppRootNode::callMethodRq(const shv::chainpack::RpcRequ
 extern "C" {
 static int on_broker_connected(lua_State* state)
 {
-	auto sg = StackGuard(state, StackGuard::ShouldPopStack::Yes);
+	auto sg = StackGuard(state, 0);
 	check_lua_args<LUA_TFUNCTION>(state, "on_broker_connected");
 	// 1) function
 
@@ -102,7 +102,7 @@ static int on_broker_connected(lua_State* state)
 
 static int rpc_call(lua_State* state)
 {
-	auto sg = StackGuard(state, StackGuard::ShouldPopStack::Yes);
+	auto sg = StackGuard(state, 0);
 	check_lua_args<LUA_TSTRING, LUA_TSTRING, LUA_TSTRING, LUA_TFUNCTION>(state, "rpc_call");
 	// 1) path
 	// 2) method
@@ -138,7 +138,7 @@ static int rpc_call(lua_State* state)
 
 static int subscribe_change(lua_State* state)
 {
-	auto sg = StackGuard(state, StackGuard::ShouldPopStack::Yes);
+	auto sg = StackGuard(state, 0);
 	check_lua_args<LUA_TSTRING, LUA_TFUNCTION>(state, "subscribe_change");
 	// 1) path
 	// 2) callback
@@ -183,11 +183,34 @@ static int subscribe_change(lua_State* state)
 	// <empty stack>
 	return 0;
 }
+
+static int cpon_to_string(lua_State* state)
+{
+	auto sg = StackGuard(state, 1);
+	check_lua_args<LUA_TSTRING>(state, "cpon_to_string");
+	// Stack:
+	// 1) string
+	auto value = shv::chainpack::RpcValue::RpcValue::fromCpon(lua_tostring(state, 1));
+	if (value.type() != shv::chainpack::RpcValue::RpcValue::Type::String) {
+		luaL_error(state, "cpon_to_string: type is not string");
+	}
+
+	auto str_value = value.toString();
+
+	lua_pop(state, 1);
+	// <empty stack>
+
+	lua_pushlstring(state, str_value.c_str(), str_value.size());
+	// 1) str_value
+
+	return 1;
+}
 }
 
 namespace {
 void new_empty_registry_table(lua_State* state, const char* name)
 {
+	auto sg = StackGuard(state);
 	lua_newtable(state);
 	// 1) new table
 
@@ -252,6 +275,7 @@ HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
 		{"subscribe_change", subscribe_change},
 		{"rpc_call", rpc_call},
 		{"on_broker_connected", on_broker_connected},
+		{"cpon_to_string", cpon_to_string},
 		{NULL, NULL}
 	};
 
@@ -319,6 +343,8 @@ void HolyScopeApp::onBrokerConnectedChanged(bool is_connected)
 {
 	m_isBrokerConnected = is_connected;
 
+	auto sg = StackGuard(m_state);
+
 	lua_getfield(m_state, LUA_REGISTRYINDEX, "on_broker_connected_handlers");
 	// 1) registry["on_broker_connected_handlers"]
 
@@ -343,6 +369,7 @@ void HolyScopeApp::onBrokerConnectedChanged(bool is_connected)
 
 void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
 {
+	auto sg = StackGuard(m_state);
 	shvLogFuncFrame() << msg.toCpon();
 	if (msg.isRequest()) {
 		cp::RpcRequest rq(msg);
@@ -554,13 +581,43 @@ HasTester HolyScopeApp::evalLuaFile(const QFileInfo& file)
 extern "C" {
 static int set_status(lua_State* state)
 {
-	check_lua_args<LUA_TSTRING>(state, "set_status");
+	auto sg = StackGuard(state, 0);
+	check_lua_args<LUA_TTABLE>(state, "set_status");
 	// Stack:
-	// 1) string
+	// 1) table
 	auto node = static_cast<HscopeNode*>(lua_touserdata(state, lua_upvalueindex(1)));
-	node->setStatus(lua_tostring(state, 1));
+	lua_getfield(state, 1, "severity");
+	// 1) table
+	// 2) table["severity"]
 
-	lua_pop(state, 1);
+	if (lua_type(state, -1) != LUA_TSTRING) {
+		// 1) table
+		// 2) nil
+		luaL_error(state, "set_status: severity must be of type string");
+	}
+
+	auto severity = lua_tostring(state, -1);
+	lua_getfield(state, 1, "message");
+
+	// 1) table
+	// 2) table["severity"]
+	// 3) table["message"]
+	std::string message;
+
+	if (auto type = lua_type(state, -1); type != LUA_TNIL) {
+		// 1) table
+		// 2) table["severity"]
+		// 3) table["message"]
+		if (type == LUA_TSTRING) {
+			message = lua_tostring(state, -1);
+		} else {
+			luaL_error(state, "set_status: message must be of type string");
+		}
+	}
+
+	node->setStatus(severity, message);
+
+	lua_pop(state, 3);
 	// <empty stack>
 	return 0;
 }
@@ -640,7 +697,10 @@ void HolyScopeApp::resolveConfTree(const QDir& dir, shv::iotqt::node::ShvNode* p
 	// -3) parent environment
 	// -2) new environment
 	// -1) set_status
+
 	lua_setfield(m_state, -2, "set_status");
+	// -2) parent environment
+	// -1) new environment
 
 	if (dir.exists("hscope.lua")) {
 		shvInfo() << "Lua file found" << dir.filePath("hscope.lua");
