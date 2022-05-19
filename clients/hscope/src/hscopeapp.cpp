@@ -432,7 +432,8 @@ void push_rpc_value(lua_State* state, const shv::chainpack::RpcValue& value)
 		}
 		break;
 	default:
-		throw std::runtime_error("Can't convert RpcValue to lua value: unsupported type "s + value.typeName());
+		shvWarning() << "Can't convert RpcValue to lua value: unsupported type" << value.typeName();
+		lua_pushnil(state);
 	}
 	// -2) new table
 	// -1) value
