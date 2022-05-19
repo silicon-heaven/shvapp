@@ -18,7 +18,7 @@ template <int... ExpectedArgTypes>
 void check_lua_args(lua_State* state, const char* lua_fn_name)
 {
 	if (auto nargs = lua_gettop(state); nargs != sizeof...(ExpectedArgTypes)) {
-		luaL_error(state, "%s expects 2 arguments (got %d)", lua_fn_name, nargs);
+		luaL_error(state, "%s expects %d arguments (got %d)", lua_fn_name, sizeof...(ExpectedArgTypes), nargs);
 	}
 
 	if constexpr (sizeof...(ExpectedArgTypes) != 0) {
