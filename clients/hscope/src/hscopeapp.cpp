@@ -439,6 +439,36 @@ void push_rpc_value(lua_State* state, const shv::chainpack::RpcValue& value)
 
 	lua_setfield(state, -2, "value");
 	// -1) new table
+
+	lua_newtable(state);
+	// -2) new table
+	// -1) table for metadata
+
+	for (const auto& [k, v] : value.metaData().sValues()) {
+		push_rpc_value(state, v);
+		// -3) new table
+		// -2) table for metadata
+		// -1) i meta value
+
+		lua_setfield(state, -2, k.c_str());
+		// -2) new table
+		// -1) table for metadata
+	}
+
+	for (const auto& [i, v] : value.metaData().iValues()) {
+		push_rpc_value(state, v);
+		// -3) new table
+		// -2) table for metadata
+		// -1) i meta value
+
+		lua_seti(state, -2, i + 1/* lua arrays are indexed from 1 */);
+		// -2) new table
+		// -1) table for metadata
+	}
+	// -2) new table
+	// -1) table for metadata
+
+	lua_setfield(state, -2, "meta");
 }
 }
 
