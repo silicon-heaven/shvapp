@@ -572,8 +572,7 @@ void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
 					// 4) .callback
 					// 5) arg1
 
-					auto new_value = nt.params().toStdString();
-					lua_pushlstring(m_state, new_value.c_str(), new_value.size());
+					push_rpc_value(m_state, nt.params());
 					// 1) registry["change_callbacks"]
 					// 2) key
 					// 3) {callback: function, path: string}
