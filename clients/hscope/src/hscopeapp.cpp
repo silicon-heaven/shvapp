@@ -220,6 +220,13 @@ void new_empty_registry_table(lua_State* state, const char* name)
 	lua_setfield(state, LUA_REGISTRYINDEX, name);
 	// <empty stack>
 }
+
+void handle_lua_error(lua_State* state, const std::string& where)
+{
+	shvError() << "Error in" << where;
+	shvError() << lua_tostring(state, -1);
+	lua_pop(state, 1);
+}
 }
 
 HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
@@ -363,9 +370,13 @@ void HolyScopeApp::onBrokerConnectedChanged(bool is_connected)
 		// 2) key
 		// 3) on_broker_connected_handler
 
-		lua_call(m_state, 0, 0);
+		auto errors = lua_pcall(m_state, 0, 0, 0);
 		// 1) registry["on_broker_connected_handlers"]
 		// 2) key
+
+		if (errors) {
+			handle_lua_error(m_state, "on_broker_connected_handler");
+		}
 	}
 
 	// 1) registry["on_broker_connected_handlers"]
@@ -546,9 +557,12 @@ void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
 			// 2) registry["rpc_call_handlers"][req_id]
 			// 3) result
 
-			lua_call(m_state, 1, 0);
+			auto errors = lua_pcall(m_state, 1, 0, 1);
 			// 1) registry["rpc_call_handlers"]
 
+			if (errors) {
+				handle_lua_error(m_state, "rpc_call_handler");
+			}
 		} else {
 			// 1) registry["rpc_call_handlers"]
 			// 2) nil
@@ -609,10 +623,14 @@ void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
 					// 5) arg1
 					// 6) arg2
 
-					lua_call(m_state, 2, 0);
+					auto errors = lua_pcall(m_state, 2, 0, 0);
 					// 1) registry["change_callbacks"]
 					// 2) key
 					// 3) {callback: function, path: string}
+
+					if (errors) {
+						handle_lua_error(m_state, "change_callback");
+					}
 
 					lua_pop(m_state, 1);
 					// 1) registry["change_callbacks"]
@@ -658,9 +676,7 @@ HasTester HolyScopeApp::evalLuaFile(const QFileInfo& file)
 		// -3) parent environment
 		// -2) new environment
 		// -1) error
-		shvError() << "Error in " << path;
-		shvError() << lua_tostring(m_state, -1);
-		lua_pop(m_state, 1);
+		handle_lua_error(m_state, path);
 		// -2) parent environment
 		// -1) new environment
 
@@ -675,7 +691,7 @@ HasTester HolyScopeApp::evalLuaFile(const QFileInfo& file)
 	}
 
 	if (nresults != 1) {
-		shvError() << "Error in " << path;
+		shvError() << "Error in" << path;
 		shvError() << "Lua function returned multiple results";
 		shvError() << "One value of type `function` expected";
 		lua_pop(m_state, nresults);
