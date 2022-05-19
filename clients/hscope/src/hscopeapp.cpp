@@ -20,6 +20,31 @@
 
 using namespace std;
 
+#define logLuaD() shvCDebug("Lua")
+#define logLuaI() shvCInfo("Lua")
+#define logLuaW() shvCWarning("Lua")
+#define logLuaE() shvCError("Lua")
+
+#define LUA_LOG_FN(name, logger) \
+static int name(lua_State* state) \
+{ \
+	auto sg = StackGuard(state, 0); \
+ \
+	for (auto i = 0; i < lua_gettop(state); i++) { \
+		logger() << lua_tostring(state, i + 1); \
+	} \
+	lua_pop(state, lua_gettop(state)); \
+ \
+	return 0; \
+}
+
+extern "C" {
+LUA_LOG_FN(log_debug, logLuaD);
+LUA_LOG_FN(log_info, logLuaI);
+LUA_LOG_FN(log_warning, logLuaW);
+LUA_LOG_FN(log_error, logLuaE);
+}
+
 namespace cp = shv::chainpack;
 namespace si = shv::iotqt;
 
@@ -253,6 +278,10 @@ HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
 		{"subscribe_change", subscribe_change},
 		{"rpc_call", rpc_call},
 		{"on_broker_connected", on_broker_connected},
+		{"log_debug", log_debug},
+		{"log_info", log_info},
+		{"log_warning", log_warning},
+		{"log_error", log_error},
 		{NULL, NULL}
 	};
 

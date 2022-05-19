@@ -2,7 +2,7 @@ local shv_utils = require('shv_utils')
 
 shv.on_broker_connected(function ()
     shv.subscribe_change('test/shvagent/tester/prop1', function (path, new_value)
-        print('path ' .. path)
+        shv.log_info('path ' .. path)
         shv_utils.print_table(new_value, 'result.')
     end)
 

@@ -9,7 +9,7 @@ function utils.print_table(table, key_prefix)
 		if type(v) == "table" then
 			utils.print_table(v, key_prefix .. k .. '.')
 		else
-			print(string.format('%s%s=%s', key_prefix, k, v))
+			shv.log_info(string.format('%s%s=%s', key_prefix, k, v))
 		end
 	end
 end
