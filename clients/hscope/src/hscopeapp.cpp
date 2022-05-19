@@ -431,6 +431,20 @@ void push_rpc_value(lua_State* state, const shv::chainpack::RpcValue& value)
 			// -1) table for map
 		}
 		break;
+	case shv::chainpack::RpcValue::Type::DateTime:
+		lua_newtable(state);
+		// -2) new table
+		// -1) table for DateTime
+
+		lua_pushinteger(state, value.toDateTime().msecsSinceEpoch());
+		// -3) new table
+		// -2) table for DateTime
+		// -1) msecsSinceEpoch
+
+		lua_setfield(state, -2, "msecsSinceEpoch");
+		// -2) new table
+		// -1) table for DateTime
+		break;
 	default:
 		shvWarning() << "Can't convert RpcValue to lua value: unsupported type" << value.typeName();
 		lua_pushnil(state);
