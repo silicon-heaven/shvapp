@@ -552,12 +552,20 @@ void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
 			// 2) function
 
 			// A handler for this req_id exists, so it's from Lua.
-			push_rpc_value(m_state, rp.result());
+			if (rp.isSuccess()) {
+				push_rpc_value(m_state, rp.result());
+				lua_pushnil(m_state);
+			} else {
+				lua_pushnil(m_state);
+				push_rpc_value(m_state, rp.error());
+			}
+
 			// 1) registry["rpc_call_handlers"]
 			// 2) registry["rpc_call_handlers"][req_id]
-			// 3) result
+			// 3) result/nil
+			// 3) error/nil
 
-			auto errors = lua_pcall(m_state, 1, 0, 0);
+			auto errors = lua_pcall(m_state, 2, 0, 0);
 			// 1) registry["rpc_call_handlers"]
 
 			if (errors) {
