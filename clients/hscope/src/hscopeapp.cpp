@@ -557,7 +557,7 @@ void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
 			// 2) registry["rpc_call_handlers"][req_id]
 			// 3) result
 
-			auto errors = lua_pcall(m_state, 1, 0, 1);
+			auto errors = lua_pcall(m_state, 1, 0, 0);
 			// 1) registry["rpc_call_handlers"]
 
 			if (errors) {
@@ -875,10 +875,10 @@ void HolyScopeApp::resolveConfTree(const QDir& dir, shv::iotqt::node::ShvNode* p
 
 	QDirIterator it(dir);
 	while (it.hasNext()) {
+		it.next();
 		if (it.fileInfo().isDir() && it.fileName() != "." && it.fileName() != "..") {
 			resolveConfTree(it.filePath(), new_node);
 		}
-		it.next();
 	}
 
 	lua_pop(m_state, 1);
