@@ -450,7 +450,7 @@ void push_rpc_value(lua_State* state, const shv::chainpack::RpcValue& value)
 			// -2) table for map
 			// -1) value for map table
 
-			lua_seti(state, -1, k + 1/* lua arrays are indexed from 1 */);
+			lua_seti(state, -2, k + 1/* lua arrays are indexed from 1 */);
 			// -2) new table
 			// -1) table for map
 		}
@@ -466,7 +466,7 @@ void push_rpc_value(lua_State* state, const shv::chainpack::RpcValue& value)
 			// -2) table for map
 			// -1) value for map table
 
-			lua_setfield(state, -1, k.c_str());
+			lua_setfield(state, -2, k.c_str());
 			// -2) new table
 			// -1) table for map
 		}
