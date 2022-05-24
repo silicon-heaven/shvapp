@@ -649,7 +649,16 @@ HasTester HolyScopeApp::evalLuaFile(const QFileInfo& file)
 {
 	auto sg = StackGuard(m_state);
 	auto path = file.filePath().toStdString();
-	luaL_loadfile(m_state, path.c_str());
+	auto errors = luaL_loadfile(m_state, path.c_str());
+	if (errors) {
+		// -3) parent environment
+		// -2) new environment
+		// -1) error
+		handle_lua_error(m_state, path);
+		// -2) parent environment
+		// -1) new environment
+		return HasTester::No;
+	}
 	// -3) parent environment
 	// -2) new environment
 	// -1) hscope.lua
@@ -668,7 +677,7 @@ HasTester HolyScopeApp::evalLuaFile(const QFileInfo& file)
 	// -1) hscope.lua
 
 	auto stack_size = lua_gettop(m_state);
-	auto errors = lua_pcall(m_state, 0, LUA_MULTRET, 0);
+	errors = lua_pcall(m_state, 0, LUA_MULTRET, 0);
 	// -2) parent environment
 	// -1) new environment
 
