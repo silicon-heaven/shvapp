@@ -875,10 +875,10 @@ void HolyScopeApp::resolveConfTree(const QDir& dir, shv::iotqt::node::ShvNode* p
 
 	QDirIterator it(dir);
 	while (it.hasNext()) {
+		it.next();
 		if (it.fileInfo().isDir() && it.fileName() != "." && it.fileName() != "..") {
 			resolveConfTree(it.filePath(), new_node);
 		}
-		it.next();
 	}
 
 	lua_pop(m_state, 1);
