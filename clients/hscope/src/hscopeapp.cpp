@@ -450,7 +450,7 @@ void push_rpc_value(lua_State* state, const shv::chainpack::RpcValue& value)
 			// -2) table for map
 			// -1) value for map table
 
-			lua_seti(state, -1, k + 1/* lua arrays are indexed from 1 */);
+			lua_seti(state, -2, k + 1/* lua arrays are indexed from 1 */);
 			// -2) new table
 			// -1) table for map
 		}
@@ -466,7 +466,7 @@ void push_rpc_value(lua_State* state, const shv::chainpack::RpcValue& value)
 			// -2) table for map
 			// -1) value for map table
 
-			lua_setfield(state, -1, k.c_str());
+			lua_setfield(state, -2, k.c_str());
 			// -2) new table
 			// -1) table for map
 		}
@@ -552,12 +552,20 @@ void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
 			// 2) function
 
 			// A handler for this req_id exists, so it's from Lua.
-			push_rpc_value(m_state, rp.result());
+			if (rp.isSuccess()) {
+				push_rpc_value(m_state, rp.result());
+				lua_pushnil(m_state);
+			} else {
+				lua_pushnil(m_state);
+				push_rpc_value(m_state, rp.error());
+			}
+
 			// 1) registry["rpc_call_handlers"]
 			// 2) registry["rpc_call_handlers"][req_id]
-			// 3) result
+			// 3) result/nil
+			// 3) error/nil
 
-			auto errors = lua_pcall(m_state, 1, 0, 0);
+			auto errors = lua_pcall(m_state, 2, 0, 0);
 			// 1) registry["rpc_call_handlers"]
 
 			if (errors) {
@@ -649,7 +657,16 @@ HasTester HolyScopeApp::evalLuaFile(const QFileInfo& file)
 {
 	auto sg = StackGuard(m_state);
 	auto path = file.filePath().toStdString();
-	luaL_loadfile(m_state, path.c_str());
+	auto errors = luaL_loadfile(m_state, path.c_str());
+	if (errors) {
+		// -3) parent environment
+		// -2) new environment
+		// -1) error
+		handle_lua_error(m_state, path);
+		// -2) parent environment
+		// -1) new environment
+		return HasTester::No;
+	}
 	// -3) parent environment
 	// -2) new environment
 	// -1) hscope.lua
@@ -668,7 +685,7 @@ HasTester HolyScopeApp::evalLuaFile(const QFileInfo& file)
 	// -1) hscope.lua
 
 	auto stack_size = lua_gettop(m_state);
-	auto errors = lua_pcall(m_state, 0, LUA_MULTRET, 0);
+	errors = lua_pcall(m_state, 0, LUA_MULTRET, 0);
 	// -2) parent environment
 	// -1) new environment
 
