@@ -604,8 +604,13 @@ void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
 				// 3) {callback: function, path: string}
 				// 4) .path
 
-				if (nt.shvPath().asString().find(lua_tostring(m_state, 4)) == 0) {
-					lua_pop(m_state, 1);
+				auto path = lua_tostring(m_state, 4);
+				lua_pop(m_state, 1);
+				// 1) registry["change_callbacks"]
+				// 2) key
+				// 3) {callback: function, path: string}
+
+				if (nt.shvPath().asString().find(path) == 0) {
 					// 1) registry["change_callbacks"]
 					// 2) key
 					// 3) {callback: function, path: string}
@@ -639,11 +644,11 @@ void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
 					if (errors) {
 						handle_lua_error(m_state, "change_callback");
 					}
-
-					lua_pop(m_state, 1);
-					// 1) registry["change_callbacks"]
-					// 2) key
 				}
+
+				lua_pop(m_state, 1);
+				// 1) registry["change_callbacks"]
+				// 2) key
 			}
 			// 1) registry["change_callbacks"]
 
