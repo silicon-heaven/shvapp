@@ -796,7 +796,7 @@ static int set_status(lua_State* state)
 		luaL_error(state, "set_status: severity must be of type string");
 	}
 
-	auto severity = lua_tostring(state, -1);
+	auto severity = std::string{lua_tostring(state, -1)};
 	lua_getfield(state, 1, "message");
 
 	// 1) table
@@ -815,10 +815,14 @@ static int set_status(lua_State* state)
 		}
 	}
 
-	node->setStatus(severity, message);
-
 	lua_pop(state, 3);
 	// <empty stack>
+
+	if (severity != "good" && severity != "warn" && severity != "error") {
+		luaL_error(state, "Invalid severity value: %s Allowed values for severity are 'good', 'warn', or 'error'", severity.c_str());
+	}
+
+	node->setStatus(severity, message);
 	return 0;
 }
 }
