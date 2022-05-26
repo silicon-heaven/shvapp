@@ -43,7 +43,7 @@ public:
 
 	AppCliOptions* cliOptions() {return m_cliOptions;}
 
-	void subscribeLua(const std::string& path);
+	void subscribeLua(const std::string& path, const std::string& type);
 	int callShvMethod(const std::string& path, const std::string& method, const shv::chainpack::RpcValue& params = shv::chainpack::RpcValue());
 
 private:

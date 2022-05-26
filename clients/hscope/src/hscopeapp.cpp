@@ -161,12 +161,13 @@ static int rpc_call(lua_State* state)
 	return 0;
 }
 
-static int subscribe_change(lua_State* state)
+static int subscribe(lua_State* state)
 {
 	auto sg = StackGuard(state, 0);
-	check_lua_args<LUA_TSTRING, LUA_TFUNCTION>(state, "subscribe_change");
+	check_lua_args<LUA_TSTRING, LUA_TSTRING, LUA_TFUNCTION>(state, "subscribe");
 	// 1) path
-	// 2) callback
+	// 2) type
+	// 3) callback
 
 	auto hscope = static_cast<HolyScopeApp*>(lua_touserdata(state, lua_upvalueindex(1)));
 	if (!hscope->rpcConnection()->isBrokerConnected()) {
@@ -174,35 +175,43 @@ static int subscribe_change(lua_State* state)
 	}
 
 	auto path = std::string{lua_tostring(state, 1)};
-	hscope->subscribeLua(path);
+	auto type = std::string{lua_tostring(state, 2)};
+	hscope->subscribeLua(path, type);
 
 	lua_newtable(state);
 	// 1) path
-	// 2) callback
-	// 3) the newly created table
+	// 2) type
+	// 3) callback
+	// 4) the newly created table
 
 	lua_insert(state, 1);
 	// 1) the newly created table
 	// 2) path
-	// 3) callback
+	// 3) type
+	// 4) callback
 
 	lua_setfield(state, 1, "callback");
+	// 1) the newly created table
+	// 2) path
+	// 3) type
+
+	lua_setfield(state, 1, "type");
 	// 1) the newly created table
 	// 2) path
 
 	lua_setfield(state, 1, "path");
 	// 1) the newly created table
 
-	lua_getfield(state, LUA_REGISTRYINDEX, "change_callbacks");
+	lua_getfield(state, LUA_REGISTRYINDEX, "subscribe_callbacks");
 	// 1) the newly created table
-	// 2) registry["change_callbacks"]
+	// 2) registry["subscribe_callbacks"]
 
 	lua_insert(state, 1);
-	// 1) registry["change_callbacks"]
+	// 1) registry["subscribe_callbacks"]
 	// 2) the newly created table
 
 	lua_seti(state, 1, lua_rawlen(state, 1) + 1);
-	// 1) registry["change_callbacks"]
+	// 1) registry["subscribe_callbacks"]
 
 	lua_pop(state, 1);
 	// <empty stack>
@@ -282,7 +291,7 @@ HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
 	// 1) our library table
 
 	luaL_Reg functions_to_register[] = {
-		{"subscribe_change", subscribe_change},
+		{"subscribe", subscribe},
 		{"rpc_call", rpc_call},
 		{"on_broker_connected", on_broker_connected},
 		{"log_debug", log_debug},
@@ -303,7 +312,7 @@ HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
 	// <empty stack>
 
 
-	new_empty_registry_table(m_state, "change_callbacks");
+	new_empty_registry_table(m_state, "subscribe_callbacks");
 	new_empty_registry_table(m_state, "rpc_call_handlers");
 	new_empty_registry_table(m_state, "on_broker_connected_handlers");
 	new_empty_registry_table(m_state, "testers");
@@ -585,71 +594,82 @@ void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
 	} else if (msg.isSignal()) {
 		cp::RpcSignal nt(msg);
 		shvDebug() << "RPC notify received:" << nt.toPrettyString();
-		if (nt.method() == cp::Rpc::SIG_VAL_CHANGED) {
-			lua_getfield(m_state, LUA_REGISTRYINDEX, "change_callbacks");
-			// 1) registry["change_callbacks"]
+		lua_getfield(m_state, LUA_REGISTRYINDEX, "subscribe_callbacks");
+		// 1) registry["subscribe_callbacks"]
 
-			lua_pushnil(m_state);
-			// 1) registry["change_callbacks"]
-			// 2) nil
+		lua_pushnil(m_state);
+		// 1) registry["subscribe_callbacks"]
+		// 2) nil
 
-			while (lua_next(m_state, 1)) {
-				// 1) registry["change_callbacks"]
+		while (lua_next(m_state, 1)) {
+			// 1) registry["subscribe_callbacks"]
+			// 2) key
+			// 3) {callback: function, path: string, type: string}
+
+			lua_getfield(m_state, 3, "path");
+			// 1) registry["subscribe_callbacks"]
+			// 2) key
+			// 3) {callback: function, path: string, type: string}
+			// 4) .path
+
+			lua_getfield(m_state, 3, "type");
+			// 1) registry["subscribe_callbacks"]
+			// 2) key
+			// 3) {callback: function, path: string, type: string}
+			// 4) .path
+			// 5) .type
+
+			auto path = lua_tostring(m_state, 4);
+			auto type = lua_tostring(m_state, 5);
+			lua_pop(m_state, 2);
+			// 1) registry["subscribe_callbacks"]
+			// 2) key
+			// 3) {callback: function, path: string, type: string}
+
+			if (nt.shvPath().asString().find(path) == 0 && nt.method().asString() == type) {
+				// 1) registry["subscribe_callbacks"]
 				// 2) key
-				// 3) {callback: function, path: string}
+				// 3) {callback: function, path: string, type: string}
 
-				lua_getfield(m_state, 3, "path");
-				// 1) registry["change_callbacks"]
+				lua_getfield(m_state, 3, "callback");
+				// 1) registry["subscribe_callbacks"]
 				// 2) key
-				// 3) {callback: function, path: string}
-				// 4) .path
+				// 3) {callback: function, path: string, type: string}
+				// 4) .callback
 
-				if (nt.shvPath().asString().find(lua_tostring(m_state, 4)) == 0) {
-					lua_pop(m_state, 1);
-					// 1) registry["change_callbacks"]
-					// 2) key
-					// 3) {callback: function, path: string}
+				lua_pushstring(m_state, nt.shvPath().asString().c_str());
+				// 1) registry["subscribe_callbacks"]
+				// 2) key
+				// 3) {callback: function, path: string, type: string}
+				// 4) .callback
+				// 5) arg1
 
-					lua_getfield(m_state, 3, "callback");
-					// 1) registry["change_callbacks"]
-					// 2) key
-					// 3) {callback: function, path: string}
-					// 4) .callback
+				push_rpc_value(m_state, nt.params());
+				// 1) registry["subscribe_callbacks"]
+				// 2) key
+				// 3) {callback: function, path: string, type: string}
+				// 4) .callback
+				// 5) arg1
+				// 6) arg2
 
-					lua_pushstring(m_state, nt.shvPath().asString().c_str());
-					// 1) registry["change_callbacks"]
-					// 2) key
-					// 3) {callback: function, path: string}
-					// 4) .callback
-					// 5) arg1
+				auto errors = lua_pcall(m_state, 2, 0, 0);
+				// 1) registry["subscribe_callbacks"]
+				// 2) key
+				// 3) {callback: function, path: string, type: string}
 
-					push_rpc_value(m_state, nt.params());
-					// 1) registry["change_callbacks"]
-					// 2) key
-					// 3) {callback: function, path: string}
-					// 4) .callback
-					// 5) arg1
-					// 6) arg2
-
-					auto errors = lua_pcall(m_state, 2, 0, 0);
-					// 1) registry["change_callbacks"]
-					// 2) key
-					// 3) {callback: function, path: string}
-
-					if (errors) {
-						handle_lua_error(m_state, "change_callback");
-					}
-
-					lua_pop(m_state, 1);
-					// 1) registry["change_callbacks"]
-					// 2) key
+				if (errors) {
+					handle_lua_error(m_state, "subscribe_callbacks");
 				}
 			}
-			// 1) registry["change_callbacks"]
 
 			lua_pop(m_state, 1);
-			// <empty stack>
+			// 1) registry["change_callbacks"]
+			// 2) key
 		}
+		// 1) registry["subscribe_callbacks"]
+
+		lua_pop(m_state, 1);
+		// <empty stack>
 	}
 }
 
@@ -902,9 +922,9 @@ void HolyScopeApp::resolveConfTree(const QDir& dir, shv::iotqt::node::ShvNode* p
 	// -1) parent environment
 }
 
-void HolyScopeApp::subscribeLua(const std::string& path)
+void HolyScopeApp::subscribeLua(const std::string& path, const std::string& type)
 {
-	m_rpcConnection->callMethodSubscribe(path, "chng");
+	m_rpcConnection->callMethodSubscribe(path, type);
 }
 
 int HolyScopeApp::callShvMethod(const std::string& path, const std::string& method, const shv::chainpack::RpcValue& params)
