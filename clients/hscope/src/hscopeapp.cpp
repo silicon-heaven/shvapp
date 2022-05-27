@@ -444,7 +444,7 @@ void push_rpc_value(lua_State* state, const shv::chainpack::RpcValue& value)
 			// -2) table for list
 			// -1) new value for list
 
-			lua_seti(state, -1, lua_rawlen(state, 1) + 1);
+			lua_seti(state, -2, lua_rawlen(state, 1) + 1);
 			// -2) new table
 			// -1) table for list
 		}
@@ -796,7 +796,7 @@ static int set_status(lua_State* state)
 		luaL_error(state, "set_status: severity must be of type string");
 	}
 
-	auto severity = lua_tostring(state, -1);
+	auto severity = std::string{lua_tostring(state, -1)};
 	lua_getfield(state, 1, "message");
 
 	// 1) table
@@ -815,10 +815,14 @@ static int set_status(lua_State* state)
 		}
 	}
 
-	node->setStatus(severity, message);
-
 	lua_pop(state, 3);
 	// <empty stack>
+
+	if (severity != "good" && severity != "warn" && severity != "error") {
+		luaL_error(state, "Invalid severity value: %s Allowed values for severity are 'good', 'warn', or 'error'", severity.c_str());
+	}
+
+	node->setStatus(severity, message);
 	return 0;
 }
 }

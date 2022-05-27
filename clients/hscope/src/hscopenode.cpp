@@ -80,10 +80,6 @@ shv::chainpack::RpcValue HscopeNode::callMethod(const shv::iotqt::node::ShvNode:
 
 void HscopeNode::setStatus(const std::string& severity, const std::string& message)
 {
-	if (severity != "good" && severity != "warn" && severity != "error") {
-		throw std::logic_error(std::string{"Invalid severity value: "} + severity + "Allowed values for severity are 'good', 'warn', or 'error'");
-	}
-
 	m_status = shv::chainpack::RpcValue::Map{
 		{"message", message},
 		{"severity", severity}
