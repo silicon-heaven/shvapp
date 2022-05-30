@@ -45,6 +45,7 @@ public:
 
 	void subscribeLua(const std::string& path, const std::string& type);
 	int callShvMethod(const std::string& path, const std::string& method, const shv::chainpack::RpcValue& params = shv::chainpack::RpcValue());
+	bool hscopeInitializing() const;
 
 private:
 	void onBrokerConnectedChanged(bool is_connected);
@@ -63,5 +64,6 @@ private:
 	unsigned m_currentTestIndex = 0;
 
 	lua_State* m_state;
+	bool m_hscopeInitializing = true;
 };
 

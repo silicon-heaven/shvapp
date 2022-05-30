@@ -125,6 +125,28 @@ static int on_broker_connected(lua_State* state)
 	return 0;
 }
 
+static int on_hscope_initialized(lua_State* state)
+{
+	auto sg = StackGuard(state, 0);
+	check_lua_args<LUA_TFUNCTION>(state, "on_hscope_initialized");
+	// 1) function
+
+	lua_getfield(state, LUA_REGISTRYINDEX, "on_hscope_initialized_handlers");
+	// 1) function
+	// 2) registry["on_hscope_initialized_handlers"]
+
+	lua_insert(state, 1);
+	// 1) registry["on_hscope_initialized_handlers"]
+	// 2) function
+
+	lua_seti(state, 1, lua_rawlen(state, 1) + 1);
+	// 1) registry["on_hscope_initialized_handlers"]
+
+	lua_pop(state, 1);
+	// <empty stack>
+	return 0;
+}
+
 static int rpc_call(lua_State* state)
 {
 	auto sg = StackGuard(state, 0);
@@ -217,6 +239,18 @@ static int subscribe(lua_State* state)
 	// <empty stack>
 	return 0;
 }
+
+static int hscope_initializing(lua_State* state)
+{
+	auto sg = StackGuard(state, 1);
+	check_lua_args<>(state, "hscope_initializing");
+	// <empty stack>
+
+	auto hscope = static_cast<HolyScopeApp*>(lua_touserdata(state, lua_upvalueindex(1)));
+	lua_pushboolean(state, hscope->hscopeInitializing());
+	// 1) hscope->hscopeInitializing();
+	return 1;
+}
 }
 
 namespace {
@@ -294,10 +328,12 @@ HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
 		{"subscribe", subscribe},
 		{"rpc_call", rpc_call},
 		{"on_broker_connected", on_broker_connected},
+		{"on_hscope_initialized", on_hscope_initialized},
 		{"log_debug", log_debug},
 		{"log_info", log_info},
 		{"log_warning", log_warning},
 		{"log_error", log_error},
+		{"hscope_initializing", hscope_initializing},
 		{NULL, NULL}
 	};
 
@@ -315,6 +351,7 @@ HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
 	new_empty_registry_table(m_state, "subscribe_callbacks");
 	new_empty_registry_table(m_state, "rpc_call_handlers");
 	new_empty_registry_table(m_state, "on_broker_connected_handlers");
+	new_empty_registry_table(m_state, "on_hscope_initialized_handlers");
 	new_empty_registry_table(m_state, "testers");
 
 	if (auto conf_dir = QDir{QString::fromStdString(m_cliOptions->configDir())}; conf_dir.exists()) {
@@ -400,6 +437,14 @@ void HolyScopeApp::onBrokerConnectedChanged(bool is_connected)
 	auto sg = StackGuard(m_state);
 
 	call_each_of_registry_table(m_state, "on_broker_connected_handlers");
+	// <empty stack>
+
+	call_each_of_registry_table(m_state, "testers");
+	// <empty stack>
+
+	m_hscopeInitializing = false;
+
+	call_each_of_registry_table(m_state, "on_hscope_initialized_handlers");
 	// <empty stack>
 }
 
@@ -944,4 +989,9 @@ void HolyScopeApp::subscribeLua(const std::string& path, const std::string& type
 int HolyScopeApp::callShvMethod(const std::string& path, const std::string& method, const shv::chainpack::RpcValue& params)
 {
 	return m_rpcConnection->callShvMethod(path, method, params);
+}
+
+bool HolyScopeApp::hscopeInitializing() const
+{
+	return m_hscopeInitializing;
 }
