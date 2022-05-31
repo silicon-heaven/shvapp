@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Holy Scope dashboard</title>
+		<meta charset="utf-8">
+		<script type="text/javascript" src="../../../3rdparty/libshv/libshvchainpack/js/rpcvalue.js"></script>
+		<script type="text/javascript" src="../../../3rdparty/libshv/libshvchainpack/js/cpcontext.js"></script>
+		<script type="text/javascript" src="../../../3rdparty/libshv/libshvchainpack/js/chainpack.js"></script>
+		<script type="text/javascript" src="../../../3rdparty/libshv/libshvchainpack/js/cpon.js"></script>
+		<script type="text/javascript" src="../../../3rdparty/libshv/libshvchainpack/js/bint.js"></script>
+		<script type="text/javascript" src="../../../3rdparty/libshv/libshvchainpack/js/rpcmessage.js"></script>
+		<script type="text/javascript" src="../../../3rdparty/libshv/libshvchainpack/js/ws_client.js"></script>
+	</head>
+	<body>
+		<h1>Holy Scope dashboard</h1>
+		<p>
+		<textarea id="txt_log" style="width:50em;height:200px;"></textarea>
+		</p>
+
+		<table id="hscope_container">
+			<thead>
+				<td></td>
+				<td>Path</td>
+				<td>Severity</td>
+				<td>Message</td>
+			</thead>
+		</table>
+
+
+		<script type="text/javascript" src="index.js">
+		</script>
+	</body>
+</html>
