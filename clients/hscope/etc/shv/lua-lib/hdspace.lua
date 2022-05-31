@@ -16,7 +16,7 @@ return function (set_status, path_to_agent, filesystem_path)
 				message = tostring(percent) .. "% usage"
 			}
 
-			res.severity = "good"
+			res.severity = "ok"
 			if percent >= 75 then
 				res.severity = "warn"
 			end

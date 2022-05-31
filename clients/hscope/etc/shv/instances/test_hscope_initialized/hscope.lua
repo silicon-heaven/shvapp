@@ -3,13 +3,13 @@ local function do_test()
         shv.log_info("this is the first run")
         set_status({
             message = "Result from init run",
-            severity = "good"
+            severity = "ok"
         })
     else
         shv.log_info("this is a subsequent run")
         set_status({
             message = "Result from a subsequent run",
-            severity = "good"
+            severity = "ok"
         })
     end
 end

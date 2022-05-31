@@ -907,8 +907,8 @@ static int set_status(lua_State* state)
 	lua_pop(state, 3);
 	// <empty stack>
 
-	if (severity != "good" && severity != "warn" && severity != "error") {
-		luaL_error(state, "Invalid severity value: %s Allowed values for severity are 'good', 'warn', or 'error'", severity.c_str());
+	if (severity != "ok" && severity != "warn" && severity != "error") {
+		luaL_error(state, "Invalid severity value: %s Allowed values for severity are 'ok', 'warn', or 'error'", severity.c_str());
 	}
 
 	node->setStatus(severity, message);
