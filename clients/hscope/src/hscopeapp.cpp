@@ -499,7 +499,7 @@ void push_rpc_value(lua_State* state, const shv::chainpack::RpcValue& value)
 			// -2) table for list
 			// -1) new value for list
 
-			lua_seti(state, -2, lua_rawlen(state, 1) + 1);
+			lua_seti(state, -2, lua_rawlen(state, -2) + 1);
 			// -2) new table
 			// -1) table for list
 		}
