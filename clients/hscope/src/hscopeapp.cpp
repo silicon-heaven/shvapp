@@ -251,6 +251,38 @@ static int hscope_initializing(lua_State* state)
 	// 1) hscope->hscopeInitializing();
 	return 1;
 }
+
+static int add_timer(lua_State* state)
+{
+	auto sg = StackGuard(state, 0);
+	check_lua_args<LUA_TFUNCTION, LUA_TNUMBER>(state, "add_timer");
+	// 1) function
+	// 2) msec
+
+	auto msec = std::chrono::milliseconds(lua_tointeger(state, 2));
+	lua_pop(state, 1);
+	// 1) function
+
+	auto hscope = static_cast<HolyScopeApp*>(lua_touserdata(state, lua_upvalueindex(1)));
+
+	lua_getfield(state, LUA_REGISTRYINDEX, "timers");
+	// 1) function
+	// 2) registry["timers"]
+
+	lua_insert(state, 1);
+	// 1) registry["timers"]
+	// 2) function
+
+	auto index = lua_rawlen(state, 1) + 1;
+	lua_seti(state, 1, index);
+	// 1) registry["timers"]
+
+	lua_pop(state, 1);
+	// <empty stack>
+
+	hscope->addTimer(index, msec);
+	return 0;
+}
 }
 
 namespace {
@@ -334,6 +366,7 @@ HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
 		{"log_warning", log_warning},
 		{"log_error", log_error},
 		{"hscope_initializing", hscope_initializing},
+		{"add_timer", add_timer},
 		{NULL, NULL}
 	};
 
@@ -353,6 +386,7 @@ HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
 	new_empty_registry_table(m_state, "on_broker_connected_handlers");
 	new_empty_registry_table(m_state, "on_hscope_initialized_handlers");
 	new_empty_registry_table(m_state, "testers");
+	new_empty_registry_table(m_state, "timers");
 
 	if (auto conf_dir = QDir{QString::fromStdString(m_cliOptions->configDir())}; conf_dir.exists()) {
 		if (conf_dir.cd("instances")) {
@@ -994,4 +1028,25 @@ int HolyScopeApp::callShvMethod(const std::string& path, const std::string& meth
 bool HolyScopeApp::hscopeInitializing() const
 {
 	return m_hscopeInitializing;
+}
+
+void HolyScopeApp::addTimer(int timer_index, std::chrono::milliseconds msec)
+{
+	auto timer = new QTimer(this);
+	connect(timer, &QTimer::timeout, [timer_index, this] {
+		auto sg = StackGuard(m_state);
+		lua_getfield(m_state, LUA_REGISTRYINDEX, "timers");
+		// 1) registry["timers"]
+
+		lua_geti(m_state, 1, timer_index);
+		// 1) registry["timers"]
+		// 2) registry["timers"][timer_index]
+
+		lua_pcall(m_state, 0, 0, 0);
+		// 1) registry["timers"]
+
+		lua_pop(m_state, 1);
+		// <empty stack>
+	});
+	timer->start(msec);
 }
