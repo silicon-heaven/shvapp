@@ -3,7 +3,7 @@ local function do_set_status(set_status, node_mounted)
 	if node_mounted == true then
 		set_status({
 			message = 'Node is up',
-			severity = 'good'
+			severity = 'ok'
 		})
 	else
 		set_status({

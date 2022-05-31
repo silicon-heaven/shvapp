@@ -125,6 +125,28 @@ static int on_broker_connected(lua_State* state)
 	return 0;
 }
 
+static int on_hscope_initialized(lua_State* state)
+{
+	auto sg = StackGuard(state, 0);
+	check_lua_args<LUA_TFUNCTION>(state, "on_hscope_initialized");
+	// 1) function
+
+	lua_getfield(state, LUA_REGISTRYINDEX, "on_hscope_initialized_handlers");
+	// 1) function
+	// 2) registry["on_hscope_initialized_handlers"]
+
+	lua_insert(state, 1);
+	// 1) registry["on_hscope_initialized_handlers"]
+	// 2) function
+
+	lua_seti(state, 1, lua_rawlen(state, 1) + 1);
+	// 1) registry["on_hscope_initialized_handlers"]
+
+	lua_pop(state, 1);
+	// <empty stack>
+	return 0;
+}
+
 static int rpc_call(lua_State* state)
 {
 	auto sg = StackGuard(state, 0);
@@ -217,6 +239,50 @@ static int subscribe(lua_State* state)
 	// <empty stack>
 	return 0;
 }
+
+static int hscope_initializing(lua_State* state)
+{
+	auto sg = StackGuard(state, 1);
+	check_lua_args<>(state, "hscope_initializing");
+	// <empty stack>
+
+	auto hscope = static_cast<HolyScopeApp*>(lua_touserdata(state, lua_upvalueindex(1)));
+	lua_pushboolean(state, hscope->hscopeInitializing());
+	// 1) hscope->hscopeInitializing();
+	return 1;
+}
+
+static int add_timer(lua_State* state)
+{
+	auto sg = StackGuard(state, 0);
+	check_lua_args<LUA_TFUNCTION, LUA_TNUMBER>(state, "add_timer");
+	// 1) function
+	// 2) msec
+
+	auto msec = std::chrono::milliseconds(lua_tointeger(state, 2));
+	lua_pop(state, 1);
+	// 1) function
+
+	auto hscope = static_cast<HolyScopeApp*>(lua_touserdata(state, lua_upvalueindex(1)));
+
+	lua_getfield(state, LUA_REGISTRYINDEX, "timers");
+	// 1) function
+	// 2) registry["timers"]
+
+	lua_insert(state, 1);
+	// 1) registry["timers"]
+	// 2) function
+
+	auto index = lua_rawlen(state, 1) + 1;
+	lua_seti(state, 1, index);
+	// 1) registry["timers"]
+
+	lua_pop(state, 1);
+	// <empty stack>
+
+	hscope->addTimer(index, msec);
+	return 0;
+}
 }
 
 namespace {
@@ -294,10 +360,13 @@ HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
 		{"subscribe", subscribe},
 		{"rpc_call", rpc_call},
 		{"on_broker_connected", on_broker_connected},
+		{"on_hscope_initialized", on_hscope_initialized},
 		{"log_debug", log_debug},
 		{"log_info", log_info},
 		{"log_warning", log_warning},
 		{"log_error", log_error},
+		{"hscope_initializing", hscope_initializing},
+		{"add_timer", add_timer},
 		{NULL, NULL}
 	};
 
@@ -315,7 +384,9 @@ HolyScopeApp::HolyScopeApp(int& argc, char** argv, AppCliOptions* cli_opts)
 	new_empty_registry_table(m_state, "subscribe_callbacks");
 	new_empty_registry_table(m_state, "rpc_call_handlers");
 	new_empty_registry_table(m_state, "on_broker_connected_handlers");
+	new_empty_registry_table(m_state, "on_hscope_initialized_handlers");
 	new_empty_registry_table(m_state, "testers");
+	new_empty_registry_table(m_state, "timers");
 
 	if (auto conf_dir = QDir{QString::fromStdString(m_cliOptions->configDir())}; conf_dir.exists()) {
 		if (conf_dir.cd("instances")) {
@@ -361,35 +432,53 @@ HolyScopeApp* HolyScopeApp::instance()
 	return qobject_cast<HolyScopeApp*>(QCoreApplication::instance());
 }
 
+namespace {
+void call_each_of_registry_table(lua_State* state, const char* table_name)
+{
+	auto sg = StackGuard(state);
+
+	lua_getfield(state, LUA_REGISTRYINDEX, table_name);
+	// -1) registry[table_name]
+
+	lua_pushnil(state);
+	// -2) registry[table_name]
+	// -1) nil
+
+	while (lua_next(state, -2)) {
+		// -3) registry[table_name]
+		// -2) key
+		// -1) function
+
+		auto errors = lua_pcall(state, 0, 0, 0);
+		// -2) registry[table_name]
+		// -1) key
+
+		if (errors) {
+			handle_lua_error(state, table_name);
+		}
+	}
+	// -1) registry[table_name]
+
+	lua_pop(state, 1);
+	// <empty stack>
+}
+}
+
 void HolyScopeApp::onBrokerConnectedChanged(bool is_connected)
 {
 	m_isBrokerConnected = is_connected;
 
 	auto sg = StackGuard(m_state);
 
-	lua_getfield(m_state, LUA_REGISTRYINDEX, "on_broker_connected_handlers");
-	// 1) registry["on_broker_connected_handlers"]
+	call_each_of_registry_table(m_state, "on_broker_connected_handlers");
+	// <empty stack>
 
-	lua_pushnil(m_state);
-	// 1) registry["on_broker_connected_handlers"]
-	// 2) nil
+	call_each_of_registry_table(m_state, "testers");
+	// <empty stack>
 
-	while (lua_next(m_state, 1)) {
-		// 1) registry["on_broker_connected_handlers"]
-		// 2) key
-		// 3) on_broker_connected_handler
+	m_hscopeInitializing = false;
 
-		auto errors = lua_pcall(m_state, 0, 0, 0);
-		// 1) registry["on_broker_connected_handlers"]
-		// 2) key
-
-		if (errors) {
-			handle_lua_error(m_state, "on_broker_connected_handler");
-		}
-	}
-
-	// 1) registry["on_broker_connected_handlers"]
-	lua_pop(m_state, 1);
+	call_each_of_registry_table(m_state, "on_hscope_initialized_handlers");
 	// <empty stack>
 }
 
@@ -444,7 +533,7 @@ void push_rpc_value(lua_State* state, const shv::chainpack::RpcValue& value)
 			// -2) table for list
 			// -1) new value for list
 
-			lua_seti(state, -2, lua_rawlen(state, 1) + 1);
+			lua_seti(state, -2, lua_rawlen(state, -2) + 1);
 			// -2) new table
 			// -1) table for list
 		}
@@ -818,8 +907,8 @@ static int set_status(lua_State* state)
 	lua_pop(state, 3);
 	// <empty stack>
 
-	if (severity != "good" && severity != "warn" && severity != "error") {
-		luaL_error(state, "Invalid severity value: %s Allowed values for severity are 'good', 'warn', or 'error'", severity.c_str());
+	if (severity != "ok" && severity != "warn" && severity != "error") {
+		luaL_error(state, "Invalid severity value: %s Allowed values for severity are 'ok', 'warn', or 'error'", severity.c_str());
 	}
 
 	node->setStatus(severity, message);
@@ -934,4 +1023,30 @@ void HolyScopeApp::subscribeLua(const std::string& path, const std::string& type
 int HolyScopeApp::callShvMethod(const std::string& path, const std::string& method, const shv::chainpack::RpcValue& params)
 {
 	return m_rpcConnection->callShvMethod(path, method, params);
+}
+
+bool HolyScopeApp::hscopeInitializing() const
+{
+	return m_hscopeInitializing;
+}
+
+void HolyScopeApp::addTimer(int timer_index, std::chrono::milliseconds msec)
+{
+	auto timer = new QTimer(this);
+	connect(timer, &QTimer::timeout, [timer_index, this] {
+		auto sg = StackGuard(m_state);
+		lua_getfield(m_state, LUA_REGISTRYINDEX, "timers");
+		// 1) registry["timers"]
+
+		lua_geti(m_state, 1, timer_index);
+		// 1) registry["timers"]
+		// 2) registry["timers"][timer_index]
+
+		lua_pcall(m_state, 0, 0, 0);
+		// 1) registry["timers"]
+
+		lua_pop(m_state, 1);
+		// <empty stack>
+	});
+	timer->start(msec);
 }

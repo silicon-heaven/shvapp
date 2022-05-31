@@ -16,7 +16,7 @@ return function (set_status, path_to_agent, hostname, port)
 			if result.value == "hello\n" then
 				set_status({
 					message = 'Eyas OK',
-					severity = 'good'
+					severity = 'ok'
 				})
 			else
 				set_status({
