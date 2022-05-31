@@ -361,35 +361,45 @@ HolyScopeApp* HolyScopeApp::instance()
 	return qobject_cast<HolyScopeApp*>(QCoreApplication::instance());
 }
 
+namespace {
+void call_each_of_registry_table(lua_State* state, const char* table_name)
+{
+	auto sg = StackGuard(state);
+
+	lua_getfield(state, LUA_REGISTRYINDEX, table_name);
+	// -1) registry[table_name]
+
+	lua_pushnil(state);
+	// -2) registry[table_name]
+	// -1) nil
+
+	while (lua_next(state, -2)) {
+		// -3) registry[table_name]
+		// -2) key
+		// -1) function
+
+		auto errors = lua_pcall(state, 0, 0, 0);
+		// -2) registry[table_name]
+		// -1) key
+
+		if (errors) {
+			handle_lua_error(state, table_name);
+		}
+	}
+	// -1) registry[table_name]
+
+	lua_pop(state, 1);
+	// <empty stack>
+}
+}
+
 void HolyScopeApp::onBrokerConnectedChanged(bool is_connected)
 {
 	m_isBrokerConnected = is_connected;
 
 	auto sg = StackGuard(m_state);
 
-	lua_getfield(m_state, LUA_REGISTRYINDEX, "on_broker_connected_handlers");
-	// 1) registry["on_broker_connected_handlers"]
-
-	lua_pushnil(m_state);
-	// 1) registry["on_broker_connected_handlers"]
-	// 2) nil
-
-	while (lua_next(m_state, 1)) {
-		// 1) registry["on_broker_connected_handlers"]
-		// 2) key
-		// 3) on_broker_connected_handler
-
-		auto errors = lua_pcall(m_state, 0, 0, 0);
-		// 1) registry["on_broker_connected_handlers"]
-		// 2) key
-
-		if (errors) {
-			handle_lua_error(m_state, "on_broker_connected_handler");
-		}
-	}
-
-	// 1) registry["on_broker_connected_handlers"]
-	lua_pop(m_state, 1);
+	call_each_of_registry_table(m_state, "on_broker_connected_handlers");
 	// <empty stack>
 }
 
