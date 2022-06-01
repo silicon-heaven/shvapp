@@ -44,6 +44,7 @@ const resolve_hscope_tree = (path, container) => {
 			nodeContainer.appendChild(pathElement);
 			const severityElement = document.createElement("td");
 			const messageElement = document.createElement("td");
+			const dateElement = document.createElement("td");
 
 			const updateElements = (value) => {
 				if (typeof value.severity !== "undefined") {
@@ -57,6 +58,12 @@ const resolve_hscope_tree = (path, container) => {
 				} else {
 					messageElement.innerText = "";
 				}
+
+				if (typeof value.timeChanged !== "undefined") {
+					dateElement.innerText = new Date(value.timeChanged.value.epochMsec).toLocaleString();
+				} else {
+					dateElement.innerText = "";
+				}
 			};
 
 			websocket.callRpcMethod(path, "status").then((value) => {
@@ -68,6 +75,7 @@ const resolve_hscope_tree = (path, container) => {
 			});
 			nodeContainer.appendChild(severityElement);
 			nodeContainer.appendChild(messageElement);
+			nodeContainer.appendChild(dateElement);
 		}
 	})
 
