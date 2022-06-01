@@ -1,0 +1,12 @@
+.center-text {
+    text-align: center;
+}
+
+td {
+    border: 1px solid;
+    padding: 3px;
+}
+
+thead {
+    background-color: lightgray;
+}

@@ -32,19 +32,24 @@ const resolve_hscope_tree = (path, container) => {
 		if (methods.rpcValue.value[2].value.some(x => x.value === "status")) {
 			const nodeContainer = document.createElement("tr");
 			container.appendChild(nodeContainer);
+			const runCellElement = document.createElement("td");
 			const runElement = document.createElement("button");
 			runElement.innerText = "Run";
 			runElement.onclick = () => {
 				websocket.callRpcMethod(path, "run");
 			};
-			nodeContainer.appendChild(runElement);
+			runCellElement.appendChild(runElement);
+			nodeContainer.appendChild(runCellElement);
 
 			const pathElement = document.createElement("td");
 			pathElement.innerText = path;
 			nodeContainer.appendChild(pathElement);
 			const severityElement = document.createElement("td");
+			severityElement.className = "center-text";
 			const messageElement = document.createElement("td");
+			messageElement.className = "center-text";
 			const dateElement = document.createElement("td");
+			dateElement.className = "center-text";
 
 			const updateElements = (value) => {
 				if (typeof value.severity !== "undefined") {
@@ -59,8 +64,8 @@ const resolve_hscope_tree = (path, container) => {
 					messageElement.innerText = "";
 				}
 
-				if (typeof value.timeChanged !== "undefined") {
-					dateElement.innerText = new Date(value.timeChanged.value.epochMsec).toLocaleString();
+				if (typeof value.time_changed !== "undefined") {
+					dateElement.innerText = new Date(value.time_changed.value.epochMsec).toLocaleString([]);
 				} else {
 					dateElement.innerText = "";
 				}
@@ -73,6 +78,7 @@ const resolve_hscope_tree = (path, container) => {
 			websocket.subscribe(path, "chng", (changedPath, type, value) => {
 				updateElements(value[1].value);
 			});
+
 			nodeContainer.appendChild(severityElement);
 			nodeContainer.appendChild(messageElement);
 			nodeContainer.appendChild(dateElement);
