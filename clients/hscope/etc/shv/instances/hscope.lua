@@ -1,5 +1,5 @@
 local shv_utils = require('shv_utils')
-local bot = require('telegram_bot').new('5221162017:AAFDDw7Ovp2XWUth4XZhoa90hSgqnCs9OX4')
+local bot = require('telegram_bot').new('5223967314:AAF8ypBAV07IUIxW7e6TLHBYLZWcSObXyuk')
 shv.log_info('This is the root level configuration!')
 shv.log_info('my environment is:')
 shv.log_info(shv_utils.print_table(_ENV))
