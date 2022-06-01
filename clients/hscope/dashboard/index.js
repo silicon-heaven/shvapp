@@ -4,6 +4,14 @@ const user = "hscope";
 const password = "holyshit!";
 
 const txt_log = document.getElementById("txt_log");
+document.getElementById("toggle_log").onclick = () => {
+	if (txt_log.className === "hide") {
+		txt_log.className = "";
+		txt_log.scrollTop = txt_log.scrollHeight;
+	} else {
+		txt_log.className = "hide";
+	}
+};
 
 const debug = (...args) => {
 	if (txt_log) {

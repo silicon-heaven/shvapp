@@ -10,3 +10,7 @@ td {
 thead {
     background-color: lightgray;
 }
+
+.hide {
+    display: none;
+}
