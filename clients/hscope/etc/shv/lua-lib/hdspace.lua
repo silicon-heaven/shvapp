@@ -8,7 +8,7 @@ return function (set_status, path_to_agent, filesystem_path)
 		error("filesystem_path mustn't be null")
 	end
 
-	return function ()
+	local do_test = function ()
 		shv.rpc_call(path_to_agent, "runScript", string.format([[df %s | sed -n -r '1n;s/[^ ]+ +[^ ]+ +[^ ]+ +[^ ]+ +([^ ]+)%% +[^\n ]+/\1/;p']], filesystem_path), function (result)
 			local percent = tonumber(result.value)
 			shv_utils.print_table(result.meta)
@@ -27,4 +27,8 @@ return function (set_status, path_to_agent, filesystem_path)
 			set_status(res)
 		end)
 	end
+
+	shv.add_timer(do_test, 1000 * 60 * 60 * 24) -- Every day
+
+	return do_test
 end

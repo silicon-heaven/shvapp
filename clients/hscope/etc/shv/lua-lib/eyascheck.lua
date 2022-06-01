@@ -10,8 +10,7 @@ return function (set_status, path_to_agent, hostname, port)
 	if port == nil then
 		error("port mustn't be null")
 	end
-
-	return function ()
+	local do_test = function ()
 		shv.rpc_call(path_to_agent, "runScript", string.format([[telnet %s %s | grep -oa hello]], hostname, port), function (result)
 			if result.value == "hello\n" then
 				set_status({
@@ -25,5 +24,10 @@ return function (set_status, path_to_agent, hostname, port)
 				})
 			end
 		end)
+	end
+
+	shv.add_timer(do_test, 1000 * 60 * 5) -- Every five minutes
+
+	return do_test
 	end
 end
