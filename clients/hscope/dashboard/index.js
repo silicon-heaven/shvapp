@@ -41,6 +41,7 @@ const resolve_hscope_tree = (path, container) => {
 			const nodeContainer = document.createElement("tr");
 			container.appendChild(nodeContainer);
 			const runCellElement = document.createElement("td");
+			runCellElement.style.textAlign = "center";
 			const runElement = document.createElement("button");
 			runElement.innerText = "Run";
 			runElement.onclick = () => {
