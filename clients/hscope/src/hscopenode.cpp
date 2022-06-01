@@ -87,7 +87,7 @@ void HscopeNode::setStatus(const std::string& severity, const std::string& messa
 	m_status = shv::chainpack::RpcValue::Map{
 		{"message", message},
 		{"severity", severity},
-		{"time_changed", shv::chainpack::RpcValue::DateTime::now()}
+		{"timeChanged", shv::chainpack::RpcValue::DateTime::now()}
 	};
 
 	cp::RpcSignal ntf;
