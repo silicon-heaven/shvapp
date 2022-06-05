@@ -80,10 +80,14 @@ shv::chainpack::RpcValue HscopeNode::callMethod(const shv::iotqt::node::ShvNode:
 
 void HscopeNode::setStatus(const std::string& severity, const std::string& message)
 {
+	if (m_status.asMap().value("message") == message && m_status.asMap().value("severity") == severity) {
+		return;
+	}
+
 	m_status = shv::chainpack::RpcValue::Map{
 		{"message", message},
 		{"severity", severity},
-		{"time_changed", shv::chainpack::RpcValue::DateTime::now()}
+		{"timeChanged", shv::chainpack::RpcValue::DateTime::now()}
 	};
 
 	cp::RpcSignal ntf;

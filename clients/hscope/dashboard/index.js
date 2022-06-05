@@ -4,6 +4,14 @@ const user = "hscope";
 const password = "holyshit!";
 
 const txt_log = document.getElementById("txt_log");
+document.getElementById("toggle_log").onclick = () => {
+	if (txt_log.className === "hide") {
+		txt_log.className = "";
+		txt_log.scrollTop = txt_log.scrollHeight;
+	} else {
+		txt_log.className = "hide";
+	}
+};
 
 const debug = (...args) => {
 	if (txt_log) {
@@ -32,18 +40,25 @@ const resolve_hscope_tree = (path, container) => {
 		if (methods.rpcValue.value[2].value.some(x => x.value === "status")) {
 			const nodeContainer = document.createElement("tr");
 			container.appendChild(nodeContainer);
+			const runCellElement = document.createElement("td");
+			runCellElement.style.textAlign = "center";
 			const runElement = document.createElement("button");
 			runElement.innerText = "Run";
 			runElement.onclick = () => {
 				websocket.callRpcMethod(path, "run");
 			};
-			nodeContainer.appendChild(runElement);
+			runCellElement.appendChild(runElement);
+			nodeContainer.appendChild(runCellElement);
 
 			const pathElement = document.createElement("td");
 			pathElement.innerText = path;
 			nodeContainer.appendChild(pathElement);
 			const severityElement = document.createElement("td");
+			severityElement.className = "center-text";
 			const messageElement = document.createElement("td");
+			messageElement.className = "center-text";
+			const dateElement = document.createElement("td");
+			dateElement.className = "center-text";
 
 			const updateElements = (value) => {
 				if (typeof value.severity !== "undefined") {
@@ -57,6 +72,12 @@ const resolve_hscope_tree = (path, container) => {
 				} else {
 					messageElement.innerText = "";
 				}
+
+				if (typeof value.time_changed !== "undefined") {
+					dateElement.innerText = new Date(value.time_changed.value.epochMsec).toLocaleString([]);
+				} else {
+					dateElement.innerText = "";
+				}
 			};
 
 			websocket.callRpcMethod(path, "status").then((value) => {
@@ -66,8 +87,10 @@ const resolve_hscope_tree = (path, container) => {
 			websocket.subscribe(path, "chng", (changedPath, type, value) => {
 				updateElements(value[1].value);
 			});
+
 			nodeContainer.appendChild(severityElement);
 			nodeContainer.appendChild(messageElement);
+			nodeContainer.appendChild(dateElement);
 		}
 	})
 
