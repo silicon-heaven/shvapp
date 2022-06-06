@@ -11,6 +11,26 @@ enum class HasTester {
 	No
 };
 
+class RpcValueNode : public shv::iotqt::node::MethodsTableNode {
+	Q_OBJECT
+
+	using Super = shv::iotqt::node::MethodsTableNode;
+
+public:
+	RpcValueNode(const std::string &name, shv::iotqt::node::ShvNode *parent);
+
+	shv::chainpack::RpcValue callMethod(const StringViewList& shv_path, const std::string& method, const shv::chainpack::RpcValue& params, const shv::chainpack::RpcValue& user_id) override;
+
+	shv::chainpack::RpcValue getValue() const;
+	void setValue(const shv::chainpack::RpcValue& value);
+
+signals:
+	void valueChanged();
+
+private:
+	shv::chainpack::RpcValue m_value;
+};
+
 class HscopeNode : public shv::iotqt::node::ShvNode
 {
 	Q_OBJECT
@@ -30,7 +50,7 @@ public:
 private:
 
 	lua_State* m_state;
-	shv::chainpack::RpcValue m_status;
 	std::string m_testerLocation;
+	RpcValueNode* m_statusNode;
 };
 #endif /*HSCOPENODE_H*/

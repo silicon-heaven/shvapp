@@ -37,7 +37,7 @@ const format_severity = (value) => {
 const resolve_hscope_tree = (path, container) => {
 
 	websocket.callRpcMethod(path, "dir").then((methods) => {
-		if (methods.rpcValue.value[2].value.some(x => x.value === "status")) {
+		if (methods.rpcValue.value[2].value.some(x => x.value === "run")) {
 			const nodeContainer = document.createElement("tr");
 			container.appendChild(nodeContainer);
 			const runCellElement = document.createElement("td");
@@ -80,11 +80,11 @@ const resolve_hscope_tree = (path, container) => {
 				}
 			};
 
-			websocket.callRpcMethod(path, "status").then((value) => {
+			websocket.callRpcMethod(path + "/status", "get").then((value) => {
 				updateElements(value.rpcValue.value[2].value);
 			});
 
-			websocket.subscribe(path, "chng", (changedPath, type, value) => {
+			websocket.subscribe(path + "/status", "chng", (changedPath, type, value) => {
 				updateElements(value[1].value);
 			});
 

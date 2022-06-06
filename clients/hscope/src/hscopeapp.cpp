@@ -916,6 +916,10 @@ static int set_status(lua_State* state)
 }
 }
 
+const std::array special_paths = {
+	"status"
+};
+
 void HolyScopeApp::resolveConfTree(const QDir& dir, shv::iotqt::node::ShvNode* parent)
 {
 	auto sg = StackGuard(m_state);
@@ -1008,7 +1012,11 @@ void HolyScopeApp::resolveConfTree(const QDir& dir, shv::iotqt::node::ShvNode* p
 	while (it.hasNext()) {
 		it.next();
 		if (it.fileInfo().isDir() && it.fileName() != "." && it.fileName() != "..") {
-			resolveConfTree(it.filePath(), new_node);
+			if (std::find(special_paths.begin(), special_paths.end(), it.fileName()) == special_paths.end()) {
+				resolveConfTree(it.filePath(), new_node);
+			} else {
+				shvWarning() << "Found forbidden directory name `" + it.fileName() + "` inside `" + dir.dirName() + "`";
+			}
 		}
 	}
 
