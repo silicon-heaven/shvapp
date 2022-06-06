@@ -115,6 +115,8 @@ void HscopeNode::setStatus(const std::string& severity, const std::string& messa
 		return;
 	}
 
+	m_lastRunNode->setValue(shv::chainpack::RpcValue::DateTime::now());
+
 	auto current_status = m_statusNode->getValue();
 	if (current_status.asMap().value("message") == message && current_status.asMap().value("severity") == severity) {
 		return;
@@ -132,4 +134,5 @@ void HscopeNode::attachTester(lua_State* state, const std::string& tester_locati
 	m_state = state;
 	m_testerLocation = tester_location;
 	m_statusNode = new RpcValueNode("status", this);
+	m_lastRunNode = new RpcValueNode("lastRunTimestamp", this);
 }

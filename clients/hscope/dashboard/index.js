@@ -57,8 +57,10 @@ const resolve_hscope_tree = (path, container) => {
 			severityElement.className = "center-text";
 			const messageElement = document.createElement("td");
 			messageElement.className = "center-text";
-			const dateElement = document.createElement("td");
-			dateElement.className = "center-text";
+			const timeChangedElement = document.createElement("td");
+			timeChangedElement.className = "center-text";
+			const lastRunElement = document.createElement("td");
+			lastRunElement.className = "center-text";
 
 			const updateElements = (value) => {
 				if (typeof value.severity !== "undefined") {
@@ -74,9 +76,9 @@ const resolve_hscope_tree = (path, container) => {
 				}
 
 				if (typeof value.time_changed !== "undefined") {
-					dateElement.innerText = new Date(value.time_changed.value.epochMsec).toLocaleString([]);
+					timeChangedElement.innerText = new Date(value.time_changed.value.epochMsec).toLocaleString([]);
 				} else {
-					dateElement.innerText = "";
+					timeChangedElement.innerText = "";
 				}
 			};
 
@@ -88,9 +90,18 @@ const resolve_hscope_tree = (path, container) => {
 				updateElements(value[1].value);
 			});
 
+			websocket.callRpcMethod(path + "/lastRunTimestamp", "get").then((value) => {
+				lastRunElement.innerText = new Date(value.rpcValue.value[2].value.epochMsec).toLocaleString([]);
+			});
+
+			websocket.subscribe(path + "/lastRunTimestamp", "chng", (changedPath, type, value) => {
+				lastRunElement.innerText = new Date(value[1].value.epochMsec).toLocaleString([]);
+			});
+
 			nodeContainer.appendChild(severityElement);
 			nodeContainer.appendChild(messageElement);
-			nodeContainer.appendChild(dateElement);
+			nodeContainer.appendChild(timeChangedElement);
+			nodeContainer.appendChild(lastRunElement);
 		}
 	})
 

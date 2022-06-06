@@ -52,5 +52,6 @@ private:
 	lua_State* m_state;
 	std::string m_testerLocation;
 	RpcValueNode* m_statusNode;
+	RpcValueNode* m_lastRunNode;
 };
 #endif /*HSCOPENODE_H*/
