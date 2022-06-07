@@ -29,5 +29,4 @@ return function (set_status, path_to_agent, hostname, port)
 	shv.add_timer(do_test, 1000 * 60 * 5) -- Every five minutes
 
 	return do_test
-	end
 end
