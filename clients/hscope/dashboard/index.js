@@ -38,29 +38,29 @@ const resolve_hscope_tree = (path, container) => {
 
 	websocket.callRpcMethod(path, "dir").then((methods) => {
 		if (methods.rpcValue.value[2].value.some(x => x.value === "run")) {
-			const nodeContainer = document.createElement("tr");
-			container.appendChild(nodeContainer);
-			const runCellElement = document.createElement("td");
-			runCellElement.style.textAlign = "center";
-			const runElement = document.createElement("button");
-			runElement.innerText = "Run";
-			runElement.onclick = () => {
+			const node_container = document.createElement("tr");
+			container.appendChild(node_container);
+			const run_cell_element = document.createElement("td");
+			run_cell_element.style.textAlign = "center";
+			const run_element = document.createElement("button");
+			run_element.innerText = "Run";
+			run_element.onclick = () => {
 				websocket.callRpcMethod(path, "run");
 			};
-			runCellElement.appendChild(runElement);
-			nodeContainer.appendChild(runCellElement);
+			run_cell_element.appendChild(run_element);
+			node_container.appendChild(run_cell_element);
 
-			const pathElement = document.createElement("td");
-			pathElement.innerText = path;
-			nodeContainer.appendChild(pathElement);
-			const severityElement = document.createElement("td");
-			severityElement.className = "center-text";
-			const messageElement = document.createElement("td");
-			messageElement.className = "center-text";
-			const timeChangedElement = document.createElement("td");
-			timeChangedElement.className = "center-text";
-			const lastRunElement = document.createElement("td");
-			lastRunElement.className = "center-text";
+			const path_element = document.createElement("td");
+			path_element.innerText = path;
+			node_container.appendChild(path_element);
+			const severity_element = document.createElement("td");
+			severity_element.className = "center-text";
+			const message_element = document.createElement("td");
+			message_element.className = "center-text";
+			const time_changed_element = document.createElement("td");
+			time_changed_element.className = "center-text";
+			const last_run_element = document.createElement("td");
+			last_run_element.className = "center-text";
 
 			let should_animate = false;
 			const animate_element = (elem) => {
@@ -74,39 +74,39 @@ const resolve_hscope_tree = (path, container) => {
 				}
 			};
 
-			const updateElements = (value) => {
+			const update_elements = (value) => {
 				if (typeof value.severity !== "undefined") {
-					severityElement.innerText = format_severity(value.severity.value);
+					severity_element.innerText = format_severity(value.severity.value);
 				} else {
-					severityElement.innerText = "❓";
+					severity_element.innerText = "❓";
 				}
-				animate_element(severityElement);
+				animate_element(severity_element);
 
 				if (typeof value.message !== "undefined") {
-					messageElement.innerText = value.message.value;
+					message_element.innerText = value.message.value;
 				} else {
-					messageElement.innerText = "";
+					message_element.innerText = "";
 				}
-				animate_element(messageElement);
+				animate_element(message_element);
 
 				if (typeof value.time_changed !== "undefined") {
-					timeChangedElement.innerText = new Date(value.time_changed.value.epochMsec).toLocaleString([]);
+					time_changed_element.innerText = new Date(value.time_changed.value.epochMsec).toLocaleString([]);
 				} else {
-					timeChangedElement.innerText = "";
+					time_changed_element.innerText = "";
 				}
-				animate_element(timeChangedElement);
+				animate_element(time_changed_element);
 			};
 
 			const got_first_status = websocket.callRpcMethod(path + "/status", "get").then((value) => {
-				updateElements(value.rpcValue.value[2].value);
+				update_elements(value.rpcValue.value[2].value);
 			});
 
 			websocket.subscribe(path + "/status", "chng", (changedPath, type, value) => {
-				updateElements(value[1].value);
+				update_elements(value[1].value);
 			});
 
 			const got_first_last_run = websocket.callRpcMethod(path + "/lastRunTimestamp", "get").then((value) => {
-				lastRunElement.innerText = new Date(value.rpcValue.value[2].value.epochMsec).toLocaleString([]);
+				last_run_element.innerText = new Date(value.rpcValue.value[2].value.epochMsec).toLocaleString([]);
 			});
 
 			Promise.all([got_first_status, got_first_last_run]).then(() => {
@@ -114,14 +114,14 @@ const resolve_hscope_tree = (path, container) => {
 			});
 
 			websocket.subscribe(path + "/lastRunTimestamp", "chng", (changedPath, type, value) => {
-				lastRunElement.innerText = new Date(value[1].value.epochMsec).toLocaleString([]);
-				animate_element(lastRunElement);
+				last_run_element.innerText = new Date(value[1].value.epochMsec).toLocaleString([]);
+				animate_element(last_run_element);
 			});
 
-			nodeContainer.appendChild(severityElement);
-			nodeContainer.appendChild(messageElement);
-			nodeContainer.appendChild(timeChangedElement);
-			nodeContainer.appendChild(lastRunElement);
+			node_container.appendChild(severity_element);
+			node_container.appendChild(message_element);
+			node_container.appendChild(time_changed_element);
+			node_container.appendChild(last_run_element);
 		}
 	})
 
