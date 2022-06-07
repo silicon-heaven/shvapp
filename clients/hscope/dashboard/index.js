@@ -38,8 +38,17 @@ const resolve_hscope_tree = (path, container) => {
 
 	websocket.callRpcMethod(path, "dir").then((methods) => {
 		if (methods.rpcValue.value[2].value.some(x => x.value === "run")) {
+			const user_facing_path = path.replace("hscope/instances/", "");
 			const node_container = document.createElement("tr");
-			container.appendChild(node_container);
+
+			// Make sure the elements are sorted in the correct order.
+			const elem_after = [...container.childNodes].find(elem => elem.childNodes[1]?.innerText > user_facing_path);
+			if (typeof elem_after !== "undefined") {
+				container.insertBefore(node_container, elem_after);
+			} else {
+				container.appendChild(node_container);
+			}
+
 			const run_cell_element = document.createElement("td");
 			run_cell_element.style.textAlign = "center";
 			const run_element = document.createElement("button");
@@ -51,7 +60,7 @@ const resolve_hscope_tree = (path, container) => {
 			node_container.appendChild(run_cell_element);
 
 			const path_element = document.createElement("td");
-			path_element.innerText = path.replace("hscope/instances/", "");
+			path_element.innerText = user_facing_path;
 			node_container.appendChild(path_element);
 			const severity_element = document.createElement("td");
 			severity_element.className = "center-text";
