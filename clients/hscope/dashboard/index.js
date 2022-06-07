@@ -141,6 +141,7 @@ const connect_websocket = () => {
 			},
 			logDebug: debug,
 			onConnected: () => {
+				setInterval(send_ping, 1000 * 60);
 				resolve_hscope_tree("hscope", hscope_container);
 			}
 		});
