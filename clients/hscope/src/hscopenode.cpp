@@ -13,16 +13,51 @@ std::vector<cp::MetaMethod> methods {
 std::vector<cp::MetaMethod> methodsWithTester {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
-	{"status", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 	{"run", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
+};
+
+std::vector<cp::MetaMethod> rpc_value_node_methods {
+	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
+	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
+	{cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 	{cp::Rpc::SIG_VAL_CHANGED, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::IsSignal},
 };
+}
+
+RpcValueNode::RpcValueNode(const std::string& name, shv::iotqt::node::ShvNode *parent)
+	: Super(name, &rpc_value_node_methods, parent)
+{
+}
+
+shv::chainpack::RpcValue RpcValueNode::callMethod(const shv::iotqt::node::ShvNode::StringViewList &shv_path, const std::string &method, const shv::chainpack::RpcValue &params, const shv::chainpack::RpcValue &user_id)
+{
+	if (method == cp::Rpc::METH_GET) {
+		return m_value;
+	}
+
+	return Super::callMethod(shv_path, method, params, user_id);
+}
+
+shv::chainpack::RpcValue RpcValueNode::getValue() const
+{
+	return m_value;
+}
+
+void RpcValueNode::setValue(const shv::chainpack::RpcValue& value)
+{
+	m_value = value;
+	emit valueChanged();
+
+	cp::RpcSignal ntf;
+	ntf.setMethod(cp::Rpc::SIG_VAL_CHANGED);
+	ntf.setParams((m_value));
+	ntf.setShvPath(shvPath());
+	emitSendRpcMessage(ntf);
 }
 
 HscopeNode::HscopeNode(const std::string& name, shv::iotqt::node::ShvNode* parent)
 	: Super(name, parent)
 	, m_state(nullptr)
-	, m_status(shv::chainpack::RpcValue::Map{})
 {
 }
 
@@ -46,10 +81,6 @@ const shv::chainpack::MetaMethod* HscopeNode::metaMethod(const StringViewList&, 
 
 shv::chainpack::RpcValue HscopeNode::callMethod(const shv::iotqt::node::ShvNode::StringViewList& shv_path, const std::string &method, const shv::chainpack::RpcValue& params, const shv::chainpack::RpcValue& user_id)
 {
-	if (m_state && method == "status") {
-		return m_status;
-	}
-
 	if (method == "run") {
 		lua_getfield(m_state, LUA_REGISTRYINDEX, "testers");
 		// -1) registry["tester"]
@@ -80,25 +111,28 @@ shv::chainpack::RpcValue HscopeNode::callMethod(const shv::iotqt::node::ShvNode:
 
 void HscopeNode::setStatus(const std::string& severity, const std::string& message)
 {
-	if (m_status.asMap().value("message") == message && m_status.asMap().value("severity") == severity) {
+	if (!m_statusNode) {
 		return;
 	}
 
-	m_status = shv::chainpack::RpcValue::Map{
+	m_lastRunNode->setValue(shv::chainpack::RpcValue::DateTime::now());
+
+	auto current_status = m_statusNode->getValue();
+	if (current_status.asMap().value("message") == message && current_status.asMap().value("severity") == severity) {
+		return;
+	}
+
+	m_statusNode->setValue(shv::chainpack::RpcValue::Map{
 		{"message", message},
 		{"severity", severity},
 		{"time_changed", shv::chainpack::RpcValue::DateTime::now()}
-	};
-
-	cp::RpcSignal ntf;
-	ntf.setMethod(cp::Rpc::SIG_VAL_CHANGED);
-	ntf.setParams((m_status));
-	ntf.setShvPath(shvPath());
-	emitSendRpcMessage(ntf);
+	});
 }
 
 void HscopeNode::attachTester(lua_State* state, const std::string& tester_location)
 {
 	m_state = state;
 	m_testerLocation = tester_location;
+	m_statusNode = new RpcValueNode("status", this);
+	m_lastRunNode = new RpcValueNode("lastRunTimestamp", this);
 }
