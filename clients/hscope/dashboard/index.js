@@ -62,27 +62,42 @@ const resolve_hscope_tree = (path, container) => {
 			const lastRunElement = document.createElement("td");
 			lastRunElement.className = "center-text";
 
+			let should_animate = false;
+			const animate_element = (elem) => {
+				if (should_animate) {
+					elem.classList.add("animate-change");
+					// This dance refreshes the animation.
+					// https://stackoverflow.com/a/45036752
+					elem.style.animation = "none";
+					elem.offsetHeight;
+					elem.style.animation = null;
+				}
+			};
+
 			const updateElements = (value) => {
 				if (typeof value.severity !== "undefined") {
 					severityElement.innerText = format_severity(value.severity.value);
 				} else {
 					severityElement.innerText = "❓";
 				}
+				animate_element(severityElement);
 
 				if (typeof value.message !== "undefined") {
 					messageElement.innerText = value.message.value;
 				} else {
 					messageElement.innerText = "";
 				}
+				animate_element(messageElement);
 
 				if (typeof value.time_changed !== "undefined") {
 					timeChangedElement.innerText = new Date(value.time_changed.value.epochMsec).toLocaleString([]);
 				} else {
 					timeChangedElement.innerText = "";
 				}
+				animate_element(timeChangedElement);
 			};
 
-			websocket.callRpcMethod(path + "/status", "get").then((value) => {
+			const got_first_status = websocket.callRpcMethod(path + "/status", "get").then((value) => {
 				updateElements(value.rpcValue.value[2].value);
 			});
 
@@ -90,12 +105,17 @@ const resolve_hscope_tree = (path, container) => {
 				updateElements(value[1].value);
 			});
 
-			websocket.callRpcMethod(path + "/lastRunTimestamp", "get").then((value) => {
+			const got_first_last_run = websocket.callRpcMethod(path + "/lastRunTimestamp", "get").then((value) => {
 				lastRunElement.innerText = new Date(value.rpcValue.value[2].value.epochMsec).toLocaleString([]);
+			});
+
+			Promise.all([got_first_status, got_first_last_run]).then(() => {
+				should_animate = true;
 			});
 
 			websocket.subscribe(path + "/lastRunTimestamp", "chng", (changedPath, type, value) => {
 				lastRunElement.innerText = new Date(value[1].value.epochMsec).toLocaleString([]);
+				animate_element(lastRunElement);
 			});
 
 			nodeContainer.appendChild(severityElement);
