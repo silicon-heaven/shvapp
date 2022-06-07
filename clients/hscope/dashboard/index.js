@@ -51,7 +51,7 @@ const resolve_hscope_tree = (path, container) => {
 			node_container.appendChild(run_cell_element);
 
 			const path_element = document.createElement("td");
-			path_element.innerText = path;
+			path_element.innerText = path.replace("hscope/instances/", "");
 			node_container.appendChild(path_element);
 			const severity_element = document.createElement("td");
 			severity_element.className = "center-text";
