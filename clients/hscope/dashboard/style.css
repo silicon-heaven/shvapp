@@ -30,3 +30,11 @@ thead {
     animation-name: red-to-black;
     animation-duration: 3s;
 }
+
+.inline {
+    display: inline-block;
+}
+
+.bold {
+    font-weight: bold;
+}

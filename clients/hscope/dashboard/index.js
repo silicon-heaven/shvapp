@@ -33,6 +33,20 @@ const format_severity = (value) => {
 	}
 };
 
+const sort_rows = () => {
+	const col_num =
+		document.getElementById("sort_path").checked ? 1 :
+		document.getElementById("sort_severity").checked ? 2 :
+		document.getElementById("sort_message").checked ? 3 :
+		1; // We'll sort by path by default.
+
+	const order =
+		document.getElementById("sort_dsc").checked ? "dsc" : "asc";
+
+	[...document.querySelector("#hscope_container").querySelectorAll("tr")]
+		.sort(row_comparator(col_num, order))
+		.forEach((myElem) => document.getElementById("hscope_container").appendChild(myElem));
+};
 
 const resolve_hscope_tree = (path, container) => {
 
@@ -42,12 +56,7 @@ const resolve_hscope_tree = (path, container) => {
 			const node_container = document.createElement("tr");
 
 			// Make sure the elements are sorted in the correct order.
-			const elem_after = [...container.childNodes].find(elem => elem.childNodes[1]?.innerText > user_facing_path);
-			if (typeof elem_after !== "undefined") {
-				container.insertBefore(node_container, elem_after);
-			} else {
-				container.appendChild(node_container);
-			}
+			container.appendChild(node_container);
 
 			const run_cell_element = document.createElement("td");
 			run_cell_element.style.textAlign = "center";
@@ -104,6 +113,7 @@ const resolve_hscope_tree = (path, container) => {
 					time_changed_element.innerText = "";
 				}
 				animate_element(time_changed_element);
+				sort_rows();
 			};
 
 			const got_first_status = websocket.callRpcMethod(path + "/status", "get").then((value) => {
@@ -178,5 +188,29 @@ const connect_websocket = () => {
 		debug('EXCEPTION: ' + exception);
 	}
 }
+
+const row_comparator = (col_num, order) => (a, b) =>  {
+	// Always put elements with empty text at the back.
+	if (a.children[col_num].innerText === "") {
+		return 1;
+	}
+
+	if (b.children[col_num].innerText === "") {
+		return -1;
+	}
+
+	const left = order === "asc" ? a : b;
+	const right = order === "asc" ? b : a;
+
+	if (left.children[col_num].innerText === right.children[col_num].innerText) {
+		// Columns have the same value, so we'll sort column 1 (which is path)
+		return row_comparator(1, order)(a, b);
+	}
+
+	return left.children[col_num].innerText < right.children[col_num].innerText ? -1 : 1;
+};
+
+[...document.querySelectorAll("#radio_buttons > input")].forEach(elem => elem.onclick = sort_rows);
+
 
 connect_websocket();
