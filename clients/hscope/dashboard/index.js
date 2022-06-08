@@ -212,5 +212,17 @@ const row_comparator = (col_num, order) => (a, b) =>  {
 
 [...document.querySelectorAll("#radio_buttons > input")].forEach(elem => elem.onclick = sort_rows);
 
+const filter_rows = (filter) => {
+	[...document.querySelector("#hscope_container").querySelectorAll("tr")]
+		.forEach((row) =>
+			[...row.children].some((cell) => cell.innerText.match(filter)) ? row.classList.remove("hide") : row.classList.add("hide"));
+}
+
+const txt_filter = document.getElementById("txt_filter");
+txt_filter.oninput = () => {
+	filter_rows(txt_filter.value)
+};
+
+txt_filter.select();
 
 connect_websocket();
