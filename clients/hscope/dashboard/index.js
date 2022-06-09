@@ -220,7 +220,7 @@ const row_comparator = (col_num, order) => (a, b) =>  {
 const filter_rows = (filter) => {
 	[...document.querySelector("#hscope_container").querySelectorAll("tr")]
 		.forEach((row) =>
-			[...row.children].some((cell) => cell.innerText.match(filter)) ? row.classList.remove("d-none") : row.classList.add("d-none"));
+			[...row.children].some((cell) => cell.innerText.match(new RegExp(filter, "i"))) ? row.classList.remove("d-none") : row.classList.add("d-none"));
 }
 
 const txt_filter = document.getElementById("txt_filter");
