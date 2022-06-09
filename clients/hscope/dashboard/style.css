@@ -1,29 +1,3 @@
-body {
-    font-family: sans-serif;
-}
-
-.center-text {
-    text-align: center;
-}
-
-td {
-    border: 1px solid black;
-    padding: 3px;
-}
-
-th {
-    border: 1px solid black;
-    padding: 3px;
-}
-
-thead {
-    background-color: lightgray;
-}
-
-.hide {
-    display: none;
-}
-
 @keyframes red-to-black {
   from {color: red;}
   to {color: black;}
@@ -35,10 +9,8 @@ thead {
     animation-duration: 3s;
 }
 
-.inline {
-    display: inline-block;
-}
-
-.bold {
-    font-weight: bold;
+html {
+    /* https://aykevl.nl/2014/09/fix-jumping-scrollbar */
+    margin-left: calc(100vw - 100%);
+    margin-right: 0;
 }

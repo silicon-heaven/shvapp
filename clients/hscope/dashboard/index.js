@@ -5,11 +5,11 @@ const password = "holyshit!";
 
 const txt_log = document.getElementById("txt_log");
 document.getElementById("toggle_log").onclick = () => {
-	if (txt_log.className === "hide") {
+	if (txt_log.className === "d-none") {
 		txt_log.className = "";
 		txt_log.scrollTop = txt_log.scrollHeight;
 	} else {
-		txt_log.className = "hide";
+		txt_log.className = "d-none";
 	}
 };
 
@@ -59,9 +59,10 @@ const resolve_hscope_tree = (path, container) => {
 			container.appendChild(node_container);
 
 			const run_cell_element = document.createElement("td");
-			run_cell_element.style.textAlign = "center";
+			run_cell_element.className = "align-middle";
 			const run_element = document.createElement("button");
 			run_element.innerText = "Run";
+			run_element.className = "btn btn-outline-dark";
 			run_element.onclick = () => {
 				websocket.callRpcMethod(path, "run");
 			};
@@ -70,15 +71,16 @@ const resolve_hscope_tree = (path, container) => {
 
 			const path_element = document.createElement("td");
 			path_element.innerText = user_facing_path;
+			path_element.className = "align-middle";
 			node_container.appendChild(path_element);
 			const severity_element = document.createElement("td");
-			severity_element.className = "center-text";
+			severity_element.className = "text-center align-middle";
 			const message_element = document.createElement("td");
-			message_element.className = "center-text";
+			message_element.className = "text-center align-middle";
 			const time_changed_element = document.createElement("td");
-			time_changed_element.className = "center-text";
+			time_changed_element.className = "text-center align-middle";
 			const last_run_element = document.createElement("td");
-			last_run_element.className = "center-text";
+			last_run_element.className = "text-center align-middle";
 
 			let should_animate = false;
 			const animate_element = (elem) => {
@@ -213,12 +215,12 @@ const row_comparator = (col_num, order) => (a, b) =>  {
 	return left.children[col_num].innerText < right.children[col_num].innerText ? -1 : 1;
 };
 
-[...document.querySelectorAll("#radio_buttons > input")].forEach(elem => elem.onclick = sort_rows);
+[...document.querySelectorAll("input.form-check-input")].forEach(elem => elem.onclick = sort_rows);
 
 const filter_rows = (filter) => {
 	[...document.querySelector("#hscope_container").querySelectorAll("tr")]
 		.forEach((row) =>
-			[...row.children].some((cell) => cell.innerText.match(filter)) ? row.classList.remove("hide") : row.classList.add("hide"));
+			[...row.children].some((cell) => cell.innerText.match(filter)) ? row.classList.remove("d-none") : row.classList.add("d-none"));
 }
 
 const txt_filter = document.getElementById("txt_filter");

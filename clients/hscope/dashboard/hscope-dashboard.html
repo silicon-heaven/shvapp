@@ -3,6 +3,7 @@
 	<head>
 		<title>Holy Scope dashboard</title>
 		<meta charset="utf-8">
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
 		<script type="text/javascript" src="../../../3rdparty/libshv/libshvchainpack/js/rpcvalue.js"></script>
 		<script type="text/javascript" src="../../../3rdparty/libshv/libshvchainpack/js/cpcontext.js"></script>
 		<script type="text/javascript" src="../../../3rdparty/libshv/libshvchainpack/js/chainpack.js"></script>
@@ -13,44 +14,55 @@
 		<link rel="stylesheet" href="style.css" />
 	</head>
 	<body>
-		<h1>Holy Scope dashboard</h1>
-		<p>
-		<button id="toggle_log">Show/hide log</button>
-		<br>
-		<textarea id="txt_log" style="width:50em;height:200px;" class="hide"></textarea>
-		</p>
-		<div id="radio_buttons">
-			<div class="inline bold">Sort: </div>
-			<input type="radio" id="sort_path" name="sort_by" value="Path">
-			<label for="sort_path">Path</label>
-			<input type="radio" id="sort_severity" name="sort_by" value="Severity" checked>
-			<label for="sort_severity">Severity</label>
-			<input type="radio" id="sort_message" name="sort_by" value="Message">
-			<label for="sort_message">Message</label>
-			<div class="inline bold">| Order: </div>
-			<input type="radio" id="sort_asc" name="sort_order" value="Ascending" checked>
-			<label for="sort_asc">Ascending</label>
-			<input type="radio" id="sort_dsc" name="sort_order" value="Descending">
-			<label for="sort_dsc">Descending</label>
+		<div class="container">
+			<h1>Holy Scope dashboard</h1>
+			<button class="btn btn-sm btn-outline-dark" id="toggle_log">Show/hide log</button>
+			<br>
+			<textarea id="txt_log" style="width:50em;height:200px;" class="d-none"></textarea>
+			<div id="radio_buttons" class="row row-cols-7">
+				<div class="form-check form-check-inline">
+					<div class="font-weight-bold col">Sort: </div>
+					<div class="col-auto">
+						<input class="form-check-input" type="radio" id="sort_path" name="sort_by" value="Path">
+						<label class="form-check-label" for="sort_path">Path</label>
+					</div>
+					<div class="col-auto">
+						<input class="form-check-input" type="radio" id="sort_severity" name="sort_by" value="Severity" checked>
+						<label class="form-check-label" for="sort_severity">Severity</label>
+					</div>
+					<div class="col-auto">
+						<input class="form-check-input" type="radio" id="sort_message" name="sort_by" value="Message">
+						<label class="form-check-label" for="sort_message">Message</label>
+					</div>
+					<div class="font-weight-bold col-auto">Order: </div>
+					<div class="col-auto">
+						<input class="form-check-input" type="radio" id="sort_asc" name="sort_order" value="Ascending" checked>
+						<label class="form-check-label" for="sort_asc">Ascending</label>
+					</div>
+					<div class="col-auto">
+						<input class="form-check-input" type="radio" id="sort_dsc" name="sort_order" value="Descending">
+						<label class="form-check-label" for="sort_dsc">Descending</label>
+					</div>
+				</div>
+			</div>
+			Filter regex: <input type="text" id="txt_filter"></input>
+
+			<table class="table table-sm table-striped">
+				<thead class="thead-dark">
+					<tr class="text-center">
+						<th></th>
+						<th style="width: 45%">Path</th>
+						<th style="width: 5%">Severity</th>
+						<th style="width: 10%">Message</th>
+						<th style="width: 15%">Time Changed</th>
+						<th style="width: 15%">Last Run</th>
+					</tr>
+				</thead>
+				<tbody id="hscope_container"></tbody>
+			</table>
+
+			<script type="text/javascript" src="index.js">
+			</script>
 		</div>
-		Filter regex: <input type="text" id="txt_filter"></input>
-
-		<table>
-			<thead>
-				<tr>
-					<th style="width: 3em;"></th>
-					<th class="center-text" style="min-width: 35em;">Path</th>
-					<th class="center-text" style="width: 4em;">Severity</th>
-					<th class="center-text" style="min-width: 10em;">Message</th>
-					<th class="center-text" style="width: 12em;">Time Changed</th>
-					<th class="center-text" style="width: 12em;">Last Run</th>
-				</tr>
-			</thead>
-			<tbody id="hscope_container"></tbody>
-		</table>
-
-
-		<script type="text/javascript" src="index.js">
-		</script>
 	</body>
 </html>
