@@ -1,7 +1,9 @@
 #include <iostream>
 #include "historyapp.h"
 #include "appclioptions.h"
+#include "src/shvjournalnode.h"
 
+#include <shv/iotqt/rpc/rpccall.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/node/shvnodetree.h>
 #include <shv/iotqt/node/localfsnode.h>
@@ -73,6 +75,31 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest& rq)
 	return Super::callMethodRq(rq);
 }
 
+namespace {
+shv::iotqt::node::ShvNode* createTree(const cp::RpcValue::Map& tree, const std::string& node_name)
+{
+    if (node_name == "_meta" && tree.hasKey("HP")) {
+        return new ShvJournalNode();
+    }
+
+    shv::iotqt::node::ShvNode* res = nullptr;
+    for (const auto& [k, v] : tree) {
+        if (v.type() == cp::RpcValue::Type::Map) {
+            auto node = createTree(v.asMap(), k);
+            if (node) {
+                if (!res) {
+                    res = new shv::iotqt::node::ShvNode(node_name);
+                }
+
+                node->setParentNode(res);
+            }
+        }
+    }
+
+    return res;
+}
+}
+
 HistoryApp::HistoryApp(int& argc, char** argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
 	  , m_cliOptions(cli_opts)
@@ -92,8 +119,8 @@ HistoryApp::HistoryApp(int& argc, char** argv, AppCliOptions* cli_opts)
 	connect(m_rpcConnection, &si::rpc::ClientConnection::brokerConnectedChanged, this, &HistoryApp::onBrokerConnectedChanged);
 	connect(m_rpcConnection, &si::rpc::ClientConnection::rpcMessageReceived, this, &HistoryApp::onRpcMessageReceived);
 
-	AppRootNode* root = new AppRootNode();
-	m_shvTree = new si::node::ShvNodeTree(root, this);
+	m_root = new AppRootNode();
+	m_shvTree = new si::node::ShvNodeTree(m_root, this);
 	connect(m_shvTree->root(), &si::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &si::rpc::ClientConnection::sendMessage);
 
 	QTimer::singleShot(0, m_rpcConnection, &si::rpc::ClientConnection::open);
@@ -112,6 +139,21 @@ HistoryApp* HistoryApp::instance()
 void HistoryApp::onBrokerConnectedChanged(bool is_connected)
 {
 	m_isBrokerConnected = is_connected;
+	auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
+		->setShvPath("sites")
+		->setMethod("getSites");
+
+	connect(call, &shv::iotqt::rpc::RpcCall::error, [] (const QString& error) {
+		shvError() << "Couldn't retrieve sites:" << error;
+	});
+
+	connect(call, &shv::iotqt::rpc::RpcCall::result, [this] (const cp::RpcValue& result) {
+		auto nodes = createTree(result.asMap(), "sites");
+		if (nodes) {
+			nodes->setParentNode(m_root);
+		}
+	});
+	call->start();
 }
 
 void HistoryApp::onRpcMessageReceived(const cp::RpcMessage& msg)

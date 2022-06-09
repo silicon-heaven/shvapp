@@ -48,5 +48,6 @@ private:
 	shv::iotqt::rpc::DeviceConnection* m_rpcConnection = nullptr;
 	AppCliOptions* m_cliOptions;
 	shv::iotqt::node::ShvNodeTree* m_shvTree = nullptr;
+	AppRootNode* m_root = nullptr;
 	bool m_isBrokerConnected = false;
 };
