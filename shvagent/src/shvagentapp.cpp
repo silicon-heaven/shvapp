@@ -165,7 +165,7 @@ shv::chainpack::RpcValue AppRootNode::callMethodRq(const shv::chainpack::RpcRequ
 			const cp::RpcValue::Map& opts = app->rpcConnection()->connectionOptions().toMap();
 			const cp::RpcValue::Map& dev = opts.value(cp::Rpc::KEY_DEVICE).toMap();
 			auto device_id = dev.value(cp::Rpc::KEY_DEVICE_ID).toString();
-			auto script_dir = QString::fromStdString("/tmp/shvagent" + device_id + "/scripts/");
+			auto script_dir = QString::fromStdString("/tmp/shvagent/" + device_id + "/scripts/");
 			QByteArray sha1;
 			/// SHA1 40 chars long
 			QRegularExpression rx("^[0-9a-fA-F]{40}$");
