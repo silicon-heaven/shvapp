@@ -89,6 +89,9 @@ const resolve_hscope_tree = (path, container) => {
 					elem.style.animation = "none";
 					elem.offsetHeight;
 					elem.style.animation = null;
+					elem.onanimationend = () => {
+						elem.classList.remove("animate-change");
+					};
 				}
 			};
 
