@@ -1,9 +1,18 @@
+body {
+    font-family: sans-serif;
+}
+
 .center-text {
     text-align: center;
 }
 
 td {
-    border: 1px solid;
+    border: 1px solid black;
+    padding: 3px;
+}
+
+th {
+    border: 1px solid black;
     padding: 3px;
 }
 
@@ -13,4 +22,23 @@ thead {
 
 .hide {
     display: none;
+}
+
+@keyframes red-to-black {
+  from {color: red;}
+  to {color: black;}
+}
+
+.animate-change {
+    color: black;
+    animation-name: red-to-black;
+    animation-duration: 3s;
+}
+
+.inline {
+    display: inline-block;
+}
+
+.bold {
+    font-weight: bold;
 }

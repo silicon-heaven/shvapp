@@ -33,75 +33,114 @@ const format_severity = (value) => {
 	}
 };
 
+const sort_rows = () => {
+	const col_num =
+		document.getElementById("sort_path").checked ? 1 :
+		document.getElementById("sort_severity").checked ? 2 :
+		document.getElementById("sort_message").checked ? 3 :
+		1; // We'll sort by path by default.
+
+	const order =
+		document.getElementById("sort_dsc").checked ? "dsc" : "asc";
+
+	[...document.querySelector("#hscope_container").querySelectorAll("tr")]
+		.sort(row_comparator(col_num, order))
+		.forEach((myElem) => document.getElementById("hscope_container").appendChild(myElem));
+};
 
 const resolve_hscope_tree = (path, container) => {
 
 	websocket.callRpcMethod(path, "dir").then((methods) => {
 		if (methods.rpcValue.value[2].value.some(x => x.value === "run")) {
-			const nodeContainer = document.createElement("tr");
-			container.appendChild(nodeContainer);
-			const runCellElement = document.createElement("td");
-			runCellElement.style.textAlign = "center";
-			const runElement = document.createElement("button");
-			runElement.innerText = "Run";
-			runElement.onclick = () => {
+			const user_facing_path = path.replace("hscope/instances/", "");
+			const node_container = document.createElement("tr");
+
+			// Make sure the elements are sorted in the correct order.
+			container.appendChild(node_container);
+
+			const run_cell_element = document.createElement("td");
+			run_cell_element.style.textAlign = "center";
+			const run_element = document.createElement("button");
+			run_element.innerText = "Run";
+			run_element.onclick = () => {
 				websocket.callRpcMethod(path, "run");
 			};
-			runCellElement.appendChild(runElement);
-			nodeContainer.appendChild(runCellElement);
+			run_cell_element.appendChild(run_element);
+			node_container.appendChild(run_cell_element);
 
-			const pathElement = document.createElement("td");
-			pathElement.innerText = path;
-			nodeContainer.appendChild(pathElement);
-			const severityElement = document.createElement("td");
-			severityElement.className = "center-text";
-			const messageElement = document.createElement("td");
-			messageElement.className = "center-text";
-			const timeChangedElement = document.createElement("td");
-			timeChangedElement.className = "center-text";
-			const lastRunElement = document.createElement("td");
-			lastRunElement.className = "center-text";
+			const path_element = document.createElement("td");
+			path_element.innerText = user_facing_path;
+			node_container.appendChild(path_element);
+			const severity_element = document.createElement("td");
+			severity_element.className = "center-text";
+			const message_element = document.createElement("td");
+			message_element.className = "center-text";
+			const time_changed_element = document.createElement("td");
+			time_changed_element.className = "center-text";
+			const last_run_element = document.createElement("td");
+			last_run_element.className = "center-text";
 
-			const updateElements = (value) => {
-				if (typeof value.severity !== "undefined") {
-					severityElement.innerText = format_severity(value.severity.value);
-				} else {
-					severityElement.innerText = "❓";
-				}
-
-				if (typeof value.message !== "undefined") {
-					messageElement.innerText = value.message.value;
-				} else {
-					messageElement.innerText = "";
-				}
-
-				if (typeof value.time_changed !== "undefined") {
-					timeChangedElement.innerText = new Date(value.time_changed.value.epochMsec).toLocaleString([]);
-				} else {
-					timeChangedElement.innerText = "";
+			let should_animate = false;
+			const animate_element = (elem) => {
+				if (should_animate) {
+					elem.classList.add("animate-change");
+					// This dance refreshes the animation.
+					// https://stackoverflow.com/a/45036752
+					elem.style.animation = "none";
+					elem.offsetHeight;
+					elem.style.animation = null;
 				}
 			};
 
-			websocket.callRpcMethod(path + "/status", "get").then((value) => {
-				updateElements(value.rpcValue.value[2].value);
+			const update_elements = (value) => {
+				if (typeof value.severity !== "undefined") {
+					severity_element.innerText = format_severity(value.severity.value);
+				} else {
+					severity_element.innerText = "❓";
+				}
+				animate_element(severity_element);
+
+				if (typeof value.message !== "undefined") {
+					message_element.innerText = value.message.value;
+				} else {
+					message_element.innerText = "";
+				}
+				animate_element(message_element);
+
+				if (typeof value.time_changed !== "undefined") {
+					time_changed_element.innerText = new Date(value.time_changed.value.epochMsec).toLocaleString([]);
+				} else {
+					time_changed_element.innerText = "";
+				}
+				animate_element(time_changed_element);
+				sort_rows();
+			};
+
+			const got_first_status = websocket.callRpcMethod(path + "/status", "get").then((value) => {
+				update_elements(value.rpcValue.value[2].value);
 			});
 
 			websocket.subscribe(path + "/status", "chng", (changedPath, type, value) => {
-				updateElements(value[1].value);
+				update_elements(value[1].value);
 			});
 
-			websocket.callRpcMethod(path + "/lastRunTimestamp", "get").then((value) => {
-				lastRunElement.innerText = new Date(value.rpcValue.value[2].value.epochMsec).toLocaleString([]);
+			const got_first_last_run = websocket.callRpcMethod(path + "/lastRunTimestamp", "get").then((value) => {
+				last_run_element.innerText = new Date(value.rpcValue.value[2].value.epochMsec).toLocaleString([]);
+			});
+
+			Promise.all([got_first_status, got_first_last_run]).then(() => {
+				should_animate = true;
 			});
 
 			websocket.subscribe(path + "/lastRunTimestamp", "chng", (changedPath, type, value) => {
-				lastRunElement.innerText = new Date(value[1].value.epochMsec).toLocaleString([]);
+				last_run_element.innerText = new Date(value[1].value.epochMsec).toLocaleString([]);
+				animate_element(last_run_element);
 			});
 
-			nodeContainer.appendChild(severityElement);
-			nodeContainer.appendChild(messageElement);
-			nodeContainer.appendChild(timeChangedElement);
-			nodeContainer.appendChild(lastRunElement);
+			node_container.appendChild(severity_element);
+			node_container.appendChild(message_element);
+			node_container.appendChild(time_changed_element);
+			node_container.appendChild(last_run_element);
 		}
 	})
 
@@ -149,5 +188,41 @@ const connect_websocket = () => {
 		debug('EXCEPTION: ' + exception);
 	}
 }
+
+const row_comparator = (col_num, order) => (a, b) =>  {
+	// Always put elements with empty text at the back.
+	if (a.children[col_num].innerText === "") {
+		return 1;
+	}
+
+	if (b.children[col_num].innerText === "") {
+		return -1;
+	}
+
+	const left = order === "asc" ? a : b;
+	const right = order === "asc" ? b : a;
+
+	if (left.children[col_num].innerText === right.children[col_num].innerText) {
+		// Columns have the same value, so we'll sort column 1 (which is path)
+		return row_comparator(1, order)(a, b);
+	}
+
+	return left.children[col_num].innerText < right.children[col_num].innerText ? -1 : 1;
+};
+
+[...document.querySelectorAll("#radio_buttons > input")].forEach(elem => elem.onclick = sort_rows);
+
+const filter_rows = (filter) => {
+	[...document.querySelector("#hscope_container").querySelectorAll("tr")]
+		.forEach((row) =>
+			[...row.children].some((cell) => cell.innerText.match(filter)) ? row.classList.remove("hide") : row.classList.add("hide"));
+}
+
+const txt_filter = document.getElementById("txt_filter");
+txt_filter.oninput = () => {
+	filter_rows(txt_filter.value)
+};
+
+txt_filter.select();
 
 connect_websocket();
