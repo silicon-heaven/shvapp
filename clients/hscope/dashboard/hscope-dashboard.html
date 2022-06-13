@@ -16,10 +16,10 @@
 	<body>
 		<div class="container">
 			<h1>Holy Scope dashboard</h1>
-			<button class="btn btn-sm btn-outline-dark" id="toggle_log">Show/hide log</button>
+			<button class="btn btn-sm btn-outline-dark mb-1" id="toggle_log">Show/hide log</button>
 			<br>
 			<textarea id="txt_log" style="width:50em;height:200px;" class="d-none"></textarea>
-			<div id="radio_buttons" class="row row-cols-7">
+			<div id="radio_buttons" class="row row-cols-7 mb-1">
 				<div class="form-check form-check-inline">
 					<div class="font-weight-bold col">Sort: </div>
 					<div class="col-auto">
@@ -45,7 +45,10 @@
 					</div>
 				</div>
 			</div>
-			Filter regex: <input type="text" id="txt_filter"></input>
+			<div class="mb-1">
+				Filter regex:
+				<input type="text" id="txt_filter"></input>
+			</div>
 
 			<table class="table table-sm table-striped">
 				<thead class="thead-dark">
