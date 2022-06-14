@@ -14,7 +14,11 @@ local function do_set_status(set_status, node_mounted)
 end
 
 local function manual_refresh(set_status, path)
-	shv.rpc_call('.broker/mounts', 'ls', '', function (result)
+	shv.rpc_call('.broker/mounts', 'ls', '', function (result, error)
+		if error then
+			shv_utils.handle_rpc_error(error, set_status)
+			return
+		end
 		local node_mounted = false
 
 		for _, v in ipairs(result.value) do
