@@ -2,12 +2,13 @@
 #define SHVJOURNALNODE_H
 
 #include <shv/iotqt/node/shvnode.h>
+#include <shv/iotqt/node/localfsnode.h>
 
-class ShvJournalNode : public shv::iotqt::node::ShvNode
+class ShvJournalNode : public shv::iotqt::node::LocalFSNode
 {
 	Q_OBJECT
 
-	using Super = shv::iotqt::node::ShvNode;
+	using Super = shv::iotqt::node::LocalFSNode;
 
 public:
 	ShvJournalNode(const QString& sites_path);

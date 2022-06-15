@@ -22,20 +22,30 @@ std::vector<cp::MetaMethod> methods {
 }
 
 ShvJournalNode::ShvJournalNode(const QString& site_path)
-	: Super("shvjournal")
+	: Super(QString::fromStdString(shv::core::Utils::joinPath(std::string("/tmp/historyprovider"), site_path.toStdString())), "shvjournal")
 	, m_logsPath(QString::fromStdString(shv::core::Utils::joinPath(site_path.toStdString(), std::string{".app/shvjournal"})))
 	, m_repoPath(QString::fromStdString(shv::core::Utils::joinPath(std::string("/tmp/historyprovider"), site_path.toStdString())))
 {
 	QDir(m_repoPath).mkpath(".");
 }
 
-size_t ShvJournalNode::methodCount(const StringViewList&)
+size_t ShvJournalNode::methodCount(const StringViewList& shv_path)
 {
+	if (!shv_path.empty()) {
+		// We'll let LocalFSNode handle the child nodes.
+		return Super::methodCount(shv_path);
+	}
+
 	return methods.size();
 }
 
-const cp::MetaMethod* ShvJournalNode::metaMethod(const StringViewList&, size_t index)
+const cp::MetaMethod* ShvJournalNode::metaMethod(const StringViewList& shv_path, size_t index)
 {
+	if (!shv_path.empty()) {
+		// We'll let LocalFSNode handle the child nodes.
+		return Super::metaMethod(shv_path, index);
+	}
+
 	return &methods.at(index);
 }
 
