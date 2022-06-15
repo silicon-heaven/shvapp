@@ -4,6 +4,8 @@
 #include <shv/coreqt/log.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/rpc/rpccall.h>
+#include <shv/core/utils/shvjournalfilewriter.h>
+#include <shv/core/utils/shvjournalentry.h>
 
 #include <QDir>
 #include <QTimer>
@@ -23,10 +25,46 @@ std::vector<cp::MetaMethod> methods {
 
 ShvJournalNode::ShvJournalNode(const QString& site_path)
 	: Super(QString::fromStdString(shv::core::Utils::joinPath(std::string("/tmp/historyprovider"), site_path.toStdString())), "shvjournal")
+	, m_sitePath(site_path.toStdString())
 	, m_logsPath(QString::fromStdString(shv::core::Utils::joinPath(site_path.toStdString(), std::string{".app/shvjournal"})))
 	, m_repoPath(QString::fromStdString(shv::core::Utils::joinPath(std::string("/tmp/historyprovider"), site_path.toStdString())))
 {
 	QDir(m_repoPath).mkpath(".");
+	auto conn = HistoryApp::instance()->rpcConnection();
+	connect(conn, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvJournalNode::onRpcMessageReceived);
+	conn->callMethodSubscribe(site_path.toStdString(), "chng");
+}
+
+namespace {
+const auto DIRTY_FILENAME = "dirty.log2";
+
+std::string dirty_log_path(const QString& repo_path)
+{
+	return QDir(repo_path).filePath(DIRTY_FILENAME).toStdString();
+}
+}
+
+void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
+{
+	if (msg.isSignal()) {
+		cp::RpcSignal ntf(msg);
+		auto path = ntf.shvPath().asString();
+		auto method = ntf.method().asString();
+		auto value = ntf.value();
+
+		if (path.find(m_sitePath) == 0 && method == "chng") {
+			auto writer = shv::core::utils::ShvJournalFileWriter(dirty_log_path(m_repoPath));
+			auto path_without_prefix = path.substr(m_sitePath.size());
+			auto data_change = shv::chainpack::DataChange::fromRpcValue(ntf.params());
+
+			auto entry = shv::core::utils::ShvJournalEntry(path_without_prefix, data_change.value()
+													, shv::core::utils::ShvJournalEntry::DOMAIN_VAL_CHANGE
+													, shv::core::utils::ShvJournalEntry::NO_SHORT_TIME
+													, shv::core::utils::ShvJournalEntry::NO_VALUE_FLAGS
+													, data_change.epochMSec());
+			writer.append(entry);
+		}
+	}
 }
 
 size_t ShvJournalNode::methodCount(const StringViewList& shv_path)

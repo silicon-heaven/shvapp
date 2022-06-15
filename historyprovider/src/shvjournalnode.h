@@ -18,7 +18,9 @@ public:
 	shv::chainpack::RpcValue callMethodRq(const shv::chainpack::RpcRequest &rq) override;
 
 private:
+	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 
+	std::string m_sitePath;
 	QString m_logsPath;
 	QString m_repoPath;
 };
