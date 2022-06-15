@@ -10,12 +10,15 @@ class ShvJournalNode : public shv::iotqt::node::ShvNode
 	using Super = shv::iotqt::node::ShvNode;
 
 public:
-	ShvJournalNode();
+	ShvJournalNode(const QString& sites_path);
 
 	size_t methodCount(const StringViewList& shv_path) override;
 	const shv::chainpack::MetaMethod* metaMethod(const StringViewList& shv_path, size_t ix) override;
-	shv::chainpack::RpcValue callMethod(const StringViewList& shv_path, const std::string& method, const shv::chainpack::RpcValue& params, const shv::chainpack::RpcValue& user_id) override;
+	shv::chainpack::RpcValue callMethodRq(const shv::chainpack::RpcRequest &rq) override;
 
 private:
+
+	QString m_logsPath;
+	QString m_repoPath;
 };
 #endif /*SHVJOURNALNODE_H*/

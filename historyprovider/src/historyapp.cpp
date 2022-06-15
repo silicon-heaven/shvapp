@@ -76,16 +76,16 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest& rq)
 }
 
 namespace {
-shv::iotqt::node::ShvNode* createTree(const cp::RpcValue::Map& tree, const std::string& node_name)
+shv::iotqt::node::ShvNode* createTree(const cp::RpcValue::Map& tree, const std::string& parent_name, const std::string& node_name)
 {
     if (node_name == "_meta" && tree.hasKey("HP")) {
-        return new ShvJournalNode();
+        return new ShvJournalNode(QString::fromStdString(parent_name));
     }
 
     shv::iotqt::node::ShvNode* res = nullptr;
     for (const auto& [k, v] : tree) {
         if (v.type() == cp::RpcValue::Type::Map) {
-            auto node = createTree(v.asMap(), k);
+            auto node = createTree(v.asMap(), shv::core::Utils::joinPath(parent_name, node_name), k);
             if (node) {
                 if (!res) {
                     res = new shv::iotqt::node::ShvNode(node_name);
@@ -148,7 +148,7 @@ void HistoryApp::onBrokerConnectedChanged(bool is_connected)
 	});
 
 	connect(call, &shv::iotqt::rpc::RpcCall::result, [this] (const cp::RpcValue& result) {
-		auto nodes = createTree(result.asMap(), "sites");
+		auto nodes = createTree(result.asMap(), "", "shv");
 		if (nodes) {
 			nodes->setParentNode(m_root);
 		}
