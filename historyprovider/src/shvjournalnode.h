@@ -19,6 +19,7 @@ public:
 
 private:
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
+	qint64 calculateCacheDirSize() const;
 
 	std::string m_siteShvPath;
 	QString m_remoteLogShvPath;

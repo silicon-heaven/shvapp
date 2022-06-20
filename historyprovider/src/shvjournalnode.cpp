@@ -10,6 +10,7 @@
 #include <shv/core/utils/shvjournalentry.h>
 
 #include <QDir>
+#include <QDirIterator>
 #include <QTimer>
 
 #define journalDebug() shvCDebug("historyjournal")
@@ -22,6 +23,7 @@ std::vector<cp::MetaMethod> methods {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
 	{"syncLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
+	{"logSize", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
 };
 }
 
@@ -244,6 +246,20 @@ private:
 
 };
 
+qint64 ShvJournalNode::calculateCacheDirSize() const
+{
+	journalDebug() << "Calculating cache directory size";
+	QDirIterator iter(m_cacheDirPath, QDir::NoDotAndDotDot | QDir::Files);
+	qint64 total_size = 0;
+	while (iter.hasNext()) {
+		QFile file(iter.next());
+		total_size += file.size();
+	}
+	journalDebug() << "Cache directory size" << total_size;
+
+	return total_size;
+}
+
 cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 {
 	auto method = rq.method().asString();
@@ -269,6 +285,10 @@ cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 		call->start();
 
 		return {};
+	}
+
+	if (method == "logSize") {
+		return shv::chainpack::RpcValue::Int(calculateCacheDirSize());
 	}
 
 	return Super::callMethodRq(rq);
