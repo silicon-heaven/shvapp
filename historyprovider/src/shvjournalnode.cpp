@@ -1,5 +1,6 @@
 #include "shvjournalnode.h"
 #include "historyapp.h"
+#include "appclioptions.h"
 
 #include <shv/coreqt/log.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
@@ -25,10 +26,10 @@ std::vector<cp::MetaMethod> methods {
 }
 
 ShvJournalNode::ShvJournalNode(const QString& site_shv_path)
-	: Super(QString::fromStdString(shv::core::Utils::joinPath(std::string("/tmp/historyprovider"), site_shv_path.toStdString())), "shvjournal")
+	: Super(QString::fromStdString(shv::core::Utils::joinPath(HistoryApp::instance()->cliOptions()->journalCacheRoot(), site_shv_path.toStdString())), "shvjournal")
 	, m_siteShvPath(site_shv_path.toStdString())
 	, m_remoteLogShvPath(QString::fromStdString(shv::core::Utils::joinPath(site_shv_path.toStdString(), std::string{".app/shvjournal"})))
-	, m_cacheDirPath(QString::fromStdString(shv::core::Utils::joinPath(std::string("/tmp/historyprovider"), site_shv_path.toStdString())))
+	, m_cacheDirPath(QString::fromStdString(shv::core::Utils::joinPath(HistoryApp::instance()->cliOptions()->journalCacheRoot(), site_shv_path.toStdString())))
 {
 	QDir(m_cacheDirPath).mkpath(".");
 	auto conn = HistoryApp::instance()->rpcConnection();
