@@ -21,7 +21,7 @@ private:
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 
 	std::string m_sitePath;
-	QString m_logsPath;
+	QString m_remoteLogShvPath;
 	QString m_cacheDirPath;
 };
 #endif /*SHVJOURNALNODE_H*/

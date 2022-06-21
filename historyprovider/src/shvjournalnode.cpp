@@ -27,7 +27,7 @@ std::vector<cp::MetaMethod> methods {
 ShvJournalNode::ShvJournalNode(const QString& site_path)
 	: Super(QString::fromStdString(shv::core::Utils::joinPath(std::string("/tmp/historyprovider"), site_path.toStdString())), "shvjournal")
 	, m_sitePath(site_path.toStdString())
-	, m_logsPath(QString::fromStdString(shv::core::Utils::joinPath(site_path.toStdString(), std::string{".app/shvjournal"})))
+	, m_remoteLogShvPath(QString::fromStdString(shv::core::Utils::joinPath(site_path.toStdString(), std::string{".app/shvjournal"})))
 	, m_cacheDirPath(QString::fromStdString(shv::core::Utils::joinPath(std::string("/tmp/historyprovider"), site_path.toStdString())))
 {
 	QDir(m_cacheDirPath).mkpath(".");
@@ -91,11 +91,11 @@ const cp::MetaMethod* ShvJournalNode::metaMethod(const StringViewList& shv_path,
 class FileSyncer : public QObject {
 	Q_OBJECT;
 public:
-	FileSyncer(const cp::RpcValue& files, const QString& logs_path, const QString& cache_dir_path, const cp::RpcRequest& request)
+	FileSyncer(const cp::RpcValue& files, const QString& remote_log_shv_path, const QString& cache_dir_path, const cp::RpcRequest& request)
 		: m_files(files)
 		, m_filesList(m_files.asList())
 		, m_currentFile(m_filesList.begin())
-		, m_logsPath(logs_path)
+		, m_remoteLogShvPath(remote_log_shv_path)
 		, m_cacheDirPath(cache_dir_path)
 		, m_request(request)
 	{
@@ -204,7 +204,7 @@ public:
 			}
 		}
 
-		auto sites_log_file = m_logsPath + "/" + file_name;
+		auto sites_log_file = m_remoteLogShvPath + "/" + file_name;
 		journalDebug() << "Retrieving" << sites_log_file << "offset:" << local_size;
 		auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
 			->setShvPath(sites_log_file)
@@ -236,7 +236,7 @@ private:
 	cp::RpcValue::List m_filesList;
 	cp::RpcValue::List::const_iterator m_currentFile;
 
-	QString m_logsPath;
+	QString m_remoteLogShvPath;
 	QString m_cacheDirPath;
 
 	cp::RpcRequest m_request;
@@ -247,9 +247,9 @@ cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 {
 	auto method = rq.method().asString();
 	if (method == "syncLog") {
-		journalInfo() << "Syncing shvjournal" << m_logsPath;
+		journalInfo() << "Syncing shvjournal" << m_remoteLogShvPath;
 		auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
-			->setShvPath(m_logsPath)
+			->setShvPath(m_remoteLogShvPath)
 			->setMethod("ls")
 			->setParams(cp::RpcValue::Map{{"size", true}});
 
@@ -262,8 +262,8 @@ cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 		});
 
 		connect(call, &shv::iotqt::rpc::RpcCall::result, [this, rq] (const cp::RpcValue& result) {
-			journalDebug() << "Got filelist from" << m_logsPath;
-			new FileSyncer(result, m_logsPath, m_cacheDirPath, rq);
+			journalDebug() << "Got filelist from" << m_remoteLogShvPath;
+			new FileSyncer(result, m_remoteLogShvPath, m_cacheDirPath, rq);
 		});
 		call->start();
 
