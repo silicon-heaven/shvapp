@@ -1,3 +1,4 @@
+local shv_utils = require("shv_utils")
 return function (set_status, path_to_agent, hostname, port)
 	if path_to_agent == nil then
 		error("path_to_agent mustn't be null")
@@ -11,7 +12,11 @@ return function (set_status, path_to_agent, hostname, port)
 		error("port mustn't be null")
 	end
 	local do_test = function ()
-		shv.rpc_call(path_to_agent, "runScript", string.format([[telnet %s %s | grep -oa hello]], hostname, port), function (result)
+		shv.rpc_call(path_to_agent, "runScript", string.format([[telnet %s %s | grep -oa hello]], hostname, port), function (result, error)
+			if error then
+				shv_utils.handle_rpc_error(error, set_status)
+				return
+			end
 			if result.value == "hello\n" then
 				set_status({
 					message = 'Eyas OK',

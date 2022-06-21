@@ -14,4 +14,12 @@ function utils.print_table(table, key_prefix)
 	end
 end
 
+function utils.handle_rpc_error(rpc_error, set_status)
+	set_status({
+		severity = "error",
+		message = rpc_error.value[3].value
+	})
+	error(rpc_error.value[3].value)
+end
+
 return utils
