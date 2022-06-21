@@ -98,7 +98,49 @@ shv::iotqt::node::ShvNode* createTree(const cp::RpcValue::Map& tree, const std::
 
     return res;
 }
+
+auto parse_size_option(const std::string& size_option, bool* success)
+{
+	*success = true;
+
+	QString limit = QString::fromStdString(size_option);
+	char suffix = 0;
+	if (limit.endsWith('k') || limit.endsWith('M') || limit.endsWith('G')) {
+		suffix = limit[limit.length() - 1].toLatin1();
+		limit = limit.left(limit.length() - 1);
+	}
+
+	auto cache_size_limit_bytes = limit.toLongLong(success);
+	if (!success) {
+		shvError() << "Invalid cacheSizeLimit" << size_option;
+		return 0LL;
+	}
+
+	if (suffix) {
+		switch (suffix) {
+		case 'k':
+			cache_size_limit_bytes *= 1024;
+			break;
+		case 'M':
+			cache_size_limit_bytes *= 1024;
+			cache_size_limit_bytes *= 1024;
+			break;
+		case 'G':
+			cache_size_limit_bytes *= 1024;
+			cache_size_limit_bytes *= 1024;
+			cache_size_limit_bytes *= 1024;
+			break;
+		default:
+			*success = false;
+			shvError() << "Invalid cacheSizeLimit suffix" << suffix;
+			break;
+		}
+	}
+
+	return cache_size_limit_bytes;
 }
+}
+
 
 HistoryApp::HistoryApp(int& argc, char** argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
@@ -114,7 +156,19 @@ HistoryApp::HistoryApp(int& argc, char** argv, AppCliOptions* cli_opts)
 		cli_opts->setPassword("lub42DUB");
 	}
 
+	bool success;
+	auto size_limit_bytes = parse_size_option(cli_opts->journalCacheSizeLimit(), &success);
+
+	if (!success) {
+		auto default_limit_bytes = cli_opts->option("app.cacheSizeLimit").defaultValue().asString();
+		shvError() << "Invalid cacheSizeLimit:" << cli_opts->journalCacheSizeLimit() << "using the default:" << default_limit_bytes;
+		size_limit_bytes = parse_size_option(default_limit_bytes, &success);
+	}
+
+	shvInfo() << "Cache size limit:" << size_limit_bytes << "bytes";
+
 	m_rpcConnection->setCliOptions(cli_opts);
+	m_totalCacheSizeLimit = size_limit_bytes;
 
 	connect(m_rpcConnection, &si::rpc::ClientConnection::brokerConnectedChanged, this, &HistoryApp::onBrokerConnectedChanged);
 	connect(m_rpcConnection, &si::rpc::ClientConnection::rpcMessageReceived, this, &HistoryApp::onRpcMessageReceived);
@@ -152,6 +206,12 @@ void HistoryApp::onBrokerConnectedChanged(bool is_connected)
 		if (nodes) {
 			nodes->setParentNode(m_root);
 		}
+
+		auto log_dir_count = m_shvTree->findChildren<ShvJournalNode*>().size();
+		if (log_dir_count != 0) {
+			m_singleCacheSizeLimit = m_totalCacheSizeLimit / log_dir_count;
+		}
+
 	});
 	call->start();
 }

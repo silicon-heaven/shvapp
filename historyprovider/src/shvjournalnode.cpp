@@ -24,6 +24,7 @@ std::vector<cp::MetaMethod> methods {
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
 	{"syncLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
 	{"logSize", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
+	{"sanitizeLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
 };
 }
 
@@ -260,6 +261,24 @@ qint64 ShvJournalNode::calculateCacheDirSize() const
 	return total_size;
 }
 
+void ShvJournalNode::sanitizeSize()
+{
+	auto cache_dir_size = calculateCacheDirSize();
+	auto cache_size_limit = HistoryApp::instance()->singleCacheSizeLimit();
+
+	journalInfo() << "Sanitizing cache, path:" << m_cacheDirPath << "size" << cache_dir_size << "cacheSizeLimit" << cache_size_limit;
+
+	QDirIterator iter(m_cacheDirPath, QDir::NoDotAndDotDot | QDir::Files);
+	while (cache_dir_size > cache_size_limit && iter.hasNext()) {
+		QFile file(iter.next());
+		journalDebug() << "Removing" << file.fileName();
+		cache_dir_size -= file.size();
+		file.remove();
+	}
+
+	journalInfo() << "Sanitization done, path:" << m_cacheDirPath << "new size" << cache_dir_size << "cacheSizeLimit" << cache_size_limit;
+}
+
 cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 {
 	auto method = rq.method().asString();
@@ -289,6 +308,11 @@ cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 
 	if (method == "logSize") {
 		return shv::chainpack::RpcValue::Int(calculateCacheDirSize());
+	}
+
+	if (method == "sanitizeLog") {
+		sanitizeSize();
+		return "Cache sanitization done";
 	}
 
 	return Super::callMethodRq(rq);

@@ -37,6 +37,7 @@ public:
 
 	static HistoryApp* instance();
 	shv::iotqt::rpc::DeviceConnection* rpcConnection() const {return m_rpcConnection;}
+	int64_t singleCacheSizeLimit() const {return m_singleCacheSizeLimit;}
 
 	AppCliOptions* cliOptions() {return m_cliOptions;}
 
@@ -50,4 +51,6 @@ private:
 	shv::iotqt::node::ShvNodeTree* m_shvTree = nullptr;
 	AppRootNode* m_root = nullptr;
 	bool m_isBrokerConnected = false;
+	int64_t m_totalCacheSizeLimit;
+	int64_t m_singleCacheSizeLimit;
 };
