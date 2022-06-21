@@ -22,6 +22,6 @@ private:
 
 	std::string m_sitePath;
 	QString m_logsPath;
-	QString m_repoPath;
+	QString m_cacheDirPath;
 };
 #endif /*SHVJOURNALNODE_H*/

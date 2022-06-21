@@ -28,9 +28,9 @@ ShvJournalNode::ShvJournalNode(const QString& site_path)
 	: Super(QString::fromStdString(shv::core::Utils::joinPath(std::string("/tmp/historyprovider"), site_path.toStdString())), "shvjournal")
 	, m_sitePath(site_path.toStdString())
 	, m_logsPath(QString::fromStdString(shv::core::Utils::joinPath(site_path.toStdString(), std::string{".app/shvjournal"})))
-	, m_repoPath(QString::fromStdString(shv::core::Utils::joinPath(std::string("/tmp/historyprovider"), site_path.toStdString())))
+	, m_cacheDirPath(QString::fromStdString(shv::core::Utils::joinPath(std::string("/tmp/historyprovider"), site_path.toStdString())))
 {
-	QDir(m_repoPath).mkpath(".");
+	QDir(m_cacheDirPath).mkpath(".");
 	auto conn = HistoryApp::instance()->rpcConnection();
 	connect(conn, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvJournalNode::onRpcMessageReceived);
 	conn->callMethodSubscribe(site_path.toStdString(), "chng");
@@ -39,9 +39,9 @@ ShvJournalNode::ShvJournalNode(const QString& site_path)
 namespace {
 const auto DIRTY_FILENAME = "dirty.log2";
 
-std::string dirty_log_path(const QString& repo_path)
+std::string dirty_log_path(const QString& cache_dir_path)
 {
-	return QDir(repo_path).filePath(DIRTY_FILENAME).toStdString();
+	return QDir(cache_dir_path).filePath(DIRTY_FILENAME).toStdString();
 }
 }
 
@@ -54,7 +54,7 @@ void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 		auto value = ntf.value();
 
 		if (path.find(m_sitePath) == 0 && method == "chng") {
-			auto writer = shv::core::utils::ShvJournalFileWriter(dirty_log_path(m_repoPath));
+			auto writer = shv::core::utils::ShvJournalFileWriter(dirty_log_path(m_cacheDirPath));
 			auto path_without_prefix = path.substr(m_sitePath.size());
 			auto data_change = shv::chainpack::DataChange::fromRpcValue(ntf.params());
 
@@ -91,12 +91,12 @@ const cp::MetaMethod* ShvJournalNode::metaMethod(const StringViewList& shv_path,
 class FileSyncer : public QObject {
 	Q_OBJECT;
 public:
-	FileSyncer(const cp::RpcValue& files, const QString& logs_path, const QString& repo_path, const cp::RpcRequest& request)
+	FileSyncer(const cp::RpcValue& files, const QString& logs_path, const QString& cache_dir_path, const cp::RpcRequest& request)
 		: m_files(files)
 		, m_filesList(m_files.asList())
 		, m_currentFile(m_filesList.begin())
 		, m_logsPath(logs_path)
-		, m_repoPath(repo_path)
+		, m_cacheDirPath(cache_dir_path)
 		, m_request(request)
 	{
 		connect(this, &FileSyncer::fileDone, [this] {
@@ -109,8 +109,8 @@ public:
 
 	void trimDirtyLog()
 	{
-		QDir repo_dir(m_repoPath);
-		auto entries = repo_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name | QDir::Reversed);
+		QDir cache_dir(m_cacheDirPath);
+		auto entries = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name | QDir::Reversed);
 
 		if (entries.empty() || entries.at(0) != DIRTY_FILENAME) {
 			journalDebug() << "No dirty log, nothing to trim";
@@ -122,13 +122,13 @@ public:
 			return;
 		}
 
-		if (!shv::core::utils::ShvJournalFileReader(dirty_log_path(m_repoPath)).next()) {
+		if (!shv::core::utils::ShvJournalFileReader(dirty_log_path(m_cacheDirPath)).next()) {
 			// No entries in the dirty log file, nothing to change.
 			journalDebug() << "Dirty log empty, nothing to trim";
 			return;
 		}
 
-		auto newest_log_filepath = repo_dir.filePath(entries.at(1));
+		auto newest_log_filepath = cache_dir.filePath(entries.at(1));
 
 		// It is possible that the newest logfile contains multiple entries with the same timestamp. Because it could
 		// have been written (by shvagent) in between two events that happenede in the same millisecond, we can't be
@@ -157,7 +157,7 @@ public:
 		journalDebug() << "Trimmed logfile" << newest_log_filepath << "last entry timestamp" << newest_entry_msec;
 
 		// Now filter dirty log's newer events.
-		reader = shv::core::utils::ShvJournalFileReader(dirty_log_path(m_repoPath));
+		reader = shv::core::utils::ShvJournalFileReader(dirty_log_path(m_cacheDirPath));
 		std::vector<shv::core::utils::ShvJournalEntry> new_dirty_log_entries;
 		bool first = true;
 		while (reader.next()) {
@@ -171,9 +171,9 @@ public:
 			}
 		}
 
-		QFile(QString::fromStdString(dirty_log_path(m_repoPath))).remove();
+		QFile(QString::fromStdString(dirty_log_path(m_cacheDirPath))).remove();
 
-		writer = shv::core::utils::ShvJournalFileWriter(dirty_log_path(m_repoPath));
+		writer = shv::core::utils::ShvJournalFileWriter(dirty_log_path(m_cacheDirPath));
 		for (const auto& entry : new_dirty_log_entries) {
 			writer.append(entry);
 		}
@@ -191,7 +191,7 @@ public:
 		}
 
 		auto file_name = QString::fromStdString(m_currentFile->asList().at(0).asString());
-		auto full_file_name = QDir(m_repoPath).filePath(file_name);
+		auto full_file_name = QDir(m_cacheDirPath).filePath(file_name);
 		QFile file(full_file_name);
 		auto local_size = file.size();
 		auto remote_size = m_currentFile->asList().at(2).toInt();
@@ -237,7 +237,7 @@ private:
 	cp::RpcValue::List::const_iterator m_currentFile;
 
 	QString m_logsPath;
-	QString m_repoPath;
+	QString m_cacheDirPath;
 
 	cp::RpcRequest m_request;
 
@@ -263,7 +263,7 @@ cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 
 		connect(call, &shv::iotqt::rpc::RpcCall::result, [this, rq] (const cp::RpcValue& result) {
 			journalDebug() << "Got filelist from" << m_logsPath;
-			new FileSyncer(result, m_logsPath, m_repoPath, rq);
+			new FileSyncer(result, m_logsPath, m_cacheDirPath, rq);
 		});
 		call->start();
 
