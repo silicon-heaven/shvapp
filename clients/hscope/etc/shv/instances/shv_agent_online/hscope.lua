@@ -1,1 +1,1 @@
-return require('is_online')(set_status, 'test/shvagent')
+return require('agent_online')(set_status, 'test/shvagent')
