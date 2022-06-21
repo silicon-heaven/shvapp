@@ -24,16 +24,16 @@ std::vector<cp::MetaMethod> methods {
 };
 }
 
-ShvJournalNode::ShvJournalNode(const QString& site_path)
-	: Super(QString::fromStdString(shv::core::Utils::joinPath(std::string("/tmp/historyprovider"), site_path.toStdString())), "shvjournal")
-	, m_sitePath(site_path.toStdString())
-	, m_remoteLogShvPath(QString::fromStdString(shv::core::Utils::joinPath(site_path.toStdString(), std::string{".app/shvjournal"})))
-	, m_cacheDirPath(QString::fromStdString(shv::core::Utils::joinPath(std::string("/tmp/historyprovider"), site_path.toStdString())))
+ShvJournalNode::ShvJournalNode(const QString& site_shv_path)
+	: Super(QString::fromStdString(shv::core::Utils::joinPath(std::string("/tmp/historyprovider"), site_shv_path.toStdString())), "shvjournal")
+	, m_siteShvPath(site_shv_path.toStdString())
+	, m_remoteLogShvPath(QString::fromStdString(shv::core::Utils::joinPath(site_shv_path.toStdString(), std::string{".app/shvjournal"})))
+	, m_cacheDirPath(QString::fromStdString(shv::core::Utils::joinPath(std::string("/tmp/historyprovider"), site_shv_path.toStdString())))
 {
 	QDir(m_cacheDirPath).mkpath(".");
 	auto conn = HistoryApp::instance()->rpcConnection();
 	connect(conn, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvJournalNode::onRpcMessageReceived);
-	conn->callMethodSubscribe(site_path.toStdString(), "chng");
+	conn->callMethodSubscribe(site_shv_path.toStdString(), "chng");
 }
 
 namespace {
@@ -53,9 +53,9 @@ void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 		auto method = ntf.method().asString();
 		auto value = ntf.value();
 
-		if (path.find(m_sitePath) == 0 && method == "chng") {
+		if (path.find(m_siteShvPath) == 0 && method == "chng") {
 			auto writer = shv::core::utils::ShvJournalFileWriter(dirty_log_path(m_cacheDirPath));
-			auto path_without_prefix = path.substr(m_sitePath.size());
+			auto path_without_prefix = path.substr(m_siteShvPath.size());
 			auto data_change = shv::chainpack::DataChange::fromRpcValue(ntf.params());
 
 			auto entry = shv::core::utils::ShvJournalEntry(path_without_prefix, data_change.value()

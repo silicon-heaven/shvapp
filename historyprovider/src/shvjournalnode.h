@@ -11,7 +11,7 @@ class ShvJournalNode : public shv::iotqt::node::LocalFSNode
 	using Super = shv::iotqt::node::LocalFSNode;
 
 public:
-	ShvJournalNode(const QString& sites_path);
+	ShvJournalNode(const QString& site_shv_path);
 
 	size_t methodCount(const StringViewList& shv_path) override;
 	const shv::chainpack::MetaMethod* metaMethod(const StringViewList& shv_path, size_t ix) override;
@@ -20,7 +20,7 @@ public:
 private:
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 
-	std::string m_sitePath;
+	std::string m_siteShvPath;
 	QString m_remoteLogShvPath;
 	QString m_cacheDirPath;
 };
