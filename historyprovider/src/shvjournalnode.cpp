@@ -19,25 +19,38 @@
 
 namespace cp = shv::chainpack;
 namespace {
-std::vector<cp::MetaMethod> methods {
+static std::vector<cp::MetaMethod> methods {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
-	{"syncLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
-	{"logSize", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
+	{"isPushLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
+	{"logSize", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 	{"sanitizeLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
+	{"syncLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
+};
+
+static std::vector<cp::MetaMethod> methods_with_push_log {
+	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
+	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
+	{"isPushLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
+	{"logSize", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
+	{"sanitizeLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
+	{"pushLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
 };
 }
 
-ShvJournalNode::ShvJournalNode(const QString& site_shv_path)
+ShvJournalNode::ShvJournalNode(const QString& site_shv_path, const IsPushLog is_push_log)
 	: Super(QString::fromStdString(shv::core::Utils::joinPath(HistoryApp::instance()->cliOptions()->journalCacheRoot(), site_shv_path.toStdString())), "shvjournal")
 	, m_siteShvPath(site_shv_path.toStdString())
 	, m_remoteLogShvPath(QString::fromStdString(shv::core::Utils::joinPath(site_shv_path.toStdString(), std::string{".app/shvjournal"})))
 	, m_cacheDirPath(QString::fromStdString(shv::core::Utils::joinPath(HistoryApp::instance()->cliOptions()->journalCacheRoot(), site_shv_path.toStdString())))
+	, m_isPushLog(is_push_log)
 {
 	QDir(m_cacheDirPath).mkpath(".");
 	auto conn = HistoryApp::instance()->rpcConnection();
-	connect(conn, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvJournalNode::onRpcMessageReceived);
-	conn->callMethodSubscribe(site_shv_path.toStdString(), "chng");
+	if (is_push_log == IsPushLog::No) {
+		connect(conn, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvJournalNode::onRpcMessageReceived);
+		conn->callMethodSubscribe(site_shv_path.toStdString(), "chng");
+	}
 }
 
 namespace {
@@ -79,7 +92,7 @@ size_t ShvJournalNode::methodCount(const StringViewList& shv_path)
 		return Super::methodCount(shv_path);
 	}
 
-	return methods.size();
+	return m_isPushLog == IsPushLog::Yes ? methods_with_push_log.size() : methods.size();
 }
 
 const cp::MetaMethod* ShvJournalNode::metaMethod(const StringViewList& shv_path, size_t index)
@@ -89,7 +102,7 @@ const cp::MetaMethod* ShvJournalNode::metaMethod(const StringViewList& shv_path,
 		return Super::metaMethod(shv_path, index);
 	}
 
-	return &methods.at(index);
+	return m_isPushLog == IsPushLog::Yes ? &methods_with_push_log.at(index) : &methods.at(index);
 }
 
 class FileSyncer : public QObject {
@@ -282,7 +295,7 @@ void ShvJournalNode::sanitizeSize()
 cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 {
 	auto method = rq.method().asString();
-	if (method == "syncLog") {
+	if (method == "syncLog" && m_isPushLog == IsPushLog::No) {
 		journalInfo() << "Syncing shvjournal" << m_remoteLogShvPath;
 		auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
 			->setShvPath(m_remoteLogShvPath)
@@ -304,6 +317,10 @@ cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 		call->start();
 
 		return {};
+	}
+
+	if (method == "isPushLog") {
+		return m_isPushLog == IsPushLog::Yes;
 	}
 
 	if (method == "logSize") {

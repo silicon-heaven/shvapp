@@ -79,7 +79,7 @@ namespace {
 shv::iotqt::node::ShvNode* createTree(const cp::RpcValue::Map& tree, const std::string& parent_name, const std::string& node_name)
 {
 	if (node_name == "_meta" && tree.hasKey("HP")) {
-		return new ShvJournalNode(QString::fromStdString(parent_name));
+		return new ShvJournalNode(QString::fromStdString(parent_name), tree.value("HP").asMap().value("pushLog").toBool() ? IsPushLog::Yes : IsPushLog::No);
 	}
 
 	shv::iotqt::node::ShvNode* res = nullptr;
