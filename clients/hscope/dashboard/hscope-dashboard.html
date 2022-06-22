@@ -14,7 +14,7 @@
 		<link rel="stylesheet" href="style.css" />
 	</head>
 	<body>
-		<div class="container">
+		<div class="container-fluid">
 			<h1>Holy Scope dashboard</h1>
 			<button class="btn btn-sm btn-outline-dark mb-1" id="toggle_log">Show/hide log</button>
 			<br>
@@ -53,12 +53,12 @@
 			<table class="table table-sm table-striped">
 				<thead class="thead-dark">
 					<tr class="text-center">
-						<th></th>
-						<th style="width: 45%">Path</th>
+						<th style="width: 5%"></th>
+						<th style="width: 30%">Path</th>
 						<th style="width: 5%">Severity</th>
-						<th style="width: 10%">Message</th>
-						<th style="width: 20%">Time Changed</th>
-						<th style="width: 20%">Last Run</th>
+						<th style="width: 30%">Message</th>
+						<th style="width: 15%">Time Changed</th>
+						<th style="width: 15%">Last Run</th>
 					</tr>
 				</thead>
 				<tbody id="hscope_container"></tbody>
