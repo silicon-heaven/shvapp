@@ -78,25 +78,25 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest& rq)
 namespace {
 shv::iotqt::node::ShvNode* createTree(const cp::RpcValue::Map& tree, const std::string& parent_name, const std::string& node_name)
 {
-    if (node_name == "_meta" && tree.hasKey("HP")) {
-        return new ShvJournalNode(QString::fromStdString(parent_name));
-    }
+	if (node_name == "_meta" && tree.hasKey("HP")) {
+		return new ShvJournalNode(QString::fromStdString(parent_name));
+	}
 
-    shv::iotqt::node::ShvNode* res = nullptr;
-    for (const auto& [k, v] : tree) {
-        if (v.type() == cp::RpcValue::Type::Map) {
-            auto node = createTree(v.asMap(), shv::core::Utils::joinPath(parent_name, node_name), k);
-            if (node) {
-                if (!res) {
-                    res = new shv::iotqt::node::ShvNode(node_name);
-                }
+	shv::iotqt::node::ShvNode* res = nullptr;
+	for (const auto& [k, v] : tree) {
+		if (v.type() == cp::RpcValue::Type::Map) {
+			auto node = createTree(v.asMap(), shv::core::Utils::joinPath(parent_name, node_name), k);
+			if (node) {
+				if (!res) {
+					res = new shv::iotqt::node::ShvNode(node_name);
+				}
 
-                node->setParentNode(res);
-            }
-        }
-    }
+				node->setParentNode(res);
+			}
+		}
+	}
 
-    return res;
+	return res;
 }
 
 auto parse_size_option(const std::string& size_option, bool* success)
