@@ -7,6 +7,7 @@
 #include <shv/iotqt/rpc/rpccall.h>
 #include <shv/core/utils/shvjournalfilereader.h>
 #include <shv/core/utils/shvjournalfilewriter.h>
+#include <shv/core/utils/shvlogrpcvaluereader.h>
 #include <shv/core/utils/shvjournalentry.h>
 
 #include <QDir>
@@ -317,6 +318,34 @@ cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 		call->start();
 
 		return {};
+	}
+
+	if (method == "pushLog" && m_isPushLog == IsPushLog::Yes) {
+		journalInfo() << "Got pushLog at" << m_siteShvPath;
+
+		shv::core::utils::ShvLogRpcValueReader reader(rq.params());
+		QDir cache_dir(m_cacheDirPath);
+		auto remote_log_time_ms = reader.logHeader().dateTimeCRef().toDateTime().msecsSinceEpoch();
+		auto entries = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name | QDir::Reversed);
+		if (!std::empty(entries)) {
+			auto local_newest_log_time = entries.at(0).toStdString();
+
+			if (shv::core::utils::ShvJournalFileReader::fileNameToFileMsec(local_newest_log_time) >= remote_log_time_ms) {
+				auto remote_timestamp = shv::core::utils::ShvJournalFileReader::msecToBaseFileName(remote_log_time_ms);
+				auto err_message = "Rejecting push log with timestamp: " + remote_timestamp + ", because a newer or same already exists: " + local_newest_log_time;
+				journalError() << err_message;
+				throw shv::core::Exception(err_message);
+			}
+		}
+
+		auto file_path = cache_dir.filePath(QString::fromStdString(shv::core::utils::ShvJournalFileReader::msecToBaseFileName(remote_log_time_ms)) + ".log2");
+
+		shv::core::utils::ShvJournalFileWriter writer(file_path.toStdString());
+		journalDebug() << "Writing" << file_path;
+		while (reader.next()) {
+			writer.append(reader.entry());
+		}
+		return true;
 	}
 
 	if (method == "isPushLog") {
