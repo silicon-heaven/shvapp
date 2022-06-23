@@ -16,15 +16,15 @@ local last_severity = {}
 shv.on_broker_connected(function ()
     shv.rpc_call(".broker/currentClient", "mountPoint", "", function (value)
         shv.subscribe(value.value .. "/" .. cur_shv_path, "chng", function (path, new_value)
-            if ends_with(path, '/status') and last_severity[path] then
-                if new_value.value.severity.value ~= last_severity[path] then
+            if ends_with(path, '/status') then
+                if last_severity[path] and new_value.value.severity.value ~= last_severity[path] then
                     local msg =
                         new_value.value.severity.value == 'ok' and 'Test was fixed.' or 'Test failure occurred.'
                     -- bot:sendMessage(CHAT_ID, string.format('%s\nPath: %s\nSeverity: %s\nMessage: %s', msg, path, new_value.value.severity.value, new_value.value.message.value))
                 end
-            end
 
-            last_severity[path] = new_value.value.severity.value
+                last_severity[path] = new_value.value.severity.value
+            end
         end)
     end)
 end)
