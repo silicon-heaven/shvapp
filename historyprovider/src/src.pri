@@ -8,4 +8,4 @@ SOURCES += \
 		  $$PWD/main.cpp\
 		  $$PWD/appclioptions.cpp \
 		  $$PWD/historyapp.cpp \
-		   $$PWD/shvjournalnode.cpp \
+		  $$PWD/shvjournalnode.cpp \
