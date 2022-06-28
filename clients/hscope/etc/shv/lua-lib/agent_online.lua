@@ -16,6 +16,11 @@ return function (set_status, path_to_agent)
 	end
 
 	shv.add_timer(do_test, 1000 * 60 * 5) -- Every five minutes
+	shv.on_broker_connected(function ()
+		shv.subscribe(path_to_agent, 'mntchng', function ()
+			do_test()
+		end)
+	end)
 
 	return do_test
 end
