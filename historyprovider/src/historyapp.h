@@ -13,6 +13,8 @@ namespace shv { namespace chainpack { class RpcMessage; }}
 namespace shv { namespace iotqt { namespace rpc { class DeviceConnection; }}}
 namespace shv { namespace iotqt { namespace node { class ShvNodeTree; }}}
 
+class ShvJournalNode;
+
 class AppRootNode : public shv::iotqt::node::ShvRootNode
 {
 	using Super = shv::iotqt::node::ShvRootNode;
@@ -44,6 +46,7 @@ public:
 private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage& msg);
+	void sanitizeNext();
 
 private:
 	shv::iotqt::rpc::DeviceConnection* m_rpcConnection = nullptr;
@@ -53,4 +56,6 @@ private:
 	bool m_isBrokerConnected = false;
 	int64_t m_totalCacheSizeLimit;
 	int64_t m_singleCacheSizeLimit;
+	QList<ShvJournalNode*> m_journalNodes;
+	QListIterator<ShvJournalNode*> m_sanitizerIterator;
 };
