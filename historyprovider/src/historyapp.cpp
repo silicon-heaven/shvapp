@@ -79,7 +79,8 @@ namespace {
 shv::iotqt::node::ShvNode* createTree(const cp::RpcValue::Map& tree, const std::string& parent_name, const std::string& node_name)
 {
 	if (node_name == "_meta" && tree.hasKey("HP")) {
-		return new ShvJournalNode(QString::fromStdString(parent_name), tree.value("HP").asMap().value("pushLog").toBool() ? IsPushLog::Yes : IsPushLog::No);
+		auto remote_log_shv_path = QString::fromStdString(shv::core::Utils::joinPath(parent_name, shv::core::StringView(".app/shvjournal")));
+		return new ShvJournalNode(QString::fromStdString(parent_name), remote_log_shv_path, tree.value("HP").asMap().value("pushLog").toBool() ? IsPushLog::Yes : IsPushLog::No);
 	}
 
 	shv::iotqt::node::ShvNode* res = nullptr;

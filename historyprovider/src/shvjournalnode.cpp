@@ -39,10 +39,10 @@ static std::vector<cp::MetaMethod> methods_with_push_log {
 };
 }
 
-ShvJournalNode::ShvJournalNode(const QString& site_shv_path, const IsPushLog is_push_log)
+ShvJournalNode::ShvJournalNode(const QString& site_shv_path, const QString& remote_log_shv_path, const IsPushLog is_push_log)
 	: Super(QString::fromStdString(shv::core::Utils::joinPath(HistoryApp::instance()->cliOptions()->journalCacheRoot(), site_shv_path.toStdString())), "shvjournal")
 	, m_siteShvPath(site_shv_path.toStdString())
-	, m_remoteLogShvPath(QString::fromStdString(shv::core::Utils::joinPath(site_shv_path.toStdString(), std::string{".app/shvjournal"})))
+	, m_remoteLogShvPath(remote_log_shv_path)
 	, m_cacheDirPath(QString::fromStdString(shv::core::Utils::joinPath(HistoryApp::instance()->cliOptions()->journalCacheRoot(), site_shv_path.toStdString())))
 	, m_isPushLog(is_push_log)
 {
