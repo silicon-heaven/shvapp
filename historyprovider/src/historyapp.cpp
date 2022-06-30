@@ -75,18 +75,37 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest& rq)
 	return Super::callMethodRq(rq);
 }
 
+
 namespace {
-shv::iotqt::node::ShvNode* createTree(const cp::RpcValue::Map& tree, const std::string& parent_name, const std::string& node_name)
+enum class SlaveFound {
+	Yes,
+	No
+};
+
+shv::iotqt::node::ShvNode* createTree(const cp::RpcValue::Map& tree, const std::string& parent_name, std::string remote_log_shv_path, const std::string& node_name, SlaveFound slave_found)
 {
+	using shv::core::Utils;
 	if (node_name == "_meta" && tree.hasKey("HP")) {
-		auto remote_log_shv_path = QString::fromStdString(shv::core::Utils::joinPath(parent_name, shv::core::StringView(".app/shvjournal")));
-		return new ShvJournalNode(QString::fromStdString(parent_name), remote_log_shv_path, tree.value("HP").asMap().value("pushLog").toBool() ? IsPushLog::Yes : IsPushLog::No);
+		remote_log_shv_path = Utils::joinPath(remote_log_shv_path, slave_found == SlaveFound::No ? ".app/shvjournal"s : "shvjournal"s);
+		return new ShvJournalNode(QString::fromStdString(parent_name), QString::fromStdString(remote_log_shv_path), tree.value("HP").asMap().value("pushLog").toBool() ? IsPushLog::Yes : IsPushLog::No);
 	}
 
 	shv::iotqt::node::ShvNode* res = nullptr;
+	auto new_parent_name = Utils::joinPath(parent_name, node_name);
+	auto new_remote_log_shv_path = Utils::joinPath(remote_log_shv_path, node_name);
+	// This block looks for a slave HP provider. It'll be used for all log fetching of this particular shv node. We
+	// will still recurse until we find a "HP" key, because we can't easily know what kind of nodes the slave provider
+	// contains.
+	//
+	// We'll also skip the first one (when parent_name is empty), because that one refers to this HP instance.
+	if (!parent_name.empty() && slave_found == SlaveFound::No && tree.value("_meta").asMap().hasKey("HP3")) {
+		new_remote_log_shv_path = Utils::joinPath(new_remote_log_shv_path, ".local/history/shv"s);
+		slave_found = SlaveFound::Yes;
+	}
+
 	for (const auto& [k, v] : tree) {
 		if (v.type() == cp::RpcValue::Type::Map) {
-			auto node = createTree(v.asMap(), shv::core::Utils::joinPath(parent_name, node_name), k);
+			auto node = createTree(v.asMap(), new_parent_name, new_remote_log_shv_path, k, slave_found);
 			if (node) {
 				if (!res) {
 					res = new shv::iotqt::node::ShvNode(node_name);
@@ -203,7 +222,7 @@ void HistoryApp::onBrokerConnectedChanged(bool is_connected)
 	});
 
 	connect(call, &shv::iotqt::rpc::RpcCall::result, [this] (const cp::RpcValue& result) {
-		auto nodes = createTree(result.asMap(), "", "shv");
+		auto nodes = createTree(result.asMap(), "", "", "shv", SlaveFound::No);
 		if (nodes) {
 			nodes->setParentNode(m_root);
 		}

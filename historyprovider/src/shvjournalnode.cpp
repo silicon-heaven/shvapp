@@ -209,6 +209,10 @@ public:
 		}
 
 		auto file_name = QString::fromStdString(m_currentFile->asList().at(0).asString());
+		if (file_name == "dirty.log2") {
+			emit fileDone();
+			return;
+		}
 		auto full_file_name = QDir(m_cacheDirPath).filePath(file_name);
 		QFile file(full_file_name);
 		auto local_size = file.size();
