@@ -197,9 +197,27 @@ public:
 		}
 	}
 
+	void writeFiles()
+	{
+		QMapIterator iter(m_downloadedFiles);
+		while (iter.hasNext()) {
+			iter.next();
+			QFile log_file(iter.key());
+			if (log_file.open(QFile::WriteOnly | QFile::Append)) {
+				auto blob = iter.value().asBlob();
+				journalDebug() << "Writing" << iter.key();
+				log_file.write(reinterpret_cast<const char*>(blob.data()), blob.size());
+			} else {
+				journalError() << "Couldn't open" << iter.key() << "for writing";
+			}
+
+		}
+	}
+
 	Q_SLOT void syncCurrentFile()
 	{
 		if (m_currentFile == m_filesList.end()) {
+			writeFiles();
 			trimDirtyLog();
 			auto response = m_request.makeResponse();
 			response.setResult("All files have been synced");
@@ -234,14 +252,7 @@ public:
 
 		connect(call, &shv::iotqt::rpc::RpcCall::result, [this, full_file_name, sites_log_file] (const cp::RpcValue& result) {
 			journalDebug() << "Got" << sites_log_file;
-			QFile log_file(full_file_name);
-			if (log_file.open(QFile::WriteOnly | QFile::Append)) {
-				auto blob = result.asBlob();
-				journalDebug() << "Writing" << full_file_name;
-				log_file.write(reinterpret_cast<const char*>(blob.data()), blob.size());
-			} else {
-				journalError() << "Couldn't open" << full_file_name << "for writing";
-			}
+			m_downloadedFiles.insert(full_file_name, result);
 			emit fileDone();
 		});
 		call->start();
@@ -253,6 +264,8 @@ private:
 	cp::RpcValue m_files;
 	cp::RpcValue::List m_filesList;
 	cp::RpcValue::List::const_iterator m_currentFile;
+
+	QMap<QString, cp::RpcValue> m_downloadedFiles;
 
 	QString m_remoteLogShvPath;
 	QString m_cacheDirPath;
