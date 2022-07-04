@@ -16,7 +16,7 @@ class ShvJournalNode : public shv::iotqt::node::LocalFSNode
 	using Super = shv::iotqt::node::LocalFSNode;
 
 public:
-	ShvJournalNode(const QString& site_shv_path, const IsPushLog is_push_log);
+	ShvJournalNode(const QString& site_shv_path, const QString& remote_log_shv_path, const IsPushLog is_push_log);
 
 	size_t methodCount(const StringViewList& shv_path) override;
 	const shv::chainpack::MetaMethod* metaMethod(const StringViewList& shv_path, size_t ix) override;
