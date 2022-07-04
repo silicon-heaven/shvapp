@@ -310,29 +310,34 @@ void ShvJournalNode::sanitizeSize()
 	journalInfo() << "Sanitization done, path:" << m_cacheDirPath << "new size" << cache_dir_size << "cacheSizeLimit" << cache_size_limit;
 }
 
+void ShvJournalNode::syncLog(const cp::RpcRequest& rq)
+{
+	auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
+		->setShvPath(m_remoteLogShvPath)
+		->setMethod("ls")
+		->setParams(cp::RpcValue::Map{{"size", true}});
+
+	connect(call, &shv::iotqt::rpc::RpcCall::error, [rq] (const QString& error) {
+		journalError() << error;
+		auto response = rq.makeResponse();
+		response.setError(cp::RpcResponse::Error::create(
+					cp::RpcResponse::Error::MethodCallException, "Couldn't retrieve filelist from the device"));
+		HistoryApp::instance()->rpcConnection()->sendMessage(response);
+	});
+
+	connect(call, &shv::iotqt::rpc::RpcCall::result, [this, rq] (const cp::RpcValue& result) {
+		journalDebug() << "Got filelist from" << m_remoteLogShvPath;
+		new FileSyncer(result, m_remoteLogShvPath, m_cacheDirPath, rq);
+	});
+	call->start();
+}
+
 cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 {
 	auto method = rq.method().asString();
 	if (method == "syncLog" && m_isPushLog == IsPushLog::No) {
 		journalInfo() << "Syncing shvjournal" << m_remoteLogShvPath;
-		auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
-			->setShvPath(m_remoteLogShvPath)
-			->setMethod("ls")
-			->setParams(cp::RpcValue::Map{{"size", true}});
-
-		connect(call, &shv::iotqt::rpc::RpcCall::error, [rq] (const QString& error) {
-			journalError() << error;
-			auto response = rq.makeResponse();
-			response.setError(cp::RpcResponse::Error::create(
-						cp::RpcResponse::Error::MethodCallException, "Couldn't retrieve filelist from the device"));
-			HistoryApp::instance()->rpcConnection()->sendMessage(response);
-		});
-
-		connect(call, &shv::iotqt::rpc::RpcCall::result, [this, rq] (const cp::RpcValue& result) {
-			journalDebug() << "Got filelist from" << m_remoteLogShvPath;
-			new FileSyncer(result, m_remoteLogShvPath, m_cacheDirPath, rq);
-		});
-		call->start();
+		syncLog(rq);
 
 		return {};
 	}

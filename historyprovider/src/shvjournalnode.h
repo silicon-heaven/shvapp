@@ -24,6 +24,7 @@ public:
 	void sanitizeSize();
 
 private:
+	void syncLog(const shv::chainpack::RpcRequest& rq);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	qint64 calculateCacheDirSize() const;
 
