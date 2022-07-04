@@ -161,10 +161,21 @@ auto parse_size_option(const std::string& size_option, bool* success)
 }
 }
 
+void HistoryApp::sanitizeNext()
+{
+	if (!m_sanitizerIterator.hasNext()) {
+		m_sanitizerIterator = QListIterator(m_journalNodes);
+	}
+
+	// m_journalNodes is never empty, because we don't run the sanitizer when there are no journal nodes
+	auto node = m_sanitizerIterator.next();
+	node->sanitizeSize();
+}
 
 HistoryApp::HistoryApp(int& argc, char** argv, AppCliOptions* cli_opts)
 	: Super(argc, argv)
 	  , m_cliOptions(cli_opts)
+	  , m_sanitizerIterator(m_journalNodes) // I have to initialize this one, because it doesn't have a default ctor
 {
 	m_rpcConnection = new si::rpc::DeviceConnection(this);
 
@@ -186,6 +197,7 @@ HistoryApp::HistoryApp(int& argc, char** argv, AppCliOptions* cli_opts)
 	}
 
 	shvInfo() << "Cache size limit:" << size_limit_bytes << "bytes";
+	shvInfo() << "Sanitizer interval:" << cli_opts->journalSanitizerInterval() << "seconds";
 
 	m_rpcConnection->setCliOptions(cli_opts);
 	m_totalCacheSizeLimit = size_limit_bytes;
@@ -227,9 +239,14 @@ void HistoryApp::onBrokerConnectedChanged(bool is_connected)
 			nodes->setParentNode(m_root);
 		}
 
-		auto log_dir_count = m_shvTree->findChildren<ShvJournalNode*>().size();
-		if (log_dir_count != 0) {
-			m_singleCacheSizeLimit = m_totalCacheSizeLimit / log_dir_count;
+		m_journalNodes = m_shvTree->findChildren<ShvJournalNode*>();
+		if (m_journalNodes.size() != 0) {
+			m_singleCacheSizeLimit = m_totalCacheSizeLimit / m_journalNodes.size();
+
+			m_sanitizerIterator = QListIterator(m_journalNodes);
+			auto timer = new QTimer(this);
+			connect(timer, &QTimer::timeout, this, &HistoryApp::sanitizeNext);
+			timer->start(m_cliOptions->journalSanitizerInterval() * 1000);
 		}
 
 	});
