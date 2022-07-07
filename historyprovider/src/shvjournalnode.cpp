@@ -107,6 +107,27 @@ const cp::MetaMethod* ShvJournalNode::metaMethod(const StringViewList& shv_path,
 }
 
 namespace {
+auto read_entries_from_file(const QString& file_path)
+{
+	std::vector<shv::core::utils::ShvJournalEntry> res;
+	shv::core::utils::ShvJournalFileReader reader(file_path.toStdString());
+	while (reader.next()) {
+		res.push_back(reader.entry());
+	}
+
+	return res;
+}
+
+void write_entries_to_file(const QString& file_path, const std::vector<shv::core::utils::ShvJournalEntry>& entries)
+{
+	QFile(file_path).remove();
+	shv::core::utils::ShvJournalFileWriter writer(file_path.toStdString());
+	for (const auto& entry : entries) {
+		writer.append(entry);
+	}
+}
+
+
 void trim_dirty_log(const QString& cache_dir_path)
 {
 	QDir cache_dir(cache_dir_path);
@@ -128,36 +149,19 @@ void trim_dirty_log(const QString& cache_dir_path)
 		return;
 	}
 
-	auto newest_log_filepath = cache_dir.filePath(entries.at(1));
-
+	auto newest_file_entries = read_entries_from_file(cache_dir.filePath(entries.at(1)));
+	auto newest_entry_msec = newest_file_entries.back().epochMsec;
 	// It is possible that the newest logfile contains multiple entries with the same timestamp. Because it could
 	// have been written (by shvagent) in between two events that happenede in the same millisecond, we can't be
 	// sure whether we have all events from the last millisecond. Because of that we will discard the last
 	// millisecond from the synced log, and keep it in the dirty log.
-	std::vector<shv::core::utils::ShvJournalEntry> newest_log_entries;
-	shv::core::utils::ShvJournalFileReader reader(newest_log_filepath.toStdString());
-	int64_t newest_entry_msec = 0;
-	while (reader.next()) {
-		newest_log_entries.push_back(reader.entry());
-		newest_entry_msec = reader.entry().epochMsec;
-	}
-
-	journalDebug() << "Newest logfile" << newest_log_filepath << "last entry timestamp" << newest_entry_msec << "entry count" << newest_log_entries.size();
-	QFile(newest_log_filepath).remove();
-	shv::core::utils::ShvJournalFileWriter writer(newest_log_filepath.toStdString());
-	for (const auto& entry : newest_log_entries) {
-		if (entry.epochMsec == newest_entry_msec) {
-			// We don't want the last millisecond.
-			break;
-		}
-		writer.append(entry);
-	}
-
-	newest_entry_msec = writer.recentTimeStamp();
-	journalDebug() << "Trimmed logfile" << newest_log_filepath << "last entry timestamp" << newest_entry_msec;
+	newest_file_entries.erase(std::find_if(newest_file_entries.begin(), newest_file_entries.end(), [newest_entry_msec] (const auto& entry) {
+		return entry.epochMsec == newest_entry_msec;
+	}), newest_file_entries.end());
+	write_entries_to_file(cache_dir.filePath(entries.at(1)), newest_file_entries);
 
 	// Now filter dirty log's newer events.
-	reader = shv::core::utils::ShvJournalFileReader(dirty_log_path(cache_dir_path));
+	shv::core::utils::ShvJournalFileReader reader(dirty_log_path(cache_dir_path));
 	std::vector<shv::core::utils::ShvJournalEntry> new_dirty_log_entries;
 	bool first = true;
 	while (reader.next()) {
@@ -171,12 +175,7 @@ void trim_dirty_log(const QString& cache_dir_path)
 		}
 	}
 
-	QFile(QString::fromStdString(dirty_log_path(cache_dir_path))).remove();
-
-	writer = shv::core::utils::ShvJournalFileWriter(dirty_log_path(cache_dir_path));
-	for (const auto& entry : new_dirty_log_entries) {
-		writer.append(entry);
-	}
+	write_entries_to_file(QString::fromStdString(dirty_log_path(cache_dir_path)), new_dirty_log_entries);
 }
 }
 
