@@ -106,6 +106,80 @@ const cp::MetaMethod* ShvJournalNode::metaMethod(const StringViewList& shv_path,
 	return m_isPushLog == IsPushLog::Yes ? &methods_with_push_log.at(index) : &methods.at(index);
 }
 
+namespace {
+void trim_dirty_log(const QString& cache_dir_path)
+{
+	QDir cache_dir(cache_dir_path);
+	auto entries = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name | QDir::Reversed);
+
+	if (entries.empty() || entries.at(0) != DIRTY_FILENAME) {
+		journalDebug() << "No dirty log, nothing to trim";
+		return;
+	}
+
+	if (entries.size() == 1) {
+		journalDebug() << "No logs to use for trimming";
+		return;
+	}
+
+	if (!shv::core::utils::ShvJournalFileReader(dirty_log_path(cache_dir_path)).next()) {
+		// No entries in the dirty log file, nothing to change.
+		journalDebug() << "Dirty log empty, nothing to trim";
+		return;
+	}
+
+	auto newest_log_filepath = cache_dir.filePath(entries.at(1));
+
+	// It is possible that the newest logfile contains multiple entries with the same timestamp. Because it could
+	// have been written (by shvagent) in between two events that happenede in the same millisecond, we can't be
+	// sure whether we have all events from the last millisecond. Because of that we will discard the last
+	// millisecond from the synced log, and keep it in the dirty log.
+	std::vector<shv::core::utils::ShvJournalEntry> newest_log_entries;
+	shv::core::utils::ShvJournalFileReader reader(newest_log_filepath.toStdString());
+	int64_t newest_entry_msec = 0;
+	while (reader.next()) {
+		newest_log_entries.push_back(reader.entry());
+		newest_entry_msec = reader.entry().epochMsec;
+	}
+
+	journalDebug() << "Newest logfile" << newest_log_filepath << "last entry timestamp" << newest_entry_msec << "entry count" << newest_log_entries.size();
+	QFile(newest_log_filepath).remove();
+	shv::core::utils::ShvJournalFileWriter writer(newest_log_filepath.toStdString());
+	for (const auto& entry : newest_log_entries) {
+		if (entry.epochMsec == newest_entry_msec) {
+			// We don't want the last millisecond.
+			break;
+		}
+		writer.append(entry);
+	}
+
+	newest_entry_msec = writer.recentTimeStamp();
+	journalDebug() << "Trimmed logfile" << newest_log_filepath << "last entry timestamp" << newest_entry_msec;
+
+	// Now filter dirty log's newer events.
+	reader = shv::core::utils::ShvJournalFileReader(dirty_log_path(cache_dir_path));
+	std::vector<shv::core::utils::ShvJournalEntry> new_dirty_log_entries;
+	bool first = true;
+	while (reader.next()) {
+		if (first) {
+			journalDebug() << "Dirty logfile first entry timestamp" << reader.entry().epochMsec;
+			first = false;
+		}
+
+		if (reader.entry().epochMsec >= newest_entry_msec) {
+			new_dirty_log_entries.push_back(reader.entry());
+		}
+	}
+
+	QFile(QString::fromStdString(dirty_log_path(cache_dir_path))).remove();
+
+	writer = shv::core::utils::ShvJournalFileWriter(dirty_log_path(cache_dir_path));
+	for (const auto& entry : new_dirty_log_entries) {
+		writer.append(entry);
+	}
+}
+}
+
 class FileSyncer : public QObject {
 	Q_OBJECT;
 public:
@@ -123,78 +197,6 @@ public:
 		});
 
 		syncCurrentFile();
-	}
-
-	void trimDirtyLog()
-	{
-		QDir cache_dir(m_cacheDirPath);
-		auto entries = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name | QDir::Reversed);
-
-		if (entries.empty() || entries.at(0) != DIRTY_FILENAME) {
-			journalDebug() << "No dirty log, nothing to trim";
-			return;
-		}
-
-		if (entries.size() == 1) {
-			journalDebug() << "No logs to use for trimming";
-			return;
-		}
-
-		if (!shv::core::utils::ShvJournalFileReader(dirty_log_path(m_cacheDirPath)).next()) {
-			// No entries in the dirty log file, nothing to change.
-			journalDebug() << "Dirty log empty, nothing to trim";
-			return;
-		}
-
-		auto newest_log_filepath = cache_dir.filePath(entries.at(1));
-
-		// It is possible that the newest logfile contains multiple entries with the same timestamp. Because it could
-		// have been written (by shvagent) in between two events that happenede in the same millisecond, we can't be
-		// sure whether we have all events from the last millisecond. Because of that we will discard the last
-		// millisecond from the synced log, and keep it in the dirty log.
-		std::vector<shv::core::utils::ShvJournalEntry> newest_log_entries;
-		shv::core::utils::ShvJournalFileReader reader(newest_log_filepath.toStdString());
-		int64_t newest_entry_msec = 0;
-		while (reader.next()) {
-			newest_log_entries.push_back(reader.entry());
-			newest_entry_msec = reader.entry().epochMsec;
-		}
-
-		journalDebug() << "Newest logfile" << newest_log_filepath << "last entry timestamp" << newest_entry_msec << "entry count" << newest_log_entries.size();
-		QFile(newest_log_filepath).remove();
-		shv::core::utils::ShvJournalFileWriter writer(newest_log_filepath.toStdString());
-		for (const auto& entry : newest_log_entries) {
-			if (entry.epochMsec == newest_entry_msec) {
-				// We don't want the last millisecond.
-				break;
-			}
-			writer.append(entry);
-		}
-
-		newest_entry_msec = writer.recentTimeStamp();
-		journalDebug() << "Trimmed logfile" << newest_log_filepath << "last entry timestamp" << newest_entry_msec;
-
-		// Now filter dirty log's newer events.
-		reader = shv::core::utils::ShvJournalFileReader(dirty_log_path(m_cacheDirPath));
-		std::vector<shv::core::utils::ShvJournalEntry> new_dirty_log_entries;
-		bool first = true;
-		while (reader.next()) {
-			if (first) {
-				journalDebug() << "Dirty logfile first entry timestamp" << reader.entry().epochMsec;
-				first = false;
-			}
-
-			if (reader.entry().epochMsec > newest_entry_msec) {
-				new_dirty_log_entries.push_back(reader.entry());
-			}
-		}
-
-		QFile(QString::fromStdString(dirty_log_path(m_cacheDirPath))).remove();
-
-		writer = shv::core::utils::ShvJournalFileWriter(dirty_log_path(m_cacheDirPath));
-		for (const auto& entry : new_dirty_log_entries) {
-			writer.append(entry);
-		}
 	}
 
 	void writeFiles()
@@ -218,7 +220,7 @@ public:
 	{
 		if (m_currentFile == m_filesList.end()) {
 			writeFiles();
-			trimDirtyLog();
+			trim_dirty_log(m_cacheDirPath);
 			auto response = m_request.makeResponse();
 			response.setResult("All files have been synced");
 			HistoryApp::instance()->rpcConnection()->sendMessage(response);
