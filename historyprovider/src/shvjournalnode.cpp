@@ -300,9 +300,12 @@ void ShvJournalNode::sanitizeSize()
 
 	journalInfo() << "Sanitizing cache, path:" << m_cacheDirPath << "size" << cache_dir_size << "cacheSizeLimit" << cache_size_limit;
 
-	QDirIterator iter(m_cacheDirPath, QDir::NoDotAndDotDot | QDir::Files);
+	QDir cache_dir(m_cacheDirPath);
+	auto entries = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name);
+	QStringListIterator iter(entries);
+
 	while (cache_dir_size > cache_size_limit && iter.hasNext()) {
-		QFile file(iter.next());
+		QFile file(cache_dir.filePath(iter.next()));
 		journalDebug() << "Removing" << file.fileName();
 		cache_dir_size -= file.size();
 		file.remove();
