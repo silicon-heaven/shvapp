@@ -2,6 +2,7 @@
 #include "appclioptions.h"
 
 #include <shv/iotqt/rpc/rpccall.h>
+#include <shv/iotqt/rpc/rpc.h>
 #include <shv/coreqt/log.h>
 
 namespace cp = shv::chainpack;
@@ -25,7 +26,7 @@ Application::Application(int &argc, char **argv, AppCliOptions *cli_opts)
 	m_rpcConnection->open();
 }
 
-void Application::onShvStateChanged()
+QCoro::Task<> Application::onShvStateChanged()
 {
 	if (m_rpcConnection->state() == si::rpc::ClientConnection::State::BrokerConnected) {
 		shvInfo() << "SHV Broker connected";
@@ -33,16 +34,17 @@ void Application::onShvStateChanged()
 								 ->setShvPath(QString::fromStdString(m_cliOptions->path()))
 								 ->setMethod(QString::fromStdString(m_cliOptions->method()))
 								 ->setParams(m_cliOptions->params().empty() ? cp::RpcValue() : cp::RpcValue::fromCpon(m_cliOptions->params()));
-		connect(call, &si::rpc::RpcCall::error, this, [this](const QString &error) {
+		call->start();
+		auto [result, error] = co_await qCoro(call, &si::rpc::RpcCall::maybeResult);
+		if (!error.isEmpty()) {
 			shvInfo() << error;
 			m_status = EXIT_FAILURE;
 			m_rpcConnection->close();
-		});
-		connect(call, &si::rpc::RpcCall::result, this, [this](const cp::RpcValue &result) {
-			printf("%s\n", result.toCpon("\t").c_str());
-			m_rpcConnection->close();
-		});
-		call->start();
+			co_return;
+		}
+
+		printf("%s\n", result.toCpon("\t").c_str());
+		m_rpcConnection->close();
 	}
 	else if (m_rpcConnection->state() == shv::iotqt::rpc::ClientConnection::State::NotConnected) {
 		shvInfo() << "SHV Broker disconnected";
