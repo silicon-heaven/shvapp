@@ -251,8 +251,9 @@ public:
 			->setShvPath(sites_log_file)
 			->setMethod("read")
 			->setParams(cp::RpcValue::Map{{"offset", cp::RpcValue::Int(local_size)}});
-		connect(call, &shv::iotqt::rpc::RpcCall::error, [sites_log_file] (const QString& error) {
+		connect(call, &shv::iotqt::rpc::RpcCall::error, [this, sites_log_file] (const QString& error) {
 			journalError() << "Couldn't retrieve" << sites_log_file << ":" << error;
+			deleteLater();
 		});
 
 		connect(call, &shv::iotqt::rpc::RpcCall::result, [this, full_file_name, sites_log_file] (const cp::RpcValue& result) {
