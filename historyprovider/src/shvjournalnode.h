@@ -4,9 +4,10 @@
 #include <shv/iotqt/node/shvnode.h>
 #include <shv/iotqt/node/localfsnode.h>
 
-enum class IsPushLog {
-	Yes,
-	No
+enum class LogType {
+	PushLog,
+	Normal,
+	Legacy
 };
 
 class ShvJournalNode : public shv::iotqt::node::LocalFSNode
@@ -16,7 +17,7 @@ class ShvJournalNode : public shv::iotqt::node::LocalFSNode
 	using Super = shv::iotqt::node::LocalFSNode;
 
 public:
-	ShvJournalNode(const QString& site_shv_path, const QString& remote_log_shv_path, const IsPushLog is_push_log);
+	ShvJournalNode(const QString& site_shv_path, const QString& remote_log_shv_path, const LogType log_type);
 
 	size_t methodCount(const StringViewList& shv_path) override;
 	const shv::chainpack::MetaMethod* metaMethod(const StringViewList& shv_path, size_t ix) override;
@@ -25,12 +26,13 @@ public:
 
 private:
 	void syncLog(const shv::chainpack::RpcRequest& rq);
+	void syncLogLegacy(const shv::chainpack::RpcRequest& rq);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 	qint64 calculateCacheDirSize() const;
 
 	std::string m_siteShvPath;
 	QString m_remoteLogShvPath;
 	QString m_cacheDirPath;
-	IsPushLog m_isPushLog;
+	LogType m_logType;
 };
 #endif /*SHVJOURNALNODE_H*/
