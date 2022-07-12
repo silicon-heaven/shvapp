@@ -27,13 +27,16 @@ Application::Application(int &argc, char **argv, AppCliOptions *cli_opts)
 }
 
 QCoro::Task<> Application::onShvStateChanged()
+try
 {
+
 	if (m_rpcConnection->state() == si::rpc::ClientConnection::State::BrokerConnected) {
+		auto params = m_cliOptions->params().empty() ? cp::RpcValue() : cp::RpcValue::fromCpon(m_cliOptions->params());
 		shvInfo() << "SHV Broker connected";
 		si::rpc::RpcCall *call = si::rpc::RpcCall::create(m_rpcConnection)
 								 ->setShvPath(QString::fromStdString(m_cliOptions->path()))
 								 ->setMethod(QString::fromStdString(m_cliOptions->method()))
-								 ->setParams(m_cliOptions->params().empty() ? cp::RpcValue() : cp::RpcValue::fromCpon(m_cliOptions->params()));
+								 ->setParams(params);
 		call->start();
 		auto [result, error] = co_await qCoro(call, &si::rpc::RpcCall::maybeResult);
 		if (!error.isEmpty()) {
@@ -50,4 +53,7 @@ QCoro::Task<> Application::onShvStateChanged()
 		shvInfo() << "SHV Broker disconnected";
 		exit(m_status);
 	}
+} catch (std::exception& ex) {
+	shvError() << ex.what();
+	m_rpcConnection->close();
 }
