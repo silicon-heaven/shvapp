@@ -1,6 +1,8 @@
 QT += core network
+QT += QCoroCoro
+QMAKE_CXXFLAGS += -fcoroutines
 QT -= gui
-CONFIG += c++17
+CONFIG += c++2a
 
 TEMPLATE = app
 TARGET = historyprovider

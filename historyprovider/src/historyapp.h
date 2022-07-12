@@ -4,6 +4,8 @@
 
 #include <QCoreApplication>
 
+#include <QCoroTask>
+
 class AppCliOptions;
 class QDir;
 class QFileInfo;
@@ -44,7 +46,7 @@ public:
 	AppCliOptions* cliOptions() {return m_cliOptions;}
 
 private:
-	void onBrokerConnectedChanged(bool is_connected);
+	QCoro::Task<> onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage& msg);
 	void sanitizeNext();
 
