@@ -187,12 +187,13 @@ void HistoryApp::sanitizeNext()
 	node->sanitizeSize();
 }
 
-HistoryApp::HistoryApp(int& argc, char** argv, AppCliOptions* cli_opts)
+HistoryApp::HistoryApp(int& argc, char** argv, AppCliOptions* cli_opts, shv::iotqt::rpc::DeviceConnection* rpc_connection)
 	: Super(argc, argv)
+	  , m_rpcConnection(rpc_connection)
 	  , m_cliOptions(cli_opts)
 	  , m_sanitizerIterator(m_journalNodes) // I have to initialize this one, because it doesn't have a default ctor
 {
-	m_rpcConnection = new si::rpc::DeviceConnection(this);
+	m_rpcConnection->setParent(this);
 
 	if (!cli_opts->user_isset()) {
 		cli_opts->setUser("iot");

@@ -8,6 +8,8 @@
 #include <shv/coreqt/log.h>
 #include <shv/coreqt/utils.h>
 
+#include <shv/iotqt/rpc/deviceconnection.h>
+
 #include <QTextStream>
 #include <QTranslator>
 #include <QDateTime>
@@ -61,7 +63,7 @@ int main(int argc, char* argv[])
 	shvInfo() << "Log tresholds:" << NecroLog::tresholdsLogInfo();
 	shvInfo() << "--------------------------------------------------------------------------------------";
 
-	HistoryApp a(argc, argv, &cli_opts);
+	HistoryApp a(argc, argv, &cli_opts, new shv::iotqt::rpc::DeviceConnection(nullptr));
 
 	shvInfo() << "starting main thread event loop";
 	ret = a.exec();

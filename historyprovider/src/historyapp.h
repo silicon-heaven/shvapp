@@ -36,7 +36,7 @@ class HistoryApp : public QCoreApplication
 private:
 	using Super = QCoreApplication;
 public:
-	HistoryApp(int& argc, char** argv, AppCliOptions* cli_opts);
+	HistoryApp(int& argc, char** argv, AppCliOptions* cli_opts, shv::iotqt::rpc::DeviceConnection* rpc_connection);
 	~HistoryApp() Q_DECL_OVERRIDE;
 
 	static HistoryApp* instance();
