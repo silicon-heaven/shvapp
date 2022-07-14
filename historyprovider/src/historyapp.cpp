@@ -237,7 +237,7 @@ HistoryApp* HistoryApp::instance()
 	return qobject_cast<HistoryApp*>(QCoreApplication::instance());
 }
 
-QCoro::Task<> HistoryApp::onBrokerConnectedChanged(bool is_connected)
+QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> HistoryApp::onBrokerConnectedChanged(bool is_connected)
 {
 	m_isBrokerConnected = is_connected;
 	auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())

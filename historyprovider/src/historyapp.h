@@ -46,7 +46,7 @@ public:
 	AppCliOptions* cliOptions() {return m_cliOptions;}
 
 private:
-	QCoro::Task<> onBrokerConnectedChanged(bool is_connected);
+	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage& msg);
 	void sanitizeNext();
 

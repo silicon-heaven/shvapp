@@ -212,7 +212,7 @@ public:
 		}
 	}
 
-	QCoro::Task<> syncFiles()
+	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> syncFiles()
 	{
 		for (const auto& currentFile : m_filesList) {
 			auto file_name = QString::fromStdString(currentFile.asList().at(0).asString());

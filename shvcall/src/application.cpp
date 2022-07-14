@@ -26,12 +26,18 @@ Application::Application(int &argc, char **argv, AppCliOptions *cli_opts)
 	m_rpcConnection->open();
 }
 
-QCoro::Task<> Application::onShvStateChanged()
-try
+QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> Application::onShvStateChanged()
 {
-
 	if (m_rpcConnection->state() == si::rpc::ClientConnection::State::BrokerConnected) {
-		auto params = m_cliOptions->params().empty() ? cp::RpcValue() : cp::RpcValue::fromCpon(m_cliOptions->params());
+		cp::RpcValue params;
+		try {
+			params = m_cliOptions->params().empty() ? cp::RpcValue() : cp::RpcValue::fromCpon(m_cliOptions->params());
+		} catch (std::exception&) {
+			shvError() << "Couldn't parse params from the command line:" << m_cliOptions->params();
+			m_rpcConnection->close();
+			co_return;
+		}
+
 		shvInfo() << "SHV Broker connected";
 		si::rpc::RpcCall *call = si::rpc::RpcCall::create(m_rpcConnection)
 								 ->setShvPath(QString::fromStdString(m_cliOptions->path()))
@@ -53,7 +59,4 @@ try
 		shvInfo() << "SHV Broker disconnected";
 		exit(m_status);
 	}
-} catch (std::exception& ex) {
-	shvError() << ex.what();
-	m_rpcConnection->close();
 }
