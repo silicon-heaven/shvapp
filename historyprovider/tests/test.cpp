@@ -79,6 +79,10 @@ public:
 				REQUIRE(false);
 			}
 			++m_testDriverState;
+			if (m_testDriverState != m_testDriver.end()) {
+				// I also need to dereference the value to trigger any unhandled exceptions.
+				*m_testDriverState;
+			}
 
 			if (m_testDriverState == m_testDriver.end()) {
 				// We'll wait a second before ending to make sure the client isn't sending more messages.
@@ -183,7 +187,6 @@ auto join(const std::string& a, const std::string& b)
 }
 
 QCoro::Generator<int> MockRpcConnection::driver()
-try
 {
 	co_yield {};
 	EXPECT_REQUEST("sites", "getSites");
@@ -217,8 +220,6 @@ try
 	}
 
 	co_return;
-} catch (...) {
-	std::terminate();
 }
 
 DOCTEST_TEST_CASE("HistoryApp")
