@@ -166,19 +166,38 @@ void remove_cache_contents(const std::string& site_path)
 	cache_dir.mkpath(".");
 }
 
-auto get_cache_content(const std::string& site_path)
+auto get_cache_contents(const std::string& site_path)
 {
 	RpcValue::List res;
 	auto cache_dir = get_site_cache_dir(site_path);
-	auto entries = cache_dir.entryList(QDir::NoDotAndDotDot);
-	std::transform(entries.begin(), entries.end(), std::back_inserter(res), [] (const auto& entry) {
+	auto entries = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files);
+	std::transform(entries.begin(), entries.end(), std::back_inserter(res), [&cache_dir] (const auto& entry) {
 		RpcValue::List name_and_size;
 		name_and_size.push_back(entry.toStdString());
-		name_and_size.push_back(RpcValue::Int(QFile(entry).size()));
+		QFile file(entry);
+		name_and_size.push_back(RpcValue::UInt(QFile(cache_dir.filePath(entry)).size()));
 		return name_and_size;
 	});
 
 	return res;
+}
+
+using namespace std::string_literals;
+const auto dummy_logfile = R"(2022-07-07T18:06:15.557Z	809779	APP_START	true		SHV_SYS	0	
+2022-07-07T18:06:17.784Z	809781	zone1/system/sig/plcDisconnected	false		chng	2	
+2022-07-07T18:06:17.784Z	809781	zone1/zone/Zone1/plcDisconnected	false		chng	2	
+2022-07-07T18:06:17.869Z	809781	zone1/pme/TSH1-1/switchRightCounterPermanent	0u		chng	2	
+)"s;
+
+void create_dummy_cache_files(const std::string& site_path, const QStringList& fileNames)
+{
+	remove_cache_contents(site_path);
+	auto cache_dir = get_site_cache_dir(site_path);
+
+	for (const auto& fileName : fileNames) {
+		QFile file(cache_dir.filePath(fileName));
+		file.write(dummy_logfile.c_str());
+	}
 }
 
 auto join(const std::string& a, const std::string& b)
@@ -205,13 +224,24 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			REQUEST(join(cache_path, "shvjournal"), "syncLog");
 			EXPECT_REQUEST(join(cache_path, "/.app/shvjournal"), "ls");
 
-			DOCTEST_SUBCASE("Local cache empty")
+			DOCTEST_SUBCASE("Remote and local - empty")
 			{
-				remove_cache_contents(cache_path);
-				DOCTEST_SUBCASE("Remote log is empty")
-				{
-					RESPOND(RpcValue::List());
-				}
+				create_dummy_cache_files(cache_path, {});
+				RESPOND(RpcValue::List());
+			}
+
+			DOCTEST_SUBCASE("Remote - has files, local - empty")
+			{
+				create_dummy_cache_files(cache_path, {});
+				expected_cache_contents = RpcValue::List({{
+					RpcValue::List{ "2022-07-07T18-06-15-557.log2", dummy_logfile.size() }
+				}});
+				RESPOND((RpcValue::List({{
+					{ "2022-07-07T18-06-15-557.log2", "f", dummy_logfile.size() }
+				}})));
+
+				EXPECT_REQUEST("shv/eyas/opc/.app/shvjournal/2022-07-07T18-06-15-557.log2", "read");
+				RESPOND(RpcValue::stringToBlob(dummy_logfile));
 			}
 		}
 
