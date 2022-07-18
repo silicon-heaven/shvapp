@@ -7,6 +7,7 @@ variables:
 stages:
   - build
   - deploy
+  - test
 
 linux:
   tags:
@@ -15,7 +16,7 @@ linux:
     build
   artifacts:
     paths:
-    - build/_dist/
+    - build/
   script:
     #- git submodule update --init --force --recursive
     - rm -rf build
@@ -113,6 +114,19 @@ win-build:
   artifacts:
     paths:
       - _inno/
+
+run-tests:
+  variables:
+    GIT_STRATEGY: none # We want to use the earlier git repo, so that we don't have to recompile everything again.
+  tags:
+    - linux
+  stage:
+    test
+  script:
+    - cd build
+    - LD_LIBRARY_PATH=$(pwd)/lib make check
+
+
 #
 #win-deploy:
 #  only:
