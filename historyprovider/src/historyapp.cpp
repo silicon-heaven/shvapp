@@ -86,8 +86,21 @@ shv::iotqt::node::ShvNode* createTree(const cp::RpcValue::Map& tree, const std::
 {
 	using shv::core::Utils;
 	if (node_name == "_meta" && tree.hasKey("HP")) {
-		remote_log_shv_path = Utils::joinPath(remote_log_shv_path, slave_found == SlaveFound::No ? ".app/shvjournal"s : "shvjournal"s);
-		return new ShvJournalNode(QString::fromStdString(parent_name), QString::fromStdString(remote_log_shv_path), tree.value("HP").asMap().value("pushLog").toBool() ? IsPushLog::Yes : IsPushLog::No);
+		std::string log_shv_path_suffix;
+		auto log_type = LogType::Normal;
+		if (tree.value("HP").asMap().value("legacy").toBool()) {
+			log_type = LogType::Legacy;
+		}
+
+		if (tree.value("HP").asMap().value("pushLog").toBool()) {
+			log_type = LogType::PushLog;
+		}
+
+		if (log_type != LogType::Legacy) {
+			remote_log_shv_path = Utils::joinPath(remote_log_shv_path, slave_found == SlaveFound::No ? ".app/shvjournal"s : "shvjournal"s);
+		}
+
+		return new ShvJournalNode(QString::fromStdString(parent_name), QString::fromStdString(remote_log_shv_path), log_type);
 	}
 
 	shv::iotqt::node::ShvNode* res = nullptr;
