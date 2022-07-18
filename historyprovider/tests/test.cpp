@@ -205,13 +205,16 @@ auto join(const std::string& a, const std::string& b)
 	return shv::core::Utils::joinPath(a, b);
 }
 
+#define SEND_SITES(sitesStr) { \
+	EXPECT_REQUEST("sites", "getSites"); \
+	RESPOND(sitesStr); \
+	EXPECT_REQUEST(".broker/app", "subscribe"); \
+	doRespond(true); \
+}
+
 QCoro::Generator<int> MockRpcConnection::driver()
 {
 	co_yield {};
-	EXPECT_REQUEST("sites", "getSites");
-	RESPOND(mock_sites::fin_slave_broker_sites);
-	EXPECT_REQUEST(".broker/app", "subscribe");
-	doRespond(true);
 
 	DOCTEST_SUBCASE("syncLog")
 	{
@@ -220,6 +223,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 
 		DOCTEST_SUBCASE("fin slave HP")
 		{
+			SEND_SITES(mock_sites::fin_slave_broker_sites);
 			cache_path = "shv/eyas/opc";
 			REQUEST(join(cache_path, "shvjournal"), "syncLog");
 			EXPECT_REQUEST(join(cache_path, "/.app/shvjournal"), "ls");
