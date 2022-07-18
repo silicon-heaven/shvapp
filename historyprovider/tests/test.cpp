@@ -85,8 +85,8 @@ public:
 			}
 
 			if (m_testDriverState == m_testDriver.end()) {
-				// We'll wait a second before ending to make sure the client isn't sending more messages.
-				QTimer::singleShot(1000, [] {
+				// We'll wait a bit before ending to make sure the client isn't sending more messages.
+				QTimer::singleShot(100, [] {
 					HistoryApp::instance()->exit();
 				});
 			}
