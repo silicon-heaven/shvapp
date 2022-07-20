@@ -1,11 +1,23 @@
 cmake_minimum_required(VERSION 3.23)
 project(shv LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include(CTest)
+set(CMAKE_SHARED_LIBRARY_PREFIX "") # we don't want CMake to prepend "lib" to our libraries, we prefer adding that ourselves
 
 add_subdirectory(3rdparty/necrolog)
 add_subdirectory(3rdparty/libshv)
 
 find_package(Qt5 REQUIRED COMPONENTS Core Concurrent OPTIONAL_COMPONENTS Widgets Svg Xml Quick)
+find_package(QCoro5 REQUIRED COMPONENTS Core)
+
+function(target_enable_coroutines target_name)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        target_compile_options(${target_name} PRIVATE "-fcoroutines-ts")
+    else()
+        target_compile_options(${target_name} PRIVATE "-fcoroutines")
+    endif()
+endfunction()
 
 if(Qt5_FOUND)
     set(CMAKE_AUTOMOC ON)
@@ -36,6 +48,7 @@ if(Qt5_FOUND)
         add_subdirectory(shvsitesprovider)
         add_subdirectory(shvbrclabprovider)
         add_subdirectory(shvhistoryprovider)
+        add_subdirectory(historyprovider)
     endif()
 else()
     message(STATUS "Qt5 not found")
