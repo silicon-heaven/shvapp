@@ -15,6 +15,11 @@ if(Qt5_FOUND)
     if (Qt5Widgets_FOUND AND Qt5Svg_FOUND AND Qt5Xml_FOUND)
         add_subdirectory(clients/bfsview)
     endif()
+
+    if (Qt5Widgets_FOUND AND Qt5Xml_FOUND)
+        add_subdirectory(clients/jn50view)
+    endif()
+
 else()
     message(STATUS "Qt5 not found")
 endif()
