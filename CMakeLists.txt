@@ -30,6 +30,7 @@ if(Qt5_FOUND)
 
     if (NOT WIN32)
         add_subdirectory(shvbroker)
+        add_subdirectory(shvagent)
     endif()
 else()
     message(STATUS "Qt5 not found")
