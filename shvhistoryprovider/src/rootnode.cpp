@@ -189,7 +189,7 @@ void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &
 			  << "until:" << log_until.toString(Qt::ISODate).toStdString() << "recordCount:" << log.toList().size();
 	bool with_snapshot = log_reader.logHeader().withSnapShot();
 	auto typeinfo = log_reader.logHeader().typeInfo();
-	bool has_type_info = !typeinfo.isEmpty();
+	bool has_type_info = typeinfo.isValid();
 
 	if (!log_since.isValid() || !log_until.isValid()) {
 		SHV_EXCEPTION("Invalid log - missing since or until");
