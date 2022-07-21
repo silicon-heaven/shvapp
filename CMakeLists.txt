@@ -9,7 +9,9 @@ add_subdirectory(3rdparty/necrolog)
 add_subdirectory(3rdparty/libshv)
 
 find_package(Qt5 REQUIRED COMPONENTS Core Concurrent OPTIONAL_COMPONENTS Widgets Svg Xml Quick)
-find_package(QCoro5 REQUIRED COMPONENTS Core)
+if(NOT WIN32)
+    find_package(QCoro5 REQUIRED COMPONENTS Core)
+endif()
 
 function(target_enable_coroutines target_name)
     if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
