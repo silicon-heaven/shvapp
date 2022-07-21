@@ -6,3 +6,5 @@ add_executable(shvcall
 
 target_enable_coroutines(shvcall)
 target_link_libraries(shvcall QCoro::Coro libshviotqt)
+
+install(TARGETS shvcall)

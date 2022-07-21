@@ -21,3 +21,5 @@ add_executable(jn50view
 
 target_include_directories(jn50view PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(jn50view Qt::Xml libshvvisu)
+
+install(TARGETS jn50view)

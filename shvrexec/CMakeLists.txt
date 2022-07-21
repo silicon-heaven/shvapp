@@ -7,3 +7,5 @@ add_executable(shvrexec
     )
 
 target_link_libraries(shvrexec libshviotqt)
+
+install(TARGETS shvrexec)

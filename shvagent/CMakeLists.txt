@@ -7,3 +7,5 @@ add_executable(shvagent
     )
 
 target_link_libraries(shvagent libshviotqt)
+
+install(TARGETS shvagent)

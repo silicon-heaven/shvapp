@@ -18,3 +18,5 @@ add_executable(shvhistoryprovider
     )
 
 target_link_libraries(shvhistoryprovider Qt::Concurrent libshviotqt)
+
+install(TARGETS shvhistoryprovider)

@@ -7,3 +7,5 @@ add_executable(shvsites
     )
 
 target_link_libraries(shvsites Qt::Quick libshviotqt)
+
+install(TARGETS shvsites)

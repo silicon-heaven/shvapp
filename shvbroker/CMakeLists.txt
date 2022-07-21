@@ -5,3 +5,5 @@ add_executable(shvbroker
     )
 
 target_link_libraries(shvbroker libshvbroker)
+
+install(TARGETS shvbroker)

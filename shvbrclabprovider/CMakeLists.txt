@@ -9,3 +9,5 @@ add_executable(shvbrclabprovider
     )
 
 target_link_libraries(shvbrclabprovider libshviotqt)
+
+install(TARGETS shvbrclabprovider)

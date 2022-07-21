@@ -5,3 +5,5 @@ add_executable(shvrsh
     )
 
 target_link_libraries(shvrsh libshviotqt)
+
+install(TARGETS shvrsh)

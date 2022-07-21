@@ -8,3 +8,5 @@ add_executable(shvsitesprovider
     )
 
 target_link_libraries(shvsitesprovider libshviotqt)
+
+install(TARGETS shvsitesprovider)

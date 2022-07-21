@@ -15,6 +15,8 @@ add_executable(historyprovider
 target_enable_coroutines(historyprovider)
 target_link_libraries(historyprovider libhistoryprovider)
 
+install(TARGETS historyprovider)
+
 if(BUILD_TESTING)
     add_executable(test_historyprovider
         tests/test.cpp
