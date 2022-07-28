@@ -9,8 +9,8 @@
 #define APP_NAME_LOWER "bfsview"
 #define COMPANY "elektroline"
 
-#define QT_DIR "C:\Qt\5.13.2\mingw73_64"
-#define MINGW_DIR "C:\Qt\Tools\mingw730_64"
+#define QT_DIR "C:\Qt5\5.15.2\mingw81_64"
+#define MINGW_DIR "C:\mingw-12\x86_64-12.1.0-release-posix-seh-rt_v10-rev3\mingw64"
 
 #define BUILD_DIR "..\.."
 
@@ -63,9 +63,9 @@ Source: {#QT_DIR}\plugins\platforms\qwindows.dll; DestDir: {app}\platforms; Flag
 ;Source: {#QT_DIR}\plugins\audio\qtaudio_windows.dll; DestDir: {app}\audio; Flags: ignoreversion
 Source: {#QT_DIR}\plugins\imageformats\qsvg.dll; DestDir: {app}\imageformats; Flags: ignoreversion
 
-Source: {#QT_DIR}\bin\libgcc_s_seh-1.dll; DestDir: {app}; Flags: ignoreversion
-Source: {#QT_DIR}\bin\libwinpthread-1.dll; DestDir: {app}; Flags: ignoreversion
-Source: {#QT_DIR}\bin\libstdc++-6.dll; DestDir: {app}; Flags: ignoreversion
+Source: {#MINGW_DIR}\bin\libgcc_s_seh-1.dll; DestDir: {app}; Flags: ignoreversion
+Source: {#MINGW_DIR}\bin\libwinpthread-1.dll; DestDir: {app}; Flags: ignoreversion
+Source: {#MINGW_DIR}\bin\libstdc++-6.dll; DestDir: {app}; Flags: ignoreversion
 
 [Icons]
 Name: {group}\{#APP_NAME}; Filename: {app}\{#APP_NAME_LOWER}.exe

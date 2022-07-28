@@ -9,7 +9,7 @@
 #define COMPANY "elektroline"
 
 #define QT_DIR "c:\Qt5\5.15.2\mingw81_64"
-#define MINGW_DIR "C:\Qt\Tools\mingw810_64"
+#define MINGW_DIR "C:\mingw-12\x86_64-12.1.0-release-posix-seh-rt_v10-rev3\mingw64"
 
 #define BUILD_DIR "..\.."
 #define DOC_BUILD_DIR BUILD_DIR + "\clients\jn50view\doc\help\_build\html"
@@ -76,9 +76,9 @@ Source: {#QT_DIR}\plugins\imageformats\qsvg.dll; DestDir: {app}\imageformats; Fl
 ;Source: {#QT_DIR}\plugins\sqldrivers\qsqlite.dll; DestDir: {app}\sqldrivers; Flags: ignoreversion
 ;Source: {#QT_DIR}\plugins\sqldrivers\qsqlpsql.dll; DestDir: {app}\sqldrivers; Flags: ignoreversion
 
-Source: {#QT_DIR}\bin\libgcc_s_seh-1.dll; DestDir: {app}; Flags: ignoreversion
-Source: {#QT_DIR}\bin\libwinpthread-1.dll; DestDir: {app}; Flags: ignoreversion
-Source: {#QT_DIR}\bin\libstdc++-6.dll; DestDir: {app}; Flags: ignoreversion
+Source: {#MINGW_DIR}\bin\libgcc_s_seh-1.dll; DestDir: {app}; Flags: ignoreversion
+Source: {#MINGW_DIR}\bin\libwinpthread-1.dll; DestDir: {app}; Flags: ignoreversion
+Source: {#MINGW_DIR}\bin\libstdc++-6.dll; DestDir: {app}; Flags: ignoreversion
 
 [Icons]
 Name: {group}\{#APP_NAME}; Filename: {app}\{#APP_NAME_LOWER}.exe
