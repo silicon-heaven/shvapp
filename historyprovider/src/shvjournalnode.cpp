@@ -183,7 +183,7 @@ void trim_dirty_log(const QString& cache_dir_path)
 }
 
 class FileSyncer : public QObject {
-	Q_OBJECT;
+	Q_OBJECT
 public:
 	FileSyncer(const cp::RpcValue& files, const QString& remote_log_shv_path, const QString& cache_dir_path, const cp::RpcRequest& request)
 		: m_files(files)
