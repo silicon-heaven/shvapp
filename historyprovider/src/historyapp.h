@@ -4,6 +4,8 @@
 
 #include <QCoreApplication>
 
+#include <QCoroTask>
+
 class AppCliOptions;
 class QDir;
 class QFileInfo;
@@ -34,7 +36,7 @@ class HistoryApp : public QCoreApplication
 private:
 	using Super = QCoreApplication;
 public:
-	HistoryApp(int& argc, char** argv, AppCliOptions* cli_opts);
+	HistoryApp(int& argc, char** argv, AppCliOptions* cli_opts, shv::iotqt::rpc::DeviceConnection* rpc_connection);
 	~HistoryApp() Q_DECL_OVERRIDE;
 
 	static HistoryApp* instance();
@@ -44,7 +46,7 @@ public:
 	AppCliOptions* cliOptions() {return m_cliOptions;}
 
 private:
-	void onBrokerConnectedChanged(bool is_connected);
+	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage& msg);
 	void sanitizeNext();
 

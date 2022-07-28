@@ -1,6 +1,8 @@
 QT += core network
 QT -= gui
-CONFIG += c++14
+QT += QCoroCoro
+QMAKE_CXXFLAGS += -fcoroutines
+CONFIG += c++2a
 CONFIG += console
 
 TEMPLATE = app

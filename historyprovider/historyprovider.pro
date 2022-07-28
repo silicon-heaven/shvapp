@@ -1,36 +1,5 @@
-QT += core network
-QT -= gui
-CONFIG += c++17
+TEMPLATE = subdirs
 
-TEMPLATE = app
-TARGET = historyprovider
-
-DESTDIR = $$SHV_PROJECT_TOP_BUILDDIR/bin
-
-LIBDIR = $$DESTDIR
-unix: LIBDIR = $$SHV_PROJECT_TOP_BUILDDIR/lib
-
-LIBS += \
-	-L$$LIBDIR \
-
-LIBS += \
-	-lnecrolog \
-	-lshvchainpack \
-	-lshvcore \
-	-lshvcoreqt \
-	-lshviotqt \
-
-unix {
-	LIBS += \
-		-Wl,-rpath,\'\$\$ORIGIN/../lib\'
-}
-
-INCLUDEPATH += \
-	../3rdparty/necrolog/include \
-	../3rdparty/libshv/libshvchainpack/include \
-	../3rdparty/libshv/libshvcore/include \
-	../3rdparty/libshv/libshvcoreqt/include \
-	../3rdparty/libshv/libshviotqt/include \
-
-
-include (src/src.pri)
+SUBDIRS += \
+		app.pro \
+		tests.pro \

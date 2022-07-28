@@ -15,6 +15,8 @@
 #include <QDirIterator>
 #include <QTimer>
 
+#include <QCoroSignal>
+
 #define journalDebug() shvCDebug("historyjournal")
 #define journalInfo() shvCInfo("historyjournal")
 #define journalError() shvCError("historyjournal")
@@ -186,17 +188,11 @@ public:
 	FileSyncer(const cp::RpcValue& files, const QString& remote_log_shv_path, const QString& cache_dir_path, const cp::RpcRequest& request)
 		: m_files(files)
 		, m_filesList(m_files.asList())
-		, m_currentFile(m_filesList.begin())
 		, m_remoteLogShvPath(remote_log_shv_path)
 		, m_cacheDirPath(cache_dir_path)
 		, m_request(request)
 	{
-		connect(this, &FileSyncer::fileDone, [this] {
-			++m_currentFile;
-			syncCurrentFile();
-		});
-
-		syncCurrentFile();
+		syncFiles();
 	}
 
 	void writeFiles()
@@ -216,61 +212,53 @@ public:
 		}
 	}
 
-	Q_SLOT void syncCurrentFile()
+	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> syncFiles()
 	{
-		if (m_currentFile == m_filesList.end()) {
-			writeFiles();
-			trim_dirty_log(m_cacheDirPath);
-			auto response = m_request.makeResponse();
-			response.setResult("All files have been synced");
-			HistoryApp::instance()->rpcConnection()->sendMessage(response);
-			deleteLater();
-			return;
-		}
-
-		auto file_name = QString::fromStdString(m_currentFile->asList().at(0).asString());
-		if (file_name == "dirty.log2") {
-			emit fileDone();
-			return;
-		}
-		auto full_file_name = QDir(m_cacheDirPath).filePath(file_name);
-		QFile file(full_file_name);
-		auto local_size = file.size();
-		auto remote_size = m_currentFile->asList().at(2).toInt();
-
-		journalInfo() << "Syncing file" << full_file_name << "remote size:" << remote_size << "local size:" << (file.exists() ? QString::number(local_size) : "<doesn't exist>");
-		if (file.exists()) {
-			if (local_size == remote_size) {
-				emit fileDone();
-				return;
+		for (const auto& currentFile : m_filesList) {
+			auto file_name = QString::fromStdString(currentFile.asList().at(0).asString());
+			if (file_name == "dirty.log2") {
+				continue;
 			}
-		}
+			auto full_file_name = QDir(m_cacheDirPath).filePath(file_name);
+			QFile file(full_file_name);
+			auto local_size = file.size();
+			auto remote_size = currentFile.asList().at(2).toInt();
 
-		auto sites_log_file = m_remoteLogShvPath + "/" + file_name;
-		journalDebug() << "Retrieving" << sites_log_file << "offset:" << local_size;
-		auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
-			->setShvPath(sites_log_file)
-			->setMethod("read")
-			->setParams(cp::RpcValue::Map{{"offset", cp::RpcValue::Int(local_size)}});
-		connect(call, &shv::iotqt::rpc::RpcCall::error, [this, sites_log_file] (const QString& error) {
-			journalError() << "Couldn't retrieve" << sites_log_file << ":" << error;
-			deleteLater();
-		});
+			journalInfo() << "Syncing file" << full_file_name << "remote size:" << remote_size << "local size:" << (file.exists() ? QString::number(local_size) : "<doesn't exist>");
+			if (file.exists()) {
+				if (local_size == remote_size) {
+					continue;
+				}
+			}
 
-		connect(call, &shv::iotqt::rpc::RpcCall::result, [this, full_file_name, sites_log_file] (const cp::RpcValue& result) {
+			auto sites_log_file = m_remoteLogShvPath + "/" + file_name;
+			journalDebug() << "Retrieving" << sites_log_file << "offset:" << local_size;
+			auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
+				->setShvPath(sites_log_file)
+				->setMethod("read")
+				->setParams(cp::RpcValue::Map{{"offset", cp::RpcValue::Int(local_size)}});
+			call->start();
+			auto [result, error] = co_await qCoro(call, &shv::iotqt::rpc::RpcCall::maybeResult);
+			if (!error.isEmpty()) {
+				journalError() << "Couldn't retrieve" << sites_log_file << ":" << error;
+				co_return;
+			}
+
 			journalDebug() << "Got" << sites_log_file;
 			m_downloadedFiles.insert(full_file_name, result);
-			emit fileDone();
-		});
-		call->start();
-	}
+		}
 
-    Q_SIGNAL void fileDone();
+		writeFiles();
+		trim_dirty_log(m_cacheDirPath);
+		auto response = m_request.makeResponse();
+		response.setResult("All files have been synced");
+		HistoryApp::instance()->rpcConnection()->sendMessage(response);
+		deleteLater();
+	}
 
 private:
 	cp::RpcValue m_files;
 	cp::RpcValue::List m_filesList;
-	cp::RpcValue::List::const_iterator m_currentFile;
 
 	QMap<QString, cp::RpcValue> m_downloadedFiles;
 

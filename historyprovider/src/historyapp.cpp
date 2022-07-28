@@ -17,6 +17,8 @@
 #include <QDirIterator>
 #include <QTimer>
 
+#include <QCoroSignal>
+
 using namespace std;
 namespace cp = shv::chainpack;
 namespace si = shv::iotqt;
@@ -185,12 +187,13 @@ void HistoryApp::sanitizeNext()
 	node->sanitizeSize();
 }
 
-HistoryApp::HistoryApp(int& argc, char** argv, AppCliOptions* cli_opts)
+HistoryApp::HistoryApp(int& argc, char** argv, AppCliOptions* cli_opts, shv::iotqt::rpc::DeviceConnection* rpc_connection)
 	: Super(argc, argv)
+	  , m_rpcConnection(rpc_connection)
 	  , m_cliOptions(cli_opts)
 	  , m_sanitizerIterator(m_journalNodes) // I have to initialize this one, because it doesn't have a default ctor
 {
-	m_rpcConnection = new si::rpc::DeviceConnection(this);
+	m_rpcConnection->setParent(this);
 
 	if (!cli_opts->user_isset()) {
 		cli_opts->setUser("iot");
@@ -235,35 +238,34 @@ HistoryApp* HistoryApp::instance()
 	return qobject_cast<HistoryApp*>(QCoreApplication::instance());
 }
 
-void HistoryApp::onBrokerConnectedChanged(bool is_connected)
+QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> HistoryApp::onBrokerConnectedChanged(bool is_connected)
 {
 	m_isBrokerConnected = is_connected;
 	auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
 		->setShvPath("sites")
 		->setMethod("getSites");
-
-	connect(call, &shv::iotqt::rpc::RpcCall::error, [] (const QString& error) {
-		shvError() << "Couldn't retrieve sites:" << error;
-	});
-
-	connect(call, &shv::iotqt::rpc::RpcCall::result, [this] (const cp::RpcValue& result) {
-		auto nodes = createTree(result.asMap(), "", "", "shv", SlaveFound::No);
-		if (nodes) {
-			nodes->setParentNode(m_root);
-		}
-
-		m_journalNodes = m_shvTree->findChildren<ShvJournalNode*>();
-		if (m_journalNodes.size() != 0) {
-			m_singleCacheSizeLimit = m_totalCacheSizeLimit / m_journalNodes.size();
-
-			m_sanitizerIterator = QListIterator(m_journalNodes);
-			auto timer = new QTimer(this);
-			connect(timer, &QTimer::timeout, this, &HistoryApp::sanitizeNext);
-			timer->start(m_cliOptions->journalSanitizerInterval() * 1000);
-		}
-
-	});
 	call->start();
+	auto [result, error] = co_await qCoro(call, &shv::iotqt::rpc::RpcCall::maybeResult);
+
+	if (!error.isEmpty()) {
+		shvError() << "Couldn't retrieve sites:" << error;
+		co_return;
+	}
+
+	auto nodes = createTree(result.asMap(), "", "", "shv", SlaveFound::No);
+	if (nodes) {
+		nodes->setParentNode(m_root);
+	}
+
+	m_journalNodes = m_shvTree->findChildren<ShvJournalNode*>();
+	if (m_journalNodes.size() != 0) {
+		m_singleCacheSizeLimit = m_totalCacheSizeLimit / m_journalNodes.size();
+
+		m_sanitizerIterator = QListIterator(m_journalNodes);
+		auto timer = new QTimer(this);
+		connect(timer, &QTimer::timeout, this, &HistoryApp::sanitizeNext);
+		timer->start(m_cliOptions->journalSanitizerInterval() * 1000);
+	}
 }
 
 void HistoryApp::onRpcMessageReceived(const cp::RpcMessage& msg)
