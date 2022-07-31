@@ -5,6 +5,8 @@
 #include <shv/iotqt/rpc/rpc.h>
 #include <shv/coreqt/log.h>
 
+#include <iostream>
+
 namespace cp = shv::chainpack;
 namespace si = shv::iotqt;
 
@@ -52,7 +54,7 @@ QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> Applicat
 			co_return;
 		}
 
-		printf("%s\n", result.toCpon("\t").c_str());
+		std::cout << result.toCpon("\t") << "\n";
 		m_rpcConnection->close();
 	}
 	else if (m_rpcConnection->state() == shv::iotqt::rpc::ClientConnection::State::NotConnected) {
