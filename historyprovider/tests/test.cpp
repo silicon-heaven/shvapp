@@ -62,6 +62,16 @@ private:
 		emit rpcMessageReceived(req);
 	}
 
+	void doNotify(const std::string& path, const RpcValue& params)
+	{
+		cp::RpcSignal sig;
+		sig.setShvPath(path);
+		sig.setMethod("chng");
+		sig.setParams(params);
+		mockInfo() << "Sending signal:" << sig.toPrettyString();
+		emit rpcMessageReceived(sig);
+	}
+
 	QCoro::Generator<int> m_testDriver;
 	QCoro::Generator<int>::iterator m_testDriverState;
 	QQueue<cp::RpcMessage> m_messageQueue;
@@ -127,6 +137,10 @@ public:
 #define REQUEST(path, method) { \
 	doRequest((path), (method)); \
 	co_yield {}; \
+}
+
+#define NOTIFY(path, params) { \
+	doNotify((path), (params)); \
 }
 
 #define RESPOND(result) { \
@@ -241,6 +255,24 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				EXPECT_REQUEST("shv/eyas/opc/.app/shvjournal/2022-07-07T18-06-15-557.log2", "read");
 				RESPOND(RpcValue::stringToBlob(dummy_logfile));
 			}
+
+			DOCTEST_SUBCASE("dirty log")
+			{
+				create_dummy_cache_files(cache_dir_path, {});
+				// Respond to the initial `lsfiles` request.
+				RESPOND(RpcValue::List());
+
+				DOCTEST_SUBCASE("HP accepts events and puts them into the log")
+				{
+					NOTIFY("shv/eyas/opc/power-on", true);
+					NOTIFY("shv/eyas/opc/power-on", false);
+
+					expected_cache_contents = RpcValue::List({{
+						RpcValue::List{ "dirty.log2", 101ul }
+					}});
+				}
+			}
+
 		}
 
 		DOCTEST_SUBCASE("syncing from slave HP")
