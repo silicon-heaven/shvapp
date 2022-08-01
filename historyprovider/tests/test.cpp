@@ -100,12 +100,6 @@ public:
         emit brokerConnectedChanged(true);
     }
 
-	void expectResponse(const RpcValue& result)
-	{
-		REQUIRE(m_messageQueue.head().isResponse());
-		REQUIRE(shv::chainpack::RpcResponse(m_messageQueue.head()).result() == result);
-	}
-
 	Q_SIGNAL void handleNextMessage();
 
 	// I can't return void from the generator, so I'm returning ints.
