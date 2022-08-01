@@ -419,7 +419,7 @@ void ShvJournalNode::syncLog(const cp::RpcRequest& rq)
 {
 	auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
 		->setShvPath(m_remoteLogShvPath)
-		->setMethod("ls")
+		->setMethod("lsfiles")
 		->setParams(cp::RpcValue::Map{{"size", true}});
 
 	connect(call, &shv::iotqt::rpc::RpcCall::error, [rq] (const QString& error) {
