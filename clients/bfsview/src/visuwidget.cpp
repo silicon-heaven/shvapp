@@ -123,13 +123,13 @@ void VisuWidget::contextMenuEvent(QContextMenuEvent *event)
 		BfsViewApp::SwitchStatus st = app->ompagSwitchStatus();
 		BfsViewApp::SwitchStatus rq_st = app->ompagRequiredSwitchStatus();
 		if(st == BfsViewApp::SwitchStatus::On || rq_st != BfsViewApp::SwitchStatus::Unknown) {
-			menu.addAction(tr("Vypnout"), [this]() {
+			menu.addAction(tr("Vypnout"), []() {
 				shvInfo() << "set ompag OFF";
 				BfsViewApp::instance()->setOmpag(false);
 			});
 		}
 		if(st == BfsViewApp::SwitchStatus::Off || rq_st != BfsViewApp::SwitchStatus::Unknown) {
-			menu.addAction(tr("Zapnout"), [this]() {
+			menu.addAction(tr("Zapnout"), []() {
 				shvInfo() << "set ompag ON";
 				BfsViewApp::instance()->setOmpag(true);
 			});
@@ -157,13 +157,13 @@ void VisuWidget::contextMenuEvent(QContextMenuEvent *event)
 		BfsViewApp::SwitchStatus st = app->convSwitchStatus();
 		BfsViewApp::SwitchStatus rq_st = app->convRequiredSwitchStatus();
 		if(st == BfsViewApp::SwitchStatus::On || rq_st != BfsViewApp::SwitchStatus::Unknown) {
-			menu.addAction(tr("Vypnout BS"), [this]() {
+			menu.addAction(tr("Vypnout BS"), []() {
 				shvInfo() << "set conv OFF";
 				BfsViewApp::instance()->setConv(false);
 			});
 		}
 		if(st == BfsViewApp::SwitchStatus::Off || rq_st != BfsViewApp::SwitchStatus::Unknown) {
-			menu.addAction(tr("Zapnout BS"), [this]() {
+			menu.addAction(tr("Zapnout BS"), []() {
 				shvInfo() << "set conv ON";
 				BfsViewApp::instance()->setConv(true);
 			});
