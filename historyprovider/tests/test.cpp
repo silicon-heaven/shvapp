@@ -226,7 +226,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			SEND_SITES(mock_sites::fin_slave_broker_sites);
 			cache_dir_path = "shv/eyas/opc";
 			REQUEST(join(cache_dir_path, "shvjournal"), "syncLog");
-			EXPECT_REQUEST(join(cache_dir_path, "/.app/shvjournal"), "ls");
+			EXPECT_REQUEST(join(cache_dir_path, "/.app/shvjournal"), "lsfiles");
 
 			DOCTEST_SUBCASE("Remote and local - empty")
 			{
@@ -256,7 +256,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			auto master_shv_journal_path = join(cache_dir_path, "shvjournal");
 			auto slave_shv_journal_path = "shv/fin/hel/tram/hel002/.local/history/shv/eyas/opc/shvjournal";
 			REQUEST(master_shv_journal_path, "syncLog");
-			EXPECT_REQUEST(slave_shv_journal_path, "ls");
+			EXPECT_REQUEST(slave_shv_journal_path, "lsfiles");
 
 			DOCTEST_SUBCASE("Remote - has files, local - empty")
 			{
