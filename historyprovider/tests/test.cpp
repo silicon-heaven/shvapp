@@ -197,14 +197,24 @@ const auto dummy_logfile = R"(2022-07-07T18:06:15.557Z	809779	APP_START	true		SH
 2022-07-07T18:06:17.869Z	809781	zone1/pme/TSH1-1/switchRightCounterPermanent	0u		chng	2	
 )"s;
 
-void create_dummy_cache_files(const std::string& site_path, const QStringList& fileNames)
+const auto dummy_logfile2 = R"(2022-07-07T18:06:17.872Z	809781	zone1/system/sig/plcDisconnected	false		chng	2	
+2022-07-07T18:06:17.874Z	809781	zone1/zone/Zone1/plcDisconnected	false		chng	2	
+2022-07-07T18:06:17.880Z	809781	zone1/pme/TSH1-1/switchRightCounterPermanent	0u		chng	2	
+)"s;
+
+struct DummyFileInfo {
+	QString fileName;
+	std::string content;
+};
+
+void create_dummy_cache_files(const std::string& site_path, const std::vector<DummyFileInfo>& files)
 {
 	remove_cache_contents(site_path);
 	auto cache_dir = get_site_cache_dir(site_path);
 
-	for (const auto& fileName : fileNames) {
-		QFile file(cache_dir.filePath(fileName));
-		file.write(dummy_logfile.c_str());
+	for (const auto& file : files) {
+		QFile qfile(cache_dir.filePath(file.fileName));
+		qfile.write(file.content.c_str());
 	}
 }
 
