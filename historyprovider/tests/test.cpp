@@ -3,6 +3,8 @@
 #include "tests/sites.h"
 
 #include <shv/coreqt/log.h>
+#include <shv/core/utils/shvjournalentry.h>
+#include <shv/core/utils/shvmemoryjournal.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <QCoroGenerator>
 
@@ -19,6 +21,18 @@ using cp::RpcValue;
 #define mockDebug() shvCDebug("MockRpcConnection")
 #define mockInfo() shvCInfo("MockRpcConnection")
 #define mockError() shvCError("MockRpcConnection")
+
+namespace std {
+    doctest::String toString(const std::vector<int64_t>& values) {
+		std::ostringstream res;
+		res << "std::vector<int64_t>{";
+		for (const auto& value : values) {
+			res << value << ", ";
+		}
+		res << "}";
+		return res.str().c_str();
+    }
+}
 
 namespace shv::chainpack {
 
@@ -215,6 +229,7 @@ void create_dummy_cache_files(const std::string& site_path, const std::vector<Du
 
 	for (const auto& file : files) {
 		QFile qfile(cache_dir.filePath(file.fileName));
+		qfile.open(QFile::WriteOnly);
 		qfile.write(file.content.c_str());
 	}
 }
@@ -235,10 +250,10 @@ QCoro::Generator<int> MockRpcConnection::driver()
 {
 	co_yield {};
 
+	std::string cache_dir_path;
 	DOCTEST_SUBCASE("syncLog")
 	{
 		RpcValue::List expected_cache_contents;
-		std::string cache_dir_path;
 
 		DOCTEST_SUBCASE("fin slave HP")
 		{
@@ -313,6 +328,52 @@ QCoro::Generator<int> MockRpcConnection::driver()
 
 		EXPECT_RESPONSE("All files have been synced");
 		REQUIRE(get_cache_contents(cache_dir_path) == expected_cache_contents);
+	}
+
+	DOCTEST_SUBCASE("getLog")
+	{
+		SEND_SITES(mock_sites::fin_slave_broker_sites);
+
+		cache_dir_path = "shv/eyas/opc";
+		create_dummy_cache_files(cache_dir_path, {
+			{ "2022-07-07T18-06-15-557.log2", dummy_logfile },
+			{ "2022-07-07T18-06-15-558.log2", dummy_logfile2 }
+		});
+
+		std::vector<int64_t> expected_timestamps;
+		shv::core::utils::ShvGetLogParams get_log_params;
+
+		DOCTEST_SUBCASE("default params")
+		{
+			expected_timestamps = {1657217175557, 1657217177784, 1657217177784, 1657217177869, 1657217177872, 1657217177874, 1657217177880};
+		}
+
+		DOCTEST_SUBCASE("since")
+		{
+			expected_timestamps = {1657217177872, 1657217177874, 1657217177880};
+			get_log_params.since = RpcValue::DateTime::fromMSecsSinceEpoch(1657217177872);
+		}
+
+		DOCTEST_SUBCASE("until")
+		{
+			expected_timestamps = {1657217175557, 1657217177784, 1657217177784, 1657217177869};
+			get_log_params.until = RpcValue::DateTime::fromMSecsSinceEpoch(1657217177870);
+		}
+
+		REQUEST(join(cache_dir_path, "shvjournal"), "getLog", get_log_params.toRpcValue());
+
+		// For now,I'll only make a simple test: I'll assume that if the timestamps are correct, everything else is also
+		// correct. This is not the place to test the log uitilities anyway.
+		REQUIRE(m_messageQueue.head().isResponse());
+		std::vector<int64_t> actual_timestamps;
+		shv::core::utils::ShvMemoryJournal entries;
+		entries.loadLog(shv::chainpack::RpcResponse(m_messageQueue.head()).result());
+		for (const auto& entry : entries.entries()) {
+			actual_timestamps.push_back(entry.epochMsec);
+		}
+
+		REQUIRE(actual_timestamps == expected_timestamps);
+		m_messageQueue.dequeue();
 	}
 
 	co_return;
