@@ -51,12 +51,13 @@ private:
 		emit rpcMessageReceived(res);
 	}
 
-	void doRequest(const std::string& path, const std::string& method)
+	void doRequest(const std::string& path, const std::string& method, const RpcValue& params)
 	{
 		cp::RpcRequest req;
 		req.setRequestId(nextRequestId());
 		req.setAccessGrant(shv::chainpack::Rpc::ROLE_ADMIN);
 		req.setShvPath(path);
+		req.setParams(params);
 		req.setMethod(method);
 		mockInfo() << "Sending request:" << req.toPrettyString();
 		emit rpcMessageReceived(req);
@@ -134,8 +135,8 @@ public:
     }
 };
 
-#define REQUEST(path, method) { \
-	doRequest((path), (method)); \
+#define REQUEST(path, method, params) { \
+	doRequest((path), (method), (params)); \
 	co_yield {}; \
 }
 
@@ -243,7 +244,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 		{
 			SEND_SITES(mock_sites::fin_slave_broker_sites);
 			cache_dir_path = "shv/eyas/opc";
-			REQUEST(join(cache_dir_path, "shvjournal"), "syncLog");
+			REQUEST(join(cache_dir_path, "shvjournal"), "syncLog", RpcValue());
 			EXPECT_REQUEST(join(cache_dir_path, "/.app/shvjournal"), "lsfiles");
 
 			DOCTEST_SUBCASE("Remote and local - empty")
@@ -291,7 +292,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			cache_dir_path = "shv/fin/hel/tram/hel002/eyas/opc";
 			auto master_shv_journal_path = join(cache_dir_path, "shvjournal");
 			auto slave_shv_journal_path = "shv/fin/hel/tram/hel002/.local/history/shv/eyas/opc/shvjournal";
-			REQUEST(master_shv_journal_path, "syncLog");
+			REQUEST(master_shv_journal_path, "syncLog", RpcValue());
 			EXPECT_REQUEST(slave_shv_journal_path, "lsfiles");
 
 			DOCTEST_SUBCASE("Remote - has files, local - empty")
