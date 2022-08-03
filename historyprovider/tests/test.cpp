@@ -90,6 +90,7 @@ private:
 	QCoro::Generator<int> m_testDriver;
 	QCoro::Generator<int>::iterator m_testDriverState;
 	QQueue<cp::RpcMessage> m_messageQueue;
+	bool m_coroRunning = false;
 
 public:
 	MockRpcConnection()
@@ -103,7 +104,9 @@ public:
 				CAPTURE(m_messageQueue.head());
 				REQUIRE(false);
 			}
+			m_coroRunning = true;
 			++m_testDriverState;
+			m_coroRunning = false;
 			if (m_testDriverState != m_testDriver.end()) {
 				// I also need to dereference the value to trigger any unhandled exceptions.
 				*m_testDriverState;
@@ -132,6 +135,10 @@ public:
 
     void sendMessage(const cp::RpcMessage& rpc_msg) override
     {
+		if (m_coroRunning) {
+			throw std::logic_error("A client send a message while the test driver was running."
+					"This can lead to unexpected behavior, because the test driver resumes on messages from the client and you can't resume the driver while it's already running.");
+		}
 		auto msg_type =
 			rpc_msg.isRequest() ? "message:" :
 			rpc_msg.isResponse() ? "response:" :
@@ -145,12 +152,22 @@ public:
 		}
 
 		m_messageQueue.enqueue(rpc_msg);
+
 		emit handleNextMessage();
     }
 };
 
+#define REQUEST_YIELD(path, method, params) { \
+	QTimer::singleShot(0, [this, pathCapture = (path), methodCapture = (method), paramsCapture = (params)] {doRequest((pathCapture), (methodCapture), (paramsCapture));}); \
+	co_yield {}; \
+}
+
 #define REQUEST(path, method, params) { \
 	doRequest((path), (method), (params)); \
+}
+
+#define NOTIFY_YIELD(path, params) { \
+	QTimer::singleShot(0, [this, pathCapture = (path), paramsCapture = (params)] {doNotify((pathCapture), (paramsCapture));}); \
 	co_yield {}; \
 }
 
@@ -160,6 +177,10 @@ public:
 
 #define RESPOND(result) { \
 	doRespond(result); \
+}
+
+#define RESPOND_YIELD(result) { \
+	QTimer::singleShot(0, [this, resultCapture = (result)] {doRespond(resultCapture);}); \
 	co_yield {}; \
 }
 
@@ -243,7 +264,7 @@ auto join(const std::string& a, const std::string& b)
 
 #define SEND_SITES(sitesStr) { \
 	EXPECT_REQUEST("sites", "getSites"); \
-	RESPOND(sitesStr); \
+	RESPOND_YIELD(sitesStr); \
 	EXPECT_REQUEST(".broker/app", "subscribe"); \
 	doRespond(true); \
 }
@@ -256,7 +277,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	{
 		SEND_SITES(mock_sites::fin_slave_broker_sites);
 		std::string cache_dir_path = "shv/eyas/opc";
-		REQUEST(join(cache_dir_path, "shvjournal"), "syncLog", RpcValue());
+		REQUEST_YIELD(join(cache_dir_path, "shvjournal"), "syncLog", RpcValue());
 		EXPECT_REQUEST(join(cache_dir_path, "/.app/shvjournal"), "lsfiles");
 
 		DOCTEST_SUBCASE("syncLog")
@@ -265,7 +286,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			DOCTEST_SUBCASE("Remote and local - empty")
 			{
 				create_dummy_cache_files(cache_dir_path, {});
-				RESPOND(RpcValue::List());
+				RESPOND_YIELD(RpcValue::List());
 			}
 
 			DOCTEST_SUBCASE("Remote - has files, local - empty")
@@ -274,19 +295,19 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				expected_cache_contents = RpcValue::List({{
 					RpcValue::List{ "2022-07-07T18-06-15-557.log2", dummy_logfile.size() }
 				}});
-				RESPOND((RpcValue::List({{
+				RESPOND_YIELD((RpcValue::List({{
 					{ "2022-07-07T18-06-15-557.log2", "f", dummy_logfile.size() }
 				}})));
 
 				EXPECT_REQUEST("shv/eyas/opc/.app/shvjournal/2022-07-07T18-06-15-557.log2", "read");
-				RESPOND(RpcValue::stringToBlob(dummy_logfile));
+				RESPOND_YIELD(RpcValue::stringToBlob(dummy_logfile));
 			}
 
 			DOCTEST_SUBCASE("dirty log")
 			{
 				create_dummy_cache_files(cache_dir_path, {});
 				// Respond to the initial `lsfiles` request.
-				RESPOND(RpcValue::List());
+				RESPOND_YIELD(RpcValue::List());
 
 				DOCTEST_SUBCASE("HP accepts events and puts them into the log")
 				{
@@ -312,7 +333,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 		std::string cache_dir_path = "shv/fin/hel/tram/hel002/eyas/opc";
 		auto master_shv_journal_path = join(cache_dir_path, "shvjournal");
 		auto slave_shv_journal_path = "shv/fin/hel/tram/hel002/.local/history/shv/eyas/opc/shvjournal";
-		REQUEST(master_shv_journal_path, "syncLog", RpcValue());
+		REQUEST_YIELD(master_shv_journal_path, "syncLog", RpcValue());
 		EXPECT_REQUEST(slave_shv_journal_path, "lsfiles");
 
 		DOCTEST_SUBCASE("Remote - has files, local - empty")
@@ -322,12 +343,12 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			expected_cache_contents = RpcValue::List({{
 				RpcValue::List{ "2022-07-07T18-06-15-557.log2", dummy_logfile.size() }
 			}});
-			RESPOND((RpcValue::List{{
+			RESPOND_YIELD((RpcValue::List{{
 				{ "2022-07-07T18-06-15-557.log2", "f", dummy_logfile.size() }
 			}}));
 
 			EXPECT_REQUEST(join(slave_shv_journal_path, "2022-07-07T18-06-15-557.log2"), "read");
-			RESPOND(RpcValue::stringToBlob(dummy_logfile));
+			RESPOND_YIELD(RpcValue::stringToBlob(dummy_logfile));
 		}
 
 		EXPECT_RESPONSE("All files have been synced");
@@ -364,7 +385,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			get_log_params.until = RpcValue::DateTime::fromMSecsSinceEpoch(1657217177870);
 		}
 
-		REQUEST(join(cache_dir_path, "shvjournal"), "getLog", get_log_params.toRpcValue());
+		REQUEST_YIELD(join(cache_dir_path, "shvjournal"), "getLog", get_log_params.toRpcValue());
 
 		// For now,I'll only make a simple test: I'll assume that if the timestamps are correct, everything else is also
 		// correct. This is not the place to test the log uitilities anyway.
