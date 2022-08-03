@@ -164,6 +164,7 @@ public:
 }
 
 #define EXPECT_REQUEST(pathStr, methodStr) { \
+	REQUIRE(!m_messageQueue.empty()); \
 	CAPTURE(m_messageQueue.head()); \
 	REQUIRE(m_messageQueue.head().isRequest()); \
 	REQUIRE(m_messageQueue.head().shvPath().asString() == (pathStr)); \
@@ -171,6 +172,7 @@ public:
 }
 
 #define EXPECT_RESPONSE(expectedResult) { \
+	REQUIRE(!m_messageQueue.empty()); \
 	CAPTURE(m_messageQueue.head()); \
 	REQUIRE(m_messageQueue.head().isResponse()); \
 	REQUIRE(shv::chainpack::RpcResponse(m_messageQueue.head()).result() == (expectedResult)); \
