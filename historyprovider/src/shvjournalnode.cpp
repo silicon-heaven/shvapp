@@ -405,28 +405,27 @@ private:
 	std::function<void(cp::RpcResponse::Error)> m_callback;
 };
 
-void ShvJournalNode::syncLogLegacy(const std::function<void(cp::RpcResponse::Error)> cb)
-{
-	new LegacyFileSyncer(m_remoteLogShvPath, m_cacheDirPath, cb);
-}
-
 void ShvJournalNode::syncLog(const std::function<void(cp::RpcResponse::Error)> cb)
 {
-	auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
-		->setShvPath(m_remoteLogShvPath)
-		->setMethod("lsfiles")
-		->setParams(cp::RpcValue::Map{{"size", true}});
+	if (m_logType == LogType::Normal) {
+		auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
+			->setShvPath(m_remoteLogShvPath)
+			->setMethod("lsfiles")
+			->setParams(cp::RpcValue::Map{{"size", true}});
 
-	connect(call, &shv::iotqt::rpc::RpcCall::error, [cb] (const QString& error) {
-		journalError() << error;
-		cb(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, "Couldn't retrieve filelist from the device"));
-	});
+		connect(call, &shv::iotqt::rpc::RpcCall::error, [cb] (const QString& error) {
+			journalError() << error;
+			cb(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, "Couldn't retrieve filelist from the device"));
+		});
 
-	connect(call, &shv::iotqt::rpc::RpcCall::result, [this, cb] (const cp::RpcValue& result) {
-		journalDebug() << "Got filelist from" << m_remoteLogShvPath;
-		new FileSyncer(result, m_remoteLogShvPath, m_cacheDirPath, cb);
-	});
-	call->start();
+		connect(call, &shv::iotqt::rpc::RpcCall::result, [this, cb] (const cp::RpcValue& result) {
+			journalDebug() << "Got filelist from" << m_remoteLogShvPath;
+			new FileSyncer(result, m_remoteLogShvPath, m_cacheDirPath, cb);
+		});
+		call->start();
+	} else {
+		new LegacyFileSyncer(m_remoteLogShvPath, m_cacheDirPath, cb);
+	}
 }
 
 cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
@@ -445,11 +444,7 @@ cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 			HistoryApp::instance()->rpcConnection()->sendMessage(response);
 		};
 
-		if (m_logType == LogType::Normal) {
-			syncLog(respond);
-		} else {
-			syncLogLegacy(respond);
-		}
+		syncLog(respond);
 
 		return {};
 	}
