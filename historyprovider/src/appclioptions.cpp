@@ -10,4 +10,6 @@ AppCliOptions::AppCliOptions()
 			.setComment("Set journal cache size limit (suffixes: k, M, G)").setDefaultValue("1G");
 	addOption("app.journalSanitizerInterval").setType(shv::chainpack::RpcValue::Type::Int).setNames("--journal-sanitizer-interval")
 			.setComment("Set journal sanitizer interval").setDefaultValue(60);
+	addOption("app.logMaxAge").setType(shv::chainpack::RpcValue::Type::Int).setNames("--log-max-age")
+			.setComment("Set dirty log max age").setDefaultValue(60 /*seconds*/ * 60 /*minutes*/ * 1 /*hours*/); // What's a correct value? An hour?
 }

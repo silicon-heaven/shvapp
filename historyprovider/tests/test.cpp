@@ -322,7 +322,36 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				EXPECT_RESPONSE("All files have been synced");
 				REQUIRE(get_cache_contents(cache_dir_path) == expected_cache_contents);
 			}
+		}
 
+		DOCTEST_SUBCASE("periodic syncLog")
+		{
+			// Respond to the initial syncLog request.
+			RESPOND_YIELD(RpcValue::List());
+			EXPECT_RESPONSE("All files have been synced");
+
+			DOCTEST_SUBCASE("dirty log too old")
+			{
+				create_dummy_cache_files(cache_dir_path, {
+					// Make a 100 second old entry.
+					{"dirty.log2", QDateTime::currentDateTimeUtc().addSecs(-100).toString(Qt::DateFormat::ISODate).toStdString() + "	809781	zone1/zone/Zone1/plcDisconnected	false		chng	2	\n"}
+				});
+
+				DOCTEST_SUBCASE("synclog should not trigger")
+				{
+					HistoryApp::instance()->cliOptions()->setLogMaxAge(1000);
+					NOTIFY("shv/eyas/opc/power-on", true); // Send an event so that HP checks for dirty log age.
+					// Nothing happens afterwards, since max age is >10
+				}
+
+				DOCTEST_SUBCASE("synclog should trigger")
+				{
+					HistoryApp::instance()->cliOptions()->setLogMaxAge(10);
+					NOTIFY_YIELD("shv/eyas/opc/power-on", true);
+					EXPECT_REQUEST(join(cache_dir_path, "/.app/shvjournal"), "lsfiles");
+					RESPOND(RpcValue::List()); // We only test if the syncLog triggers.
+				}
+			}
 		}
 	}
 

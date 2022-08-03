@@ -78,16 +78,28 @@ void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 		auto value = ntf.value();
 
 		if (path.find(m_siteShvPath) == 0 && method == "chng") {
-			auto writer = shv::core::utils::ShvJournalFileWriter(dirty_log_path(m_cacheDirPath));
-			auto path_without_prefix = path.substr(m_siteShvPath.size());
-			auto data_change = shv::chainpack::DataChange::fromRpcValue(ntf.params());
 
-			auto entry = shv::core::utils::ShvJournalEntry(path_without_prefix, data_change.value()
-													, shv::core::utils::ShvJournalEntry::DOMAIN_VAL_CHANGE
-													, shv::core::utils::ShvJournalEntry::NO_SHORT_TIME
-													, shv::core::utils::ShvJournalEntry::NO_VALUE_FLAGS
-													, data_change.epochMSec());
-			writer.append(entry);
+			{
+				auto writer = shv::core::utils::ShvJournalFileWriter(dirty_log_path(m_cacheDirPath));
+				auto path_without_prefix = path.substr(m_siteShvPath.size());
+				auto data_change = shv::chainpack::DataChange::fromRpcValue(ntf.params());
+
+				auto entry = shv::core::utils::ShvJournalEntry(path_without_prefix, data_change.value()
+														, shv::core::utils::ShvJournalEntry::DOMAIN_VAL_CHANGE
+														, shv::core::utils::ShvJournalEntry::NO_SHORT_TIME
+														, shv::core::utils::ShvJournalEntry::NO_VALUE_FLAGS
+														, data_change.epochMSec());
+				writer.append(entry);
+
+			}
+
+			shv::core::utils::ShvJournalFileReader reader(dirty_log_path(m_cacheDirPath));
+			reader.next(); // There must be at least one entry, because I've just written it.
+			if (QDateTime::currentMSecsSinceEpoch() - HistoryApp::instance()->cliOptions()->logMaxAge() * 1000 > reader.entry().epochMsec) {
+				journalInfo() << "Log is too old, syncing journal" << m_remoteLogShvPath;
+				syncLog([] (auto /*error*/) {
+				});
+			}
 		}
 	}
 }

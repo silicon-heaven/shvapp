@@ -214,6 +214,7 @@ HistoryApp::HistoryApp(int& argc, char** argv, AppCliOptions* cli_opts, shv::iot
 
 	shvInfo() << "Cache size limit:" << size_limit_bytes << "bytes";
 	shvInfo() << "Sanitizer interval:" << cli_opts->journalSanitizerInterval() << "seconds";
+	shvInfo() << "Log max age:" << cli_opts->logMaxAge() << "seconds";
 
 	m_rpcConnection->setCliOptions(cli_opts);
 	m_totalCacheSizeLimit = size_limit_bytes;
