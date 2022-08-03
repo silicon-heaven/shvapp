@@ -188,12 +188,12 @@ void trim_dirty_log(const QString& cache_dir_path)
 class FileSyncer : public QObject {
 	Q_OBJECT
 public:
-	FileSyncer(const cp::RpcValue& files, const QString& remote_log_shv_path, const QString& cache_dir_path, const cp::RpcRequest& request)
+	FileSyncer(const cp::RpcValue& files, const QString& remote_log_shv_path, const QString& cache_dir_path, const std::function<void(cp::RpcResponse::Error)>& callback)
 		: m_files(files)
 		, m_filesList(m_files.asList())
 		, m_remoteLogShvPath(remote_log_shv_path)
 		, m_cacheDirPath(cache_dir_path)
-		, m_request(request)
+		, m_callback(callback)
 	{
 		syncFiles();
 	}
@@ -253,9 +253,7 @@ public:
 
 		writeFiles();
 		trim_dirty_log(m_cacheDirPath);
-		auto response = m_request.makeResponse();
-		response.setResult("All files have been synced");
-		HistoryApp::instance()->rpcConnection()->sendMessage(response);
+		m_callback({});
 		deleteLater();
 	}
 
@@ -268,8 +266,7 @@ private:
 	QString m_remoteLogShvPath;
 	QString m_cacheDirPath;
 
-	cp::RpcRequest m_request;
-
+	std::function<void(cp::RpcResponse::Error)> m_callback;
 };
 
 qint64 ShvJournalNode::calculateCacheDirSize() const
@@ -314,11 +311,11 @@ const auto RECORD_COUNT_LIMIT = 1000;
 class LegacyFileSyncer : public QObject {
 	Q_OBJECT
 public:
-	LegacyFileSyncer(const QString& remote_log_shv_path, const QString& cache_dir_path, const cp::RpcRequest& request)
+	LegacyFileSyncer(const QString& remote_log_shv_path, const QString& cache_dir_path, const std::function<void(cp::RpcResponse::Error)>& callback)
 		: m_untilParam(shv::chainpack::RpcValue::DateTime::now())
 		, m_remoteLogShvPath(remote_log_shv_path)
 		, m_cacheDirPath(cache_dir_path)
-		, m_request(request)
+		, m_callback(callback)
 	{
 		QDir cache_dir(m_cacheDirPath);
 		if (!cache_dir.isEmpty()) {
@@ -341,9 +338,7 @@ public:
 
 		write_entries_to_file(file_name, m_downloadedEntries);
 		trim_dirty_log(m_cacheDirPath);
-		auto response = m_request.makeResponse();
-		response.setResult("All files have been synced");
-		HistoryApp::instance()->rpcConnection()->sendMessage(response);
+		m_callback({});
 		deleteLater();
 	}
 
@@ -361,10 +356,7 @@ public:
 
 		connect(call, &shv::iotqt::rpc::RpcCall::error, [this] (const QString& error) {
 			journalError() << error;
-			auto response = m_request.makeResponse();
-			response.setError(cp::RpcResponse::Error::create(
-						cp::RpcResponse::Error::MethodCallException, "Couldn't retrieve logs from the device"));
-			HistoryApp::instance()->rpcConnection()->sendMessage(response);
+			m_callback(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, "Couldn't retrieve logs from the device"));
 			deleteLater();
 		});
 
@@ -410,32 +402,29 @@ private:
 	QString m_remoteLogShvPath;
 	QString m_cacheDirPath;
 
-	cp::RpcRequest m_request;
+	std::function<void(cp::RpcResponse::Error)> m_callback;
 };
 
-void ShvJournalNode::syncLogLegacy(const cp::RpcRequest& rq)
+void ShvJournalNode::syncLogLegacy(const std::function<void(cp::RpcResponse::Error)> cb)
 {
-	new LegacyFileSyncer(m_remoteLogShvPath, m_cacheDirPath, rq);
+	new LegacyFileSyncer(m_remoteLogShvPath, m_cacheDirPath, cb);
 }
 
-void ShvJournalNode::syncLog(const cp::RpcRequest& rq)
+void ShvJournalNode::syncLog(const std::function<void(cp::RpcResponse::Error)> cb)
 {
 	auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
 		->setShvPath(m_remoteLogShvPath)
 		->setMethod("lsfiles")
 		->setParams(cp::RpcValue::Map{{"size", true}});
 
-	connect(call, &shv::iotqt::rpc::RpcCall::error, [rq] (const QString& error) {
+	connect(call, &shv::iotqt::rpc::RpcCall::error, [cb] (const QString& error) {
 		journalError() << error;
-		auto response = rq.makeResponse();
-		response.setError(cp::RpcResponse::Error::create(
-					cp::RpcResponse::Error::MethodCallException, "Couldn't retrieve filelist from the device"));
-		HistoryApp::instance()->rpcConnection()->sendMessage(response);
+		cb(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, "Couldn't retrieve filelist from the device"));
 	});
 
-	connect(call, &shv::iotqt::rpc::RpcCall::result, [this, rq] (const cp::RpcValue& result) {
+	connect(call, &shv::iotqt::rpc::RpcCall::result, [this, cb] (const cp::RpcValue& result) {
 		journalDebug() << "Got filelist from" << m_remoteLogShvPath;
-		new FileSyncer(result, m_remoteLogShvPath, m_cacheDirPath, rq);
+		new FileSyncer(result, m_remoteLogShvPath, m_cacheDirPath, cb);
 	});
 	call->start();
 }
@@ -445,10 +434,21 @@ cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 	auto method = rq.method().asString();
 	if (method == "syncLog" && m_logType != LogType::PushLog) {
 		journalInfo() << "Syncing shvjournal" << m_remoteLogShvPath;
+		auto respond = [rq] (auto error) {
+			auto response = rq.makeResponse();
+			if (!error.empty()) {
+				response.setError(error);
+			} else {
+				response.setResult("All files have been synced");
+			}
+
+			HistoryApp::instance()->rpcConnection()->sendMessage(response);
+		};
+
 		if (m_logType == LogType::Normal) {
-			syncLog(rq);
+			syncLog(respond);
 		} else {
-			syncLogLegacy(rq);
+			syncLogLegacy(respond);
 		}
 
 		return {};
