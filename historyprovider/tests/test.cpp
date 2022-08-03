@@ -250,18 +250,16 @@ QCoro::Generator<int> MockRpcConnection::driver()
 {
 	co_yield {};
 
-	std::string cache_dir_path;
-	DOCTEST_SUBCASE("syncLog")
+	DOCTEST_SUBCASE("fin slave HP")
 	{
-		RpcValue::List expected_cache_contents;
+		SEND_SITES(mock_sites::fin_slave_broker_sites);
+		std::string cache_dir_path = "shv/eyas/opc";
+		REQUEST(join(cache_dir_path, "shvjournal"), "syncLog", RpcValue());
+		EXPECT_REQUEST(join(cache_dir_path, "/.app/shvjournal"), "lsfiles");
 
-		DOCTEST_SUBCASE("fin slave HP")
+		DOCTEST_SUBCASE("syncLog")
 		{
-			SEND_SITES(mock_sites::fin_slave_broker_sites);
-			cache_dir_path = "shv/eyas/opc";
-			REQUEST(join(cache_dir_path, "shvjournal"), "syncLog", RpcValue());
-			EXPECT_REQUEST(join(cache_dir_path, "/.app/shvjournal"), "lsfiles");
-
+			RpcValue::List expected_cache_contents;
 			DOCTEST_SUBCASE("Remote and local - empty")
 			{
 				create_dummy_cache_files(cache_dir_path, {});
@@ -297,33 +295,37 @@ QCoro::Generator<int> MockRpcConnection::driver()
 						RpcValue::List{ "dirty.log2", 101ul }
 					}});
 				}
+
+				EXPECT_RESPONSE("All files have been synced");
+				REQUIRE(get_cache_contents(cache_dir_path) == expected_cache_contents);
 			}
 
 		}
+	}
 
-		DOCTEST_SUBCASE("syncing from slave HP")
+	DOCTEST_SUBCASE("syncing from slave HP")
+	{
+		RpcValue::List expected_cache_contents;
+		SEND_SITES(mock_sites::fin_master_broker_sites);
+		std::string cache_dir_path = "shv/fin/hel/tram/hel002/eyas/opc";
+		auto master_shv_journal_path = join(cache_dir_path, "shvjournal");
+		auto slave_shv_journal_path = "shv/fin/hel/tram/hel002/.local/history/shv/eyas/opc/shvjournal";
+		REQUEST(master_shv_journal_path, "syncLog", RpcValue());
+		EXPECT_REQUEST(slave_shv_journal_path, "lsfiles");
+
+		DOCTEST_SUBCASE("Remote - has files, local - empty")
 		{
-			SEND_SITES(mock_sites::fin_master_broker_sites);
-			cache_dir_path = "shv/fin/hel/tram/hel002/eyas/opc";
-			auto master_shv_journal_path = join(cache_dir_path, "shvjournal");
-			auto slave_shv_journal_path = "shv/fin/hel/tram/hel002/.local/history/shv/eyas/opc/shvjournal";
-			REQUEST(master_shv_journal_path, "syncLog", RpcValue());
-			EXPECT_REQUEST(slave_shv_journal_path, "lsfiles");
+			// NOTE: I'm only really testing whether historyprovider correctly enters the .local broker.
+			create_dummy_cache_files(cache_dir_path, {});
+			expected_cache_contents = RpcValue::List({{
+				RpcValue::List{ "2022-07-07T18-06-15-557.log2", dummy_logfile.size() }
+			}});
+			RESPOND((RpcValue::List{{
+				{ "2022-07-07T18-06-15-557.log2", "f", dummy_logfile.size() }
+			}}));
 
-			DOCTEST_SUBCASE("Remote - has files, local - empty")
-			{
-				// NOTE: I'm only really testing whether historyprovider correctly enters the .local broker.
-				create_dummy_cache_files(cache_dir_path, {});
-				expected_cache_contents = RpcValue::List({{
-					RpcValue::List{ "2022-07-07T18-06-15-557.log2", dummy_logfile.size() }
-				}});
-				RESPOND((RpcValue::List{{
-					{ "2022-07-07T18-06-15-557.log2", "f", dummy_logfile.size() }
-				}}));
-
-				EXPECT_REQUEST(join(slave_shv_journal_path, "2022-07-07T18-06-15-557.log2"), "read");
-				RESPOND(RpcValue::stringToBlob(dummy_logfile));
-			}
+			EXPECT_REQUEST(join(slave_shv_journal_path, "2022-07-07T18-06-15-557.log2"), "read");
+			RESPOND(RpcValue::stringToBlob(dummy_logfile));
 		}
 
 		EXPECT_RESPONSE("All files have been synced");
@@ -334,7 +336,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	{
 		SEND_SITES(mock_sites::fin_slave_broker_sites);
 
-		cache_dir_path = "shv/eyas/opc";
+		std::string cache_dir_path = "shv/eyas/opc";
 		create_dummy_cache_files(cache_dir_path, {
 			{ "2022-07-07T18-06-15-557.log2", dummy_logfile },
 			{ "2022-07-07T18-06-15-558.log2", dummy_logfile2 }
