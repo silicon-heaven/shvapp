@@ -9,7 +9,7 @@
 #define COMPANY "elektroline"
 
 #define QT_DIR "c:\Qt5\5.15.2\mingw81_64"
-#define MINGW_DIR "C:\Qt\Tools\mingw810_64"
+#define MINGW_DIR "C:\mingw-12\x86_64-12.1.0-release-posix-seh-rt_v10-rev3\mingw64"
 
 #define BUILD_DIR "..\.."
 #define DOC_BUILD_DIR BUILD_DIR + "\clients\jn50view\doc\help\_build\html"
@@ -41,12 +41,13 @@ Name: quicklaunchicon; Description: {cm:CreateQuickLaunchIcon}; GroupDescription
 Source: {#DOC_BUILD_DIR}\*; DestDir: {app}\doc\help\html; Flags: ignoreversion recursesubdirs createallsubdirs
 
 Source: {#BUILD_DIR}\bin\{#APP_NAME_LOWER}.exe; DestDir: {app}; Flags: ignoreversion
-Source: {#BUILD_DIR}\bin\necrolog.dll; DestDir: {app}; Flags: ignoreversion
-Source: {#BUILD_DIR}\bin\shvchainpack.dll; DestDir: {app}; Flags: ignoreversion
-Source: {#BUILD_DIR}\bin\shvcore.dll; DestDir: {app}; Flags: ignoreversion
-Source: {#BUILD_DIR}\bin\shvcoreqt.dll; DestDir: {app}; Flags: ignoreversion
-Source: {#BUILD_DIR}\bin\shvvisu.dll; DestDir: {app}; Flags: ignoreversion
-Source: {#BUILD_DIR}\bin\shviotqt.dll; DestDir: {app}; Flags: ignoreversion
+Source: {#BUILD_DIR}\bin\libnecrolog.dll; DestDir: {app}; Flags: ignoreversion
+Source: {#BUILD_DIR}\bin\libshvchainpack-c.dll; DestDir: {app}; Flags: ignoreversion
+Source: {#BUILD_DIR}\bin\libshvchainpack-cpp.dll; DestDir: {app}; Flags: ignoreversion
+Source: {#BUILD_DIR}\bin\libshvcore.dll; DestDir: {app}; Flags: ignoreversion
+Source: {#BUILD_DIR}\bin\libshvcoreqt.dll; DestDir: {app}; Flags: ignoreversion
+Source: {#BUILD_DIR}\bin\libshvvisu.dll; DestDir: {app}; Flags: ignoreversion
+Source: {#BUILD_DIR}\bin\libshviotqt.dll; DestDir: {app}; Flags: ignoreversion
 
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
@@ -75,9 +76,9 @@ Source: {#QT_DIR}\plugins\imageformats\qsvg.dll; DestDir: {app}\imageformats; Fl
 ;Source: {#QT_DIR}\plugins\sqldrivers\qsqlite.dll; DestDir: {app}\sqldrivers; Flags: ignoreversion
 ;Source: {#QT_DIR}\plugins\sqldrivers\qsqlpsql.dll; DestDir: {app}\sqldrivers; Flags: ignoreversion
 
-Source: {#QT_DIR}\bin\libgcc_s_seh-1.dll; DestDir: {app}; Flags: ignoreversion
-Source: {#QT_DIR}\bin\libwinpthread-1.dll; DestDir: {app}; Flags: ignoreversion
-Source: {#QT_DIR}\bin\libstdc++-6.dll; DestDir: {app}; Flags: ignoreversion
+Source: {#MINGW_DIR}\bin\libgcc_s_seh-1.dll; DestDir: {app}; Flags: ignoreversion
+Source: {#MINGW_DIR}\bin\libwinpthread-1.dll; DestDir: {app}; Flags: ignoreversion
+Source: {#MINGW_DIR}\bin\libstdc++-6.dll; DestDir: {app}; Flags: ignoreversion
 
 [Icons]
 Name: {group}\{#APP_NAME}; Filename: {app}\{#APP_NAME_LOWER}.exe
