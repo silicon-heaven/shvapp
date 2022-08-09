@@ -15,6 +15,7 @@
 
 /.qmake.cache
 /.qmake.stash
+*.txt.user
 *.pro.user
 *.pro.user.*
 *.qbs.user

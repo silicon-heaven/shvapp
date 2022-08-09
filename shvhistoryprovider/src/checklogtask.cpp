@@ -13,9 +13,6 @@
 #include <shv/coreqt/exception.h>
 #include <shv/iotqt/rpc/rpc.h>
 
-#include <QFutureWatcher>
-#include <QtConcurrent>
-
 namespace cp = shv::chainpack;
 using namespace shv::core::utils;
 

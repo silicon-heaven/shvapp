@@ -12,7 +12,7 @@ endif()
 add_subdirectory(3rdparty/necrolog)
 add_subdirectory(3rdparty/libshv)
 
-find_package(Qt5 REQUIRED COMPONENTS Core Concurrent OPTIONAL_COMPONENTS Widgets Svg Xml Quick)
+find_package(Qt5 REQUIRED COMPONENTS Core Concurrent OPTIONAL_COMPONENTS SerialPort Widgets Svg Xml Quick)
 if(NOT WIN32)
     find_package(QCoro5 REQUIRED COMPONENTS Core)
 endif()
