@@ -18,6 +18,7 @@ SUBDIRS += \
 	shvsitesprovider \
 	shvbrclabprovider \
 	shvhistoryprovider \
+	historyprovider \
 	shvcall \
 }
 

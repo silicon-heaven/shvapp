@@ -7,6 +7,7 @@ variables:
 stages:
   - build
   - deploy
+  - test
 
 linux:
   tags:
@@ -15,14 +16,15 @@ linux:
     build
   artifacts:
     paths:
-    - build/_dist/
+    - build/
   script:
     #- git submodule update --init --force --recursive
     - rm -rf build
     - mkdir -p build
     - cd build
-    - /opt/qt/5.15.2/gcc_64/bin/qmake -r CONFIG+=release CONFIG-=qml_debug CONFIG-=qtquickcompiler CONFIG+=with-shvwebsockets ../shv.pro DEFINES+=GIT_COMMIT=${CI_BUILD_REF}
+    - CXXFLAGS=-DGIT_COMMIT=${CI_BUILD_REF} cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/opt/qt/5.15.2/gcc_64 -DCMAKE_INSTALL_PREFIX=. ..
     - make -j2
+    - make install
     #- rsync -av --exclude '*.debug' lib bin /opt/shv/
     - ../make-linux-artifacts.sh
 
@@ -118,6 +120,19 @@ win-build:
   artifacts:
     paths:
       - _inno/
+
+run-tests:
+  variables:
+    GIT_STRATEGY: none # We want to use the earlier git repo, so that we don't have to recompile everything again.
+  tags:
+    - linux
+  stage:
+    test
+  script:
+    - cd build
+    - ctest --output-on-failure
+
+
 #
 #win-deploy:
 #  only:
