@@ -5,12 +5,15 @@
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/node/shvnodetree.h>
 #include <shv/iotqt/node/localfsnode.h>
+
 #include <shv/coreqt/log.h>
+
 #include <shv/chainpack/tunnelctl.h>
 #include <shv/chainpack/metamethod.h>
 #include <shv/chainpack/cponreader.h>
 
 #include <shv/core/stringview.h>
+#include <shv/core/utils/shvpath.h>
 
 #include <lua.hpp>
 #include "lua_utils.h"
