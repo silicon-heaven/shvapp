@@ -157,6 +157,10 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 		}
 		QDateTime until = rpcvalue_cast<QDateTime>(meta_until);
 
+		while (log.size() > 0 && log.entries()[log.size() - 1].epochMsec == until.toMSecsSinceEpoch()) {
+			log.removeLastEntry();
+		}
+
 		if (is_finished && m_askElesys) {
 			m_askElesys = false;
 			is_finished = false;
