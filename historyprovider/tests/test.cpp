@@ -281,11 +281,16 @@ auto join(const std::string& a, const std::string& b)
 	return shv::core::Utils::joinPath(a, b);
 }
 
-#define SEND_SITES(sitesStr) { \
+#define SEND_SITES_YIELD_AND_HANDLE_SUB(sitesStr) { \
 	EXPECT_REQUEST("sites", "getSites"); \
 	RESPOND_YIELD(sitesStr); \
 	EXPECT_REQUEST(".broker/app", "subscribe"); \
 	doRespond(true); \
+}
+
+#define SEND_SITES(sitesStr) { \
+	EXPECT_REQUEST("sites", "getSites"); \
+	RESPOND(sitesStr); \
 }
 
 QCoro::Generator<int> MockRpcConnection::driver()
@@ -294,7 +299,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 
 	DOCTEST_SUBCASE("fin slave HP")
 	{
-		SEND_SITES(mock_sites::fin_slave_broker_sites);
+		SEND_SITES_YIELD_AND_HANDLE_SUB(mock_sites::fin_slave_broker_sites);
 		std::string cache_dir_path = "shv/eyas/opc";
 		REQUEST_YIELD(join(cache_dir_path, "shvjournal"), "syncLog", RpcValue());
 		EXPECT_REQUEST(join(cache_dir_path, "/.app/shvjournal"), "lsfiles");
@@ -377,7 +382,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	DOCTEST_SUBCASE("syncing from slave HP")
 	{
 		RpcValue::List expected_cache_contents;
-		SEND_SITES(mock_sites::fin_master_broker_sites);
+		SEND_SITES_YIELD_AND_HANDLE_SUB(mock_sites::fin_master_broker_sites);
 		std::string cache_dir_path = "shv/fin/hel/tram/hel002/eyas/opc";
 		auto master_shv_journal_path = join(cache_dir_path, "shvjournal");
 		auto slave_shv_journal_path = "shv/fin/hel/tram/hel002/.local/history/shv/eyas/opc/shvjournal";
@@ -405,7 +410,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 
 	DOCTEST_SUBCASE("getLog")
 	{
-		SEND_SITES(mock_sites::fin_slave_broker_sites);
+		SEND_SITES_YIELD_AND_HANDLE_SUB(mock_sites::fin_slave_broker_sites);
 
 		std::string cache_dir_path = "shv/eyas/opc";
 		create_dummy_cache_files(cache_dir_path, {
