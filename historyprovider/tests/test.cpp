@@ -92,6 +92,7 @@ private:
 	QQueue<cp::RpcMessage> m_messageQueue;
 	bool m_coroRunning = false;
 
+	QTimer* m_timeoutTimer = nullptr;
 public:
 	MockRpcConnection()
 		: shv::iotqt::rpc::DeviceConnection(nullptr)
@@ -104,6 +105,13 @@ public:
 				CAPTURE(m_messageQueue.head());
 				REQUIRE(false);
 			}
+
+			if (m_timeoutTimer) {
+				m_timeoutTimer->stop();
+				m_timeoutTimer->deleteLater();
+				m_timeoutTimer = nullptr;
+			}
+
 			m_coroRunning = true;
 			++m_testDriverState;
 			m_coroRunning = false;
@@ -157,8 +165,17 @@ public:
     }
 };
 
+const auto COROUTINE_TIMEOUT = 3000;
+
+#define SETUP_TIMEOUT { \
+	m_timeoutTimer = new QTimer(); \
+	connect(m_timeoutTimer, &QTimer::timeout, [] {throw std::runtime_error("The test timed out while waiting for a message from client.");}); \
+	m_timeoutTimer->start(COROUTINE_TIMEOUT); \
+}
+
 #define REQUEST_YIELD(path, method, params) { \
 	QTimer::singleShot(0, [this, pathCapture = (path), methodCapture = (method), paramsCapture = (params)] {doRequest((pathCapture), (methodCapture), (paramsCapture));}); \
+	SETUP_TIMEOUT; \
 	co_yield {}; \
 }
 
@@ -168,6 +185,7 @@ public:
 
 #define NOTIFY_YIELD(path, params) { \
 	QTimer::singleShot(0, [this, pathCapture = (path), paramsCapture = (params)] {doNotify((pathCapture), (paramsCapture));}); \
+	SETUP_TIMEOUT; \
 	co_yield {}; \
 }
 
@@ -181,6 +199,7 @@ public:
 
 #define RESPOND_YIELD(result) { \
 	QTimer::singleShot(0, [this, resultCapture = (result)] {doRespond(resultCapture);}); \
+	SETUP_TIMEOUT; \
 	co_yield {}; \
 }
 
