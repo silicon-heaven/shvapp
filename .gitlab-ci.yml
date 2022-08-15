@@ -104,7 +104,7 @@ test-deploy:
     - ssh -t shv@${SHV_HEAVEN_IP} "sudo /opt/shv/test/install.sh"
     # hscope
     - rsync -avz ../clients/hscope/dashboard/* shv@${SHV_HEAVEN_IP}:/var/www/html/hscope/
-    - rsync -avz ../3rdparty/libshv/libshvchainpack/js/* shv@${SHV_HEAVEN_IP}:/var/www/html/hscope/libshvchainpack/
+    - rsync -avz ../3rdparty/libshv-js/*.js shv@${SHV_HEAVEN_IP}:/var/www/html/hscope/libshvchainpack/
     - ssh -t shv@${SHV_HEAVEN_IP} "/opt/shv/test/deploy-hscope.sh"
 
   environment:
