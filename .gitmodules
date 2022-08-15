@@ -4,3 +4,6 @@
 [submodule "3rdparty/necrolog"]
 	path = 3rdparty/necrolog
 	url = https://github.com/fvacek/necrolog.git
+[submodule "3rdparty/libshv-js"]
+	path = 3rdparty/libshv-js
+	url = https://github.com/silicon-heaven/libshv-js
