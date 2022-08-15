@@ -419,7 +419,9 @@ private:
 
 void ShvJournalNode::syncLog(const std::function<void(cp::RpcResponse::Error)> cb)
 {
-	if (m_logType == LogType::Normal) {
+	if (m_logType == LogType::Legacy) {
+		new LegacyFileSyncer(m_remoteLogShvPath, m_cacheDirPath, cb);
+	} else {
 		auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
 			->setShvPath(m_remoteLogShvPath)
 			->setMethod("lsfiles")
@@ -435,8 +437,6 @@ void ShvJournalNode::syncLog(const std::function<void(cp::RpcResponse::Error)> c
 			new FileSyncer(result, m_remoteLogShvPath, m_cacheDirPath, cb);
 		});
 		call->start();
-	} else {
-		new LegacyFileSyncer(m_remoteLogShvPath, m_cacheDirPath, cb);
 	}
 }
 
