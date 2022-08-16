@@ -298,11 +298,15 @@ auto make_sub_params(const std::string& path, const std::string& method)
 	return shv::chainpack::RpcValue::fromCpon(R"({"method":")" + method + R"(","path":")" + path + R"("}")");
 }
 
+#define EXPECT_SUBSCRIPTION(path, method) { \
+	EXPECT_REQUEST(".broker/app", "subscribe", make_sub_params(path, method)); \
+	doRespond(true); \
+}
+
 #define SEND_SITES_YIELD_AND_HANDLE_SUB(sitesStr, subPath) { \
 	EXPECT_REQUEST("sites", "getSites", RpcValue()); \
 	RESPOND_YIELD(sitesStr); \
-	EXPECT_REQUEST(".broker/app", "subscribe", make_sub_params(subPath, "chng")); \
-	doRespond(true); \
+	EXPECT_SUBSCRIPTION(subPath, "chng"); \
 }
 
 #define SEND_SITES_YIELD(sitesStr) { \
