@@ -206,12 +206,13 @@ const auto COROUTINE_TIMEOUT = 3000;
 	co_yield {}; \
 }
 
-#define EXPECT_REQUEST(pathStr, methodStr) { \
+#define EXPECT_REQUEST(pathStr, methodStr, paramsArg) { \
 	REQUIRE(!m_messageQueue.empty()); \
 	CAPTURE(m_messageQueue.head()); \
 	REQUIRE(m_messageQueue.head().isRequest()); \
 	REQUIRE(m_messageQueue.head().shvPath().asString() == (pathStr)); \
 	REQUIRE(m_messageQueue.head().method().asString() == (methodStr)); \
+	REQUIRE(shv::chainpack::RpcRequest(m_messageQueue.head()).params() == (paramsArg)); \
 }
 
 #define EXPECT_RESPONSE(expectedResult) { \
@@ -292,20 +293,25 @@ auto join(const std::string& a, const std::string& b)
 	return shv::core::Utils::joinPath(a, b);
 }
 
-#define SEND_SITES_YIELD_AND_HANDLE_SUB(sitesStr) { \
-	EXPECT_REQUEST("sites", "getSites"); \
+auto make_sub_params(const std::string& path, const std::string& method)
+{
+	return shv::chainpack::RpcValue::fromCpon(R"({"method":")" + method + R"(","path":")" + path + R"("}")");
+}
+
+#define SEND_SITES_YIELD_AND_HANDLE_SUB(sitesStr, subPath) { \
+	EXPECT_REQUEST("sites", "getSites", RpcValue()); \
 	RESPOND_YIELD(sitesStr); \
-	EXPECT_REQUEST(".broker/app", "subscribe"); \
+	EXPECT_REQUEST(".broker/app", "subscribe", make_sub_params(subPath, "chng")); \
 	doRespond(true); \
 }
 
 #define SEND_SITES_YIELD(sitesStr) { \
-	EXPECT_REQUEST("sites", "getSites"); \
+	EXPECT_REQUEST("sites", "getSites", RpcValue()); \
 	RESPOND_YIELD(sitesStr); \
 }
 
 #define SEND_SITES(sitesStr) { \
-	EXPECT_REQUEST("sites", "getSites"); \
+	EXPECT_REQUEST("sites", "getSites", RpcValue()); \
 	RESPOND(sitesStr); \
 }
 
@@ -314,16 +320,19 @@ auto join(const std::string& a, const std::string& b)
 	co_yield {}; \
 }
 
+const auto ls_size_true = RpcValue::fromCpon(R"({"size": true})");
+const auto read_offset_0 = RpcValue::fromCpon(R"({"offset":0})");
+
 QCoro::Generator<int> MockRpcConnection::driver()
 {
 	co_yield {};
 
 	DOCTEST_SUBCASE("fin slave HP")
 	{
-		SEND_SITES_YIELD_AND_HANDLE_SUB(mock_sites::fin_slave_broker_sites);
 		std::string cache_dir_path = "shv/eyas/opc";
+		SEND_SITES_YIELD_AND_HANDLE_SUB(mock_sites::fin_slave_broker_sites, cache_dir_path);
 		REQUEST_YIELD(join(cache_dir_path, "shvjournal"), "syncLog", RpcValue());
-		EXPECT_REQUEST(join(cache_dir_path, "/.app/shvjournal"), "lsfiles");
+		EXPECT_REQUEST(join(cache_dir_path, "/.app/shvjournal"), "lsfiles", ls_size_true);
 
 		DOCTEST_SUBCASE("syncLog")
 		{
@@ -344,7 +353,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 					{ "2022-07-07T18-06-15-557.log2", "f", dummy_logfile.size() }
 				}})));
 
-				EXPECT_REQUEST("shv/eyas/opc/.app/shvjournal/2022-07-07T18-06-15-557.log2", "read");
+				EXPECT_REQUEST("shv/eyas/opc/.app/shvjournal/2022-07-07T18-06-15-557.log2", "read", read_offset_0);
 				RESPOND_YIELD(RpcValue::stringToBlob(dummy_logfile));
 			}
 
@@ -393,7 +402,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				{
 					HistoryApp::instance()->cliOptions()->setLogMaxAge(10);
 					NOTIFY_YIELD("shv/eyas/opc/power-on", "chng", true);
-					EXPECT_REQUEST(join(cache_dir_path, "/.app/shvjournal"), "lsfiles");
+					EXPECT_REQUEST(join(cache_dir_path, "/.app/shvjournal"), "lsfiles", ls_size_true);
 					RESPOND(RpcValue::List()); // We only test if the syncLog triggers.
 				}
 			}
@@ -403,12 +412,12 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	DOCTEST_SUBCASE("syncing from slave HP")
 	{
 		RpcValue::List expected_cache_contents;
-		SEND_SITES_YIELD_AND_HANDLE_SUB(mock_sites::fin_master_broker_sites);
 		std::string cache_dir_path = "shv/fin/hel/tram/hel002/eyas/opc";
+		SEND_SITES_YIELD_AND_HANDLE_SUB(mock_sites::fin_master_broker_sites, "shv/fin/hel/tram/hel002/eyas/opc");
 		auto master_shv_journal_path = join(cache_dir_path, "shvjournal");
 		auto slave_shv_journal_path = "shv/fin/hel/tram/hel002/.local/history/shv/eyas/opc/shvjournal";
 		REQUEST_YIELD(master_shv_journal_path, "syncLog", RpcValue());
-		EXPECT_REQUEST(slave_shv_journal_path, "lsfiles");
+		EXPECT_REQUEST(slave_shv_journal_path, "lsfiles", ls_size_true);
 
 		DOCTEST_SUBCASE("Remote - has files, local - empty")
 		{
@@ -421,7 +430,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				{ "2022-07-07T18-06-15-557.log2", "f", dummy_logfile.size() }
 			}}));
 
-			EXPECT_REQUEST(join(slave_shv_journal_path, "2022-07-07T18-06-15-557.log2"), "read");
+			EXPECT_REQUEST(join(slave_shv_journal_path, "2022-07-07T18-06-15-557.log2"), "read", read_offset_0);
 			RESPOND_YIELD(RpcValue::stringToBlob(dummy_logfile));
 		}
 
@@ -431,9 +440,9 @@ QCoro::Generator<int> MockRpcConnection::driver()
 
 	DOCTEST_SUBCASE("getLog")
 	{
-		SEND_SITES_YIELD_AND_HANDLE_SUB(mock_sites::fin_slave_broker_sites);
-
 		std::string cache_dir_path = "shv/eyas/opc";
+		SEND_SITES_YIELD_AND_HANDLE_SUB(mock_sites::fin_slave_broker_sites, cache_dir_path);
+
 		create_dummy_cache_files(cache_dir_path, {
 			{ "2022-07-07T18-06-15-557.log2", dummy_logfile },
 			{ "2022-07-07T18-06-15-558.log2", dummy_logfile2 }
@@ -490,7 +499,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			std::string cache_dir_path = "shv/master/pushlog";
 			SEND_SITES(mock_sites::master_hp_with_slave_pushlog);
 			REQUEST_YIELD(join(cache_dir_path, "shvjournal"), "syncLog", RpcValue());
-			EXPECT_REQUEST("shv/master/.local/history/shv/pushlog/shvjournal", "lsfiles");
+			EXPECT_REQUEST("shv/master/.local/history/shv/pushlog/shvjournal", "lsfiles", ls_size_true);
 			RESPOND_YIELD(RpcValue::List());
 			EXPECT_RESPONSE("All files have been synced");
 		}
@@ -503,9 +512,9 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				std::string cache_dir_path = "shv/master/pushlog";
 				SEND_SITES_YIELD(mock_sites::master_hp_with_slave_pushlog);
 				// Test that HP will run lsfiles (sync) at least twice.
-				EXPECT_REQUEST("shv/master/.local/history/shv/pushlog/shvjournal", "lsfiles");
+				EXPECT_REQUEST("shv/master/.local/history/shv/pushlog/shvjournal", "lsfiles", ls_size_true);
 				RESPOND_YIELD(RpcValue::List());
-				EXPECT_REQUEST("shv/master/.local/history/shv/pushlog/shvjournal", "lsfiles");
+				EXPECT_REQUEST("shv/master/.local/history/shv/pushlog/shvjournal", "lsfiles", ls_size_true);
 				RESPOND_YIELD(RpcValue::List());
 			}
 
