@@ -219,6 +219,14 @@ const auto COROUTINE_TIMEOUT = 3000;
 	m_messageQueue.dequeue(); \
 }
 
+#define EXPECT_ERROR(expectedMsg) { \
+	REQUIRE(!m_messageQueue.empty()); \
+	CAPTURE(m_messageQueue.head()); \
+	REQUIRE(m_messageQueue.head().isResponse()); \
+	REQUIRE(shv::chainpack::RpcResponse(m_messageQueue.head()).errorString() == (expectedMsg)); \
+	m_messageQueue.dequeue(); \
+}
+
 auto get_site_cache_dir(const std::string& site_path)
 {
 	return QDir{QString::fromStdString(shv::core::Utils::joinPath(HistoryApp::instance()->cliOptions()->journalCacheRoot(), site_path))};
@@ -452,6 +460,27 @@ QCoro::Generator<int> MockRpcConnection::driver()
 
 		REQUIRE(actual_timestamps == expected_timestamps);
 		m_messageQueue.dequeue();
+	}
+
+	DOCTEST_SUBCASE("pushLog")
+	{
+		DOCTEST_SUBCASE("HP directly above a pushlog don't have a syncLog method" )
+		{
+			std::string cache_dir_path = "shv/pushlog";
+			SEND_SITES(mock_sites::pushlog_hp_sites);
+			REQUEST_YIELD(join(cache_dir_path, "shvjournal"), "syncLog", RpcValue());
+			EXPECT_ERROR("RPC ERROR MethodCallException: Method: 'syncLog' on path 'shv/pushlog/shvjournal/' doesn't exist.");
+		}
+
+		DOCTEST_SUBCASE("master HP can syncLog pushlogs from slave HPs")
+		{
+			std::string cache_dir_path = "shv/master/pushlog";
+			SEND_SITES(mock_sites::master_hp_with_slave_pushlog);
+			REQUEST_YIELD(join(cache_dir_path, "shvjournal"), "syncLog", RpcValue());
+			EXPECT_REQUEST("shv/master/.local/history/shv/pushlog/shvjournal", "lsfiles");
+			RESPOND_YIELD(RpcValue::List());
+			EXPECT_RESPONSE("All files have been synced");
+		}
 	}
 
 	co_return;

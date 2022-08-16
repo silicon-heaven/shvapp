@@ -54,4 +54,35 @@ const auto fin_master_broker_sites = shv::chainpack::RpcValue::fromCpon(R"(
   }
 }
 )");
+
+const auto pushlog_hp_sites = shv::chainpack::RpcValue::fromCpon(R"(
+{
+  "_meta":{
+    "HP3":{}
+  },
+  "pushlog":{
+    "_meta":{
+      "HP":{"pushLog": true}
+    }
+  }
+}
+)");
+
+const auto master_hp_with_slave_pushlog = shv::chainpack::RpcValue::fromCpon(R"(
+{
+  "_meta":{
+    "HP3":{}
+  },
+  "master": {
+    "_meta":{
+      "HP3":{}
+    },
+    "pushlog":{
+      "_meta":{
+        "HP":{"pushLog": true}
+      }
+    }
+  }
+}
+)");
 }

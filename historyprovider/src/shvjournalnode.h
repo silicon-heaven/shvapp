@@ -33,5 +33,6 @@ private:
 	QString m_remoteLogShvPath;
 	QString m_cacheDirPath;
 	LogType m_logType;
+	bool m_hasSyncLog;
 };
 #endif /*SHVJOURNALNODE_H*/

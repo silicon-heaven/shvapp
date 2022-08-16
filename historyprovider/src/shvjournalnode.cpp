@@ -51,6 +51,7 @@ ShvJournalNode::ShvJournalNode(const QString& site_shv_path, const QString& remo
 	, m_remoteLogShvPath(remote_log_shv_path)
 	, m_cacheDirPath(QString::fromStdString(shv::core::Utils::joinPath(HistoryApp::instance()->cliOptions()->journalCacheRoot(), site_shv_path.toStdString())))
 	, m_logType(log_type)
+	, m_hasSyncLog(log_type != LogType::PushLog || m_remoteLogShvPath.indexOf(".local") != -1)
 {
 	QDir(m_cacheDirPath).mkpath(".");
 	auto conn = HistoryApp::instance()->rpcConnection();
@@ -111,7 +112,7 @@ size_t ShvJournalNode::methodCount(const StringViewList& shv_path)
 		return Super::methodCount(shv_path);
 	}
 
-	return m_logType == LogType::PushLog ? methods_with_push_log.size() : methods.size();
+	return m_hasSyncLog ? methods.size() : methods_with_push_log.size();
 }
 
 const cp::MetaMethod* ShvJournalNode::metaMethod(const StringViewList& shv_path, size_t index)
@@ -121,7 +122,7 @@ const cp::MetaMethod* ShvJournalNode::metaMethod(const StringViewList& shv_path,
 		return Super::metaMethod(shv_path, index);
 	}
 
-	return m_logType == LogType::PushLog ? &methods_with_push_log.at(index) : &methods.at(index);
+	return m_hasSyncLog ? &methods.at(index) : &methods_with_push_log.at(index);
 }
 
 namespace {
@@ -443,7 +444,7 @@ void ShvJournalNode::syncLog(const std::function<void(cp::RpcResponse::Error)> c
 cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 {
 	auto method = rq.method().asString();
-	if (method == "syncLog" && m_logType != LogType::PushLog) {
+	if (method == "syncLog" && m_hasSyncLog) {
 		journalInfo() << "Syncing shvjournal" << m_remoteLogShvPath;
 		auto respond = [rq] (auto error) {
 			auto response = rq.makeResponse();
