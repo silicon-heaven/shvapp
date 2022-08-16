@@ -77,11 +77,11 @@ private:
 		emit rpcMessageReceived(req);
 	}
 
-	void doNotify(const std::string& path, const RpcValue& params)
+	void doNotify(const std::string& path, const std::string& method, const RpcValue& params)
 	{
 		cp::RpcSignal sig;
 		sig.setShvPath(path);
-		sig.setMethod("chng");
+		sig.setMethod(method);
 		sig.setParams(params);
 		mockInfo() << "Sending signal:" << sig.toPrettyString();
 		emit rpcMessageReceived(sig);
@@ -186,14 +186,14 @@ const auto COROUTINE_TIMEOUT = 3000;
 	doRequest((path), (method), (params)); \
 }
 
-#define NOTIFY_YIELD(path, params) { \
-	QTimer::singleShot(0, [this, pathCapture = (path), paramsCapture = (params)] {doNotify((pathCapture), (paramsCapture));}); \
+#define NOTIFY_YIELD(path, method, params) { \
+	QTimer::singleShot(0, [this, pathCapture = (path), methodCapture = (method), paramsCapture = (params)] {doNotify((pathCapture), (methodCapture), (paramsCapture));}); \
 	SETUP_TIMEOUT; \
 	co_yield {}; \
 }
 
-#define NOTIFY(path, params) { \
-	doNotify((path), (params)); \
+#define NOTIFY(path, method, params) { \
+	doNotify((path), (method), (params)); \
 }
 
 #define RESPOND(result) { \
@@ -356,8 +356,8 @@ QCoro::Generator<int> MockRpcConnection::driver()
 
 				DOCTEST_SUBCASE("HP accepts events and puts them into the log")
 				{
-					NOTIFY("shv/eyas/opc/power-on", true);
-					NOTIFY("shv/eyas/opc/power-on", false);
+					NOTIFY("shv/eyas/opc/power-on", "chng", true);
+					NOTIFY("shv/eyas/opc/power-on", "chng", false);
 
 					expected_cache_contents = RpcValue::List({{
 						RpcValue::List{ "dirty.log2", 101ul }
@@ -385,14 +385,14 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				DOCTEST_SUBCASE("synclog should not trigger")
 				{
 					HistoryApp::instance()->cliOptions()->setLogMaxAge(1000);
-					NOTIFY("shv/eyas/opc/power-on", true); // Send an event so that HP checks for dirty log age.
+					NOTIFY("shv/eyas/opc/power-on", "chng", true); // Send an event so that HP checks for dirty log age.
 					// Nothing happens afterwards, since max age is >10
 				}
 
 				DOCTEST_SUBCASE("synclog should trigger")
 				{
 					HistoryApp::instance()->cliOptions()->setLogMaxAge(10);
-					NOTIFY_YIELD("shv/eyas/opc/power-on", true);
+					NOTIFY_YIELD("shv/eyas/opc/power-on", "chng", true);
 					EXPECT_REQUEST(join(cache_dir_path, "/.app/shvjournal"), "lsfiles");
 					RESPOND(RpcValue::List()); // We only test if the syncLog triggers.
 				}
