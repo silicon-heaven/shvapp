@@ -87,6 +87,36 @@ private:
 		emit rpcMessageReceived(sig);
 	}
 
+	void advanceTest()
+	{
+		if (m_testDriverState == m_testDriver.end()) {
+			CAPTURE("Client sent unexpected message after test end");
+			CAPTURE(m_messageQueue.head());
+			REQUIRE(false);
+		}
+
+		if (m_timeoutTimer) {
+			m_timeoutTimer->stop();
+			m_timeoutTimer->deleteLater();
+			m_timeoutTimer = nullptr;
+		}
+
+		m_coroRunning = true;
+		++m_testDriverState;
+		m_coroRunning = false;
+		if (m_testDriverState != m_testDriver.end()) {
+			// I also need to dereference the value to trigger any unhandled exceptions.
+			*m_testDriverState;
+		}
+
+		if (m_testDriverState == m_testDriver.end()) {
+			// We'll wait a bit before ending to make sure the client isn't sending more messages.
+			QTimer::singleShot(100, [] {
+				HistoryApp::instance()->exit();
+			});
+		}
+	}
+
 	QCoro::Generator<int> m_testDriver;
 	QCoro::Generator<int>::iterator m_testDriverState;
 	QQueue<cp::RpcMessage> m_messageQueue;
@@ -99,34 +129,7 @@ public:
 		, m_testDriver(driver())
 		, m_testDriverState(m_testDriver.begin())
 	{
-		connect(this, &MockRpcConnection::handleNextMessage, this, [this] {
-			if (m_testDriverState == m_testDriver.end()) {
-				CAPTURE("Client sent unexpected message after test end");
-				CAPTURE(m_messageQueue.head());
-				REQUIRE(false);
-			}
-
-			if (m_timeoutTimer) {
-				m_timeoutTimer->stop();
-				m_timeoutTimer->deleteLater();
-				m_timeoutTimer = nullptr;
-			}
-
-			m_coroRunning = true;
-			++m_testDriverState;
-			m_coroRunning = false;
-			if (m_testDriverState != m_testDriver.end()) {
-				// I also need to dereference the value to trigger any unhandled exceptions.
-				*m_testDriverState;
-			}
-
-			if (m_testDriverState == m_testDriver.end()) {
-				// We'll wait a bit before ending to make sure the client isn't sending more messages.
-				QTimer::singleShot(100, [] {
-					HistoryApp::instance()->exit();
-				});
-			}
-		}, Qt::QueuedConnection);
+		connect(this, &MockRpcConnection::handleNextMessage, this, &MockRpcConnection::advanceTest, Qt::QueuedConnection);
 	}
 
     void open() override
