@@ -58,6 +58,10 @@ ShvJournalNode::ShvJournalNode(const QString& site_shv_path, const QString& remo
 	if (log_type != LogType::PushLog) {
 		connect(conn, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvJournalNode::onRpcMessageReceived);
 		conn->callMethodSubscribe(site_shv_path.toStdString(), "chng");
+	} else if (m_hasSyncLog) {
+		auto tmr = new QTimer(this);
+		connect(tmr, &QTimer::timeout, [this] { syncLog([] (auto /*error*/) { }); });
+		tmr->start(HistoryApp::instance()->cliOptions()->logMaxAge() * 1000);
 	}
 }
 

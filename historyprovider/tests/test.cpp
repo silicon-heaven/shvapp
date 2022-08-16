@@ -299,9 +299,19 @@ auto join(const std::string& a, const std::string& b)
 	doRespond(true); \
 }
 
+#define SEND_SITES_YIELD(sitesStr) { \
+	EXPECT_REQUEST("sites", "getSites"); \
+	RESPOND_YIELD(sitesStr); \
+}
+
 #define SEND_SITES(sitesStr) { \
 	EXPECT_REQUEST("sites", "getSites"); \
 	RESPOND(sitesStr); \
+}
+
+#define DRIVER_WAIT(msec) { \
+	QTimer::singleShot(msec, [this] { advanceTest(); }); \
+	co_yield {}; \
 }
 
 QCoro::Generator<int> MockRpcConnection::driver()
@@ -483,6 +493,30 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			EXPECT_REQUEST("shv/master/.local/history/shv/pushlog/shvjournal", "lsfiles");
 			RESPOND_YIELD(RpcValue::List());
 			EXPECT_RESPONSE("All files have been synced");
+		}
+
+		DOCTEST_SUBCASE("periodic syncing")
+		{
+			HistoryApp::instance()->cliOptions()->setLogMaxAge(1);
+			DOCTEST_SUBCASE("master HP")
+			{
+				std::string cache_dir_path = "shv/master/pushlog";
+				SEND_SITES_YIELD(mock_sites::master_hp_with_slave_pushlog);
+				// Test that HP will run lsfiles (sync) at least twice.
+				EXPECT_REQUEST("shv/master/.local/history/shv/pushlog/shvjournal", "lsfiles");
+				RESPOND_YIELD(RpcValue::List());
+				EXPECT_REQUEST("shv/master/.local/history/shv/pushlog/shvjournal", "lsfiles");
+				RESPOND_YIELD(RpcValue::List());
+			}
+
+			DOCTEST_SUBCASE("slave HP")
+			{
+				SEND_SITES(mock_sites::pushlog_hp_sites);
+				DRIVER_WAIT(1500);
+				// Slave pushlog shouldn't sync. We should not have any messages here.
+				CAPTURE(m_messageQueue.head());
+				REQUIRE(m_messageQueue.empty());
+			}
 		}
 	}
 
