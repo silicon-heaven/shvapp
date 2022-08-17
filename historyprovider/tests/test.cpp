@@ -55,17 +55,27 @@ class MockRpcConnection : public shv::iotqt::rpc::DeviceConnection {
 	using Super = shv::iotqt::rpc::DeviceConnection;
 
 private:
-	void doRespond(const RpcValue& result)
+	auto createResponse(const RpcValue& result)
 	{
 		cp::RpcResponse res;
 		res.setRequestId(m_messageQueue.head().requestId());
 		res.setResult(result);
 		mockInfo() << "Sending response:" << res.toPrettyString();
 		m_messageQueue.dequeue();
-		emit rpcMessageReceived(res);
+		return res;
 	}
 
-	void doRequest(const std::string& path, const std::string& method, const RpcValue& params)
+	void doRespond(const RpcValue& result)
+	{
+		emit rpcMessageReceived(createResponse(result));
+	}
+
+	void doRespondInEventLoop(const RpcValue& result)
+	{
+		QTimer::singleShot(0, [this, response = createResponse(result)] {emit rpcMessageReceived(response);});
+	}
+
+	auto createRequest(const std::string& path, const std::string& method, const RpcValue& params)
 	{
 		cp::RpcRequest req;
 		req.setRequestId(nextRequestId());
@@ -74,17 +84,37 @@ private:
 		req.setParams(params);
 		req.setMethod(method);
 		mockInfo() << "Sending request:" << req.toPrettyString();
-		emit rpcMessageReceived(req);
+		return req;
 	}
 
-	void doNotify(const std::string& path, const std::string& method, const RpcValue& params)
+	void doRequest(const std::string& path, const std::string& method, const RpcValue& params)
+	{
+		emit rpcMessageReceived(createRequest(path, method, params));
+	}
+
+	void doRequestInEventLoop(const std::string& path, const std::string& method, const RpcValue& params)
+	{
+		QTimer::singleShot(0, [this, request = createRequest(path, method, params)] {emit rpcMessageReceived(request);});
+	}
+
+	auto createNotification(const std::string& path, const std::string& method, const RpcValue& params)
 	{
 		cp::RpcSignal sig;
 		sig.setShvPath(path);
 		sig.setMethod(method);
 		sig.setParams(params);
 		mockInfo() << "Sending signal:" << sig.toPrettyString();
-		emit rpcMessageReceived(sig);
+		return sig;
+	}
+
+	void doNotify(const std::string& path, const std::string& method, const RpcValue& params)
+	{
+		emit rpcMessageReceived(createNotification(path, method, params));
+	}
+
+	void doNotifyInEventLoop(const std::string& path, const std::string& method, const RpcValue& params)
+	{
+		QTimer::singleShot(0, [this, notification = createNotification(path, method, params)] {emit rpcMessageReceived(notification);});
 	}
 
 	void advanceTest()
@@ -148,7 +178,7 @@ public:
     {
 		if (m_coroRunning) {
 			throw std::logic_error("A client send a message while the test driver was running."
-					"This can lead to unexpected behavior, because the test driver resumes on messages from the client and you can't resume the driver while it's already running.");
+					" This can lead to unexpected behavior, because the test driver resumes on messages from the client and you can't resume the driver while it's already running.");
 		}
 		auto msg_type =
 			rpc_msg.isRequest() ? "message:" :
@@ -177,7 +207,7 @@ const auto COROUTINE_TIMEOUT = 3000;
 }
 
 #define REQUEST_YIELD(path, method, params) { \
-	QTimer::singleShot(0, [this, pathCapture = (path), methodCapture = (method), paramsCapture = (params)] {doRequest((pathCapture), (methodCapture), (paramsCapture));}); \
+	doRequestInEventLoop((path), (method), (params)); \
 	SETUP_TIMEOUT; \
 	co_yield {}; \
 }
@@ -187,7 +217,7 @@ const auto COROUTINE_TIMEOUT = 3000;
 }
 
 #define NOTIFY_YIELD(path, method, params) { \
-	QTimer::singleShot(0, [this, pathCapture = (path), methodCapture = (method), paramsCapture = (params)] {doNotify((pathCapture), (methodCapture), (paramsCapture));}); \
+	doNotifyInEventLoop((path), (method), (params)); \
 	SETUP_TIMEOUT; \
 	co_yield {}; \
 }
@@ -201,7 +231,7 @@ const auto COROUTINE_TIMEOUT = 3000;
 }
 
 #define RESPOND_YIELD(result) { \
-	QTimer::singleShot(0, [this, resultCapture = (result)] {doRespond(resultCapture);}); \
+	doRespondInEventLoop(result); \
 	SETUP_TIMEOUT; \
 	co_yield {}; \
 }
@@ -300,7 +330,12 @@ auto make_sub_params(const std::string& path, const std::string& method)
 
 #define EXPECT_SUBSCRIPTION(path, method) { \
 	EXPECT_REQUEST(".broker/app", "subscribe", make_sub_params(path, method)); \
-	doRespond(true); \
+	RESPOND(true); \
+}
+
+#define EXPECT_SUBSCRIPTION_YIELD(path, method) { \
+	EXPECT_REQUEST(".broker/app", "subscribe", make_sub_params(path, method)); \
+	RESPOND_YIELD(true); \
 }
 
 #define SEND_SITES_YIELD_AND_HANDLE_SUB(sitesStr, subPath) { \
@@ -334,7 +369,8 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	DOCTEST_SUBCASE("fin slave HP")
 	{
 		std::string cache_dir_path = "shv/eyas/opc";
-		SEND_SITES_YIELD_AND_HANDLE_SUB(mock_sites::fin_slave_broker_sites, cache_dir_path);
+		SEND_SITES_YIELD(mock_sites::fin_slave_broker_sites);
+		EXPECT_SUBSCRIPTION(cache_dir_path, "chng");
 		REQUEST_YIELD(join(cache_dir_path, "shvjournal"), "syncLog", RpcValue());
 		EXPECT_REQUEST(join(cache_dir_path, "/.app/shvjournal"), "lsfiles", ls_size_true);
 
