@@ -98,6 +98,10 @@ shv::iotqt::node::ShvNode* createTree(const cp::RpcValue::Map& tree, const std::
 			log_type = LogType::PushLog;
 		}
 
+		if (slave_found == SlaveFound::No) {
+			HistoryApp::instance()->rpcConnection()->callMethodSubscribe(remote_log_shv_path, "mntchng");
+		}
+
 		if (log_type != LogType::Legacy) {
 			remote_log_shv_path = Utils::joinPath(remote_log_shv_path, slave_found == SlaveFound::No ? ".app/shvjournal"s : "shvjournal"s);
 		}
@@ -114,6 +118,7 @@ shv::iotqt::node::ShvNode* createTree(const cp::RpcValue::Map& tree, const std::
 	//
 	// We'll also skip the first one (when parent_name is empty), because that one refers to this HP instance.
 	if (!parent_name.empty() && slave_found == SlaveFound::No && tree.value("_meta").asMap().hasKey("HP3")) {
+		HistoryApp::instance()->rpcConnection()->callMethodSubscribe(new_remote_log_shv_path, "mntchng");
 		new_remote_log_shv_path = Utils::joinPath(new_remote_log_shv_path, ".local/history/shv"s);
 		slave_found = SlaveFound::Yes;
 	}

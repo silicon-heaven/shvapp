@@ -370,6 +370,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	{
 		std::string cache_dir_path = "shv/eyas/opc";
 		SEND_SITES_YIELD(mock_sites::fin_slave_broker_sites);
+		EXPECT_SUBSCRIPTION_YIELD(cache_dir_path, "mntchng");
 		EXPECT_SUBSCRIPTION(cache_dir_path, "chng");
 		REQUEST_YIELD(join(cache_dir_path, "shvjournal"), "syncLog", RpcValue());
 		EXPECT_REQUEST(join(cache_dir_path, "/.app/shvjournal"), "lsfiles", ls_size_true);
@@ -446,6 +447,13 @@ QCoro::Generator<int> MockRpcConnection::driver()
 					RESPOND(RpcValue::List()); // We only test if the syncLog triggers.
 				}
 			}
+
+			DOCTEST_SUBCASE("device mounted")
+			{
+				NOTIFY_YIELD(cache_dir_path, "mntchng", true);
+				EXPECT_REQUEST(join(cache_dir_path, "/.app/shvjournal"), "lsfiles", ls_size_true);
+				RESPOND(RpcValue::List()); // We only test if the syncLog triggers.
+			}
 		}
 	}
 
@@ -453,7 +461,9 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	{
 		RpcValue::List expected_cache_contents;
 		std::string cache_dir_path = "shv/fin/hel/tram/hel002/eyas/opc";
-		SEND_SITES_YIELD_AND_HANDLE_SUB(mock_sites::fin_master_broker_sites, "shv/fin/hel/tram/hel002/eyas/opc");
+		SEND_SITES_YIELD(mock_sites::fin_master_broker_sites);
+		EXPECT_SUBSCRIPTION_YIELD("shv/fin/hel/tram/hel002", "mntchng");
+		EXPECT_SUBSCRIPTION(cache_dir_path, "chng");
 		auto master_shv_journal_path = join(cache_dir_path, "shvjournal");
 		auto slave_shv_journal_path = "shv/fin/hel/tram/hel002/.local/history/shv/eyas/opc/shvjournal";
 		REQUEST_YIELD(master_shv_journal_path, "syncLog", RpcValue());
@@ -481,7 +491,9 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	DOCTEST_SUBCASE("getLog")
 	{
 		std::string cache_dir_path = "shv/eyas/opc";
-		SEND_SITES_YIELD_AND_HANDLE_SUB(mock_sites::fin_slave_broker_sites, cache_dir_path);
+		SEND_SITES_YIELD(mock_sites::fin_slave_broker_sites);
+		EXPECT_SUBSCRIPTION_YIELD(cache_dir_path, "mntchng");
+		EXPECT_SUBSCRIPTION(cache_dir_path, "chng");
 
 		create_dummy_cache_files(cache_dir_path, {
 			{ "2022-07-07T18-06-15-557.log2", dummy_logfile },
@@ -529,7 +541,8 @@ QCoro::Generator<int> MockRpcConnection::driver()
 		DOCTEST_SUBCASE("HP directly above a pushlog don't have a syncLog method" )
 		{
 			std::string cache_dir_path = "shv/pushlog";
-			SEND_SITES(mock_sites::pushlog_hp_sites);
+			SEND_SITES_YIELD(mock_sites::pushlog_hp_sites);
+			EXPECT_SUBSCRIPTION(cache_dir_path, "mntchng");
 			REQUEST_YIELD(join(cache_dir_path, "shvjournal"), "syncLog", RpcValue());
 			EXPECT_ERROR("RPC ERROR MethodCallException: Method: 'syncLog' on path 'shv/pushlog/shvjournal/' doesn't exist.");
 		}
@@ -537,7 +550,8 @@ QCoro::Generator<int> MockRpcConnection::driver()
 		DOCTEST_SUBCASE("master HP can syncLog pushlogs from slave HPs")
 		{
 			std::string cache_dir_path = "shv/master/pushlog";
-			SEND_SITES(mock_sites::master_hp_with_slave_pushlog);
+			SEND_SITES_YIELD(mock_sites::master_hp_with_slave_pushlog);
+			EXPECT_SUBSCRIPTION("shv/master", "mntchng");
 			REQUEST_YIELD(join(cache_dir_path, "shvjournal"), "syncLog", RpcValue());
 			EXPECT_REQUEST("shv/master/.local/history/shv/pushlog/shvjournal", "lsfiles", ls_size_true);
 			RESPOND_YIELD(RpcValue::List());
@@ -551,6 +565,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			{
 				std::string cache_dir_path = "shv/master/pushlog";
 				SEND_SITES_YIELD(mock_sites::master_hp_with_slave_pushlog);
+				EXPECT_SUBSCRIPTION_YIELD("shv/master", "mntchng");
 				// Test that HP will run lsfiles (sync) at least twice.
 				EXPECT_REQUEST("shv/master/.local/history/shv/pushlog/shvjournal", "lsfiles", ls_size_true);
 				RESPOND_YIELD(RpcValue::List());
@@ -560,12 +575,32 @@ QCoro::Generator<int> MockRpcConnection::driver()
 
 			DOCTEST_SUBCASE("slave HP")
 			{
-				SEND_SITES(mock_sites::pushlog_hp_sites);
+				SEND_SITES_YIELD(mock_sites::pushlog_hp_sites);
+				EXPECT_SUBSCRIPTION("shv/pushlog", "mntchng");
 				DRIVER_WAIT(1500);
 				// Slave pushlog shouldn't sync. We should not have any messages here.
 				CAPTURE(m_messageQueue.head());
 				REQUIRE(m_messageQueue.empty());
 			}
+		}
+
+		DOCTEST_SUBCASE("master HP should sync on mntchng")
+		{
+			SEND_SITES_YIELD(mock_sites::master_hp_with_slave_pushlog);
+			EXPECT_SUBSCRIPTION("shv/master", "mntchng");
+			NOTIFY_YIELD("shv/master", "mntchng", true);
+			EXPECT_REQUEST("shv/master/.local/history/shv/pushlog/shvjournal", "lsfiles", ls_size_true);
+			RESPOND(RpcValue::List()); // We only test if the syncLog triggers.
+		}
+
+		DOCTEST_SUBCASE("slave HP shouldn't sync on mntchng")
+		{
+			SEND_SITES_YIELD(mock_sites::pushlog_hp_sites);
+			EXPECT_SUBSCRIPTION("shv/pushlog", "mntchng");
+			NOTIFY("shv/pushlog", "mntchng", true);
+			DRIVER_WAIT(100);
+			CAPTURE(m_messageQueue.head());
+			REQUIRE(m_messageQueue.empty());
 		}
 	}
 

@@ -55,8 +55,10 @@ ShvJournalNode::ShvJournalNode(const QString& site_shv_path, const QString& remo
 {
 	QDir(m_cacheDirPath).mkpath(".");
 	auto conn = HistoryApp::instance()->rpcConnection();
+
+	connect(conn, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvJournalNode::onRpcMessageReceived);
+
 	if (log_type != LogType::PushLog) {
-		connect(conn, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvJournalNode::onRpcMessageReceived);
 		conn->callMethodSubscribe(site_shv_path.toStdString(), "chng");
 	} else if (m_hasSyncLog) {
 		auto tmr = new QTimer(this);
@@ -105,6 +107,11 @@ void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 				syncLog([] (auto /*error*/) {
 				});
 			}
+		}
+
+		if (m_siteShvPath.find(path) == 0 && method == "mntchng" && m_hasSyncLog) {
+			syncLog([] (auto /*error*/) {
+			});
 		}
 	}
 }
