@@ -613,8 +613,8 @@ DOCTEST_TEST_CASE("HistoryApp")
 	NecroLog::setTopicsLogTresholds(":D");
 	QCoreApplication::setApplicationName("historyprovider tester");
 
-	int argc;
-	char* argv[1];
+	int argc = 0;
+	char *argv[] = { nullptr };
 	AppCliOptions cli_opts;
 	HistoryApp app(argc, argv, &cli_opts, new MockRpcConnection());
 	app.exec();
