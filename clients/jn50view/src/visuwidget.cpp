@@ -10,6 +10,7 @@
 #include <shv/iotqt/rpc/clientconnection.h>
 
 #include <QDomDocument>
+#include <QFile>
 #include <QCoreApplication>
 #include <QKeyEvent>
 #include <QMenu>

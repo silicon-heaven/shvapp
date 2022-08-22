@@ -2,6 +2,7 @@
 #include "ui_dlgapplog.h"
 #include "jn50viewapp.h"
 
+#include <QFile>
 #include <QSettings>
 #include <QTextStream>
 

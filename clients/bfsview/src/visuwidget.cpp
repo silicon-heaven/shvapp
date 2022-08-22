@@ -6,6 +6,7 @@
 #include <shv/iotqt/rpc/deviceconnection.h>
 
 #include <QCoreApplication>
+#include <QFile>
 #include <QKeyEvent>
 #include <QMenu>
 #include <QMessageBox>
