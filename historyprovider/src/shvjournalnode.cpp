@@ -9,6 +9,7 @@
 #include <shv/core/utils/shvjournalfilewriter.h>
 #include <shv/core/utils/shvlogrpcvaluereader.h>
 #include <shv/core/utils/shvjournalentry.h>
+#include <shv/core/utils/shvfilejournal.h>
 #include <shv/core/utils/shvmemoryjournal.h>
 
 #include <QDir>
@@ -29,6 +30,7 @@ static std::vector<cp::MetaMethod> methods {
 	{"isPushLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 	{"logSize", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 	{"sanitizeLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
+	{"getLog", cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
 	{"syncLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
 };
 
@@ -38,6 +40,7 @@ static std::vector<cp::MetaMethod> methods_with_push_log {
 	{"isPushLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 	{"logSize", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 	{"sanitizeLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
+	{"getLog", cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
 	{"pushLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
 };
 }
@@ -477,6 +480,13 @@ cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 			writer.append(reader.entry());
 		}
 		return true;
+	}
+
+	if (method == "getLog") {
+		shv::core::utils::ShvFileJournal file_journal("historyprovider");
+		file_journal.setJournalDir(m_cacheDirPath.toStdString());
+		auto get_log_params = shv::core::utils::ShvGetLogParams(rq.params());
+		return file_journal.getLog(get_log_params);
 	}
 
 	if (method == "isPushLog") {
