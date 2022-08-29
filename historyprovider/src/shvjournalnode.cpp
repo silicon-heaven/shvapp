@@ -52,6 +52,7 @@ ShvJournalNode::ShvJournalNode(const QString& site_shv_path, const QString& remo
 	, m_cacheDirPath(QString::fromStdString(shv::core::Utils::joinPath(HistoryApp::instance()->cliOptions()->journalCacheRoot(), site_shv_path.toStdString())))
 	, m_logType(log_type)
 	, m_hasSyncLog(log_type != LogType::PushLog || m_remoteLogShvPath.indexOf(".local") != -1)
+	, m_dirtyLogFirstTimestamp(-1)
 {
 	QDir(m_cacheDirPath).mkpath(".");
 	auto conn = HistoryApp::instance()->rpcConnection();
@@ -100,9 +101,13 @@ void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 
 			}
 
-			shv::core::utils::ShvJournalFileReader reader(dirty_log_path(m_cacheDirPath));
-			reader.next(); // There must be at least one entry, because I've just written it.
-			if (QDateTime::currentMSecsSinceEpoch() - HistoryApp::instance()->cliOptions()->logMaxAge() * 1000 > reader.entry().epochMsec) {
+			if (m_dirtyLogFirstTimestamp == -1) {
+				shv::core::utils::ShvJournalFileReader reader(dirty_log_path(m_cacheDirPath));
+				reader.next(); // There must be at least one entry, because I've just written it
+				m_dirtyLogFirstTimestamp = reader.entry().epochMsec;
+			}
+
+			if (QDateTime::currentMSecsSinceEpoch() - HistoryApp::instance()->cliOptions()->logMaxAge() * 1000 > m_dirtyLogFirstTimestamp) {
 				journalInfo() << "Log is too old, syncing journal" << m_remoteLogShvPath;
 				syncLog([] (auto /*error*/) {
 				});
@@ -156,9 +161,9 @@ void write_entries_to_file(const QString& file_path, const std::vector<shv::core
 		writer.append(entry);
 	}
 }
+}
 
-
-void trim_dirty_log(const QString& cache_dir_path)
+void ShvJournalNode::trimDirtyLog(const QString& cache_dir_path)
 {
 	QDir cache_dir(cache_dir_path);
 	auto entries = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name | QDir::Reversed);
@@ -196,7 +201,8 @@ void trim_dirty_log(const QString& cache_dir_path)
 	bool first = true;
 	while (reader.next()) {
 		if (first) {
-			journalDebug() << "Dirty logfile first entry timestamp" << reader.entry().epochMsec;
+			m_dirtyLogFirstTimestamp = reader.entry().epochMsec;
+			journalDebug() << "Dirty logfile first entry timestamp" << m_dirtyLogFirstTimestamp;
 			first = false;
 		}
 
@@ -207,13 +213,13 @@ void trim_dirty_log(const QString& cache_dir_path)
 
 	write_entries_to_file(QString::fromStdString(dirty_log_path(cache_dir_path)), new_dirty_log_entries);
 }
-}
 
 class FileSyncer : public QObject {
 	Q_OBJECT
 public:
-	FileSyncer(const cp::RpcValue& files, const QString& remote_log_shv_path, const QString& cache_dir_path, const std::function<void(cp::RpcResponse::Error)>& callback)
-		: m_files(files)
+	FileSyncer(ShvJournalNode* node, const cp::RpcValue& files, const QString& remote_log_shv_path, const QString& cache_dir_path, const std::function<void(cp::RpcResponse::Error)>& callback)
+		: m_node(node)
+		, m_files(files)
 		, m_filesList(m_files.asList())
 		, m_remoteLogShvPath(remote_log_shv_path)
 		, m_cacheDirPath(cache_dir_path)
@@ -276,12 +282,13 @@ public:
 		}
 
 		writeFiles();
-		trim_dirty_log(m_cacheDirPath);
+		m_node->trimDirtyLog(m_cacheDirPath);
 		m_callback({});
 		deleteLater();
 	}
 
 private:
+	ShvJournalNode* m_node;
 	cp::RpcValue m_files;
 	cp::RpcValue::List m_filesList;
 
@@ -335,8 +342,9 @@ const auto RECORD_COUNT_LIMIT = 1000;
 class LegacyFileSyncer : public QObject {
 	Q_OBJECT
 public:
-	LegacyFileSyncer(const QString& remote_log_shv_path, const QString& cache_dir_path, const std::function<void(cp::RpcResponse::Error)>& callback)
-		: m_untilParam(shv::chainpack::RpcValue::DateTime::now())
+	LegacyFileSyncer(ShvJournalNode* node, const QString& remote_log_shv_path, const QString& cache_dir_path, const std::function<void(cp::RpcResponse::Error)>& callback)
+		: m_node(node)
+		, m_untilParam(shv::chainpack::RpcValue::DateTime::now())
 		, m_remoteLogShvPath(remote_log_shv_path)
 		, m_cacheDirPath(cache_dir_path)
 		, m_callback(callback)
@@ -361,7 +369,7 @@ public:
 		auto file_name = QDir(m_cacheDirPath).filePath(QString::fromStdString(shv::core::utils::ShvJournalFileReader::msecToBaseFileName(m_downloadedEntries.front().epochMsec)) + ".log2");
 
 		write_entries_to_file(file_name, m_downloadedEntries);
-		trim_dirty_log(m_cacheDirPath);
+		m_node->trimDirtyLog(m_cacheDirPath);
 		m_callback({});
 		deleteLater();
 	}
@@ -419,6 +427,7 @@ public:
 	}
 
 private:
+	ShvJournalNode* m_node;
 	shv::chainpack::RpcValue m_sinceParam;
 	const shv::chainpack::RpcValue m_untilParam;
 	std::vector<shv::core::utils::ShvJournalEntry> m_downloadedEntries;
@@ -432,7 +441,7 @@ private:
 void ShvJournalNode::syncLog(const std::function<void(cp::RpcResponse::Error)> cb)
 {
 	if (m_logType == LogType::Legacy) {
-		new LegacyFileSyncer(m_remoteLogShvPath, m_cacheDirPath, cb);
+		new LegacyFileSyncer(this, m_remoteLogShvPath, m_cacheDirPath, cb);
 	} else {
 		auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
 			->setShvPath(m_remoteLogShvPath)
@@ -446,7 +455,7 @@ void ShvJournalNode::syncLog(const std::function<void(cp::RpcResponse::Error)> c
 
 		connect(call, &shv::iotqt::rpc::RpcCall::result, [this, cb] (const cp::RpcValue& result) {
 			journalDebug() << "Got filelist from" << m_remoteLogShvPath;
-			new FileSyncer(result, m_remoteLogShvPath, m_cacheDirPath, cb);
+			new FileSyncer(this, result, m_remoteLogShvPath, m_cacheDirPath, cb);
 		});
 		call->start();
 	}

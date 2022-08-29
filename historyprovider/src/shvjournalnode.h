@@ -23,6 +23,7 @@ public:
 	const shv::chainpack::MetaMethod* metaMethod(const StringViewList& shv_path, size_t ix) override;
 	shv::chainpack::RpcValue callMethodRq(const shv::chainpack::RpcRequest &rq) override;
 	void sanitizeSize();
+	void trimDirtyLog(const QString& cache_dir_path);
 
 private:
 	void syncLog(const std::function<void(shv::chainpack::RpcResponse::Error)>);
@@ -34,5 +35,6 @@ private:
 	QString m_cacheDirPath;
 	LogType m_logType;
 	bool m_hasSyncLog;
+	int64_t m_dirtyLogFirstTimestamp;
 };
 #endif /*SHVJOURNALNODE_H*/
