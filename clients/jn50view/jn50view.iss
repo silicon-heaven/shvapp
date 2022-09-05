@@ -42,7 +42,7 @@ Source: {#DOC_BUILD_DIR}\*; DestDir: {app}\doc\help\html; Flags: ignoreversion r
 
 Source: {#BUILD_DIR}\bin\{#APP_NAME_LOWER}.exe; DestDir: {app}; Flags: ignoreversion
 Source: {#BUILD_DIR}\bin\libnecrolog.dll; DestDir: {app}; Flags: ignoreversion
-Source: {#BUILD_DIR}\bin\libshvchainpack-c.dll; DestDir: {app}; Flags: ignoreversion
+;Source: {#BUILD_DIR}\bin\libshvchainpack-c.dll; DestDir: {app}; Flags: ignoreversion
 Source: {#BUILD_DIR}\bin\libshvchainpack-cpp.dll; DestDir: {app}; Flags: ignoreversion
 Source: {#BUILD_DIR}\bin\libshvcore.dll; DestDir: {app}; Flags: ignoreversion
 Source: {#BUILD_DIR}\bin\libshvcoreqt.dll; DestDir: {app}; Flags: ignoreversion
