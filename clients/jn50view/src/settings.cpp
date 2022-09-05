@@ -30,7 +30,7 @@ void Settings::setPredatorShvPath(const QString &s)
 	m_settings.setValue("predatorShvPath", s);
 }
 
-QString Settings::shvBrokerHost()
+QString Settings::shvBrokerHost() const
 {
 	QString s = m_settings.value("shvBrokerHost").toString();
 	if(s.isEmpty())
@@ -43,7 +43,7 @@ void Settings::setShvBrokerHost(const QString &s)
 	m_settings.setValue("shvBrokerHost", s);
 }
 
-int Settings::shvBrokerPort()
+int Settings::shvBrokerPort() const
 {
 	int p = m_settings.value("shvBrokerPort").toInt();
 	if(p == 0)
@@ -54,4 +54,12 @@ int Settings::shvBrokerPort()
 void Settings::setShvBrokerPort(int p)
 {
 	m_settings.setValue("shvBrokerPort", p);
+}
+
+QString Settings::shvBrokerUrl() const
+{
+	auto host = shvBrokerHost();
+	if(shvBrokerPort() > 0)
+		host = host + ':' + QString::number(shvBrokerPort());
+	return host;
 }

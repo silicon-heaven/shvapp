@@ -109,8 +109,11 @@ ShvRExecApp::ShvRExecApp(int &argc, char **argv, AppCliOptions* cli_opts)
 		//const TunnelParams &m = m_rpcConnection->tunnelParams();
 		cp::FindTunnelRespCtl find_tunnel_response(startup_opts.at("findTunnelResponse"));
 		m_tunnelCtl = find_tunnel_response;
+		auto host = find_tunnel_response.host();
+		if(find_tunnel_response.port() > 0)
+			host = host + ':' + std::to_string(find_tunnel_response.port());
 		m_rpcConnection->setHost(find_tunnel_response.host());
-		m_rpcConnection->setPort(find_tunnel_response.port());
+		//m_rpcConnection->setPort(find_tunnel_response.port());
 		shv::chainpack::RpcValue::Map tunnel_opts;
 		tunnel_opts[cp::Rpc::KEY_SECRET] = find_tunnel_response.secret();
 		m_rpcConnection->setTunnelOptions(tunnel_opts);

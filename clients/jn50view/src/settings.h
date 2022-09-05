@@ -13,10 +13,13 @@ public:
 	void setPassword(const QString &s);
 	QString predatorShvPath();
 	void setPredatorShvPath(const QString &s);
-	QString shvBrokerHost();
+	QString shvBrokerHost() const;
 	void setShvBrokerHost(const QString &s);
-	int shvBrokerPort();
+	int shvBrokerPort() const;
 	void setShvBrokerPort(int p);
+
+	QString shvBrokerUrl() const;
+
 private:
 	QSettings m_settings;
 };

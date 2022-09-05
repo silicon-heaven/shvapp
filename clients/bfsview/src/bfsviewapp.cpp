@@ -187,11 +187,11 @@ BfsViewApp::BfsViewApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	Settings settings(qsettings);
 
 	if(!cli_opts->serverHost_isset())
-		cli_opts->setServerHost(settings.shvBrokerHost().toStdString());
+		cli_opts->setServerHost(settings.shvBrokerUrl().toStdString());
 	if(!cli_opts->user_isset())
 		cli_opts->setUser("bfsview");
-	if(!cli_opts->serverPort_isset())
-		cli_opts->setServerPort(settings.shvBrokerPort());
+	//if(!cli_opts->serverPort_isset())
+	//	cli_opts->setServerPort(settings.shvBrokerPort());
 	if(!cli_opts->password_isset()) {
 		cli_opts->setPassword("8884a26b82a69838092fd4fc824bbfde56719e02");
 		cli_opts->setLoginType("SHA1");

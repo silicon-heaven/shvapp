@@ -14,15 +14,17 @@ public:
 	void setBfsShvPath(const QString &s);
 	QString shvBrokerUser();
 	void setShvBrokerUser(const QString &s);
-	QString shvBrokerHost();
+	QString shvBrokerHost() const;
 	void setShvBrokerHost(const QString &s);
-	int shvBrokerPort();
+	int shvBrokerPort() const;
 	void setShvBrokerPort(int p);
 
 	QString powerFileName();
 	void setPowerFileName(const QString &s);
 	int powerFileCheckInterval();
 	void setCheckPowerFileInterval(int sec);
+
+	QString shvBrokerUrl() const;
 private:
 	QSettings &m_settings;
 };
