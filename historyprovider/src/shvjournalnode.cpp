@@ -356,6 +356,8 @@ public:
 			auto newest_file_entries = read_entries_from_file(cache_dir.filePath(newest_file_name));
 
 			m_sinceParam = shv::chainpack::RpcValue::DateTime::fromMSecsSinceEpoch(newest_file_entries.back().dateTime().msecsSinceEpoch() + 1);
+		} else {
+			m_sinceParam = shv::chainpack::RpcValue::DateTime::fromMSecsSinceEpoch(QDateTime::currentDateTime().addSecs(- HistoryApp::instance()->cliOptions()->legacyGetLogSinceInit()).toMSecsSinceEpoch());
 		}
 
 		connect(this, &LegacyFileSyncer::chunkDone, this, &LegacyFileSyncer::downloadNextChunk);
