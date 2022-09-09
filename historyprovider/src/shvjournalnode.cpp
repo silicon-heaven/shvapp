@@ -7,14 +7,12 @@
 #include <shv/iotqt/rpc/rpccall.h>
 #include <shv/core/utils/shvjournalfilereader.h>
 #include <shv/core/utils/shvjournalfilewriter.h>
-#include <shv/core/utils/shvlogrpcvaluereader.h>
 #include <shv/core/utils/shvjournalentry.h>
 #include <shv/core/utils/shvfilejournal.h>
 #include <shv/core/utils/shvmemoryjournal.h>
 
 #include <QDir>
 #include <QDirIterator>
-#include <QTimer>
 
 #include <QCoroSignal>
 
@@ -25,33 +23,17 @@
 namespace cp = shv::chainpack;
 namespace {
 static std::vector<cp::MetaMethod> methods {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
-	{"isPushLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 	{"logSize", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 	{"sanitizeLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
 	{"getLog", cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
 	{"syncLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
 };
-
-static std::vector<cp::MetaMethod> methods_with_push_log {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
-	{"isPushLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
-	{"logSize", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
-	{"sanitizeLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
-	{"getLog", cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
-	{"pushLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
-};
 }
 
-ShvJournalNode::ShvJournalNode(const QString& site_shv_path, const QString& remote_log_shv_path, const LogType log_type)
-	: Super(QString::fromStdString(shv::core::Utils::joinPath(HistoryApp::instance()->cliOptions()->journalCacheRoot(), site_shv_path.toStdString())), "shvjournal")
-	, m_siteShvPath(site_shv_path.toStdString())
-	, m_remoteLogShvPath(remote_log_shv_path)
-	, m_cacheDirPath(QString::fromStdString(shv::core::Utils::joinPath(HistoryApp::instance()->cliOptions()->journalCacheRoot(), site_shv_path.toStdString())))
-	, m_logType(log_type)
-	, m_hasSyncLog(log_type != LogType::PushLog || m_remoteLogShvPath.indexOf(".local") != -1)
+ShvJournalNode::ShvJournalNode(const std::vector<SlaveHpInfo>& slave_hps, ShvNode* parent)
+	: Super(QString::fromStdString(HistoryApp::instance()->cliOptions()->journalCacheRoot()), "shvjournal", parent)
+	, m_slaveHps(slave_hps)
+	, m_cacheDirPath(QString::fromStdString(HistoryApp::instance()->cliOptions()->journalCacheRoot()))
 	, m_dirtyLogFirstTimestamp(-1)
 {
 	QDir(m_cacheDirPath).mkpath(".");
@@ -59,12 +41,12 @@ ShvJournalNode::ShvJournalNode(const QString& site_shv_path, const QString& remo
 
 	connect(conn, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvJournalNode::onRpcMessageReceived);
 
-	if (log_type != LogType::PushLog) {
-		conn->callMethodSubscribe(site_shv_path.toStdString(), "chng");
-	} else if (m_hasSyncLog) {
-		auto tmr = new QTimer(this);
-		connect(tmr, &QTimer::timeout, [this] { syncLog([] (auto /*error*/) { }); });
-		tmr->start(HistoryApp::instance()->cliOptions()->logMaxAge() * 1000);
+	for (const auto& it : slave_hps) {
+		conn->callMethodSubscribe(it.shv_path, "mntchng");
+
+		if (it.log_type != LogType::PushLog) {
+			conn->callMethodSubscribe(it.shv_path, "chng");
+		}
 	}
 }
 
@@ -85,38 +67,43 @@ void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 		auto method = ntf.method().asString();
 		auto value = ntf.value();
 
-		if (path.find(m_siteShvPath) == 0 && method == "chng") {
+		auto it = std::find_if(m_slaveHps.begin(), m_slaveHps.end(), [&path] (const auto& slave_hp) {
+			return path.starts_with(slave_hp.shv_path);
+		});
 
-			{
-				auto writer = shv::core::utils::ShvJournalFileWriter(dirty_log_path(m_cacheDirPath));
-				auto path_without_prefix = path.substr(m_siteShvPath.size());
-				auto data_change = shv::chainpack::DataChange::fromRpcValue(ntf.params());
+		if (it != m_slaveHps.end()) {
+			if (method == "chng") {
+				{
+					auto writer = shv::core::utils::ShvJournalFileWriter(dirty_log_path(shv::coreqt::Utils::joinPath(m_cacheDirPath, QString::fromStdString(it->shv_path))));
+					auto path_without_prefix = path.substr(it->shv_path.size());
+					auto data_change = shv::chainpack::DataChange::fromRpcValue(ntf.params());
 
-				auto entry = shv::core::utils::ShvJournalEntry(path_without_prefix, data_change.value()
-														, shv::core::utils::ShvJournalEntry::DOMAIN_VAL_CHANGE
-														, shv::core::utils::ShvJournalEntry::NO_SHORT_TIME
-														, shv::core::utils::ShvJournalEntry::NO_VALUE_FLAGS
-														, data_change.epochMSec());
-				writer.append(entry);
+					auto entry = shv::core::utils::ShvJournalEntry(path_without_prefix, data_change.value()
+															, shv::core::utils::ShvJournalEntry::DOMAIN_VAL_CHANGE
+															, shv::core::utils::ShvJournalEntry::NO_SHORT_TIME
+															, shv::core::utils::ShvJournalEntry::NO_VALUE_FLAGS
+															, data_change.epochMSec());
+					writer.append(entry);
 
+				}
+
+				if (m_dirtyLogFirstTimestamp == -1) {
+					shv::core::utils::ShvJournalFileReader reader(dirty_log_path(shv::coreqt::Utils::joinPath(m_cacheDirPath, QString::fromStdString(it->shv_path))));
+					reader.next(); // There must be at least one entry, because I've just written it
+					m_dirtyLogFirstTimestamp = reader.entry().epochMsec;
+				}
+
+				if (QDateTime::currentMSecsSinceEpoch() - HistoryApp::instance()->cliOptions()->logMaxAge() * 1000 > m_dirtyLogFirstTimestamp) {
+					journalInfo() << "Log is too old, syncing journal" << it->shv_path;
+					syncLog(it->shv_path, [] (auto /*error*/) {
+					});
+				}
 			}
 
-			if (m_dirtyLogFirstTimestamp == -1) {
-				shv::core::utils::ShvJournalFileReader reader(dirty_log_path(m_cacheDirPath));
-				reader.next(); // There must be at least one entry, because I've just written it
-				m_dirtyLogFirstTimestamp = reader.entry().epochMsec;
-			}
-
-			if (QDateTime::currentMSecsSinceEpoch() - HistoryApp::instance()->cliOptions()->logMaxAge() * 1000 > m_dirtyLogFirstTimestamp) {
-				journalInfo() << "Log is too old, syncing journal" << m_remoteLogShvPath;
-				syncLog([] (auto /*error*/) {
+			if (method == "mntchng") {
+				syncLog(it->shv_path, [] (auto /*error*/) {
 				});
 			}
-		}
-
-		if (m_siteShvPath.find(path) == 0 && method == "mntchng" && m_hasSyncLog) {
-			syncLog([] (auto /*error*/) {
-			});
 		}
 	}
 }
@@ -128,7 +115,7 @@ size_t ShvJournalNode::methodCount(const StringViewList& shv_path)
 		return Super::methodCount(shv_path);
 	}
 
-	return m_hasSyncLog ? methods.size() : methods_with_push_log.size();
+	return Super::methodCount(shv_path) + methods.size();
 }
 
 const cp::MetaMethod* ShvJournalNode::metaMethod(const StringViewList& shv_path, size_t index)
@@ -138,7 +125,13 @@ const cp::MetaMethod* ShvJournalNode::metaMethod(const StringViewList& shv_path,
 		return Super::metaMethod(shv_path, index);
 	}
 
-	return m_hasSyncLog ? &methods.at(index) : &methods_with_push_log.at(index);
+	static auto super_method_count = Super::methodCount(shv_path);
+
+	if (index >= super_method_count) {
+		return &methods.at(index - super_method_count);
+	}
+
+	return Super::metaMethod(shv_path, index);
 }
 
 namespace {
@@ -217,11 +210,10 @@ void ShvJournalNode::trimDirtyLog(const QString& cache_dir_path)
 class FileSyncer : public QObject {
 	Q_OBJECT
 public:
-	FileSyncer(ShvJournalNode* node, const cp::RpcValue& files, const QString& remote_log_shv_path, const QString& cache_dir_path, const std::function<void(cp::RpcResponse::Error)>& callback)
+	FileSyncer(ShvJournalNode* node, std::vector<SlaveHpInfo> slave_hps, const std::string& shv_path, const QString& cache_dir_path, const std::function<void(cp::RpcResponse::Error)>& callback)
 		: m_node(node)
-		, m_files(files)
-		, m_filesList(m_files.asList())
-		, m_remoteLogShvPath(remote_log_shv_path)
+		, m_slaveHps(slave_hps)
+		, m_shvPath(QString::fromStdString(shv_path))
 		, m_cacheDirPath(cache_dir_path)
 		, m_callback(callback)
 	{
@@ -247,54 +239,94 @@ public:
 
 	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> syncFiles()
 	{
-		for (const auto& currentFile : m_filesList) {
-			auto file_name = QString::fromStdString(currentFile.asList().at(0).asString());
-			if (file_name == "dirty.log2") {
+		using shv::coreqt::Utils;
+		for (const auto& slave_hp : m_slaveHps) {
+			auto slave_hp_path_qstr = QString::fromStdString(slave_hp.shv_path);
+			if (!m_shvPath.isEmpty() && !m_shvPath.startsWith(slave_hp.shv_path.c_str())) {
 				continue;
 			}
-			auto full_file_name = QDir(m_cacheDirPath).filePath(file_name);
-			QFile file(full_file_name);
-			auto local_size = file.size();
-			auto remote_size = currentFile.asList().at(2).toInt();
 
-			journalInfo() << "Syncing file" << full_file_name << "remote size:" << remote_size << "local size:" << (file.exists() ? QString::number(local_size) : "<doesn't exist>");
-			if (file.exists()) {
-				if (local_size == remote_size) {
+			// Now that we know that shvPath to-be-synced starts with the slave hp path, we need to check whether we're
+			// connecting through a slave HP or connecting directly to a device.
+			//
+			// A special case is when m_shvPath is empty.
+			enum class SyncType {Device, Slave} sync_type =
+				slave_hp.is_leaf && (slave_hp_path_qstr.size() == m_shvPath.size() || m_shvPath.isEmpty()) ? SyncType::Device : SyncType::Slave;
+
+			// We shouldn't sync pushlogs, if they're our directly connected device.
+			if (sync_type == SyncType::Device && slave_hp.log_type == LogType::PushLog) {
+				continue;
+			}
+
+			auto shvjournal_suffix =
+				sync_type == SyncType::Device ?
+				".app/shvjournal" :
+				Utils::joinPath(".local/history/shvjournal", m_shvPath.remove(0, slave_hp_path_qstr.size()));
+			auto shvjournal_shvpath = Utils::joinPath(slave_hp_path_qstr, shvjournal_suffix);
+
+			auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
+				->setShvPath(shvjournal_shvpath)
+				->setMethod("lsfiles")
+				->setParams(cp::RpcValue::Map{{"size", true}});
+			call->start();
+
+			auto [file_list, error] = co_await qCoro(call, &shv::iotqt::rpc::RpcCall::maybeResult);
+			if (!error.isEmpty()) {
+				journalError() << error;
+				m_callback(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, "Couldn't retrieve filelist from the device"));
+				continue;
+			}
+
+			journalDebug() << "Got filelist from" << slave_hp.shv_path;
+
+			for (const auto& current_file : file_list.asList()) {
+				auto file_name = QString::fromStdString(current_file.asList().at(0).asString());
+				if (file_name == "dirty.log2") {
 					continue;
 				}
-			}
+				auto full_file_name = QDir(Utils::joinPath(m_cacheDirPath, slave_hp_path_qstr)).filePath(file_name);
+				QFile file(full_file_name);
+				auto local_size = file.size();
+				auto remote_size = current_file.asList().at(2).toInt();
 
-			auto sites_log_file = m_remoteLogShvPath + "/" + file_name;
-			journalDebug() << "Retrieving" << sites_log_file << "offset:" << local_size;
-			auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
-				->setShvPath(sites_log_file)
-				->setMethod("read")
-				->setParams(cp::RpcValue::Map{{"offset", cp::RpcValue::Int(local_size)}});
-			call->start();
-			auto [result, error] = co_await qCoro(call, &shv::iotqt::rpc::RpcCall::maybeResult);
-			if (!error.isEmpty()) {
-				journalError() << "Couldn't retrieve" << sites_log_file << ":" << error;
-				co_return;
-			}
+				journalInfo() << "Syncing file" << full_file_name << "remote size:" << remote_size << "local size:" << (file.exists() ? QString::number(local_size) : "<doesn't exist>");
+				if (file.exists()) {
+					if (local_size == remote_size) {
+						continue;
+					}
+				}
 
-			journalDebug() << "Got" << sites_log_file;
-			m_downloadedFiles.insert(full_file_name, result);
+				auto sites_log_file = Utils::joinPath(shvjournal_shvpath, file_name);
+				journalDebug() << "Retrieving" << sites_log_file << "offset:" << local_size;
+				auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
+					->setShvPath(sites_log_file)
+					->setMethod("read")
+					->setParams(cp::RpcValue::Map{{"offset", cp::RpcValue::Int(local_size)}});
+				call->start();
+				auto [result, error] = co_await qCoro(call, &shv::iotqt::rpc::RpcCall::maybeResult);
+				if (!error.isEmpty()) {
+					journalError() << "Couldn't retrieve" << sites_log_file << ":" << error;
+					co_return;
+				}
+
+				journalDebug() << "Got" << sites_log_file;
+				m_downloadedFiles.insert(full_file_name, result);
+				m_node->trimDirtyLog(Utils::joinPath(m_cacheDirPath, slave_hp_path_qstr));
+			}
 		}
 
 		writeFiles();
-		m_node->trimDirtyLog(m_cacheDirPath);
 		m_callback({});
 		deleteLater();
 	}
 
 private:
 	ShvJournalNode* m_node;
-	cp::RpcValue m_files;
-	cp::RpcValue::List m_filesList;
+	std::vector<SlaveHpInfo> m_slaveHps;
+	QString m_shvPath;
 
 	QMap<QString, cp::RpcValue> m_downloadedFiles;
 
-	QString m_remoteLogShvPath;
 	QString m_cacheDirPath;
 
 	std::function<void(cp::RpcResponse::Error)> m_callback;
@@ -303,7 +335,7 @@ private:
 qint64 ShvJournalNode::calculateCacheDirSize() const
 {
 	journalDebug() << "Calculating cache directory size";
-	QDirIterator iter(m_cacheDirPath, QDir::NoDotAndDotDot | QDir::Files);
+	QDirIterator iter(m_cacheDirPath, QDir::NoDotAndDotDot | QDir::Files, QDirIterator::Subdirectories);
 	qint64 total_size = 0;
 	while (iter.hasNext()) {
 		QFile file(iter.next());
@@ -440,33 +472,19 @@ private:
 	std::function<void(cp::RpcResponse::Error)> m_callback;
 };
 
-void ShvJournalNode::syncLog(const std::function<void(cp::RpcResponse::Error)> cb)
+void ShvJournalNode::syncLog(const std::string& shv_path, const std::function<void(cp::RpcResponse::Error)> cb)
 {
 	if (m_logType == LogType::Legacy) {
 		new LegacyFileSyncer(this, m_remoteLogShvPath, m_cacheDirPath, cb);
 	} else {
-		auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
-			->setShvPath(m_remoteLogShvPath)
-			->setMethod("lsfiles")
-			->setParams(cp::RpcValue::Map{{"size", true}});
-
-		connect(call, &shv::iotqt::rpc::RpcCall::error, [cb] (const QString& error) {
-			journalError() << error;
-			cb(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, "Couldn't retrieve filelist from the device"));
-		});
-
-		connect(call, &shv::iotqt::rpc::RpcCall::result, [this, cb] (const cp::RpcValue& result) {
-			journalDebug() << "Got filelist from" << m_remoteLogShvPath;
-			new FileSyncer(this, result, m_remoteLogShvPath, m_cacheDirPath, cb);
-		});
-		call->start();
+		new FileSyncer(this, m_slaveHps, shv_path, m_cacheDirPath, cb);
 	}
 }
 
 cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 {
 	auto method = rq.method().asString();
-	if (method == "syncLog" && m_hasSyncLog) {
+	if (method == "syncLog") {
 		journalInfo() << "Syncing shvjournal" << m_remoteLogShvPath;
 		auto respond = [rq] (auto error) {
 			auto response = rq.makeResponse();
@@ -479,48 +497,9 @@ cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 			HistoryApp::instance()->rpcConnection()->sendMessage(response);
 		};
 
-		syncLog(respond);
+		syncLog("", respond);
 
 		return {};
-	}
-
-	if (method == "pushLog" && m_logType == LogType::PushLog) {
-		journalInfo() << "Got pushLog at" << m_siteShvPath;
-
-		shv::core::utils::ShvLogRpcValueReader reader(rq.params());
-		QDir cache_dir(m_cacheDirPath);
-		auto remote_log_time_ms = reader.logHeader().dateTimeCRef().toDateTime().msecsSinceEpoch();
-		auto entries = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name | QDir::Reversed);
-		if (!std::empty(entries)) {
-			auto local_newest_log_time = entries.at(0).toStdString();
-
-			if (shv::core::utils::ShvJournalFileReader::fileNameToFileMsec(local_newest_log_time) >= remote_log_time_ms) {
-				auto remote_timestamp = shv::core::utils::ShvJournalFileReader::msecToBaseFileName(remote_log_time_ms);
-				auto err_message = "Rejecting push log with timestamp: " + remote_timestamp + ", because a newer or same already exists: " + local_newest_log_time;
-				journalError() << err_message;
-				throw shv::core::Exception(err_message);
-			}
-		}
-
-		auto file_path = cache_dir.filePath(QString::fromStdString(shv::core::utils::ShvJournalFileReader::msecToBaseFileName(remote_log_time_ms)) + ".log2");
-
-		shv::core::utils::ShvJournalFileWriter writer(file_path.toStdString());
-		journalDebug() << "Writing" << file_path;
-		while (reader.next()) {
-			writer.append(reader.entry());
-		}
-		return true;
-	}
-
-	if (method == "getLog") {
-		shv::core::utils::ShvFileJournal file_journal("historyprovider");
-		file_journal.setJournalDir(m_cacheDirPath.toStdString());
-		auto get_log_params = shv::core::utils::ShvGetLogParams(rq.params());
-		return file_journal.getLog(get_log_params);
-	}
-
-	if (method == "isPushLog") {
-		return m_logType == LogType::PushLog;
 	}
 
 	if (method == "logSize") {

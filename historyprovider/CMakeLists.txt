@@ -1,5 +1,6 @@
 add_library(libhistoryprovider
     src/appclioptions.cpp
+    src/leafnode.cpp
     src/historyapp.cpp
     src/shvjournalnode.cpp
     )

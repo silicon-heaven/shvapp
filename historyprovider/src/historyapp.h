@@ -42,6 +42,7 @@ public:
 	static HistoryApp* instance();
 	shv::iotqt::rpc::DeviceConnection* rpcConnection() const {return m_rpcConnection;}
 	int64_t singleCacheSizeLimit() const {return m_singleCacheSizeLimit;}
+	ShvJournalNode* shvJournalNode() {return m_shvJournalNode;}
 
 	AppCliOptions* cliOptions() {return m_cliOptions;}
 
@@ -60,4 +61,5 @@ private:
 	int64_t m_singleCacheSizeLimit;
 	QList<ShvJournalNode*> m_journalNodes;
 	QListIterator<ShvJournalNode*> m_sanitizerIterator;
+	ShvJournalNode* m_shvJournalNode;
 };
