@@ -449,6 +449,24 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				EXPECT_RESPONSE("All files have been synced");
 				REQUIRE(get_cache_contents(cache_dir_path) == expected_cache_contents);
 			}
+
+			DOCTEST_SUBCASE("Don't download files older than we already have")
+			{
+				expected_cache_contents = RpcValue::List({{
+					RpcValue::List{ "2022-07-07T18-06-15-557.log2", 0ul },
+					RpcValue::List{ "2022-07-07T18-06-15-558.log2", 0ul }
+				}});
+				create_dummy_cache_files(cache_dir_path, {
+					{"2022-07-07T18-06-15-557.log2", ""},
+					{"2022-07-07T18-06-15-558.log2", ""}
+				});
+				RESPOND_YIELD((RpcValue::List({{
+					{ "2022-07-07T18-06-15-000.log2", "f", dummy_logfile.size() }
+				}})));
+
+				EXPECT_RESPONSE("All files have been synced");
+				REQUIRE(get_cache_contents(cache_dir_path) == expected_cache_contents);
+			}
 		}
 
 		DOCTEST_SUBCASE("periodic syncLog")

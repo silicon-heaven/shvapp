@@ -346,11 +346,33 @@ public:
 
 		journalDebug() << "Got filelist from" << slave_hp_path;
 
+		QDir cache_dir(Utils::joinPath(m_cacheDirPath, slave_hp_path));
+		QString newest_file_name;
+		int64_t newest_file_name_ms = 0;
+		auto entry_list = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name | QDir::Reversed);
+		if (!entry_list.empty()) {
+			if (entry_list.at(0) != DIRTY_FILENAME) {
+				newest_file_name = entry_list.at(0);
+				newest_file_name_ms = shv::core::utils::ShvJournalFileReader::fileNameToFileMsec(newest_file_name.toStdString());
+			} else if (entry_list.size() > 1) {
+				newest_file_name = entry_list.at(1);
+				newest_file_name_ms = shv::core::utils::ShvJournalFileReader::fileNameToFileMsec(newest_file_name.toStdString());
+			}
+		}
+
+		journalDebug() << "Newest file for" << slave_hp_path << "is" << newest_file_name;
+
 		for (const auto& current_file : file_list.asList()) {
 			auto file_name = QString::fromStdString(current_file.asList().at(0).asString());
 			if (file_name == "dirty.log2") {
 				continue;
 			}
+
+			if (shv::core::utils::ShvJournalFileReader::fileNameToFileMsec(file_name.toStdString()) < newest_file_name_ms) {
+				journalDebug() << "Skipping" << file_name << "because it's older than our newest file" << newest_file_name;
+				continue;
+			}
+
 			auto full_file_name = QDir(Utils::joinPath(m_cacheDirPath, slave_hp_path)).filePath(file_name);
 			QFile file(full_file_name);
 			auto local_size = file.size();
