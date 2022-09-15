@@ -392,7 +392,6 @@ public:
 			m_sinceParam = shv::chainpack::RpcValue::DateTime::fromMSecsSinceEpoch(QDateTime::currentDateTime().addSecs(- HistoryApp::instance()->cliOptions()->legacyGetLogSinceInit()).toMSecsSinceEpoch());
 		}
 
-		connect(this, &LegacyFileSyncer::chunkDone, this, &LegacyFileSyncer::downloadNextChunk);
 		downloadNextChunk();
 	}
 
@@ -408,31 +407,32 @@ public:
 		deleteLater();
 	}
 
-	void downloadNextChunk()
+	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> downloadNextChunk()
 	{
 		shv::core::utils::ShvGetLogParams get_log_params;
 		get_log_params.recordCountLimit = RECORD_COUNT_LIMIT;
 		get_log_params.since = m_sinceParam;
 		get_log_params.until = m_untilParam;
+		while (true) {
+			auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
+				->setShvPath(m_remoteLogShvPath)
+				->setMethod("getLog")
+				->setParams(get_log_params.toRpcValue());
+			call->start();
+			auto [result, error] = co_await qCoro(call, &shv::iotqt::rpc::RpcCall::maybeResult);
 
-		auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
-			->setShvPath(m_remoteLogShvPath)
-			->setMethod("getLog")
-			->setParams(get_log_params.toRpcValue());
+			if (!error.isEmpty()) {
+				journalError() << error;
+				m_callback(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, "Couldn't retrieve logs from the device"));
+				deleteLater();
+			}
 
-		connect(call, &shv::iotqt::rpc::RpcCall::error, [this] (const QString& error) {
-			journalError() << error;
-			m_callback(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, "Couldn't retrieve logs from the device"));
-			deleteLater();
-		});
-
-		connect(call, &shv::iotqt::rpc::RpcCall::result, [this] (const cp::RpcValue& result) {
 			shv::core::utils::ShvMemoryJournal result_log;
 			result_log.loadLog(result);
 			result_log.clearSnapshot();
 			if (result_log.isEmpty()) {
 				writeEntriesToFile();
-				return;
+				co_return;
 			}
 
 			const auto& remote_entries = result_log.entries();
@@ -449,15 +449,11 @@ public:
 
 			if (remote_entries.size() < RECORD_COUNT_LIMIT) {
 				writeEntriesToFile();
-				return;
+				co_return;
 			}
 
-			m_sinceParam = remote_entries.back().dateTime();
-			emit chunkDone();
-
-		});
-		call->start();
-
+			get_log_params.since = remote_entries.back().dateTime();
+		}
 	}
 
 private:
