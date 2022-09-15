@@ -370,7 +370,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	DOCTEST_SUBCASE("fin slave HP")
 	{
 		std::string cache_dir_path = "shv/eyas/opc";
-		SEND_SITES_YIELD(mock_sites::fin_slave_broker_sites);
+		SEND_SITES_YIELD(mock_sites::fin_slave_broker);
 		EXPECT_SUBSCRIPTION_YIELD(cache_dir_path, "mntchng");
 		EXPECT_SUBSCRIPTION(cache_dir_path, "chng");
 		REQUEST_YIELD("shvjournal", "syncLog", RpcValue());
@@ -462,7 +462,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	{
 		RpcValue::List expected_cache_contents;
 		std::string cache_dir_path = "shv/fin/hel/tram/hel002";
-		SEND_SITES_YIELD(mock_sites::fin_master_broker_sites);
+		SEND_SITES_YIELD(mock_sites::fin_master_broker);
 		EXPECT_SUBSCRIPTION_YIELD("shv/fin/hel/tram/hel002", "mntchng");
 		EXPECT_SUBSCRIPTION("shv/fin/hel/tram/hel002", "chng");
 		std::string master_shv_journal_path = "shvjournal";
@@ -492,7 +492,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	DOCTEST_SUBCASE("getLog")
 	{
 		std::string cache_dir_path = "shv/eyas/opc";
-		SEND_SITES_YIELD(mock_sites::fin_slave_broker_sites);
+		SEND_SITES_YIELD(mock_sites::fin_slave_broker);
 		EXPECT_SUBSCRIPTION_YIELD(cache_dir_path, "mntchng");
 		EXPECT_SUBSCRIPTION(cache_dir_path, "chng");
 
@@ -542,7 +542,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 		DOCTEST_SUBCASE("HP directly above a pushlog don't have a syncLog method" )
 		{
 			std::string cache_dir_path = "shv/pushlog";
-			SEND_SITES_YIELD(mock_sites::pushlog_hp_sites);
+			SEND_SITES_YIELD(mock_sites::pushlog_hp);
 			EXPECT_SUBSCRIPTION(cache_dir_path, "mntchng");
 			REQUEST_YIELD(cache_dir_path, "syncLog", RpcValue());
 			EXPECT_ERROR("RPC ERROR MethodCallException: Method: 'syncLog' on path 'shv/pushlog/' doesn't exist.");
@@ -578,7 +578,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 
 			DOCTEST_SUBCASE("slave HP shouldn't sync")
 			{
-				SEND_SITES_YIELD(mock_sites::pushlog_hp_sites);
+				SEND_SITES_YIELD(mock_sites::pushlog_hp);
 				EXPECT_SUBSCRIPTION("shv/pushlog", "mntchng");
 				DRIVER_WAIT(1500);
 				// Slave pushlog shouldn't sync. We should not have any messages here.
@@ -599,7 +599,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 
 		DOCTEST_SUBCASE("slave HP shouldn't sync on mntchng")
 		{
-			SEND_SITES_YIELD(mock_sites::pushlog_hp_sites);
+			SEND_SITES_YIELD(mock_sites::pushlog_hp);
 			EXPECT_SUBSCRIPTION("shv/pushlog", "mntchng");
 			NOTIFY("shv/pushlog", "mntchng", true);
 			DRIVER_WAIT(100);

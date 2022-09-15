@@ -2,7 +2,7 @@
 
 namespace mock_sites {
 // TODO: Name this properly
-const auto fin_slave_broker_sites = shv::chainpack::RpcValue::fromCpon(R"(
+const auto fin_slave_broker = shv::chainpack::RpcValue::fromCpon(R"(
 {
   "_meta":{
     "HP3":{"slave": true}
@@ -22,7 +22,7 @@ const auto fin_slave_broker_sites = shv::chainpack::RpcValue::fromCpon(R"(
 }
 )");
 
-const auto fin_master_broker_sites = shv::chainpack::RpcValue::fromCpon(R"(
+const auto fin_master_broker = shv::chainpack::RpcValue::fromCpon(R"(
 {
   "_meta":{
     "HP3":{"slave": true}
@@ -55,7 +55,7 @@ const auto fin_master_broker_sites = shv::chainpack::RpcValue::fromCpon(R"(
 }
 )");
 
-const auto pushlog_hp_sites = shv::chainpack::RpcValue::fromCpon(R"(
+const auto pushlog_hp = shv::chainpack::RpcValue::fromCpon(R"(
 {
   "_meta":{
     "HP3":{"slave": true}
