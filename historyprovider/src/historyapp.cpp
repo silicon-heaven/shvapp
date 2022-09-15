@@ -1,4 +1,3 @@
-#include <iostream>
 #include "historyapp.h"
 #include "appclioptions.h"
 #include "src/shvjournalnode.h"
@@ -90,7 +89,10 @@ void createTree(shv::iotqt::node::ShvNode* parent_node, const cp::RpcValue::Map&
 	shv::iotqt::node::ShvNode* node;
 	if (auto meta_node = tree.value("_meta").asMap(); meta_node.hasKey("HP") || meta_node.hasKey("HP3")) {
 		auto hp_node = meta_node.value("HP", meta_node.value("HP3")).asMap();
-		auto log_type = hp_node.value("pushLog").toBool() ? LogType::PushLog : LogType::Normal;
+		auto log_type =
+			hp_node.value("pushLog").toBool() ? LogType::PushLog :
+			meta_node.hasKey("HP") ? LogType::Legacy :
+			LogType::Normal;
 		node = new LeafNode(node_name.toStdString(), log_type, parent_node);
 		if (!parent_node->shvPath().empty() && slave_found != SlaveFound::Yes) {
 			slave_found = SlaveFound::Yes;

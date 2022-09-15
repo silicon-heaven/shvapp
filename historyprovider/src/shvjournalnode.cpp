@@ -1,3 +1,4 @@
+#include <iostream>
 #include "shvjournalnode.h"
 #include "historyapp.h"
 #include "appclioptions.h"
@@ -207,6 +208,10 @@ void ShvJournalNode::trimDirtyLog(const QString& cache_dir_path)
 	write_entries_to_file(QString::fromStdString(dirty_log_path(cache_dir_path)), new_dirty_log_entries);
 }
 
+namespace {
+const auto RECORD_COUNT_LIMIT = 1000;
+}
+
 class FileSyncer : public QObject {
 	Q_OBJECT
 public:
@@ -237,6 +242,147 @@ public:
 		}
 	}
 
+	enum class SyncType {
+		Device,
+		Slave
+	};
+
+	void writeEntriesToFile(const std::vector<shv::core::utils::ShvJournalEntry>& downloaded_entries, QDir dir)
+	{
+		if (downloaded_entries.empty()) {
+			return;
+		}
+
+		auto file_name = dir.filePath(QString::fromStdString(shv::core::utils::ShvJournalFileReader::msecToBaseFileName(downloaded_entries.front().epochMsec)) + ".log2");
+
+		write_entries_to_file(file_name, downloaded_entries);
+		m_node->trimDirtyLog(m_cacheDirPath);
+	}
+
+	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> doLegacySync(const QString& slave_hp_path, const SyncType sync_type)
+	{
+		using shv::coreqt::Utils;
+		shv::core::utils::ShvGetLogParams get_log_params;
+		get_log_params.recordCountLimit = RECORD_COUNT_LIMIT;
+		get_log_params.until = shv::chainpack::RpcValue::DateTime::now();
+
+		QDir cache_dir(Utils::joinPath(m_cacheDirPath, slave_hp_path));
+		if (!cache_dir.isEmpty()) {
+			auto entry_list = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name | QDir::Reversed);
+			auto newest_file_name = entry_list.at(0) == DIRTY_FILENAME ? entry_list.at(1) : entry_list.at(0);
+			auto newest_file_entries = read_entries_from_file(cache_dir.filePath(newest_file_name));
+
+			get_log_params.since = shv::chainpack::RpcValue::DateTime::fromMSecsSinceEpoch(newest_file_entries.back().dateTime().msecsSinceEpoch() + 1);
+		} else {
+			get_log_params.since = shv::chainpack::RpcValue::DateTime::fromMSecsSinceEpoch(QDateTime::currentDateTime().addSecs(- HistoryApp::instance()->cliOptions()->legacyGetLogSinceInit()).toMSecsSinceEpoch());
+		}
+
+		std::vector<shv::core::utils::ShvJournalEntry> downloaded_entries;
+
+		while (true) {
+			auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
+				->setShvPath(slave_hp_path)
+				->setMethod("getLog")
+				->setParams(get_log_params.toRpcValue());
+			call->start();
+			auto [result, error] = co_await qCoro(call, &shv::iotqt::rpc::RpcCall::maybeResult);
+
+			if (!error.isEmpty()) {
+				journalError() << error;
+				m_callback(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, "Couldn't retrieve logs from the device"));
+				co_return;
+			}
+
+			shv::core::utils::ShvMemoryJournal result_log;
+			result_log.loadLog(result);
+			result_log.clearSnapshot();
+			if (result_log.isEmpty()) {
+				writeEntriesToFile(downloaded_entries, cache_dir);
+				co_return;
+			}
+
+			const auto& remote_entries = result_log.entries();
+
+			auto newest_entry = remote_entries.back().epochMsec;
+			for (const auto& entry : remote_entries) {
+				// We're skipping all entries from the last millisecond, and retrieve it again, otherwise we can't be
+				// sure if we got all from the same millisecond.
+				if (entry.epochMsec == newest_entry) {
+					break;
+				}
+				downloaded_entries.push_back(entry);
+			}
+
+			if (remote_entries.size() < RECORD_COUNT_LIMIT) {
+				writeEntriesToFile(downloaded_entries, cache_dir);
+				co_return;
+			}
+
+			get_log_params.since = remote_entries.back().dateTime();
+		}
+	}
+
+	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> doSync(const QString& slave_hp_path, const SyncType sync_type)
+	{
+		using shv::coreqt::Utils;
+		auto shvjournal_suffix =
+			sync_type == SyncType::Device ?
+			".app/shvjournal" :
+			Utils::joinPath(".local/history/shvjournal", m_shvPath.remove(0, slave_hp_path.size()));
+		auto shvjournal_shvpath = Utils::joinPath(slave_hp_path, shvjournal_suffix);
+
+		auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
+			->setShvPath(shvjournal_shvpath)
+			->setMethod("lsfiles")
+			->setParams(cp::RpcValue::Map{{"size", true}});
+		call->start();
+
+		auto [file_list, error] = co_await qCoro(call, &shv::iotqt::rpc::RpcCall::maybeResult);
+		if (!error.isEmpty()) {
+			journalError() << error;
+			m_callback(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, "Couldn't retrieve filelist from the device"));
+			co_return;
+		}
+
+		journalDebug() << "Got filelist from" << slave_hp_path;
+
+		for (const auto& current_file : file_list.asList()) {
+			auto file_name = QString::fromStdString(current_file.asList().at(0).asString());
+			if (file_name == "dirty.log2") {
+				continue;
+			}
+			auto full_file_name = QDir(Utils::joinPath(m_cacheDirPath, slave_hp_path)).filePath(file_name);
+			QFile file(full_file_name);
+			auto local_size = file.size();
+			auto remote_size = current_file.asList().at(2).toInt();
+
+			journalInfo() << "Syncing file" << full_file_name << "remote size:" << remote_size << "local size:" << (file.exists() ? QString::number(local_size) : "<doesn't exist>");
+			if (file.exists()) {
+				if (local_size == remote_size) {
+					continue;
+				}
+			}
+
+			auto sites_log_file = Utils::joinPath(shvjournal_shvpath, file_name);
+			journalDebug() << "Retrieving" << sites_log_file << "offset:" << local_size;
+			auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
+				->setShvPath(sites_log_file)
+				->setMethod("read")
+				->setParams(cp::RpcValue::Map{{"offset", cp::RpcValue::Int(local_size)}});
+			call->start();
+			auto [result, error] = co_await qCoro(call, &shv::iotqt::rpc::RpcCall::maybeResult);
+			if (!error.isEmpty()) {
+				journalError() << "Couldn't retrieve" << sites_log_file << ":" << error;
+				co_return;
+			}
+
+			journalDebug() << "Got" << sites_log_file;
+			m_downloadedFiles.insert(full_file_name, result);
+			m_node->trimDirtyLog(Utils::joinPath(m_cacheDirPath, slave_hp_path));
+		}
+
+	}
+
 	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> syncFiles()
 	{
 		using shv::coreqt::Utils;
@@ -250,7 +396,7 @@ public:
 			// connecting through a slave HP or connecting directly to a device.
 			//
 			// A special case is when m_shvPath is empty.
-			enum class SyncType {Device, Slave} sync_type =
+			SyncType sync_type =
 				slave_hp.is_leaf && (slave_hp_path_qstr.size() == m_shvPath.size() || m_shvPath.isEmpty()) ? SyncType::Device : SyncType::Slave;
 
 			// We shouldn't sync pushlogs, if they're our directly connected device.
@@ -258,61 +404,12 @@ public:
 				continue;
 			}
 
-			auto shvjournal_suffix =
-				sync_type == SyncType::Device ?
-				".app/shvjournal" :
-				Utils::joinPath(".local/history/shvjournal", m_shvPath.remove(0, slave_hp_path_qstr.size()));
-			auto shvjournal_shvpath = Utils::joinPath(slave_hp_path_qstr, shvjournal_suffix);
-
-			auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
-				->setShvPath(shvjournal_shvpath)
-				->setMethod("lsfiles")
-				->setParams(cp::RpcValue::Map{{"size", true}});
-			call->start();
-
-			auto [file_list, error] = co_await qCoro(call, &shv::iotqt::rpc::RpcCall::maybeResult);
-			if (!error.isEmpty()) {
-				journalError() << error;
-				m_callback(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, "Couldn't retrieve filelist from the device"));
-				continue;
+			if (sync_type == SyncType::Device && slave_hp.log_type == LogType::Legacy) {
+				co_await doLegacySync(slave_hp_path_qstr, sync_type);
+			} else {
+				co_await doSync(slave_hp_path_qstr, sync_type);
 			}
 
-			journalDebug() << "Got filelist from" << slave_hp.shv_path;
-
-			for (const auto& current_file : file_list.asList()) {
-				auto file_name = QString::fromStdString(current_file.asList().at(0).asString());
-				if (file_name == "dirty.log2") {
-					continue;
-				}
-				auto full_file_name = QDir(Utils::joinPath(m_cacheDirPath, slave_hp_path_qstr)).filePath(file_name);
-				QFile file(full_file_name);
-				auto local_size = file.size();
-				auto remote_size = current_file.asList().at(2).toInt();
-
-				journalInfo() << "Syncing file" << full_file_name << "remote size:" << remote_size << "local size:" << (file.exists() ? QString::number(local_size) : "<doesn't exist>");
-				if (file.exists()) {
-					if (local_size == remote_size) {
-						continue;
-					}
-				}
-
-				auto sites_log_file = Utils::joinPath(shvjournal_shvpath, file_name);
-				journalDebug() << "Retrieving" << sites_log_file << "offset:" << local_size;
-				auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
-					->setShvPath(sites_log_file)
-					->setMethod("read")
-					->setParams(cp::RpcValue::Map{{"offset", cp::RpcValue::Int(local_size)}});
-				call->start();
-				auto [result, error] = co_await qCoro(call, &shv::iotqt::rpc::RpcCall::maybeResult);
-				if (!error.isEmpty()) {
-					journalError() << "Couldn't retrieve" << sites_log_file << ":" << error;
-					co_return;
-				}
-
-				journalDebug() << "Got" << sites_log_file;
-				m_downloadedFiles.insert(full_file_name, result);
-				m_node->trimDirtyLog(Utils::joinPath(m_cacheDirPath, slave_hp_path_qstr));
-			}
 		}
 
 		writeFiles();
@@ -367,114 +464,9 @@ void ShvJournalNode::sanitizeSize()
 	journalInfo() << "Sanitization done, path:" << m_cacheDirPath << "new size" << cache_dir_size << "cacheSizeLimit" << cache_size_limit;
 }
 
-namespace {
-const auto RECORD_COUNT_LIMIT = 1000;
-}
-
-class LegacyFileSyncer : public QObject {
-	Q_OBJECT
-public:
-	LegacyFileSyncer(ShvJournalNode* node, const QString& remote_log_shv_path, const QString& cache_dir_path, const std::function<void(cp::RpcResponse::Error)>& callback)
-		: m_node(node)
-		, m_untilParam(shv::chainpack::RpcValue::DateTime::now())
-		, m_remoteLogShvPath(remote_log_shv_path)
-		, m_cacheDirPath(cache_dir_path)
-		, m_callback(callback)
-	{
-		QDir cache_dir(m_cacheDirPath);
-		if (!cache_dir.isEmpty()) {
-			auto entry_list = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name | QDir::Reversed);
-			auto newest_file_name = entry_list.at(0) == DIRTY_FILENAME ? entry_list.at(1) : entry_list.at(0);
-			auto newest_file_entries = read_entries_from_file(cache_dir.filePath(newest_file_name));
-
-			m_sinceParam = shv::chainpack::RpcValue::DateTime::fromMSecsSinceEpoch(newest_file_entries.back().dateTime().msecsSinceEpoch() + 1);
-		} else {
-			m_sinceParam = shv::chainpack::RpcValue::DateTime::fromMSecsSinceEpoch(QDateTime::currentDateTime().addSecs(- HistoryApp::instance()->cliOptions()->legacyGetLogSinceInit()).toMSecsSinceEpoch());
-		}
-
-		downloadNextChunk();
-	}
-
-	Q_SIGNAL void chunkDone();
-
-	void writeEntriesToFile()
-	{
-		auto file_name = QDir(m_cacheDirPath).filePath(QString::fromStdString(shv::core::utils::ShvJournalFileReader::msecToBaseFileName(m_downloadedEntries.front().epochMsec)) + ".log2");
-
-		write_entries_to_file(file_name, m_downloadedEntries);
-		m_node->trimDirtyLog(m_cacheDirPath);
-		m_callback({});
-		deleteLater();
-	}
-
-	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> downloadNextChunk()
-	{
-		shv::core::utils::ShvGetLogParams get_log_params;
-		get_log_params.recordCountLimit = RECORD_COUNT_LIMIT;
-		get_log_params.since = m_sinceParam;
-		get_log_params.until = m_untilParam;
-		while (true) {
-			auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
-				->setShvPath(m_remoteLogShvPath)
-				->setMethod("getLog")
-				->setParams(get_log_params.toRpcValue());
-			call->start();
-			auto [result, error] = co_await qCoro(call, &shv::iotqt::rpc::RpcCall::maybeResult);
-
-			if (!error.isEmpty()) {
-				journalError() << error;
-				m_callback(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, "Couldn't retrieve logs from the device"));
-				deleteLater();
-			}
-
-			shv::core::utils::ShvMemoryJournal result_log;
-			result_log.loadLog(result);
-			result_log.clearSnapshot();
-			if (result_log.isEmpty()) {
-				writeEntriesToFile();
-				co_return;
-			}
-
-			const auto& remote_entries = result_log.entries();
-
-			auto newest_entry = remote_entries.back().epochMsec;
-			for (const auto& entry : remote_entries) {
-				// We're skipping all entries from the last millisecond, and retrieve it again, otherwise we can't be
-				// sure if we got all from the same millisecond.
-				if (entry.epochMsec == newest_entry) {
-					break;
-				}
-				m_downloadedEntries.push_back(entry);
-			}
-
-			if (remote_entries.size() < RECORD_COUNT_LIMIT) {
-				writeEntriesToFile();
-				co_return;
-			}
-
-			get_log_params.since = remote_entries.back().dateTime();
-		}
-	}
-
-private:
-	ShvJournalNode* m_node;
-	shv::chainpack::RpcValue m_sinceParam;
-	const shv::chainpack::RpcValue m_untilParam;
-	std::vector<shv::core::utils::ShvJournalEntry> m_downloadedEntries;
-
-	QString m_remoteLogShvPath;
-	QString m_cacheDirPath;
-
-	std::function<void(cp::RpcResponse::Error)> m_callback;
-};
-
 void ShvJournalNode::syncLog(const std::string& shv_path, const std::function<void(cp::RpcResponse::Error)> cb)
 {
-	if (m_logType == LogType::Legacy) {
-		new LegacyFileSyncer(this, m_remoteLogShvPath, m_cacheDirPath, cb);
-	} else {
-		new FileSyncer(this, m_slaveHps, shv_path, m_cacheDirPath, cb);
-	}
+	new FileSyncer(this, m_slaveHps, shv_path, m_cacheDirPath, cb);
 }
 
 cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)

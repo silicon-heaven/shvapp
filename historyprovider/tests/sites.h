@@ -85,4 +85,17 @@ const auto master_hp_with_slave_pushlog = shv::chainpack::RpcValue::fromCpon(R"(
   }
 }
 )");
+
+const auto legacy_hp = shv::chainpack::RpcValue::fromCpon(R"(
+{
+  "_meta":{
+    "HP3":{"slave": true}
+  },
+  "legacy": {
+    "_meta":{
+      "HP":{}
+    },
+  }
+}
+)");
 }

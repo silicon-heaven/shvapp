@@ -237,13 +237,13 @@ const auto COROUTINE_TIMEOUT = 3000;
 	co_yield {}; \
 }
 
-#define EXPECT_REQUEST(pathStr, methodStr, paramsArg) { \
+#define EXPECT_REQUEST(pathStr, methodStr, ...) { \
 	REQUIRE(!m_messageQueue.empty()); \
 	CAPTURE(m_messageQueue.head()); \
 	REQUIRE(m_messageQueue.head().isRequest()); \
 	REQUIRE(m_messageQueue.head().shvPath().asString() == (pathStr)); \
 	REQUIRE(m_messageQueue.head().method().asString() == (methodStr)); \
-	REQUIRE(shv::chainpack::RpcRequest(m_messageQueue.head()).params() == (paramsArg)); \
+	__VA_OPT__(REQUIRE(shv::chainpack::RpcRequest(m_messageQueue.head()).params() == (__VA_ARGS__));) \
 }
 
 #define EXPECT_RESPONSE(expectedResult) { \
@@ -301,6 +301,37 @@ const auto dummy_logfile2 = R"(2022-07-07T18:06:17.872Z	809781	zone1/system/sig/
 2022-07-07T18:06:17.874Z	809781	zone1/zone/Zone1/plcDisconnected	false		chng	2	
 2022-07-07T18:06:17.880Z	809781	zone1/pme/TSH1-1/switchRightCounterPermanent	0u		chng	2	
 )"s;
+
+const auto dummy_getlog_response = RpcValue::fromCpon(R"(
+<
+  "dateTime":d"2022-09-15T13:30:04.293Z",
+  "device":{"id":"historyprovider"},
+  "fields":[
+    {"name":"timestamp"},
+    {"name":"path"},
+    {"name":"value"},
+    {"name":"shortTime"},
+    {"name":"domain"},
+    {"name":"valueFlags"},
+    {"name":"userId"}
+  ],
+  "logParams":{"recordCountLimit":1000, "until":d"2022-07-07T18:06:17.870Z", "withPathsDict":true, "withSnapshot":false, "withTypeInfo":false},
+  "logVersion":2,
+  "pathsDict":i{1:"APP_START", 2:"zone1/system/sig/plcDisconnected", 3:"zone1/zone/Zone1/plcDisconnected", 4:"zone1/pme/TSH1-1/switchRightCounterPermanent"},
+  "recordCount":4,
+  "recordCountLimit":1000,
+  "recordCountLimitHit":false,
+  "since":d"2022-07-07T18:06:15.557Z",
+  "until":d"2022-07-07T18:06:17.870Z",
+  "withPathsDict":true,
+  "withSnapshot":false
+>[
+  [d"2022-07-07T18:06:15.557Z", 1, true, null, "SHV_SYS", 0u, null],
+  [d"2022-07-07T18:06:17.784Z", 2, false, null, null, 2u, null],
+  [d"2022-07-07T18:06:17.784Z", 3, false, null, null, 2u, null],
+  [d"2022-07-07T18:06:17.869Z", 4, 0u, null, null, 2u, null]
+]
+)");
 
 struct DummyFileInfo {
 	QString fileName;
@@ -573,7 +604,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				EXPECT_REQUEST("shv/master/.local/history/shvjournal/pushlog", "lsfiles", ls_size_true);
 				RESPOND_YIELD(RpcValue::List());
 				EXPECT_REQUEST("shv/master/.local/history/shvjournal/pushlog", "lsfiles", ls_size_true);
-				RESPOND_YIELD(RpcValue::List());
+				RESPOND(RpcValue::List());
 			}
 
 			DOCTEST_SUBCASE("slave HP shouldn't sync")
@@ -606,6 +637,35 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			CAPTURE(m_messageQueue.head());
 			REQUIRE(m_messageQueue.empty());
 		}
+	}
+
+	DOCTEST_SUBCASE("legacy getLog retrieval")
+	{
+		std::string cache_dir_path = "shv/legacy";
+		SEND_SITES_YIELD(mock_sites::legacy_hp);
+		EXPECT_SUBSCRIPTION_YIELD(cache_dir_path, "mntchng");
+		EXPECT_SUBSCRIPTION(cache_dir_path, "chng");
+		REQUEST_YIELD("shvjournal", "syncLog", RpcValue());
+		EXPECT_REQUEST(cache_dir_path, "getLog");
+
+		RpcValue::List expected_cache_contents;
+		create_dummy_cache_files(cache_dir_path, {});
+
+		DOCTEST_SUBCASE("empty response")
+		{
+			RESPOND_YIELD(shv::chainpack::RpcValue::List());
+		}
+
+		DOCTEST_SUBCASE("some response")
+		{
+			RESPOND_YIELD(dummy_getlog_response);
+			expected_cache_contents = RpcValue::List({{
+				RpcValue::List{ "2022-07-07T18-06-15-557.log2", 201ul }
+			}});
+		}
+
+		EXPECT_RESPONSE("All files have been synced");
+		REQUIRE(get_cache_contents(cache_dir_path) == expected_cache_contents);
 	}
 
 	co_return;
