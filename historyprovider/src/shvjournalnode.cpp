@@ -348,7 +348,7 @@ public:
 
 		QDir cache_dir(Utils::joinPath(m_cacheDirPath, slave_hp_path));
 		QString newest_file_name;
-		int64_t newest_file_name_ms = 0;
+		int64_t newest_file_name_ms = QDateTime::currentDateTime().addSecs(- HistoryApp::instance()->cliOptions()->legacyGetLogSinceInit()).toMSecsSinceEpoch();
 		auto entry_list = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name | QDir::Reversed);
 		if (!entry_list.empty()) {
 			if (entry_list.at(0) != DIRTY_FILENAME) {
