@@ -399,7 +399,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	co_yield {};
 
 	// We want the test to download everything regardless of age. Ten years ought to be enough.
-	HistoryApp::instance()->cliOptions()->setLegacyGetLogSinceInit(60 /*seconds*/ * 60 /*minutes*/ * 24 /*hours*/ * 365 /*days*/ * 10 /*years*/);
+	HistoryApp::instance()->cliOptions()->setCacheInitMaxAge(60 /*seconds*/ * 60 /*minutes*/ * 24 /*hours*/ * 365 /*days*/ * 10 /*years*/);
 	DOCTEST_SUBCASE("fin slave HP")
 	{
 		std::string cache_dir_path = "shv/eyas/opc";
@@ -472,7 +472,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 
 			DOCTEST_SUBCASE("Don't download files older than one month")
 			{
-				HistoryApp::instance()->cliOptions()->setLegacyGetLogSinceInit(60 /*seconds*/ * 60 /*minutes*/ * 24 /*hours*/ * 30 /*days*/);
+				HistoryApp::instance()->cliOptions()->setCacheInitMaxAge(60 /*seconds*/ * 60 /*minutes*/ * 24 /*hours*/ * 30 /*days*/);
 				create_dummy_cache_files(cache_dir_path, {});
 				RESPOND_YIELD((RpcValue::List({{
 					{ "2022-07-07T18-06-15-000.log2", "f", dummy_logfile.size() }
@@ -701,7 +701,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 
 		DOCTEST_SUBCASE("since param")
 		{
-			HistoryApp::instance()->cliOptions()->setLegacyGetLogSinceInit(60 /*seconds*/ * 60 /*minutes*/ * 24 /*hours*/ * 30 /*days*/);
+			HistoryApp::instance()->cliOptions()->setCacheInitMaxAge(60 /*seconds*/ * 60 /*minutes*/ * 24 /*hours*/ * 30 /*days*/);
 			DOCTEST_SUBCASE("empty cache")
 			{
 				create_dummy_cache_files(cache_dir_path, {});

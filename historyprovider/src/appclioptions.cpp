@@ -12,6 +12,6 @@ AppCliOptions::AppCliOptions()
 			.setComment("Set journal sanitizer interval").setDefaultValue(60);
 	addOption("app.logMaxAge").setType(shv::chainpack::RpcValue::Type::Int).setNames("--log-max-age")
 			.setComment("Set log max age: dirty log age or timer-based syncing for (master) pushlog devices").setDefaultValue(60 /*seconds*/ * 60 /*minutes*/ * 1 /*hours*/); // What's a correct value? An hour?
-	addOption("app.legacyGetLogSinceInit").setType(shv::chainpack::RpcValue::Type::Int).setNames("--legacy-getlog-since-init")
-			.setComment("Set getlog since param for uninitialized getLog nodes").setDefaultValue(60 /*seconds*/ * 60 /*minutes*/ * 24 /*hours*/ * 30 /*days*/); // What's a correct value? An hour?
+	addOption("app.cacheInitMaxAge").setType(shv::chainpack::RpcValue::Type::Int).setNames("--cache-init-max-age")
+			.setComment("Set max age for initial cache sync").setDefaultValue(60 /*seconds*/ * 60 /*minutes*/ * 24 /*hours*/ * 30 /*days*/); // What's a correct value? An hour?
 }

@@ -274,7 +274,7 @@ public:
 
 			get_log_params.since = shv::chainpack::RpcValue::DateTime::fromMSecsSinceEpoch(newest_file_entries.back().dateTime().msecsSinceEpoch() + 1);
 		} else {
-			get_log_params.since = shv::chainpack::RpcValue::DateTime::fromMSecsSinceEpoch(QDateTime::currentDateTime().addSecs(- HistoryApp::instance()->cliOptions()->legacyGetLogSinceInit()).toMSecsSinceEpoch());
+			get_log_params.since = shv::chainpack::RpcValue::DateTime::fromMSecsSinceEpoch(QDateTime::currentDateTime().addSecs(- HistoryApp::instance()->cliOptions()->cacheInitMaxAge()).toMSecsSinceEpoch());
 		}
 
 		std::vector<shv::core::utils::ShvJournalEntry> downloaded_entries;
@@ -348,7 +348,7 @@ public:
 
 		QDir cache_dir(Utils::joinPath(m_cacheDirPath, slave_hp_path));
 		QString newest_file_name;
-		int64_t newest_file_name_ms = QDateTime::currentDateTime().addSecs(- HistoryApp::instance()->cliOptions()->legacyGetLogSinceInit()).toMSecsSinceEpoch();
+		int64_t newest_file_name_ms = QDateTime::currentDateTime().addSecs(- HistoryApp::instance()->cliOptions()->cacheInitMaxAge()).toMSecsSinceEpoch();
 		auto entry_list = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name | QDir::Reversed);
 		if (!entry_list.empty()) {
 			if (entry_list.at(0) != DIRTY_FILENAME) {
