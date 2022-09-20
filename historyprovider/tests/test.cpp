@@ -663,23 +663,55 @@ QCoro::Generator<int> MockRpcConnection::driver()
 		SEND_SITES_YIELD(mock_sites::legacy_hp);
 		EXPECT_SUBSCRIPTION_YIELD(cache_dir_path, "mntchng");
 		EXPECT_SUBSCRIPTION(cache_dir_path, "chng");
-		REQUEST_YIELD("shvjournal", "syncLog", RpcValue());
-		EXPECT_REQUEST(cache_dir_path, "getLog");
 
 		RpcValue::List expected_cache_contents;
-		create_dummy_cache_files(cache_dir_path, {});
 
 		DOCTEST_SUBCASE("empty response")
 		{
+			create_dummy_cache_files(cache_dir_path, {});
+			REQUEST_YIELD("shvjournal", "syncLog", RpcValue());
+			EXPECT_REQUEST(cache_dir_path, "getLog");
 			RESPOND_YIELD(shv::chainpack::RpcValue::List());
 		}
 
 		DOCTEST_SUBCASE("some response")
 		{
+			create_dummy_cache_files(cache_dir_path, {});
+			REQUEST_YIELD("shvjournal", "syncLog", RpcValue());
+			EXPECT_REQUEST(cache_dir_path, "getLog");
 			RESPOND_YIELD(dummy_getlog_response);
 			expected_cache_contents = RpcValue::List({{
 				RpcValue::List{ "2022-07-07T18-06-15-557.log2", 201ul }
 			}});
+		}
+
+		DOCTEST_SUBCASE("since param")
+		{
+			DOCTEST_SUBCASE("empty cache")
+			{
+				create_dummy_cache_files(cache_dir_path, {});
+				REQUEST_YIELD("shvjournal", "syncLog", RpcValue());
+				EXPECT_REQUEST(cache_dir_path, "getLog");
+				auto since_param_ms = shv::chainpack::RpcRequest(m_messageQueue.head()).params().asMap().value("since").toDateTime().msecsSinceEpoch();
+				auto now_ms = shv::chainpack::RpcValue::DateTime::now().msecsSinceEpoch();
+				REQUIRE(now_ms - since_param_ms < int64_t{1000} /*ms*/ * 60 /*seconds*/ * 60 /*minutes*/ * 24 /*hours*/ * 31 /*days*/ );
+			}
+
+			DOCTEST_SUBCASE("something in cache")
+			{
+				create_dummy_cache_files(cache_dir_path, {
+					{ "2022-07-07T18-06-15-557.log2", dummy_logfile },
+				});
+				REQUEST_YIELD("shvjournal", "syncLog", RpcValue());
+				EXPECT_REQUEST(cache_dir_path, "getLog");
+				auto since_param_ms = shv::chainpack::RpcRequest(m_messageQueue.head()).params().asMap().value("since").toDateTime().msecsSinceEpoch();
+				REQUIRE(since_param_ms == shv::chainpack::RpcValue::DateTime::fromUtcString("2022-07-07T18:06:17.870Z").msecsSinceEpoch());
+				expected_cache_contents = RpcValue::List({{
+					RpcValue::List{ "2022-07-07T18-06-15-557.log2", 308ul }
+				}});
+			}
+
+			RESPOND_YIELD(shv::chainpack::RpcValue::List());
 		}
 
 		EXPECT_RESPONSE("All files have been synced");
