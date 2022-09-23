@@ -48,9 +48,9 @@ void DiskCleaner::scanDir(const QDir &dir, DiskCleaner::CheckDiskContext &ctx)
 				ctx.totalSize += info.size();
 			}
 			else {
-				shvInfo() << "removing file for not existing device" << site_path.toStdString() << info.fileName().toStdString();
-				QFile::remove(info.absoluteFilePath());
-				--entry_count;
+//				shvInfo() << "removing file for not existing device" << site_path.toStdString() << info.fileName().toStdString();
+//				QFile::remove(info.absoluteFilePath());
+//				--entry_count;
 			}
         }
     }
@@ -69,6 +69,9 @@ void DiskCleaner::checkDiskOccupation()
 	ScopeGuard sg(m_isChecking);
 
 	while (true) {
+		if (!Application::instance()->deviceConnection()->isBrokerConnected()) {
+			return;
+		}
 		CheckDiskContext ctx;
 		for (const QString &device_path : Application::instance()->deviceMonitor()->monitoredDevices()) {
 			ctx.deviceOccupationInfo[device_path] = DeviceOccupationInfo();
