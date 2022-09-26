@@ -733,6 +733,73 @@ QCoro::Generator<int> MockRpcConnection::driver()
 		REQUIRE(get_cache_contents(cache_dir_path) == expected_cache_contents);
 	}
 
+	DOCTEST_SUBCASE("sanitizer")
+	{
+		RpcValue::List expected_cache_contents;
+		DOCTEST_SUBCASE("sanitizeLog correctly removes stuff")
+		{
+			std::string cache_dir_path = "shv/eyas/opc";
+			SEND_SITES_YIELD(mock_sites::fin_slave_broker);
+			EXPECT_SUBSCRIPTION_YIELD(cache_dir_path, "mntchng");
+			EXPECT_SUBSCRIPTION(cache_dir_path, "chng");
+
+			create_dummy_cache_files(cache_dir_path, {
+				{ "2022-07-07T18-06-15-557.log2", dummy_logfile },
+				{ "2022-07-07T18-06-15-560.log2", dummy_logfile },
+			});
+
+			DOCTEST_SUBCASE("when size is within quota")
+			{
+				HistoryApp::instance()->setSingleCacheSizeLimit(5000);
+				expected_cache_contents = RpcValue::List({{
+					RpcValue::List{ "2022-07-07T18-06-15-557.log2", 308ul },
+					RpcValue::List{ "2022-07-07T18-06-15-560.log2", 308ul }
+				}});
+			}
+
+			DOCTEST_SUBCASE("when size is over quota")
+			{
+				HistoryApp::instance()->setSingleCacheSizeLimit(500);
+				expected_cache_contents = RpcValue::List({{
+					RpcValue::List{ "2022-07-07T18-06-15-560.log2", 308ul }
+				}});
+			}
+
+			REQUEST_YIELD(cache_dir_path, "sanitizeLog", RpcValue());
+			EXPECT_RESPONSE("Cache sanitization done");
+			REQUIRE(get_cache_contents(cache_dir_path) == expected_cache_contents);
+		}
+
+		DOCTEST_SUBCASE("sanitizer runs periodically")
+		{
+			HistoryApp::instance()->cliOptions()->setJournalSanitizerInterval(1);
+			SEND_SITES_YIELD(mock_sites::two_devices);
+			EXPECT_SUBSCRIPTION_YIELD("shv/one", "mntchng");
+			EXPECT_SUBSCRIPTION_YIELD("shv/one", "chng");
+			EXPECT_SUBSCRIPTION_YIELD("shv/two", "mntchng");
+			EXPECT_SUBSCRIPTION("shv/two", "chng");
+
+			HistoryApp::instance()->setSingleCacheSizeLimit(500);
+
+			create_dummy_cache_files("shv/one", {
+				{ "2022-07-07T18-06-15-557.log2", dummy_logfile },
+				{ "2022-07-07T18-06-15-560.log2", dummy_logfile },
+			});
+			create_dummy_cache_files("shv/two", {
+				{ "2022-07-07T18-06-15-557.log2", dummy_logfile },
+				{ "2022-07-07T18-06-15-560.log2", dummy_logfile },
+			});
+			expected_cache_contents = RpcValue::List({{
+				RpcValue::List{ "2022-07-07T18-06-15-560.log2", 308ul }
+			}});
+
+			DRIVER_WAIT(3000);
+
+			REQUIRE(get_cache_contents("shv/one") == expected_cache_contents);
+			REQUIRE(get_cache_contents("shv/two") == expected_cache_contents);
+		}
+	}
+
 	co_return;
 }
 

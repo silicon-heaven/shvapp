@@ -15,6 +15,7 @@ namespace shv { namespace chainpack { class RpcMessage; }}
 namespace shv { namespace iotqt { namespace rpc { class DeviceConnection; }}}
 namespace shv { namespace iotqt { namespace node { class ShvNodeTree; }}}
 
+class LeafNode;
 class ShvJournalNode;
 
 class AppRootNode : public shv::iotqt::node::ShvRootNode
@@ -42,6 +43,7 @@ public:
 	static HistoryApp* instance();
 	shv::iotqt::rpc::DeviceConnection* rpcConnection() const {return m_rpcConnection;}
 	int64_t singleCacheSizeLimit() const {return m_singleCacheSizeLimit;}
+	void setSingleCacheSizeLimit(int64_t size_limit) {m_singleCacheSizeLimit = size_limit;}
 	ShvJournalNode* shvJournalNode() {return m_shvJournalNode;}
 
 	AppCliOptions* cliOptions() {return m_cliOptions;}
@@ -59,7 +61,7 @@ private:
 	bool m_isBrokerConnected = false;
 	int64_t m_totalCacheSizeLimit;
 	int64_t m_singleCacheSizeLimit;
-	QList<ShvJournalNode*> m_journalNodes;
-	QListIterator<ShvJournalNode*> m_sanitizerIterator;
+	QList<LeafNode*> m_leafNodes;
+	QListIterator<LeafNode*> m_sanitizerIterator;
 	ShvJournalNode* m_shvJournalNode;
 };

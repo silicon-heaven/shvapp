@@ -98,4 +98,22 @@ const auto legacy_hp = shv::chainpack::RpcValue::fromCpon(R"(
   }
 }
 )");
+
+const auto two_devices = shv::chainpack::RpcValue::fromCpon(R"(
+{
+  "_meta":{
+    "HP3":{"slave": true}
+  },
+  "one": {
+    "_meta":{
+      "HP":{}
+    },
+  },
+  "two": {
+    "_meta":{
+      "HP":{}
+    },
+  }
+}
+)");
 }

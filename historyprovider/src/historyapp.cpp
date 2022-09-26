@@ -87,7 +87,7 @@ enum class SlaveFound {
 void createTree(shv::iotqt::node::ShvNode* parent_node, const cp::RpcValue::Map& tree, const QString& node_name, std::vector<SlaveHpInfo>& slave_hps, SlaveFound slave_found)
 {
 	shv::iotqt::node::ShvNode* node;
-	if (auto meta_node = tree.value("_meta").asMap(); meta_node.hasKey("HP") || meta_node.hasKey("HP3")) {
+	if (auto meta_node = tree.value("_meta").asMap(); (meta_node.hasKey("HP") || meta_node.hasKey("HP3")) && node_name != "shv") {
 		auto hp_node = meta_node.value("HP", meta_node.value("HP3")).asMap();
 		auto log_type =
 			hp_node.value("pushLog").toBool() ? LogType::PushLog :
@@ -162,7 +162,7 @@ auto parse_size_option(const std::string& size_option, bool* success)
 void HistoryApp::sanitizeNext()
 {
 	if (!m_sanitizerIterator.hasNext()) {
-		m_sanitizerIterator = QListIterator(m_journalNodes);
+		m_sanitizerIterator = QListIterator(m_leafNodes);
 	}
 
 	// m_journalNodes is never empty, because we don't run the sanitizer when there are no journal nodes
@@ -174,7 +174,7 @@ HistoryApp::HistoryApp(int& argc, char** argv, AppCliOptions* cli_opts, shv::iot
 	: Super(argc, argv)
 	  , m_rpcConnection(rpc_connection)
 	  , m_cliOptions(cli_opts)
-	  , m_sanitizerIterator(m_journalNodes) // I have to initialize this one, because it doesn't have a default ctor
+	  , m_sanitizerIterator(m_leafNodes) // I have to initialize this one, because it doesn't have a default ctor
 {
 	m_rpcConnection->setParent(this);
 
@@ -241,11 +241,11 @@ QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> HistoryA
 
 	m_shvJournalNode = new ShvJournalNode(slave_hps, m_root);
 
-	m_journalNodes = m_shvTree->findChildren<ShvJournalNode*>();
-	if (m_journalNodes.size() != 0) {
-		m_singleCacheSizeLimit = m_totalCacheSizeLimit / m_journalNodes.size();
+	m_leafNodes = m_shvTree->findChildren<LeafNode*>();
+	if (m_leafNodes.size() != 0) {
+		m_singleCacheSizeLimit = m_totalCacheSizeLimit / m_leafNodes.size();
 
-		m_sanitizerIterator = QListIterator(m_journalNodes);
+		m_sanitizerIterator = QListIterator(m_leafNodes);
 		auto timer = new QTimer(this);
 		connect(timer, &QTimer::timeout, this, &HistoryApp::sanitizeNext);
 		timer->start(m_cliOptions->journalSanitizerInterval() * 1000);

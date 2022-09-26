@@ -24,13 +24,11 @@ public:
 	size_t methodCount(const StringViewList& shv_path) override;
 	const shv::chainpack::MetaMethod* metaMethod(const StringViewList& shv_path, size_t ix) override;
 	shv::chainpack::RpcValue callMethodRq(const shv::chainpack::RpcRequest &rq) override;
-	void sanitizeSize();
 	void trimDirtyLog(const QString& cache_dir_path);
 	void syncLog(const std::string& path, const std::function<void(shv::chainpack::RpcResponse::Error)>);
 
 private:
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
-	qint64 calculateCacheDirSize() const;
 
 	std::vector<SlaveHpInfo> m_slaveHps;
 	QString m_remoteLogShvPath;

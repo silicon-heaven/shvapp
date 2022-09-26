@@ -1,4 +1,3 @@
-#include <iostream>
 #include "shvjournalnode.h"
 #include "historyapp.h"
 #include "appclioptions.h"
@@ -24,8 +23,6 @@
 namespace cp = shv::chainpack;
 namespace {
 static std::vector<cp::MetaMethod> methods {
-	{"logSize", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
-	{"sanitizeLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
 	{"getLog", cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
 	{"syncLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
 };
@@ -451,41 +448,6 @@ private:
 	std::function<void(cp::RpcResponse::Error)> m_callback;
 };
 
-qint64 ShvJournalNode::calculateCacheDirSize() const
-{
-	journalDebug() << "Calculating cache directory size";
-	QDirIterator iter(m_cacheDirPath, QDir::NoDotAndDotDot | QDir::Files, QDirIterator::Subdirectories);
-	qint64 total_size = 0;
-	while (iter.hasNext()) {
-		QFile file(iter.next());
-		total_size += file.size();
-	}
-	journalDebug() << "Cache directory size" << total_size;
-
-	return total_size;
-}
-
-void ShvJournalNode::sanitizeSize()
-{
-	auto cache_dir_size = calculateCacheDirSize();
-	auto cache_size_limit = HistoryApp::instance()->singleCacheSizeLimit();
-
-	journalInfo() << "Sanitizing cache, path:" << m_cacheDirPath << "size" << cache_dir_size << "cacheSizeLimit" << cache_size_limit;
-
-	QDir cache_dir(m_cacheDirPath);
-	auto entries = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name);
-	QStringListIterator iter(entries);
-
-	while (cache_dir_size > cache_size_limit && iter.hasNext()) {
-		QFile file(cache_dir.filePath(iter.next()));
-		journalDebug() << "Removing" << file.fileName();
-		cache_dir_size -= file.size();
-		file.remove();
-	}
-
-	journalInfo() << "Sanitization done, path:" << m_cacheDirPath << "new size" << cache_dir_size << "cacheSizeLimit" << cache_size_limit;
-}
-
 void ShvJournalNode::syncLog(const std::string& shv_path, const std::function<void(cp::RpcResponse::Error)> cb)
 {
 	new FileSyncer(this, m_slaveHps, shv_path, m_cacheDirPath, cb);
@@ -510,15 +472,6 @@ cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 		syncLog("", respond);
 
 		return {};
-	}
-
-	if (method == "logSize") {
-		return shv::chainpack::RpcValue::Int(calculateCacheDirSize());
-	}
-
-	if (method == "sanitizeLog") {
-		sanitizeSize();
-		return "Cache sanitization done";
 	}
 
 	return Super::callMethodRq(rq);
