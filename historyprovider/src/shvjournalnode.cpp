@@ -388,9 +388,9 @@ public:
 
 			journalDebug() << "Got" << sites_log_file;
 			m_downloadedFiles.insert(full_file_name, result);
-			m_node->trimDirtyLog(Utils::joinPath(m_cacheDirPath, slave_hp_path));
 		}
 
+		m_node->trimDirtyLog(Utils::joinPath(m_cacheDirPath, slave_hp_path));
 	}
 
 	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> syncFiles()
