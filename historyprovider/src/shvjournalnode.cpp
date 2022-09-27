@@ -206,7 +206,7 @@ void ShvJournalNode::trimDirtyLog(const QString& cache_dir_path)
 }
 
 namespace {
-const auto RECORD_COUNT_LIMIT = 1000;
+const auto RECORD_COUNT_LIMIT = 5000;
 }
 
 class FileSyncer : public QObject {
