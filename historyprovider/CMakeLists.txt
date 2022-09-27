@@ -3,6 +3,7 @@ add_library(libhistoryprovider
     src/leafnode.cpp
     src/historyapp.cpp
     src/shvjournalnode.cpp
+    src/utils.cpp
     )
 
 target_enable_coroutines(libhistoryprovider)

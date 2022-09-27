@@ -121,11 +121,9 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 		if (!std::empty(entries)) {
 			auto local_newest_log_time = entries.at(0).toStdString();
 
-			if (shv::core::utils::ShvJournalFileReader::fileNameToFileMsec(local_newest_log_time) >= remote_log_time_ms) {
+			if (shv::core::utils::ShvJournalFileReader::fileNameToFileMsec(local_newest_log_time) > remote_log_time_ms) {
 				auto remote_timestamp = shv::core::utils::ShvJournalFileReader::msecToBaseFileName(remote_log_time_ms);
-				auto err_message = "Rejecting push log with timestamp: " + remote_timestamp + ", because a newer or same already exists: " + local_newest_log_time;
-				journalError() << err_message;
-				throw shv::core::Exception(err_message);
+				journalError() << "Rejecting push log entry with timestamp: " + remote_timestamp + ", because a newer one already exists: " + local_newest_log_time;
 			}
 		}
 

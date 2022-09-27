@@ -1,6 +1,7 @@
 #include "shvjournalnode.h"
 #include "historyapp.h"
 #include "appclioptions.h"
+#include "utils.h"
 
 #include <shv/coreqt/log.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
@@ -133,16 +134,6 @@ const cp::MetaMethod* ShvJournalNode::metaMethod(const StringViewList& shv_path,
 }
 
 namespace {
-auto read_entries_from_file(const QString& file_path)
-{
-	std::vector<shv::core::utils::ShvJournalEntry> res;
-	shv::core::utils::ShvJournalFileReader reader(file_path.toStdString());
-	while (reader.next()) {
-		res.push_back(reader.entry());
-	}
-
-	return res;
-}
 
 void write_entries_to_file(const QString& file_path, const std::vector<shv::core::utils::ShvJournalEntry>& entries)
 {
