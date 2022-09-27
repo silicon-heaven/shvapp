@@ -198,6 +198,7 @@ void ShvJournalNode::trimDirtyLog(const QString& cache_dir_path)
 
 namespace {
 const auto RECORD_COUNT_LIMIT = 5000;
+const auto SYNCER_MEMORY_LIMIT = 1024 /*B*/ * 1024 /*kB*/ * 100 /*MB*/;
 }
 
 class FileSyncer : public QObject {
@@ -228,6 +229,9 @@ public:
 			}
 
 		}
+
+		m_downloadedFiles.clear();
+		current_memory_usage = 0;
 	}
 
 	enum class SyncType {
@@ -351,6 +355,9 @@ public:
 		journalDebug() << "Newest file for" << slave_hp_path << "is" << newest_file_name;
 
 		for (const auto& current_file : file_list.asList()) {
+			if (current_memory_usage > SYNCER_MEMORY_LIMIT) {
+				writeFiles();
+			};
 			auto file_name = QString::fromStdString(current_file.asList().at(0).asString());
 			if (file_name == "dirty.log2") {
 				continue;
@@ -431,6 +438,8 @@ private:
 	ShvJournalNode* m_node;
 	std::vector<SlaveHpInfo> m_slaveHps;
 	QString m_shvPath;
+	int current_memory_usage = 0;
+
 
 	QMap<QString, cp::RpcValue> m_downloadedFiles;
 
