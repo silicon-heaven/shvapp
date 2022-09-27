@@ -116,7 +116,7 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 
 		shv::core::utils::ShvLogRpcValueReader reader(params);
 		QDir cache_dir(QString::fromStdString(m_journalCacheDir));
-		auto remote_log_time_ms = reader.logHeader().dateTimeCRef().toDateTime().msecsSinceEpoch();
+		auto remote_log_time_ms = reader.logHeader().sinceCRef().toDateTime().msecsSinceEpoch();
 		auto entries = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name | QDir::Reversed);
 		if (!std::empty(entries)) {
 			auto local_newest_log_time = entries.at(0).toStdString();
