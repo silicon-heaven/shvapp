@@ -2,6 +2,7 @@
 #include "historyapp.h"
 #include "appclioptions.h"
 #include "shvjournalnode.h"
+#include "utils.h"
 
 #include <shv/core/utils/shvjournalfilereader.h>
 #include <shv/core/utils/shvjournalfilewriter.h>
@@ -116,22 +117,27 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 
 		shv::core::utils::ShvLogRpcValueReader reader(params);
 		QDir cache_dir(QString::fromStdString(m_journalCacheDir));
-		auto remote_log_time_ms = reader.logHeader().sinceCRef().toDateTime().msecsSinceEpoch();
+		auto remote_since_ms = reader.logHeader().sinceCRef().toDateTime().msecsSinceEpoch();
+		int64_t local_newest_entry_ms = 0;
 		auto entries = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name | QDir::Reversed);
 		if (!std::empty(entries)) {
-			auto local_newest_log_time = entries.at(0).toStdString();
-
-			if (shv::core::utils::ShvJournalFileReader::fileNameToFileMsec(local_newest_log_time) > remote_log_time_ms) {
-				auto remote_timestamp = shv::core::utils::ShvJournalFileReader::msecToBaseFileName(remote_log_time_ms);
-				journalError() << "Rejecting push log entry with timestamp: " + remote_timestamp + ", because a newer one already exists: " + local_newest_log_time;
+			auto local_newest_log_file = entries.at(0);
+			auto newest_file_entries = read_entries_from_file(local_newest_log_file);
+			if (!newest_file_entries.empty()) {
+				local_newest_entry_ms = newest_file_entries.back().dateTime().msecsSinceEpoch();
 			}
 		}
 
-		auto file_path = cache_dir.filePath(QString::fromStdString(shv::core::utils::ShvJournalFileReader::msecToBaseFileName(remote_log_time_ms)) + ".log2");
+		auto file_path = cache_dir.filePath(QString::fromStdString(shv::core::utils::ShvJournalFileReader::msecToBaseFileName(remote_since_ms)) + ".log2");
 
 		shv::core::utils::ShvJournalFileWriter writer(file_path.toStdString());
 		journalDebug() << "Writing" << file_path;
 		while (reader.next()) {
+			auto entry = reader.entry();
+			if (entry.epochMsec < local_newest_entry_ms) {
+				journalError() << "Rejecting push log entry with timestamp:" << entry.epochMsec << "because a newer one already exists:" << local_newest_entry_ms;
+				continue;
+			}
 			writer.append(reader.entry());
 		}
 		return true;
