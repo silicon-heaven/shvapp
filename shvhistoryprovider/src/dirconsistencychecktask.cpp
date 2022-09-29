@@ -37,7 +37,7 @@ void DirConsistencyCheckTask::run()
 			try {
 				header = ShvLogFileReader(dir_entries[i].toStdString()).logHeader();
 			}
-			catch(const shv::chainpack::AbstractStreamReader::ParseException &ex) {
+			catch(const shv::chainpack::ParseException &ex) {
 				//when occurs error on file parsing, delete file and start again
 				shvError() << "error on parsing log file" << dir_entries[i] << "deleting it (" << ex.what() << ")";
 				QFile(dir_entries[i]).remove();
