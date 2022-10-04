@@ -302,6 +302,90 @@ const auto dummy_logfile2 = R"(2022-07-07T18:06:17.872Z	809781	zone1/system/sig/
 2022-07-07T18:06:17.880Z	809781	zone1/pme/TSH1-1/switchRightCounterPermanent	0u		chng	2	
 )"s;
 
+const auto dummy_pushlog = RpcValue::fromCpon(R"(
+<
+  "dateTime":d"2022-09-15T13:30:04.293Z",
+  "device":{"id":"historyprovider"},
+  "fields":[
+    {"name":"timestamp"},
+    {"name":"path"},
+    {"name":"value"},
+    {"name":"shortTime"},
+    {"name":"domain"},
+    {"name":"valueFlags"},
+    {"name":"userId"}
+  ],
+  "logParams":{"recordCountLimit":1000, "until":d"2022-07-07T18:06:17.870Z", "withPathsDict":true, "withSnapshot":false, "withTypeInfo":false},
+  "logVersion":2,
+  "pathsDict":i{1:"APP_START", 2:"zone1/system/sig/plcDisconnected", 3:"zone1/zone/Zone1/plcDisconnected", 4:"zone1/pme/TSH1-1/switchRightCounterPermanent"},
+  "recordCount":4,
+  "recordCountLimit":1000,
+  "recordCountLimitHit":false,
+  "since":d"2022-07-07T18:06:15.557Z",
+  "until":d"2022-07-07T18:06:15.557Z",
+  "withPathsDict":true,
+  "withSnapshot":false
+>[
+  [d"2022-07-07T18:06:15.557Z", 1, true, null, "SHV_SYS", 0u, null],
+]
+)");
+
+const auto dummy_pushlog3 = RpcValue::fromCpon(R"(
+<
+  "dateTime":d"2022-09-15T13:30:04.293Z",
+  "device":{"id":"historyprovider"},
+  "fields":[
+    {"name":"timestamp"},
+    {"name":"path"},
+    {"name":"value"},
+    {"name":"shortTime"},
+    {"name":"domain"},
+    {"name":"valueFlags"},
+    {"name":"userId"}
+  ],
+  "logParams":{"recordCountLimit":1000, "until":d"2022-07-07T18:06:17.870Z", "withPathsDict":true, "withSnapshot":false, "withTypeInfo":false},
+  "logVersion":2,
+  "pathsDict":i{1:"APP_START", 2:"zone1/system/sig/plcDisconnected", 3:"zone1/zone/Zone1/plcDisconnected", 4:"zone1/pme/TSH1-1/switchRightCounterPermanent"},
+  "recordCount":4,
+  "recordCountLimit":1000,
+  "recordCountLimitHit":false,
+  "since":d"2022-07-07T18:06:15.557Z",
+  "until":d"2022-07-07T18:06:15.557Z",
+  "withPathsDict":true,
+  "withSnapshot":false
+>[
+  [d"2022-07-07T18:06:15.557Z", 2, true, null, "SHV_SYS", 0u, null],
+]
+)");
+
+const auto dummy_pushlog2 = RpcValue::fromCpon(R"(
+<
+  "dateTime":d"2022-09-15T13:30:04.293Z",
+  "device":{"id":"historyprovider"},
+  "fields":[
+    {"name":"timestamp"},
+    {"name":"path"},
+    {"name":"value"},
+    {"name":"shortTime"},
+    {"name":"domain"},
+    {"name":"valueFlags"},
+    {"name":"userId"}
+  ],
+  "logParams":{"recordCountLimit":1000, "until":d"2022-07-07T18:06:17.870Z", "withPathsDict":true, "withSnapshot":false, "withTypeInfo":false},
+  "logVersion":2,
+  "pathsDict":i{1:"APP_START", 2:"zone1/system/sig/plcDisconnected", 3:"zone1/zone/Zone1/plcDisconnected", 4:"zone1/pme/TSH1-1/switchRightCounterPermanent"},
+  "recordCount":4,
+  "recordCountLimit":1000,
+  "recordCountLimitHit":false,
+  "since":d"2022-07-07T18:06:15.554Z",
+  "until":d"2022-07-07T18:06:15.554Z",
+  "withPathsDict":true,
+  "withSnapshot":false
+>[
+  [d"2022-07-07T18:06:15.554Z", 1, true, null, "SHV_SYS", 0u, null],
+]
+)");
+
 const auto dummy_getlog_response = RpcValue::fromCpon(R"(
 <
   "dateTime":d"2022-09-15T13:30:04.293Z",
@@ -602,6 +686,57 @@ QCoro::Generator<int> MockRpcConnection::driver()
 
 	DOCTEST_SUBCASE("pushLog")
 	{
+		DOCTEST_SUBCASE("pushing logs")
+		{
+			std::string cache_dir_path = "shv/pushlog";
+			create_dummy_cache_files(cache_dir_path, {});
+			SEND_SITES_YIELD(mock_sites::pushlog_hp);
+			EXPECT_SUBSCRIPTION(cache_dir_path, "mntchng");
+
+			DOCTEST_SUBCASE("empty log")
+			{
+				REQUEST_YIELD(cache_dir_path, "pushLog", RpcValue::List());
+				EXPECT_RESPONSE(true);
+			}
+
+			DOCTEST_SUBCASE("some logging")
+			{
+				REQUEST_YIELD(cache_dir_path, "pushLog", dummy_pushlog);
+				EXPECT_RESPONSE(true);
+				REQUIRE(get_cache_contents(cache_dir_path) == RpcValue::List({{
+					RpcValue::List{ "2022-07-07T18-06-15-557.log2", 53UL }
+				}}));
+
+				DOCTEST_SUBCASE("pushLog rejects older pushlogs")
+				{
+					REQUEST_YIELD(cache_dir_path, "pushLog", dummy_pushlog2);
+					EXPECT_RESPONSE(true);
+					REQUIRE(get_cache_contents(cache_dir_path) == RpcValue::List({{
+						RpcValue::List{ "2022-07-07T18-06-15-557.log2", 53UL }
+					}}));
+				}
+
+				DOCTEST_SUBCASE("pushLog rejects pushlogs with same timestamp and same path")
+				{
+					REQUEST_YIELD(cache_dir_path, "pushLog", dummy_pushlog);
+					EXPECT_RESPONSE(true);
+					REQUIRE(get_cache_contents(cache_dir_path) == RpcValue::List({{
+						RpcValue::List{ "2022-07-07T18-06-15-557.log2", 53UL }
+					}}));
+				}
+
+				DOCTEST_SUBCASE("pushLog accepts pushlogs with same timestamp and different path")
+				{
+					REQUEST_YIELD(cache_dir_path, "pushLog", dummy_pushlog3);
+					EXPECT_RESPONSE(true);
+					REQUIRE(get_cache_contents(cache_dir_path) == RpcValue::List({{
+						RpcValue::List{ "2022-07-07T18-06-15-557.log2", 129UL }
+					}}));
+				}
+
+			}
+		}
+
 		DOCTEST_SUBCASE("HP directly above a pushlog don't have a syncLog method" )
 		{
 			std::string cache_dir_path = "shv/pushlog";
