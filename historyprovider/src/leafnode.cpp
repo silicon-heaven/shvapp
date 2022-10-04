@@ -123,7 +123,7 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 		auto entries = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name | QDir::Reversed);
 		if (!std::empty(entries)) {
 			auto local_newest_log_file = entries.at(0);
-			auto newest_file_entries = read_entries_from_file(local_newest_log_file);
+			auto newest_file_entries = read_entries_from_file(cache_dir.filePath(local_newest_log_file));
 			if (!newest_file_entries.empty()) {
 				local_newest_entry_ms = newest_file_entries.back().dateTime().msecsSinceEpoch();
 				for (const auto& entry : newest_file_entries) {
