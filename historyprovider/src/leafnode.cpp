@@ -152,6 +152,13 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 
 			writer.append(reader.entry());
 		}
+
+		// The output file is always created by the writer. If we didn't manage to write any entries, we'll remove the
+		// file.
+		if (auto file = QFile(file_path); file.size() == 0) {
+			file.remove();
+		}
+
 		return true;
 	}
 
