@@ -1,7 +1,7 @@
-#include <iostream>
 #include "historyapp.h"
 #include "appclioptions.h"
 #include "src/shvjournalnode.h"
+#include "src/leafnode.h"
 
 #include <shv/iotqt/rpc/rpccall.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
@@ -84,59 +84,37 @@ enum class SlaveFound {
 	No
 };
 
-shv::iotqt::node::ShvNode* createTree(const cp::RpcValue::Map& tree, const std::string& parent_name, std::string remote_log_shv_path, const std::string& node_name, SlaveFound slave_found)
+void createTree(shv::iotqt::node::ShvNode* parent_node, const cp::RpcValue::Map& tree, const QString& node_name, std::vector<SlaveHpInfo>& slave_hps, SlaveFound slave_found)
 {
-	using shv::core::Utils;
-	if (node_name == "_meta" && tree.hasKey("HP")) {
-		std::string log_shv_path_suffix;
-		auto log_type = LogType::Normal;
-		if (tree.value("HP").asMap().value("legacy").toBool()) {
-			log_type = LogType::Legacy;
+	shv::iotqt::node::ShvNode* node;
+	if (auto meta_node = tree.value("_meta").asMap(); (meta_node.hasKey("HP") || meta_node.hasKey("HP3")) && node_name != "shv") {
+		auto hp_node = meta_node.value("HP", meta_node.value("HP3")).asMap();
+		auto log_type =
+			hp_node.value("pushLog").toBool() ? LogType::PushLog :
+			meta_node.hasKey("HP") ? LogType::Legacy :
+			LogType::Normal;
+		node = new LeafNode(node_name.toStdString(), log_type, parent_node);
+		if (!parent_node->shvPath().empty() && slave_found != SlaveFound::Yes) {
+			slave_found = SlaveFound::Yes;
+			slave_hps.push_back(SlaveHpInfo {
+				.is_leaf = meta_node.hasKey("HP") || !meta_node.value("HP3").asMap().value("slave").toBool(),
+				.log_type = log_type,
+				.shv_path = node->shvPath(),
+			});
 		}
-
-		if (tree.value("HP").asMap().value("pushLog").toBool()) {
-			log_type = LogType::PushLog;
-		}
-
-		if (slave_found == SlaveFound::No) {
-			HistoryApp::instance()->rpcConnection()->callMethodSubscribe(remote_log_shv_path, "mntchng");
-		}
-
-		if (log_type != LogType::Legacy) {
-			remote_log_shv_path = Utils::joinPath(remote_log_shv_path, slave_found == SlaveFound::No ? ".app/shvjournal"s : "shvjournal"s);
-		}
-
-		return new ShvJournalNode(QString::fromStdString(parent_name), QString::fromStdString(remote_log_shv_path), log_type);
-	}
-
-	shv::iotqt::node::ShvNode* res = nullptr;
-	auto new_parent_name = Utils::joinPath(parent_name, node_name);
-	auto new_remote_log_shv_path = Utils::joinPath(remote_log_shv_path, node_name);
-	// This block looks for a slave HP provider. It'll be used for all log fetching of this particular shv node. We
-	// will still recurse until we find a "HP" key, because we can't easily know what kind of nodes the slave provider
-	// contains.
-	//
-	// We'll also skip the first one (when parent_name is empty), because that one refers to this HP instance.
-	if (!parent_name.empty() && slave_found == SlaveFound::No && tree.value("_meta").asMap().hasKey("HP3")) {
-		HistoryApp::instance()->rpcConnection()->callMethodSubscribe(new_remote_log_shv_path, "mntchng");
-		new_remote_log_shv_path = Utils::joinPath(new_remote_log_shv_path, ".local/history/shv"s);
-		slave_found = SlaveFound::Yes;
+	} else {
+		node = new shv::iotqt::node::ShvNode(node_name.toStdString(), parent_node);
 	}
 
 	for (const auto& [k, v] : tree) {
-		if (v.type() == cp::RpcValue::Type::Map) {
-			auto node = createTree(v.asMap(), new_parent_name, new_remote_log_shv_path, k, slave_found);
-			if (node) {
-				if (!res) {
-					res = new shv::iotqt::node::ShvNode(node_name);
-				}
+		if (k == "_meta") {
+			continue;
+		}
 
-				node->setParentNode(res);
-			}
+		if (v.type() == cp::RpcValue::Type::Map) {
+			createTree(node, v.asMap(), QString::fromStdString(k), slave_hps, slave_found);
 		}
 	}
-
-	return res;
 }
 
 auto parse_size_option(const std::string& size_option, bool* success)
@@ -184,7 +162,7 @@ auto parse_size_option(const std::string& size_option, bool* success)
 void HistoryApp::sanitizeNext()
 {
 	if (!m_sanitizerIterator.hasNext()) {
-		m_sanitizerIterator = QListIterator(m_journalNodes);
+		m_sanitizerIterator = QListIterator(m_leafNodes);
 	}
 
 	// m_journalNodes is never empty, because we don't run the sanitizer when there are no journal nodes
@@ -196,7 +174,7 @@ HistoryApp::HistoryApp(int& argc, char** argv, AppCliOptions* cli_opts, shv::iot
 	: Super(argc, argv)
 	  , m_rpcConnection(rpc_connection)
 	  , m_cliOptions(cli_opts)
-	  , m_sanitizerIterator(m_journalNodes) // I have to initialize this one, because it doesn't have a default ctor
+	  , m_sanitizerIterator(m_leafNodes) // I have to initialize this one, because it doesn't have a default ctor
 {
 	m_rpcConnection->setParent(this);
 
@@ -258,16 +236,16 @@ QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> HistoryA
 		co_return;
 	}
 
-	auto nodes = createTree(result.asMap(), "", "", "shv", SlaveFound::No);
-	if (nodes) {
-		nodes->setParentNode(m_root);
-	}
+	std::vector<SlaveHpInfo> slave_hps;
+	createTree(m_root, result.asMap(), "shv", slave_hps, SlaveFound::No);
 
-	m_journalNodes = m_shvTree->findChildren<ShvJournalNode*>();
-	if (m_journalNodes.size() != 0) {
-		m_singleCacheSizeLimit = m_totalCacheSizeLimit / m_journalNodes.size();
+	m_shvJournalNode = new ShvJournalNode(slave_hps, m_root);
 
-		m_sanitizerIterator = QListIterator(m_journalNodes);
+	m_leafNodes = m_shvTree->findChildren<LeafNode*>();
+	if (m_leafNodes.size() != 0) {
+		m_singleCacheSizeLimit = m_totalCacheSizeLimit / m_leafNodes.size();
+
+		m_sanitizerIterator = QListIterator(m_leafNodes);
 		auto timer = new QTimer(this);
 		connect(timer, &QTimer::timeout, this, &HistoryApp::sanitizeNext);
 		timer->start(m_cliOptions->journalSanitizerInterval() * 1000);

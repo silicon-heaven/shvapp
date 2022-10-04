@@ -2,10 +2,10 @@
 
 namespace mock_sites {
 // TODO: Name this properly
-const auto fin_slave_broker_sites = shv::chainpack::RpcValue::fromCpon(R"(
+const auto fin_slave_broker = shv::chainpack::RpcValue::fromCpon(R"(
 {
   "_meta":{
-    "HP3":{}
+    "HP3":{"slave": true}
   },
   "eyas":{
     "_meta":{
@@ -13,7 +13,7 @@ const auto fin_slave_broker_sites = shv::chainpack::RpcValue::fromCpon(R"(
     },
     "opc":{
       "_meta":{
-        "HP":{},
+        "HP3":{},
         "name":"Raide Jokeri depot shvgate",
         "type":"DepotG2"
       }
@@ -22,10 +22,10 @@ const auto fin_slave_broker_sites = shv::chainpack::RpcValue::fromCpon(R"(
 }
 )");
 
-const auto fin_master_broker_sites = shv::chainpack::RpcValue::fromCpon(R"(
+const auto fin_master_broker = shv::chainpack::RpcValue::fromCpon(R"(
 {
   "_meta":{
-    "HP3":{}
+    "HP3":{"slave": true}
   },
   "fin":{
     "_meta":{"name":"Finland", "name_cz":"Finsko"},
@@ -34,7 +34,7 @@ const auto fin_master_broker_sites = shv::chainpack::RpcValue::fromCpon(R"(
       "tram":{
         "hel002":{
           "_meta":{
-            "HP3":{}
+            "HP3":{"slave":true}
           },
           "eyas":{
             "_meta":{
@@ -42,7 +42,7 @@ const auto fin_master_broker_sites = shv::chainpack::RpcValue::fromCpon(R"(
             },
             "opc":{
               "_meta":{
-                "HP":{},
+                "HP3":{},
                 "name":"Raide Jokeri depot shvgate",
                 "type":"DepotG2"
               }
@@ -55,14 +55,14 @@ const auto fin_master_broker_sites = shv::chainpack::RpcValue::fromCpon(R"(
 }
 )");
 
-const auto pushlog_hp_sites = shv::chainpack::RpcValue::fromCpon(R"(
+const auto pushlog_hp = shv::chainpack::RpcValue::fromCpon(R"(
 {
   "_meta":{
-    "HP3":{}
+    "HP3":{"slave": true}
   },
   "pushlog":{
     "_meta":{
-      "HP":{"pushLog": true}
+      "HP3":{"pushLog": true}
     }
   }
 }
@@ -71,17 +71,48 @@ const auto pushlog_hp_sites = shv::chainpack::RpcValue::fromCpon(R"(
 const auto master_hp_with_slave_pushlog = shv::chainpack::RpcValue::fromCpon(R"(
 {
   "_meta":{
-    "HP3":{}
+    "HP3":{"slave": true}
   },
   "master": {
     "_meta":{
-      "HP3":{}
+      "HP3":{"slave": true}
     },
     "pushlog":{
       "_meta":{
-        "HP":{"pushLog": true}
+        "HP3":{"pushLog": true}
       }
     }
+  }
+}
+)");
+
+const auto legacy_hp = shv::chainpack::RpcValue::fromCpon(R"(
+{
+  "_meta":{
+    "HP3":{"slave": true}
+  },
+  "legacy": {
+    "_meta":{
+      "HP":{}
+    },
+  }
+}
+)");
+
+const auto two_devices = shv::chainpack::RpcValue::fromCpon(R"(
+{
+  "_meta":{
+    "HP3":{"slave": true}
+  },
+  "one": {
+    "_meta":{
+      "HP":{}
+    },
+  },
+  "two": {
+    "_meta":{
+      "HP":{}
+    },
   }
 }
 )");
