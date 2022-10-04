@@ -119,12 +119,18 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 		QDir cache_dir(QString::fromStdString(m_journalCacheDir));
 		auto remote_since_ms = reader.logHeader().sinceCRef().toDateTime().msecsSinceEpoch();
 		int64_t local_newest_entry_ms = 0;
+		std::vector<std::string> local_newest_entry_paths;
 		auto entries = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name | QDir::Reversed);
 		if (!std::empty(entries)) {
 			auto local_newest_log_file = entries.at(0);
 			auto newest_file_entries = read_entries_from_file(local_newest_log_file);
 			if (!newest_file_entries.empty()) {
 				local_newest_entry_ms = newest_file_entries.back().dateTime().msecsSinceEpoch();
+				for (const auto& entry : newest_file_entries) {
+					if (entry.epochMsec == local_newest_entry_ms) {
+						local_newest_entry_paths.push_back(entry.path);
+					}
+				}
 			}
 		}
 
@@ -138,6 +144,12 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 				journalError() << "Rejecting push log entry with timestamp:" << entry.epochMsec << "because a newer one already exists:" << local_newest_entry_ms;
 				continue;
 			}
+
+			if (entry.epochMsec == local_newest_entry_ms && std::find(local_newest_entry_paths.begin(), local_newest_entry_paths.end(), entry.path) != local_newest_entry_paths.end()) {
+				journalError() << "Rejecting push log entry with timestamp:" << entry.epochMsec << "and path:" << entry.path << "because we already have an entry with this timestamp and path";
+				continue;
+			}
+
 			writer.append(reader.entry());
 		}
 		return true;
