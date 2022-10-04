@@ -444,7 +444,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 					NOTIFY("shv/eyas/opc/power-on", "chng", false);
 
 					expected_cache_contents = RpcValue::List({{
-						RpcValue::List{ "dirty.log2", 101ul }
+						RpcValue::List{ "dirty.log2", 101UL }
 					}});
 				}
 
@@ -455,8 +455,8 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			DOCTEST_SUBCASE("Don't download files older than we already have")
 			{
 				expected_cache_contents = RpcValue::List({{
-					RpcValue::List{ "2022-07-07T18-06-15-557.log2", 0ul },
-					RpcValue::List{ "2022-07-07T18-06-15-558.log2", 0ul }
+					RpcValue::List{ "2022-07-07T18-06-15-557.log2", 0UL },
+					RpcValue::List{ "2022-07-07T18-06-15-558.log2", 0UL }
 				}});
 				create_dummy_cache_files(cache_dir_path, {
 					{"2022-07-07T18-06-15-557.log2", ""},
@@ -695,7 +695,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			EXPECT_REQUEST(cache_dir_path, "getLog");
 			RESPOND_YIELD(dummy_getlog_response);
 			expected_cache_contents = RpcValue::List({{
-				RpcValue::List{ "2022-07-07T18-06-15-557.log2", 201ul }
+				RpcValue::List{ "2022-07-07T18-06-15-557.log2", 201UL }
 			}});
 		}
 
@@ -722,7 +722,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				auto since_param_ms = shv::chainpack::RpcRequest(m_messageQueue.head()).params().asMap().value("since").toDateTime().msecsSinceEpoch();
 				REQUIRE(since_param_ms == shv::chainpack::RpcValue::DateTime::fromUtcString("2022-07-07T18:06:17.870Z").msecsSinceEpoch());
 				expected_cache_contents = RpcValue::List({{
-					RpcValue::List{ "2022-07-07T18-06-15-557.log2", 308ul }
+					RpcValue::List{ "2022-07-07T18-06-15-557.log2", 308UL }
 				}});
 			}
 
@@ -752,8 +752,8 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			{
 				HistoryApp::instance()->setSingleCacheSizeLimit(5000);
 				expected_cache_contents = RpcValue::List({{
-					RpcValue::List{ "2022-07-07T18-06-15-557.log2", 308ul },
-					RpcValue::List{ "2022-07-07T18-06-15-560.log2", 308ul }
+					RpcValue::List{ "2022-07-07T18-06-15-557.log2", 308UL },
+					RpcValue::List{ "2022-07-07T18-06-15-560.log2", 308UL }
 				}});
 			}
 
@@ -761,7 +761,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			{
 				HistoryApp::instance()->setSingleCacheSizeLimit(500);
 				expected_cache_contents = RpcValue::List({{
-					RpcValue::List{ "2022-07-07T18-06-15-560.log2", 308ul }
+					RpcValue::List{ "2022-07-07T18-06-15-560.log2", 308UL }
 				}});
 			}
 
@@ -790,7 +790,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				{ "2022-07-07T18-06-15-560.log2", dummy_logfile },
 			});
 			expected_cache_contents = RpcValue::List({{
-				RpcValue::List{ "2022-07-07T18-06-15-560.log2", 308ul }
+				RpcValue::List{ "2022-07-07T18-06-15-560.log2", 308UL }
 			}});
 
 			DRIVER_WAIT(3000);
