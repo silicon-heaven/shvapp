@@ -861,6 +861,21 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				}});
 			}
 
+			DOCTEST_SUBCASE("only dirty in cache")
+			{
+				create_dummy_cache_files(cache_dir_path, {
+					{ "dirty.log2", dummy_logfile },
+				});
+				REQUEST_YIELD("shvjournal", "syncLog", RpcValue());
+				EXPECT_REQUEST(cache_dir_path, "getLog");
+				auto since_param_ms = shv::chainpack::RpcRequest(m_messageQueue.head()).params().asMap().value("since").toDateTime().msecsSinceEpoch();
+				auto now_ms = shv::chainpack::RpcValue::DateTime::now().msecsSinceEpoch();
+				REQUIRE(now_ms - since_param_ms < int64_t{1000} /*ms*/ * 60 /*seconds*/ * 60 /*minutes*/ * 24 /*hours*/ * 31 /*days*/ );
+				expected_cache_contents = RpcValue::List({{
+					RpcValue::List{ "dirty.log2", 308UL }
+				}});
+			}
+
 			RESPOND_YIELD(shv::chainpack::RpcValue::List());
 		}
 

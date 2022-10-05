@@ -257,16 +257,23 @@ public:
 		shv::core::utils::ShvGetLogParams get_log_params;
 		get_log_params.recordCountLimit = RECORD_COUNT_LIMIT;
 		get_log_params.until = shv::chainpack::RpcValue::DateTime::now();
+		get_log_params.since = shv::chainpack::RpcValue::DateTime::fromMSecsSinceEpoch(QDateTime::currentDateTime().addSecs(- HistoryApp::instance()->cliOptions()->cacheInitMaxAge()).toMSecsSinceEpoch());
 
 		QDir cache_dir(Utils::joinPath(m_cacheDirPath, slave_hp_path));
 		if (!cache_dir.isEmpty()) {
 			auto entry_list = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name | QDir::Reversed);
-			auto newest_file_name = entry_list.at(0) == DIRTY_FILENAME ? entry_list.at(1) : entry_list.at(0);
-			auto newest_file_entries = read_entries_from_file(cache_dir.filePath(newest_file_name));
+			QString newest_file_name;
 
-			get_log_params.since = shv::chainpack::RpcValue::DateTime::fromMSecsSinceEpoch(newest_file_entries.back().dateTime().msecsSinceEpoch() + 1);
-		} else {
-			get_log_params.since = shv::chainpack::RpcValue::DateTime::fromMSecsSinceEpoch(QDateTime::currentDateTime().addSecs(- HistoryApp::instance()->cliOptions()->cacheInitMaxAge()).toMSecsSinceEpoch());
+			if (entry_list.at(0) != DIRTY_FILENAME) {
+				newest_file_name = entry_list.at(0);
+			} else if (entry_list.size() > 1) {
+				newest_file_name = entry_list.at(1);
+			}
+
+			if (!newest_file_name.isEmpty()) {
+				auto newest_file_entries = read_entries_from_file(cache_dir.filePath(newest_file_name));
+				get_log_params.since = shv::chainpack::RpcValue::DateTime::fromMSecsSinceEpoch(newest_file_entries.back().dateTime().msecsSinceEpoch() + 1);
+			}
 		}
 
 		std::vector<shv::core::utils::ShvJournalEntry> downloaded_entries;
