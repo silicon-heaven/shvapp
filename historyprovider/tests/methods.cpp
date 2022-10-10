@@ -966,4 +966,4 @@ DOCTEST_TEST_CASE("HistoryApp")
 	app.exec();
 }
 
-#include "test.moc"
+#include "methods.moc"

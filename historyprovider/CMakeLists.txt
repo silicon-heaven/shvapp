@@ -31,5 +31,5 @@ if(BUILD_TESTING)
         add_test(NAME ${TEST_NAME} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${TEST_NAME})
     endfunction()
 
-    history_test(test)
+    history_test(methods)
 endif()
