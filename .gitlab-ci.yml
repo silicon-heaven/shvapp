@@ -130,7 +130,7 @@ run-tests:
     test
   script:
     - cd build
-    - ctest --output-on-failure
+    - ctest --output-on-failure -j4
 
 
 #
