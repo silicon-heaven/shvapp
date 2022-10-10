@@ -1,5 +1,6 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "mockrpcconnection.h"
+#include "pretty_printers.h"
 #include <doctest/doctest.h>
 
 #include "src/appclioptions.h"
@@ -14,33 +15,6 @@
 
 namespace cp = shv::chainpack;
 using cp::RpcValue;
-
-namespace std {
-    doctest::String toString(const std::vector<int64_t>& values) {
-		std::ostringstream res;
-		res << "std::vector<int64_t>{";
-		for (const auto& value : values) {
-			res << value << ", ";
-		}
-		res << "}";
-		return res.str().c_str();
-    }
-}
-
-namespace shv::chainpack {
-
-    doctest::String toString(const RpcValue& value) {
-        return value.toCpon().c_str();
-    }
-
-    doctest::String toString(const RpcValue::List& value) {
-        return RpcValue(value).toCpon().c_str();
-    }
-
-    doctest::String toString(const RpcMessage& value) {
-        return value.toPrettyString().c_str();
-    }
-}
 
 auto get_site_cache_dir(const std::string& site_path)
 {
