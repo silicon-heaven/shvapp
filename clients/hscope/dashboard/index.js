@@ -162,15 +162,20 @@ const send_ping = () => {
 
 const connect_websocket = () => {
 	try {
+		document.querySelector("#hscope_container").innerHTML = "";
+
 		const user = document.getElementById("txt_user").value;
+		localStorage.setItem("lastUser", user);
 		if (user === "") {
 			throw new Error("SHV username mustn't be empty");
 		}
-		const password = document.getElementById("txt_password").value;
 
+		const password = document.getElementById("txt_password").value;
 		if (password === "") {
 			throw new Error("SHV password mustn't be empty");
 		}
+		localStorage.setItem("lastPassword", password);
+
 		websocket = new WsClient({
 			user,
 			password,
@@ -243,5 +248,8 @@ txt_filter.oninput = () => {
 txt_filter.select();
 
 document.getElementById("btn_connect").onclick = connect_websocket;
+
+document.getElementById("txt_user").value = localStorage.getItem("lastUser") ? localStorage.getItem("lastUser") : "";
+document.getElementById("txt_password").value = localStorage.getItem("lastPassword") ? localStorage.getItem("lastPassword") : "";
 
 connect_websocket();
