@@ -1,10 +1,8 @@
 let websocket = null;
 const ws_uri = "wss://nirvana.elektroline.cz:3778";
-const user = "hscope";
-const password = "holyshit!";
 
 const txt_log = document.getElementById("txt_log");
-document.getElementById("toggle_log").onclick = () => {
+const toggle_log = () => {
 	if (txt_log.className === "d-none") {
 		txt_log.className = "";
 		txt_log.scrollTop = txt_log.scrollHeight;
@@ -12,6 +10,8 @@ document.getElementById("toggle_log").onclick = () => {
 		txt_log.className = "d-none";
 	}
 };
+
+document.getElementById("toggle_log").onclick = toggle_log;
 
 const debug = (...args) => {
 	if (txt_log) {
@@ -162,6 +162,15 @@ const send_ping = () => {
 
 const connect_websocket = () => {
 	try {
+		const user = document.getElementById("txt_user").value;
+		if (user === "") {
+			throw new Error("SHV username mustn't be empty");
+		}
+		const password = document.getElementById("txt_password").value;
+
+		if (password === "") {
+			throw new Error("SHV password mustn't be empty");
+		}
 		websocket = new WsClient({
 			user,
 			password,
@@ -191,6 +200,9 @@ const connect_websocket = () => {
 		});
 	} catch (exception) {
 		debug('EXCEPTION: ' + exception);
+		if (txt_log.className === "d-none") {
+			toggle_log();
+		}
 	}
 }
 
@@ -229,5 +241,7 @@ txt_filter.oninput = () => {
 };
 
 txt_filter.select();
+
+document.getElementById("btn_connect").onclick = connect_websocket;
 
 connect_websocket();
