@@ -193,11 +193,6 @@ auto join(const std::string& a, const std::string& b)
 	return shv::core::Utils::joinPath(a, b);
 }
 
-auto make_sub_params(const std::string& path, const std::string& method)
-{
-	return shv::chainpack::RpcValue::fromCpon(R"({"method":")" + method + R"(","path":")" + path + R"("}")");
-}
-
 const auto ls_size_true = RpcValue::fromCpon(R"({"size": true})");
 const auto read_offset_0 = RpcValue::fromCpon(R"({"offset":0})");
 

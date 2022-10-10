@@ -1,6 +1,11 @@
 #include "mockrpcconnection.h"
 #include "src/historyapp.h"
 
+shv::chainpack::RpcValue make_sub_params(const std::string& path, const std::string& method)
+{
+    return shv::chainpack::RpcValue::fromCpon(R"({"method":")" + method + R"(","path":")" + path + R"("}")");
+}
+
 shv::chainpack::RpcResponse MockRpcConnection::createResponse(const shv::chainpack::RpcValue& result)
 {
     shv::chainpack::RpcResponse res;
