@@ -20,6 +20,12 @@ target_link_libraries(historyprovider libhistoryprovider)
 install(TARGETS historyprovider)
 
 if(BUILD_TESTING)
+    add_library(mockrpcconnection STATIC
+        tests/mockrpcconnection.cpp
+        )
+    target_link_libraries(mockrpcconnection libhistoryprovider)
+    target_enable_coroutines(mockrpcconnection)
+
     function(history_test name)
         set(TEST_NAME test_historyprovider_${name})
         add_executable(${TEST_NAME}
@@ -27,7 +33,7 @@ if(BUILD_TESTING)
             )
 
         target_enable_coroutines(${TEST_NAME})
-        target_link_libraries(${TEST_NAME} libhistoryprovider)
+        target_link_libraries(${TEST_NAME} libhistoryprovider mockrpcconnection)
         add_test(NAME ${TEST_NAME} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${TEST_NAME})
     endfunction()
 

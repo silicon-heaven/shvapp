@@ -1,26 +1,19 @@
+#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include "mockrpcconnection.h"
+#include <doctest/doctest.h>
+
 #include "src/appclioptions.h"
 #include "src/historyapp.h"
 #include "tests/sites.h"
 
-#include <shv/coreqt/log.h>
 #include <shv/core/utils/shvjournalentry.h>
 #include <shv/core/utils/shvmemoryjournal.h>
-#include <shv/iotqt/rpc/deviceconnection.h>
-#include <QCoroGenerator>
 
 #include <QDir>
-#include <QQueue>
-#include <QTimer>
 
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
-#include <doctest/doctest.h>
 
 namespace cp = shv::chainpack;
 using cp::RpcValue;
-
-#define mockDebug() shvCDebug("MockRpcConnection")
-#define mockInfo() shvCInfo("MockRpcConnection")
-#define mockError() shvCError("MockRpcConnection")
 
 namespace std {
     doctest::String toString(const std::vector<int64_t>& values) {
@@ -47,219 +40,6 @@ namespace shv::chainpack {
     doctest::String toString(const RpcMessage& value) {
         return value.toPrettyString().c_str();
     }
-}
-
-class MockRpcConnection : public shv::iotqt::rpc::DeviceConnection {
-	Q_OBJECT
-
-	using Super = shv::iotqt::rpc::DeviceConnection;
-
-private:
-	auto createResponse(const RpcValue& result)
-	{
-		cp::RpcResponse res;
-		res.setRequestId(m_messageQueue.head().requestId());
-		res.setResult(result);
-		mockInfo() << "Sending response:" << res.toPrettyString();
-		m_messageQueue.dequeue();
-		return res;
-	}
-
-	void doRespond(const RpcValue& result)
-	{
-		emit rpcMessageReceived(createResponse(result));
-	}
-
-	void doRespondInEventLoop(const RpcValue& result)
-	{
-		QTimer::singleShot(0, [this, response = createResponse(result)] {emit rpcMessageReceived(response);});
-	}
-
-	auto createRequest(const std::string& path, const std::string& method, const RpcValue& params)
-	{
-		cp::RpcRequest req;
-		req.setRequestId(nextRequestId());
-		req.setAccessGrant(shv::chainpack::Rpc::ROLE_ADMIN);
-		req.setShvPath(path);
-		req.setParams(params);
-		req.setMethod(method);
-		mockInfo() << "Sending request:" << req.toPrettyString();
-		return req;
-	}
-
-	void doRequest(const std::string& path, const std::string& method, const RpcValue& params)
-	{
-		emit rpcMessageReceived(createRequest(path, method, params));
-	}
-
-	void doRequestInEventLoop(const std::string& path, const std::string& method, const RpcValue& params)
-	{
-		QTimer::singleShot(0, [this, request = createRequest(path, method, params)] {emit rpcMessageReceived(request);});
-	}
-
-	auto createNotification(const std::string& path, const std::string& method, const RpcValue& params)
-	{
-		cp::RpcSignal sig;
-		sig.setShvPath(path);
-		sig.setMethod(method);
-		sig.setParams(params);
-		mockInfo() << "Sending signal:" << sig.toPrettyString();
-		return sig;
-	}
-
-	void doNotify(const std::string& path, const std::string& method, const RpcValue& params)
-	{
-		emit rpcMessageReceived(createNotification(path, method, params));
-	}
-
-	void doNotifyInEventLoop(const std::string& path, const std::string& method, const RpcValue& params)
-	{
-		QTimer::singleShot(0, [this, notification = createNotification(path, method, params)] {emit rpcMessageReceived(notification);});
-	}
-
-	void advanceTest()
-	{
-		if (m_testDriverState == m_testDriver.end()) {
-			CAPTURE("Client sent unexpected message after test end");
-			CAPTURE(m_messageQueue.head());
-			REQUIRE(false);
-		}
-
-		if (m_timeoutTimer) {
-			m_timeoutTimer->stop();
-			m_timeoutTimer->deleteLater();
-			m_timeoutTimer = nullptr;
-		}
-
-		m_coroRunning = true;
-		++m_testDriverState;
-		m_coroRunning = false;
-		if (m_testDriverState != m_testDriver.end()) {
-			// I also need to dereference the value to trigger any unhandled exceptions.
-			*m_testDriverState;
-		}
-
-		if (m_testDriverState == m_testDriver.end()) {
-			// We'll wait a bit before ending to make sure the client isn't sending more messages.
-			QTimer::singleShot(100, [] {
-				HistoryApp::instance()->exit();
-			});
-		}
-	}
-
-	QCoro::Generator<int> m_testDriver;
-	QCoro::Generator<int>::iterator m_testDriverState;
-	QQueue<cp::RpcMessage> m_messageQueue;
-	bool m_coroRunning = false;
-
-	QTimer* m_timeoutTimer = nullptr;
-public:
-	MockRpcConnection()
-		: shv::iotqt::rpc::DeviceConnection(nullptr)
-		, m_testDriver(driver())
-		, m_testDriverState(m_testDriver.begin())
-	{
-		connect(this, &MockRpcConnection::handleNextMessage, this, &MockRpcConnection::advanceTest, Qt::QueuedConnection);
-	}
-
-    void open() override
-    {
-        mockInfo() << "Client connected";
-        m_connectionState.state = State::BrokerConnected;
-        emit brokerConnectedChanged(true);
-    }
-
-	Q_SIGNAL void handleNextMessage();
-
-	// I can't return void from the generator, so I'm returning ints.
-	QCoro::Generator<int> driver();
-
-    void sendMessage(const cp::RpcMessage& rpc_msg) override
-    {
-		auto msg_type =
-			rpc_msg.isRequest() ? "message:" :
-			rpc_msg.isResponse() ? "response:" :
-			rpc_msg.isSignal() ? "signal:" :
-			"<unknown message type>:";
-		mockInfo() << "Got client" << msg_type << rpc_msg.toPrettyString();
-
-		if (m_coroRunning) {
-			throw std::logic_error("A client send a message while the test driver was running."
-					" This can lead to unexpected behavior, because the test driver resumes on messages from the client and you can't resume the driver while it's already running.");
-		}
-
-		// For now we're not handling signals at all, so we'll skip them.
-		if (rpc_msg.isSignal()) {
-			return;
-		}
-
-		m_messageQueue.enqueue(rpc_msg);
-
-		emit handleNextMessage();
-    }
-};
-
-const auto COROUTINE_TIMEOUT = 3000;
-
-#define SETUP_TIMEOUT { \
-	m_timeoutTimer = new QTimer(); \
-	connect(m_timeoutTimer, &QTimer::timeout, [] {throw std::runtime_error("The test timed out while waiting for a message from client.");}); \
-	m_timeoutTimer->start(COROUTINE_TIMEOUT); \
-}
-
-#define REQUEST_YIELD(path, method, params) { \
-	doRequestInEventLoop((path), (method), (params)); \
-	SETUP_TIMEOUT; \
-	co_yield {}; \
-}
-
-#define REQUEST(path, method, params) { \
-	doRequest((path), (method), (params)); \
-}
-
-#define NOTIFY_YIELD(path, method, params) { \
-	doNotifyInEventLoop((path), (method), (params)); \
-	SETUP_TIMEOUT; \
-	co_yield {}; \
-}
-
-#define NOTIFY(path, method, params) { \
-	doNotify((path), (method), (params)); \
-}
-
-#define RESPOND(result) { \
-	doRespond(result); \
-}
-
-#define RESPOND_YIELD(result) { \
-	doRespondInEventLoop(result); \
-	SETUP_TIMEOUT; \
-	co_yield {}; \
-}
-
-#define EXPECT_REQUEST(pathStr, methodStr, ...) { \
-	REQUIRE(!m_messageQueue.empty()); \
-	CAPTURE(m_messageQueue.head()); \
-	REQUIRE(m_messageQueue.head().isRequest()); \
-	REQUIRE(m_messageQueue.head().shvPath().asString() == (pathStr)); \
-	REQUIRE(m_messageQueue.head().method().asString() == (methodStr)); \
-	__VA_OPT__(REQUIRE(shv::chainpack::RpcRequest(m_messageQueue.head()).params() == (__VA_ARGS__));) \
-}
-
-#define EXPECT_RESPONSE(expectedResult) { \
-	REQUIRE(!m_messageQueue.empty()); \
-	CAPTURE(m_messageQueue.head()); \
-	REQUIRE(m_messageQueue.head().isResponse()); \
-	REQUIRE(shv::chainpack::RpcResponse(m_messageQueue.head()).result() == (expectedResult)); \
-	m_messageQueue.dequeue(); \
-}
-
-#define EXPECT_ERROR(expectedMsg) { \
-	REQUIRE(!m_messageQueue.empty()); \
-	CAPTURE(m_messageQueue.head()); \
-	REQUIRE(m_messageQueue.head().isResponse()); \
-	REQUIRE(shv::chainpack::RpcResponse(m_messageQueue.head()).errorString() == (expectedMsg)); \
-	m_messageQueue.dequeue(); \
 }
 
 auto get_site_cache_dir(const std::string& site_path)
@@ -442,37 +222,6 @@ auto join(const std::string& a, const std::string& b)
 auto make_sub_params(const std::string& path, const std::string& method)
 {
 	return shv::chainpack::RpcValue::fromCpon(R"({"method":")" + method + R"(","path":")" + path + R"("}")");
-}
-
-#define EXPECT_SUBSCRIPTION(path, method) { \
-	EXPECT_REQUEST(".broker/app", "subscribe", make_sub_params(path, method)); \
-	RESPOND(true); \
-}
-
-#define EXPECT_SUBSCRIPTION_YIELD(path, method) { \
-	EXPECT_REQUEST(".broker/app", "subscribe", make_sub_params(path, method)); \
-	RESPOND_YIELD(true); \
-}
-
-#define SEND_SITES_YIELD_AND_HANDLE_SUB(sitesStr, subPath) { \
-	EXPECT_REQUEST("sites", "getSites", RpcValue()); \
-	RESPOND_YIELD(sitesStr); \
-	EXPECT_SUBSCRIPTION(subPath, "chng"); \
-}
-
-#define SEND_SITES_YIELD(sitesStr) { \
-	EXPECT_REQUEST("sites", "getSites", RpcValue()); \
-	RESPOND_YIELD(sitesStr); \
-}
-
-#define SEND_SITES(sitesStr) { \
-	EXPECT_REQUEST("sites", "getSites", RpcValue()); \
-	RESPOND(sitesStr); \
-}
-
-#define DRIVER_WAIT(msec) { \
-	QTimer::singleShot(msec, [this] { advanceTest(); }); \
-	co_yield {}; \
 }
 
 const auto ls_size_true = RpcValue::fromCpon(R"({"size": true})");
@@ -965,5 +714,3 @@ DOCTEST_TEST_CASE("HistoryApp")
 	HistoryApp app(argc, argv, &cli_opts, new MockRpcConnection());
 	app.exec();
 }
-
-#include "methods.moc"
