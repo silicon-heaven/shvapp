@@ -33,7 +33,6 @@ ShvJournalNode::ShvJournalNode(const std::vector<SlaveHpInfo>& slave_hps, ShvNod
 	: Super(QString::fromStdString(HistoryApp::instance()->cliOptions()->journalCacheRoot()), "shvjournal", parent)
 	, m_slaveHps(slave_hps)
 	, m_cacheDirPath(QString::fromStdString(HistoryApp::instance()->cliOptions()->journalCacheRoot()))
-	, m_dirtyLogFirstTimestamp(-1)
 {
 	QDir(m_cacheDirPath).mkpath(".");
 	auto conn = HistoryApp::instance()->rpcConnection();
@@ -86,13 +85,13 @@ void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 
 				}
 
-				if (m_dirtyLogFirstTimestamp == -1) {
+				if (!m_dirtyLogFirstTimestamp.contains(it->shv_path)) {
 					shv::core::utils::ShvJournalFileReader reader(dirty_log_path(shv::coreqt::Utils::joinPath(m_cacheDirPath, QString::fromStdString(it->shv_path))));
 					reader.next(); // There must be at least one entry, because I've just written it
-					m_dirtyLogFirstTimestamp = reader.entry().epochMsec;
+					m_dirtyLogFirstTimestamp.emplace(it->shv_path, reader.entry().epochMsec);
 				}
 
-				if (QDateTime::currentMSecsSinceEpoch() - HistoryApp::instance()->cliOptions()->logMaxAge() * 1000 > m_dirtyLogFirstTimestamp) {
+				if (QDateTime::currentMSecsSinceEpoch() - HistoryApp::instance()->cliOptions()->logMaxAge() * 1000 > m_dirtyLogFirstTimestamp.at(it->shv_path)) {
 					journalInfo() << "Log is too old, syncing journal" << it->shv_path;
 					syncLog(it->shv_path, [] (auto /*error*/) {
 					});
@@ -137,6 +136,7 @@ namespace {
 
 void write_entries_to_file(const QString& file_path, const std::vector<shv::core::utils::ShvJournalEntry>& entries)
 {
+	journalDebug() << "Writing" << entries.size() << "entries to" << file_path;
 	QFile(file_path).remove();
 	shv::core::utils::ShvJournalFileWriter writer(file_path.toStdString());
 	for (const auto& entry : entries) {
@@ -145,8 +145,11 @@ void write_entries_to_file(const QString& file_path, const std::vector<shv::core
 }
 }
 
-void ShvJournalNode::trimDirtyLog(const QString& cache_dir_path)
+void ShvJournalNode::trimDirtyLog(const QString& slave_hp_path)
 {
+	journalDebug() << "Trimming dirty log for" << slave_hp_path;
+	using shv::coreqt::Utils;
+	auto cache_dir_path = Utils::joinPath(m_cacheDirPath, slave_hp_path);
 	QDir cache_dir(cache_dir_path);
 	auto entries = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name | QDir::Reversed);
 
@@ -166,6 +169,8 @@ void ShvJournalNode::trimDirtyLog(const QString& cache_dir_path)
 		return;
 	}
 
+	journalDebug() << "File used for trimming" << cache_dir.filePath(entries.at(1));
+
 	auto newest_file_entries = read_entries_from_file(cache_dir.filePath(entries.at(1)));
 	auto newest_entry_msec = newest_file_entries.back().epochMsec;
 	// It is possible that the newest logfile contains multiple entries with the same timestamp. Because it could
@@ -183,8 +188,8 @@ void ShvJournalNode::trimDirtyLog(const QString& cache_dir_path)
 	bool first = true;
 	while (reader.next()) {
 		if (first) {
-			m_dirtyLogFirstTimestamp = reader.entry().epochMsec;
-			journalDebug() << "Dirty logfile first entry timestamp" << m_dirtyLogFirstTimestamp;
+			m_dirtyLogFirstTimestamp.insert_or_assign(slave_hp_path.toStdString(), reader.entry().epochMsec);
+			journalDebug() << "Dirty logfile first entry timestamp" << m_dirtyLogFirstTimestamp.at(slave_hp_path.toStdString());
 			first = false;
 		}
 
@@ -239,16 +244,20 @@ public:
 		Slave
 	};
 
-	void writeEntriesToFile(const std::vector<shv::core::utils::ShvJournalEntry>& downloaded_entries, QDir dir)
+	void writeEntriesToFile(const std::vector<shv::core::utils::ShvJournalEntry>& downloaded_entries, const QString& slave_hp_path)
 	{
+		journalDebug() << "Writing entries for" << slave_hp_path;
 		if (downloaded_entries.empty()) {
 			return;
 		}
 
+		using shv::coreqt::Utils;
+		QDir dir(Utils::joinPath(m_cacheDirPath, slave_hp_path));
+
 		auto file_name = dir.filePath(QString::fromStdString(shv::core::utils::ShvJournalFileReader::msecToBaseFileName(downloaded_entries.front().epochMsec)) + ".log2");
 
 		write_entries_to_file(file_name, downloaded_entries);
-		m_node->trimDirtyLog(m_cacheDirPath);
+		m_node->trimDirtyLog(slave_hp_path);
 	}
 
 	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> doLegacySync(const QString& slave_hp_path, const SyncType sync_type)
@@ -296,7 +305,7 @@ public:
 			result_log.loadLog(result);
 			result_log.clearSnapshot();
 			if (result_log.isEmpty()) {
-				writeEntriesToFile(downloaded_entries, cache_dir);
+				writeEntriesToFile(downloaded_entries, slave_hp_path);
 				co_return;
 			}
 
@@ -313,7 +322,7 @@ public:
 			}
 
 			if (remote_entries.size() < RECORD_COUNT_LIMIT) {
-				writeEntriesToFile(downloaded_entries, cache_dir);
+				writeEntriesToFile(downloaded_entries, slave_hp_path);
 				co_return;
 			}
 
@@ -404,7 +413,13 @@ public:
 			m_downloadedFiles.insert(full_file_name, result);
 		}
 
-		m_node->trimDirtyLog(Utils::joinPath(m_cacheDirPath, slave_hp_path));
+		writeFiles();
+
+		// We'll only trim if we actually downloaded some files, otherwise the trim algorithm will screw us over,
+		// because of the "last millisecond algorithm".
+		if (!file_list.asList().empty()) {
+			m_node->trimDirtyLog(slave_hp_path);
+		}
 	}
 
 	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> syncFiles()
@@ -433,10 +448,8 @@ public:
 			} else {
 				co_await doSync(slave_hp_path_qstr, sync_type);
 			}
-
 		}
 
-		writeFiles();
 		m_callback({});
 		deleteLater();
 	}

@@ -668,6 +668,55 @@ QCoro::Generator<int> MockRpcConnection::driver()
 		}
 	}
 
+	DOCTEST_SUBCASE("dirty log trim")
+	{
+		RpcValue::List expected_cache_contents;
+		SEND_SITES_YIELD(mock_sites::two_devices);
+		EXPECT_SUBSCRIPTION_YIELD("shv/one", "mntchng");
+		EXPECT_SUBSCRIPTION_YIELD("shv/one", "chng");
+		EXPECT_SUBSCRIPTION_YIELD("shv/two", "mntchng");
+		EXPECT_SUBSCRIPTION("shv/two", "chng");
+		create_dummy_cache_files("shv/one", {
+			{"2022-07-06T18-06-15-000.log2", dummy_logfile},
+			{"dirty.log2", dummy_logfile2}
+		});
+		create_dummy_cache_files("shv/two", {
+			{"2022-07-06T18-06-15-000.log2", dummy_logfile},
+			{"dirty.log2", dummy_logfile2}
+		});
+
+		expected_cache_contents = RpcValue::List({{
+			RpcValue::List{ "2022-07-06T18-06-15-000.log2", 308UL },
+			RpcValue::List{ "dirty.log2", 249UL }
+		}});
+
+		REQUIRE(get_cache_contents("shv/one") == expected_cache_contents);
+		REQUIRE(get_cache_contents("shv/two") == expected_cache_contents);
+
+		REQUEST_YIELD("shvjournal", "syncLog", RpcValue());
+		EXPECT_REQUEST("shv/one/.app/shvjournal", "lsfiles", ls_size_true);
+		RESPOND_YIELD((RpcValue::List{{
+			{ "2022-07-07T18-06-15-557.log2", "f", dummy_logfile2.size() }
+		}}));
+		EXPECT_REQUEST("shv/one/.app/shvjournal/2022-07-07T18-06-15-557.log2", "read", read_offset_0);
+		RESPOND_YIELD(RpcValue::stringToBlob(dummy_logfile2));
+
+		EXPECT_REQUEST("shv/two/.app/shvjournal", "lsfiles", ls_size_true);
+		RESPOND_YIELD(RpcValue::List());
+		EXPECT_RESPONSE("All files have been synced");
+
+		// shv/two is left intact
+		REQUIRE(get_cache_contents("shv/two") == expected_cache_contents);
+
+		expected_cache_contents = RpcValue::List({{
+			RpcValue::List{ "2022-07-06T18-06-15-000.log2", 308UL },
+			RpcValue::List{ "2022-07-07T18-06-15-557.log2", 148UL },
+			RpcValue::List{ "dirty.log2", 83UL }
+		}});
+
+		REQUIRE(get_cache_contents("shv/one") == expected_cache_contents);
+	}
+
 	co_return;
 }
 
