@@ -113,6 +113,17 @@ void MockRpcConnection::open()
     emit brokerConnectedChanged(true);
 }
 
+void MockRpcConnection::setBrokerConnected(bool state)
+{
+    mockInfo() << "Setting new broker connected state:" << state;
+    if (state) {
+        m_connectionState.state = State::BrokerConnected;
+    } else {
+        m_connectionState.state = State::ConnectionError;
+    }
+    QTimer::singleShot(0, [this, state] {emit brokerConnectedChanged(state);});
+}
+
 void MockRpcConnection::sendMessage(const shv::chainpack::RpcMessage& rpc_msg)
 {
     auto msg_type =

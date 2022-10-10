@@ -53,6 +53,7 @@ private:
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage& msg);
 	void sanitizeNext();
 	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> initializeShvTree();
+	void deinitializeShvTree();
 
 private:
 	shv::iotqt::rpc::DeviceConnection* m_rpcConnection = nullptr;
@@ -64,5 +65,6 @@ private:
 	int64_t m_singleCacheSizeLimit;
 	QList<LeafNode*> m_leafNodes;
 	QListIterator<LeafNode*> m_sanitizerIterator;
-	ShvJournalNode* m_shvJournalNode;
+	ShvJournalNode* m_shvJournalNode = nullptr;
+	QTimer* m_sanitizerTimer = nullptr;
 };

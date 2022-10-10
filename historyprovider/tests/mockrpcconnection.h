@@ -29,6 +29,8 @@ private:
 	void doNotifyInEventLoop(const std::string& path, const std::string& method, const shv::chainpack::RpcValue& params);
 	void advanceTest();
 
+	void setBrokerConnected(bool state);
+
 	QCoro::Generator<int> m_testDriver;
 	QCoro::Generator<int>::iterator m_testDriverState;
 	QQueue<shv::chainpack::RpcMessage> m_messageQueue;

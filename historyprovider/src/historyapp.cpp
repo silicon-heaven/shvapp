@@ -205,10 +205,6 @@ HistoryApp::HistoryApp(int& argc, char** argv, AppCliOptions* cli_opts, shv::iot
 	connect(m_rpcConnection, &si::rpc::ClientConnection::brokerConnectedChanged, this, &HistoryApp::onBrokerConnectedChanged);
 	connect(m_rpcConnection, &si::rpc::ClientConnection::rpcMessageReceived, this, &HistoryApp::onRpcMessageReceived);
 
-	m_root = new AppRootNode();
-	m_shvTree = new si::node::ShvNodeTree(m_root, this);
-	connect(m_shvTree->root(), &si::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &si::rpc::ClientConnection::sendMessage);
-
 	QTimer::singleShot(0, m_rpcConnection, &si::rpc::ClientConnection::open);
 }
 
@@ -224,6 +220,10 @@ HistoryApp* HistoryApp::instance()
 
 QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> HistoryApp::initializeShvTree()
 {
+	m_root = new AppRootNode();
+	m_shvTree = new si::node::ShvNodeTree(m_root, this);
+	connect(m_shvTree->root(), &si::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &si::rpc::ClientConnection::sendMessage);
+
 	auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
 		->setShvPath("sites")
 		->setMethod("getSites");
@@ -246,16 +246,29 @@ QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> HistoryA
 		m_singleCacheSizeLimit = m_totalCacheSizeLimit / m_leafNodes.size();
 
 		m_sanitizerIterator = QListIterator(m_leafNodes);
-		auto timer = new QTimer(this);
-		connect(timer, &QTimer::timeout, this, &HistoryApp::sanitizeNext);
-		timer->start(m_cliOptions->journalSanitizerInterval() * 1000);
+		m_sanitizerTimer = new QTimer(this);
+		connect(m_sanitizerTimer, &QTimer::timeout, this, &HistoryApp::sanitizeNext);
+		m_sanitizerTimer->start(m_cliOptions->journalSanitizerInterval() * 1000);
 	}
+}
+
+void HistoryApp::deinitializeShvTree()
+{
+	delete m_sanitizerTimer;
+	m_sanitizerTimer = nullptr;
+	m_leafNodes.clear();
+	delete m_shvTree;
+	m_shvTree = nullptr;
 }
 
 void HistoryApp::onBrokerConnectedChanged(bool is_connected)
 {
 	m_isBrokerConnected = is_connected;
-	initializeShvTree();
+	deinitializeShvTree();
+
+	if (m_isBrokerConnected) {
+		initializeShvTree();
+	}
 }
 
 void HistoryApp::onRpcMessageReceived(const cp::RpcMessage& msg)
