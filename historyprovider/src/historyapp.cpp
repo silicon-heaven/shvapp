@@ -222,9 +222,8 @@ HistoryApp* HistoryApp::instance()
 	return qobject_cast<HistoryApp*>(QCoreApplication::instance());
 }
 
-QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> HistoryApp::onBrokerConnectedChanged(bool is_connected)
+QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> HistoryApp::initializeShvTree()
 {
-	m_isBrokerConnected = is_connected;
 	auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
 		->setShvPath("sites")
 		->setMethod("getSites");
@@ -232,7 +231,8 @@ QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> HistoryA
 	auto [result, error] = co_await qCoro(call, &shv::iotqt::rpc::RpcCall::maybeResult);
 
 	if (!error.isEmpty()) {
-		shvError() << "Couldn't retrieve sites:" << error;
+		shvError() << "Couldn't retrieve sites:" << error << ", trying again";
+		QTimer::singleShot(0, this, &HistoryApp::initializeShvTree);
 		co_return;
 	}
 
@@ -250,6 +250,12 @@ QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> HistoryA
 		connect(timer, &QTimer::timeout, this, &HistoryApp::sanitizeNext);
 		timer->start(m_cliOptions->journalSanitizerInterval() * 1000);
 	}
+}
+
+void HistoryApp::onBrokerConnectedChanged(bool is_connected)
+{
+	m_isBrokerConnected = is_connected;
+	initializeShvTree();
 }
 
 void HistoryApp::onRpcMessageReceived(const cp::RpcMessage& msg)

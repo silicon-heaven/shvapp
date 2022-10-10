@@ -38,4 +38,5 @@ if(BUILD_TESTING)
     endfunction()
 
     history_test(methods)
+    history_test(sites_timeout)
 endif()
