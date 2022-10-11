@@ -106,12 +106,12 @@ const auto two_devices = shv::chainpack::RpcValue::fromCpon(R"(
   },
   "one": {
     "_meta":{
-      "HP":{}
+      "HP3":{}
     },
   },
   "two": {
     "_meta":{
-      "HP":{}
+      "HP3":{}
     },
   }
 }

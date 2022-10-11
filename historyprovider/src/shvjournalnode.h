@@ -33,6 +33,6 @@ private:
 	std::vector<SlaveHpInfo> m_slaveHps;
 	QString m_remoteLogShvPath;
 	QString m_cacheDirPath;
-	int64_t m_dirtyLogFirstTimestamp;
+	std::map<std::string, int64_t> m_dirtyLogFirstTimestamp;
 };
 #endif /*SHVJOURNALNODE_H*/
