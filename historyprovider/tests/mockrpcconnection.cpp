@@ -1,6 +1,11 @@
 #include "mockrpcconnection.h"
 #include "src/historyapp.h"
 
+shv::chainpack::RpcValue make_sub_params(const std::string& path, const std::string& method)
+{
+    return shv::chainpack::RpcValue::fromCpon(R"({"method":")" + method + R"(","path":")" + path + R"("}")");
+}
+
 shv::chainpack::RpcResponse MockRpcConnection::createResponse(const shv::chainpack::RpcValue& result)
 {
     shv::chainpack::RpcResponse res;
@@ -106,6 +111,17 @@ void MockRpcConnection::open()
     mockInfo() << "Client connected";
     m_connectionState.state = State::BrokerConnected;
     emit brokerConnectedChanged(true);
+}
+
+void MockRpcConnection::setBrokerConnected(bool state)
+{
+    mockInfo() << "Setting new broker connected state:" << state;
+    if (state) {
+        m_connectionState.state = State::BrokerConnected;
+    } else {
+        m_connectionState.state = State::ConnectionError;
+    }
+    QTimer::singleShot(0, [this, state] {emit brokerConnectedChanged(state);});
 }
 
 void MockRpcConnection::sendMessage(const shv::chainpack::RpcMessage& rpc_msg)

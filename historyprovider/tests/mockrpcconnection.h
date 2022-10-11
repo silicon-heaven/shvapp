@@ -29,6 +29,8 @@ private:
 	void doNotifyInEventLoop(const std::string& path, const std::string& method, const shv::chainpack::RpcValue& params);
 	void advanceTest();
 
+	void setBrokerConnected(bool state);
+
 	QCoro::Generator<int> m_testDriver;
 	QCoro::Generator<int>::iterator m_testDriverState;
 	QQueue<shv::chainpack::RpcMessage> m_messageQueue;
@@ -44,6 +46,8 @@ public:
 };
 
 const auto COROUTINE_TIMEOUT = 3000;
+
+shv::chainpack::RpcValue make_sub_params(const std::string& path, const std::string& method);
 
 #define SETUP_TIMEOUT { \
 	m_timeoutTimer = new QTimer(); \
