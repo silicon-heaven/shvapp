@@ -262,6 +262,7 @@ public:
 
 	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> doLegacySync(const QString& slave_hp_path, const SyncType sync_type)
 	{
+		journalInfo() << "Syncing" << slave_hp_path << "via legacy getLog";
 		using shv::coreqt::Utils;
 		shv::core::utils::ShvGetLogParams get_log_params;
 		get_log_params.recordCountLimit = RECORD_COUNT_LIMIT;
@@ -298,7 +299,7 @@ public:
 			auto [result, error] = co_await qCoro(call, &shv::iotqt::rpc::RpcCall::maybeResult);
 
 			if (!error.isEmpty()) {
-				journalError() << error;
+				journalError() << "Error retrieving logs via getLog for:" << slave_hp_path << error;
 				m_callback(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, "Couldn't retrieve logs from the device"));
 				co_return;
 			}
@@ -334,6 +335,7 @@ public:
 
 	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> doSync(const QString& slave_hp_path, const SyncType sync_type)
 	{
+		journalInfo() << "Syncing" << slave_hp_path << "via file synchronization";
 		using shv::coreqt::Utils;
 		auto shvjournal_suffix =
 			sync_type == SyncType::Device ?
@@ -349,7 +351,7 @@ public:
 
 		auto [file_list, error] = co_await qCoro(call, &shv::iotqt::rpc::RpcCall::maybeResult);
 		if (!error.isEmpty()) {
-			journalError() << error;
+			journalError() << "Couldn't retrieve filelist from:" << shvjournal_shvpath << error;
 			m_callback(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, "Couldn't retrieve filelist from the device"));
 			co_return;
 		}
