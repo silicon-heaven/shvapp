@@ -99,6 +99,7 @@ void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 			}
 
 			if (method == "mntchng") {
+				journalInfo() << "mntchng on" << it->shv_path << "syncing its journal";
 				syncLog(it->shv_path, [] (auto /*error*/) {
 				});
 			}
