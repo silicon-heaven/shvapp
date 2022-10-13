@@ -557,7 +557,20 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			HistoryApp::instance()->cliOptions()->setCacheInitMaxAge(60 /*seconds*/ * 60 /*minutes*/ * 24 /*hours*/ * 30 /*days*/);
 			DOCTEST_SUBCASE("empty cache")
 			{
-				create_dummy_cache_files(cache_dir_path, {});
+				DOCTEST_SUBCASE("no files")
+				{
+					create_dummy_cache_files(cache_dir_path, {});
+				}
+
+				DOCTEST_SUBCASE("one empty files")
+				{
+					create_dummy_cache_files(cache_dir_path, {
+						{ "2022-07-07T18-06-15-557.log2", "" },
+					});
+					expected_cache_contents = RpcValue::List({{
+						RpcValue::List{ "2022-07-07T18-06-15-557.log2", 0UL }
+					}});
+				}
 				REQUEST_YIELD("shvjournal", "syncLog", RpcValue());
 				EXPECT_REQUEST(cache_dir_path, "getLog");
 				auto since_param_ms = shv::chainpack::RpcRequest(m_messageQueue.head()).params().asMap().value("since").toDateTime().msecsSinceEpoch();
