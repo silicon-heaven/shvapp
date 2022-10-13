@@ -63,6 +63,7 @@ void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 		cp::RpcSignal ntf(msg);
 		auto path = ntf.shvPath().asString();
 		auto method = ntf.method().asString();
+		auto params = ntf.params();
 		auto value = ntf.value();
 
 		auto it = std::find_if(m_slaveHps.begin(), m_slaveHps.end(), [&path] (const auto& slave_hp) {
@@ -98,7 +99,7 @@ void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 				}
 			}
 
-			if (method == "mntchng") {
+			if (method == "mntchng" && params.toBool() == true) {
 				journalInfo() << "mntchng on" << it->shv_path << "syncing its journal";
 				syncLog(it->shv_path, [] (auto /*error*/) {
 				});

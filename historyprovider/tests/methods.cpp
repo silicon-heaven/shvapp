@@ -320,6 +320,15 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				EXPECT_REQUEST(join(cache_dir_path, "/.app/shvjournal"), "lsfiles", ls_size_true);
 				RESPOND(RpcValue::List()); // We only test if the syncLog triggers.
 			}
+
+			DOCTEST_SUBCASE("device unmounted")
+			{
+				NOTIFY(cache_dir_path, "mntchng", false);
+				// Sync shouldn't trigger.
+				DRIVER_WAIT(100);
+				CAPTURE(m_messageQueue.head());
+				REQUIRE(m_messageQueue.empty());
+			}
 		}
 	}
 
