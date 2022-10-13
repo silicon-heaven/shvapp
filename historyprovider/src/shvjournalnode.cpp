@@ -281,7 +281,9 @@ public:
 
 			if (!newest_file_name.isEmpty()) {
 				auto newest_file_entries = read_entries_from_file(cache_dir.filePath(newest_file_name));
-				get_log_params.since = shv::chainpack::RpcValue::DateTime::fromMSecsSinceEpoch(newest_file_entries.back().dateTime().msecsSinceEpoch() + 1);
+				if (!newest_file_entries.empty()) {
+					get_log_params.since = shv::chainpack::RpcValue::DateTime::fromMSecsSinceEpoch(newest_file_entries.back().dateTime().msecsSinceEpoch() + 1);
+				}
 			}
 		}
 
