@@ -40,12 +40,7 @@ cp::RpcValue BrclabFsNode::callMethod(const shv::iotqt::node::ShvNode::StringVie
 size_t BrclabFsNode::methodCount(const shv::iotqt::node::ShvNode::StringViewList &shv_path)
 {
 	size_t method_count = Super::methodCount(shv_path);
-	if (hasChildren(shv_path).toBool()){
-		method_count += 1;
-	}
-	else{
-		method_count += 1;
-	}
+	method_count += 1;
 
 	return method_count;
 }
