@@ -174,7 +174,10 @@ void ShvJournalNode::trimDirtyLog(const QString& slave_hp_path)
 	journalDebug() << "File used for trimming" << cache_dir.filePath(entries.at(1));
 
 	auto newest_file_entries = read_entries_from_file(cache_dir.filePath(entries.at(1)));
-	auto newest_entry_msec = newest_file_entries.back().epochMsec;
+	int64_t newest_entry_msec = 0;
+	if (!newest_file_entries.empty()) {
+		newest_entry_msec = newest_file_entries.back().epochMsec;
+	}
 	// It is possible that the newest logfile contains multiple entries with the same timestamp. Because it could
 	// have been written (by shvagent) in between two events that happenede in the same millisecond, we can't be
 	// sure whether we have all events from the last millisecond. Because of that we will discard the last
