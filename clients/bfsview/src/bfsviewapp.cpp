@@ -132,11 +132,11 @@ shv::chainpack::RpcValue PwrStatusNode::callMethod(const StringViewList &shv_pat
 {
 	if(shv_path.empty()) {
 		if(method == cp::Rpc::METH_GET) {
-			return (unsigned)pwrStatus();
+			return static_cast<unsigned>(pwrStatus());
 		}
 		if(method == METH_SIM_SET) {
 			unsigned s = params.toUInt();
-			BfsViewApp::instance()->setPwrStatus((PwrStatus)s);
+			BfsViewApp::instance()->setPwrStatus(static_cast<PwrStatus>(s));
 			return true;
 		}
 	}
@@ -169,7 +169,7 @@ void PwrStatusNode::sendPwrStatusChangedDeferred()
 		return;
 	cp::RpcSignal ntf;
 	ntf.setMethod(cp::Rpc::SIG_VAL_CHANGED);
-	ntf.setParams((unsigned)m_pwrStatusToSendDeferred);
+	ntf.setParams(static_cast<unsigned>(m_pwrStatusToSendDeferred));
 	ntf.setShvPath(BFS1_PWR_STATUS);
 	rootNode()->emitSendRpcMessage(ntf);
 #endif
@@ -376,7 +376,7 @@ void BfsViewApp::setPwrStatus(PwrStatus u)
 {
 	if(pwrStatus() == u)
 		return;
-	shvInfo() << "PWR status changed to:" << (unsigned)u << switchStatusToString(u);
+	shvInfo() << "PWR status changed to:" << static_cast<unsigned>(u) << switchStatusToString(u);
 	m_pwrStatusNode->setPwrStatus(u);
 	emit pwrStatusChanged(u);
 }
@@ -419,15 +419,15 @@ void BfsViewApp::setConv(bool val)
 BfsViewApp::SwitchStatus BfsViewApp::ompagSwitchStatus()
 {
 	unsigned ps = bfsStatus();
-	int status = (ps & ((1 << (int)BfsStatus::OmpagOn) | (1 << (int)BfsStatus::OmpagOff))) >> (int)BfsStatus::OmpagOn;
-	return (SwitchStatus)status;
+	int status = (ps & ((1 << static_cast<int>(BfsStatus::OmpagOn)) | (1 << static_cast<int>(BfsStatus::OmpagOff)))) >> static_cast<int>(BfsStatus::OmpagOn);
+	return static_cast<SwitchStatus>(status);
 }
 
 BfsViewApp::SwitchStatus BfsViewApp::convSwitchStatus()
 {
 	unsigned ps = bfsStatus();
-	int status = (ps & ((1 << (int)BfsStatus::MswOn) | (1 << (int)BfsStatus::MswOff))) >> (int)BfsStatus::MswOn;
-	return (SwitchStatus)status;
+	int status = (ps & ((1 << static_cast<int>(BfsStatus::MswOn)) | (1 << static_cast<int>(BfsStatus::MswOff)))) >> static_cast<int>(BfsStatus::MswOn);
+	return static_cast<SwitchStatus>(status);
 }
 
 const std::string &BfsViewApp::logFilePath()

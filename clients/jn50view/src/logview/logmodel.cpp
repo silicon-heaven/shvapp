@@ -16,7 +16,7 @@ void LogModel::setLog(const shv::chainpack::RpcValue &log)
 int LogModel::rowCount(const QModelIndex &) const
 {
 	const shv::chainpack::RpcValue::List &lst = m_log.toList();
-	return (int)lst.size();
+	return static_cast<int>(lst.size());
 }
 
 QVariant LogModel::headerData(int section, Qt::Orientation orientation, int role) const
@@ -38,8 +38,8 @@ QVariant LogModel::data(const QModelIndex &index, int role) const
 	if(index.isValid() && index.row() < rowCount()) {
 		if(role == Qt::DisplayRole) {
 			const shv::chainpack::RpcValue::List &lst = m_log.toList();
-			shv::chainpack::RpcValue row = lst.value((unsigned)index.row());
-			shv::chainpack::RpcValue val = row.toList().value((unsigned)index.column());
+			shv::chainpack::RpcValue row = lst.value(static_cast<unsigned>(index.row()));
+			shv::chainpack::RpcValue val = row.toList().value(static_cast<unsigned>(index.column()));
 			return QString::fromStdString(val.toCpon());
 		}
 	}

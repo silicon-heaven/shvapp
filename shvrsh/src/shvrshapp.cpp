@@ -233,7 +233,7 @@ void ShvRshApp::writeToOutChannel(int channel, const std::string &data)
 			//shvError() << "Error write remote data to " << (channel == STDOUT_FILENO? "stdout": "stderr") << ::strerror(errno);
 			n = 0;
 		}
-		buff.erase(0, (size_t)n);
+		buff.erase(0, static_cast<size_t>(n));
 		if(!buff.empty()) {
 			QTimer::singleShot(100, this, [this, channel]() {
 				this->writeToOutChannel(channel, std::string());

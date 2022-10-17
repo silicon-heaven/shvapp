@@ -114,7 +114,7 @@ public:
 
 	static inline bool isBit(int val, BfsStatus bit_no)
 	{
-		int mask = 1 << (int)bit_no;
+		int mask = 1 << static_cast<int>(bit_no);
 		return val & mask;
 	}
 

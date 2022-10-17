@@ -127,7 +127,7 @@ CacheState CheckLogTask::checkLogCache(const QString &site_path, bool with_good_
 	auto eval_status = [](CacheFileState &file_state) {
 		file_state.status = CacheStatus::OK;
 		for (const auto &err : file_state.errors) {
-			if ((int)err.status > (int)file_state.status) {
+			if (static_cast<int>(err.status) > static_cast<int>(file_state.status)) {
 				file_state.status = err.status;
 			}
 		}
@@ -413,7 +413,7 @@ void CheckLogTask::checkRequestQueue()
 const char *CacheError::typeToString(CacheError::Type t)
 {
 	static QMetaEnum type_enum = QMetaEnum::fromType<Type>();
-	return type_enum.valueToKey((int)t);
+	return type_enum.valueToKey(static_cast<int>(t));
 }
 
 const char *cacheStatusToString(CacheStatus st)

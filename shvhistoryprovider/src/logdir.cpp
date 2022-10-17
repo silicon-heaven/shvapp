@@ -65,14 +65,14 @@ QStringList LogDir::findFiles(const QDateTime &since, const QDateTime &until)
 		if (it != files.begin()) {
 			--it;
 		}
-		since_pos = (int)(it - files.begin());
+		since_pos = static_cast<int>((it - files.begin()));
 	}
 	int until_pos = files.count();
 	if (until.isValid()) {
 		auto it = std::upper_bound(files.begin(), files.end(), File { QString(), until.toMSecsSinceEpoch() }, [](const File &f1, const File &f2) {
 			return f1.date < f2.date;
 		});
-		until_pos = (int)(it - files.begin());
+		until_pos = static_cast<int>((it - files.begin()));
 	}
 	if (until_pos - since_pos == 1 && until_pos == files.count()) { //we are on a last file, we must check until
 		std::ifstream in_file;

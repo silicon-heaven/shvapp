@@ -150,7 +150,7 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 					   });
 		}
 
-		bool is_finished = (int)log.size() < Application::CHUNK_RECORD_COUNT;
+		bool is_finished = static_cast<int>(log.size()) < Application::CHUNK_RECORD_COUNT;
 
 		if (!meta_since.isDateTime() || !meta_until.isDateTime()) {
 			SHV_QT_EXCEPTION("Received invalid log from " + m_sitePath + ", missing since or until");

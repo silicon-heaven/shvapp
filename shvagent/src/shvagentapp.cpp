@@ -378,7 +378,7 @@ void ShvAgentApp::launchRexec(const shv::chainpack::RpcRequest &rq)
 			startup_params["onConnectedCall"] = on_connected;
 			std::string cpon = cp::RpcValue(std::move(startup_params)).toCpon();
 			//shvInfo() << "cpon:" << cpon;
-			proc->write(cpon.data(), (unsigned)cpon.size());
+			proc->write(cpon.data(), static_cast<unsigned>(cpon.size()));
 			proc->write("\n", 1);
 		}
 		else {
@@ -411,12 +411,12 @@ void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq, bool std_out_only
 						if(i == STDOUT_FILENO) {
 							QByteArray ba = proc->readAllStandardOutput();
 							shvDebug() << "\t stdout:" << ba.toStdString();
-							lst.push_back(std::string(ba.constData(), (unsigned)ba.size()));
+							lst.push_back(std::string(ba.constData(), static_cast<unsigned>(ba.size())));
 						}
 						else if(i == STDERR_FILENO) {
 							QByteArray ba = proc->readAllStandardError();
 							shvDebug() << "\t stderr:" << ba.toStdString();
-							lst.push_back(std::string(ba.constData(), (unsigned)ba.size()));
+							lst.push_back(std::string(ba.constData(), static_cast<unsigned>(ba.size())));
 						}
 					}
 				}
@@ -426,7 +426,7 @@ void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq, bool std_out_only
 			else {
 				QByteArray ba = proc->readAllStandardOutput();
 				shvDebug() << "\t stdout:" << ba.toStdString();
-				resp.setResult(std::string(ba.constData(), (unsigned)ba.size()));
+				resp.setResult(std::string(ba.constData(), static_cast<unsigned>(ba.size())));
 				logRunCmd() << "Proces exit OK, result:" << resp.result().toCpon();
 			}
 		}

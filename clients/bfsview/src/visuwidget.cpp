@@ -376,7 +376,7 @@ void VisuWidget::refreshVisualization()
 	BfsViewApp *app = BfsViewApp::instance();
 
 	unsigned ps = app->bfsStatus();
-	BfsViewApp::SwitchStatus bfs_status = (BfsViewApp::SwitchStatus)((ps & ((1 << (int)BfsViewApp::BfsStatus::BfsOn) | (1 << (int)BfsViewApp::BfsStatus::BfsOff))) >> (int)BfsViewApp::BfsStatus::BfsOn);
+	BfsViewApp::SwitchStatus bfs_status = static_cast<BfsViewApp::SwitchStatus>((ps & ((1 << static_cast<int>(BfsViewApp::BfsStatus::BfsOn)) | (1 << static_cast<int>(BfsViewApp::BfsStatus::BfsOff)))) >> static_cast<int>(BfsViewApp::BfsStatus::BfsOn));
 	//shvInfo() << ps << bfs_status;
 
 	m_ompagVisuController->updateXml();
@@ -420,22 +420,22 @@ void VisuWidget::refreshVisualization()
 							|| !app->isPlcConnected()
 							));
 	shvMessage() << "BFS status:" << app->bfsStatus();
-	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::BfsOn)) shvMessage() << (int)BfsStatus::BfsOn << "BfsOn";
-	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::BfsOff)) shvMessage() << (int)BfsStatus::BfsOff << "BfsOff";
-	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::Buffering)) shvMessage() << (int)BfsStatus::Buffering << "Buffering";
-	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::Charging)) shvMessage() << (int)BfsStatus::Charging << "Charging";
-	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::ConvOn)) shvMessage() << (int)BfsStatus::ConvOn << "ConvOn";
-	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::OmpagOn)) shvMessage() << (int)BfsStatus::OmpagOn << "OmpagOn";
-	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::OmpagOff)) shvMessage() << (int)BfsStatus::OmpagOff << "OmpagOff";
-	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::Cooling)) shvMessage() << (int)BfsStatus::Cooling << "Cooling";
-	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::Error)) shvMessage() << (int)BfsStatus::Error << "Error";
-	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::Warning)) shvMessage() << (int)BfsStatus::Warning << "Warning";
-	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::ShvDisconnected)) shvMessage() << (int)BfsStatus::ShvDisconnected << "ShvDisconnected";
-	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::MswOn)) shvMessage() << (int)BfsStatus::MswOn << "MswOn";
-	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::MswOff)) shvMessage() << (int)BfsStatus::MswOff << "MswOff";
-	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::HsswTOn)) shvMessage() << (int)BfsStatus::HsswTOn << "HsswTOn";
-	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::DoorOpen)) shvMessage() << (int)BfsStatus::DoorOpen << "DoorOpen";
-	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::FswOn)) shvMessage() << (int)BfsStatus::FswOn << "FswOn";
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::BfsOn)) shvMessage() << static_cast<int>(BfsStatus::BfsOn) << "BfsOn";
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::BfsOff)) shvMessage() << static_cast<int>(BfsStatus::BfsOff) << "BfsOff";
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::Buffering)) shvMessage() << static_cast<int>(BfsStatus::Buffering) << "Buffering";
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::Charging)) shvMessage() << static_cast<int>(BfsStatus::Charging) << "Charging";
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::ConvOn)) shvMessage() << static_cast<int>(BfsStatus::ConvOn) << "ConvOn";
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::OmpagOn)) shvMessage() << static_cast<int>(BfsStatus::OmpagOn) << "OmpagOn";
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::OmpagOff)) shvMessage() << static_cast<int>(BfsStatus::OmpagOff) << "OmpagOff";
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::Cooling)) shvMessage() << static_cast<int>(BfsStatus::Cooling) << "Cooling";
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::Error)) shvMessage() << static_cast<int>(BfsStatus::Error) << "Error";
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::Warning)) shvMessage() << static_cast<int>(BfsStatus::Warning) << "Warning";
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::ShvDisconnected)) shvMessage() << static_cast<int>(BfsStatus::ShvDisconnected) << "ShvDisconnected";
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::MswOn)) shvMessage() << static_cast<int>(BfsStatus::MswOn) << "MswOn";
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::MswOff)) shvMessage() << static_cast<int>(BfsStatus::MswOff) << "MswOff";
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::HsswTOn)) shvMessage() << static_cast<int>(BfsStatus::HsswTOn) << "HsswTOn";
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::DoorOpen)) shvMessage() << static_cast<int>(BfsStatus::DoorOpen) << "DoorOpen";
+	if(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::FswOn)) shvMessage() << static_cast<int>(BfsStatus::FswOn) << "FswOn";
 
 	setElementFillColor(QStringLiteral("shv_rect_doorOpen"), badBitToColor(BfsViewApp::isBit(app->bfsStatus(), BfsStatus::DoorOpen)));
 	setElementFillColor(QStringLiteral("shv_rect_fswOn"), badBitToColor(!BfsViewApp::isBit(app->bfsStatus(), BfsStatus::FswOn)));

@@ -87,7 +87,7 @@ static qreal toDouble(const QChar *&str)
 				div *= 10;
 				++t;
 			}
-			val = ((qreal)ival)/((qreal)div);
+			val = (static_cast<qreal>(ival))/(static_cast<qreal>(div));
 		} else {
 			val = ival;
 		}
@@ -232,7 +232,7 @@ bool qsvg_get_hex_rgb(const char *name, QRgb *rgb)
 	} else {
 		r = g = b = -1;
 	}
-	if ((uint)r > 255 || (uint)g > 255 || (uint)b > 255) {
+	if (static_cast<uint>(r) > 255 || static_cast<uint>(g) > 255 || static_cast<uint>(b) > 255) {
 		*rgb = 0;
 		return false;
 	}
@@ -1222,7 +1222,7 @@ void SaxHandler::setTextStyle(QFont &font, const CssAttributes &attributes)
 	QString font_size = attributes.value(QStringLiteral("font-size"));
 	if(!font_size.isEmpty()) {
 		if(font_size.endsWith(QLatin1String("px")))
-			font.setPixelSize((int)toDouble(font_size.mid(0, font_size.size() - 2)));
+			font.setPixelSize(static_cast<int>(toDouble(font_size.mid(0, font_size.size() - 2))));
 		else if(font_size.endsWith(QLatin1String("pt")))
 			font.setPointSizeF(toDouble(font_size.mid(0, font_size.size() - 2)));
 	}

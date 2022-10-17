@@ -271,7 +271,7 @@ void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &
 
 	auto append_log = [&output_log, &save_log](const ShvJournalEntry &entry) {
 		output_log.append(entry);
-		if ((int)output_log.size() >= Application::CHUNK_RECORD_COUNT) {
+		if (static_cast<int>(output_log.size()) >= Application::CHUNK_RECORD_COUNT) {
 			save_log();
 		}
 

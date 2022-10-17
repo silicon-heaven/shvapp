@@ -415,14 +415,14 @@ qint64 ShvRExecApp::writeCmdProcessStdIn(const char *data, size_t len)
 {
 	if(m_ptyCmdProc) {
 		qint64 n = m_ptyCmdProc->writePtyMaster(data, len);
-		if(n != (qint64)len) {
+		if(n != static_cast<qint64>(len)) {
 			shvError() << "Write PTY master stdin error, only" << n << "of" << len << "bytes written.";
 		}
 		return n;
 	}
 	if(m_cmdProc) {
 		qint64 n = m_cmdProc->write(data, len);
-		if(n != (qint64)len) {
+		if(n != static_cast<qint64>(len)) {
 			shvError() << "Write process stdin error, only" << n << "of" << len << "bytes written.";
 		}
 		return n;
