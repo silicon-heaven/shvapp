@@ -282,7 +282,7 @@ static QColor parseColor(const QString &color, const QString &opacity)
 					s = color_str.constData() + 4;
 					compo = parsePercentageList(s);
 					for (int i = 0; i < compo.size(); ++i)
-						compo[i] *= (qreal)2.55;
+						compo[i] *= 2.55;
 				}
 				if (compo.size() == 3) {
 					ret = QColor(int(compo[0]),
@@ -309,7 +309,7 @@ static QColor parseColor(const QString &color, const QString &opacity)
 	}
 	if (!opacity.isEmpty() && ret.isValid()) {
 		bool ok = true;
-		qreal op = qMin(qreal(1.0), qMax(qreal(0.0), toDouble(opacity, &ok)));
+		qreal op = qMin(1.0, qMax(0.0, toDouble(opacity, &ok)));
 		if (!ok)
 			op = 1.0;
 		ret.setAlphaF(op);
@@ -431,12 +431,12 @@ static QMatrix parseTransformationMatrix(const QStringRef &value)
 		} else if (state == SkewX) {
 			if (points.count() != 1)
 				goto error;
-			const qreal deg2rad = qreal(0.017453292519943295769);
+			const qreal deg2rad = 0.017453292519943295769;
 			matrix.shear(qTan(points[0]*deg2rad), 0);
 		} else if (state == SkewY) {
 			if (points.count() != 1)
 				goto error;
-			const qreal deg2rad = qreal(0.017453292519943295769);
+			const qreal deg2rad = 0.017453292519943295769;
 			matrix.shear(0, qTan(points[0]*deg2rad));
 		}
 	}
