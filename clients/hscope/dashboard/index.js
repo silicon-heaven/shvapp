@@ -162,6 +162,10 @@ const send_ping = () => {
 
 const connect_websocket = () => {
 	try {
+		if (txt_log.className !== "d-none") {
+			toggle_log();
+		}
+
 		document.querySelector("#hscope_container").innerHTML = "";
 
 		const user = document.getElementById("txt_user").value;
