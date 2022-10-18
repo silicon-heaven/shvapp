@@ -15,6 +15,8 @@
 #include <QDir>
 #include <QDirIterator>
 
+#include <QScopeGuard>
+
 #include <QCoroSignal>
 
 #define journalDebug() shvCDebug("historyjournal")
@@ -214,12 +216,13 @@ const auto SYNCER_MEMORY_LIMIT = 1024 /*B*/ * 1024 /*kB*/ * 100 /*MB*/;
 class FileSyncer : public QObject {
 	Q_OBJECT
 public:
-	FileSyncer(ShvJournalNode* node, std::vector<SlaveHpInfo> slave_hps, const std::string& shv_path, const QString& cache_dir_path, const std::function<void(cp::RpcResponse::Error)>& callback)
+	FileSyncer(ShvJournalNode* node, std::vector<SlaveHpInfo> slave_hps, const std::string& shv_path, const QString& cache_dir_path, const std::function<void(cp::RpcResponse::Error)>& callback, QMap<QString, bool>& syncInProgress)
 		: m_node(node)
 		, m_slaveHps(slave_hps)
 		, m_shvPath(QString::fromStdString(shv_path))
 		, m_cacheDirPath(cache_dir_path)
 		, m_callback(callback)
+		, m_syncInProgress(syncInProgress)
 	{
 		syncFiles();
 	}
@@ -452,6 +455,16 @@ public:
 				continue;
 			}
 
+			if (m_syncInProgress.value(slave_hp_path_qstr, false)) {
+				journalDebug() << slave_hp_path_qstr << "is already being synced, skipping";
+				continue;
+			}
+
+			m_syncInProgress[slave_hp_path_qstr] = true;
+			QScopeGuard lock_guard([this, &slave_hp_path_qstr] {
+				m_syncInProgress[slave_hp_path_qstr] = false;
+			});
+
 			if (sync_type == SyncType::Device && slave_hp.log_type == LogType::Legacy) {
 				co_await doLegacySync(slave_hp_path_qstr, sync_type);
 			} else {
@@ -475,11 +488,12 @@ private:
 	QString m_cacheDirPath;
 
 	std::function<void(cp::RpcResponse::Error)> m_callback;
+	QMap<QString, bool>& m_syncInProgress;
 };
 
 void ShvJournalNode::syncLog(const std::string& shv_path, const std::function<void(cp::RpcResponse::Error)> cb)
 {
-	new FileSyncer(this, m_slaveHps, shv_path, m_cacheDirPath, cb);
+	new FileSyncer(this, m_slaveHps, shv_path, m_cacheDirPath, cb, m_syncInProgress);
 }
 
 cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)

@@ -34,5 +34,6 @@ private:
 	QString m_remoteLogShvPath;
 	QString m_cacheDirPath;
 	std::map<std::string, int64_t> m_dirtyLogFirstTimestamp;
+	QMap<QString, bool> m_syncInProgress;
 };
 #endif /*SHVJOURNALNODE_H*/

@@ -308,9 +308,21 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				DOCTEST_SUBCASE("synclog should trigger")
 				{
 					HistoryApp::instance()->cliOptions()->setLogMaxAge(10);
-					NOTIFY_YIELD("shv/eyas/opc/power-on", "chng", true);
-					EXPECT_REQUEST(join(cache_dir_path, "/.app/shvjournal"), "lsfiles", ls_size_true);
-					RESPOND(RpcValue::List()); // We only test if the syncLog triggers.
+
+					DOCTEST_SUBCASE("after sending an event")
+					{
+						NOTIFY_YIELD("shv/eyas/opc/power-on", "chng", true);
+						EXPECT_REQUEST(join(cache_dir_path, "/.app/shvjournal"), "lsfiles", ls_size_true);
+						RESPOND(RpcValue::List()); // We only test if the syncLog triggers.
+					}
+
+					DOCTEST_SUBCASE("syncing doesn't double when sending multiple events")
+					{
+						NOTIFY_YIELD("shv/eyas/opc/power-on", "chng", true);
+						EXPECT_REQUEST(join(cache_dir_path, "/.app/shvjournal"), "lsfiles", ls_size_true);
+						NOTIFY("shv/eyas/opc/power-on", "chng", true);
+						RESPOND(RpcValue::List()); // We only test if the syncLog triggers.
+					}
 				}
 			}
 
