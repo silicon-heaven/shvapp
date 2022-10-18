@@ -10,8 +10,12 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU
     set(CMAKE_CXX_FLAGS "-Wall -Wextra -pedantic ${CMAKE_CXX_FLAGS}")
 endif()
 
-add_subdirectory(3rdparty/necrolog)
-add_subdirectory(3rdparty/libshv)
+if (NOT TARGET libnecrolog)
+        add_subdirectory(3rdparty/necrolog)
+endif()
+if (NOT TARGET libshvchainpack-c)
+        add_subdirectory(3rdparty/libshv)
+endif()
 
 find_package(Qt5 REQUIRED COMPONENTS Core Concurrent OPTIONAL_COMPONENTS SerialPort Widgets Svg Xml Quick)
 if(NOT WIN32)
