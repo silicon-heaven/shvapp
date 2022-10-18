@@ -270,6 +270,7 @@ public:
 
 	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> doLegacySync(const QString& slave_hp_path, const SyncType sync_type)
 	{
+		Q_UNUSED(sync_type)
 		journalInfo() << "Syncing" << slave_hp_path << "via legacy getLog";
 		using shv::coreqt::Utils;
 		shv::core::utils::ShvGetLogParams get_log_params;
