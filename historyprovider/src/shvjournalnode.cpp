@@ -94,14 +94,14 @@ void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 					m_dirtyLogFirstTimestamp.emplace(it->shv_path, reader.entry().epochMsec);
 				}
 
-				if (m_syncInProgress.value(QString::fromStdString(it->shv_path), false) && QDateTime::currentMSecsSinceEpoch() - HistoryApp::instance()->cliOptions()->logMaxAge() * 1000 > m_dirtyLogFirstTimestamp.at(it->shv_path)) {
+				if (!m_syncInProgress.value(QString::fromStdString(it->shv_path), false) && QDateTime::currentMSecsSinceEpoch() - HistoryApp::instance()->cliOptions()->logMaxAge() * 1000 > m_dirtyLogFirstTimestamp.at(it->shv_path)) {
 					journalInfo() << "Log is too old, syncing journal" << it->shv_path;
 					syncLog(it->shv_path, [] (auto /*error*/) {
 					});
 				}
 			}
 
-			if (m_syncInProgress.value(QString::fromStdString(it->shv_path), false) && method == "mntchng" && params.toBool() == true) {
+			if (!m_syncInProgress.value(QString::fromStdString(it->shv_path), false) && method == "mntchng" && params.toBool() == true) {
 				journalInfo() << "mntchng on" << it->shv_path << "syncing its journal";
 				syncLog(it->shv_path, [] (auto /*error*/) {
 				});
