@@ -94,14 +94,14 @@ void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 					m_dirtyLogFirstTimestamp.emplace(it->shv_path, reader.entry().epochMsec);
 				}
 
-				if (QDateTime::currentMSecsSinceEpoch() - HistoryApp::instance()->cliOptions()->logMaxAge() * 1000 > m_dirtyLogFirstTimestamp.at(it->shv_path)) {
+				if (m_syncInProgress.value(QString::fromStdString(it->shv_path), false) && QDateTime::currentMSecsSinceEpoch() - HistoryApp::instance()->cliOptions()->logMaxAge() * 1000 > m_dirtyLogFirstTimestamp.at(it->shv_path)) {
 					journalInfo() << "Log is too old, syncing journal" << it->shv_path;
 					syncLog(it->shv_path, [] (auto /*error*/) {
 					});
 				}
 			}
 
-			if (method == "mntchng" && params.toBool() == true) {
+			if (m_syncInProgress.value(QString::fromStdString(it->shv_path), false) && method == "mntchng" && params.toBool() == true) {
 				journalInfo() << "mntchng on" << it->shv_path << "syncing its journal";
 				syncLog(it->shv_path, [] (auto /*error*/) {
 				});
@@ -440,6 +440,17 @@ public:
 		using shv::coreqt::Utils;
 		for (const auto& slave_hp : m_slaveHps) {
 			auto slave_hp_path_qstr = QString::fromStdString(slave_hp.shv_path);
+
+			if (m_syncInProgress.value(slave_hp_path_qstr, false)) {
+				journalDebug() << slave_hp_path_qstr << "is already being synced, skipping";
+				continue;
+			}
+
+			m_syncInProgress[slave_hp_path_qstr] = true;
+			QScopeGuard lock_guard([this, &slave_hp_path_qstr] {
+				m_syncInProgress[slave_hp_path_qstr] = false;
+			});
+
 			if (!m_shvPath.isEmpty() && !m_shvPath.startsWith(slave_hp.shv_path.c_str())) {
 				continue;
 			}
@@ -455,16 +466,6 @@ public:
 			if (sync_type == SyncType::Device && slave_hp.log_type == LogType::PushLog) {
 				continue;
 			}
-
-			if (m_syncInProgress.value(slave_hp_path_qstr, false)) {
-				journalDebug() << slave_hp_path_qstr << "is already being synced, skipping";
-				continue;
-			}
-
-			m_syncInProgress[slave_hp_path_qstr] = true;
-			QScopeGuard lock_guard([this, &slave_hp_path_qstr] {
-				m_syncInProgress[slave_hp_path_qstr] = false;
-			});
 
 			if (sync_type == SyncType::Device && slave_hp.log_type == LogType::Legacy) {
 				co_await doLegacySync(slave_hp_path_qstr, sync_type);
