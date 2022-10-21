@@ -1,5 +1,4 @@
 #include "sessionprocess.h"
-#include "shvagentapp.h"
 
 #include <shv/coreqt/log.h>
 
