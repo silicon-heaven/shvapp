@@ -293,6 +293,7 @@ public:
 				auto newest_file_entries = read_entries_from_file(cache_dir.filePath(newest_file_name));
 				if (!newest_file_entries.empty()) {
 					get_log_params.since = shv::chainpack::RpcValue::DateTime::fromMSecsSinceEpoch(newest_file_entries.back().dateTime().msecsSinceEpoch() + 1);
+					journalDebug() << "Newest entry" << get_log_params.since << "for" << slave_hp_path;
 				}
 			}
 		}
@@ -323,6 +324,7 @@ public:
 
 			const auto& remote_entries = result_log.entries();
 
+			journalDebug() << "Loaded" << remote_entries.size() << "log entries for" << slave_hp_path;
 			auto newest_entry = remote_entries.back().epochMsec;
 			for (const auto& entry : remote_entries) {
 				// We're skipping all entries from the last millisecond, and retrieve it again, otherwise we can't be
