@@ -953,18 +953,18 @@ void SaxHandler::parse()
 		case QXmlStreamReader::Characters:
 		{
 			logSvgD() << "characters element:" << m_xml->text();// << typeid (*m_topLevelItem).name();
-			if(SimpleTextItem *text_item = dynamic_cast<SimpleTextItem*>(m_topLevelItem)) {
-				QString text = text_item->text();
+			if(SimpleTextItem *simple_text_item = dynamic_cast<SimpleTextItem*>(m_topLevelItem)) {
+				QString text = simple_text_item->text();
 				if(!text.isEmpty())
 					text += '\n';
-				logSvgD() << text_item->text() << "+" << m_xml->text().toString();
-				text_item->setText(text + m_xml->text().toString());
+				logSvgD() << simple_text_item->text() << "+" << m_xml->text().toString();
+				simple_text_item->setText(text + m_xml->text().toString());
 			}
-			else if(QGraphicsTextItem *text_item = dynamic_cast<QGraphicsTextItem*>(m_topLevelItem)) {
-				QString text = text_item->toPlainText();
+			else if(QGraphicsTextItem *graphics_text_item = dynamic_cast<QGraphicsTextItem*>(m_topLevelItem)) {
+				QString text = graphics_text_item->toPlainText();
 				if(!text.isEmpty())
 					text += '\n';
-				text_item->setPlainText(text + m_xml->text());
+				graphics_text_item->setPlainText(text + m_xml->text());
 				//nInfo() << text_item->toPlainText();
 			}
 			else {

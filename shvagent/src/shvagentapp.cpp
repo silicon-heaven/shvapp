@@ -361,12 +361,12 @@ void ShvAgentApp::launchRexec(const shv::chainpack::RpcRequest &rq)
 	si::rpc::RpcResponseCallBack *cb = new si::rpc::RpcResponseCallBack(resp.requestId().toInt(), this);
 	connect(rpcConnection(), &si::rpc::ClientConnection::rpcMessageReceived, cb, &si::rpc::RpcResponseCallBack::onRpcMessageReceived);
 	cp::RpcValue on_connected = rq.params();
-	cb->start([this, on_connected](const shv::chainpack::RpcResponse &resp) {
-		shvDebug() << "Received Find tunnel response:" << resp.toPrettyString();
-		cp::TunnelCtl tctl1 = resp.tunnelCtl();
+	cb->start([this, on_connected](const shv::chainpack::RpcResponse &find_tunnel_resp) {
+		shvDebug() << "Received Find tunnel response:" << find_tunnel_resp.toPrettyString();
+		cp::TunnelCtl tctl1 = find_tunnel_resp.tunnelCtl();
 		if(tctl1.state() == cp::TunnelCtl::State::FindTunnelResponse) {
 			cp::FindTunnelRespCtl find_tunnel_response(tctl1);
-			find_tunnel_response.setRequestId(resp.requestId().toInt());
+			find_tunnel_response.setRequestId(find_tunnel_resp.requestId().toInt());
 			SessionProcess *proc = new SessionProcess(this);
 			QString app = QCoreApplication::applicationDirPath() + "/shvrexec";
 			QStringList params;
@@ -382,7 +382,7 @@ void ShvAgentApp::launchRexec(const shv::chainpack::RpcRequest &rq)
 			proc->write("\n", 1);
 		}
 		else {
-			shvError() << "Invalid response to FindTunnelRequest:" << resp.toPrettyString();
+			shvError() << "Invalid response to FindTunnelRequest:" << find_tunnel_resp.toPrettyString();
 		}
 	});
 }

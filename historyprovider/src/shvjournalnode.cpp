@@ -411,14 +411,14 @@ public:
 
 			auto sites_log_file = Utils::joinPath(shvjournal_shvpath, file_name);
 			journalDebug() << "Retrieving" << sites_log_file << "offset:" << local_size;
-			auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
+			call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
 				->setShvPath(sites_log_file)
 				->setMethod("read")
 				->setParams(cp::RpcValue::Map{{"offset", cp::RpcValue::Int(local_size)}});
 			call->start();
-			auto [result, error] = co_await qCoro(call, &shv::iotqt::rpc::RpcCall::maybeResult);
-			if (!error.isEmpty()) {
-				journalError() << "Couldn't retrieve" << sites_log_file << ":" << error;
+			auto [result, retrieve_error] = co_await qCoro(call, &shv::iotqt::rpc::RpcCall::maybeResult);
+			if (!retrieve_error.isEmpty()) {
+				journalError() << "Couldn't retrieve" << sites_log_file << ":" << retrieve_error;
 				co_return;
 			}
 

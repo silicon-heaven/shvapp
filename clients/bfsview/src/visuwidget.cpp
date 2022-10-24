@@ -491,7 +491,7 @@ void SwitchVisuController::onRequiredSwitchStatusChanged(BfsViewApp::SwitchStatu
 	}
 }
 
-QString SwitchVisuController::statusToColor(BfsViewApp::SwitchStatus status)
+QString SwitchVisuController::statusToColor(BfsViewApp::SwitchStatus status_arg)
 {
 	if(m_requiredSwitchStatus != BfsViewApp::SwitchStatus::Unknown) {
 		BfsViewApp *app = BfsViewApp::instance();
@@ -501,5 +501,5 @@ QString SwitchVisuController::statusToColor(BfsViewApp::SwitchStatus status)
 				return QStringLiteral("orangered");
 		}
 	}
-	return ::switchStatusToColor(status);
+	return ::switchStatusToColor(status_arg);
 }

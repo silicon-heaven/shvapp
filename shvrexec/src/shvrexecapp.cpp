@@ -187,11 +187,11 @@ void ShvRExecApp::onBrokerConnectedChanged(bool is_connected)
 
 			si::rpc::RpcResponseCallBack *cb = new si::rpc::RpcResponseCallBack(m_readTunnelRequestId, this);
 			connect(rpcConnection(), &si::rpc::ClientConnection::rpcMessageReceived, cb, &si::rpc::RpcResponseCallBack::onRpcMessageReceived);
-			cb->start([this](const shv::chainpack::RpcResponse &resp) {
-				cp::TunnelCtl tctl = resp.tunnelCtl();
+			cb->start([this](const shv::chainpack::RpcResponse &find_tunnel_resp) {
+				cp::TunnelCtl tctl = find_tunnel_resp.tunnelCtl();
 				if(tctl.state() == cp::TunnelCtl::State::CreateTunnelResponse) {
 					cp::CreateTunnelRespCtl create_tunnel_response(tctl);
-					m_writeTunnelCallerIds = resp.revCallerIds();
+					m_writeTunnelCallerIds = find_tunnel_resp.revCallerIds();
 					const shv::chainpack::RpcValue::Map &call_p = m_onConnectedCall.toMap();
 					const shv::chainpack::RpcValue::String method = call_p.value(cp::Rpc::JSONRPC_METHOD).toString();
 					const shv::chainpack::RpcValue &params = call_p.value(cp::Rpc::JSONRPC_PARAMS);
@@ -219,7 +219,7 @@ void ShvRExecApp::onBrokerConnectedChanged(bool is_connected)
 					shvInfo() << "Tunnel closed";
 				}
 				else {
-					shvError() << "Invalid response to FindTunnelRequest:" << resp.toPrettyString();
+					shvError() << "Invalid response to FindTunnelRequest:" << find_tunnel_resp.toPrettyString();
 				}
 				quit();
 			});

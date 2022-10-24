@@ -684,8 +684,8 @@ bool AppRootNode::isFile(const QString &shv_path)
 
 	if (filename.endsWith(CPON_SUFFIX)) {
 		filename.append("." + CPTEMPL_SUFFIX);
-		QFileInfo fi(filename);
-		if (fi.isFile())
+		QFileInfo fi_with_suffix(filename);
+		if (fi_with_suffix.isFile())
 			return true;
 	}
 	return false;
