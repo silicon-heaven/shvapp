@@ -317,7 +317,7 @@ void BfsViewApp::checkPowerSwitchStatusFile()
 			ts.timeStampString = ts_str;
 		}
 		SHV_ASSERT(ts.when.isValid(), "when should be valid", continue);
-		int status_age = ts.when.secsTo(curr_ts);
+		int status_age = static_cast<int>(ts.when.secsTo(curr_ts));
 		static constexpr int LIMIT_SEC = 45;
 		if(status_age < LIMIT_SEC) {
 			// Andrejsek generuje soubor kazdych 30 sekund, 45 je s rezervou

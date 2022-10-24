@@ -229,7 +229,7 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 	else if (method == METH_FILE_HASH) {
 		string bytes = readFile(rpcvalue_cast<QString>(rq.shvPath())).toString();
 		QCryptographicHash h(QCryptographicHash::Sha1);
-		h.addData(bytes.data(), bytes.size());
+		h.addData(bytes.data(), static_cast<int>(bytes.size()));
 		return h.result().toHex().toStdString();
 	}
 	else if (method == cp::Rpc::METH_GET) {
@@ -588,7 +588,7 @@ shv::chainpack::RpcValue AppRootNode::readFileCompressed(const shv::chainpack::R
 	cp::RpcValue result;
 	const auto blob = readFile(rpcvalue_cast<QString>(request.shvPath())).asData();
 	if (compression_type == CompressionType::QCompress) {
-		const auto compressed_blob = qCompress(QByteArray::fromRawData(blob.first, blob.second));
+		const auto compressed_blob = qCompress(QByteArray::fromRawData(blob.first, static_cast<int>(blob.second)));
 		result = cp::RpcValue::Blob(compressed_blob.cbegin(), compressed_blob.cend());
 	}
 

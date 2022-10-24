@@ -144,8 +144,8 @@ void PtyProcess::setupChildProcess()
 		struct winsize term_window_size;
 		if (ioctl(slave_fd, TIOCGWINSZ, &term_window_size) == -1)
 			SHV_EXCEPTION("ioctl(slave_fd, TIOCGWINSZ, &term_window_size): " + std::string(::strerror(errno)));
-		term_window_size.ws_col = m_ptyCols;
-		term_window_size.ws_row = m_ptyRows;
+		term_window_size.ws_col = static_cast<unsigned short>(m_ptyCols);
+		term_window_size.ws_row = static_cast<unsigned short>(m_ptyRows);
 		if (ioctl(slave_fd, TIOCSWINSZ, &term_window_size) == -1)
 			SHV_EXCEPTION("ioctl(slave_fd, TIOCSWINSZ, &term_window_size): " + std::string(::strerror(errno)));
 	}

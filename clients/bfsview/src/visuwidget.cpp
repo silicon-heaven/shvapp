@@ -103,10 +103,10 @@ QRect VisuWidget::svgRectToWidgetRect(const QRectF &svg_rect)
 	QSizeF svg_sz = m_renderer->defaultSize();
 	QSizeF widget_sz = svg_sz.scaled(geometry().size(), Qt::KeepAspectRatio);
 	QRect ret;
-	ret.setX(svg_rect.x() * widget_sz.width() / svg_sz.width());
-	ret.setY(svg_rect.y() * widget_sz.height() / svg_sz.height());
-	ret.setWidth(svg_rect.width() * widget_sz.width() / svg_sz.width());
-	ret.setHeight(svg_rect.height() * widget_sz.height() / svg_sz.height());
+	ret.setX(static_cast<int>(svg_rect.x() * widget_sz.width() / svg_sz.width()));
+	ret.setY(static_cast<int>(svg_rect.y() * widget_sz.height() / svg_sz.height()));
+	ret.setWidth(static_cast<int>(svg_rect.width() * widget_sz.width() / svg_sz.width()));
+	ret.setHeight(static_cast<int>(svg_rect.height() * widget_sz.height() / svg_sz.height()));
 	return ret;
 }
 

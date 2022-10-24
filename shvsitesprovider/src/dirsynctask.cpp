@@ -199,7 +199,7 @@ void DirSyncTask::onHashReceived(const QString &shv_path, const shv::chainpack::
 		AppRootNode *root = qobject_cast<AppRootNode*>(parent());
 		std::string bytes = root->readFile(shv_path).toString();
 		QCryptographicHash h(QCryptographicHash::Sha1);
-		h.addData(bytes.data(), bytes.size());
+		h.addData(bytes.data(), static_cast<int>(bytes.size()));
 		std::string local_hash = h.result().toHex().toStdString();
 		if (local_hash != remote_hash) {
 			getFile(shv_path);

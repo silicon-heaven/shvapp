@@ -414,7 +414,7 @@ void ShvRExecApp::runPtyCmd(const shv::chainpack::RpcValue &params)
 qint64 ShvRExecApp::writeCmdProcessStdIn(const char *data, size_t len)
 {
 	if(m_ptyCmdProc) {
-		qint64 n = m_ptyCmdProc->writePtyMaster(data, len);
+		qint64 n = m_ptyCmdProc->writePtyMaster(data, static_cast<int>(len));
 		if(n != static_cast<qint64>(len)) {
 			shvError() << "Write PTY master stdin error, only" << n << "of" << len << "bytes written.";
 		}
