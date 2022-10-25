@@ -271,7 +271,7 @@ void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &
 
 	auto append_log = [&output_log, &save_log](const ShvJournalEntry &entry) {
 		output_log.append(entry);
-		if ((int)output_log.size() >= Application::CHUNK_RECORD_COUNT) {
+		if (static_cast<int>(output_log.size()) >= Application::CHUNK_RECORD_COUNT) {
 			save_log();
 		}
 
@@ -422,14 +422,12 @@ shv::chainpack::RpcValue RootNode::callMethod(const shv::iotqt::node::ShvNode::S
 	}
 	else if (method == METH_TRIM_DIRTY_LOG && shv_path.size() && shv_path.value(-1) == Application::DIRTY_LOG_NODE) {
 		shv::iotqt::node::ShvNode::StringViewList path = shv_path.mid(0, shv_path.size() - 1);
-		QString shv_path = QString::fromStdString(path.join('/'));
-		trimDirtyLog(shv_path);
+		trimDirtyLog(QString::fromStdString(path.join('/')));
 		return true;
 	}
 	else if (method == cp::Rpc::METH_GET && shv_path.size() > 2 && shv_path.value(-1) == Application::START_TS_NODE) {
 		shv::iotqt::node::ShvNode::StringViewList path = shv_path.mid(0, shv_path.size() - 2);
-		QString shv_path = QString::fromStdString(path.join('/'));
-		return getStartTS(shv_path);
+		return getStartTS(QString::fromStdString(path.join('/')));
 	}
 	else if (method == METH_GET_LOGVERBOSITY) {
 		return NecroLog::topicsLogTresholds();

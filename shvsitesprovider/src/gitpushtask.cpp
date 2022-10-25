@@ -60,7 +60,7 @@ void GitPushTask::execGitCommand(const QStringList &arguments)
 
 void GitPushTask::onGitCommandFinished()
 {
-	m_step = Step((int)m_step + 1);
+	m_step = Step(static_cast<int>(m_step) + 1);
 	if (m_step == Finished) {
 		Q_EMIT finished(true);
 	}

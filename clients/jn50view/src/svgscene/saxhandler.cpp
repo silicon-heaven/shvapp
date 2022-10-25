@@ -87,7 +87,7 @@ static qreal toDouble(const QChar *&str)
 				div *= 10;
 				++t;
 			}
-			val = ((qreal)ival)/((qreal)div);
+			val = (static_cast<qreal>(ival))/(static_cast<qreal>(div));
 		} else {
 			val = ival;
 		}
@@ -232,7 +232,7 @@ bool qsvg_get_hex_rgb(const char *name, QRgb *rgb)
 	} else {
 		r = g = b = -1;
 	}
-	if ((uint)r > 255 || (uint)g > 255 || (uint)b > 255) {
+	if (static_cast<uint>(r) > 255 || static_cast<uint>(g) > 255 || static_cast<uint>(b) > 255) {
 		*rgb = 0;
 		return false;
 	}
@@ -282,7 +282,7 @@ static QColor parseColor(const QString &color, const QString &opacity)
 					s = color_str.constData() + 4;
 					compo = parsePercentageList(s);
 					for (int i = 0; i < compo.size(); ++i)
-						compo[i] *= (qreal)2.55;
+						compo[i] *= 2.55;
 				}
 				if (compo.size() == 3) {
 					ret = QColor(int(compo[0]),
@@ -309,7 +309,7 @@ static QColor parseColor(const QString &color, const QString &opacity)
 	}
 	if (!opacity.isEmpty() && ret.isValid()) {
 		bool ok = true;
-		qreal op = qMin(qreal(1.0), qMax(qreal(0.0), toDouble(opacity, &ok)));
+		qreal op = qMin(1.0, qMax(0.0, toDouble(opacity, &ok)));
 		if (!ok)
 			op = 1.0;
 		ret.setAlphaF(op);
@@ -431,12 +431,12 @@ static QMatrix parseTransformationMatrix(const QStringRef &value)
 		} else if (state == SkewX) {
 			if (points.count() != 1)
 				goto error;
-			const qreal deg2rad = qreal(0.017453292519943295769);
+			const qreal deg2rad = 0.017453292519943295769;
 			matrix.shear(qTan(points[0]*deg2rad), 0);
 		} else if (state == SkewY) {
 			if (points.count() != 1)
 				goto error;
-			const qreal deg2rad = qreal(0.017453292519943295769);
+			const qreal deg2rad = 0.017453292519943295769;
 			matrix.shear(0, qTan(points[0]*deg2rad));
 		}
 	}
@@ -953,18 +953,18 @@ void SaxHandler::parse()
 		case QXmlStreamReader::Characters:
 		{
 			logSvgD() << "characters element:" << m_xml->text();// << typeid (*m_topLevelItem).name();
-			if(SimpleTextItem *text_item = dynamic_cast<SimpleTextItem*>(m_topLevelItem)) {
-				QString text = text_item->text();
+			if(SimpleTextItem *simple_text_item = dynamic_cast<SimpleTextItem*>(m_topLevelItem)) {
+				QString text = simple_text_item->text();
 				if(!text.isEmpty())
 					text += '\n';
-				logSvgD() << text_item->text() << "+" << m_xml->text().toString();
-				text_item->setText(text + m_xml->text().toString());
+				logSvgD() << simple_text_item->text() << "+" << m_xml->text().toString();
+				simple_text_item->setText(text + m_xml->text().toString());
 			}
-			else if(QGraphicsTextItem *text_item = dynamic_cast<QGraphicsTextItem*>(m_topLevelItem)) {
-				QString text = text_item->toPlainText();
+			else if(QGraphicsTextItem *graphics_text_item = dynamic_cast<QGraphicsTextItem*>(m_topLevelItem)) {
+				QString text = graphics_text_item->toPlainText();
 				if(!text.isEmpty())
 					text += '\n';
-				text_item->setPlainText(text + m_xml->text());
+				graphics_text_item->setPlainText(text + m_xml->text());
 				//nInfo() << text_item->toPlainText();
 			}
 			else {
@@ -1222,7 +1222,7 @@ void SaxHandler::setTextStyle(QFont &font, const CssAttributes &attributes)
 	QString font_size = attributes.value(QStringLiteral("font-size"));
 	if(!font_size.isEmpty()) {
 		if(font_size.endsWith(QLatin1String("px")))
-			font.setPixelSize((int)toDouble(font_size.mid(0, font_size.size() - 2)));
+			font.setPixelSize(static_cast<int>(toDouble(font_size.mid(0, font_size.size() - 2))));
 		else if(font_size.endsWith(QLatin1String("pt")))
 			font.setPointSizeF(toDouble(font_size.mid(0, font_size.size() - 2)));
 	}

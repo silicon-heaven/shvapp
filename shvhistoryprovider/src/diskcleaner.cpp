@@ -29,7 +29,7 @@ void DiskCleaner::scanDir(const QDir &dir, DiskCleaner::CheckDiskContext &ctx)
             scanDir(child_dir, ctx);
         }
         else if (info.isFile()) {
-			int cache_dir_path_length = Application::instance()->cliOptions()->logCacheDir().size();
+			int cache_dir_path_length = static_cast<int>(Application::instance()->cliOptions()->logCacheDir().size());
 			QString site_path = dir.absolutePath().mid(cache_dir_path_length + 1);
 			if (ctx.deviceOccupationInfo.contains(site_path)) {
 				if (info.fileName().length() == 27 && info.suffix() == "chp") {
@@ -82,7 +82,7 @@ void DiskCleaner::checkDiskOccupation()
 			break;
 		}
 
-		int limit_per_device = m_cacheSizeLimit / ctx.deviceOccupationInfo.count();
+		int limit_per_device = static_cast<int>(m_cacheSizeLimit / ctx.deviceOccupationInfo.count());
 		for (const auto &occupation_info : ctx.deviceOccupationInfo) {
 			if (occupation_info.occupiedSize > limit_per_device) {
 				QDir dir(occupation_info.oldestFileInfo.absolutePath(), "*.chp", QDir::SortFlag::Name, QDir::Filter::Files);

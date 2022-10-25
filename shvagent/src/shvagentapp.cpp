@@ -361,12 +361,12 @@ void ShvAgentApp::launchRexec(const shv::chainpack::RpcRequest &rq)
 	si::rpc::RpcResponseCallBack *cb = new si::rpc::RpcResponseCallBack(resp.requestId().toInt(), this);
 	connect(rpcConnection(), &si::rpc::ClientConnection::rpcMessageReceived, cb, &si::rpc::RpcResponseCallBack::onRpcMessageReceived);
 	cp::RpcValue on_connected = rq.params();
-	cb->start([this, on_connected](const shv::chainpack::RpcResponse &resp) {
-		shvDebug() << "Received Find tunnel response:" << resp.toPrettyString();
-		cp::TunnelCtl tctl1 = resp.tunnelCtl();
+	cb->start([this, on_connected](const shv::chainpack::RpcResponse &find_tunnel_resp) {
+		shvDebug() << "Received Find tunnel response:" << find_tunnel_resp.toPrettyString();
+		cp::TunnelCtl tctl1 = find_tunnel_resp.tunnelCtl();
 		if(tctl1.state() == cp::TunnelCtl::State::FindTunnelResponse) {
 			cp::FindTunnelRespCtl find_tunnel_response(tctl1);
-			find_tunnel_response.setRequestId(resp.requestId().toInt());
+			find_tunnel_response.setRequestId(find_tunnel_resp.requestId().toInt());
 			SessionProcess *proc = new SessionProcess(this);
 			QString app = QCoreApplication::applicationDirPath() + "/shvrexec";
 			QStringList params;
@@ -378,11 +378,11 @@ void ShvAgentApp::launchRexec(const shv::chainpack::RpcRequest &rq)
 			startup_params["onConnectedCall"] = on_connected;
 			std::string cpon = cp::RpcValue(std::move(startup_params)).toCpon();
 			//shvInfo() << "cpon:" << cpon;
-			proc->write(cpon.data(), (unsigned)cpon.size());
+			proc->write(cpon.data(), static_cast<unsigned>(cpon.size()));
 			proc->write("\n", 1);
 		}
 		else {
-			shvError() << "Invalid response to FindTunnelRequest:" << resp.toPrettyString();
+			shvError() << "Invalid response to FindTunnelRequest:" << find_tunnel_resp.toPrettyString();
 		}
 	});
 }
@@ -411,12 +411,12 @@ void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq, bool std_out_only
 						if(i == STDOUT_FILENO) {
 							QByteArray ba = proc->readAllStandardOutput();
 							shvDebug() << "\t stdout:" << ba.toStdString();
-							lst.push_back(std::string(ba.constData(), (unsigned)ba.size()));
+							lst.push_back(std::string(ba.constData(), static_cast<unsigned>(ba.size())));
 						}
 						else if(i == STDERR_FILENO) {
 							QByteArray ba = proc->readAllStandardError();
 							shvDebug() << "\t stderr:" << ba.toStdString();
-							lst.push_back(std::string(ba.constData(), (unsigned)ba.size()));
+							lst.push_back(std::string(ba.constData(), static_cast<unsigned>(ba.size())));
 						}
 					}
 				}
@@ -426,7 +426,7 @@ void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq, bool std_out_only
 			else {
 				QByteArray ba = proc->readAllStandardOutput();
 				shvDebug() << "\t stdout:" << ba.toStdString();
-				resp.setResult(std::string(ba.constData(), (unsigned)ba.size()));
+				resp.setResult(std::string(ba.constData(), static_cast<unsigned>(ba.size())));
 				logRunCmd() << "Proces exit OK, result:" << resp.result().toCpon();
 			}
 		}

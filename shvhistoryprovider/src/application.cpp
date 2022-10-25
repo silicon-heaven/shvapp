@@ -147,14 +147,14 @@ Application *Application::instance()
 QString Application::uptime() const
 {
 	qint64 elapsed = m_uptime.elapsed();
-	int ms = elapsed % 1000;
+	int ms = static_cast<int>(elapsed) % 1000;
 	elapsed /= 1000;
-	int sec = elapsed % 60;
+	int sec = static_cast<int>(elapsed) % 60;
 	elapsed /= 60;
-	int min = elapsed % 60;
+	int min = static_cast<int>(elapsed) % 60;
 	elapsed /= 60;
-	int hour = elapsed % 24;
-	int day = (int)elapsed / 24;
+	int hour = static_cast<int>(elapsed) % 24;
+	int day = static_cast<int>(elapsed) / 24;
 	return QString("%1 day(s) %2:%3:%4.%5")
 			.arg(day)
 			.arg(hour, 2, 10, QChar('0'))
