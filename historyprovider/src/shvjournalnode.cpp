@@ -300,6 +300,9 @@ public:
 		}
 
 		std::vector<shv::core::utils::ShvJournalEntry> downloaded_entries;
+		QScopeGuard entry_writer_guard([this, &slave_hp_path, &downloaded_entries] {
+			writeEntriesToFile(downloaded_entries, slave_hp_path);
+		});
 
 		while (true) {
 			auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
@@ -311,7 +314,7 @@ public:
 
 			if (!error.isEmpty()) {
 				journalError() << "Error retrieving logs via getLog for:" << slave_hp_path << error;
-				m_callback(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, "Couldn't retrieve logs from the device"));
+				m_callback(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, "Couldn't retrieve all logs from the device"));
 				co_return;
 			}
 
@@ -319,7 +322,6 @@ public:
 			result_log.loadLog(result);
 			result_log.clearSnapshot();
 			if (result_log.isEmpty()) {
-				writeEntriesToFile(downloaded_entries, slave_hp_path);
 				co_return;
 			}
 
@@ -337,7 +339,6 @@ public:
 			}
 
 			if (remote_entries.size() < RECORD_COUNT_LIMIT) {
-				writeEntriesToFile(downloaded_entries, slave_hp_path);
 				co_return;
 			}
 
