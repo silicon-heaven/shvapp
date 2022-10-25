@@ -187,6 +187,17 @@ void ShvJournalNode::trimDirtyLog(const QString& slave_hp_path)
 	newest_file_entries.erase(std::find_if(newest_file_entries.begin(), newest_file_entries.end(), [newest_entry_msec] (const auto& entry) {
 		return entry.epochMsec == newest_entry_msec;
 	}), newest_file_entries.end());
+
+	// If we discarded all the entries from the newest file (i.e. it only
+	// contained data from the same timestamp), we'll just delete it. No
+	// point in having empty files. After that we don't have to do anything
+	// to the dirty log, because there's no data to trim.
+
+	if (newest_file_entries.empty()) {
+		QFile(cache_dir.filePath(entries.at(1))).remove();
+		return;
+	}
+
 	write_entries_to_file(cache_dir.filePath(entries.at(1)), newest_file_entries);
 
 	// Now filter dirty log's newer events.

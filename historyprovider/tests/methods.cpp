@@ -56,6 +56,8 @@ const auto dummy_logfile2 = R"(2022-07-07T18:06:17.872Z	809781	zone1/system/sig/
 2022-07-07T18:06:17.880Z	809781	zone1/pme/TSH1-1/switchRightCounterPermanent	0u		chng	2	
 )"s;
 
+const auto logfile_one_entry = R"(2022-07-07T18:06:17.872Z	809781	zone1/system/sig/plcDisconnected	false		chng	2	)"s;
+
 const auto dummy_pushlog = RpcValue::fromCpon(R"(
 <
   "dateTime":d"2022-09-15T13:30:04.293Z",
@@ -770,6 +772,32 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			EXPECT_REQUEST("shv/two/.app/shvjournal", "lsfiles", ls_size_true);
 			RESPOND_YIELD(RpcValue::List());
 			EXPECT_RESPONSE("All files have been synced");
+		}
+
+		DOCTEST_SUBCASE("file to trim from only has one entry")
+		{
+			// This means that the file will be trimmed due to the last-ms algorithm and therefore empty. We don't
+			// really want empty files, so we don't even write it.
+			create_dummy_cache_files("shv/one", {
+				{"dirty.log2", dummy_logfile2}
+			});
+
+			REQUEST_YIELD("shvjournal", "syncLog", RpcValue());
+			EXPECT_REQUEST("shv/one/.app/shvjournal", "lsfiles", ls_size_true);
+			RESPOND_YIELD((RpcValue::List{{
+				{ "2022-07-07T18-06-15-557.log2", "f", logfile_one_entry.size() }
+			}}));
+			EXPECT_REQUEST("shv/one/.app/shvjournal/2022-07-07T18-06-15-557.log2", "read", read_offset_0);
+			RESPOND_YIELD(RpcValue::stringToBlob(logfile_one_entry));
+			EXPECT_REQUEST("shv/two/.app/shvjournal", "lsfiles", ls_size_true);
+			RESPOND_YIELD(RpcValue::List());
+			EXPECT_RESPONSE("All files have been synced");
+
+			expected_cache_contents = RpcValue::List({{
+				RpcValue::List{ "dirty.log2", dummy_logfile2.size() }
+			}});
+
+			REQUIRE(get_cache_contents("shv/one") == expected_cache_contents);
 		}
 	}
 
