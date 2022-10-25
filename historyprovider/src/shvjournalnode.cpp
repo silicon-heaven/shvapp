@@ -151,7 +151,7 @@ void write_entries_to_file(const QString& file_path, const std::vector<shv::core
 
 void ShvJournalNode::trimDirtyLog(const QString& slave_hp_path)
 {
-	journalDebug() << "Trimming dirty log for" << slave_hp_path;
+	journalInfo() << "Trimming dirty log for" << slave_hp_path;
 	using shv::coreqt::Utils;
 	auto cache_dir_path = Utils::joinPath(m_cacheDirPath, slave_hp_path);
 	QDir cache_dir(cache_dir_path);
@@ -254,7 +254,7 @@ public:
 
 	void writeEntriesToFile(const std::vector<shv::core::utils::ShvJournalEntry>& downloaded_entries, const QString& slave_hp_path)
 	{
-		journalDebug() << "Writing entries for" << slave_hp_path;
+		journalInfo() << "Writing" << downloaded_entries.size() << "entries for" << slave_hp_path;
 		if (downloaded_entries.empty()) {
 			return;
 		}
@@ -324,7 +324,7 @@ public:
 
 			const auto& remote_entries = result_log.entries();
 
-			journalDebug() << "Loaded" << remote_entries.size() << "log entries for" << slave_hp_path;
+			journalInfo() << "Loaded" << remote_entries.size() << "log entries for" << slave_hp_path;
 			auto newest_entry = remote_entries.back().epochMsec;
 			for (const auto& entry : remote_entries) {
 				// We're skipping all entries from the last millisecond, and retrieve it again, otherwise we can't be
@@ -444,7 +444,7 @@ public:
 			auto slave_hp_path_qstr = QString::fromStdString(slave_hp.shv_path);
 
 			if (m_syncInProgress.value(slave_hp_path_qstr, false)) {
-				journalDebug() << slave_hp_path_qstr << "is already being synced, skipping";
+				journalInfo() << slave_hp_path_qstr << "is already being synced, skipping";
 				continue;
 			}
 
