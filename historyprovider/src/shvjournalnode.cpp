@@ -210,6 +210,7 @@ void ShvJournalNode::trimDirtyLog(const QString& slave_hp_path)
 
 namespace {
 const auto RECORD_COUNT_LIMIT = 5000;
+const auto MAX_ENTRIES_PER_FILE = 50000;
 const auto SYNCER_MEMORY_LIMIT = 1024 /*B*/ * 1024 /*kB*/ * 100 /*MB*/;
 }
 
@@ -340,6 +341,10 @@ public:
 				co_return;
 			}
 
+			if (downloaded_entries.size() > MAX_ENTRIES_PER_FILE) {
+				writeEntriesToFile(downloaded_entries, slave_hp_path);
+				downloaded_entries.clear();
+			}
 			get_log_params.since = remote_entries.back().dateTime();
 		}
 	}
