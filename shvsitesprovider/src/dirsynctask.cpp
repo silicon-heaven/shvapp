@@ -147,7 +147,13 @@ void DirSyncTask::onDirFinished(const QString &shv_path, const shv::chainpack::R
 	if (resp.isSuccess()) {
 		bool has_read = false;
 		for (const cp::RpcValue &dir_item : resp.result().toList()) {
-			if (dir_item.asString() == "read") {
+			if (dir_item.isMap()) {
+				if (dir_item.asMap().value("name") == "read") {
+					has_read = true;
+					break;
+				}
+			}
+			else if (dir_item.asString() == "read") {
 				has_read = true;
 				break;
 			}
