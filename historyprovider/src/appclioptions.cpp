@@ -11,7 +11,7 @@ AppCliOptions::AppCliOptions()
 	addOption("app.journalSanitizerInterval").setType(shv::chainpack::RpcValue::Type::Int).setNames("--journal-sanitizer-interval")
 			.setComment("Set journal sanitizer interval in seconds").setDefaultValue(60);
 	addOption("app.logMaxAge").setType(shv::chainpack::RpcValue::Type::Int).setNames("--log-max-age")
-			.setComment("Set log max age in seconds: dirty log age or timer-based syncing for (master) pushlog devices").setDefaultValue(60 /*seconds*/ * 60 /*minutes*/ * 1 /*hours*/); // What's a correct value? An hour?
+			.setComment("Set timer interval in seconds for syncing devices").setDefaultValue(60 /*seconds*/ * 60 /*minutes*/ * 1 /*hours*/); // What's a correct value? An hour?
 	addOption("app.cacheInitMaxAge").setType(shv::chainpack::RpcValue::Type::Int).setNames("--cache-init-max-age")
 			.setComment("Set max age in seconds for initial cache sync").setDefaultValue(60 /*seconds*/ * 60 /*minutes*/ * 24 /*hours*/ * 7 /*days*/); // What's a correct value? An hour?
 }

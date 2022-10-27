@@ -41,11 +41,6 @@ LeafNode::LeafNode(const std::string& node_id, LogType log_type, ShvNode* parent
 	, m_logType(log_type)
 {
 	QDir(QString::fromStdString(m_journalCacheDir)).mkpath(".");
-	if (m_logType == LogType::PushLog) {
-		auto tmr = new QTimer(this);
-		connect(tmr, &QTimer::timeout, [this] { HistoryApp::instance()->shvJournalNode()->syncLog(shvPath(), [] (auto /*error*/) { }); });
-		tmr->start(HistoryApp::instance()->cliOptions()->logMaxAge() * 1000);
-	}
 }
 
 size_t LeafNode::methodCount(const StringViewList& shv_path)

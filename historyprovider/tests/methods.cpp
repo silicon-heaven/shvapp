@@ -306,26 +306,6 @@ QCoro::Generator<int> MockRpcConnection::driver()
 					NOTIFY("shv/eyas/opc/power-on", "chng", true); // Send an event so that HP checks for dirty log age.
 					// Nothing happens afterwards, since max age is >10
 				}
-
-				DOCTEST_SUBCASE("synclog should trigger")
-				{
-					HistoryApp::instance()->cliOptions()->setLogMaxAge(10);
-
-					DOCTEST_SUBCASE("after sending an event")
-					{
-						NOTIFY_YIELD("shv/eyas/opc/power-on", "chng", true);
-						EXPECT_REQUEST(join(cache_dir_path, "/.app/shvjournal"), "lsfiles", ls_size_true);
-						RESPOND(RpcValue::List()); // We only test if the syncLog triggers.
-					}
-
-					DOCTEST_SUBCASE("syncing doesn't double when sending multiple events")
-					{
-						NOTIFY_YIELD("shv/eyas/opc/power-on", "chng", true);
-						EXPECT_REQUEST(join(cache_dir_path, "/.app/shvjournal"), "lsfiles", ls_size_true);
-						NOTIFY("shv/eyas/opc/power-on", "chng", true);
-						RESPOND(RpcValue::List()); // We only test if the syncLog triggers.
-					}
-				}
 			}
 
 			DOCTEST_SUBCASE("device mounted")
@@ -509,9 +489,9 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				EXPECT_SUBSCRIPTION_YIELD("shv/master", "mntchng");
 				EXPECT_SUBSCRIPTION_YIELD("shv/master", "chng");
 				// Test that HP will run lsfiles (sync) at least twice.
-				EXPECT_REQUEST("shv/master/.local/history/shvjournal/pushlog", "lsfiles", ls_size_true);
+				EXPECT_REQUEST("shv/master/.local/history/shvjournal", "lsfiles", ls_size_true);
 				RESPOND_YIELD(RpcValue::List());
-				EXPECT_REQUEST("shv/master/.local/history/shvjournal/pushlog", "lsfiles", ls_size_true);
+				EXPECT_REQUEST("shv/master/.local/history/shvjournal", "lsfiles", ls_size_true);
 				RESPOND(RpcValue::List());
 			}
 

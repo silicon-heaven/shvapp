@@ -47,6 +47,10 @@ ShvJournalNode::ShvJournalNode(const std::vector<SlaveHpInfo>& slave_hps, ShvNod
 		if (it.log_type != LogType::PushLog) {
 			conn->callMethodSubscribe(it.shv_path, "chng");
 		}
+
+		auto tmr = new QTimer(this);
+		connect(tmr, &QTimer::timeout, [path_to_sync = it.shv_path] { HistoryApp::instance()->shvJournalNode()->syncLog(path_to_sync, [] (auto /*error*/) { }); });
+		tmr->start(HistoryApp::instance()->cliOptions()->logMaxAge() * 1000);
 	}
 }
 
@@ -86,18 +90,6 @@ void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 															, data_change.epochMSec());
 					writer.append(entry);
 
-				}
-
-				if (!m_dirtyLogFirstTimestamp.contains(it->shv_path)) {
-					shv::core::utils::ShvJournalFileReader reader(dirty_log_path(shv::coreqt::Utils::joinPath(m_cacheDirPath, QString::fromStdString(it->shv_path))));
-					reader.next(); // There must be at least one entry, because I've just written it
-					m_dirtyLogFirstTimestamp.emplace(it->shv_path, reader.entry().epochMsec);
-				}
-
-				if (!m_syncInProgress.value(QString::fromStdString(it->shv_path), false) && QDateTime::currentMSecsSinceEpoch() - HistoryApp::instance()->cliOptions()->logMaxAge() * 1000 > m_dirtyLogFirstTimestamp.at(it->shv_path)) {
-					journalInfo() << "Log is too old, syncing journal" << it->shv_path;
-					syncLog(it->shv_path, [] (auto /*error*/) {
-					});
 				}
 			}
 
@@ -203,14 +195,7 @@ void ShvJournalNode::trimDirtyLog(const QString& slave_hp_path)
 	// Now filter dirty log's newer events.
 	shv::core::utils::ShvJournalFileReader reader(dirty_log_path(cache_dir_path));
 	std::vector<shv::core::utils::ShvJournalEntry> new_dirty_log_entries;
-	bool first = true;
 	while (reader.next()) {
-		if (first) {
-			m_dirtyLogFirstTimestamp.insert_or_assign(slave_hp_path.toStdString(), reader.entry().epochMsec);
-			journalDebug() << "Dirty logfile first entry timestamp" << m_dirtyLogFirstTimestamp.at(slave_hp_path.toStdString());
-			first = false;
-		}
-
 		if (reader.entry().epochMsec >= newest_entry_msec) {
 			new_dirty_log_entries.push_back(reader.entry());
 		}
