@@ -15,10 +15,12 @@
 
 namespace cp = shv::chainpack;
 using cp::RpcValue;
+using namespace std::string_literals;
 
 auto get_site_cache_dir(const std::string& site_path)
 {
-	return QDir{QString::fromStdString(shv::core::Utils::joinPath(HistoryApp::instance()->cliOptions()->journalCacheRoot(), site_path))};
+	using shv::core::Utils;
+	return QDir{QString::fromStdString(Utils::joinPath(Utils::joinPath(HistoryApp::instance()->cliOptions()->journalCacheRoot(), site_path), "shvjournal"s))};
 }
 
 void remove_cache_contents(const std::string& site_path)
@@ -44,7 +46,6 @@ auto get_cache_contents(const std::string& site_path)
 	return res;
 }
 
-using namespace std::string_literals;
 const auto dummy_logfile = R"(2022-07-07T18:06:15.557Z	809779	APP_START	true		SHV_SYS	0	
 2022-07-07T18:06:17.784Z	809781	zone1/system/sig/plcDisconnected	false		chng	2	
 2022-07-07T18:06:17.784Z	809781	zone1/zone/Zone1/plcDisconnected	false		chng	2	
