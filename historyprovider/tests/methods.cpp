@@ -244,6 +244,27 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				RESPOND_YIELD(RpcValue::stringToBlob(dummy_logfile));
 			}
 
+			DOCTEST_SUBCASE("Remote - has files and subdirectories, local - empty")
+			{
+				create_dummy_cache_files(cache_dir_path, {});
+				expected_cache_contents = RpcValue::List({{
+					RpcValue::List{ "subdir/2022-07-07T18-06-15-557.log2", dummy_logfile.size() }
+				}});
+
+				RESPOND_YIELD((RpcValue::List({{
+					{ "subdir", "d", 0 }
+				}})));
+
+				EXPECT_REQUEST(join(cache_dir_path, "/.app/shvjournal/subdir"), "lsfiles", ls_size_true);
+
+				RESPOND_YIELD((RpcValue::List({{
+					{ "2022-07-07T18-06-15-557.log2", "f", dummy_logfile.size() }
+				}})));
+
+				EXPECT_REQUEST("shv/eyas/opc/.app/shvjournal/subdir/2022-07-07T18-06-15-557.log2", "read", read_offset_0);
+				RESPOND_YIELD(RpcValue::stringToBlob(dummy_logfile));
+			}
+
 			DOCTEST_SUBCASE("dirty log")
 			{
 				create_dummy_cache_files(cache_dir_path, {});
