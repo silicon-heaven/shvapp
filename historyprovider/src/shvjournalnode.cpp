@@ -214,6 +214,10 @@ namespace {
 const auto RECORD_COUNT_LIMIT = 5000;
 const auto MAX_ENTRIES_PER_FILE = 50000;
 const auto SYNCER_MEMORY_LIMIT = 1024 /*B*/ * 1024 /*kB*/ * 100 /*MB*/;
+
+const auto LS_FILES_RESPONSE_FILENAME = 0;
+const auto LS_FILES_RESPONSE_FILETYPE = 1;
+const auto LS_FILES_RESPONSE_FILESIZE = 2;
 }
 
 class FileSyncer : public QObject {
@@ -396,7 +400,7 @@ public:
 			if (current_memory_usage > SYNCER_MEMORY_LIMIT) {
 				writeFiles();
 			};
-			auto file_name = QString::fromStdString(current_file.asList().at(0).asString());
+			auto file_name = QString::fromStdString(current_file.asList().at(LS_FILES_RESPONSE_FILENAME).asString());
 			if (file_name == "dirty.log2") {
 				continue;
 			}
@@ -409,7 +413,7 @@ public:
 			auto full_file_name = QDir(get_cache_dir_path(m_cacheDirPath, slave_hp_path)).filePath(file_name);
 			QFile file(full_file_name);
 			auto local_size = file.size();
-			auto remote_size = current_file.asList().at(2).toInt();
+			auto remote_size = current_file.asList().at(LS_FILES_RESPONSE_FILESIZE).toInt();
 
 			journalInfo() << "Syncing file" << full_file_name << "remote size:" << remote_size << "local size:" << (file.exists() ? QString::number(local_size) : "<doesn't exist>");
 			if (file.exists()) {
