@@ -55,6 +55,12 @@ ShvJournalNode::ShvJournalNode(const std::vector<SlaveHpInfo>& slave_hps, ShvNod
 }
 
 namespace {
+auto get_cache_dir_path(const QString& cache_root, const QString& slave_hp_path)
+{
+	using shv::coreqt::Utils;
+	return Utils::joinPath(Utils::joinPath(cache_root, slave_hp_path), "shvjournal");
+}
+
 const auto DIRTY_FILENAME = "dirty.log2";
 
 std::string dirty_log_path(const QString& cache_dir_path)
@@ -79,7 +85,7 @@ void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 		if (it != m_slaveHps.end()) {
 			if (method == "chng") {
 				{
-					auto writer = shv::core::utils::ShvJournalFileWriter(dirty_log_path(shv::coreqt::Utils::joinPath(m_cacheDirPath, QString::fromStdString(it->shv_path))));
+					auto writer = shv::core::utils::ShvJournalFileWriter(dirty_log_path(get_cache_dir_path(m_cacheDirPath, QString::fromStdString(it->shv_path))));
 					auto path_without_prefix = path.substr(it->shv_path.size());
 					auto data_change = shv::chainpack::DataChange::fromRpcValue(ntf.params());
 
@@ -145,7 +151,7 @@ void ShvJournalNode::trimDirtyLog(const QString& slave_hp_path)
 {
 	journalInfo() << "Trimming dirty log for" << slave_hp_path;
 	using shv::coreqt::Utils;
-	auto cache_dir_path = Utils::joinPath(m_cacheDirPath, slave_hp_path);
+	auto cache_dir_path = get_cache_dir_path(m_cacheDirPath, slave_hp_path);
 	QDir cache_dir(cache_dir_path);
 	auto entries = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name | QDir::Reversed);
 
@@ -256,8 +262,7 @@ public:
 			return;
 		}
 
-		using shv::coreqt::Utils;
-		QDir dir(Utils::joinPath(m_cacheDirPath, slave_hp_path));
+		QDir dir(get_cache_dir_path(m_cacheDirPath, slave_hp_path));
 
 		auto file_name = dir.filePath(QString::fromStdString(shv::core::utils::ShvJournalFileReader::msecToBaseFileName(downloaded_entries.front().epochMsec)) + ".log2");
 
@@ -275,7 +280,7 @@ public:
 		get_log_params.until = shv::chainpack::RpcValue::DateTime::now();
 		get_log_params.since = shv::chainpack::RpcValue::DateTime::fromMSecsSinceEpoch(QDateTime::currentDateTime().addSecs(- HistoryApp::instance()->cliOptions()->cacheInitMaxAge()).toMSecsSinceEpoch());
 
-		QDir cache_dir(Utils::joinPath(m_cacheDirPath, slave_hp_path));
+		QDir cache_dir(get_cache_dir_path(m_cacheDirPath, slave_hp_path));
 		if (!cache_dir.isEmpty()) {
 			auto entry_list = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name | QDir::Reversed);
 			QString newest_file_name;
@@ -371,7 +376,7 @@ public:
 
 		journalDebug() << "Got filelist from" << slave_hp_path;
 
-		QDir cache_dir(Utils::joinPath(m_cacheDirPath, slave_hp_path));
+		QDir cache_dir(get_cache_dir_path(m_cacheDirPath, slave_hp_path));
 		QString newest_file_name;
 		int64_t newest_file_name_ms = QDateTime::currentDateTime().addSecs(- HistoryApp::instance()->cliOptions()->cacheInitMaxAge()).toMSecsSinceEpoch();
 		auto entry_list = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name | QDir::Reversed);
@@ -401,7 +406,7 @@ public:
 				continue;
 			}
 
-			auto full_file_name = QDir(Utils::joinPath(m_cacheDirPath, slave_hp_path)).filePath(file_name);
+			auto full_file_name = QDir(get_cache_dir_path(m_cacheDirPath, slave_hp_path)).filePath(file_name);
 			QFile file(full_file_name);
 			auto local_size = file.size();
 			auto remote_size = current_file.asList().at(2).toInt();
