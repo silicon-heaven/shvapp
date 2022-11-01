@@ -58,7 +58,7 @@ namespace {
 auto get_cache_dir_path(const QString& cache_root, const QString& slave_hp_path)
 {
 	using shv::coreqt::Utils;
-	return Utils::joinPath(Utils::joinPath(cache_root, slave_hp_path), "shvjournal");
+	return Utils::joinPath(Utils::joinPath(cache_root, slave_hp_path), "_shvjournal");
 }
 
 const auto DIRTY_FILENAME = "dirty.log2";
