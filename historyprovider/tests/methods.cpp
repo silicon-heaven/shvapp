@@ -261,7 +261,6 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				}
 
 				EXPECT_RESPONSE("All files have been synced");
-				REQUIRE(get_cache_contents(cache_dir_path) == expected_cache_contents);
 			}
 
 			DOCTEST_SUBCASE("Don't download files older than we already have")
@@ -279,7 +278,6 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				}})));
 
 				EXPECT_RESPONSE("All files have been synced");
-				REQUIRE(get_cache_contents(cache_dir_path) == expected_cache_contents);
 			}
 
 			DOCTEST_SUBCASE("Don't download files older than one month")
@@ -291,8 +289,9 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				}})));
 
 				EXPECT_RESPONSE("All files have been synced");
-				REQUIRE(get_cache_contents(cache_dir_path) == expected_cache_contents);
 			}
+
+			REQUIRE(get_cache_contents(cache_dir_path) == expected_cache_contents);
 		}
 
 		DOCTEST_SUBCASE("periodic syncLog")
