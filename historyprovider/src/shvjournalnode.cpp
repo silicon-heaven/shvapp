@@ -450,6 +450,10 @@ public:
 		for (const auto& slave_hp : m_slaveHps) {
 			auto slave_hp_path_qstr = QString::fromStdString(slave_hp.shv_path);
 
+			if (!m_shvPath.isEmpty() && !m_shvPath.startsWith(slave_hp.shv_path.c_str())) {
+				continue;
+			}
+
 			if (m_syncInProgress.value(slave_hp_path_qstr, false)) {
 				journalInfo() << slave_hp_path_qstr << "is already being synced, skipping";
 				continue;
@@ -459,10 +463,6 @@ public:
 			QScopeGuard lock_guard([this, &slave_hp_path_qstr] {
 				m_syncInProgress[slave_hp_path_qstr] = false;
 			});
-
-			if (!m_shvPath.isEmpty() && !m_shvPath.startsWith(slave_hp.shv_path.c_str())) {
-				continue;
-			}
 
 			// Now that we know that shvPath to-be-synced starts with the slave hp path, we need to check whether we're
 			// connecting through a slave HP or connecting directly to a device.
