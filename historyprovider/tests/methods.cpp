@@ -11,6 +11,7 @@
 #include <shv/core/utils/shvmemoryjournal.h>
 
 #include <QDir>
+#include <QDirIterator>
 
 
 namespace cp = shv::chainpack;
@@ -34,13 +35,19 @@ auto get_cache_contents(const std::string& site_path)
 {
 	RpcValue::List res;
 	auto cache_dir = get_site_cache_dir(site_path);
-	auto entries = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files);
-	std::transform(entries.begin(), entries.end(), std::back_inserter(res), [&cache_dir] (const auto& entry) {
+	cache_dir.setFilter(QDir::Files | QDir::NoDotAndDotDot);
+	auto it = QDirIterator(cache_dir, QDirIterator::Subdirectories);
+	while (it.hasNext()) {
+		auto entry = it.next();
 		RpcValue::List name_and_size;
-		name_and_size.push_back(entry.toStdString());
+		name_and_size.push_back(entry.mid(cache_dir.path().size() + 1).toStdString());
 		QFile file(entry);
 		name_and_size.push_back(RpcValue::UInt(QFile(cache_dir.filePath(entry)).size()));
-		return name_and_size;
+		res.push_back(name_and_size);
+	}
+
+	std::sort(res.begin(), res.end(), [] (const RpcValue& a, const RpcValue& b) {
+		return a.asList().front().asString() < b.asList().front().asString();
 	});
 
 	return res;
