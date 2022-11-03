@@ -275,6 +275,7 @@ public:
 		journalInfo() << "Syncing" << slave_hp_path << "via legacy getLog";
 		using shv::coreqt::Utils;
 		shv::core::utils::ShvGetLogParams get_log_params;
+		get_log_params.withSnapshot = true;
 		get_log_params.recordCountLimit = RECORD_COUNT_LIMIT;
 		get_log_params.since = shv::chainpack::RpcValue::DateTime::fromMSecsSinceEpoch(QDateTime::currentDateTime().addSecs(- HistoryApp::instance()->cliOptions()->cacheInitMaxAge()).toMSecsSinceEpoch());
 
@@ -317,9 +318,10 @@ public:
 				co_return;
 			}
 
+			get_log_params.withSnapshot = false;
+
 			shv::core::utils::ShvMemoryJournal result_log;
 			result_log.loadLog(result);
-			result_log.clearSnapshot();
 			if (result_log.isEmpty()) {
 				co_return;
 			}
@@ -344,6 +346,7 @@ public:
 			if (downloaded_entries.size() > MAX_ENTRIES_PER_FILE) {
 				writeEntriesToFile(downloaded_entries, slave_hp_path);
 				downloaded_entries.clear();
+				get_log_params.withSnapshot = true;
 			}
 			get_log_params.since = remote_entries.back().dateTime();
 		}

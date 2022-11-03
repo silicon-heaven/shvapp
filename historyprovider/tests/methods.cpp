@@ -174,6 +174,34 @@ const auto dummy_getlog_response = RpcValue::fromCpon(R"(
 ]
 )");
 
+const auto five_thousand_records_getlog_response = RpcValue::fromCpon((R"(
+<
+  "dateTime":d"2022-09-15T13:30:04.293Z",
+  "device":{"id":"historyprovider"},
+  "fields":[
+    {"name":"timestamp"},
+    {"name":"path"},
+    {"name":"value"},
+    {"name":"shortTime"},
+    {"name":"domain"},
+    {"name":"valueFlags"},
+    {"name":"userId"}
+  ],
+  "logParams":{"recordCountLimit":1000, "until":d"2022-07-07T18:06:17.870Z", "withPathsDict":true, "withSnapshot":false, "withTypeInfo":false},
+  "logVersion":2,
+  "pathsDict":i{1:"APP_START", 2:"zone1/system/sig/plcDisconnected", 3:"zone1/zone/Zone1/plcDisconnected", 4:"zone1/pme/TSH1-1/switchRightCounterPermanent"},
+  "recordCount":5000,
+  "recordCountLimit":1000,
+  "recordCountLimitHit":false,
+  "since":d"2022-07-07T18:06:15.557Z",
+  "until":d"2022-07-07T18:06:17.870Z",
+  "withPathsDict":true,
+  "withSnapshot":false
+>[
+  )" + QString(R"([d"2022-07-07T18:06:15.557Z", 1, true, null, "SHV_SYS", 0u, null],
+)").repeated(5000) + R"(]
+)").toStdString());
+
 struct DummyFileInfo {
 	QString fileName;
 	std::string content;
@@ -554,6 +582,32 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			expected_cache_contents = RpcValue::List({{
 				RpcValue::List{ "2022-07-07T18-06-15-557.log2", 201UL }
 			}});
+		}
+
+		DOCTEST_SUBCASE("hp retrieves snapshot correctly")
+		{
+			enum class WithSnapshot {
+				True,
+				False
+			};
+
+			auto create_get_log_options = [] (const RpcValue& since, WithSnapshot with_snapshot) -> RpcValue {
+				auto res = RpcValue::fromCpon(R"({"headerOptions":11u,"maxRecordCount":5000,"recordCountLimit":5000,"withPathsDict":true,"withTypeInfo":false} == null)").asMap();
+				res.setValue("withSnapshot", with_snapshot == WithSnapshot::True ? true : false);
+				res.setValue("since", since);
+				return res;
+			};
+			create_dummy_cache_files(cache_dir_path, {
+				{ "2022-07-07T18-06-15-557.log2", dummy_logfile },
+			});
+			REQUEST_YIELD("shvjournal", "syncLog", RpcValue());
+			EXPECT_REQUEST(cache_dir_path, "getLog", create_get_log_options(RpcValue::fromCpon(R"(d"2022-07-07T18:06:17.870Z")"), WithSnapshot::True));
+			RESPOND_YIELD(five_thousand_records_getlog_response);
+			expected_cache_contents = RpcValue::List({{
+				RpcValue::List{ "2022-07-07T18-06-15-557.log2", 201UL }
+			}});
+			EXPECT_REQUEST(cache_dir_path, "getLog", create_get_log_options(RpcValue::fromCpon(R"(d"2022-07-07T18:06:15.557Z")"), WithSnapshot::False));
+			RESPOND_YIELD(dummy_getlog_response);
 		}
 
 		DOCTEST_SUBCASE("since param")
