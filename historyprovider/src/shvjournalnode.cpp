@@ -270,9 +270,8 @@ public:
 		m_node->trimDirtyLog(slave_hp_path);
 	}
 
-	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> doLegacySync(const QString& slave_hp_path, const SyncType sync_type)
+	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> doLegacySync(const QString& slave_hp_path)
 	{
-		Q_UNUSED(sync_type)
 		journalInfo() << "Syncing" << slave_hp_path << "via legacy getLog";
 		using shv::coreqt::Utils;
 		shv::core::utils::ShvGetLogParams get_log_params;
@@ -477,7 +476,7 @@ public:
 			}
 
 			if (sync_type == SyncType::Device && slave_hp.log_type == LogType::Legacy) {
-				co_await doLegacySync(slave_hp_path_qstr, sync_type);
+				co_await doLegacySync(slave_hp_path_qstr);
 			} else {
 				co_await doSync(slave_hp_path_qstr, sync_type);
 			}
