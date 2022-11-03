@@ -135,11 +135,18 @@ const cp::MetaMethod* ShvJournalNode::metaMethod(const StringViewList& shv_path,
 }
 
 namespace {
+enum class Overwrite {
+	Yes,
+	No
+};
 
-void write_entries_to_file(const QString& file_path, const std::vector<shv::core::utils::ShvJournalEntry>& entries)
+void write_entries_to_file(const QString& file_path, const std::vector<shv::core::utils::ShvJournalEntry>& entries, const Overwrite overwrite)
 {
 	journalDebug() << "Writing" << entries.size() << "entries to" << file_path;
-	QFile(file_path).remove();
+	if (overwrite == Overwrite::Yes) {
+		QFile(file_path).remove();
+	}
+
 	shv::core::utils::ShvJournalFileWriter writer(file_path.toStdString());
 	for (const auto& entry : entries) {
 		writer.append(entry);
@@ -196,7 +203,7 @@ void ShvJournalNode::trimDirtyLog(const QString& slave_hp_path)
 		return;
 	}
 
-	write_entries_to_file(cache_dir.filePath(entries.at(1)), newest_file_entries);
+	write_entries_to_file(cache_dir.filePath(entries.at(1)), newest_file_entries, Overwrite::Yes);
 
 	// Now filter dirty log's newer events.
 	shv::core::utils::ShvJournalFileReader reader(dirty_log_path(cache_dir_path));
@@ -207,7 +214,7 @@ void ShvJournalNode::trimDirtyLog(const QString& slave_hp_path)
 		}
 	}
 
-	write_entries_to_file(QString::fromStdString(dirty_log_path(cache_dir_path)), new_dirty_log_entries);
+	write_entries_to_file(QString::fromStdString(dirty_log_path(cache_dir_path)), new_dirty_log_entries, Overwrite::Yes);
 }
 
 namespace {
@@ -262,7 +269,7 @@ public:
 		Slave
 	};
 
-	void writeEntriesToFile(const std::vector<shv::core::utils::ShvJournalEntry>& downloaded_entries, const QString& slave_hp_path)
+	void writeEntriesToFile(const std::vector<shv::core::utils::ShvJournalEntry>& downloaded_entries, const QString& slave_hp_path, const std::optional<QString>& file_name_hint)
 	{
 		journalInfo() << "Writing" << downloaded_entries.size() << "entries for" << slave_hp_path;
 		if (downloaded_entries.empty()) {
@@ -271,9 +278,15 @@ public:
 
 		QDir dir(get_cache_dir_path(m_cacheDirPath, slave_hp_path));
 
-		auto file_name = dir.filePath(QString::fromStdString(shv::core::utils::ShvJournalFileReader::msecToBaseFileName(downloaded_entries.front().epochMsec)) + ".log2");
+		auto file_name = dir.filePath([&] {
+			if (file_name_hint) {
+				return file_name_hint.value();
+			}
 
-		write_entries_to_file(file_name, downloaded_entries);
+			return QString::fromStdString(shv::core::utils::ShvJournalFileReader::msecToBaseFileName(downloaded_entries.front().epochMsec)) + ".log2";
+		}());
+
+		write_entries_to_file(file_name, downloaded_entries, Overwrite::No);
 		m_node->trimDirtyLog(slave_hp_path);
 	}
 
@@ -287,6 +300,8 @@ public:
 		get_log_params.since = shv::chainpack::RpcValue::DateTime::fromMSecsSinceEpoch(QDateTime::currentDateTime().addSecs(- HistoryApp::instance()->cliOptions()->cacheInitMaxAge()).toMSecsSinceEpoch());
 
 		QDir cache_dir(get_cache_dir_path(m_cacheDirPath, slave_hp_path));
+		int newest_file_entry_count = 0;
+		std::optional<QString> file_name_hint;
 		if (!cache_dir.isEmpty()) {
 			auto entry_list = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name | QDir::Reversed);
 			QString newest_file_name;
@@ -302,13 +317,21 @@ public:
 				if (!newest_file_entries.empty()) {
 					get_log_params.since = shv::chainpack::RpcValue::DateTime::fromMSecsSinceEpoch(newest_file_entries.back().dateTime().msecsSinceEpoch() + 1);
 					journalDebug() << "Newest entry" << get_log_params.since << "for" << slave_hp_path;
+
+					// No fancy algorithm for appending the files: we'll only append if the existing file can contain
+					// the whole RECORD_COUNT_LIMIT records.
+					if (newest_file_entries.size() + RECORD_COUNT_LIMIT < MAX_ENTRIES_PER_FILE) {
+						newest_file_entry_count = static_cast<int>(newest_file_entries.size());
+						file_name_hint = newest_file_name;
+						get_log_params.withSnapshot = false;
+					}
 				}
 			}
 		}
 
 		std::vector<shv::core::utils::ShvJournalEntry> downloaded_entries;
-		QScopeGuard entry_writer_guard([this, &slave_hp_path, &downloaded_entries] {
-			writeEntriesToFile(downloaded_entries, slave_hp_path);
+		QScopeGuard entry_writer_guard([this, &slave_hp_path, &downloaded_entries, &file_name_hint] {
+			writeEntriesToFile(downloaded_entries, slave_hp_path, file_name_hint);
 		});
 
 		while (true) {
@@ -350,9 +373,11 @@ public:
 				co_return;
 			}
 
-			if (downloaded_entries.size() > MAX_ENTRIES_PER_FILE) {
-				writeEntriesToFile(downloaded_entries, slave_hp_path);
+			if (downloaded_entries.size() + newest_file_entry_count > MAX_ENTRIES_PER_FILE) {
+				writeEntriesToFile(downloaded_entries, slave_hp_path, file_name_hint);
 				downloaded_entries.clear();
+				newest_file_entry_count = 0;
+				file_name_hint.reset();
 				get_log_params.withSnapshot = true;
 			}
 			get_log_params.since = remote_entries.back().dateTime();
