@@ -276,7 +276,6 @@ public:
 		using shv::coreqt::Utils;
 		shv::core::utils::ShvGetLogParams get_log_params;
 		get_log_params.recordCountLimit = RECORD_COUNT_LIMIT;
-		get_log_params.until = shv::chainpack::RpcValue::DateTime::now();
 		get_log_params.since = shv::chainpack::RpcValue::DateTime::fromMSecsSinceEpoch(QDateTime::currentDateTime().addSecs(- HistoryApp::instance()->cliOptions()->cacheInitMaxAge()).toMSecsSinceEpoch());
 
 		QDir cache_dir(get_cache_dir_path(m_cacheDirPath, slave_hp_path));
