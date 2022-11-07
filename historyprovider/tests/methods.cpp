@@ -11,6 +11,7 @@
 #include <shv/core/utils/shvmemoryjournal.h>
 
 #include <QDir>
+#include <QDirIterator>
 
 
 namespace cp = shv::chainpack;
@@ -34,13 +35,19 @@ auto get_cache_contents(const std::string& site_path)
 {
 	RpcValue::List res;
 	auto cache_dir = get_site_cache_dir(site_path);
-	auto entries = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files);
-	std::transform(entries.begin(), entries.end(), std::back_inserter(res), [&cache_dir] (const auto& entry) {
+	cache_dir.setFilter(QDir::Files | QDir::NoDotAndDotDot);
+	auto it = QDirIterator(cache_dir, QDirIterator::Subdirectories);
+	while (it.hasNext()) {
+		auto entry = it.next();
 		RpcValue::List name_and_size;
-		name_and_size.push_back(entry.toStdString());
+		name_and_size.push_back(entry.mid(cache_dir.path().size() + 1).toStdString());
 		QFile file(entry);
 		name_and_size.push_back(RpcValue::UInt(QFile(cache_dir.filePath(entry)).size()));
-		return name_and_size;
+		res.push_back(name_and_size);
+	}
+
+	std::sort(res.begin(), res.end(), [] (const RpcValue& a, const RpcValue& b) {
+		return a.asList().front().asString() < b.asList().front().asString();
 	});
 
 	return res;
@@ -237,6 +244,27 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				RESPOND_YIELD(RpcValue::stringToBlob(dummy_logfile));
 			}
 
+			DOCTEST_SUBCASE("Remote - has files and subdirectories, local - empty")
+			{
+				create_dummy_cache_files(cache_dir_path, {});
+				expected_cache_contents = RpcValue::List({{
+					RpcValue::List{ "subdir/2022-07-07T18-06-15-557.log2", dummy_logfile.size() }
+				}});
+
+				RESPOND_YIELD((RpcValue::List({{
+					{ "subdir", "d", 0 }
+				}})));
+
+				EXPECT_REQUEST(join(cache_dir_path, "/.app/shvjournal/subdir"), "lsfiles", ls_size_true);
+
+				RESPOND_YIELD((RpcValue::List({{
+					{ "2022-07-07T18-06-15-557.log2", "f", dummy_logfile.size() }
+				}})));
+
+				EXPECT_REQUEST("shv/eyas/opc/.app/shvjournal/subdir/2022-07-07T18-06-15-557.log2", "read", read_offset_0);
+				RESPOND_YIELD(RpcValue::stringToBlob(dummy_logfile));
+			}
+
 			DOCTEST_SUBCASE("dirty log")
 			{
 				create_dummy_cache_files(cache_dir_path, {});
@@ -254,7 +282,6 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				}
 
 				EXPECT_RESPONSE("All files have been synced");
-				REQUIRE(get_cache_contents(cache_dir_path) == expected_cache_contents);
 			}
 
 			DOCTEST_SUBCASE("Don't download files older than we already have")
@@ -272,7 +299,6 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				}})));
 
 				EXPECT_RESPONSE("All files have been synced");
-				REQUIRE(get_cache_contents(cache_dir_path) == expected_cache_contents);
 			}
 
 			DOCTEST_SUBCASE("Don't download files older than one month")
@@ -284,8 +310,9 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				}})));
 
 				EXPECT_RESPONSE("All files have been synced");
-				REQUIRE(get_cache_contents(cache_dir_path) == expected_cache_contents);
 			}
+
+			REQUIRE(get_cache_contents(cache_dir_path) == expected_cache_contents);
 		}
 
 		DOCTEST_SUBCASE("periodic syncLog")

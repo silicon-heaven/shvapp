@@ -214,7 +214,13 @@ namespace {
 const auto RECORD_COUNT_LIMIT = 5000;
 const auto MAX_ENTRIES_PER_FILE = 50000;
 const auto SYNCER_MEMORY_LIMIT = 1024 /*B*/ * 1024 /*kB*/ * 100 /*MB*/;
+
+const auto LS_FILES_RESPONSE_FILENAME = 0;
+const auto LS_FILES_RESPONSE_FILETYPE = 1;
+const auto LS_FILES_RESPONSE_FILESIZE = 2;
 }
+
+using shv::coreqt::Utils;
 
 class FileSyncer : public QObject {
 	Q_OBJECT
@@ -236,6 +242,7 @@ public:
 		while (iter.hasNext()) {
 			iter.next();
 			QFile log_file(iter.key());
+			QFileInfo(log_file).dir().mkpath(".");
 			if (log_file.open(QFile::WriteOnly | QFile::Append)) {
 				auto blob = iter.value().asBlob();
 				journalDebug() << "Writing" << iter.key();
@@ -351,16 +358,8 @@ public:
 		}
 	}
 
-	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> doSync(const QString& slave_hp_path, const SyncType sync_type)
+	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> impl_doSync(const QString& slave_hp_path, const QString& shvjournal_shvpath, const QString& path_prefix)
 	{
-		journalInfo() << "Syncing" << slave_hp_path << "via file synchronization";
-		using shv::coreqt::Utils;
-		auto shvjournal_suffix =
-			sync_type == SyncType::Device ?
-			".app/shvjournal" :
-			Utils::joinPath(".local/history/shvjournal", m_shvPath.remove(0, slave_hp_path.size()));
-		auto shvjournal_shvpath = Utils::joinPath(slave_hp_path, shvjournal_suffix);
-
 		auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
 			->setShvPath(shvjournal_shvpath)
 			->setMethod("lsfiles")
@@ -375,6 +374,14 @@ public:
 		}
 
 		journalDebug() << "Got filelist from" << slave_hp_path;
+
+		if (!file_list.asList().empty() && file_list.asList().front().asList().at(LS_FILES_RESPONSE_FILETYPE) == "d") {
+			for (const auto& current_directory : file_list.asList()) {
+				auto dir_name = QString::fromStdString(current_directory.asList().at(LS_FILES_RESPONSE_FILENAME).asString());
+				co_await impl_doSync(slave_hp_path, Utils::joinPath(shvjournal_shvpath, dir_name), dir_name);
+			}
+			co_return;
+		}
 
 		QDir cache_dir(get_cache_dir_path(m_cacheDirPath, slave_hp_path));
 		QString newest_file_name;
@@ -396,7 +403,7 @@ public:
 			if (current_memory_usage > SYNCER_MEMORY_LIMIT) {
 				writeFiles();
 			};
-			auto file_name = QString::fromStdString(current_file.asList().at(0).asString());
+			auto file_name = QString::fromStdString(current_file.asList().at(LS_FILES_RESPONSE_FILENAME).asString());
 			if (file_name == "dirty.log2") {
 				continue;
 			}
@@ -406,10 +413,10 @@ public:
 				continue;
 			}
 
-			auto full_file_name = QDir(get_cache_dir_path(m_cacheDirPath, slave_hp_path)).filePath(file_name);
+			auto full_file_name = QDir(get_cache_dir_path(m_cacheDirPath, slave_hp_path)).filePath(Utils::joinPath(path_prefix, file_name));
 			QFile file(full_file_name);
 			auto local_size = file.size();
-			auto remote_size = current_file.asList().at(2).toInt();
+			auto remote_size = current_file.asList().at(LS_FILES_RESPONSE_FILESIZE).toInt();
 
 			journalInfo() << "Syncing file" << full_file_name << "remote size:" << remote_size << "local size:" << (file.exists() ? QString::number(local_size) : "<doesn't exist>");
 			if (file.exists()) {
@@ -442,6 +449,19 @@ public:
 		if (!file_list.asList().empty()) {
 			m_node->trimDirtyLog(slave_hp_path);
 		}
+
+	}
+
+	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> doSync(const QString& slave_hp_path, const SyncType sync_type)
+	{
+		journalInfo() << "Syncing" << slave_hp_path << "via file synchronization";
+		auto shvjournal_suffix =
+			sync_type == SyncType::Device ?
+			".app/shvjournal" :
+			Utils::joinPath(".local/history/shvjournal", m_shvPath.remove(0, slave_hp_path.size()));
+		auto shvjournal_shvpath = Utils::joinPath(slave_hp_path, shvjournal_suffix);
+
+		co_await impl_doSync(slave_hp_path, shvjournal_shvpath, "");
 	}
 
 	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> syncFiles()
