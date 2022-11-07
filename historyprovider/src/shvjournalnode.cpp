@@ -277,14 +277,13 @@ public:
 		m_node->trimDirtyLog(slave_hp_path);
 	}
 
-	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> doLegacySync(const QString& slave_hp_path, const SyncType sync_type)
+	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> doLegacySync(const QString& slave_hp_path)
 	{
-		Q_UNUSED(sync_type)
 		journalInfo() << "Syncing" << slave_hp_path << "via legacy getLog";
 		using shv::coreqt::Utils;
 		shv::core::utils::ShvGetLogParams get_log_params;
+		get_log_params.withSnapshot = true;
 		get_log_params.recordCountLimit = RECORD_COUNT_LIMIT;
-		get_log_params.until = shv::chainpack::RpcValue::DateTime::now();
 		get_log_params.since = shv::chainpack::RpcValue::DateTime::fromMSecsSinceEpoch(QDateTime::currentDateTime().addSecs(- HistoryApp::instance()->cliOptions()->cacheInitMaxAge()).toMSecsSinceEpoch());
 
 		QDir cache_dir(get_cache_dir_path(m_cacheDirPath, slave_hp_path));
@@ -326,9 +325,10 @@ public:
 				co_return;
 			}
 
+			get_log_params.withSnapshot = false;
+
 			shv::core::utils::ShvMemoryJournal result_log;
 			result_log.loadLog(result);
-			result_log.clearSnapshot();
 			if (result_log.isEmpty()) {
 				co_return;
 			}
@@ -353,6 +353,7 @@ public:
 			if (downloaded_entries.size() > MAX_ENTRIES_PER_FILE) {
 				writeEntriesToFile(downloaded_entries, slave_hp_path);
 				downloaded_entries.clear();
+				get_log_params.withSnapshot = true;
 			}
 			get_log_params.since = remote_entries.back().dateTime();
 		}
@@ -497,7 +498,7 @@ public:
 			}
 
 			if (sync_type == SyncType::Device && slave_hp.log_type == LogType::Legacy) {
-				co_await doLegacySync(slave_hp_path_qstr, sync_type);
+				co_await doLegacySync(slave_hp_path_qstr);
 			} else {
 				co_await doSync(slave_hp_path_qstr, sync_type);
 			}
