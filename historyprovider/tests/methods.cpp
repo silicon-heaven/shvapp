@@ -242,12 +242,13 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	HistoryApp::instance()->cliOptions()->setCacheInitMaxAge(60 /*seconds*/ * 60 /*minutes*/ * 24 /*hours*/ * 365 /*days*/ * 10 /*years*/);
 	DOCTEST_SUBCASE("fin slave HP")
 	{
-		std::string cache_dir_path = "shv/eyas/opc";
+		std::string shv_path = "shv/eyas/opc";
+		std::string cache_dir_path = "eyas/opc";
 		SEND_SITES_YIELD(mock_sites::fin_slave_broker);
-		EXPECT_SUBSCRIPTION_YIELD(cache_dir_path, "mntchng");
-		EXPECT_SUBSCRIPTION(cache_dir_path, "chng");
-		REQUEST_YIELD("shvjournal", "syncLog", RpcValue());
-		EXPECT_REQUEST(join(cache_dir_path, "/.app/shvjournal"), "lsfiles", ls_size_true);
+		EXPECT_SUBSCRIPTION_YIELD(shv_path, "mntchng");
+		EXPECT_SUBSCRIPTION(shv_path, "chng");
+		REQUEST_YIELD("_shvjournal", "syncLog", RpcValue());
+		EXPECT_REQUEST(join(shv_path, "/.app/shvjournal"), "lsfiles", ls_size_true);
 
 		DOCTEST_SUBCASE("syncLog")
 		{
@@ -283,7 +284,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 					{ "subdir", "d", 0 }
 				}})));
 
-				EXPECT_REQUEST(join(cache_dir_path, "/.app/shvjournal/subdir"), "lsfiles", ls_size_true);
+				EXPECT_REQUEST(join(shv_path, "/.app/shvjournal/subdir"), "lsfiles", ls_size_true);
 
 				RESPOND_YIELD((RpcValue::List({{
 					{ "2022-07-07T18-06-15-557.log2", "f", dummy_logfile.size() }
@@ -366,14 +367,14 @@ QCoro::Generator<int> MockRpcConnection::driver()
 
 			DOCTEST_SUBCASE("device mounted")
 			{
-				NOTIFY_YIELD(cache_dir_path, "mntchng", true);
-				EXPECT_REQUEST(join(cache_dir_path, "/.app/shvjournal"), "lsfiles", ls_size_true);
+				NOTIFY_YIELD(shv_path, "mntchng", true);
+				EXPECT_REQUEST(join(shv_path, "/.app/shvjournal"), "lsfiles", ls_size_true);
 				RESPOND(RpcValue::List()); // We only test if the syncLog triggers.
 			}
 
 			DOCTEST_SUBCASE("device unmounted")
 			{
-				NOTIFY(cache_dir_path, "mntchng", false);
+				NOTIFY(shv_path, "mntchng", false);
 				// Sync shouldn't trigger.
 				DRIVER_WAIT(100);
 				CAPTURE(m_messageQueue.head());
@@ -385,11 +386,11 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	DOCTEST_SUBCASE("syncing from slave HP")
 	{
 		RpcValue::List expected_cache_contents;
-		std::string cache_dir_path = "shv/fin/hel/tram/hel002";
+		std::string cache_dir_path = "fin/hel/tram/hel002";
 		SEND_SITES_YIELD(mock_sites::fin_master_broker);
 		EXPECT_SUBSCRIPTION_YIELD("shv/fin/hel/tram/hel002", "mntchng");
 		EXPECT_SUBSCRIPTION("shv/fin/hel/tram/hel002", "chng");
-		std::string master_shv_journal_path = "shvjournal";
+		std::string master_shv_journal_path = "_shvjournal";
 		std::string slave_shv_journal_path = "shv/fin/hel/tram/hel002/.local/history/shvjournal";
 		REQUEST_YIELD(master_shv_journal_path, "syncLog", RpcValue());
 		EXPECT_REQUEST(slave_shv_journal_path, "lsfiles", ls_size_true);
@@ -415,10 +416,11 @@ QCoro::Generator<int> MockRpcConnection::driver()
 
 	DOCTEST_SUBCASE("getLog")
 	{
-		std::string cache_dir_path = "shv/eyas/opc";
+		std::string cache_dir_path = "eyas/opc";
 		SEND_SITES_YIELD(mock_sites::fin_slave_broker);
-		EXPECT_SUBSCRIPTION_YIELD(cache_dir_path, "mntchng");
-		EXPECT_SUBSCRIPTION(cache_dir_path, "chng");
+		std::string sub_path = "shv/eyas/opc";
+		EXPECT_SUBSCRIPTION_YIELD(sub_path, "mntchng");
+		EXPECT_SUBSCRIPTION(sub_path, "chng");
 
 		create_dummy_cache_files(cache_dir_path, {
 			{ "2022-07-07T18-06-15-557.log2", dummy_logfile },
@@ -465,10 +467,10 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	{
 		DOCTEST_SUBCASE("pushing logs")
 		{
-			std::string cache_dir_path = "shv/pushlog";
+			std::string cache_dir_path = "pushlog";
 			create_dummy_cache_files(cache_dir_path, {});
 			SEND_SITES_YIELD(mock_sites::pushlog_hp);
-			EXPECT_SUBSCRIPTION(cache_dir_path, "mntchng");
+			EXPECT_SUBSCRIPTION("shv/pushlog", "mntchng");
 
 			DOCTEST_SUBCASE("empty log")
 			{
@@ -516,11 +518,11 @@ QCoro::Generator<int> MockRpcConnection::driver()
 
 		DOCTEST_SUBCASE("HP directly above a pushlog don't have a syncLog method" )
 		{
-			std::string cache_dir_path = "shv/pushlog";
+			std::string shv_path = "pushlog";
 			SEND_SITES_YIELD(mock_sites::pushlog_hp);
-			EXPECT_SUBSCRIPTION(cache_dir_path, "mntchng");
-			REQUEST_YIELD(cache_dir_path, "syncLog", RpcValue());
-			EXPECT_ERROR("RPC ERROR MethodCallException: Method: 'syncLog' on path 'shv/pushlog/' doesn't exist.");
+			EXPECT_SUBSCRIPTION("shv/pushlog", "mntchng");
+			REQUEST_YIELD(shv_path, "syncLog", RpcValue());
+			EXPECT_ERROR("RPC ERROR MethodCallException: Method: 'syncLog' on path 'pushlog/' doesn't exist.");
 		}
 
 		DOCTEST_SUBCASE("master HP can syncLog pushlogs from slave HPs")
@@ -529,7 +531,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			SEND_SITES_YIELD(mock_sites::master_hp_with_slave_pushlog);
 			EXPECT_SUBSCRIPTION_YIELD(cache_dir_path, "mntchng");
 			EXPECT_SUBSCRIPTION(cache_dir_path, "chng");
-			REQUEST_YIELD("shvjournal", "syncLog", RpcValue());
+			REQUEST_YIELD("_shvjournal", "syncLog", RpcValue());
 			EXPECT_REQUEST("shv/master/.local/history/shvjournal", "lsfiles", ls_size_true);
 			RESPOND_YIELD(RpcValue::List());
 			EXPECT_RESPONSE("All files have been synced");
@@ -585,26 +587,27 @@ QCoro::Generator<int> MockRpcConnection::driver()
 
 	DOCTEST_SUBCASE("legacy getLog retrieval")
 	{
-		std::string cache_dir_path = "shv/legacy";
+		std::string shv_path = "shv/legacy";
+		std::string cache_dir_path = "legacy";
 		SEND_SITES_YIELD(mock_sites::legacy_hp);
-		EXPECT_SUBSCRIPTION_YIELD(cache_dir_path, "mntchng");
-		EXPECT_SUBSCRIPTION(cache_dir_path, "chng");
+		EXPECT_SUBSCRIPTION_YIELD(shv_path, "mntchng");
+		EXPECT_SUBSCRIPTION(shv_path, "chng");
 
 		RpcValue::List expected_cache_contents;
 
 		DOCTEST_SUBCASE("empty response")
 		{
 			create_dummy_cache_files(cache_dir_path, {});
-			REQUEST_YIELD("shvjournal", "syncLog", RpcValue());
-			EXPECT_REQUEST(cache_dir_path, "getLog");
+			REQUEST_YIELD("_shvjournal", "syncLog", RpcValue());
+			EXPECT_REQUEST(shv_path, "getLog");
 			RESPOND_YIELD(shv::chainpack::RpcValue::List());
 		}
 
 		DOCTEST_SUBCASE("some response")
 		{
 			create_dummy_cache_files(cache_dir_path, {});
-			REQUEST_YIELD("shvjournal", "syncLog", RpcValue());
-			EXPECT_REQUEST(cache_dir_path, "getLog");
+			REQUEST_YIELD("_shvjournal", "syncLog", RpcValue());
+			EXPECT_REQUEST(shv_path, "getLog");
 			RESPOND_YIELD(dummy_getlog_response);
 			expected_cache_contents = RpcValue::List({{
 				RpcValue::List{ "2022-07-07T18-06-15-557.log2", 201UL }
@@ -628,14 +631,14 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			create_dummy_cache_files(cache_dir_path, {
 				{ "2022-07-07T18-06-15-551.log2", QString::fromStdString(dummy_logfile).repeated(50000).toStdString() },
 			});
-			REQUEST_YIELD("shvjournal", "syncLog", RpcValue());
-			EXPECT_REQUEST(cache_dir_path, "getLog", create_get_log_options(RpcValue::fromCpon(R"(d"2022-07-07T18:06:17.870Z")"), WithSnapshot::True));
+			REQUEST_YIELD("_shvjournal", "syncLog", RpcValue());
+			EXPECT_REQUEST(shv_path, "getLog", create_get_log_options(RpcValue::fromCpon(R"(d"2022-07-07T18:06:17.870Z")"), WithSnapshot::True));
 			RESPOND_YIELD(five_thousand_records_getlog_response);
 			expected_cache_contents = RpcValue::List({{
 				RpcValue::List{ "2022-07-07T18-06-15-551.log2", 15400000UL },
 				RpcValue::List{ "2022-07-07T18-06-15-557.log2", 201L },
 			}});
-			EXPECT_REQUEST(cache_dir_path, "getLog", create_get_log_options(RpcValue::fromCpon(R"(d"2022-07-07T18:06:15.557Z")"), WithSnapshot::False));
+			EXPECT_REQUEST(shv_path, "getLog", create_get_log_options(RpcValue::fromCpon(R"(d"2022-07-07T18:06:15.557Z")"), WithSnapshot::False));
 			RESPOND_YIELD(dummy_getlog_response);
 		}
 
@@ -644,8 +647,8 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			create_dummy_cache_files(cache_dir_path, {
 				{ "2022-07-07T18-06-15-557.log2", dummy_logfile },
 			});
-			REQUEST_YIELD("shvjournal", "syncLog", RpcValue());
-			EXPECT_REQUEST(cache_dir_path, "getLog", create_get_log_options(RpcValue::fromCpon(R"(d"2022-07-07T18:06:17.870Z")"), WithSnapshot::False));
+			REQUEST_YIELD("_shvjournal", "syncLog", RpcValue());
+			EXPECT_REQUEST(shv_path, "getLog", create_get_log_options(RpcValue::fromCpon(R"(d"2022-07-07T18:06:17.870Z")"), WithSnapshot::False));
 			RESPOND_YIELD(dummy_getlog_response);
 			expected_cache_contents = RpcValue::List({{
 				RpcValue::List{ "2022-07-07T18-06-15-557.log2", 509UL }
@@ -671,8 +674,8 @@ QCoro::Generator<int> MockRpcConnection::driver()
 						RpcValue::List{ "2022-07-07T18-06-15-557.log2", 0UL }
 					}});
 				}
-				REQUEST_YIELD("shvjournal", "syncLog", RpcValue());
-				EXPECT_REQUEST(cache_dir_path, "getLog");
+				REQUEST_YIELD("_shvjournal", "syncLog", RpcValue());
+				EXPECT_REQUEST(shv_path, "getLog");
 				auto since_param_ms = shv::chainpack::RpcRequest(m_messageQueue.head()).params().asMap().value("since").toDateTime().msecsSinceEpoch();
 				auto now_ms = shv::chainpack::RpcValue::DateTime::now().msecsSinceEpoch();
 				REQUIRE(now_ms - since_param_ms < int64_t{1000} /*ms*/ * 60 /*seconds*/ * 60 /*minutes*/ * 24 /*hours*/ * 31 /*days*/ );
@@ -683,8 +686,8 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				create_dummy_cache_files(cache_dir_path, {
 					{ "2022-07-07T18-06-15-557.log2", dummy_logfile },
 				});
-				REQUEST_YIELD("shvjournal", "syncLog", RpcValue());
-				EXPECT_REQUEST(cache_dir_path, "getLog");
+				REQUEST_YIELD("_shvjournal", "syncLog", RpcValue());
+				EXPECT_REQUEST(shv_path, "getLog");
 				auto since_param_ms = shv::chainpack::RpcRequest(m_messageQueue.head()).params().asMap().value("since").toDateTime().msecsSinceEpoch();
 				REQUIRE(since_param_ms == shv::chainpack::RpcValue::DateTime::fromUtcString("2022-07-07T18:06:17.870Z").msecsSinceEpoch());
 				expected_cache_contents = RpcValue::List({{
@@ -697,8 +700,8 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				create_dummy_cache_files(cache_dir_path, {
 					{ "dirty.log2", dummy_logfile },
 				});
-				REQUEST_YIELD("shvjournal", "syncLog", RpcValue());
-				EXPECT_REQUEST(cache_dir_path, "getLog");
+				REQUEST_YIELD("_shvjournal", "syncLog", RpcValue());
+				EXPECT_REQUEST(shv_path, "getLog");
 				auto since_param_ms = shv::chainpack::RpcRequest(m_messageQueue.head()).params().asMap().value("since").toDateTime().msecsSinceEpoch();
 				auto now_ms = shv::chainpack::RpcValue::DateTime::now().msecsSinceEpoch();
 				REQUIRE(now_ms - since_param_ms < int64_t{1000} /*ms*/ * 60 /*seconds*/ * 60 /*minutes*/ * 24 /*hours*/ * 31 /*days*/ );
@@ -719,10 +722,11 @@ QCoro::Generator<int> MockRpcConnection::driver()
 		RpcValue::List expected_cache_contents;
 		DOCTEST_SUBCASE("sanitizeLog correctly removes stuff")
 		{
-			std::string cache_dir_path = "shv/eyas/opc";
+			std::string shv_path = "shv/eyas/opc";
+			std::string cache_dir_path = "eyas/opc";
 			SEND_SITES_YIELD(mock_sites::fin_slave_broker);
-			EXPECT_SUBSCRIPTION_YIELD(cache_dir_path, "mntchng");
-			EXPECT_SUBSCRIPTION(cache_dir_path, "chng");
+			EXPECT_SUBSCRIPTION_YIELD(shv_path, "mntchng");
+			EXPECT_SUBSCRIPTION(shv_path, "chng");
 
 			create_dummy_cache_files(cache_dir_path, {
 				{ "2022-07-07T18-06-15-557.log2", dummy_logfile },
@@ -762,11 +766,11 @@ QCoro::Generator<int> MockRpcConnection::driver()
 
 			HistoryApp::instance()->setSingleCacheSizeLimit(500);
 
-			create_dummy_cache_files("shv/one", {
+			create_dummy_cache_files("one", {
 				{ "2022-07-07T18-06-15-557.log2", dummy_logfile },
 				{ "2022-07-07T18-06-15-560.log2", dummy_logfile },
 			});
-			create_dummy_cache_files("shv/two", {
+			create_dummy_cache_files("two", {
 				{ "2022-07-07T18-06-15-557.log2", dummy_logfile },
 				{ "2022-07-07T18-06-15-560.log2", dummy_logfile },
 			});
@@ -776,8 +780,8 @@ QCoro::Generator<int> MockRpcConnection::driver()
 
 			DRIVER_WAIT(3000);
 
-			REQUIRE(get_cache_contents("shv/one") == expected_cache_contents);
-			REQUIRE(get_cache_contents("shv/two") == expected_cache_contents);
+			REQUIRE(get_cache_contents("one") == expected_cache_contents);
+			REQUIRE(get_cache_contents("two") == expected_cache_contents);
 		}
 	}
 
@@ -792,11 +796,11 @@ QCoro::Generator<int> MockRpcConnection::driver()
 
 		DOCTEST_SUBCASE("standard operation")
 		{
-			create_dummy_cache_files("shv/one", {
+			create_dummy_cache_files("one", {
 				{"2022-07-06T18-06-15-000.log2", dummy_logfile},
 				{"dirty.log2", dummy_logfile2}
 			});
-			create_dummy_cache_files("shv/two", {
+			create_dummy_cache_files("two", {
 				{"2022-07-06T18-06-15-000.log2", dummy_logfile},
 				{"dirty.log2", dummy_logfile2}
 			});
@@ -806,10 +810,10 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				RpcValue::List{ "dirty.log2", 249UL }
 			}});
 
-			REQUIRE(get_cache_contents("shv/one") == expected_cache_contents);
-			REQUIRE(get_cache_contents("shv/two") == expected_cache_contents);
+			REQUIRE(get_cache_contents("one") == expected_cache_contents);
+			REQUIRE(get_cache_contents("two") == expected_cache_contents);
 
-			REQUEST_YIELD("shvjournal", "syncLog", RpcValue());
+			REQUEST_YIELD("_shvjournal", "syncLog", RpcValue());
 			EXPECT_REQUEST("shv/one/.app/shvjournal", "lsfiles", ls_size_true);
 			RESPOND_YIELD((RpcValue::List{{
 				{ "2022-07-07T18-06-15-557.log2", "f", dummy_logfile2.size() }
@@ -821,8 +825,8 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			RESPOND_YIELD(RpcValue::List());
 			EXPECT_RESPONSE("All files have been synced");
 
-			// shv/two is left intact
-			REQUIRE(get_cache_contents("shv/two") == expected_cache_contents);
+			// two is left intact
+			REQUIRE(get_cache_contents("two") == expected_cache_contents);
 
 			expected_cache_contents = RpcValue::List({{
 				RpcValue::List{ "2022-07-06T18-06-15-000.log2", 308UL },
@@ -830,16 +834,16 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				RpcValue::List{ "dirty.log2", 83UL }
 			}});
 
-			REQUIRE(get_cache_contents("shv/one") == expected_cache_contents);
+			REQUIRE(get_cache_contents("one") == expected_cache_contents);
 		}
 
 		DOCTEST_SUBCASE("file to trim from is empty")
 		{
-			create_dummy_cache_files("shv/one", {
+			create_dummy_cache_files("one", {
 				{"dirty.log2", dummy_logfile2}
 			});
 
-			REQUEST_YIELD("shvjournal", "syncLog", RpcValue());
+			REQUEST_YIELD("_shvjournal", "syncLog", RpcValue());
 			EXPECT_REQUEST("shv/one/.app/shvjournal", "lsfiles", ls_size_true);
 			RESPOND_YIELD((RpcValue::List{{
 				{ "2022-07-07T18-06-15-557.log2", "f", 0L }
@@ -855,11 +859,11 @@ QCoro::Generator<int> MockRpcConnection::driver()
 		{
 			// This means that the file will be trimmed due to the last-ms algorithm and therefore empty. We don't
 			// really want empty files, so we don't even write it.
-			create_dummy_cache_files("shv/one", {
+			create_dummy_cache_files("one", {
 				{"dirty.log2", dummy_logfile2}
 			});
 
-			REQUEST_YIELD("shvjournal", "syncLog", RpcValue());
+			REQUEST_YIELD("_shvjournal", "syncLog", RpcValue());
 			EXPECT_REQUEST("shv/one/.app/shvjournal", "lsfiles", ls_size_true);
 			RESPOND_YIELD((RpcValue::List{{
 				{ "2022-07-07T18-06-15-557.log2", "f", logfile_one_entry.size() }
@@ -874,7 +878,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				RpcValue::List{ "dirty.log2", dummy_logfile2.size() }
 			}});
 
-			REQUIRE(get_cache_contents("shv/one") == expected_cache_contents);
+			REQUIRE(get_cache_contents("one") == expected_cache_contents);
 		}
 	}
 
@@ -890,6 +894,8 @@ DOCTEST_TEST_CASE("HistoryApp")
 	int argc = 0;
 	char *argv[] = { nullptr };
 	AppCliOptions cli_opts;
+
+	QDir(QString::fromStdString(cli_opts.journalCacheRoot())).removeRecursively();
 	HistoryApp app(argc, argv, &cli_opts, new MockRpcConnection());
 	app.exec();
 }

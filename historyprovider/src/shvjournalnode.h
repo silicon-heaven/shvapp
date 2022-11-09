@@ -10,6 +10,7 @@ struct SlaveHpInfo {
 	bool is_leaf;
 	LogType log_type;
 	std::string shv_path;
+	QString cache_dir_path;
 };
 
 class ShvJournalNode : public shv::iotqt::node::LocalFSNode
@@ -24,7 +25,7 @@ public:
 	size_t methodCount(const StringViewList& shv_path) override;
 	const shv::chainpack::MetaMethod* metaMethod(const StringViewList& shv_path, size_t ix) override;
 	shv::chainpack::RpcValue callMethodRq(const shv::chainpack::RpcRequest &rq) override;
-	void trimDirtyLog(const QString& cache_dir_path);
+	void trimDirtyLog(const QString& slave_hp_path, const QString& cache_dir_path);
 	void syncLog(const std::string& path, const std::function<void(shv::chainpack::RpcResponse::Error)>);
 
 private:
