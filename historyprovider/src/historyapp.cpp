@@ -242,7 +242,7 @@ QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> HistoryA
 	m_shvJournalNode = new ShvJournalNode(slave_hps, m_root);
 
 	m_leafNodes = m_shvTree->findChildren<LeafNode*>();
-	if (m_leafNodes.size() != 0) {
+	if (!m_leafNodes.empty()) {
 		m_singleCacheSizeLimit = m_totalCacheSizeLimit / m_leafNodes.size();
 
 		m_sanitizerIterator = QListIterator(m_leafNodes);
