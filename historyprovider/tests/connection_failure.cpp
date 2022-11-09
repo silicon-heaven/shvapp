@@ -19,10 +19,10 @@ using cp::RpcValue;
 QCoro::Generator<int> MockRpcConnection::driver()
 {
 	co_yield {};
-	std::string cache_dir_path = "shv/eyas/opc";
+	std::string cache_dir_path = "eyas/opc";
 	SEND_SITES_YIELD(mock_sites::fin_slave_broker);
-	EXPECT_SUBSCRIPTION_YIELD(cache_dir_path, "mntchng");
-	EXPECT_SUBSCRIPTION(cache_dir_path, "chng");
+	EXPECT_SUBSCRIPTION_YIELD("shv/eyas/opc", "mntchng");
+	EXPECT_SUBSCRIPTION("shv/eyas/opc", "chng");
 
 	REQUEST_YIELD(cache_dir_path, "ls", RpcValue());
 	EXPECT_RESPONSE(RpcValue::List{});
@@ -31,10 +31,10 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	QTimer::singleShot(0, [this] {setBrokerConnected(true);});
 	co_yield {};
 
-	std::string new_cache_dir_path = "shv/fin/hel/tram/hel002";
+	std::string new_cache_dir_path = "fin/hel/tram/hel002";
 	SEND_SITES_YIELD(mock_sites::fin_master_broker);
-	EXPECT_SUBSCRIPTION_YIELD(new_cache_dir_path, "mntchng");
-	EXPECT_SUBSCRIPTION(new_cache_dir_path, "chng");
+	EXPECT_SUBSCRIPTION_YIELD("shv/fin/hel/tram/hel002", "mntchng");
+	EXPECT_SUBSCRIPTION("shv/fin/hel/tram/hel002", "chng");
 
 	DOCTEST_SUBCASE("new site is available")
 	{
@@ -45,7 +45,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	DOCTEST_SUBCASE("old site is not available")
 	{
 		REQUEST_YIELD(cache_dir_path, "ls", RpcValue());
-		EXPECT_ERROR("RPC ERROR MethodCallException: Method: 'ls' on path 'shv/eyas/opc' doesn't exist.");
+		EXPECT_ERROR("RPC ERROR MethodCallException: Method: 'ls' on path '/eyas/opc' doesn't exist.");
 	}
 
 	co_return;

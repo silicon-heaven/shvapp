@@ -87,19 +87,23 @@ enum class SlaveFound {
 void createTree(shv::iotqt::node::ShvNode* parent_node, const cp::RpcValue::Map& tree, const QString& node_name, std::vector<SlaveHpInfo>& slave_hps, SlaveFound slave_found)
 {
 	shv::iotqt::node::ShvNode* node;
-	if (auto meta_node = tree.value("_meta").asMap(); (meta_node.hasKey("HP") || meta_node.hasKey("HP3")) && node_name != "shv") {
+	// We don't want to create an "shv" node, we'll use the root node directly (parent_node is the root node here).
+	if (node_name == "shv") {
+		node = parent_node;
+	} else if (auto meta_node = tree.value("_meta").asMap(); (meta_node.hasKey("HP") || meta_node.hasKey("HP3"))) {
 		auto hp_node = meta_node.value("HP", meta_node.value("HP3")).asMap();
 		auto log_type =
 			hp_node.value("pushLog").toBool() ? LogType::PushLog :
 			meta_node.hasKey("HP") ? LogType::Legacy :
 			LogType::Normal;
 		node = new LeafNode(node_name.toStdString(), log_type, parent_node);
-		if (!parent_node->shvPath().empty() && slave_found != SlaveFound::Yes) {
+		if (slave_found != SlaveFound::Yes) {
 			slave_found = SlaveFound::Yes;
 			slave_hps.push_back(SlaveHpInfo {
 				.is_leaf = meta_node.hasKey("HP") || !meta_node.value("HP3").asMap().value("slave").toBool(),
 				.log_type = log_type,
-				.shv_path = node->shvPath(),
+				.shv_path = shv::core::Utils::joinPath(std::string{"shv"}, node->shvPath()),
+				.cache_dir_path = QString::fromStdString(node->shvPath()),
 			});
 		}
 	} else {

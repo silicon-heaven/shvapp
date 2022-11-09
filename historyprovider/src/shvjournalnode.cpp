@@ -85,7 +85,7 @@ void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 		if (it != m_slaveHps.end()) {
 			if (method == "chng") {
 				{
-					auto writer = shv::core::utils::ShvJournalFileWriter(dirty_log_path(get_cache_dir_path(m_cacheDirPath, QString::fromStdString(it->shv_path))));
+					auto writer = shv::core::utils::ShvJournalFileWriter(dirty_log_path(get_cache_dir_path(m_cacheDirPath, it->cache_dir_path)));
 					auto path_without_prefix = path.substr(it->shv_path.size());
 					auto data_change = shv::chainpack::DataChange::fromRpcValue(ntf.params());
 
@@ -154,12 +154,12 @@ void write_entries_to_file(const QString& file_path, const std::vector<shv::core
 }
 }
 
-void ShvJournalNode::trimDirtyLog(const QString& slave_hp_path)
+void ShvJournalNode::trimDirtyLog(const QString& slave_hp_path, const QString& cache_dir_path)
 {
 	journalInfo() << "Trimming dirty log for" << slave_hp_path;
 	using shv::coreqt::Utils;
-	auto cache_dir_path = get_cache_dir_path(m_cacheDirPath, slave_hp_path);
-	QDir cache_dir(cache_dir_path);
+	auto journal_dir_path = get_cache_dir_path(m_cacheDirPath, cache_dir_path);
+	QDir cache_dir(journal_dir_path);
 	auto entries = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name | QDir::Reversed);
 
 	if (entries.empty() || entries.at(0) != DIRTY_FILENAME) {
@@ -172,7 +172,7 @@ void ShvJournalNode::trimDirtyLog(const QString& slave_hp_path)
 		return;
 	}
 
-	if (!shv::core::utils::ShvJournalFileReader(dirty_log_path(cache_dir_path)).next()) {
+	if (!shv::core::utils::ShvJournalFileReader(dirty_log_path(journal_dir_path)).next()) {
 		// No entries in the dirty log file, nothing to change.
 		journalDebug() << "Dirty log empty, nothing to trim";
 		return;
@@ -206,7 +206,7 @@ void ShvJournalNode::trimDirtyLog(const QString& slave_hp_path)
 	write_entries_to_file(cache_dir.filePath(entries.at(1)), newest_file_entries, Overwrite::Yes);
 
 	// Now filter dirty log's newer events.
-	shv::core::utils::ShvJournalFileReader reader(dirty_log_path(cache_dir_path));
+	shv::core::utils::ShvJournalFileReader reader(dirty_log_path(journal_dir_path));
 	std::vector<shv::core::utils::ShvJournalEntry> new_dirty_log_entries;
 	while (reader.next()) {
 		if (reader.entry().epochMsec >= newest_entry_msec) {
@@ -214,7 +214,7 @@ void ShvJournalNode::trimDirtyLog(const QString& slave_hp_path)
 		}
 	}
 
-	write_entries_to_file(QString::fromStdString(dirty_log_path(cache_dir_path)), new_dirty_log_entries, Overwrite::Yes);
+	write_entries_to_file(QString::fromStdString(dirty_log_path(journal_dir_path)), new_dirty_log_entries, Overwrite::Yes);
 }
 
 namespace {
@@ -269,14 +269,14 @@ public:
 		Slave
 	};
 
-	void writeEntriesToFile(const std::vector<shv::core::utils::ShvJournalEntry>& downloaded_entries, const QString& slave_hp_path, const std::optional<QString>& file_name_hint)
+	void writeEntriesToFile(const std::vector<shv::core::utils::ShvJournalEntry>& downloaded_entries, const QString& slave_hp_path, const QString& cache_dir_path, const std::optional<QString>& file_name_hint)
 	{
-		journalInfo() << "Writing" << downloaded_entries.size() << "entries for" << slave_hp_path;
+		journalInfo() << "Writing" << downloaded_entries.size() << "entries for" << cache_dir_path;
 		if (downloaded_entries.empty()) {
 			return;
 		}
 
-		QDir dir(get_cache_dir_path(m_cacheDirPath, slave_hp_path));
+		QDir dir(get_cache_dir_path(m_cacheDirPath, cache_dir_path));
 
 		auto file_name = dir.filePath([&] {
 			if (file_name_hint) {
@@ -287,10 +287,10 @@ public:
 		}());
 
 		write_entries_to_file(file_name, downloaded_entries, Overwrite::No);
-		m_node->trimDirtyLog(slave_hp_path);
+		m_node->trimDirtyLog(slave_hp_path, cache_dir_path);
 	}
 
-	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> doLegacySync(const QString& slave_hp_path)
+	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> doLegacySync(const QString& slave_hp_path, const QString& cache_dir_path)
 	{
 		journalInfo() << "Syncing" << slave_hp_path << "via legacy getLog";
 		using shv::coreqt::Utils;
@@ -299,7 +299,7 @@ public:
 		get_log_params.recordCountLimit = RECORD_COUNT_LIMIT;
 		get_log_params.since = shv::chainpack::RpcValue::DateTime::fromMSecsSinceEpoch(QDateTime::currentDateTime().addSecs(- HistoryApp::instance()->cliOptions()->cacheInitMaxAge()).toMSecsSinceEpoch());
 
-		QDir cache_dir(get_cache_dir_path(m_cacheDirPath, slave_hp_path));
+		QDir cache_dir(get_cache_dir_path(m_cacheDirPath, cache_dir_path));
 		int newest_file_entry_count = 0;
 		std::optional<QString> file_name_hint;
 		if (!cache_dir.isEmpty()) {
@@ -330,8 +330,8 @@ public:
 		}
 
 		std::vector<shv::core::utils::ShvJournalEntry> downloaded_entries;
-		QScopeGuard entry_writer_guard([this, &slave_hp_path, &downloaded_entries, &file_name_hint] {
-			writeEntriesToFile(downloaded_entries, slave_hp_path, file_name_hint);
+		QScopeGuard entry_writer_guard([this, &slave_hp_path, &cache_dir_path, &downloaded_entries, &file_name_hint] {
+			writeEntriesToFile(downloaded_entries, slave_hp_path, cache_dir_path, file_name_hint);
 		});
 
 		while (true) {
@@ -374,7 +374,7 @@ public:
 			}
 
 			if (downloaded_entries.size() + newest_file_entry_count > MAX_ENTRIES_PER_FILE) {
-				writeEntriesToFile(downloaded_entries, slave_hp_path, file_name_hint);
+				writeEntriesToFile(downloaded_entries, slave_hp_path, cache_dir_path, file_name_hint);
 				downloaded_entries.clear();
 				newest_file_entry_count = 0;
 				file_name_hint.reset();
@@ -384,7 +384,7 @@ public:
 		}
 	}
 
-	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> impl_doSync(const QString& slave_hp_path, const QString& shvjournal_shvpath, const QString& path_prefix)
+	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> impl_doSync(const QString& slave_hp_path, const QString& cache_dir_path, const QString& shvjournal_shvpath, const QString& path_prefix)
 	{
 		auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
 			->setShvPath(shvjournal_shvpath)
@@ -404,12 +404,12 @@ public:
 		if (!file_list.asList().empty() && file_list.asList().front().asList().at(LS_FILES_RESPONSE_FILETYPE) == "d") {
 			for (const auto& current_directory : file_list.asList()) {
 				auto dir_name = QString::fromStdString(current_directory.asList().at(LS_FILES_RESPONSE_FILENAME).asString());
-				co_await impl_doSync(slave_hp_path, Utils::joinPath(shvjournal_shvpath, dir_name), dir_name);
+				co_await impl_doSync(slave_hp_path, cache_dir_path, Utils::joinPath(shvjournal_shvpath, dir_name), dir_name);
 			}
 			co_return;
 		}
 
-		QDir cache_dir(get_cache_dir_path(m_cacheDirPath, slave_hp_path));
+		QDir cache_dir(get_cache_dir_path(m_cacheDirPath, cache_dir_path));
 		QString newest_file_name;
 		int64_t newest_file_name_ms = QDateTime::currentDateTime().addSecs(- HistoryApp::instance()->cliOptions()->cacheInitMaxAge()).toMSecsSinceEpoch();
 		auto entry_list = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name | QDir::Reversed);
@@ -439,7 +439,7 @@ public:
 				continue;
 			}
 
-			auto full_file_name = QDir(get_cache_dir_path(m_cacheDirPath, slave_hp_path)).filePath(Utils::joinPath(path_prefix, file_name));
+			auto full_file_name = QDir(get_cache_dir_path(m_cacheDirPath, cache_dir_path)).filePath(Utils::joinPath(path_prefix, file_name));
 			QFile file(full_file_name);
 			auto local_size = file.size();
 			auto remote_size = current_file.asList().at(LS_FILES_RESPONSE_FILESIZE).toInt();
@@ -473,12 +473,12 @@ public:
 		// We'll only trim if we actually downloaded some files, otherwise the trim algorithm will screw us over,
 		// because of the "last millisecond algorithm".
 		if (!file_list.asList().empty()) {
-			m_node->trimDirtyLog(slave_hp_path);
+			m_node->trimDirtyLog(slave_hp_path, cache_dir_path);
 		}
 
 	}
 
-	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> doSync(const QString& slave_hp_path, const SyncType sync_type)
+	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> doSync(const QString& slave_hp_path, const QString& cache_dir_path, const SyncType sync_type)
 	{
 		journalInfo() << "Syncing" << slave_hp_path << "via file synchronization";
 		auto shvjournal_suffix =
@@ -487,7 +487,7 @@ public:
 			Utils::joinPath(".local/history/shvjournal", m_shvPath.remove(0, slave_hp_path.size()));
 		auto shvjournal_shvpath = Utils::joinPath(slave_hp_path, shvjournal_suffix);
 
-		co_await impl_doSync(slave_hp_path, shvjournal_shvpath, "");
+		co_await impl_doSync(slave_hp_path, cache_dir_path, shvjournal_shvpath, "");
 	}
 
 	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> syncFiles()
@@ -523,9 +523,9 @@ public:
 			}
 
 			if (sync_type == SyncType::Device && slave_hp.log_type == LogType::Legacy) {
-				co_await doLegacySync(slave_hp_path_qstr);
+				co_await doLegacySync(slave_hp_path_qstr, slave_hp.cache_dir_path);
 			} else {
-				co_await doSync(slave_hp_path_qstr, sync_type);
+				co_await doSync(slave_hp_path_qstr, slave_hp.cache_dir_path, sync_type);
 			}
 		}
 
