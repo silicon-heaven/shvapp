@@ -10,14 +10,14 @@ target_enable_coroutines(libhistoryprovider)
 target_include_directories(libhistoryprovider PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(libhistoryprovider PUBLIC QCoro::Coro libshviotqt)
 
-add_executable(historyprovider
+add_executable(historyprovider3
     src/main.cpp
     )
 
-target_enable_coroutines(historyprovider)
-target_link_libraries(historyprovider libhistoryprovider)
+target_enable_coroutines(historyprovider3)
+target_link_libraries(historyprovider3 libhistoryprovider)
 
-install(TARGETS historyprovider)
+install(TARGETS historyprovider3)
 
 if(BUILD_TESTING)
     add_library(mockrpcconnection STATIC
@@ -27,7 +27,7 @@ if(BUILD_TESTING)
     target_enable_coroutines(mockrpcconnection)
 
     function(history_test name)
-        set(TEST_NAME test_historyprovider_${name})
+		set(TEST_NAME test_historyprovider_${name})
         add_executable(${TEST_NAME}
             tests/${name}.cpp
             )
