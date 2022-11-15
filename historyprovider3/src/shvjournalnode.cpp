@@ -30,7 +30,7 @@ static std::vector<cp::MetaMethod> methods {
 	{"syncLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
 };
 
-const auto DIRTY_FILENAME = "dirty.log2";
+const auto DIRTY_FILENAME = "dirtylog";
 
 std::string dirty_log_path(const QString& cache_dir_path)
 {
@@ -456,7 +456,7 @@ public:
 				writeFiles();
 			};
 			auto file_name = QString::fromStdString(current_file.asList().at(LS_FILES_RESPONSE_FILENAME).asString());
-			if (file_name == "dirty.log2") {
+			if (file_name == DIRTY_FILENAME) {
 				continue;
 			}
 

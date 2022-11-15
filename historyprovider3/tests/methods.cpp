@@ -306,7 +306,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 					NOTIFY("shv/eyas/opc/power-on", "chng", false);
 
 					expected_cache_contents = RpcValue::List({{
-						RpcValue::List{ "dirty.log2", 101UL }
+						RpcValue::List{ "dirtylog", 101UL }
 					}});
 				}
 
@@ -354,7 +354,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			{
 				create_dummy_cache_files(cache_dir_path, {
 					// Make a 100 second old entry.
-					{"dirty.log2", QDateTime::currentDateTimeUtc().addSecs(-100).toString(Qt::DateFormat::ISODate).toStdString() + "	809781	zone1/zone/Zone1/plcDisconnected	false		chng	2	\n"}
+					{"dirtylog", QDateTime::currentDateTimeUtc().addSecs(-100).toString(Qt::DateFormat::ISODate).toStdString() + "	809781	zone1/zone/Zone1/plcDisconnected	false		chng	2	\n"}
 				});
 
 				DOCTEST_SUBCASE("synclog should not trigger")
@@ -424,7 +424,8 @@ QCoro::Generator<int> MockRpcConnection::driver()
 
 		create_dummy_cache_files(cache_dir_path, {
 			{ "2022-07-07T18-06-15-557.log2", dummy_logfile },
-			{ "2022-07-07T18-06-15-558.log2", dummy_logfile2 }
+			{ "2022-07-07T18-06-15-558.log2", dummy_logfile2 },
+			{ "dirtylog", dummy_logfile },
 		});
 
 		std::vector<int64_t> expected_timestamps;
@@ -552,7 +553,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 					EXPECT_SUBSCRIPTION("shv/master", "chng");
 					create_dummy_cache_files(cache_dir_path, {
 						// Make a 100 second old entry.
-						{"dirty.log2", QDateTime::currentDateTimeUtc().addSecs(-100).toString(Qt::DateFormat::ISODate).toStdString() + "	809781	zone1/zone/Zone1/plcDisconnected	false		chng	2	\n"}
+						{"dirtylog", QDateTime::currentDateTimeUtc().addSecs(-100).toString(Qt::DateFormat::ISODate).toStdString() + "	809781	zone1/zone/Zone1/plcDisconnected	false		chng	2	\n"}
 					});
 					// shouldn't sync here
 					DRIVER_WAIT(10);
@@ -563,7 +564,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 					EXPECT_SUBSCRIPTION_YIELD("shv/master", "chng");
 					create_dummy_cache_files(cache_dir_path, {
 						// Make a two hour old entry.
-						{"dirty.log2", QDateTime::currentDateTimeUtc().addSecs(-60*60*2).toString(Qt::DateFormat::ISODate).toStdString() + "	809781	zone1/zone/Zone1/plcDisconnected	false		chng	2	\n"}
+						{"dirtylog", QDateTime::currentDateTimeUtc().addSecs(-60*60*2).toString(Qt::DateFormat::ISODate).toStdString() + "	809781	zone1/zone/Zone1/plcDisconnected	false		chng	2	\n"}
 					});
 
 					EXPECT_REQUEST("shv/master/.local/history/shvjournal", "lsfiles", ls_size_true);
@@ -741,7 +742,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			DOCTEST_SUBCASE("only dirty in cache")
 			{
 				create_dummy_cache_files(cache_dir_path, {
-					{ "dirty.log2", dummy_logfile },
+					{ "dirtylog", dummy_logfile },
 				});
 				REQUEST_YIELD("_shvjournal", "syncLog", RpcValue());
 				EXPECT_REQUEST(shv_path, "getLog");
@@ -749,7 +750,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				auto now_ms = shv::chainpack::RpcValue::DateTime::now().msecsSinceEpoch();
 				REQUIRE(now_ms - since_param_ms < int64_t{1000} /*ms*/ * 60 /*seconds*/ * 60 /*minutes*/ * 24 /*hours*/ * 31 /*days*/ );
 				expected_cache_contents = RpcValue::List({{
-					RpcValue::List{ "dirty.log2", 308UL }
+					RpcValue::List{ "dirtylog", 308UL }
 				}});
 			}
 
@@ -841,16 +842,16 @@ QCoro::Generator<int> MockRpcConnection::driver()
 		{
 			create_dummy_cache_files("one", {
 				{"2022-07-06T18-06-15-000.log2", dummy_logfile},
-				{"dirty.log2", dummy_logfile2}
+				{"dirtylog", dummy_logfile2}
 			});
 			create_dummy_cache_files("two", {
 				{"2022-07-06T18-06-15-000.log2", dummy_logfile},
-				{"dirty.log2", dummy_logfile2}
+				{"dirtylog", dummy_logfile2}
 			});
 
 			expected_cache_contents = RpcValue::List({{
 				RpcValue::List{ "2022-07-06T18-06-15-000.log2", 308UL },
-				RpcValue::List{ "dirty.log2", 249UL }
+				RpcValue::List{ "dirtylog", 249UL }
 			}});
 
 			REQUIRE(get_cache_contents("one") == expected_cache_contents);
@@ -874,7 +875,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			expected_cache_contents = RpcValue::List({{
 				RpcValue::List{ "2022-07-06T18-06-15-000.log2", 308UL },
 				RpcValue::List{ "2022-07-07T18-06-15-557.log2", 148UL },
-				RpcValue::List{ "dirty.log2", 83UL }
+				RpcValue::List{ "dirtylog", 83UL }
 			}});
 
 			REQUIRE(get_cache_contents("one") == expected_cache_contents);
@@ -883,7 +884,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 		DOCTEST_SUBCASE("file to trim from is empty")
 		{
 			create_dummy_cache_files("one", {
-				{"dirty.log2", dummy_logfile2}
+				{"dirtylog", dummy_logfile2}
 			});
 
 			REQUEST_YIELD("_shvjournal", "syncLog", RpcValue());
@@ -903,7 +904,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			// This means that the file will be trimmed due to the last-ms algorithm and therefore empty. We don't
 			// really want empty files, so we don't even write it.
 			create_dummy_cache_files("one", {
-				{"dirty.log2", dummy_logfile2}
+				{"dirtylog", dummy_logfile2}
 			});
 
 			REQUEST_YIELD("_shvjournal", "syncLog", RpcValue());
@@ -918,7 +919,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			EXPECT_RESPONSE("All files have been synced");
 
 			expected_cache_contents = RpcValue::List({{
-				RpcValue::List{ "dirty.log2", dummy_logfile2.size() }
+				RpcValue::List{ "dirtylog", dummy_logfile2.size() }
 			}});
 
 			REQUIRE(get_cache_contents("one") == expected_cache_contents);
