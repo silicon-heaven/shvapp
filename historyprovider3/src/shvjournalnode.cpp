@@ -29,6 +29,20 @@ static std::vector<cp::MetaMethod> methods {
 	{"getLog", cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
 	{"syncLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
 };
+
+const auto DIRTY_FILENAME = "dirty.log2";
+
+std::string dirty_log_path(const QString& cache_dir_path)
+{
+	return QDir(cache_dir_path).filePath(DIRTY_FILENAME).toStdString();
+}
+
+auto get_cache_dir_path(const QString& cache_root, const QString& slave_hp_path)
+{
+	using shv::coreqt::Utils;
+	return Utils::joinPath(Utils::joinPath(cache_root, slave_hp_path), "_shvjournal");
+}
+
 }
 
 ShvJournalNode::ShvJournalNode(const std::vector<SlaveHpInfo>& slave_hps, ShvNode* parent)
@@ -49,24 +63,36 @@ ShvJournalNode::ShvJournalNode(const std::vector<SlaveHpInfo>& slave_hps, ShvNod
 		}
 
 		auto tmr = new QTimer(this);
-		connect(tmr, &QTimer::timeout, [path_to_sync = it.shv_path] { HistoryApp::instance()->shvJournalNode()->syncLog(path_to_sync, [] (auto /*error*/) { }); });
-		tmr->start(HistoryApp::instance()->cliOptions()->logMaxAge() * 1000);
+		connect(tmr, &QTimer::timeout, [this, sync_iterator = m_slaveHps.begin(), dirtylog_age_cache = std::map<std::string, int64_t>{}] () mutable {
+			if (sync_iterator == m_slaveHps.end()) {
+				sync_iterator = m_slaveHps.begin();
+			}
+
+			auto current_slave_hp_path = sync_iterator->shv_path;
+			auto current_slave_cache_dir_path = sync_iterator->cache_dir_path;
+			if (dirtylog_age_cache.find(current_slave_hp_path) == dirtylog_age_cache.end()) {
+				dirtylog_age_cache.emplace(current_slave_hp_path, 0);
+
+				auto journal_dir_path = get_cache_dir_path(m_cacheDirPath, current_slave_cache_dir_path);
+				if (QFile(QString::fromStdString(dirty_log_path(journal_dir_path))).exists()) {
+					if (auto reader = shv::core::utils::ShvJournalFileReader(dirty_log_path(journal_dir_path)); reader.next()) {
+						dirtylog_age_cache[current_slave_hp_path] = reader.entry().epochMsec;
+					}
+				}
+			}
+
+			if ((QDateTime::currentDateTime().toMSecsSinceEpoch() - dirtylog_age_cache[current_slave_hp_path]) > HistoryApp::instance()->cliOptions()->logMaxAge() * 1000) {
+				HistoryApp::instance()->shvJournalNode()->syncLog(sync_iterator->shv_path, [] (auto /*error*/) { });
+				dirtylog_age_cache.erase(current_slave_hp_path);
+			}
+
+			++sync_iterator;
+		});
+		tmr->start(HistoryApp::instance()->cliOptions()->syncIteratorInterval() * 1000);
 	}
 }
 
 namespace {
-auto get_cache_dir_path(const QString& cache_root, const QString& slave_hp_path)
-{
-	using shv::coreqt::Utils;
-	return Utils::joinPath(Utils::joinPath(cache_root, slave_hp_path), "_shvjournal");
-}
-
-const auto DIRTY_FILENAME = "dirty.log2";
-
-std::string dirty_log_path(const QString& cache_dir_path)
-{
-	return QDir(cache_dir_path).filePath(DIRTY_FILENAME).toStdString();
-}
 }
 
 void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
