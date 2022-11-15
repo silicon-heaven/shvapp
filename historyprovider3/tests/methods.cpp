@@ -539,18 +539,61 @@ QCoro::Generator<int> MockRpcConnection::driver()
 
 		DOCTEST_SUBCASE("periodic syncing")
 		{
-			HistoryApp::instance()->cliOptions()->setLogMaxAge(1);
+			HistoryApp::instance()->cliOptions()->setSyncIteratorInterval(1);
+
 			DOCTEST_SUBCASE("master HP")
 			{
 				std::string cache_dir_path = "shv/master/pushlog";
 				SEND_SITES_YIELD(mock_sites::master_hp_with_slave_pushlog);
 				EXPECT_SUBSCRIPTION_YIELD("shv/master", "mntchng");
-				EXPECT_SUBSCRIPTION_YIELD("shv/master", "chng");
-				// Test that HP will run lsfiles (sync) at least twice.
-				EXPECT_REQUEST("shv/master/.local/history/shvjournal", "lsfiles", ls_size_true);
+
+				DOCTEST_SUBCASE("logs aren't old enough")
+				{
+					EXPECT_SUBSCRIPTION("shv/master", "chng");
+					create_dummy_cache_files(cache_dir_path, {
+						// Make a 100 second old entry.
+						{"dirty.log2", QDateTime::currentDateTimeUtc().addSecs(-100).toString(Qt::DateFormat::ISODate).toStdString() + "	809781	zone1/zone/Zone1/plcDisconnected	false		chng	2	\n"}
+					});
+					// shouldn't sync here
+					DRIVER_WAIT(10);
+				}
+
+				DOCTEST_SUBCASE("logs are old enough")
+				{
+					EXPECT_SUBSCRIPTION_YIELD("shv/master", "chng");
+					create_dummy_cache_files(cache_dir_path, {
+						// Make a two hour old entry.
+						{"dirty.log2", QDateTime::currentDateTimeUtc().addSecs(-60*60*2).toString(Qt::DateFormat::ISODate).toStdString() + "	809781	zone1/zone/Zone1/plcDisconnected	false		chng	2	\n"}
+					});
+
+					EXPECT_REQUEST("shv/master/.local/history/shvjournal", "lsfiles", ls_size_true);
+					RESPOND_YIELD(RpcValue::List());
+				}
+
+				DOCTEST_SUBCASE("no logs - should always sync")
+				{
+					EXPECT_SUBSCRIPTION_YIELD("shv/master", "chng");
+					create_dummy_cache_files(cache_dir_path, {});
+
+					EXPECT_REQUEST("shv/master/.local/history/shvjournal", "lsfiles", ls_size_true);
+					RESPOND_YIELD(RpcValue::List());
+				}
+			}
+
+			DOCTEST_SUBCASE("more sites")
+			{
+				SEND_SITES_YIELD(mock_sites::two_devices);
+				EXPECT_SUBSCRIPTION_YIELD("shv/one", "mntchng");
+				EXPECT_SUBSCRIPTION_YIELD("shv/one", "chng");
+				EXPECT_SUBSCRIPTION_YIELD("shv/two", "mntchng");
+				EXPECT_SUBSCRIPTION_YIELD("shv/two", "chng");
+
+				EXPECT_REQUEST("shv/one/.app/shvjournal", "lsfiles", ls_size_true);
 				RESPOND_YIELD(RpcValue::List());
-				EXPECT_REQUEST("shv/master/.local/history/shvjournal", "lsfiles", ls_size_true);
-				RESPOND(RpcValue::List());
+				EXPECT_REQUEST("shv/two/.app/shvjournal", "lsfiles", ls_size_true);
+				RESPOND_YIELD(RpcValue::List());
+				EXPECT_REQUEST("shv/one/.app/shvjournal", "lsfiles", ls_size_true);
+				RESPOND_YIELD(RpcValue::List());
 			}
 
 			DOCTEST_SUBCASE("slave HP shouldn't sync")
