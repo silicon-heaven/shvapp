@@ -456,7 +456,7 @@ public:
 				writeFiles();
 			};
 			auto file_name = QString::fromStdString(current_file.asList().at(LS_FILES_RESPONSE_FILENAME).asString());
-			if (file_name == "dirty.log2") {
+			if (file_name == DIRTY_FILENAME) {
 				continue;
 			}
 
