@@ -23,12 +23,19 @@ using namespace std;
 namespace cp = shv::chainpack;
 namespace si = shv::iotqt;
 
+namespace {
+const auto METH_GET_VERSION = "version";
+const auto METH_GIT_COMMIT = "gitCommit";
+}
+
 static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_BROWSE},
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_BROWSE},
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
 	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
 	{cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
+	{METH_GET_VERSION, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
+	{METH_GIT_COMMIT, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 };
 
 size_t AppRootNode::methodCount(const StringViewList& shv_path)
@@ -54,7 +61,19 @@ cp::RpcValue AppRootNode::callMethod(const StringViewList& shv_path, const std::
 {
 	if (shv_path.empty()) {
 		if (method == cp::Rpc::METH_APP_NAME) {
-			return QCoreApplication::instance()->applicationName().toStdString();
+			return QCoreApplication::applicationName().toStdString();
+		}
+
+		if (method == METH_GET_VERSION) {
+			return QCoreApplication::applicationVersion().toStdString();
+		}
+
+		if(method == METH_GIT_COMMIT) {
+#ifdef GIT_COMMIT
+			return SHV_EXPAND_AND_QUOTE(GIT_COMMIT);
+#else
+			return "N/A";
+#endif
 		}
 	}
 	return Super::callMethod(shv_path, method, params, user_id);
