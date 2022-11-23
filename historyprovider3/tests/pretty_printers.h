@@ -1,6 +1,7 @@
 #pragma once
 
 #include <doctest/doctest.h>
+#include <shv/core/utils/shvjournalentry.h>
 #include <shv/chainpack/rpcmessage.h>
 #include <shv/chainpack/rpcvalue.h>
 #include <vector>
@@ -36,7 +37,11 @@ namespace std {
         std::ostringstream res;
         res << "std::vector<" << type_name<Type>() << ">{\n";
         for (const auto& value : values) {
-            res << "    " << value << ",\n";
+            if constexpr (std::is_same<Type, shv::core::utils::ShvJournalEntry>()) {
+                res << "    " << value.toRpcValue().toCpon() << ",\n";
+            } else {
+                res << "    " << value << ",\n";
+            }
         }
         res << "}";
         return res.str().c_str();

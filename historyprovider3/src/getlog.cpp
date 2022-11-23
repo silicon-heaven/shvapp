@@ -42,6 +42,7 @@ enum class Status {
 
 void append_log_entry(RpcValue::List& log, const ShvJournalEntry &e, GetLogContext& ctx)
 {
+	logDGetLog() << "\t append_log_entry:" << e.toRpcValueMap().toCpon();
 	log.push_back(RpcValue::List{
 		e.dateTime(),
 		ctx.params.withPathsDict ? as_shared_path(ctx.pathCache, e.path) : e.path,
@@ -53,18 +54,19 @@ void append_log_entry(RpcValue::List& log, const ShvJournalEntry &e, GetLogConte
 	});
 }
 
-auto snapshot_to_entries(const ShvSnapshot& snapshot, const bool since_last, const long params_since_msec, GetLogContext& ctx)
+auto snapshot_to_entries(const ShvSnapshot& snapshot, const bool /*since_last*/, const long params_since_msec, GetLogContext& ctx)
 {
 	RpcValue::List res;
 	logMGetLog() << "\t writing snapshot, record count:" << snapshot.keyvals.size();
 	if (!snapshot.keyvals.empty()) {
 		auto snapshot_msec = params_since_msec;
-		if (since_last) {
-			snapshot_msec = 0;
+
+		if (snapshot_msec == 0) {
 			for (const auto &kv : snapshot.keyvals) {
 				snapshot_msec = std::max(snapshot_msec, kv.second.epochMsec);
 			}
 		}
+
 
 		for (const auto& kv : snapshot.keyvals) {
 			ShvJournalEntry e = kv.second;
@@ -73,7 +75,7 @@ auto snapshot_to_entries(const ShvSnapshot& snapshot, const bool since_last, con
 			// erase EVENT flag in the snapshot values,
 			// they can trigger events during reply otherwise
 			e.setSpontaneous(false);
-			logDGetLog() << "\t SNAPSHOT entry:" << e.toRpcValueMap().toCpon();
+			logDGetLog() << "\t writing SNAPSHOT entry:" << e.toRpcValueMap().toCpon();
 			append_log_entry(res, e, ctx);
 		}
 	}
@@ -116,8 +118,8 @@ auto snapshot_to_entries(const ShvSnapshot& snapshot, const bool since_last, con
 				continue;
 			}
 
-			logDGetLog() << "\t SNAPSHOT entry:" << entry.toRpcValueMap().toCpon();
 			if (ctx.params.withSnapshot) {
+				logDGetLog() << "\t saving SNAPSHOT entry:" << entry.toRpcValueMap().toCpon();
 				AbstractShvJournal::addToSnapshot(snapshot, entry);
 			}
 			// TODO:
@@ -125,7 +127,7 @@ auto snapshot_to_entries(const ShvSnapshot& snapshot, const bool since_last, con
 				goto exit_nested_loop;
 			}
 
-			if (entry.epochMsec >= params_since_msec) {
+			if (entry.epochMsec >= params_since_msec && !reader.inSnapshot()) {
 				append_log_entry(result_log, entry, ctx);
 			}
 		}
@@ -157,11 +159,13 @@ exit_nested_loop:
 
 	if (ctx.params.withPathsDict) {
 		logMGetLog() << "Generating paths dict size:" << ctx.pathCache.size();
-		RpcValue::IMap path_dict;
-		for(const auto &kv : ctx.pathCache) {
-			path_dict[kv.second.toInt()] = kv.first;
-		}
-		log_header.setPathDict(std::move(path_dict));
+		log_header.setPathDict([&] {
+			RpcValue::IMap path_dict;
+			for(const auto &kv : ctx.pathCache) {
+				path_dict[kv.second.toInt()] = kv.first;
+			}
+			return path_dict;
+		}());
 	}
 
 	auto rpc_value_result = RpcValue{result_entries};
