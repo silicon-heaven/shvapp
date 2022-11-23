@@ -56,22 +56,22 @@ DOCTEST_TEST_CASE("getLog")
 	std::filesystem::remove_all(journal_dir);
 	std::filesystem::create_directories(journal_dir);
 
+	std::vector<std::function<shv::core::utils::ShvJournalFileReader()>> readers {
+		create_reader({
+			make_entry("2022-07-07T18:06:15.557Z", "APP_START", true, false),
+			make_entry("2022-07-07T18:06:17.784Z", "zone1/system/sig/plcDisconnected", false, false),
+			make_entry("2022-07-07T18:06:17.784Z", "zone1/zone/Zone1/plcDisconnected", false, false),
+			make_entry("2022-07-07T18:06:17.869Z", "zone1/pme/TSH1-1/switchRightCounterPermanent", 0U, false),
+		}),
+		create_reader({
+			make_entry("2022-07-07T18:06:17.872Z", "zone1/system/sig/plcDisconnected", false, false),
+			make_entry("2022-07-07T18:06:17.874Z", "zone1/zone/Zone1/plcDisconnected", false, false),
+			make_entry("2022-07-07T18:06:17.880Z", "zone1/pme/TSH1-1/switchRightCounterPermanent", 0U, false),
+		})
+	};
+
 	DOCTEST_SUBCASE("filtering")
 	{
-		std::vector<std::function<shv::core::utils::ShvJournalFileReader()>> readers {
-			create_reader({
-				make_entry("2022-07-07T18:06:15.557Z", "APP_START", true, false),
-				make_entry("2022-07-07T18:06:17.784Z", "zone1/system/sig/plcDisconnected", false, false),
-				make_entry("2022-07-07T18:06:17.784Z", "zone1/zone/Zone1/plcDisconnected", false, false),
-				make_entry("2022-07-07T18:06:17.869Z", "zone1/pme/TSH1-1/switchRightCounterPermanent", 0U, false),
-			}),
-			create_reader({
-				make_entry("2022-07-07T18:06:17.872Z", "zone1/system/sig/plcDisconnected", false, false),
-				make_entry("2022-07-07T18:06:17.874Z", "zone1/zone/Zone1/plcDisconnected", false, false),
-				make_entry("2022-07-07T18:06:17.880Z", "zone1/pme/TSH1-1/switchRightCounterPermanent", 0U, false),
-			})
-		};
-
 		DOCTEST_SUBCASE("since/until")
 		{
 			std::vector<int64_t> expected_timestamps;
@@ -192,5 +192,24 @@ DOCTEST_TEST_CASE("getLog")
 
 			REQUIRE(entries.entries().size() == expected_count);
 		}
+	}
+
+	DOCTEST_SUBCASE("withPathsDict")
+	{
+		DOCTEST_SUBCASE("without path dict")
+		{
+			get_log_params.withPathsDict = false;
+		}
+
+		DOCTEST_SUBCASE("with path dict")
+		{
+			get_log_params.withPathsDict = true;
+		}
+
+		shv::core::utils::ShvMemoryJournal entries;
+		auto log = getLog(readers, get_log_params);
+		REQUIRE(log.metaData().value("withPathsDict") == get_log_params.withPathsDict);
+		entries.loadLog(log);
+		REQUIRE(entries.size() == 7); // Verify all entries were read correctly
 	}
 }
