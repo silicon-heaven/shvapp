@@ -151,5 +151,46 @@ DOCTEST_TEST_CASE("getLog")
 
 			REQUIRE(actual_paths == expected_paths);
 		}
+
+		DOCTEST_SUBCASE("record count limit")
+		{
+			int expected_count;
+			bool expected_record_count_limit_hit;
+
+			DOCTEST_SUBCASE("default")
+			{
+				expected_count = 7;
+				expected_record_count_limit_hit = false;
+			}
+
+			DOCTEST_SUBCASE("1000")
+			{
+				get_log_params.recordCountLimit = 1000;
+				expected_count = 7;
+				expected_record_count_limit_hit = false;
+			}
+
+			DOCTEST_SUBCASE("7")
+			{
+				get_log_params.recordCountLimit = 7;
+				expected_count = 7;
+				expected_record_count_limit_hit = false;
+			}
+
+			DOCTEST_SUBCASE("3")
+			{
+				get_log_params.recordCountLimit = 3;
+				expected_count = 3;
+				expected_record_count_limit_hit = true;
+			}
+
+			shv::core::utils::ShvMemoryJournal entries;
+
+			auto log = getLog(readers, get_log_params);
+			REQUIRE(log.metaData().value("recordCountLimitHit") == expected_record_count_limit_hit);
+			entries.loadLog(log);
+
+			REQUIRE(entries.entries().size() == expected_count);
+		}
 	}
 }
