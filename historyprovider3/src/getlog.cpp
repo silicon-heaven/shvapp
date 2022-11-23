@@ -1,4 +1,3 @@
-#include <iostream>
 #include "getlog.h"
 
 #include <shv/core/log.h>
@@ -121,7 +120,7 @@ auto snapshot_to_entries(const ShvSnapshot& snapshot, const bool since_last, con
 			if (ctx.params.withSnapshot) {
 				AbstractShvJournal::addToSnapshot(snapshot, entry);
 			}
-
+			// TODO:
 			if (entry.epochMsec >= params_until_msec) {
 				goto exit_nested_loop;
 			}
