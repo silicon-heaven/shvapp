@@ -39,7 +39,6 @@ if(BUILD_TESTING)
         add_test(NAME ${TEST_NAME} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${TEST_NAME})
     endfunction()
 
-    history_test(methods)
     history_test(synclog)
     history_test(slavehp)
     history_test(hp_getlog)
