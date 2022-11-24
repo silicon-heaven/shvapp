@@ -249,10 +249,10 @@ DOCTEST_TEST_CASE("getLog")
 	{
 		std::vector<std::function<shv::core::utils::ShvJournalFileReader()>> readers {
 			create_reader({
-				make_entry("2022-07-07T18:06:17.784Z", "value1", false, true),
-				make_entry("2022-07-07T18:06:17.784Z", "value2", false, true),
-				make_entry("2022-07-07T18:06:17.784Z", "value3", true, true),
-				make_entry("2022-07-07T18:06:17.822Z", "value2", true, false),
+				make_entry("2022-07-07T18:06:17.784Z", "value1", 0, true),
+				make_entry("2022-07-07T18:06:17.784Z", "value2", 1, true),
+				make_entry("2022-07-07T18:06:17.784Z", "value3", 3, true),
+				make_entry("2022-07-07T18:06:17.822Z", "value2", 10, false),
 			}),
 		};
 
@@ -262,7 +262,7 @@ DOCTEST_TEST_CASE("getLog")
 		{
 			get_log_params.withSnapshot = false;
 			expected_entries = {
-				make_entry("2022-07-07T18:06:17.822Z", "value2", true, false),
+				make_entry("2022-07-07T18:06:17.822Z", "value2", 10, false),
 			};
 		}
 
@@ -272,10 +272,10 @@ DOCTEST_TEST_CASE("getLog")
 			DOCTEST_SUBCASE("without since param")
 			{
 				expected_entries = {
-					make_entry("2022-07-07T18:06:17.822Z", "value1", false, true),
-					make_entry("2022-07-07T18:06:17.822Z", "value2", true, true),
-					make_entry("2022-07-07T18:06:17.822Z", "value3", true, true),
-					make_entry("2022-07-07T18:06:17.822Z", "value2", true, false),
+					make_entry("2022-07-07T18:06:17.822Z", "value1", 0, true),
+					make_entry("2022-07-07T18:06:17.822Z", "value2", 10, true),
+					make_entry("2022-07-07T18:06:17.822Z", "value3", 3, true),
+					make_entry("2022-07-07T18:06:17.822Z", "value2", 10, false),
 				};
 			}
 
@@ -283,10 +283,10 @@ DOCTEST_TEST_CASE("getLog")
 			{
 				get_log_params.since = RpcValue::DateTime::fromUtcString("2022-07-07T18:06:17.785Z");
 				expected_entries = {
-					make_entry("2022-07-07T18:06:17.785Z", "value1", false, true),
-					make_entry("2022-07-07T18:06:17.785Z", "value2", true, true),
-					make_entry("2022-07-07T18:06:17.785Z", "value3", true, true),
-					make_entry("2022-07-07T18:06:17.822Z", "value2", true, false),
+					make_entry("2022-07-07T18:06:17.785Z", "value1", 0, true),
+					make_entry("2022-07-07T18:06:17.785Z", "value2", 10, true),
+					make_entry("2022-07-07T18:06:17.785Z", "value3", 3, true),
+					make_entry("2022-07-07T18:06:17.822Z", "value2", 10, false),
 				};
 			}
 		}
