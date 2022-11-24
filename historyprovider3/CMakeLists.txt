@@ -23,6 +23,7 @@ install(TARGETS historyprovider3)
 if(BUILD_TESTING)
     add_library(mockrpcconnection STATIC
         tests/mockrpcconnection.cpp
+        tests/utils.cpp
         )
     target_link_libraries(mockrpcconnection libhistoryprovider)
     target_enable_coroutines(mockrpcconnection)
