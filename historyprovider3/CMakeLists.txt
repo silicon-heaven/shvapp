@@ -40,6 +40,7 @@ if(BUILD_TESTING)
     endfunction()
 
     history_test(methods)
+    history_test(synclog)
     history_test(sites_timeout)
     history_test(connection_failure)
     history_test(getlog)
