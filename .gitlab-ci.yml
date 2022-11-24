@@ -23,7 +23,7 @@ linux:
     - mkdir -p build
     - cd build
     - CXXFLAGS="-DGIT_COMMIT=${CI_BUILD_REF} -Werror" cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/opt/qt/5.15.2/gcc_64 -DCMAKE_INSTALL_PREFIX=. ..
-    - make -j2
+    - make -j8
     - make install
     #- rsync -av --exclude '*.debug' lib bin /opt/shv/
     - ../make-linux-artifacts.sh
@@ -132,7 +132,7 @@ run-tests:
     test
   script:
     - cd build
-    - ctest --output-on-failure -j4
+    - ctest --output-on-failure -j8
 
 
 #
