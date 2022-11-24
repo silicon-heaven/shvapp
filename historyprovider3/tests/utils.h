@@ -179,3 +179,18 @@ const auto five_thousand_records_getlog_response = RpcValue::fromCpon((R"(
 
 const auto ls_size_true = RpcValue::fromCpon(R"({"size": true})");
 const auto read_offset_0 = RpcValue::fromCpon(R"({"offset":0})");
+
+#define TEST_HISTORYPROVIDER_MAIN(test_name)                                           \
+	DOCTEST_TEST_CASE(test_name)                                                       \
+	{                                                                                  \
+		NecroLog::registerTopic("MockRpcConnection", "");                              \
+		NecroLog::setTopicsLogTresholds(":D");                                         \
+		QCoreApplication::setApplicationName("historyprovider tester");                \
+		int argc = 0;                                                                  \
+		char *argv[] = { nullptr };                                                    \
+		AppCliOptions cli_opts;                                                        \
+                                                                                       \
+		QDir(QString::fromStdString(cli_opts.journalCacheRoot())).removeRecursively(); \
+		HistoryApp app(argc, argv, &cli_opts, new MockRpcConnection());                \
+		app.exec();                                                                    \
+	}

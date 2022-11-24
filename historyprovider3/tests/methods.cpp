@@ -703,17 +703,4 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	co_return;
 }
 
-DOCTEST_TEST_CASE("HistoryApp")
-{
-	NecroLog::registerTopic("MockRpcConnection", "");
-	NecroLog::setTopicsLogTresholds(":D");
-	QCoreApplication::setApplicationName("historyprovider tester");
-
-	int argc = 0;
-	char *argv[] = { nullptr };
-	AppCliOptions cli_opts;
-
-	QDir(QString::fromStdString(cli_opts.journalCacheRoot())).removeRecursively();
-	HistoryApp app(argc, argv, &cli_opts, new MockRpcConnection());
-	app.exec();
-}
+TEST_HISTORYPROVIDER_MAIN("HistoryApp")
