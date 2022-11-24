@@ -252,18 +252,38 @@ DOCTEST_TEST_CASE("getLog")
 				make_entry("2022-07-07T18:06:17.784Z", "value1", 0, true),
 				make_entry("2022-07-07T18:06:17.784Z", "value2", 1, true),
 				make_entry("2022-07-07T18:06:17.784Z", "value3", 3, true),
-				make_entry("2022-07-07T18:06:17.822Z", "value2", 10, false),
+				make_entry("2022-07-07T18:06:17.800Z", "value3", 200, false),
+				make_entry("2022-07-07T18:06:17.950Z", "value2", 10, false),
 			}),
 		};
 
 		std::vector<shv::core::utils::ShvJournalEntry> expected_entries;
+		bool expected_with_snapshot;
 
 		DOCTEST_SUBCASE("without snapshot")
 		{
 			get_log_params.withSnapshot = false;
-			expected_entries = {
-				make_entry("2022-07-07T18:06:17.822Z", "value2", 10, false),
-			};
+			expected_with_snapshot = false;
+
+			DOCTEST_SUBCASE("without since")
+			{
+				expected_entries = {
+					make_entry("2022-07-07T18:06:17.784Z", "value1", 0, true),
+					make_entry("2022-07-07T18:06:17.784Z", "value2", 1, true),
+					make_entry("2022-07-07T18:06:17.784Z", "value3", 3, true),
+					make_entry("2022-07-07T18:06:17.800Z", "value3", 200, false),
+					make_entry("2022-07-07T18:06:17.950Z", "value2", 10, false),
+				};
+			}
+
+			DOCTEST_SUBCASE("with since")
+			{
+				get_log_params.since = RpcValue::DateTime::fromUtcString("2022-07-07T18:06:17.800");
+				expected_entries = {
+					make_entry("2022-07-07T18:06:17.800Z", "value3", 200, false),
+					make_entry("2022-07-07T18:06:17.950Z", "value2", 10, false),
+				};
+			}
 		}
 
 		DOCTEST_SUBCASE("with snapshot")
@@ -271,28 +291,48 @@ DOCTEST_TEST_CASE("getLog")
 			get_log_params.withSnapshot = true;
 			DOCTEST_SUBCASE("without since param")
 			{
+				expected_with_snapshot = false;
 				expected_entries = {
-					make_entry("2022-07-07T18:06:17.822Z", "value1", 0, true),
-					make_entry("2022-07-07T18:06:17.822Z", "value2", 10, true),
-					make_entry("2022-07-07T18:06:17.822Z", "value3", 3, true),
-					make_entry("2022-07-07T18:06:17.822Z", "value2", 10, false),
+					make_entry("2022-07-07T18:06:17.784Z", "value1", 0, true),
+					make_entry("2022-07-07T18:06:17.784Z", "value2", 1, true),
+					make_entry("2022-07-07T18:06:17.784Z", "value3", 3, true),
+					make_entry("2022-07-07T18:06:17.800Z", "value3", 200, false),
+					make_entry("2022-07-07T18:06:17.950Z", "value2", 10, false),
 				};
 			}
 
 			DOCTEST_SUBCASE("with since param")
 			{
-				get_log_params.since = RpcValue::DateTime::fromUtcString("2022-07-07T18:06:17.785Z");
-				expected_entries = {
-					make_entry("2022-07-07T18:06:17.785Z", "value1", 0, true),
-					make_entry("2022-07-07T18:06:17.785Z", "value2", 10, true),
-					make_entry("2022-07-07T18:06:17.785Z", "value3", 3, true),
-					make_entry("2022-07-07T18:06:17.822Z", "value2", 10, false),
-				};
+				expected_with_snapshot = true;
+				DOCTEST_SUBCASE("one entry between snapshot and since")
+				{
+					get_log_params.since = RpcValue::DateTime::fromUtcString("2022-07-07T18:06:17.850");
+					expected_entries = {
+						make_entry("2022-07-07T18:06:17.850Z", "value1", 0, true),
+						make_entry("2022-07-07T18:06:17.850Z", "value2", 1, true),
+						make_entry("2022-07-07T18:06:17.850Z", "value3", 200, true),
+						make_entry("2022-07-07T18:06:17.950Z", "value2", 10, false),
+					};
+
+				}
+
+				DOCTEST_SUBCASE("one entry exactly on since")
+				{
+					// The entry won't be a part of the snapshot.
+					get_log_params.since = RpcValue::DateTime::fromUtcString("2022-07-07T18:06:17.800");
+					expected_entries = {
+						make_entry("2022-07-07T18:06:17.800Z", "value1", 0, true),
+						make_entry("2022-07-07T18:06:17.800Z", "value2", 1, true),
+						make_entry("2022-07-07T18:06:17.800Z", "value3", 3, true),
+						make_entry("2022-07-07T18:06:17.800Z", "value3", 200, false),
+						make_entry("2022-07-07T18:06:17.950Z", "value2", 10, false),
+					};
+				}
 			}
 		}
 
 		shv::core::utils::ShvLogRpcValueReader entries(getLog(readers, get_log_params));
-		REQUIRE(entries.logHeader().withSnapShot() == get_log_params.withSnapshot);
+		REQUIRE(entries.logHeader().withSnapShot() == expected_with_snapshot);
 		REQUIRE(as_vector(entries) == expected_entries);
 	}
 }

@@ -59,18 +59,10 @@ auto snapshot_to_entries(const ShvSnapshot& snapshot, const bool /*since_last*/,
 	RpcValue::List res;
 	logMGetLog() << "\t writing snapshot, record count:" << snapshot.keyvals.size();
 	if (!snapshot.keyvals.empty()) {
-		auto snapshot_msec = params_since_msec;
-
-		if (snapshot_msec == 0) {
-			for (const auto &kv : snapshot.keyvals) {
-				snapshot_msec = std::max(snapshot_msec, kv.second.epochMsec);
-			}
-		}
-
 
 		for (const auto& kv : snapshot.keyvals) {
 			ShvJournalEntry e = kv.second;
-			e.epochMsec = snapshot_msec;
+			e.epochMsec = params_since_msec;
 			e.setSnapshotValue(true);
 			// erase EVENT flag in the snapshot values,
 			// they can trigger events during reply otherwise
@@ -90,6 +82,12 @@ auto snapshot_to_entries(const ShvSnapshot& snapshot, const bool /*since_last*/,
 	logIGetLog() << "params:" << orig_params.toRpcValue().toCpon();
 	GetLogContext ctx;
 	ctx.params = orig_params;
+
+	// Asking for a snapshot without supplying `since` is invalid. We'll continue as if the user didn't want a snapshot.
+	if (ctx.params.withSnapshot && !ctx.params.since.isValid()) {
+		logWGetLog() << "Asking for a snapshot without `since` is invalid. No snapshot will be created.";
+		ctx.params.withSnapshot = false;
+	}
 
 	ShvSnapshot snapshot;
 	RpcValue::List result_log;
@@ -118,7 +116,7 @@ auto snapshot_to_entries(const ShvSnapshot& snapshot, const bool /*since_last*/,
 				continue;
 			}
 
-			if (ctx.params.withSnapshot) {
+			if (ctx.params.withSnapshot && entry.epochMsec < params_since_msec) {
 				logDGetLog() << "\t saving SNAPSHOT entry:" << entry.toRpcValueMap().toCpon();
 				AbstractShvJournal::addToSnapshot(snapshot, entry);
 			}
@@ -127,7 +125,7 @@ auto snapshot_to_entries(const ShvSnapshot& snapshot, const bool /*since_last*/,
 				goto exit_nested_loop;
 			}
 
-			if (entry.epochMsec >= params_since_msec && !reader.inSnapshot()) {
+			if (entry.epochMsec >= params_since_msec) {
 				append_log_entry(result_log, entry, ctx);
 			}
 		}
