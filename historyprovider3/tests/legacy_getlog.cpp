@@ -144,4 +144,4 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	REQUIRE(get_cache_contents(cache_dir_path) == expected_cache_contents);
 }
 
-TEST_HISTORYPROVIDER_MAIN("legacy getlog retrieval")
+TEST_HISTORYPROVIDER_MAIN("legacy_getlog_retrieval")

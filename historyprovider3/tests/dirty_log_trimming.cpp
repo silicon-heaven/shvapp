@@ -109,4 +109,4 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	}
 }
 
-TEST_HISTORYPROVIDER_MAIN("dirtylog trimming")
+TEST_HISTORYPROVIDER_MAIN("dirtylog_trimming")

@@ -5,6 +5,7 @@
 #include "src/appclioptions.h"
 #include "src/historyapp.h"
 #include "tests/sites.h"
+#include "tests/utils.h"
 
 #include <shv/core/utils/shvjournalentry.h>
 #include <shv/core/utils/shvmemoryjournal.h>
@@ -26,15 +27,4 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	co_return;
 }
 
-DOCTEST_TEST_CASE("HistoryApp")
-{
-	NecroLog::registerTopic("MockRpcConnection", "");
-	NecroLog::setTopicsLogTresholds(":D");
-	QCoreApplication::setApplicationName("historyprovider tester");
-
-	int argc = 0;
-	char *argv[] = { nullptr };
-	AppCliOptions cli_opts;
-	HistoryApp app(argc, argv, &cli_opts, new MockRpcConnection());
-	app.exec();
-}
+TEST_HISTORYPROVIDER_MAIN("sites_timeout")

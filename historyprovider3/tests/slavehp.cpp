@@ -43,4 +43,4 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	REQUIRE(get_cache_contents(cache_dir_path) == expected_cache_contents);
 }
 
-TEST_HISTORYPROVIDER_MAIN("slave hp")
+TEST_HISTORYPROVIDER_MAIN("slave_hp")

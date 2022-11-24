@@ -1,4 +1,5 @@
 #pragma once
+#include "test_vars.h"
 
 #include <shv/core/utils/shvjournalentry.h>
 #include <shv/core/utils/shvmemoryjournal.h>
@@ -190,6 +191,7 @@ const auto read_offset_0 = RpcValue::fromCpon(R"({"offset":0})");
 		char *argv[] = { nullptr };                                                    \
 		AppCliOptions cli_opts;                                                        \
                                                                                        \
+		cli_opts.setJournalCacheRoot(join(TESTS_DIR, test_name));                      \
 		QDir(QString::fromStdString(cli_opts.journalCacheRoot())).removeRecursively(); \
 		HistoryApp app(argc, argv, &cli_opts, new MockRpcConnection());                \
 		app.exec();                                                                    \
