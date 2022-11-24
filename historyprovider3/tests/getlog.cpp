@@ -6,7 +6,7 @@
 #include <doctest/doctest.h>
 
 #include <shv/core/utils/shvgetlogparams.h>
-#include <shv/core/utils/shvmemoryjournal.h>
+#include <shv/core/utils/shvlogrpcvaluereader.h>
 #include <shv/core/utils/shvjournalfilereader.h>
 #include <shv/core/utils/shvjournalfilewriter.h>
 #include <shv/core/log.h>
@@ -46,6 +46,15 @@ auto make_entry(const std::string& timestamp, const std::string& path, const Rpc
 		RpcValue::DateTime::fromUtcString(timestamp).msecsSinceEpoch());
 
 	res.setSnapshotValue(snapshot);
+	return res;
+}
+
+auto as_vector(shv::core::utils::ShvLogRpcValueReader& reader)
+{
+	std::vector<shv::core::utils::ShvJournalEntry> res;
+	while (reader.next()) {
+		res.push_back(reader.entry());
+	}
 	return res;
 }
 
@@ -109,9 +118,8 @@ DOCTEST_TEST_CASE("getLog")
 				get_log_params.until = RpcValue::DateTime::fromUtcString("2022-07-07T18:06:17.872Z");
 			}
 			std::vector<std::string> actual_timestamps;
-			shv::core::utils::ShvMemoryJournal entries;
-			entries.loadLog(getLog(readers, get_log_params));
-			for (const auto& entry : entries.entries()) {
+			shv::core::utils::ShvLogRpcValueReader entries(getLog(readers, get_log_params));
+			for (const auto& entry : as_vector(entries)) {
 				actual_timestamps.push_back(RpcValue::DateTime::fromMSecsSinceEpoch(entry.epochMsec).toIsoString());
 			}
 
@@ -159,9 +167,8 @@ DOCTEST_TEST_CASE("getLog")
 			}
 
 			std::vector<std::string> actual_paths;
-			shv::core::utils::ShvMemoryJournal entries;
-			entries.loadLog(getLog(readers, get_log_params));
-			for (const auto& entry : entries.entries()) {
+			shv::core::utils::ShvLogRpcValueReader entries(getLog(readers, get_log_params));
+			for (const auto& entry : as_vector(entries)) {
 				actual_paths.push_back(entry.path);
 			}
 
@@ -200,13 +207,10 @@ DOCTEST_TEST_CASE("getLog")
 				expected_record_count_limit_hit = true;
 			}
 
-			shv::core::utils::ShvMemoryJournal entries;
+			shv::core::utils::ShvLogRpcValueReader entries(getLog(readers, get_log_params));
 
-			auto log = getLog(readers, get_log_params);
-			REQUIRE(log.metaData().value("recordCountLimitHit") == expected_record_count_limit_hit);
-			entries.loadLog(log);
-
-			REQUIRE(entries.entries().size() == expected_count);
+			REQUIRE(entries.logHeader().recordCountLimitHit() == expected_record_count_limit_hit);
+			REQUIRE(as_vector(entries).size() == expected_count);
 		}
 	}
 
@@ -236,11 +240,9 @@ DOCTEST_TEST_CASE("getLog")
 			get_log_params.withPathsDict = true;
 		}
 
-		shv::core::utils::ShvMemoryJournal entries;
-		auto log = getLog(readers, get_log_params);
-		REQUIRE(log.metaData().value("withPathsDict") == get_log_params.withPathsDict);
-		entries.loadLog(log);
-		REQUIRE(entries.size() == 7); // Verify all entries were read correctly
+		shv::core::utils::ShvLogRpcValueReader entries(getLog(readers, get_log_params));
+		REQUIRE(entries.logHeader().withPathsDict() == get_log_params.withPathsDict);
+		REQUIRE(as_vector(entries).size() == 7); // Verify all entries were read correctly
 	}
 
 	DOCTEST_SUBCASE("withSnapshot")
@@ -289,11 +291,8 @@ DOCTEST_TEST_CASE("getLog")
 			}
 		}
 
-		shv::core::utils::ShvMemoryJournal entries;
-		auto log = getLog(readers, get_log_params);
-		REQUIRE(log.metaData().value("withSnapshot") == get_log_params.withSnapshot);
-		entries.loadLog(log);
-
-		REQUIRE(entries.entries() == expected_entries);
+		shv::core::utils::ShvLogRpcValueReader entries(getLog(readers, get_log_params));
+		REQUIRE(entries.logHeader().withSnapShot() == get_log_params.withSnapshot);
+		REQUIRE(as_vector(entries) == expected_entries);
 	}
 }
