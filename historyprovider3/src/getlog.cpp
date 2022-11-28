@@ -155,6 +155,18 @@ exit_nested_loop:
 	append_entries_to_result(snapshot_entries);
 	append_entries_to_result(result_log);
 
+	if (result_entries.empty()) {
+		log_header.setSince(ctx.params.since.isValid() ? ctx.params.since : ctx.params.until);
+		log_header.setUntil(ctx.params.until.isValid() ? ctx.params.until : ctx.params.since);
+	} else {
+		log_header.setSince(ctx.params.since.isValid() ? ctx.params.since : result_entries.front().asList().value(ShvLogHeader::Column::Timestamp));
+		log_header.setUntil(log_header.recordCountLimitHit() || !ctx.params.until.isValid() ?
+							result_entries.back().asList().value(ShvLogHeader::Column::Timestamp) :
+							ctx.params.until);
+	}
+
+	logDGetLog() << "result since:" << log_header.sinceCRef().toCpon() << "result until:" << log_header.untilCRef().toCpon();
+
 	if (ctx.params.withPathsDict) {
 		logMGetLog() << "Generating paths dict size:" << ctx.pathCache.size();
 		log_header.setPathDict([&] {
