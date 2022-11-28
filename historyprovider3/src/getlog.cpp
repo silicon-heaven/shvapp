@@ -167,6 +167,10 @@ exit_nested_loop:
 
 	logDGetLog() << "result since:" << log_header.sinceCRef().toCpon() << "result until:" << log_header.untilCRef().toCpon();
 
+	log_header.setDateTime(RpcValue::DateTime::now());
+	log_header.setLogParams(orig_params);
+	log_header.setRecordCount(static_cast<int>(result_entries.size()));
+
 	if (ctx.params.withPathsDict) {
 		logMGetLog() << "Generating paths dict size:" << ctx.pathCache.size();
 		log_header.setPathDict([&] {

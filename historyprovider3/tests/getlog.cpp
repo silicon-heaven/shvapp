@@ -447,4 +447,20 @@ DOCTEST_TEST_CASE("getLog")
 		REQUIRE(log.logHeader().sinceCRef() == expected_since);
 		REQUIRE(log.logHeader().untilCRef() == expected_until);
 	}
+
+	DOCTEST_SUBCASE("miscellaneous result metadata")
+	{
+		std::vector<std::function<shv::core::utils::ShvJournalFileReader()>> readers = {
+			create_reader({
+				make_entry("2022-07-07T18:06:15.557Z", "value1", 10, false),
+				make_entry("2022-07-07T18:06:16.600Z", "value2", 20, false),
+				make_entry("2022-07-07T18:06:17.784Z", "value3", 30, false),
+			})
+		};
+		get_log_params.recordCountLimit = 10;
+		shv::core::utils::ShvLogRpcValueReader entries(getLog(readers, get_log_params));
+		REQUIRE(entries.logHeader().dateTimeCRef().isValid());
+		REQUIRE(entries.logHeader().logParamsCRef().recordCountLimit == 10);
+		REQUIRE(entries.logHeader().recordCount() == 3);
+	}
 }
