@@ -1,0 +1,1 @@
+#define TESTS_DIR "@CMAKE_CURRENT_BINARY_DIR@/tests"

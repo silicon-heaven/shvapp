@@ -1,6 +1,7 @@
 add_library(libhistoryprovider
     src/appclioptions.cpp
     src/leafnode.cpp
+    src/getlog.cpp
     src/historyapp.cpp
     src/shvjournalnode.cpp
     src/utils.cpp
@@ -27,7 +28,7 @@ if(BUILD_TESTING)
     target_enable_coroutines(mockrpcconnection)
 
     function(history_test name)
-		set(TEST_NAME test_historyprovider_${name})
+        set(TEST_NAME test_historyprovider_${name})
         add_executable(${TEST_NAME}
             tests/${name}.cpp
             )
@@ -40,4 +41,8 @@ if(BUILD_TESTING)
     history_test(methods)
     history_test(sites_timeout)
     history_test(connection_failure)
+    history_test(getlog)
+
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/tests/test_vars.h.in ${CMAKE_CURRENT_BINARY_DIR}/test_vars.h @ONLY)
+    target_include_directories(libhistoryprovider PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 endif()
