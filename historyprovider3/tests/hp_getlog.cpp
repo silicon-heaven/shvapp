@@ -25,7 +25,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	create_dummy_cache_files(cache_dir_path, {
 		{ "2022-07-07T18-06-15-557.log2", dummy_logfile },
 		{ "2022-07-07T18-06-15-558.log2", dummy_logfile2 },
-		{ "dirtylog", dummy_logfile },
+		{ "dirtylog", dummy_logfile3 },
 	});
 
 	std::vector<std::string> expected_timestamps;
@@ -40,7 +40,8 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			"2022-07-07T18:06:17.869Z",
 			"2022-07-07T18:06:17.872Z",
 			"2022-07-07T18:06:17.874Z",
-			"2022-07-07T18:06:17.880Z"
+			"2022-07-07T18:06:17.880Z",
+			"2022-07-07T18:06:20.900Z",
 		};
 	}
 
@@ -50,6 +51,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			"2022-07-07T18:06:17.872Z",
 			"2022-07-07T18:06:17.874Z",
 			"2022-07-07T18:06:17.880Z",
+			"2022-07-07T18:06:20.900Z",
 		};
 		get_log_params.since = RpcValue::DateTime::fromUtcString("2022-07-07T18:06:17.872Z");
 	}

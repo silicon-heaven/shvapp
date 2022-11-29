@@ -33,6 +33,9 @@ const auto dummy_logfile2 = R"(2022-07-07T18:06:17.872Z	809781	zone1/system/sig/
 2022-07-07T18:06:17.880Z	809781	zone1/pme/TSH1-1/switchRightCounterPermanent	0u		chng	2	
 )"s;
 
+const auto dummy_logfile3 = R"(2022-07-07T18:06:20.900Z	809781	zone1/system/sig/plcDisconnected	false		chng	2	
+)"s;
+
 const auto logfile_one_entry = R"(2022-07-07T18:06:17.872Z	809781	zone1/system/sig/plcDisconnected	false		chng	2	)"s;
 
 const auto dummy_pushlog = RpcValue::fromCpon(R"(
