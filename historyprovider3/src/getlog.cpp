@@ -76,7 +76,7 @@ auto snapshot_to_entries(const ShvSnapshot& snapshot, const bool /*since_last*/,
 }
 }
 
-[[nodiscard]] chainpack::RpcValue getLog(const std::vector<std::function<ShvJournalFileReader()>>& readers, const ShvGetLogParams& orig_params)
+[[nodiscard]] chainpack::RpcValue get_log(const std::vector<std::function<ShvJournalFileReader()>>& readers, const ShvGetLogParams& orig_params)
 {
 	logIGetLog() << "========================= getLog ==================";
 	logIGetLog() << "params:" << orig_params.toRpcValue().toCpon();

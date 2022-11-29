@@ -2,6 +2,7 @@
 #include "historyapp.h"
 #include "appclioptions.h"
 #include "shvjournalnode.h"
+#include "getlog.h"
 #include "utils.h"
 
 #include <shv/core/utils/shvjournalfilereader.h>
@@ -160,10 +161,16 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 	}
 
 	if (method == "getLog") {
-		shv::core::utils::ShvFileJournal file_journal("historyprovider");
-		file_journal.setJournalDir(m_journalCacheDir);
-		auto get_log_params = shv::core::utils::ShvGetLogParams(params);
-		return file_journal.getLog(get_log_params);
+		std::vector<std::function<shv::core::utils::ShvJournalFileReader()>> readers;
+		auto journal_dir = QDir(QString::fromStdString(m_journalCacheDir));
+		auto dir_files = journal_dir.entryList(QDir::Files, QDir::Name);
+		for (const auto& file_name : dir_files) {
+			readers.emplace_back([full_file_name = journal_dir.filePath(file_name).toStdString()] {
+				return shv::core::utils::ShvJournalFileReader(full_file_name);
+			});
+		}
+
+		return shv::core::utils::get_log(readers, shv::core::utils::ShvGetLogParams(params));
 	}
 
 	if (method == "logSize") {
