@@ -8,6 +8,8 @@
 #include "tests/sites.h"
 #include "tests/utils.h"
 
+#include <shv/core/utils/shvlogrpcvaluereader.h>
+
 QCoro::Generator<int> MockRpcConnection::driver()
 {
 	co_yield {};
@@ -69,10 +71,9 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	// correct. This is not the place to test the log uitilities anyway.
 	REQUIRE(m_messageQueue.head().isResponse());
 	std::vector<std::string> actual_timestamps;
-	shv::core::utils::ShvMemoryJournal entries;
-	entries.loadLog(shv::chainpack::RpcResponse(m_messageQueue.head()).result());
-	for (const auto& entry : entries.entries()) {
-		actual_timestamps.push_back(RpcValue::DateTime::fromMSecsSinceEpoch(entry.epochMsec).toIsoString());
+	shv::core::utils::ShvLogRpcValueReader entries(shv::chainpack::RpcResponse(m_messageQueue.head()).result());
+	while (entries.next()) {
+		actual_timestamps.push_back(RpcValue::DateTime::fromMSecsSinceEpoch(entries.entry().epochMsec).toIsoString());
 	}
 
 	REQUIRE(actual_timestamps == expected_timestamps);
