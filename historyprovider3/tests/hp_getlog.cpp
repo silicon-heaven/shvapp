@@ -26,24 +26,41 @@ QCoro::Generator<int> MockRpcConnection::driver()
 		{ "dirtylog", dummy_logfile },
 	});
 
-	std::vector<int64_t> expected_timestamps;
+	std::vector<std::string> expected_timestamps;
 	shv::core::utils::ShvGetLogParams get_log_params;
 
 	DOCTEST_SUBCASE("default params")
 	{
-		expected_timestamps = {1657217175557, 1657217177784, 1657217177784, 1657217177869, 1657217177872, 1657217177874, 1657217177880};
+		expected_timestamps = {
+			"2022-07-07T18:06:15.557Z",
+			"2022-07-07T18:06:17.784Z",
+			"2022-07-07T18:06:17.784Z",
+			"2022-07-07T18:06:17.869Z",
+			"2022-07-07T18:06:17.872Z",
+			"2022-07-07T18:06:17.874Z",
+			"2022-07-07T18:06:17.880Z"
+		};
 	}
 
 	DOCTEST_SUBCASE("since")
 	{
-		expected_timestamps = {1657217177872, 1657217177874, 1657217177880};
-		get_log_params.since = RpcValue::DateTime::fromMSecsSinceEpoch(1657217177872);
+		expected_timestamps = {
+			"2022-07-07T18:06:17.872Z",
+			"2022-07-07T18:06:17.874Z",
+			"2022-07-07T18:06:17.880Z",
+		};
+		get_log_params.since = RpcValue::DateTime::fromUtcString("2022-07-07T18:06:17.872Z");
 	}
 
 	DOCTEST_SUBCASE("until")
 	{
-		expected_timestamps = {1657217175557, 1657217177784, 1657217177784, 1657217177869};
-		get_log_params.until = RpcValue::DateTime::fromMSecsSinceEpoch(1657217177870);
+		expected_timestamps = {
+			"2022-07-07T18:06:15.557Z",
+			"2022-07-07T18:06:17.784Z",
+			"2022-07-07T18:06:17.784Z",
+			"2022-07-07T18:06:17.869Z",
+		};
+		get_log_params.until = RpcValue::DateTime::fromUtcString("2022-07-07T18:06:17.872Z");
 	}
 
 	REQUEST_YIELD(cache_dir_path, "getLog", get_log_params.toRpcValue());
@@ -51,11 +68,11 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	// For now,I'll only make a simple test: I'll assume that if the timestamps are correct, everything else is also
 	// correct. This is not the place to test the log uitilities anyway.
 	REQUIRE(m_messageQueue.head().isResponse());
-	std::vector<int64_t> actual_timestamps;
+	std::vector<std::string> actual_timestamps;
 	shv::core::utils::ShvMemoryJournal entries;
 	entries.loadLog(shv::chainpack::RpcResponse(m_messageQueue.head()).result());
 	for (const auto& entry : entries.entries()) {
-		actual_timestamps.push_back(entry.epochMsec);
+		actual_timestamps.push_back(RpcValue::DateTime::fromMSecsSinceEpoch(entry.epochMsec).toIsoString());
 	}
 
 	REQUIRE(actual_timestamps == expected_timestamps);
