@@ -5,7 +5,7 @@
 
 
 namespace shv::core::utils {
-[[nodiscard]] chainpack::RpcValue getLog(const std::vector<std::function<ShvJournalFileReader()>>& readers, const ShvGetLogParams &params);
+[[nodiscard]] chainpack::RpcValue get_log(const std::vector<std::function<ShvJournalFileReader()>>& readers, const ShvGetLogParams &params);
 }
 
 
