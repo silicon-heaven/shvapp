@@ -21,6 +21,7 @@
 
 #define journalDebug() shvCDebug("historyjournal")
 #define journalInfo() shvCInfo("historyjournal")
+#define journalWarning() shvCWarning("historyjournal")
 #define journalError() shvCError("historyjournal")
 
 namespace cp = shv::chainpack;
@@ -111,8 +112,13 @@ void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 		if (it != m_slaveHps.end()) {
 			if (method == "chng") {
 				{
+					if (path.at(it->shv_path.size()) != '/') {
+						journalWarning() << "Discarding notification with a top-level node path. Offending path was:" << it->shv_path;
+						return;
+					}
+
 					auto writer = shv::core::utils::ShvJournalFileWriter(dirty_log_path(get_cache_dir_path(m_cacheDirPath, it->cache_dir_path)));
-					auto path_without_prefix = path.substr(it->shv_path.size());
+					auto path_without_prefix = path.substr(it->shv_path.size() + 1 /* for the slash */);
 					auto data_change = shv::chainpack::DataChange::fromRpcValue(ntf.params());
 
 					auto entry = shv::core::utils::ShvJournalEntry(path_without_prefix, data_change.value()
