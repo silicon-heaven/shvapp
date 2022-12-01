@@ -8,6 +8,7 @@
 #include "tests/sites.h"
 #include "tests/utils.h"
 
+// TODO: add proper testing for file contents (not just sizes)
 QCoro::Generator<int> MockRpcConnection::driver()
 {
 	co_yield {};
@@ -78,7 +79,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				NOTIFY("shv/eyas/opc/power-on", "chng", false);
 
 				expected_cache_contents = RpcValue::List({{
-					RpcValue::List{ "dirtylog", 101UL }
+					RpcValue::List{ "dirtylog", 99UL }
 				}});
 			}
 
