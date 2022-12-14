@@ -36,6 +36,7 @@ static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
 	{METH_GET_VERSION, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 	{METH_GIT_COMMIT, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
+	{"uptime", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ },
 };
 
 size_t AppRootNode::methodCount(const StringViewList& shv_path)
@@ -67,6 +68,11 @@ cp::RpcValue AppRootNode::callMethod(const StringViewList& shv_path, const std::
 		if (method == METH_GET_VERSION) {
 			return QCoreApplication::applicationVersion().toStdString();
 		}
+
+		if (method == "uptime") {
+			return HistoryApp::instance()->uptime().toStdString();
+		}
+
 
 		if(method == METH_GIT_COMMIT) {
 #ifdef GIT_COMMIT
@@ -229,6 +235,7 @@ HistoryApp::HistoryApp(int& argc, char** argv, AppCliOptions* cli_opts, shv::iot
 	connect(m_rpcConnection, &si::rpc::ClientConnection::rpcMessageReceived, this, &HistoryApp::onRpcMessageReceived);
 
 	QTimer::singleShot(0, m_rpcConnection, &si::rpc::ClientConnection::open);
+	m_uptime.start();
 }
 
 HistoryApp::~HistoryApp()
@@ -310,4 +317,23 @@ void HistoryApp::onRpcMessageReceived(const cp::RpcMessage& msg)
 		cp::RpcSignal nt(msg);
 		shvDebug() << "RPC notify received:" << nt.toPrettyString();
 	}
+}
+
+QString HistoryApp::uptime() const
+{
+	qint64 elapsed = m_uptime.elapsed();
+	int ms = static_cast<int>(elapsed) % 1000;
+	elapsed /= 1000;
+	int sec = static_cast<int>(elapsed) % 60;
+	elapsed /= 60;
+	int min = static_cast<int>(elapsed) % 60;
+	elapsed /= 60;
+	int hour = static_cast<int>(elapsed) % 24;
+	int day = static_cast<int>(elapsed) / 24;
+	return QString("%1 day(s) %2:%3:%4.%5")
+		.arg(day)
+		.arg(hour, 2, 10, QChar('0'))
+		.arg(min, 2, 10, QChar('0'))
+		.arg(sec, 2, 10, QChar('0'))
+		.arg(ms, 3, 10, QChar('0'));
 }

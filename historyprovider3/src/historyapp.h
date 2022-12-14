@@ -3,6 +3,7 @@
 #include <shv/iotqt/node/shvnode.h>
 
 #include <QCoreApplication>
+#include <QElapsedTimer>
 
 #include <QCoroTask>
 
@@ -48,6 +49,8 @@ public:
 
 	AppCliOptions* cliOptions() {return m_cliOptions;}
 
+	QString uptime() const;
+
 private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage& msg);
@@ -56,6 +59,7 @@ private:
 	void deinitializeShvTree();
 
 private:
+	QElapsedTimer m_uptime;
 	shv::iotqt::rpc::DeviceConnection* m_rpcConnection = nullptr;
 	AppCliOptions* m_cliOptions;
 	shv::iotqt::node::ShvNodeTree* m_shvTree = nullptr;
