@@ -138,8 +138,8 @@ void MockRpcConnection::sendMessage(const shv::chainpack::RpcMessage& rpc_msg)
                 " This can lead to unexpected behavior, because the test driver resumes on messages from the client and you can't resume the driver while it's already running.");
     }
 
-    // For now we're not handling signals at all, so we'll skip them.
-    if (rpc_msg.isSignal()) {
+    // We skip the cmdlog signals, but let others through.
+    if (rpc_msg.isSignal() && rpc_msg.method() == "cmdlog") {
         return;
     }
 
