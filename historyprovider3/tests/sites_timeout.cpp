@@ -21,7 +21,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	co_yield {};
 	EXPECT_REQUEST("sites", "getSites", RpcValue());
 	m_messageQueue.dequeue();
-	DRIVER_WAIT(6000);
+	DRIVER_WAIT(10000);
 	EXPECT_REQUEST("sites", "getSites", RpcValue());
 	RESPOND(""); // Respond with empty sites to avoid leaks.
 	co_return;

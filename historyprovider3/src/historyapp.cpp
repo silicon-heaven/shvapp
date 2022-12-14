@@ -255,7 +255,7 @@ QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> HistoryA
 
 	if (!error.isEmpty()) {
 		shvError() << "Couldn't retrieve sites:" << error << ", trying again";
-		QTimer::singleShot(0, this, &HistoryApp::initializeShvTree);
+		QTimer::singleShot(3000, this, &HistoryApp::initializeShvTree);
 		co_return;
 	}
 
