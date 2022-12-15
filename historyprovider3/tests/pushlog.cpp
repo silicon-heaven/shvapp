@@ -163,7 +163,8 @@ QCoro::Generator<int> MockRpcConnection::driver()
 		EXPECT_SUBSCRIPTION("shv/master", "chng");
 		NOTIFY_YIELD("shv/master", "mntchng", true);
 		EXPECT_REQUEST("shv/master/.local/history/shvjournal", "lsfiles", ls_size_true);
-		RESPOND(RpcValue::List()); // We only test if the syncLog triggers.
+		RESPOND_YIELD(RpcValue::List()); // We only test if the syncLog triggers.
+		EXPECT_SIGNAL("shv/master", "logReset", RpcValue());
 	}
 
 	DOCTEST_SUBCASE("slave HP shouldn't sync on mntchng")

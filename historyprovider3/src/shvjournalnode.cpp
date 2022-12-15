@@ -84,7 +84,7 @@ ShvJournalNode::ShvJournalNode(const std::vector<SlaveHpInfo>& slave_hps, ShvNod
 		}
 
 		if ((QDateTime::currentDateTime().toMSecsSinceEpoch() - dirtylog_age_cache[current_slave_hp_path]) > HistoryApp::instance()->cliOptions()->logMaxAge() * 1000) {
-			HistoryApp::instance()->shvJournalNode()->syncLog(sync_iterator->shv_path, [] (auto /*error*/) { });
+			HistoryApp::instance()->shvJournalNode()->syncLog(sync_iterator->shv_path, [] {}, [] (auto /*error*/) { });
 			dirtylog_age_cache.erase(current_slave_hp_path);
 		}
 
@@ -131,9 +131,11 @@ void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 				}
 			}
 
-			if (!m_syncInProgress.value(QString::fromStdString(it->shv_path), false) && method == "mntchng" && params.toBool() == true) {
+			if (it->log_type != LogType::PushLog && !m_syncInProgress.value(QString::fromStdString(it->shv_path), false) && method == "mntchng" && params.toBool() == true) {
 				journalInfo() << "mntchng on" << it->shv_path << "syncing its journal";
-				syncLog(it->shv_path, [] (auto /*error*/) {
+				syncLog(it->shv_path, [signal_path = it->shv_path] {
+					HistoryApp::instance()->rpcConnection()->sendShvSignal(signal_path, "logReset");
+				}, [] (auto /*error*/) {
 				});
 			}
 		}
@@ -264,12 +266,20 @@ using shv::coreqt::Utils;
 class FileSyncer : public QObject {
 	Q_OBJECT
 public:
-	FileSyncer(ShvJournalNode* node, std::vector<SlaveHpInfo> slave_hps, const std::string& shv_path, const QString& cache_dir_path, const std::function<void(cp::RpcResponse::Error)>& callback, QMap<QString, bool>& syncInProgress)
+	FileSyncer(
+		ShvJournalNode* node,
+		std::vector<SlaveHpInfo> slave_hps,
+		const std::string& shv_path,
+		const QString& cache_dir_path,
+		const std::function<void()>& success_cb,
+		const std::function<void(cp::RpcResponse::Error)>& error_cb,
+		QMap<QString, bool>& syncInProgress)
 		: m_node(node)
 		, m_slaveHps(slave_hps)
 		, m_shvPath(QString::fromStdString(shv_path))
 		, m_cacheDirPath(cache_dir_path)
-		, m_callback(callback)
+		, m_successCb(success_cb)
+		, m_errorCb(error_cb)
 		, m_syncInProgress(syncInProgress)
 	{
 		syncFiles();
@@ -376,7 +386,7 @@ public:
 
 			if (!error.isEmpty()) {
 				journalError() << "Error retrieving logs via getLog for:" << slave_hp_path << error;
-				m_callback(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, "Couldn't retrieve all logs from the device"));
+				m_errorCb(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, "Couldn't retrieve all logs from the device"));
 				co_return;
 			}
 
@@ -427,7 +437,7 @@ public:
 		auto [file_list, error] = co_await qCoro(call, &shv::iotqt::rpc::RpcCall::maybeResult);
 		if (!error.isEmpty()) {
 			journalError() << "Couldn't retrieve filelist from:" << shvjournal_shvpath << error;
-			m_callback(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, "Couldn't retrieve filelist from the device"));
+			m_errorCb(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, "Couldn't retrieve filelist from the device"));
 			co_return;
 		}
 
@@ -561,7 +571,7 @@ public:
 			}
 		}
 
-		m_callback({});
+		m_successCb();
 		deleteLater();
 	}
 
@@ -576,13 +586,14 @@ private:
 
 	QString m_cacheDirPath;
 
-	std::function<void(cp::RpcResponse::Error)> m_callback;
+	std::function<void()> m_successCb;
+	std::function<void(cp::RpcResponse::Error)> m_errorCb;
 	QMap<QString, bool>& m_syncInProgress;
 };
 
-void ShvJournalNode::syncLog(const std::string& shv_path, const std::function<void(cp::RpcResponse::Error)> cb)
+void ShvJournalNode::syncLog(const std::string& shv_path, const std::function<void()> successCb, const std::function<void(cp::RpcResponse::Error)> errorCb)
 {
-	new FileSyncer(this, m_slaveHps, shv_path, m_cacheDirPath, cb, m_syncInProgress);
+	new FileSyncer(this, m_slaveHps, shv_path, m_cacheDirPath, successCb, errorCb, m_syncInProgress);
 }
 
 cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
@@ -590,18 +601,18 @@ cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 	auto method = rq.method().asString();
 	if (method == "syncLog") {
 		journalInfo() << "Syncing shvjournal" << m_remoteLogShvPath;
-		auto respond = [rq] (auto error) {
+		auto respondSuccess = [rq] () {
 			auto response = rq.makeResponse();
-			if (!error.empty()) {
-				response.setError(error);
-			} else {
-				response.setResult("All files have been synced");
-			}
-
+			response.setResult("All files have been synced");
+			HistoryApp::instance()->rpcConnection()->sendMessage(response);
+		};
+		auto respondError = [rq] (auto error) {
+			auto response = rq.makeResponse();
+			response.setError(error);
 			HistoryApp::instance()->rpcConnection()->sendMessage(response);
 		};
 
-		syncLog("", respond);
+		syncLog("", respondSuccess, respondError);
 
 		return {};
 	}

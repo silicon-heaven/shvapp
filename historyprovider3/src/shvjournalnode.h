@@ -26,7 +26,7 @@ public:
 	const shv::chainpack::MetaMethod* metaMethod(const StringViewList& shv_path, size_t ix) override;
 	shv::chainpack::RpcValue callMethodRq(const shv::chainpack::RpcRequest &rq) override;
 	void trimDirtyLog(const QString& slave_hp_path, const QString& cache_dir_path);
-	void syncLog(const std::string& path, const std::function<void(shv::chainpack::RpcResponse::Error)>);
+	void syncLog(const std::string& path, const std::function<void()> successCb, const std::function<void(shv::chainpack::RpcResponse::Error)> errorCb);
 
 private:
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
