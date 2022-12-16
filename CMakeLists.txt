@@ -31,7 +31,7 @@ if (NOT TARGET libshvchainpack-c)
         add_subdirectory(3rdparty/libshv)
 endif()
 
-find_package(Qt5 COMPONENTS Core Concurrent OPTIONAL_COMPONENTS SerialPort Widgets Svg Xml Quick)
+find_package(Qt5 COMPONENTS Core Concurrent OPTIONAL_COMPONENTS SerialPort Widgets Svg Xml)
 if(NOT WIN32)
     find_package(QCoro5 QUIET COMPONENTS Core)
 endif()
