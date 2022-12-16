@@ -5,7 +5,6 @@
 #include "siteitem.h"
 
 #include <shv/coreqt/log.h>
-#include <shv/iotqt/rpc/rpc.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
 

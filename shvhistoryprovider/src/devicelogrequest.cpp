@@ -10,7 +10,6 @@
 #include <shv/core/utils/shvmemoryjournal.h>
 #include <shv/coreqt/exception.h>
 #include <shv/coreqt/log.h>
-#include <shv/iotqt/rpc/rpc.h>
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
 
 namespace cp = shv::chainpack;

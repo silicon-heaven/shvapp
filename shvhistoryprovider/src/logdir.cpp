@@ -7,7 +7,7 @@
 
 #include <shv/core/utils/shvfilejournal.h>
 #include <shv/chainpack/chainpackreader.h>
-#include <shv/iotqt/rpc/rpc.h>
+#include <shv/coreqt/rpc.h>
 
 #include <iostream>
 #include <fstream>

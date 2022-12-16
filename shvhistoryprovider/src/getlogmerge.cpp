@@ -5,13 +5,13 @@
 #include "logdirreader.h"
 #include "siteitem.h"
 
-#include <QDateTime>
-
 #include <shv/core/utils/shvjournalfilereader.h>
 #include <shv/core/utils/shvlogfilereader.h>
 #include <shv/coreqt/exception.h>
 #include <shv/coreqt/log.h>
-#include <shv/iotqt/rpc/rpc.h>
+#include <shv/coreqt/rpc.h>
+
+#include <QDateTime>
 
 namespace cp = shv::chainpack;
 using namespace shv::core::utils;

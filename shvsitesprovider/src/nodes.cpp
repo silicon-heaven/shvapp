@@ -7,7 +7,7 @@
 #include <shv/coreqt/log.h>
 #include <shv/coreqt/exception.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
-#include <shv/iotqt/rpc/rpc.h>
+#include <shv/coreqt/rpc.h>
 
 #include <QCryptographicHash>
 #include <QDir>

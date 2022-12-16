@@ -1,5 +1,4 @@
 #include "application.h"
-#include "appclioptions.h"
 #include "devicemonitor.h"
 #include "dirtylogmanager.h"
 #include "logdir.h"
@@ -8,7 +7,7 @@
 #include <shv/core/utils/shvjournalfilereader.h>
 #include <shv/core/utils/shvjournalfilewriter.h>
 #include <shv/core/utils/shvlogfilereader.h>
-#include <shv/iotqt/rpc/rpc.h>
+#include <shv/coreqt/rpc.h>
 
 using namespace shv::core::utils;
 

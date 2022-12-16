@@ -12,7 +12,7 @@
 #include <shv/coreqt/exception.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/node/shvnodetree.h>
-#include <shv/iotqt/rpc/rpc.h>
+#include <shv/coreqt/rpc.h>
 #include <shv/core/utils/shvjournalfilereader.h>
 #include <shv/core/utils/shvlogfilereader.h>
 #include <shv/core/utils/shvlogrpcvaluereader.h>

@@ -7,7 +7,7 @@
 #include <shv/core/utils/shvjournalfilereader.h>
 #include <shv/core/utils/shvlogfilereader.h>
 #include <shv/core/utils/shvlogheader.h>
-#include <shv/iotqt/rpc/rpc.h>
+#include <shv/coreqt/rpc.h>
 
 namespace cp = shv::chainpack;
 using namespace shv::core::utils;

@@ -2,7 +2,6 @@
 #include "sitesproviderapp.h"
 
 #include <shv/iotqt/rpc/deviceconnection.h>
-#include <shv/iotqt/rpc/rpc.h>
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
 
 #include <QCryptographicHash>

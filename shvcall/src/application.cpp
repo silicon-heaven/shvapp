@@ -2,7 +2,6 @@
 #include "appclioptions.h"
 
 #include <shv/iotqt/rpc/rpccall.h>
-#include <shv/iotqt/rpc/rpc.h>
 #include <shv/coreqt/log.h>
 
 #include <iostream>

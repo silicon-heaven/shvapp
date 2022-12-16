@@ -5,7 +5,6 @@
 
 #include <shv/coreqt/log.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
-#include <shv/iotqt/rpc/rpc.h>
 #include <shv/iotqt/rpc/rpcresponsecallback.h>
 
 #include <QProcess>
@@ -33,13 +32,13 @@ void GitPushTask::start()
 void GitPushTask::execGitCommand(const QStringList &arguments)
 {
 	QProcess *command = new QProcess(this);
-	connect(command, &QProcess::errorOccurred, [this, command](QProcess::ProcessError error) {
+	connect(command, &QProcess::errorOccurred, this, [this, command](QProcess::ProcessError error) {
 		if (error == QProcess::FailedToStart) {
 			m_error = command->errorString();
 			Q_EMIT finished(false);
 		}
 	});
-	connect(command, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), [this, command](int exit_code, QProcess::ExitStatus exit_status){
+	connect(command, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, [this, command](int exit_code, QProcess::ExitStatus exit_status){
 		if (exit_status == QProcess::ExitStatus::NormalExit && exit_code == 0) {
 			onGitCommandFinished();
 		}

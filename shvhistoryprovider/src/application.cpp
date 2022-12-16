@@ -9,7 +9,6 @@
 
 #include <shv/coreqt/log.h>
 #include <shv/coreqt/exception.h>
-#include <shv/iotqt/rpc/rpc.h>
 #include <shv/iotqt/rpc/rpccall.h>
 
 #include <QTimer>
