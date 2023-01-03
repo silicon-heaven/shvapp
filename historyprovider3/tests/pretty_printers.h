@@ -58,6 +58,10 @@ namespace shv::chainpack {
         return RpcValue(value).toCpon().c_str();
     }
 
+    doctest::String toString(const RpcValue::Map& value) {
+        return RpcValue(value).toCpon().c_str();
+    }
+
     doctest::String toString(const RpcMessage& value) {
         return value.toPrettyString().c_str();
     }
