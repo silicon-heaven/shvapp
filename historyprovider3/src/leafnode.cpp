@@ -10,6 +10,7 @@
 #include <shv/core/utils/shvlogrpcvaluereader.h>
 #include <shv/core/utils/shvfilejournal.h>
 #include <shv/coreqt/log.h>
+#include <shv/coreqt/rpc.h>
 
 #include <QDir>
 #include <QDirIterator>
@@ -137,17 +138,27 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 
 		auto file_path = cache_dir.filePath(QString::fromStdString(shv::core::utils::ShvJournalFileReader::msecToBaseFileName(remote_since_ms)) + ".log2");
 
+		std::string res_err;
+
+		auto emit_pushlog_error = [&res_err] (const auto& msg) {
+			journalWarning() << msg;
+			res_err += msg;
+			res_err += "\n";
+		};
+
 		shv::core::utils::ShvJournalFileWriter writer(file_path.toStdString());
+		bool input_log_is_empty = true;
 		journalDebug() << "Writing" << file_path;
 		while (reader.next()) {
+			input_log_is_empty = false;
 			auto entry = reader.entry();
 			if (entry.epochMsec < local_newest_entry_ms) {
-				journalWarning() << "Rejecting push log entry for:" << shvPath() << "with timestamp:" << entry.dateTime().toIsoString() << "because a newer one already exists:" << local_newest_entry_str;
+				emit_pushlog_error("Rejecting push log entry for: " + shvPath() + " with timestamp: " + entry.dateTime().toIsoString() + " because a newer one already exists: " + local_newest_entry_str);
 				continue;
 			}
 
 			if (entry.epochMsec == local_newest_entry_ms && std::find(local_newest_entry_paths.begin(), local_newest_entry_paths.end(), entry.path) != local_newest_entry_paths.end()) {
-				journalWarning() << "Rejecting push log entry for:" << shvPath() << "with timestamp:" << entry.dateTime().toIsoString() << "and path:" << entry.path << "because we already have an entry with this timestamp and path";
+				emit_pushlog_error("Rejecting push log entry for: " + shvPath() + " with timestamp: " + entry.dateTime().toIsoString() + " and path: " + entry.path + " because we already have an entry with this timestamp and path");
 				continue;
 			}
 
@@ -160,7 +171,19 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 			file.remove();
 		}
 
-		return true;
+		if (input_log_is_empty) {
+			return shv::chainpack::RpcValue::Map {
+				{"since", shv::chainpack::RpcValue(nullptr)},
+				{"until", shv::chainpack::RpcValue(nullptr)},
+				{"msg", "Pushed log was empty"}
+			};
+		}
+
+		return shv::chainpack::RpcValue::Map {
+			{"since", reader.logHeader().since()},
+			{"until", reader.logHeader().until()},
+			{"msg", res_err}
+		};
 	}
 
 	if (method == "getLog") {
