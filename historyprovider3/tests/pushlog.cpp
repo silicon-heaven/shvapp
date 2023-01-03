@@ -27,7 +27,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			EXPECT_RESPONSE((RpcValue::Map {
 				{"since", RpcValue(nullptr)},
 				{"until", RpcValue(nullptr)},
-				{"msg", "Pushed log was empty"}
+				{"msg", "success"}
 			}));
 		}
 
@@ -49,7 +49,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				EXPECT_RESPONSE((RpcValue::Map {
 					{"since", shv::chainpack::RpcValue::DateTime::fromUtcString("2022-07-07T18:06:15.554Z")},
 					{"until", shv::chainpack::RpcValue::DateTime::fromUtcString("2022-07-07T18:06:15.554Z")},
-					{"msg", "Rejecting push log entry for: pushlog with timestamp: 2022-07-07T18:06:15.554Z because a newer one already exists: 2022-07-07T18:06:15.557Z\n"}
+					{"msg", "success"}
 				}));
 				REQUIRE(get_cache_contents(cache_dir_path) == RpcValue::List({{
 					RpcValue::List{ "2022-07-07T18-06-15-557.log2", 53UL }
@@ -62,7 +62,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				EXPECT_RESPONSE((RpcValue::Map {
 					{"since", shv::chainpack::RpcValue::DateTime::fromUtcString("2022-07-07T18:06:15.557Z")},
 					{"until", shv::chainpack::RpcValue::DateTime::fromUtcString("2022-07-07T18:06:15.557Z")},
-					{"msg", "Rejecting push log entry for: pushlog with timestamp: 2022-07-07T18:06:15.557Z and path: APP_START because we already have an entry with this timestamp and path\n"}
+					{"msg", "success"}
 				}));
 				REQUIRE(get_cache_contents(cache_dir_path) == RpcValue::List({{
 					RpcValue::List{ "2022-07-07T18-06-15-557.log2", 53UL }
