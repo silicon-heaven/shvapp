@@ -139,11 +139,12 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 		auto file_path = cache_dir.filePath(QString::fromStdString(shv::core::utils::ShvJournalFileReader::msecToBaseFileName(remote_since_ms)) + ".log2");
 
 		shv::core::utils::ShvJournalFileWriter writer(file_path.toStdString());
-		bool input_log_is_empty = true;
+		int remote_entries_count = 0;
+		int written_entries_count = 0;
 		journalDebug() << "Writing" << file_path;
 		while (reader.next()) {
-			input_log_is_empty = false;
 			auto entry = reader.entry();
+			remote_entries_count++;
 			if (entry.epochMsec < local_newest_entry_ms) {
 				journalWarning() << "Rejecting push log entry for:" << shvPath() << "with timestamp:" << entry.dateTime().toIsoString() << "because a newer one already exists:" << local_newest_entry_str;
 				continue;
@@ -155,7 +156,10 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 			}
 
 			writer.append(reader.entry());
+			written_entries_count++;
 		}
+
+		journalInfo() << "Got" << remote_entries_count << "entries (" + std::to_string(remote_entries_count - written_entries_count) + " were rejected)" << "from pushLog at" << shvPath();
 
 		// The output file is always created by the writer. If we didn't manage to write any entries, we'll remove the
 		// file.
@@ -163,7 +167,7 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 			file.remove();
 		}
 
-		if (input_log_is_empty) {
+		if (remote_entries_count == 0) {
 			return shv::chainpack::RpcValue::Map {
 				{"since", shv::chainpack::RpcValue(nullptr)},
 				{"until", shv::chainpack::RpcValue(nullptr)},
