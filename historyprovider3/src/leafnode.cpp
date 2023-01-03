@@ -182,7 +182,7 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 		return shv::chainpack::RpcValue::Map {
 			{"since", reader.logHeader().since()},
 			{"until", reader.logHeader().until()},
-			{"msg", res_err}
+			{"msg", !res_err.empty() ? res_err : "success"}
 		};
 	}
 

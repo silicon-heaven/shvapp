@@ -37,7 +37,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			EXPECT_RESPONSE((RpcValue::Map {
 				{"since", shv::chainpack::RpcValue::DateTime::fromUtcString("2022-07-07T18:06:15.557Z")},
 				{"until", shv::chainpack::RpcValue::DateTime::fromUtcString("2022-07-07T18:06:15.557Z")},
-				{"msg", ""}
+				{"msg", "success"}
 			}));
 			REQUIRE(get_cache_contents(cache_dir_path) == RpcValue::List({{
 				RpcValue::List{ "2022-07-07T18-06-15-557.log2", 53UL }
@@ -75,7 +75,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				EXPECT_RESPONSE((RpcValue::Map {
 					{"since", shv::chainpack::RpcValue::DateTime::fromUtcString("2022-07-07T18:06:15.557Z")},
 					{"until", shv::chainpack::RpcValue::DateTime::fromUtcString("2022-07-07T18:06:15.557Z")},
-					{"msg", ""}
+					{"msg", "success"}
 				}));
 				REQUIRE(get_cache_contents(cache_dir_path) == RpcValue::List({{
 					RpcValue::List{ "2022-07-07T18-06-15-557.log2", 129UL }
