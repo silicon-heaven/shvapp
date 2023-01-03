@@ -127,7 +127,7 @@ void createTree(shv::iotqt::node::ShvNode* parent_node, const cp::RpcValue::Map&
 			slave_hps.push_back(SlaveHpInfo {
 				.is_leaf = meta_node.hasKey("HP") || !meta_node.value("HP3").asMap().value("slave").toBool(),
 				.log_type = log_type,
-				.shv_path = shv::core::Utils::joinPath(std::string{"shv"}, node->shvPath()),
+				.shv_path = shv::core::utils::joinPath(std::string{"shv"}, node->shvPath()),
 				.cache_dir_path = QString::fromStdString(node->shvPath()),
 			});
 		}

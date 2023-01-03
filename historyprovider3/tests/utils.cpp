@@ -5,8 +5,7 @@
 
 QDir get_site_cache_dir(const std::string& site_path)
 {
-	using shv::core::Utils;
-	return QDir{QString::fromStdString(Utils::joinPath(Utils::joinPath(HistoryApp::instance()->cliOptions()->journalCacheRoot(), site_path), "_shvjournal"s))};
+	return QDir{QString::fromStdString(shv::core::utils::joinPath(HistoryApp::instance()->cliOptions()->journalCacheRoot(), site_path, "_shvjournal"s))};
 }
 
 void remove_cache_contents(const std::string& site_path)
@@ -52,5 +51,5 @@ void create_dummy_cache_files(const std::string& site_path, const std::vector<Du
 
 std::string join(const std::string& a, const std::string& b)
 {
-	return shv::core::Utils::joinPath(a, b);
+	return shv::core::utils::joinPath(a, b);
 }
