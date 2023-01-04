@@ -463,4 +463,42 @@ DOCTEST_TEST_CASE("getLog")
 		REQUIRE(entries.logHeader().logParamsCRef().recordCountLimit == 10);
 		REQUIRE(entries.logHeader().recordCount() == 3);
 	}
+
+	DOCTEST_SUBCASE("sinceLast")
+	{
+		std::vector<std::function<shv::core::utils::ShvJournalFileReader()>> readers {
+			create_reader({
+				make_entry("2022-07-07T18:06:17.784Z", "value1", 0, true),
+				make_entry("2022-07-07T18:06:17.784Z", "value2", 1, true),
+				make_entry("2022-07-07T18:06:17.784Z", "value3", 3, true),
+				make_entry("2022-07-07T18:06:17.800Z", "value3", 200, false),
+				make_entry("2022-07-07T18:06:17.950Z", "value2", 10, false),
+			}),
+		};
+		RpcValue expected_since;
+		RpcValue expected_until;
+		int expected_record_count;
+		get_log_params.since = "last";
+
+		DOCTEST_SUBCASE("withSnapshot == true")
+		{
+			get_log_params.withSnapshot = true;
+			expected_since = RpcValue::DateTime::fromUtcString("2022-07-07T18:06:17.950Z");;
+			expected_until = RpcValue::DateTime::fromUtcString("2022-07-07T18:06:17.950Z");
+			expected_record_count = 3;
+		}
+
+		DOCTEST_SUBCASE("withSnapshot == false")
+		{
+			get_log_params.withSnapshot = false;
+			expected_since = RpcValue::DateTime::fromUtcString("2022-07-07T18:06:17.950Z");;
+			expected_until = RpcValue::DateTime::fromUtcString("2022-07-07T18:06:17.950Z");
+			expected_record_count = 1;
+		}
+
+		auto log = shv::core::utils::ShvLogRpcValueReader(shv::core::utils::get_log(readers, get_log_params));
+		REQUIRE(log.logHeader().recordCount() == expected_record_count);
+		REQUIRE(log.logHeader().sinceCRef() == expected_since);
+		REQUIRE(log.logHeader().untilCRef() == expected_until);
+	}
 }

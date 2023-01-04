@@ -54,15 +54,21 @@ void append_log_entry(RpcValue::List& log, const ShvJournalEntry &e, GetLogConte
 	});
 }
 
-auto snapshot_to_entries(const ShvSnapshot& snapshot, const bool /*since_last*/, const long params_since_msec, GetLogContext& ctx)
+auto snapshot_to_entries(const ShvSnapshot& snapshot, const bool since_last, const long params_since_msec, GetLogContext& ctx)
 {
 	RpcValue::List res;
 	logMGetLog() << "\t writing snapshot, record count:" << snapshot.keyvals.size();
 	if (!snapshot.keyvals.empty()) {
+		auto since_res = params_since_msec;
 
+		if (since_last) {
+			for (const auto& kv : snapshot.keyvals) {
+				since_res = std::max(kv.second.epochMsec, since_res);
+			}
+		}
 		for (const auto& kv : snapshot.keyvals) {
 			ShvJournalEntry e = kv.second;
-			e.epochMsec = params_since_msec;
+			e.epochMsec = since_res;
 			e.setSnapshotValue(true);
 			// erase EVENT flag in the snapshot values,
 			// they can trigger events during reply otherwise
@@ -106,17 +112,20 @@ auto snapshot_to_entries(const ShvSnapshot& snapshot, const bool /*since_last*/,
 	const auto params_until_msec =
 		ctx.params.until.isDateTime() ? ctx.params.until.toDateTime().msecsSinceEpoch() : std::numeric_limits<int64_t>::max();
 
+	std::optional<ShvJournalEntry> last_entry;
+
 	for (const auto& readerFn : readers) {
 		auto reader = readerFn();
 		while(reader.next()) {
 			const auto& entry = reader.entry();
+			last_entry = entry;
 
 			if (!pattern_matcher.match(entry)) {
 				logDGetLog() << "\t SKIPPING:" << entry.path << "because it doesn't match" << ctx.params.pathPattern;
 				continue;
 			}
 
-			if (ctx.params.withSnapshot && entry.epochMsec < params_since_msec) {
+			if (ctx.params.isSinceLast() || entry.epochMsec < params_since_msec) {
 				logDGetLog() << "\t saving SNAPSHOT entry:" << entry.toRpcValueMap().toCpon();
 				AbstractShvJournal::addToSnapshot(snapshot, entry);
 			}
@@ -125,7 +134,7 @@ auto snapshot_to_entries(const ShvSnapshot& snapshot, const bool /*since_last*/,
 				goto exit_nested_loop;
 			}
 
-			if (entry.epochMsec >= params_since_msec) {
+			if (entry.epochMsec >= params_since_msec && !ctx.params.isSinceLast()) {
 				append_log_entry(result_log, entry, ctx);
 			}
 		}
@@ -135,6 +144,12 @@ exit_nested_loop:
 	auto snapshot_entries = [&] {
 		if (ctx.params.withSnapshot) {
 			return snapshot_to_entries(snapshot, ctx.params.isSinceLast(), params_since_msec, ctx);
+		}
+
+		if (last_entry && ctx.params.isSinceLast()) {
+			RpcValue::List res;
+			append_log_entry(res, *last_entry, ctx);
+			return res;
 		}
 		return RpcValue::List{};
 	}();
@@ -159,8 +174,8 @@ exit_nested_loop:
 		log_header.setSince(ctx.params.since.isValid() ? ctx.params.since : ctx.params.until);
 		log_header.setUntil(ctx.params.until.isValid() ? ctx.params.until : ctx.params.since);
 	} else {
-		log_header.setSince(ctx.params.since.isValid() ? ctx.params.since : result_entries.front().asList().value(ShvLogHeader::Column::Timestamp));
-		log_header.setUntil(log_header.recordCountLimitHit() || !ctx.params.until.isValid() ?
+		log_header.setSince(ctx.params.since.isValid() && !ctx.params.isSinceLast() ? ctx.params.since : result_entries.front().asList().value(ShvLogHeader::Column::Timestamp));
+		log_header.setUntil(log_header.recordCountLimitHit() || !ctx.params.until.isValid() || ctx.params.isSinceLast() ?
 							result_entries.back().asList().value(ShvLogHeader::Column::Timestamp) :
 							ctx.params.until);
 	}
