@@ -184,18 +184,19 @@ const auto five_thousand_records_getlog_response = RpcValue::fromCpon((R"(
 const auto ls_size_true = RpcValue::fromCpon(R"({"size": true})");
 const auto read_offset_0 = RpcValue::fromCpon(R"({"offset":0})");
 
-#define TEST_HISTORYPROVIDER_MAIN(test_name)                                           \
-	DOCTEST_TEST_CASE(test_name)                                                       \
-	{                                                                                  \
-		NecroLog::registerTopic("MockRpcConnection", "");                              \
-		NecroLog::setTopicsLogTresholds(":D");                                         \
-		QCoreApplication::setApplicationName("historyprovider tester");                \
-		int argc = 0;                                                                  \
-		char *argv[] = { nullptr };                                                    \
-		AppCliOptions cli_opts;                                                        \
-                                                                                       \
-		cli_opts.setJournalCacheRoot(join(TESTS_DIR, test_name));                      \
-		QDir(QString::fromStdString(cli_opts.journalCacheRoot())).removeRecursively(); \
-		HistoryApp app(argc, argv, &cli_opts, new MockRpcConnection());                \
-		app.exec();                                                                    \
+#define TEST_HISTORYPROVIDER_MAIN(test_name)                                                 \
+	DOCTEST_TEST_CASE(test_name)                                                             \
+	{                                                                                        \
+		NecroLog::registerTopic("MockRpcConnection", "");                                    \
+		NecroLog::setTopicsLogTresholds(":D");                                               \
+		QCoreApplication::setApplicationName("historyprovider tester");                      \
+		int argc = 0;                                                                        \
+		auto argv_1 = std::unique_ptr<char, decltype(&free)>(strdup(#test_name), std::free); \
+		std::array<char*, 1> argv = { argv_1.get() };                                        \
+		AppCliOptions cli_opts;                                                              \
+                                                                                             \
+		cli_opts.setJournalCacheRoot(join(TESTS_DIR, test_name));                            \
+		QDir(QString::fromStdString(cli_opts.journalCacheRoot())).removeRecursively();       \
+		HistoryApp app(argc, argv.data(), &cli_opts, new MockRpcConnection());               \
+		app.exec();                                                                          \
 	}
