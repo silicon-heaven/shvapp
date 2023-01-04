@@ -268,19 +268,13 @@ class FileSyncer : public QObject {
 public:
 	FileSyncer(
 		ShvJournalNode* node,
-		std::vector<SlaveHpInfo> slave_hps,
 		const std::string& shv_path,
-		const QString& cache_dir_path,
 		const std::function<void()>& success_cb,
-		const std::function<void(cp::RpcResponse::Error)>& error_cb,
-		QMap<QString, bool>& syncInProgress)
+		const std::function<void(cp::RpcResponse::Error)>& error_cb)
 		: m_node(node)
-		, m_slaveHps(slave_hps)
 		, m_shvPath(QString::fromStdString(shv_path))
-		, m_cacheDirPath(cache_dir_path)
 		, m_successCb(success_cb)
 		, m_errorCb(error_cb)
-		, m_syncInProgress(syncInProgress)
 	{
 		syncFiles();
 	}
@@ -318,7 +312,7 @@ public:
 			return;
 		}
 
-		QDir dir(get_cache_dir_path(m_cacheDirPath, cache_dir_path));
+		QDir dir(get_cache_dir_path(m_node->cacheDirPath(), cache_dir_path));
 
 		auto file_name = dir.filePath([&] {
 			if (file_name_hint) {
@@ -341,7 +335,7 @@ public:
 		get_log_params.recordCountLimit = RECORD_COUNT_LIMIT;
 		get_log_params.since = shv::chainpack::RpcValue::DateTime::fromMSecsSinceEpoch(QDateTime::currentDateTime().addSecs(- HistoryApp::instance()->cliOptions()->cacheInitMaxAge()).toMSecsSinceEpoch());
 
-		QDir cache_dir(get_cache_dir_path(m_cacheDirPath, cache_dir_path));
+		QDir cache_dir(get_cache_dir_path(m_node->cacheDirPath(), cache_dir_path));
 		int newest_file_entry_count = 0;
 		std::optional<QString> file_name_hint;
 		if (!cache_dir.isEmpty()) {
@@ -451,7 +445,7 @@ public:
 			co_return;
 		}
 
-		QDir cache_dir(get_cache_dir_path(m_cacheDirPath, cache_dir_path));
+		QDir cache_dir(get_cache_dir_path(m_node->cacheDirPath(), cache_dir_path));
 		QString newest_file_name;
 		int64_t newest_file_name_ms = QDateTime::currentDateTime().addSecs(- HistoryApp::instance()->cliOptions()->cacheInitMaxAge()).toMSecsSinceEpoch();
 		auto entry_list = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name | QDir::Reversed);
@@ -481,7 +475,7 @@ public:
 				continue;
 			}
 
-			auto full_file_name = QDir(get_cache_dir_path(m_cacheDirPath, cache_dir_path)).filePath(Utils::joinPath(path_prefix, file_name));
+			auto full_file_name = QDir(get_cache_dir_path(m_node->cacheDirPath(), cache_dir_path)).filePath(Utils::joinPath(path_prefix, file_name));
 			QFile file(full_file_name);
 			auto local_size = file.size();
 			auto remote_size = current_file.asList().at(LS_FILES_RESPONSE_FILESIZE).toInt();
@@ -535,21 +529,21 @@ public:
 	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> syncFiles()
 	{
 		using shv::coreqt::Utils;
-		for (const auto& slave_hp : m_slaveHps) {
+		for (const auto& slave_hp : m_node->slaveHps()) {
 			auto slave_hp_path_qstr = QString::fromStdString(slave_hp.shv_path);
 
 			if (!m_shvPath.isEmpty() && !m_shvPath.startsWith(slave_hp.shv_path.c_str())) {
 				continue;
 			}
 
-			if (m_syncInProgress.value(slave_hp_path_qstr, false)) {
+			if (m_node->syncInProgress().value(slave_hp_path_qstr, false)) {
 				journalInfo() << slave_hp_path_qstr << "is already being synced, skipping";
 				continue;
 			}
 
-			m_syncInProgress[slave_hp_path_qstr] = true;
+			m_node->syncInProgress()[slave_hp_path_qstr] = true;
 			QScopeGuard lock_guard([this, &slave_hp_path_qstr] {
-				m_syncInProgress[slave_hp_path_qstr] = false;
+				m_node->syncInProgress()[slave_hp_path_qstr] = false;
 			});
 
 			// Now that we know that shvPath to-be-synced starts with the slave hp path, we need to check whether we're
@@ -577,23 +571,18 @@ public:
 
 private:
 	ShvJournalNode* m_node;
-	std::vector<SlaveHpInfo> m_slaveHps;
 	QString m_shvPath;
 	int current_memory_usage = 0;
 
-
 	QMap<QString, cp::RpcValue> m_downloadedFiles;
-
-	QString m_cacheDirPath;
 
 	std::function<void()> m_successCb;
 	std::function<void(cp::RpcResponse::Error)> m_errorCb;
-	QMap<QString, bool>& m_syncInProgress;
 };
 
 void ShvJournalNode::syncLog(const std::string& shv_path, const std::function<void()> successCb, const std::function<void(cp::RpcResponse::Error)> errorCb)
 {
-	new FileSyncer(this, m_slaveHps, shv_path, m_cacheDirPath, successCb, errorCb, m_syncInProgress);
+	new FileSyncer(this, shv_path, successCb, errorCb);
 }
 
 cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
@@ -618,6 +607,21 @@ cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 	}
 
 	return Super::callMethodRq(rq);
+}
+
+const QString& ShvJournalNode::cacheDirPath() const
+{
+	return m_cacheDirPath;
+}
+
+QMap<QString, bool>& ShvJournalNode::syncInProgress()
+{
+	return m_syncInProgress;
+}
+
+const std::vector<SlaveHpInfo>& ShvJournalNode::slaveHps() const
+{
+	return m_slaveHps;
 }
 
 #include "shvjournalnode.moc"

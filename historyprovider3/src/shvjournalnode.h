@@ -28,6 +28,10 @@ public:
 	void trimDirtyLog(const QString& slave_hp_path, const QString& cache_dir_path);
 	void syncLog(const std::string& path, const std::function<void()> successCb, const std::function<void(shv::chainpack::RpcResponse::Error)> errorCb);
 
+	const QString& cacheDirPath() const;
+	const std::vector<SlaveHpInfo>& slaveHps() const;
+	QMap<QString, bool>& syncInProgress();
+
 private:
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 
