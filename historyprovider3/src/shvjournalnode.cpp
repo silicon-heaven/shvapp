@@ -40,8 +40,7 @@ std::string dirty_log_path(const QString& cache_dir_path)
 
 auto get_cache_dir_path(const QString& cache_root, const QString& slave_hp_path)
 {
-	using shv::coreqt::Utils;
-	return Utils::joinPath(Utils::joinPath(cache_root, slave_hp_path), "_shvjournal");
+	return shv::coreqt::utils::joinPath(cache_root, slave_hp_path, "_shvjournal");
 }
 
 }
@@ -261,8 +260,6 @@ const auto LS_FILES_RESPONSE_FILETYPE = 1;
 const auto LS_FILES_RESPONSE_FILESIZE = 2;
 }
 
-using shv::coreqt::Utils;
-
 class FileSyncer : public QObject {
 	Q_OBJECT
 public:
@@ -440,7 +437,7 @@ public:
 		if (!file_list.asList().empty() && file_list.asList().front().asList().at(LS_FILES_RESPONSE_FILETYPE) == "d") {
 			for (const auto& current_directory : file_list.asList()) {
 				auto dir_name = QString::fromStdString(current_directory.asList().at(LS_FILES_RESPONSE_FILENAME).asString());
-				co_await impl_doSync(slave_hp_path, cache_dir_path, Utils::joinPath(shvjournal_shvpath, dir_name), dir_name);
+				co_await impl_doSync(slave_hp_path, cache_dir_path, shv::coreqt::utils::joinPath(shvjournal_shvpath, dir_name), dir_name);
 			}
 			co_return;
 		}
@@ -475,7 +472,7 @@ public:
 				continue;
 			}
 
-			auto full_file_name = QDir(get_cache_dir_path(m_node->cacheDirPath(), cache_dir_path)).filePath(Utils::joinPath(path_prefix, file_name));
+			auto full_file_name = QDir(get_cache_dir_path(m_node->cacheDirPath(), cache_dir_path)).filePath(shv::coreqt::utils::joinPath(path_prefix, file_name));
 			QFile file(full_file_name);
 			auto local_size = file.size();
 			auto remote_size = current_file.asList().at(LS_FILES_RESPONSE_FILESIZE).toInt();
@@ -487,7 +484,7 @@ public:
 				}
 			}
 
-			auto sites_log_file = Utils::joinPath(shvjournal_shvpath, file_name);
+			auto sites_log_file = shv::coreqt::utils::joinPath(shvjournal_shvpath, file_name);
 			journalDebug() << "Retrieving" << sites_log_file << "offset:" << local_size;
 			call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
 				->setShvPath(sites_log_file)
@@ -520,8 +517,8 @@ public:
 		auto shvjournal_suffix =
 			sync_type == SyncType::Device ?
 			".app/shvjournal" :
-			Utils::joinPath(".local/history/shvjournal", m_shvPath.remove(0, slave_hp_path.size()));
-		auto shvjournal_shvpath = Utils::joinPath(slave_hp_path, shvjournal_suffix);
+			shv::coreqt::utils::joinPath(".local/history/shvjournal", m_shvPath.remove(0, slave_hp_path.size()));
+		auto shvjournal_shvpath = shv::coreqt::utils::joinPath(slave_hp_path, shvjournal_suffix);
 
 		co_await impl_doSync(slave_hp_path, cache_dir_path, shvjournal_shvpath, "");
 	}
