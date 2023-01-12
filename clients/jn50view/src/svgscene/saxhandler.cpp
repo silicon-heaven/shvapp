@@ -255,7 +255,7 @@ static QColor parseColor(const QString &color, const QString &opacity)
 {
 	QColor ret;
 	{
-		QStringRef color_str = QStringRef(&color).trimmed();
+		QString color_str = color.trimmed();
 		if (color_str.isEmpty())
 			return ret;
 		switch(color_str.at(0).unicode()) {
@@ -273,7 +273,7 @@ static QColor parseColor(const QString &color, const QString &opacity)
 		{
 			// starts with "rgb(", ends with ")" and consists of at least 7 characters "rgb(,,)"
 			if (color_str.length() >= 7 && color_str.at(color_str.length() - 1) == QLatin1Char(')')
-					&& QStringRef(color_str.string(), color_str.position(), 4) == QLatin1String("rgb(")) {
+					&& color_str.mid(0, 4) == QLatin1String("rgb(")) {
 				const QChar *s = color_str.constData() + 4;
 				QVector<qreal> compo = parseNumbersList(s);
 				//1 means that it failed after reaching non-parsable
@@ -303,7 +303,7 @@ static QColor parseColor(const QString &color, const QString &opacity)
 				return ret;
 			break;
 		default:
-			ret = QColor(color_str.toString());
+			ret = QColor(color_str);
 			break;
 		}
 	}
@@ -317,7 +317,7 @@ static QColor parseColor(const QString &color, const QString &opacity)
 	return ret;
 }
 
-static QTransform parseTransformationMatrix(const QStringRef &value)
+static QTransform parseTransformationMatrix(const QString &value)
 {
 	if (value.isEmpty())
 		return QTransform();
@@ -571,7 +571,7 @@ static void pathArc(QPainterPath &path,
 	}
 }
 
-static bool parsePathDataFast(const QStringRef &dataStr, QPainterPath &path)
+static bool parsePathDataFast(const QString &dataStr, QPainterPath &path)
 {
 	qreal x0 = 0, y0 = 0;              // starting point
 	qreal x = 0, y = 0;                // current point
@@ -1066,7 +1066,7 @@ bool SaxHandler::startElement()
 			setXmlAttributes(item, el);
 			QString data = el.xmlAttributes.value(QStringLiteral("d"));
 			QPainterPath p;
-			parsePathDataFast(QStringRef(&data), p);
+			parsePathDataFast(data, p);
 			setStyle(item, el.styleAttributes);
 			static auto FILL_RULE = QStringLiteral("fill-rule");
 			if(el.styleAttributes.value(FILL_RULE) == QLatin1String("evenodd"))
@@ -1143,8 +1143,7 @@ void SaxHandler::setXmlAttributes(QGraphicsItem *git, const SaxHandler::SvgEleme
 
 void SaxHandler::setTransform(QGraphicsItem *it, const QString &str_val)
 {
-	QStringRef transform(&str_val);
-	QTransform mx = parseTransformationMatrix(transform.trimmed());
+	QTransform mx = parseTransformationMatrix(str_val.trimmed());
 	if(!mx.isIdentity()) {
 		QTransform t(mx);
 		logSvgI() << typeid (*it).name() << "setting matrix:" << t.dx() << t.dy();
