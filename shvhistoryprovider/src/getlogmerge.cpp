@@ -64,7 +64,7 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 	QVector<ReaderInfo> reader_infos;
 	for (const QString &site_path : m_sitePaths) {
 		const SitesHPDevice *site_item = qobject_cast<const SitesHPDevice *>(Application::instance()->deviceMonitor()->sites()->itemBySitePath(site_path));
-		int prefix_length = site_path.length() - m_sitePath.length();
+		qsizetype prefix_length = site_path.length() - m_sitePath.length();
 		LogDirReader *reader = new LogDirReader(site_path, site_item->isPushLog(), prefix_length, since, until, m_logParams.withSnapshot);
 		if (reader->next()) {
 			readers << reader;
@@ -79,7 +79,7 @@ shv::chainpack::RpcValue GetLogMerge::getLog()
 	int64_t until_msecs = until.isNull() ? std::numeric_limits<int64_t>::max() : until.toMSecsSinceEpoch();
 	int64_t last_record_ts = 0LL;
 	int record_count = 0;
-	int usable_readers = readers.count();
+	qsizetype usable_readers = readers.count();
 	while (usable_readers) {
 		int64_t oldest = std::numeric_limits<int64_t>::max();
 		int oldest_index = -1;

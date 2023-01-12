@@ -319,7 +319,7 @@ const std::vector<shv::chainpack::MetaMethod> &AppRootNode::metaMethods(const sh
 shv::chainpack::RpcValue AppRootNode::metaValue(const QString &shv_path)
 {
 	cp::RpcValue meta;
-	int meta_ix = shv_path.indexOf('/' + META_NODE);
+	qsizetype meta_ix = shv_path.indexOf('/' + META_NODE);
 	if (meta_ix != -1) {
 		QString path_rest = shv_path.mid(meta_ix + 1 + META_NODE.length());
 		if (path_rest.isEmpty() || path_rest[0] == '/') {

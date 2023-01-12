@@ -7,7 +7,7 @@
 namespace cp = shv::chainpack;
 using namespace shv::core::utils;
 
-LogDirReader::LogDirReader(const QString &site_path, bool is_push_log, int prefix_length, const QDateTime &since, const QDateTime &until, bool with_snapshot)
+LogDirReader::LogDirReader(const QString &site_path, bool is_push_log, qsizetype prefix_length, const QDateTime &since, const QDateTime &until, bool with_snapshot)
 	: m_logReader(nullptr)
 	, m_journalReader(nullptr)
 	, m_until(until.isValid() ? until.toMSecsSinceEpoch() : 0LL)

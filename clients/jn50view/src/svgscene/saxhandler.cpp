@@ -240,7 +240,7 @@ bool qsvg_get_hex_rgb(const char *name, QRgb *rgb)
 	return true;
 }
 
-bool qsvg_get_hex_rgb(const QChar *str, int len, QRgb *rgb)
+bool qsvg_get_hex_rgb(const QChar *str, qsizetype len, QRgb *rgb)
 {
 	if (len > 13)
 		return false;
@@ -312,7 +312,7 @@ static QColor parseColor(const QString &color, const QString &opacity)
 		qreal op = qMin(1.0, qMax(0.0, toDouble(opacity, &ok)));
 		if (!ok)
 			op = 1.0;
-		ret.setAlphaF(op);
+		ret.setAlphaF(static_cast<float>(op));
 	}
 	return ret;
 }
@@ -592,7 +592,7 @@ static bool parsePathDataFast(const QString &dataStr, QPainterPath &path)
 		if (pathElem == QLatin1Char('z') || pathElem == QLatin1Char('Z'))
 			arg.append(0);//dummy
 		const qreal *num = arg.constData();
-		int count = arg.count();
+		qsizetype count = arg.count();
 		while (count > 0) {
 			qreal offsetX = x;        // correction offsets
 			qreal offsetY = y;        // for relative commands
@@ -1170,7 +1170,7 @@ void SaxHandler::mergeCSSAttributes(CssAttributes &css_attributes, const QString
 #endif
 	QStringList css = xml_attributes.value(attr_name).split(';', skip_empty_parts);
 	for(QString ss : css) {
-		int ix = ss.indexOf(':');
+		qsizetype ix = ss.indexOf(':');
 		if(ix > 0) {
 			css_attributes[ss.mid(0, ix).trimmed()] = ss.mid(ix + 1).trimmed();
 		}

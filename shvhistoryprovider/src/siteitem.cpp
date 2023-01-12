@@ -79,9 +79,9 @@ const SiteItem *SiteItem::itemBySitePath(const QString &site_path) const
 	return itemBySitePath(site_path, 0);
 }
 
-const SiteItem *SiteItem::itemBySitePath(const QString &site_path, int offset) const
+const SiteItem *SiteItem::itemBySitePath(const QString &site_path, qsizetype offset) const
 {
-	int slash = site_path.indexOf('/', offset);
+	qsizetype slash = site_path.indexOf('/', offset);
 	QString part = site_path.mid(offset, slash - offset);
 
 	SiteItem *item = findChild<SiteItem *>(part, Qt::FindDirectChildrenOnly);

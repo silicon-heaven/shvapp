@@ -22,7 +22,7 @@ protected:
 	virtual void parseMetaRpcValue(const shv::chainpack::RpcValue::Map &meta);
 
 private:
-	const SiteItem *itemBySitePath(const QString &site_path, int offset) const;
+	const SiteItem *itemBySitePath(const QString &site_path, qsizetype offset) const;
 };
 
 class SitesDevice : public SiteItem

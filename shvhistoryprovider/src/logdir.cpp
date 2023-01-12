@@ -67,7 +67,7 @@ QStringList LogDir::findFiles(const QDateTime &since, const QDateTime &until)
 		}
 		since_pos = static_cast<int>((it - files.begin()));
 	}
-	int until_pos = files.count();
+	qsizetype until_pos = files.count();
 	if (until.isValid()) {
 		auto it = std::upper_bound(files.begin(), files.end(), File { QString(), until.toMSecsSinceEpoch() }, [](const File &f1, const File &f2) {
 			return f1.date < f2.date;

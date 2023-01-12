@@ -89,12 +89,12 @@ void VisuWidget::paintEvent(QPaintEvent *event)
 	static constexpr int ADJ = 2;
 	if(m_mouseInConvRect) {
 		QColor c(Qt::cyan);
-		c.setAlphaF(0.2);
+		c.setAlphaF(0.2F);
 		p.fillRect(svgRectToWidgetRect(m_convRect).adjusted(ADJ, ADJ, -ADJ, -ADJ), c);
 	}
 	if(m_mouseInOmpagRect) {
 		QColor c(Qt::cyan);
-		c.setAlphaF(0.2);
+		c.setAlphaF(0.2F);
 		p.fillRect(svgRectToWidgetRect(m_ompagRect).adjusted(ADJ, ADJ, -ADJ, -ADJ), c);
 	}
 }

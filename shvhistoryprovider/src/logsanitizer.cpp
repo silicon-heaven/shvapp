@@ -29,11 +29,11 @@ LogSanitizer::LogSanitizer(QObject *parent)
 
 void LogSanitizer::setupTimer()
 {
-	int device_count = Application::instance()->deviceMonitor()->onlineDevices().count();
+	qsizetype device_count = Application::instance()->deviceMonitor()->onlineDevices().count();
 	if (device_count == 0) {
 		device_count = 1;
 	}
-	int interval = Application::instance()->cliOptions()->trimDirtyLogInterval() * 1000 * 60 / device_count;
+	int interval = static_cast<int>(Application::instance()->cliOptions()->trimDirtyLogInterval() * 1000 * 60 / device_count);
 	if (interval != m_interval) {
 		m_interval = interval;
 		int remaining = interval - (m_timer.interval() - m_timer.remainingTime());
