@@ -964,7 +964,7 @@ void SaxHandler::parse()
 				QString text = graphics_text_item->toPlainText();
 				if(!text.isEmpty())
 					text += '\n';
-				graphics_text_item->setPlainText(text + m_xml->text());
+				graphics_text_item->setPlainText(text.append(m_xml->text()));
 				//nInfo() << text_item->toPlainText();
 			}
 			else {
