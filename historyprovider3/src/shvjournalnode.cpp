@@ -27,7 +27,6 @@
 namespace cp = shv::chainpack;
 namespace {
 static std::vector<cp::MetaMethod> methods {
-	{"getLog", cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
 	{"syncLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
 };
 
