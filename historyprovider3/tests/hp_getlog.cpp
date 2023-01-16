@@ -24,7 +24,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 
 	create_dummy_cache_files(cache_dir_path, {
 		{ "2022-07-07T18-06-15-557.log2", dummy_logfile },
-		{ "2022-07-07T18-06-15-558.log2", dummy_logfile2 },
+		{ "2022-07-07T18-06-17-872.log2", dummy_logfile2 },
 		{ "dirtylog", dummy_logfile3 },
 	});
 
