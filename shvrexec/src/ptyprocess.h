@@ -27,6 +27,10 @@ public:
 	std::vector<char> readAllMasterPty();
 private:
 	void openPty();
+#if QT_VERSION_MAJOR < 6
+	void setupChildProcess() override;
+#endif
+	void setupProcess();
 	//int slavePtyFd();
 private:
 	int m_masterPtyFd = -1;

@@ -10,6 +10,10 @@ class Process : public QProcess
 	using Super = QProcess;
 public:
 	Process(QObject *parent = nullptr);
+private:
+#if QT_VERSION_MAJOR < 6
+	void setupChildProcess() override;
+#endif
 };
 
 #endif // PROCESS_H
