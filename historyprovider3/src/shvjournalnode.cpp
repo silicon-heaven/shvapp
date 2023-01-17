@@ -21,8 +21,6 @@
 
 #define journalDebug() shvCDebug("historyjournal")
 #define journalInfo() shvCInfo("historyjournal")
-#define journalWarning() shvCWarning("historyjournal")
-#define journalError() shvCError("historyjournal")
 
 namespace cp = shv::chainpack;
 namespace {
@@ -111,7 +109,7 @@ void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 			if (method == "chng") {
 				{
 					if (path.at(it->shv_path.size()) != '/') {
-						journalWarning() << "Discarding notification with a top-level node path. Offending path was:" << it->shv_path;
+						shvWarning() << "Discarding notification with a top-level node path. Offending path was:" << it->shv_path;
 						return;
 					}
 
@@ -287,7 +285,7 @@ public:
 				journalDebug() << "Writing" << iter.key();
 				log_file.write(reinterpret_cast<const char*>(blob.data()), blob.size());
 			} else {
-				journalError() << "Couldn't open" << iter.key() << "for writing";
+				shvError() << "Couldn't open" << iter.key() << "for writing";
 			}
 
 		}
@@ -375,7 +373,7 @@ public:
 			auto [result, error] = co_await qCoro(call, &shv::iotqt::rpc::RpcCall::maybeResult);
 
 			if (!error.isEmpty()) {
-				journalError() << "Error retrieving logs via getLog for:" << slave_hp_path << error;
+				shvError() << "Error retrieving logs via getLog for:" << slave_hp_path << error;
 				m_errorCb(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, "Couldn't retrieve all logs from the device"));
 				co_return;
 			}
@@ -426,7 +424,7 @@ public:
 
 		auto [file_list, error] = co_await qCoro(call, &shv::iotqt::rpc::RpcCall::maybeResult);
 		if (!error.isEmpty()) {
-			journalError() << "Couldn't retrieve filelist from:" << shvjournal_shvpath << error;
+			shvError() << "Couldn't retrieve filelist from:" << shvjournal_shvpath << error;
 			m_errorCb(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, "Couldn't retrieve filelist from the device"));
 			co_return;
 		}
@@ -492,7 +490,7 @@ public:
 			call->start();
 			auto [result, retrieve_error] = co_await qCoro(call, &shv::iotqt::rpc::RpcCall::maybeResult);
 			if (!retrieve_error.isEmpty()) {
-				journalError() << "Couldn't retrieve" << sites_log_file << ":" << retrieve_error;
+				shvError() << "Couldn't retrieve" << sites_log_file << ":" << retrieve_error;
 				co_return;
 			}
 

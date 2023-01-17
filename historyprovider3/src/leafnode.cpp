@@ -20,8 +20,6 @@
 
 #define journalDebug() shvCDebug("historyjournal")
 #define journalInfo() shvCInfo("historyjournal")
-#define journalWarning() shvCWarning("historyjournal")
-#define journalError() shvCError("historyjournal")
 
 namespace cp = shv::chainpack;
 namespace {
@@ -144,12 +142,12 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 			auto entry = reader.entry();
 			remote_entries_count++;
 			if (entry.epochMsec < local_newest_entry_ms) {
-				journalWarning() << "Rejecting push log entry for:" << shvPath() << "with timestamp:" << entry.dateTime().toIsoString() << "because a newer one already exists:" << local_newest_entry_str;
+				shvWarning() << "Rejecting push log entry for:" << shvPath() << "with timestamp:" << entry.dateTime().toIsoString() << "because a newer one already exists:" << local_newest_entry_str;
 				continue;
 			}
 
 			if (entry.epochMsec == local_newest_entry_ms && std::find(local_newest_entry_paths.begin(), local_newest_entry_paths.end(), entry.path) != local_newest_entry_paths.end()) {
-				journalWarning() << "Rejecting push log entry for:" << shvPath() << "with timestamp:" << entry.dateTime().toIsoString() << "and path:" << entry.path << "because we already have an entry with this timestamp and path";
+				shvWarning() << "Rejecting push log entry for:" << shvPath() << "with timestamp:" << entry.dateTime().toIsoString() << "and path:" << entry.path << "because we already have an entry with this timestamp and path";
 				continue;
 			}
 
