@@ -24,7 +24,7 @@
 
 namespace cp = shv::chainpack;
 namespace {
-static std::vector<cp::MetaMethod> methods {
+std::vector<cp::MetaMethod> methods {
 	{"syncLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
 };
 

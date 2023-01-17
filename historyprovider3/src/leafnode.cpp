@@ -23,7 +23,7 @@
 
 namespace cp = shv::chainpack;
 namespace {
-static std::vector<cp::MetaMethod> methods {
+std::vector<cp::MetaMethod> methods {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE},
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE},
 	{"getLog", cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
@@ -31,7 +31,7 @@ static std::vector<cp::MetaMethod> methods {
 	{"sanitizeLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
 };
 
-static std::vector<cp::MetaMethod> push_log_methods {
+std::vector<cp::MetaMethod> push_log_methods {
 	{"pushLog", cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
 };
 }
