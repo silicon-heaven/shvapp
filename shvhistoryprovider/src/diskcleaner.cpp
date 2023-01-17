@@ -22,7 +22,7 @@ DiskCleaner::DiskCleaner(int64_t cache_size_limit, QObject *parent)
 void DiskCleaner::scanDir(const QDir &dir, DiskCleaner::CheckDiskContext &ctx)
 {
 	QFileInfoList entries = dir.entryInfoList(QDir::Filter::AllEntries | QDir::Filter::NoDotAndDotDot);
-	int entry_count = entries.count();
+	int entry_count = static_cast<int>(entries.count());
     for (const QFileInfo &info : entries) {
         if (info.isDir()) {
             QDir child_dir(info.absoluteFilePath());

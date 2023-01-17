@@ -2,6 +2,7 @@
 #include "ui_dlgapplog.h"
 #include "jn50viewapp.h"
 
+#include <QFile>
 #include <QSettings>
 #include <QTextStream>
 
@@ -15,7 +16,7 @@ DlgAppLog::DlgAppLog(QWidget *parent) :
 	QFile f(log_file);
 	if(f.open(QFile::ReadOnly)) {
 		QTextStream ts(&f);
-		ts.setCodec("utf8");
+		ts.setEncoding(QStringConverter::encodingForName("utf-8").value());
 		QString txt = ts.readAll();
 		ui->txtLog->setPlainText(txt);
 	}

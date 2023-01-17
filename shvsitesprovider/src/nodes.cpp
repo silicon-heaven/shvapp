@@ -229,7 +229,7 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 	else if (method == METH_FILE_HASH) {
 		string bytes = readFile(rpcvalue_cast<QString>(rq.shvPath())).toString();
 		QCryptographicHash h(QCryptographicHash::Sha1);
-		h.addData(bytes.data(), static_cast<int>(bytes.size()));
+		h.addData(QByteArrayView(bytes.data(), static_cast<int>(bytes.size())));
 		return h.result().toHex().toStdString();
 	}
 	else if (method == cp::Rpc::METH_GET) {
@@ -319,7 +319,7 @@ const std::vector<shv::chainpack::MetaMethod> &AppRootNode::metaMethods(const sh
 shv::chainpack::RpcValue AppRootNode::metaValue(const QString &shv_path)
 {
 	cp::RpcValue meta;
-	int meta_ix = shv_path.indexOf('/' + META_NODE);
+	qsizetype meta_ix = shv_path.indexOf('/' + META_NODE);
 	if (meta_ix != -1) {
 		QString path_rest = shv_path.mid(meta_ix + 1 + META_NODE.length());
 		if (path_rest.isEmpty() || path_rest[0] == '/') {

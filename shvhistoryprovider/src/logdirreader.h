@@ -12,7 +12,7 @@
 class LogDirReader
 {
 public:
-	LogDirReader(const QString &site_path, bool is_push_log, int prefix_length, const QDateTime &since, const QDateTime &until, bool with_snapshot);
+	LogDirReader(const QString &site_path, bool is_push_log, qsizetype prefix_length, const QDateTime &since, const QDateTime &until, bool with_snapshot);
 	LogDirReader(const LogDirReader &) = delete;
 	~LogDirReader();
 

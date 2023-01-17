@@ -240,7 +240,7 @@ bool qsvg_get_hex_rgb(const char *name, QRgb *rgb)
 	return true;
 }
 
-bool qsvg_get_hex_rgb(const QChar *str, int len, QRgb *rgb)
+bool qsvg_get_hex_rgb(const QChar *str, qsizetype len, QRgb *rgb)
 {
 	if (len > 13)
 		return false;
@@ -255,7 +255,7 @@ static QColor parseColor(const QString &color, const QString &opacity)
 {
 	QColor ret;
 	{
-		QStringRef color_str = QStringRef(&color).trimmed();
+		QString color_str = color.trimmed();
 		if (color_str.isEmpty())
 			return ret;
 		switch(color_str.at(0).unicode()) {
@@ -273,7 +273,7 @@ static QColor parseColor(const QString &color, const QString &opacity)
 		{
 			// starts with "rgb(", ends with ")" and consists of at least 7 characters "rgb(,,)"
 			if (color_str.length() >= 7 && color_str.at(color_str.length() - 1) == QLatin1Char(')')
-					&& QStringRef(color_str.string(), color_str.position(), 4) == QLatin1String("rgb(")) {
+					&& color_str.mid(0, 4) == QLatin1String("rgb(")) {
 				const QChar *s = color_str.constData() + 4;
 				QVector<qreal> compo = parseNumbersList(s);
 				//1 means that it failed after reaching non-parsable
@@ -303,7 +303,7 @@ static QColor parseColor(const QString &color, const QString &opacity)
 				return ret;
 			break;
 		default:
-			ret = QColor(color_str.toString());
+			ret = QColor(color_str);
 			break;
 		}
 	}
@@ -312,16 +312,16 @@ static QColor parseColor(const QString &color, const QString &opacity)
 		qreal op = qMin(1.0, qMax(0.0, toDouble(opacity, &ok)));
 		if (!ok)
 			op = 1.0;
-		ret.setAlphaF(op);
+		ret.setAlphaF(static_cast<float>(op));
 	}
 	return ret;
 }
 
-static QMatrix parseTransformationMatrix(const QStringRef &value)
+static QTransform parseTransformationMatrix(const QString &value)
 {
 	if (value.isEmpty())
-		return QMatrix();
-	QMatrix matrix;
+		return QTransform();
+	QTransform matrix;
 	const QChar *str = value.constData();
 	const QChar *end = str + value.length();
 	while (str < end) {
@@ -400,7 +400,7 @@ static QMatrix parseTransformationMatrix(const QStringRef &value)
 		if(state == Matrix) {
 			if(points.count() != 6)
 				goto error;
-			matrix = QMatrix(points[0], points[1],
+			matrix = QTransform(points[0], points[1],
 					points[2], points[3],
 					points[4], points[5]) * matrix;
 		} else if (state == Translate) {
@@ -571,7 +571,7 @@ static void pathArc(QPainterPath &path,
 	}
 }
 
-static bool parsePathDataFast(const QStringRef &dataStr, QPainterPath &path)
+static bool parsePathDataFast(const QString &dataStr, QPainterPath &path)
 {
 	qreal x0 = 0, y0 = 0;              // starting point
 	qreal x = 0, y = 0;                // current point
@@ -585,14 +585,14 @@ static bool parsePathDataFast(const QStringRef &dataStr, QPainterPath &path)
 		QChar pathElem = *str;
 		++str;
 		QChar endc = *end;
-		*const_cast<QChar *>(end) = 0; // parseNumbersArray requires 0-termination that QStringRef cannot guarantee
+		*const_cast<QChar *>(end) = QChar{0}; // parseNumbersArray requires 0-termination that QStringRef cannot guarantee
 		QVarLengthArray<qreal, 8> arg;
 		parseNumbersArray(str, arg);
 		*const_cast<QChar *>(end) = endc;
 		if (pathElem == QLatin1Char('z') || pathElem == QLatin1Char('Z'))
 			arg.append(0);//dummy
 		const qreal *num = arg.constData();
-		int count = arg.count();
+		qsizetype count = arg.count();
 		while (count > 0) {
 			qreal offsetX = x;        // correction offsets
 			qreal offsetY = y;        // for relative commands
@@ -964,7 +964,7 @@ void SaxHandler::parse()
 				QString text = graphics_text_item->toPlainText();
 				if(!text.isEmpty())
 					text += '\n';
-				graphics_text_item->setPlainText(text + m_xml->text());
+				graphics_text_item->setPlainText(text.append(m_xml->text()));
 				//nInfo() << text_item->toPlainText();
 			}
 			else {
@@ -1066,7 +1066,7 @@ bool SaxHandler::startElement()
 			setXmlAttributes(item, el);
 			QString data = el.xmlAttributes.value(QStringLiteral("d"));
 			QPainterPath p;
-			parsePathDataFast(QStringRef(&data), p);
+			parsePathDataFast(data, p);
 			setStyle(item, el.styleAttributes);
 			static auto FILL_RULE = QStringLiteral("fill-rule");
 			if(el.styleAttributes.value(FILL_RULE) == QLatin1String("evenodd"))
@@ -1143,8 +1143,7 @@ void SaxHandler::setXmlAttributes(QGraphicsItem *git, const SaxHandler::SvgEleme
 
 void SaxHandler::setTransform(QGraphicsItem *it, const QString &str_val)
 {
-	QStringRef transform(&str_val);
-	QMatrix mx = parseTransformationMatrix(transform.trimmed());
+	QTransform mx = parseTransformationMatrix(str_val.trimmed());
 	if(!mx.isIdentity()) {
 		QTransform t(mx);
 		logSvgI() << typeid (*it).name() << "setting matrix:" << t.dx() << t.dy();
@@ -1171,7 +1170,7 @@ void SaxHandler::mergeCSSAttributes(CssAttributes &css_attributes, const QString
 #endif
 	QStringList css = xml_attributes.value(attr_name).split(';', skip_empty_parts);
 	for(QString ss : css) {
-		int ix = ss.indexOf(':');
+		qsizetype ix = ss.indexOf(':');
 		if(ix > 0) {
 			css_attributes[ss.mid(0, ix).trimmed()] = ss.mid(ix + 1).trimmed();
 		}

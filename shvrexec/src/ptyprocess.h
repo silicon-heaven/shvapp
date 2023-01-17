@@ -27,7 +27,6 @@ public:
 	std::vector<char> readAllMasterPty();
 private:
 	void openPty();
-	void setupChildProcess() override;
 	//int slavePtyFd();
 private:
 	int m_masterPtyFd = -1;

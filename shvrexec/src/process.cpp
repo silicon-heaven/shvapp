@@ -8,11 +8,10 @@
 Process::Process(QObject *parent)
 	: Super(parent)
 {
-}
-
-void Process::setupChildProcess()
-{
 #ifdef Q_OS_LINUX
-	::prctl(PR_SET_PDEATHSIG, SIGHUP);
+	setChildProcessModifier([] {
+		::prctl(PR_SET_PDEATHSIG, SIGHUP);
+	});
 #endif
+
 }

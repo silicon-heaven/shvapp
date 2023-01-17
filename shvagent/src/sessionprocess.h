@@ -13,6 +13,4 @@ private:
 	void onFinished(int exit_code, ExitStatus);
 	//void onReadyReadStandardOutput();
 	//void onReadyReadStandardError();
-
-	void setupChildProcess() override;
 };
