@@ -312,7 +312,11 @@ static QColor parseColor(const QString &color, const QString &opacity)
 		qreal op = qMin(1.0, qMax(0.0, toDouble(opacity, &ok)));
 		if (!ok)
 			op = 1.0;
+#if QT_VERSION_MAJOR >= 6
 		ret.setAlphaF(static_cast<float>(op));
+#else
+		ret.setAlphaF(op);
+#endif
 	}
 	return ret;
 }
@@ -1172,7 +1176,11 @@ void SaxHandler::mergeCSSAttributes(CssAttributes &css_attributes, const QString
 	for(QString ss : css) {
 		qsizetype ix = ss.indexOf(':');
 		if(ix > 0) {
+#if QT_VERSION_MAJOR >= 6
 			css_attributes[ss.mid(0, ix).trimmed()] = ss.mid(ix + 1).trimmed();
+#else
+			css_attributes[ss.mid(0, static_cast<int>(ix)).trimmed()] = ss.mid(static_cast<int>(ix) + 1).trimmed();
+#endif
 		}
 	}
 }

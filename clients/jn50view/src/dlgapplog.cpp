@@ -16,7 +16,11 @@ DlgAppLog::DlgAppLog(QWidget *parent) :
 	QFile f(log_file);
 	if(f.open(QFile::ReadOnly)) {
 		QTextStream ts(&f);
+#if QT_VERSION_MAJOR >= 6
 		ts.setEncoding(QStringConverter::encodingForName("utf-8").value());
+#else
+		ts.setCodec("utf8");
+#endif
 		QString txt = ts.readAll();
 		ui->txtLog->setPlainText(txt);
 	}

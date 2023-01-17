@@ -196,7 +196,7 @@ void DeviceMonitor::scanDevices()
 
 void DeviceMonitor::isDeviceOnline(const QString &site_path, std::function<void(bool)> callback)
 {
-	int slash = static_cast<int>(site_path.lastIndexOf('/'));
+	qsizetype slash = site_path.lastIndexOf('/');
 	QString parent_path = site_path.mid(0, slash == -1 ? 0 : slash);
 	std::string device_name = site_path.mid(slash + 1).toStdString();
 

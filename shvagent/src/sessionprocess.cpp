@@ -17,7 +17,7 @@ SessionProcess::SessionProcess(QObject *parent)
 	connect(this, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &SessionProcess::onFinished);
 	//connect(this, &QProcess::readyReadStandardOutput, this, &SessionProcess::onReadyReadStandardOutput);
 	//connect(this, &QProcess::readyReadStandardError, this, &SessionProcess::onReadyReadStandardError);
-#ifdef Q_OS_UNIX
+#if QT_VERSION_MAJOR >= 6 && defined(Q_OS_UNIX)
     //setChildProcessModifier([] {
     //        // as a std user ends with
     //        //Cannot make shvagent process the group leader, error set process group ID: 1 Operation not permitted
@@ -25,7 +25,6 @@ SessionProcess::SessionProcess(QObject *parent)
     //                shvError() << "Error set process group ID:" << errno << ::strerror(errno);
     //});
 #endif
-
 }
 
 void SessionProcess::onFinished(int exit_code, QProcess::ExitStatus)
@@ -51,3 +50,15 @@ void SessionProcess::onReadyReadStandardError()
 		shvWarning() << "Process stderr:" << std::string(ba.constData(), ba.size());
 }
 */
+#if QT_VERSION_MAJOR < 6
+void SessionProcess::setupChildProcess()
+{
+//#ifdef Q_OS_UNIX
+//	// as a std user ends with
+//	//Cannot make shvagent process the group leader, error set process group ID: 1 Operation not permitted
+//	if(0 != ::setpgid(0, ::getppid()))
+//		shvError() << "Error set process group ID:" << errno << ::strerror(errno);
+//#endif
+	Super::setupChildProcess();
+}
+#endif

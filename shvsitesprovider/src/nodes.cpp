@@ -229,7 +229,12 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 	else if (method == METH_FILE_HASH) {
 		string bytes = readFile(rpcvalue_cast<QString>(rq.shvPath())).toString();
 		QCryptographicHash h(QCryptographicHash::Sha1);
-		h.addData(QByteArrayView(bytes.data(), static_cast<int>(bytes.size())));
+#if QT_VERSION_MAJOR >= 6
+		using byte_array_view_t = QByteArrayView;
+#else
+		using byte_array_view_t = QByteArray;
+#endif
+		h.addData(byte_array_view_t(bytes.data(), static_cast<int>(bytes.size())));
 		return h.result().toHex().toStdString();
 	}
 	else if (method == cp::Rpc::METH_GET) {
