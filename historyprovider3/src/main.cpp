@@ -1,5 +1,6 @@
 #include "historyapp.h"
 #include "appclioptions.h"
+#include "version.h"
 
 #include <shv/chainpack/rpcmessage.h>
 
@@ -21,7 +22,7 @@ int main(int argc, char* argv[])
 	QCoreApplication::setOrganizationName("Elektroline");
 	QCoreApplication::setOrganizationDomain("elektroline.cz");
 	QCoreApplication::setApplicationName("historyprovider");
-	QCoreApplication::setApplicationVersion("0.0.1");
+	QCoreApplication::setApplicationVersion(APP_VERSION);
 
 	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);
 

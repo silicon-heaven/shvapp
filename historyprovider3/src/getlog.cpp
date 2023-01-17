@@ -114,6 +114,8 @@ auto snapshot_to_entries(const ShvSnapshot& snapshot, const bool since_last, con
 
 	std::optional<ShvJournalEntry> last_entry;
 
+	int record_count = 0;
+
 	for (const auto& readerFn : readers) {
 		auto reader = readerFn();
 		while(reader.next()) {
@@ -129,13 +131,19 @@ auto snapshot_to_entries(const ShvSnapshot& snapshot, const bool since_last, con
 				logDGetLog() << "\t saving SNAPSHOT entry:" << entry.toRpcValueMap().toCpon();
 				AbstractShvJournal::addToSnapshot(snapshot, entry);
 			}
-			// TODO:
+
 			if (entry.epochMsec >= params_until_msec) {
 				goto exit_nested_loop;
 			}
 
 			if (entry.epochMsec >= params_since_msec && !ctx.params.isSinceLast()) {
+				if (static_cast<int>(snapshot.keyvals.size() + record_count + 1) > ctx.params.recordCountLimit) {
+					log_header.setRecordCountLimitHit(true);
+					goto exit_nested_loop;
+				}
+
 				append_log_entry(result_log, entry, ctx);
+				record_count++;
 			}
 		}
 	}
@@ -154,21 +162,8 @@ exit_nested_loop:
 		return RpcValue::List{};
 	}();
 
-	RpcValue::List result_entries;
-
-	auto append_entries_to_result = [&] (const auto& entries) {
-		for (const auto& entry : entries) {
-			if (static_cast<int>(result_entries.size()) == ctx.params.recordCountLimit) {
-				log_header.setRecordCountLimitHit(true);
-				break;
-			}
-
-			result_entries.push_back(entry);
-		}
-	};
-
-	append_entries_to_result(snapshot_entries);
-	append_entries_to_result(result_log);
+	RpcValue::List result_entries = snapshot_entries;
+	std::copy(result_log.begin(), result_log.end(), std::back_inserter(result_entries));
 
 	if (result_entries.empty()) {
 		log_header.setSince(ctx.params.since.isValid() ? ctx.params.since : ctx.params.until);
