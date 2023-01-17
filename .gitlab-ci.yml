@@ -22,11 +22,23 @@ linux:
     - rm -rf build
     - mkdir -p build
     - cd build
-    - CFLAGS="-Werror" CXXFLAGS="-DGIT_COMMIT=${CI_BUILD_REF} -Werror" cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/opt/qt/6.4.2/gcc_64 -DCMAKE_INSTALL_PREFIX=. ..
+    - CFLAGS="-Werror" CXXFLAGS="-DGIT_COMMIT=${CI_BUILD_REF} -Werror" cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/opt/qt/5.15.2/gcc_64 -DCMAKE_INSTALL_PREFIX=. ..
     - make -j8
     - make install
     #- rsync -av --exclude '*.debug' lib bin /opt/shv/
     - ../make-linux-artifacts.sh
+
+linux-6:
+  tags:
+    - linux
+  stage:
+    build
+  script:
+    - rm -rf build
+    - mkdir -p build
+    - cd build
+    - CFLAGS="-Werror" CXXFLAGS="-DGIT_COMMIT=${CI_BUILD_REF} -Werror" cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/opt/qt/6.4.2/gcc_64 -DCMAKE_INSTALL_PREFIX=. -DUSE_QT6=ON ..
+    - make -j4
 
 linux-bb:
   only:
