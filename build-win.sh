@@ -8,6 +8,7 @@ cmake.exe \
     -DCMAKE_PREFIX_PATH=C:/Qt5/5.15.2/mingw81_64 \
     -DCMAKE_INSTALL_PREFIX=. \
     -DCMAKE_BUILD_TYPE=Release \
+    -DUSE_QT6=OFF \
     . || exit 2
 
 cmake.exe --build . -j8 || exit 2
