@@ -123,8 +123,6 @@ test-deploy:
     name: jessie
 
 win-build:
-  only:
-    - win-master
   tags:
     - windows
   stage:
