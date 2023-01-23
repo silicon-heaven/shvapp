@@ -17,7 +17,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	RpcValue::List expected_cache_contents;
 	std::string cache_dir_path = "fin/hel/tram/hel002";
 	SEND_SITES_YIELD(mock_sites::fin_master_broker);
-	EXPECT_SUBSCRIPTION_YIELD("shv/fin/hel/tram/hel002", "mntchng");
+	EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
 	EXPECT_SUBSCRIPTION("shv/fin/hel/tram/hel002", "chng");
 	std::string master_shv_journal_path = "_shvjournal";
 	std::string slave_shv_journal_path = "shv/fin/hel/tram/hel002/.local/history/shvjournal";

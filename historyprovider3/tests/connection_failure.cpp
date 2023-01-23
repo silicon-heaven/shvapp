@@ -22,7 +22,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	co_yield {};
 	std::string cache_dir_path = "eyas/opc";
 	SEND_SITES_YIELD(mock_sites::fin_slave_broker);
-	EXPECT_SUBSCRIPTION_YIELD("shv/eyas/opc", "mntchng");
+	EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
 	EXPECT_SUBSCRIPTION("shv/eyas/opc", "chng");
 
 	REQUEST_YIELD(cache_dir_path, "ls", RpcValue());
@@ -34,7 +34,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 
 	std::string new_cache_dir_path = "fin/hel/tram/hel002";
 	SEND_SITES_YIELD(mock_sites::fin_master_broker);
-	EXPECT_SUBSCRIPTION_YIELD("shv/fin/hel/tram/hel002", "mntchng");
+	EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
 	EXPECT_SUBSCRIPTION("shv/fin/hel/tram/hel002", "chng");
 
 	DOCTEST_SUBCASE("new site is available")

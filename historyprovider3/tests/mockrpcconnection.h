@@ -109,6 +109,7 @@ shv::chainpack::RpcValue make_sub_params(const std::string& path, const std::str
 	REQUIRE(m_messageQueue.head().shvPath().asString() == (pathStr)); \
 	REQUIRE(m_messageQueue.head().method().asString() == (methodStr)); \
 	__VA_OPT__(REQUIRE(shv::chainpack::RpcRequest(m_messageQueue.head()).params() == (__VA_ARGS__));) \
+	m_messageQueue.dequeue(); \
 }
 
 #define EXPECT_ERROR(expectedMsg) { \

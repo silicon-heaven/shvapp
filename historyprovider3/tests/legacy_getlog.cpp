@@ -17,7 +17,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	std::string shv_path = "shv/legacy";
 	std::string cache_dir_path = "legacy";
 	SEND_SITES_YIELD(mock_sites::legacy_hp);
-	EXPECT_SUBSCRIPTION_YIELD(shv_path, "mntchng");
+	EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
 	EXPECT_SUBSCRIPTION(shv_path, "chng");
 
 	RpcValue::List expected_cache_contents;

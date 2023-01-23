@@ -18,7 +18,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	std::string shv_path = "shv/eyas/opc";
 	std::string cache_dir_path = "eyas/opc";
 	SEND_SITES_YIELD(mock_sites::fin_slave_broker);
-	EXPECT_SUBSCRIPTION_YIELD(shv_path, "mntchng");
+	EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
 	EXPECT_SUBSCRIPTION(shv_path, "chng");
 	REQUEST_YIELD("_shvjournal", "syncLog", RpcValue());
 	EXPECT_REQUEST(join(shv_path, "/.app/shvjournal"), "lsfiles", ls_size_true);
@@ -153,6 +153,35 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			DRIVER_WAIT(100);
 			CAPTURE(m_messageQueue.head());
 			REQUIRE(m_messageQueue.empty());
+		}
+
+		DOCTEST_SUBCASE("parent path of device mounted")
+		{
+			NOTIFY_YIELD("shv", "mntchng", true);
+			EXPECT_REQUEST(join(shv_path, "/.app/shvjournal"), "lsfiles", ls_size_true);
+			RESPOND_YIELD(RpcValue::List()); // We only test if the syncLog triggers.
+			EXPECT_SIGNAL(shv_path, "logReset", RpcValue());
+		}
+
+		DOCTEST_SUBCASE("parent path of more than one device mounted")
+		{
+			setBrokerConnected(false);
+			QTimer::singleShot(0, [this] {setBrokerConnected(true);});
+			co_yield {};
+			SEND_SITES_YIELD(mock_sites::two_devices);
+			EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
+			EXPECT_SUBSCRIPTION_YIELD("shv/one", "chng");
+			EXPECT_SUBSCRIPTION("shv/two", "chng");
+
+			NOTIFY_YIELD("shv", "mntchng", true);
+			EXPECT_REQUEST(join("shv/one", "/.app/shvjournal"), "lsfiles", ls_size_true);
+			RESPOND_YIELD(RpcValue::List()); // We only test if the syncLog triggers.
+			EXPECT_REQUEST(join("shv/two", "/.app/shvjournal"), "lsfiles", ls_size_true);
+			RESPOND_YIELD(RpcValue::List()); // We only test if the syncLog triggers.
+			EXPECT_SIGNAL("shv/one", "logReset", RpcValue());
+			// I can only handle one message every coroutine run, which means that I have to yield here.
+			co_yield {};
+			EXPECT_SIGNAL("shv/two", "logReset", RpcValue());
 		}
 	}
 }

@@ -1,5 +1,6 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "mockrpcconnection.h"
+#include "pretty_printers.h"
 #include <doctest/doctest.h>
 
 #include "src/appclioptions.h"
@@ -23,7 +24,8 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	m_messageQueue.dequeue();
 	DRIVER_WAIT(10000);
 	EXPECT_REQUEST("sites", "getSites", RpcValue());
-	RESPOND(""); // Respond with empty sites to avoid leaks.
+	RESPOND_YIELD(""); // Respond with empty sites to avoid leaks.
+	EXPECT_SUBSCRIPTION("shv", "mntchng");
 	co_return;
 }
 
