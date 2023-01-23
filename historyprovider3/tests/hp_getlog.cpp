@@ -79,7 +79,8 @@ QCoro::Generator<int> MockRpcConnection::driver()
 
 	DOCTEST_SUBCASE("since last correctly selects files and doesn't crash")
 	{
-		get_log_params.since = "since";
+		get_log_params.since = "last";
+		get_log_params.withSnapshot = true;
 
 		DOCTEST_SUBCASE("empty dir")
 		{
@@ -101,9 +102,11 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			create_dummy_cache_files(cache_dir_path, {
 				{ "2022-07-07T18-06-17-872.log2", dummy_logfile2 },
 			});
+
+			// Note: the timestamps are correct, sinceLast will set all result timestamps to the latest one.
 			expected_timestamps = {
-				"2022-07-07T18:06:17.872Z",
-				"2022-07-07T18:06:17.874Z",
+				"2022-07-07T18:06:17.880Z",
+				"2022-07-07T18:06:17.880Z",
 				"2022-07-07T18:06:17.880Z",
 			};
 		}
@@ -115,9 +118,8 @@ QCoro::Generator<int> MockRpcConnection::driver()
 				{ "dirtylog", dummy_logfile3 },
 			});
 			expected_timestamps = {
-				"2022-07-07T18:06:17.872Z",
-				"2022-07-07T18:06:17.874Z",
-				"2022-07-07T18:06:17.880Z",
+				"2022-07-07T18:06:20.900Z",
+				"2022-07-07T18:06:20.900Z",
 				"2022-07-07T18:06:20.900Z",
 			};
 		}
