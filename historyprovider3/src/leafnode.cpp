@@ -1,7 +1,6 @@
 #include "leafnode.h"
 #include "historyapp.h"
 #include "appclioptions.h"
-#include "shvjournalnode.h"
 #include "getlog.h"
 #include "utils.h"
 
@@ -20,12 +19,10 @@
 
 #define journalDebug() shvCDebug("historyjournal")
 #define journalInfo() shvCInfo("historyjournal")
-#define journalWarning() shvCWarning("historyjournal")
-#define journalError() shvCError("historyjournal")
 
 namespace cp = shv::chainpack;
 namespace {
-static std::vector<cp::MetaMethod> methods {
+const std::vector<cp::MetaMethod> methods {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE},
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE},
 	{"getLog", cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
@@ -33,7 +30,7 @@ static std::vector<cp::MetaMethod> methods {
 	{"sanitizeLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
 };
 
-static std::vector<cp::MetaMethod> push_log_methods {
+const std::vector<cp::MetaMethod> push_log_methods {
 	{"pushLog", cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
 };
 }
@@ -144,12 +141,12 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 			auto entry = reader.entry();
 			remote_entries_count++;
 			if (entry.epochMsec < local_newest_entry_ms) {
-				journalWarning() << "Rejecting push log entry for:" << shvPath() << "with timestamp:" << entry.dateTime().toIsoString() << "because a newer one already exists:" << local_newest_entry_str;
+				shvWarning() << "Rejecting push log entry for:" << shvPath() << "with timestamp:" << entry.dateTime().toIsoString() << "because a newer one already exists:" << local_newest_entry_str;
 				continue;
 			}
 
 			if (entry.epochMsec == local_newest_entry_ms && std::find(local_newest_entry_paths.begin(), local_newest_entry_paths.end(), entry.path) != local_newest_entry_paths.end()) {
-				journalWarning() << "Rejecting push log entry for:" << shvPath() << "with timestamp:" << entry.dateTime().toIsoString() << "and path:" << entry.path << "because we already have an entry with this timestamp and path";
+				shvWarning() << "Rejecting push log entry for:" << shvPath() << "with timestamp:" << entry.dateTime().toIsoString() << "and path:" << entry.path << "because we already have an entry with this timestamp and path";
 				continue;
 			}
 
