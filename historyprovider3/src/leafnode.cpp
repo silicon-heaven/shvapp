@@ -187,13 +187,28 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 		shv::core::utils::ShvGetLogParams get_log_params(params);
 		auto newest_matching_file_it = [&get_log_params, &dir_files] {
 			// If there's no since param, return everything.
-			if (!get_log_params.since.isDateTime()) {
+			if (!get_log_params.since.isDateTime() || dir_files.begin() == dir_files.end()) {
 				return dir_files.begin();
 			}
 
 			// If the first file is the dirtylog, just return it. There are no other files.
 			if (*dir_files.begin() == "dirtylog") {
 				return dir_files.begin();
+			}
+
+			// For since == last, we need to take the dirtylog and the last file.
+			// the previous condition would catch that.
+			if (get_log_params.isSinceLast()) {
+				// There is at least one file, let's look at it. If it's the dirty log, then there must be at least one
+				// more file, because the previous condition checks whether there is only the dirty log.
+				auto it = dir_files.end() - 1;
+				if (*it != "dirtylog") {
+					// There's no dirtylog, so we'll just return the last file.
+					return it;
+				}
+
+				// Otherwise, there's a dirtylog and we'll return the last file AND the dirtylog.
+				return dir_files.end() - 2;
 			}
 
 			// If the first file is newer than since, than just return it.

@@ -47,12 +47,22 @@ QCoro::Generator<int> MockRpcConnection::driver()
 
 	DOCTEST_SUBCASE("since")
 	{
-		expected_timestamps = {
-			"2022-07-07T18:06:17.872Z",
-			"2022-07-07T18:06:17.874Z",
-			"2022-07-07T18:06:17.880Z",
-			"2022-07-07T18:06:20.900Z",
-		};
+		DOCTEST_SUBCASE("empty dir")
+		{
+			remove_cache_contents(cache_dir_path);
+			expected_timestamps = {};
+		}
+
+		DOCTEST_SUBCASE("non-empty dir")
+		{
+			expected_timestamps = {
+				"2022-07-07T18:06:17.872Z",
+				"2022-07-07T18:06:17.874Z",
+				"2022-07-07T18:06:17.880Z",
+				"2022-07-07T18:06:20.900Z",
+			};
+		}
+
 		get_log_params.since = RpcValue::DateTime::fromUtcString("2022-07-07T18:06:17.872Z");
 	}
 
@@ -66,6 +76,53 @@ QCoro::Generator<int> MockRpcConnection::driver()
 		};
 		get_log_params.until = RpcValue::DateTime::fromUtcString("2022-07-07T18:06:17.872Z");
 	}
+
+	DOCTEST_SUBCASE("since last correctly selects files and doesn't crash")
+	{
+		get_log_params.since = "since";
+
+		DOCTEST_SUBCASE("empty dir")
+		{
+			remove_cache_contents(cache_dir_path);
+		}
+
+		DOCTEST_SUBCASE("just dirtylog")
+		{
+			create_dummy_cache_files(cache_dir_path, {
+				{ "dirtylog", dummy_logfile3 },
+			});
+			expected_timestamps = {
+				"2022-07-07T18:06:20.900Z",
+			};
+		}
+
+		DOCTEST_SUBCASE("just a log file")
+		{
+			create_dummy_cache_files(cache_dir_path, {
+				{ "2022-07-07T18-06-17-872.log2", dummy_logfile2 },
+			});
+			expected_timestamps = {
+				"2022-07-07T18:06:17.872Z",
+				"2022-07-07T18:06:17.874Z",
+				"2022-07-07T18:06:17.880Z",
+			};
+		}
+
+		DOCTEST_SUBCASE("dirty log and log file")
+		{
+			create_dummy_cache_files(cache_dir_path, {
+				{ "2022-07-07T18-06-17-872.log2", dummy_logfile2 },
+				{ "dirtylog", dummy_logfile3 },
+			});
+			expected_timestamps = {
+				"2022-07-07T18:06:17.872Z",
+				"2022-07-07T18:06:17.874Z",
+				"2022-07-07T18:06:17.880Z",
+				"2022-07-07T18:06:20.900Z",
+			};
+		}
+	}
+
 
 	REQUEST_YIELD(cache_dir_path, "getLog", get_log_params.toRpcValue());
 
