@@ -187,7 +187,7 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 		shv::core::utils::ShvGetLogParams get_log_params(params);
 		auto newest_matching_file_it = [&get_log_params, &dir_files] {
 			// If there's no since param, return everything.
-			if (!get_log_params.since.isDateTime()) {
+			if (!get_log_params.since.isDateTime() || dir_files.begin() == dir_files.end()) {
 				return dir_files.begin();
 			}
 
