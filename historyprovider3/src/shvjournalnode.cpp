@@ -54,8 +54,8 @@ ShvJournalNode::ShvJournalNode(const std::vector<SlaveHpInfo>& slave_hps, ShvNod
 
 	connect(conn, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvJournalNode::onRpcMessageReceived);
 
+	conn->callMethodSubscribe("shv", "mntchng");
 	for (const auto& it : slave_hps) {
-		conn->callMethodSubscribe(it.shv_path, "mntchng");
 
 		if (it.log_type != LogType::PushLog) {
 			conn->callMethodSubscribe(it.shv_path, "chng");
@@ -103,12 +103,12 @@ void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 		auto params = ntf.params();
 		auto value = ntf.value();
 
-		auto it = std::find_if(m_slaveHps.begin(), m_slaveHps.end(), [&path] (const auto& slave_hp) {
-			return path.starts_with(slave_hp.shv_path);
-		});
+		if (method == "chng") {
+			auto it = std::find_if(m_slaveHps.begin(), m_slaveHps.end(), [&path] (const auto& slave_hp) {
+				return path.starts_with(slave_hp.shv_path);
+			});
 
-		if (it != m_slaveHps.end()) {
-			if (method == "chng") {
+			if (it != m_slaveHps.end()) {
 				{
 					if (path.at(it->shv_path.size()) != '/') {
 						journalWarning() << "Discarding notification with a top-level node path. Offending path was:" << it->shv_path;
@@ -120,23 +120,31 @@ void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 					auto data_change = shv::chainpack::DataChange::fromRpcValue(ntf.params());
 
 					auto entry = shv::core::utils::ShvJournalEntry(path_without_prefix, data_change.value()
-															, shv::core::utils::ShvJournalEntry::DOMAIN_VAL_CHANGE
-															, shv::core::utils::ShvJournalEntry::NO_SHORT_TIME
-															, shv::core::utils::ShvJournalEntry::NO_VALUE_FLAGS
-															, data_change.epochMSec());
+																   , shv::core::utils::ShvJournalEntry::DOMAIN_VAL_CHANGE
+																   , shv::core::utils::ShvJournalEntry::NO_SHORT_TIME
+																   , shv::core::utils::ShvJournalEntry::NO_VALUE_FLAGS
+																   , data_change.epochMSec());
 					writer.append(entry);
 
 				}
 			}
+		}
 
-			if (it->log_type != LogType::PushLog && !m_syncInProgress.value(QString::fromStdString(it->shv_path), false) && method == "mntchng" && params.toBool() == true) {
-				journalInfo() << "mntchng on" << it->shv_path << "syncing its journal";
-				syncLog(it->shv_path, [signal_path = it->shv_path] {
-					HistoryApp::instance()->rpcConnection()->sendShvSignal(signal_path, "logReset");
-				}, [] (auto /*error*/) {
-				});
+		if (method == "mntchng") {
+			for (const auto& slave_hp : m_slaveHps) {
+				if (slave_hp.shv_path.starts_with(path) &&
+					slave_hp.log_type != LogType::PushLog &&
+					!m_syncInProgress.value(QString::fromStdString(slave_hp.shv_path), false) &&
+					params.toBool() == true) {
+					journalInfo() << "mntchng on" << slave_hp.shv_path << "syncing its journal";
+					syncLog(slave_hp.shv_path, [signal_path = slave_hp.shv_path] {
+						HistoryApp::instance()->rpcConnection()->sendShvSignal(signal_path, "logReset");
+					}, [] (auto /*error*/) {
+					});
+				}
 			}
 		}
+
 	}
 }
 

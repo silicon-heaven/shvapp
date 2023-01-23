@@ -16,9 +16,8 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	HistoryApp::instance()->cliOptions()->setCacheInitMaxAge(60 /*seconds*/ * 60 /*minutes*/ * 24 /*hours*/ * 365 /*days*/ * 10 /*years*/);
 	RpcValue::List expected_cache_contents;
 	SEND_SITES_YIELD(mock_sites::two_devices);
-	EXPECT_SUBSCRIPTION_YIELD("shv/one", "mntchng");
+	EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
 	EXPECT_SUBSCRIPTION_YIELD("shv/one", "chng");
-	EXPECT_SUBSCRIPTION_YIELD("shv/two", "mntchng");
 	EXPECT_SUBSCRIPTION("shv/two", "chng");
 
 	DOCTEST_SUBCASE("standard operation")

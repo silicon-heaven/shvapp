@@ -21,7 +21,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 		std::string shv_path = "shv/eyas/opc";
 		std::string cache_dir_path = "eyas/opc";
 		SEND_SITES_YIELD(mock_sites::fin_slave_broker);
-		EXPECT_SUBSCRIPTION_YIELD(shv_path, "mntchng");
+		EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
 		EXPECT_SUBSCRIPTION(shv_path, "chng");
 
 		create_dummy_cache_files(cache_dir_path, {
@@ -55,9 +55,8 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	{
 		HistoryApp::instance()->cliOptions()->setJournalSanitizerInterval(1);
 		SEND_SITES_YIELD(mock_sites::two_devices);
-		EXPECT_SUBSCRIPTION_YIELD("shv/one", "mntchng");
+		EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
 		EXPECT_SUBSCRIPTION_YIELD("shv/one", "chng");
-		EXPECT_SUBSCRIPTION_YIELD("shv/two", "mntchng");
 		EXPECT_SUBSCRIPTION("shv/two", "chng");
 
 		HistoryApp::instance()->setSingleCacheSizeLimit(500);

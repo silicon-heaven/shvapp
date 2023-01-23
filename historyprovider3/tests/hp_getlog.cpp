@@ -19,7 +19,7 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	std::string cache_dir_path = "eyas/opc";
 	SEND_SITES_YIELD(mock_sites::fin_slave_broker);
 	std::string sub_path = "shv/eyas/opc";
-	EXPECT_SUBSCRIPTION_YIELD(sub_path, "mntchng");
+	EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
 	EXPECT_SUBSCRIPTION(sub_path, "chng");
 
 	create_dummy_cache_files(cache_dir_path, {
