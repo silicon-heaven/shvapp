@@ -54,7 +54,7 @@ void append_log_entry(RpcValue::List& log, const ShvJournalEntry &e, GetLogConte
 	});
 }
 
-auto snapshot_to_entries(const ShvSnapshot& snapshot, const bool since_last, const long params_since_msec, GetLogContext& ctx)
+auto snapshot_to_entries(const ShvSnapshot& snapshot, const bool since_last, const int64_t params_since_msec, GetLogContext& ctx)
 {
 	RpcValue::List res;
 	logMGetLog() << "\t writing snapshot, record count:" << snapshot.keyvals.size();
@@ -137,7 +137,7 @@ auto snapshot_to_entries(const ShvSnapshot& snapshot, const bool since_last, con
 			}
 
 			if (entry.epochMsec >= params_since_msec && !ctx.params.isSinceLast()) {
-				if (static_cast<int>(snapshot.keyvals.size() + record_count + 1) > ctx.params.recordCountLimit) {
+				if ((static_cast<int>(snapshot.keyvals.size()) + record_count + 1) > ctx.params.recordCountLimit) {
 					log_header.setRecordCountLimitHit(true);
 					goto exit_nested_loop;
 				}
