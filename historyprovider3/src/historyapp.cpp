@@ -26,6 +26,7 @@ namespace si = shv::iotqt;
 namespace {
 const auto METH_GET_VERSION = "version";
 const auto METH_GIT_COMMIT = "gitCommit";
+const auto METH_UPTIME = "uptime";
 const std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_BROWSE},
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_BROWSE},
@@ -34,7 +35,7 @@ const std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
 	{METH_GET_VERSION, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 	{METH_GIT_COMMIT, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
-	{"uptime", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ },
+	{METH_UPTIME, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ },
 };
 }
 
@@ -69,7 +70,7 @@ cp::RpcValue AppRootNode::callMethod(const StringViewList& shv_path, const std::
 			return QCoreApplication::applicationVersion().toStdString();
 		}
 
-		if (method == "uptime") {
+		if (method == METH_UPTIME) {
 			return HistoryApp::instance()->uptime().toStdString();
 		}
 
