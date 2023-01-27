@@ -27,6 +27,7 @@ namespace {
 const auto METH_GET_VERSION = "version";
 const auto METH_GIT_COMMIT = "gitCommit";
 const auto METH_UPTIME = "uptime";
+const auto METH_RELOAD_SITES = "reloadSites";
 const std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_BROWSE},
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_BROWSE},
@@ -36,6 +37,7 @@ const std::vector<cp::MetaMethod> meta_methods {
 	{METH_GET_VERSION, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 	{METH_GIT_COMMIT, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 	{METH_UPTIME, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ },
+	{METH_RELOAD_SITES, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::ROLE_WRITE },
 };
 }
 
@@ -86,6 +88,22 @@ cp::RpcValue AppRootNode::callMethod(const StringViewList& shv_path, const std::
 	return Super::callMethod(shv_path, method, params, user_id);
 }
 
+QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> HistoryApp::reloadSites(std::function<void()> success, std::function<void(std::string err)> error)
+{
+	if (m_loadingSites) {
+		error("Sites are already being reloaded.");
+		co_return;
+	}
+
+	m_loadingSites = true;
+	deinitializeShvTree();
+	if (m_isBrokerConnected) {
+		co_await initializeShvTree();
+	}
+	m_loadingSites = false;
+	success();
+}
+
 cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest& rq)
 {
 	if (rq.shvPath().asString().empty()) {
@@ -98,6 +116,20 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest& rq)
 
 		if (rq.method() == cp::Rpc::METH_DEVICE_TYPE) {
 			return "HistoryProvider";
+		}
+
+		if (rq.method() == METH_RELOAD_SITES) {
+			HistoryApp::instance()->reloadSites([rq] {
+				auto response = rq.makeResponse();
+				response.setResult("Sites reloaded.");
+				HistoryApp::instance()->rpcConnection()->sendMessage(response);
+			}, [rq] (const auto& err) {
+				auto error = cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, err);
+				auto response = rq.makeResponse();
+				response.setError(error);
+				HistoryApp::instance()->rpcConnection()->sendMessage(shv::chainpack::RpcMessage(response));
+			});
+			return {};
 		}
 	}
 	return Super::callMethodRq(rq);
@@ -295,11 +327,7 @@ void HistoryApp::deinitializeShvTree()
 void HistoryApp::onBrokerConnectedChanged(bool is_connected)
 {
 	m_isBrokerConnected = is_connected;
-	deinitializeShvTree();
-
-	if (m_isBrokerConnected) {
-		initializeShvTree();
-	}
+	reloadSites([] {}, [] (const auto&) {});
 }
 
 void HistoryApp::onRpcMessageReceived(const cp::RpcMessage& msg)

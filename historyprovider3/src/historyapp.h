@@ -50,6 +50,7 @@ public:
 	AppCliOptions* cliOptions() {return m_cliOptions;}
 
 	QString uptime() const;
+	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> reloadSites(std::function<void()> success, std::function<void(std::string err)> error);
 
 private:
 	void onBrokerConnectedChanged(bool is_connected);
@@ -71,4 +72,5 @@ private:
 	QListIterator<LeafNode*> m_sanitizerIterator;
 	ShvJournalNode* m_shvJournalNode = nullptr;
 	QTimer* m_sanitizerTimer = nullptr;
+	bool m_loadingSites = false;
 };
