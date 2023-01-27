@@ -26,9 +26,7 @@ namespace si = shv::iotqt;
 namespace {
 const auto METH_GET_VERSION = "version";
 const auto METH_GIT_COMMIT = "gitCommit";
-}
-
-static std::vector<cp::MetaMethod> meta_methods {
+const std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_BROWSE},
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_BROWSE},
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
@@ -38,6 +36,8 @@ static std::vector<cp::MetaMethod> meta_methods {
 	{METH_GIT_COMMIT, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 	{"uptime", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ },
 };
+}
+
 
 size_t AppRootNode::methodCount(const StringViewList& shv_path)
 {
