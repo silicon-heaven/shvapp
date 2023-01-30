@@ -376,7 +376,8 @@ public:
 			auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
 				->setShvPath(slave_hp_path)
 				->setMethod("getLog")
-				->setParams(get_log_params.toRpcValue());
+				->setParams(get_log_params.toRpcValue())
+				->setTimeout(10000);
 			call->start();
 			auto [result, error] = co_await qCoro(call, &shv::iotqt::rpc::RpcCall::maybeResult);
 
