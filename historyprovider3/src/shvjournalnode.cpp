@@ -328,7 +328,8 @@ public:
 		m_node->trimDirtyLog(slave_hp_path, cache_dir_path);
 	}
 
-	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> doLegacySync(const QString& slave_hp_path, const QString& cache_dir_path)
+	QCoro::Task<void> doLegacySync(const QString& slave_hp_path, const QString& cache_dir_path)
+	try
 	{
 		journalInfo() << "Syncing" << slave_hp_path << "via legacy getLog";
 		using shv::coreqt::Utils;
@@ -421,9 +422,12 @@ public:
 			}
 			get_log_params.since = remote_entries.back().dateTime();
 		}
+	} catch(std::exception& e) {
+		shv::coreqt::utils::qcoro_unhandled_exception(e);
 	}
 
-	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> impl_doSync(const QString& slave_hp_path, const QString& cache_dir_path, const QString& shvjournal_shvpath, const QString& path_prefix)
+	QCoro::Task<void> impl_doSync(const QString& slave_hp_path, const QString& cache_dir_path, const QString& shvjournal_shvpath, const QString& path_prefix)
+	try
 	{
 		auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
 			->setShvPath(shvjournal_shvpath)
@@ -515,9 +519,12 @@ public:
 			m_node->trimDirtyLog(slave_hp_path, cache_dir_path);
 		}
 
+	} catch (std::exception& e) {
+		shv::coreqt::utils::qcoro_unhandled_exception(e);
 	}
 
-	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> doSync(const QString& slave_hp_path, const QString& cache_dir_path, const SyncType sync_type)
+	QCoro::Task<void> doSync(const QString& slave_hp_path, const QString& cache_dir_path, const SyncType sync_type)
+	try
 	{
 		journalInfo() << "Syncing" << slave_hp_path << "via file synchronization";
 		auto shvjournal_suffix =
@@ -527,9 +534,12 @@ public:
 		auto shvjournal_shvpath = shv::coreqt::utils::joinPath(slave_hp_path, shvjournal_suffix);
 
 		co_await impl_doSync(slave_hp_path, cache_dir_path, shvjournal_shvpath, "");
+	} catch (std::exception& e) {
+		shv::coreqt::utils::qcoro_unhandled_exception(e);
 	}
 
-	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> syncFiles()
+	QCoro::Task<void> syncFiles()
+	try
 	{
 		using shv::coreqt::Utils;
 		for (const auto& slave_hp : m_node->slaveHps()) {
@@ -570,6 +580,8 @@ public:
 
 		m_successCb();
 		deleteLater();
+	} catch (std::exception& e) {
+		shv::coreqt::utils::qcoro_unhandled_exception(e);
 	}
 
 private:

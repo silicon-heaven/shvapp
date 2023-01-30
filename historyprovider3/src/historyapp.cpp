@@ -1,5 +1,6 @@
 #include "historyapp.h"
 #include "appclioptions.h"
+#include "utils.h"
 #include "src/shvjournalnode.h"
 #include "src/leafnode.h"
 
@@ -8,6 +9,7 @@
 #include <shv/iotqt/node/shvnodetree.h>
 #include <shv/iotqt/node/localfsnode.h>
 #include <shv/coreqt/log.h>
+#include <shv/coreqt/utils.h>
 #include <shv/chainpack/tunnelctl.h>
 #include <shv/chainpack/metamethod.h>
 #include <shv/chainpack/cponreader.h>
@@ -88,7 +90,8 @@ cp::RpcValue AppRootNode::callMethod(const StringViewList& shv_path, const std::
 	return Super::callMethod(shv_path, method, params, user_id);
 }
 
-QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> HistoryApp::reloadSites(std::function<void()> success, std::function<void(std::string err)> error)
+QCoro::Task<void> HistoryApp::reloadSites(std::function<void()> success, std::function<void(std::string err)> error)
+try
 {
 	if (m_loadingSites) {
 		error("Sites are already being reloaded.");
@@ -102,6 +105,8 @@ QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> HistoryA
 	}
 	m_loadingSites = false;
 	success();
+} catch (std::exception& e) {
+	shv::coreqt::utils::qcoro_unhandled_exception(e);
 }
 
 cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest& rq)
@@ -281,7 +286,8 @@ HistoryApp* HistoryApp::instance()
 	return qobject_cast<HistoryApp*>(QCoreApplication::instance());
 }
 
-QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> HistoryApp::initializeShvTree()
+QCoro::Task<void> HistoryApp::initializeShvTree()
+try
 {
 	m_root = new AppRootNode();
 	m_shvTree = new si::node::ShvNodeTree(m_root, this);
@@ -313,6 +319,8 @@ QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> HistoryA
 		connect(m_sanitizerTimer, &QTimer::timeout, this, &HistoryApp::sanitizeNext);
 		m_sanitizerTimer->start(m_cliOptions->journalSanitizerInterval() * 1000);
 	}
+} catch (std::exception& ex) {
+	shv::coreqt::utils::qcoro_unhandled_exception(ex);
 }
 
 void HistoryApp::deinitializeShvTree()

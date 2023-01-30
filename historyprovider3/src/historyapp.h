@@ -50,13 +50,13 @@ public:
 	AppCliOptions* cliOptions() {return m_cliOptions;}
 
 	QString uptime() const;
-	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> reloadSites(std::function<void()> success, std::function<void(std::string err)> error);
+	QCoro::Task<void> reloadSites(std::function<void()> success, std::function<void(std::string err)> error);
 
 private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage& msg);
 	void sanitizeNext();
-	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> initializeShvTree();
+	QCoro::Task<void> initializeShvTree();
 	void deinitializeShvTree();
 
 private:
