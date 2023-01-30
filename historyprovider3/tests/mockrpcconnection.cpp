@@ -133,14 +133,14 @@ void MockRpcConnection::sendMessage(const shv::chainpack::RpcMessage& rpc_msg)
         "<unknown message type>:";
     mockInfo() << "Got client" << msg_type << rpc_msg.toPrettyString();
 
+    // We'll skip cmdlog signals even if they are sent while the coro is running.
+    if (rpc_msg.isSignal() && rpc_msg.method() == "cmdlog") {
+        return;
+    }
+
     if (m_coroRunning) {
         throw std::logic_error("A client send a message while the test driver was running."
                 " This can lead to unexpected behavior, because the test driver resumes on messages from the client and you can't resume the driver while it's already running.");
-    }
-
-    // We skip the cmdlog signals, but let others through.
-    if (rpc_msg.isSignal() && rpc_msg.method() == "cmdlog") {
-        return;
     }
 
     m_messageQueue.enqueue(rpc_msg);

@@ -55,13 +55,17 @@ shv::chainpack::RpcValue make_sub_params(const std::string& path, const std::str
 	m_timeoutTimer->start(COROUTINE_TIMEOUT); \
 }
 
-#define REQUEST_YIELD(path, method, params) { \
+#define REQUEST_YIELD(path, method, ...) { \
+	shv::chainpack::RpcValue params; \
+	__VA_OPT__(params = (__VA_ARGS__)); \
 	doRequestInEventLoop((path), (method), (params)); \
 	SETUP_TIMEOUT; \
 	co_yield {}; \
 }
 
-#define REQUEST(path, method, params) { \
+#define REQUEST(path, method, ...) { \
+	shv::chainpack::RpcValue params; \
+	__VA_OPT__(params = (__VA_ARGS__)); \
 	doRequest((path), (method), (params)); \
 }
 
