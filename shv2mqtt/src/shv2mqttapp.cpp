@@ -89,8 +89,8 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest& rq)
 	if (rq.shvPath().asString().empty()) {
 		if (rq.method() == cp::Rpc::METH_DEVICE_ID) {
 			Shv2MqttApp* app = Shv2MqttApp::instance();
-			const cp::RpcValue::Map& opts = app->rpcConnection()->connectionOptions().toMap();
-			const cp::RpcValue::Map& dev = opts.value(cp::Rpc::KEY_DEVICE).toMap();
+			const cp::RpcValue::Map& opts = app->rpcConnection()->connectionOptions().asMap();
+			const cp::RpcValue::Map& dev = opts.value(cp::Rpc::KEY_DEVICE).asMap();
 			return dev.value(cp::Rpc::KEY_DEVICE_ID).toString();
 		}
 
@@ -227,25 +227,7 @@ void Shv2MqttApp::onRpcMessageReceived(const cp::RpcMessage& msg)
 	} else if (msg.isSignal()) {
 		cp::RpcSignal nt(msg);
 		if (m_mqttClient->state() == QMqttClient::Connected) {
-			auto json = shv::coreqt::rpc::rpcValueToQVariant(nt.params()).toJsonValue();
-			auto data = [&json] {
-				switch (json.type()) {
-				case QJsonValue::Object:
-					return QJsonDocument(json.toObject()).toJson();
-				case QJsonValue::Array:
-					return QJsonDocument(json.toArray()).toJson();
-				case QJsonValue::Null:
-					return QByteArray("null");
-				case QJsonValue::Bool:
-					return QByteArray(json.toBool() ? "true" : "false");
-				case QJsonValue::Double:
-					return QByteArray::number(json.toDouble());
-				case QJsonValue::String:
-					return QByteArray(json.toString().toLatin1());
-				case QJsonValue::Undefined:
-					return QByteArray("undefined");
-				}
-			}();
+			auto data = shv::coreqt::utils::jsonValueToByteArray(shv::coreqt::utils::rpcValueToJson(nt.params()));
 			mqttInfo() << "published: topic:" << nt.shvPath().toStdString() << "data:" << data.toStdString();
 			m_mqttClient->publish(QString::fromStdString(nt.shvPath().toStdString()), data);
 		}

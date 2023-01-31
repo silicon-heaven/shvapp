@@ -5,5 +5,4 @@ add_executable(shv2mqtt
     )
 
 target_link_libraries(shv2mqtt libshviotqt Qt::Mqtt)
-
 install(TARGETS shv2mqtt)
