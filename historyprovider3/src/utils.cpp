@@ -1,5 +1,7 @@
 #include "utils.h"
 #include <shv/core/utils/shvjournalfilereader.h>
+#include <QtGlobal>
+#include <QDebug>
 
 std::vector<shv::core::utils::ShvJournalEntry> read_entries_from_file(const QString& file_path)
 {

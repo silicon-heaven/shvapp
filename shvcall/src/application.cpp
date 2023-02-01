@@ -27,7 +27,8 @@ Application::Application(int &argc, char **argv, AppCliOptions *cli_opts)
 	m_rpcConnection->open();
 }
 
-QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> Application::onShvStateChanged()
+QCoro::Task<void> Application::onShvStateChanged()
+try
 {
 	if (m_rpcConnection->state() == si::rpc::ClientConnection::State::BrokerConnected) {
 		cp::RpcValue params;
@@ -60,4 +61,9 @@ QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> Applicat
 		shvInfo() << "SHV Broker disconnected";
 		exit(m_status);
 	}
+} catch (std::exception& e) {
+	qCritical() << "A QCoro coroutine which wasn't being co_awaited has thrown an unhandled exception."
+		<< "The coroutine had AbortOnExit option set, the program will abort now.\n\n"
+		<< "Exception was:" << e.what();
+	std::terminate();
 }

@@ -17,7 +17,7 @@ void SiteItem::parseRpcValue(const cp::RpcValue &value)
 	if (!value.isMap()) {
 		SHV_QT_EXCEPTION("Bad chainpack value type in siteitem");
 	}
-	parseRpcValue(value.toMap());
+	parseRpcValue(value.asMap());
 }
 
 void SiteItem::parseRpcValue(const cp::RpcValue::Map &map)
@@ -29,7 +29,7 @@ void SiteItem::parseRpcValue(const cp::RpcValue::Map &map)
 				if (!meta.isMap()) {
 					SHV_EXCEPTION("Bad value type in siteitem meta");
 				}
-				parseMetaRpcValue(meta.toMap());
+				parseMetaRpcValue(meta.asMap());
 			}
 		}
 		else {
@@ -108,7 +108,7 @@ QString SiteItem::sitePath() const
 
 void SitesHPDevice::parseMetaRpcValue(const shv::chainpack::RpcValue::Map &meta)
 {
-	shv::chainpack::RpcValue::Map hp_meta = meta.at("HP").toMap();
+	shv::chainpack::RpcValue::Map hp_meta = meta.at("HP").asMap();
 	if (!hp_meta.hasKey("elesys")) {
 		m_elesys = false;
 	}
@@ -122,7 +122,7 @@ void SitesHPDevice::parseMetaRpcValue(const shv::chainpack::RpcValue::Map &meta)
 		m_pushLog = hp_meta.at("pushLog").toBool();
 	}
 	if (hp_meta.hasKey("syncLog")) {
-		for (auto sync_log : hp_meta.at("syncLog").toList()) {
+		for (auto sync_log : hp_meta.at("syncLog").asList()) {
 			if (QString::fromStdString(sync_log.at("target").toString()) == Application::instance()->brokerId()) {
 				m_syncLogSource = QString::fromStdString(sync_log.at("source").toString());
 			}

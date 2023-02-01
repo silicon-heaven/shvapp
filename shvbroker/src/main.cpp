@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
 	shvInfo() << QDateTime::currentDateTime().toString(Qt::ISODate).toStdString() << "UTC:" << QDateTime::currentDateTimeUtc().toString(Qt::ISODate).toStdString();
 	shvInfo() << "======================================================================================";
 	shvInfo() << "Broker ID:" << cli_opts.brokerId();
-	shvInfo() << "Log tresholds:" << NecroLog::tresholdsLogInfo();
+	shvInfo() << "Log tresholds:" << NecroLog::thresholdsLogInfo();
 	shvInfo() << "Config dir:" << cli_opts.configDir();
 	if(cli_opts.isSqlConfigEnabled())
 		shvInfo() << "SQL config database" << cli_opts.sqlConfigDatabase() << "driver" << cli_opts.sqlConfigDriver();

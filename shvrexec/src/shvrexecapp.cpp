@@ -71,7 +71,7 @@ shv::chainpack::RpcValue AppRootNode::callMethod(const StringViewList &shv_path,
 		//}
 		/*
 		if(method == METH_SETWINSZ) {
-			const shv::chainpack::RpcValue::List &list = params.toList();
+			const shv::chainpack::RpcValue::List &list = params.asList();
 			ShvRExecApp::instance()->setTerminalWindowSize(list.value(0).toInt(), list.value(1).toInt());
 			return true;
 		}
@@ -192,7 +192,7 @@ void ShvRExecApp::onBrokerConnectedChanged(bool is_connected)
 				if(tctl.state() == cp::TunnelCtl::State::CreateTunnelResponse) {
 					cp::CreateTunnelRespCtl create_tunnel_response(tctl);
 					m_writeTunnelCallerIds = find_tunnel_resp.revCallerIds();
-					const shv::chainpack::RpcValue::Map &call_p = m_onConnectedCall.toMap();
+					const shv::chainpack::RpcValue::Map &call_p = m_onConnectedCall.asMap();
 					const shv::chainpack::RpcValue::String method = call_p.value(cp::Rpc::JSONRPC_METHOD).toString();
 					const shv::chainpack::RpcValue &params = call_p.value(cp::Rpc::JSONRPC_PARAMS);
 					/*
@@ -268,7 +268,7 @@ void ShvRExecApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 			int channel = 0;
 			shv::chainpack::RpcValue data;
 			if(result.isList()) {
-				const shv::chainpack::RpcValue::List &lst = result.toList();
+				const shv::chainpack::RpcValue::List &lst = result.asList();
 				channel = lst.value(0).toInt();
 				data = lst.value(1);
 			}
@@ -353,7 +353,7 @@ void ShvRExecApp::runCmd(const shv::chainpack::RpcValue &params)
 		}
 		this->closeAndQuit();
 	});
-	const shv::chainpack::RpcValue::List &cmd_lst = params.toList();
+	const shv::chainpack::RpcValue::List &cmd_lst = params.asList();
 	QString cmd = QString::fromStdString(params.isString()? params.asString(): cmd_lst.value(0).asString());
 	QStringList pars;
 	for (size_t i = 1; i < cmd_lst.size(); ++i)
@@ -366,7 +366,7 @@ void ShvRExecApp::runPtyCmd(const shv::chainpack::RpcValue &params)
 	if(m_cmdProc || m_ptyCmdProc)
 		SHV_EXCEPTION("Process running already");
 
-	const shv::chainpack::RpcValue::List lst = params.toList();
+	const shv::chainpack::RpcValue::List lst = params.asList();
 	shv::chainpack::RpcValue cmd_params = lst.value(0);
 	if(!cmd_params.isString() && !cmd_params.isList()) {
 		shvError() << "Invalid command:" << cmd_params.toCpon();
@@ -403,9 +403,9 @@ void ShvRExecApp::runPtyCmd(const shv::chainpack::RpcValue &params)
 		m_ptyCmdProc->disconnect();
 		closeAndQuit();
 	});
-	QString cmd = QString::fromStdString(cmd_params.isString()? cmd_params.asString(): cmd_params.toList().value(0).asString());
+	QString cmd = QString::fromStdString(cmd_params.isString()? cmd_params.asString(): cmd_params.asList().value(0).asString());
 	QStringList pars;
-	const shv::chainpack::RpcValue::List &cmd_lst = cmd_params.toList();
+	const shv::chainpack::RpcValue::List &cmd_lst = cmd_params.asList();
 	for (size_t i = 1; i < cmd_lst.size(); ++i)
 		pars << QString::fromStdString(cmd_lst[i].toString());
 	m_ptyCmdProc->ptyStart(cmd, pars, pty_cols, pty_rows);

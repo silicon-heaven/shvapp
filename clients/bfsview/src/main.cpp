@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
 #endif
 	shvInfo() << QDateTime::currentDateTime().toString(Qt::ISODate).toStdString() << "UTC:" << QDateTime::currentDateTimeUtc().toString(Qt::ISODate).toStdString();
 	shvInfo() << "======================================================================================";
-	shvInfo() << "Log tresholds:" << NecroLog::tresholdsLogInfo();
+	shvInfo() << "Log tresholds:" << NecroLog::thresholdsLogInfo();
 	shvInfo() << "Log file:" << BfsViewApp::logFilePath();
 	shvInfo() << "PWR status simulation:" << cli_opts.isPwrStatusSimulate();
 	shvInfo() << "--------------------------------------------------------------------------------------";

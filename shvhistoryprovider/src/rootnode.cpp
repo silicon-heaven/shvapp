@@ -186,7 +186,7 @@ void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &
 	QDateTime log_since = rpcvalue_cast<QDateTime>(log_reader.logHeader().since());
 	QDateTime log_until = rpcvalue_cast<QDateTime>(log_reader.logHeader().until());
 	shvInfo() << "pushLog request from shv_path:" << shv_path << "since:" << log_since.toString(Qt::ISODate).toStdString()
-			  << "until:" << log_until.toString(Qt::ISODate).toStdString() << "recordCount:" << log.toList().size();
+			  << "until:" << log_until.toString(Qt::ISODate).toStdString() << "recordCount:" << log.asList().size();
 	bool with_snapshot = log_reader.logHeader().withSnapShot();
 	auto typeinfo = log_reader.logHeader().typeInfo();
 	bool has_type_info = typeinfo.isValid();
@@ -389,7 +389,7 @@ shv::chainpack::RpcValue RootNode::callMethod(const shv::iotqt::node::ShvNode::S
 				}
 			}
 			else if (params.isMap()) {
-				with_good_files = params.toMap().value("withGoodFiles").toBool();
+				with_good_files = params.asMap().value("withGoodFiles").toBool();
 			}
 		}
 		CacheState info = CheckLogTask::checkLogCache(QString::fromStdString(shv_path.join('/')), with_good_files);
@@ -430,11 +430,11 @@ shv::chainpack::RpcValue RootNode::callMethod(const shv::iotqt::node::ShvNode::S
 		return getStartTS(QString::fromStdString(path.join('/')));
 	}
 	else if (method == METH_GET_LOGVERBOSITY) {
-		return NecroLog::topicsLogTresholds();
+		return NecroLog::topicsLogThresholds();
 	}
 	else if (method == METH_SET_LOGVERBOSITY) {
 		const std::string &s = params.asString();
-		NecroLog::setTopicsLogTresholds(s);
+		NecroLog::setTopicsLogThresholds(s);
 		return true;
 	}
 	else if (method == METH_PUSH_LOG) {
@@ -487,7 +487,7 @@ cp::RpcValue RootNode::getLog(const QString &shv_path, const shv::chainpack::Rpc
 	GetLogMerge request(shv_path, log_params);
 	try {
 		shv::chainpack::RpcValue result = request.getLog();
-		shvMessage() << "request number" << request_no << "finished in" << tm.elapsed() << "ms with" << result.toList().size() << "records";
+		shvMessage() << "request number" << request_no << "finished in" << tm.elapsed() << "ms with" << result.asList().size() << "records";
 		return result;
 	}
 	catch (const shv::core::Exception &e) {

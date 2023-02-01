@@ -16,7 +16,7 @@ public:
 	Application(int &argc, char **argv, AppCliOptions* cli_opts);
 
 private:
-	QCoro::Task<void, QCoro::TaskOptions<QCoro::Options::AbortOnException>> onShvStateChanged();
+	QCoro::Task<void> onShvStateChanged();
 
 	AppCliOptions *m_cliOptions;
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection;
