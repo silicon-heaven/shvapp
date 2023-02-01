@@ -178,7 +178,7 @@ void ShvRshApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 				return;
 			}
 			cp::RpcValue result = resp.result();
-			const shv::chainpack::RpcValue::List &lst = result.toList();
+			const shv::chainpack::RpcValue::List &lst = result.asList();
 			if(lst.empty()) {
 				shvError() << "Invalid tunnel message received:" << resp.toCpon();
 				quit();

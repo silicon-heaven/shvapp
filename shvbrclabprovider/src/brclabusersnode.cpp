@@ -131,14 +131,14 @@ const shv::chainpack::RpcValue &BrclabUsersNode::usersConfig()
 
 bool BrclabUsersNode::addUser(const cp::RpcValue &params)
 {
-	if (!params.isMap() || !params.toMap().hasKey("user") || !params.toMap().hasKey("password")){
+	if (!params.isMap() || !params.asMap().hasKey("user") || !params.asMap().hasKey("password")){
 		SHV_EXCEPTION("Invalid parameters format. Params must be a RpcValue::Map and it must contains keys: user, password.");
 	}
 
-	cp::RpcValue::Map map = params.toMap();
+	cp::RpcValue::Map map = params.asMap();
 	std::string user_name = map.value("user").toStdString();
 
-	cp::RpcValue::Map users_config = usersConfig().toMap();
+	cp::RpcValue::Map users_config = usersConfig().asMap();
 
 	if (users_config.hasKey(user_name)){
 		SHV_EXCEPTION("User " + user_name + " already exists");
@@ -146,7 +146,7 @@ bool BrclabUsersNode::addUser(const cp::RpcValue &params)
 
 	cp::RpcValue::Map user;
 	const cp::RpcValue grants = map.value("grants");
-	user["grants"] = (grants.isList()) ? grants.toList() : cp::RpcValue::List();
+	user["grants"] = (grants.isList()) ? grants.asList() : cp::RpcValue::List();
 	user["password"] = map.value("password").toStdString();
 	users_config[user_name] = user;
 
@@ -161,7 +161,7 @@ bool BrclabUsersNode::delUser(const shv::chainpack::RpcValue &params)
 	}
 
 	std::string user_name = params.toString();
-	const cp::RpcValue::Map &users_config = usersConfig().toMap();
+	const cp::RpcValue::Map &users_config = usersConfig().asMap();
 
 	if (!users_config.hasKey(user_name)){
 		SHV_EXCEPTION("User " + user_name + " does not exist.");
@@ -174,18 +174,18 @@ bool BrclabUsersNode::delUser(const shv::chainpack::RpcValue &params)
 
 bool BrclabUsersNode::changePassword(const cp::RpcValue &params)
 {
-	if (!params.isMap() || !params.toMap().hasKey("user") || !params.toMap().hasKey("newPassword")){
+	if (!params.isMap() || !params.asMap().hasKey("user") || !params.asMap().hasKey("newPassword")){
 		SHV_EXCEPTION("Invalid parameters format. Params must be a RpcValue::Map and it must contains keys: user, newPassword.");
 	}
 
-	cp::RpcValue::Map map = params.toMap();
+	cp::RpcValue::Map map = params.asMap();
 	std::string user_name = map.value("user").toStdString();
 	std::string new_password_sha1 = map.value("newPassword").toStdString();
 
-	cp::RpcValue::Map users_config = usersConfig().toMap();
+	cp::RpcValue::Map users_config = usersConfig().asMap();
 
 	if (users_config.hasKey(user_name)){
-		cp::RpcValue::Map user = users_config.at(user_name).toMap();
+		cp::RpcValue::Map user = users_config.at(user_name).asMap();
 		user["password"] = new_password_sha1;
 		users_config.at(user_name) = user;
 
@@ -200,26 +200,26 @@ bool BrclabUsersNode::changePassword(const cp::RpcValue &params)
 
 shv::chainpack::RpcValue BrclabUsersNode::getUserGrants(const cp::RpcValue &params)
 {
-	if (!params.isMap() || !params.toMap().hasKey("user") || !params.toMap().hasKey("password")){
+	if (!params.isMap() || !params.asMap().hasKey("user") || !params.asMap().hasKey("password")){
 		SHV_EXCEPTION("Invalid parameters format. Params must be a RpcValue::Map and it must contains keys: user, password.");
 	}
 
-	cp::RpcValue::Map map = params.toMap();
+	cp::RpcValue::Map map = params.asMap();
 	std::string user_name = map.value("user").toStdString();
 	std::string password_sha1 = map.value("password").toStdString();
 
 	cp::RpcValue users_config = usersConfig();
 
-	for(const auto &kv :users_config.toMap()) {
+	for(const auto &kv :users_config.asMap()) {
 		if (!kv.second.isMap()){
 			SHV_EXCEPTION("Invalid chainpack format in config file " + m_usersConfigFileName);
 		}
 
-		cp::RpcValue::Map user_params = kv.second.toMap();
+		cp::RpcValue::Map user_params = kv.second.asMap();
 
 		if (kv.first == user_name && password_sha1 == user_params.value("password").toStdString() && !password_sha1.empty()){
 			cp::RpcValue grants = user_params.value("grants");
-			return (grants.isList()) ? grants.toList() : cp::RpcValue::List();
+			return (grants.isList()) ? grants.asList() : cp::RpcValue::List();
 		}
 	}
 

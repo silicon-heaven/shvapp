@@ -153,7 +153,7 @@ CacheState CheckLogTask::checkLogCache(const QString &site_path, bool with_good_
 			cp::RpcValue meta_hp = meta_data.value("HP");
 			bool has_first_log_mark = false;
 			if (meta_hp.isMap()) {
-				cp::RpcValue meta_first = meta_hp.toMap().value("firstLog");
+				cp::RpcValue meta_first = meta_hp.asMap().value("firstLog");
 				has_first_log_mark = meta_first.isBool() && meta_first.toBool();
 			}
 			if (!has_first_log_mark) {
@@ -277,7 +277,7 @@ CacheState CheckLogTask::checkLogCache(const QString &site_path, bool with_good_
 //			cp::RpcValue meta_hp = meta_data.value("HP");
 //			bool has_first_log_mark = false;
 //			if (meta_hp.isMap()) {
-//				cp::RpcValue meta_first = meta_hp.toMap().value("firstLog");
+//				cp::RpcValue meta_first = meta_hp.asMap().value("firstLog");
 //				has_first_log_mark = meta_first.isBool() && meta_first.toBool();
 //			}
 //			if (!has_first_log_mark) {

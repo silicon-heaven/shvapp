@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
 #endif
 	shvInfo() << QDateTime::currentDateTime().toString(Qt::ISODate).toStdString() << "UTC:" << QDateTime::currentDateTimeUtc().toString(Qt::ISODate).toStdString();
 	shvInfo() << "======================================================================================";
-	shvInfo() << "Log tresholds:" << NecroLog::tresholdsLogInfo();
+	shvInfo() << "Log tresholds:" << NecroLog::thresholdsLogInfo();
 	if(cli_opts.connStatusUpdateInterval() > 0)
 		shvInfo() << "Connection status file:" << cli_opts.connStatusFile();
 	shvInfo() << "--------------------------------------------------------------------------------------";

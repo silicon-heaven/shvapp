@@ -60,7 +60,7 @@ auto as_vector(shv::core::utils::ShvLogRpcValueReader& reader)
 
 DOCTEST_TEST_CASE("getLog")
 {
-	NecroLog::setTopicsLogTresholds("GetLog:D,ShvJournal:D");
+	NecroLog::setTopicsLogThresholds("GetLog:D,ShvJournal:D");
     shv::core::utils::ShvGetLogParams get_log_params;
 	std::filesystem::remove_all(journal_dir);
 	std::filesystem::create_directories(journal_dir);

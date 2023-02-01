@@ -242,8 +242,8 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 	}
 	else if (method == cp::Rpc::METH_DEVICE_ID) {
 		SitesProviderApp *app = SitesProviderApp::instance();
-		cp::RpcValue::Map opts = app->rpcConnection()->connectionOptions().toMap();;
-		cp::RpcValue::Map dev = opts.value(cp::Rpc::KEY_DEVICE).toMap();
+		cp::RpcValue::Map opts = app->rpcConnection()->connectionOptions().asMap();;
+		cp::RpcValue::Map dev = opts.value(cp::Rpc::KEY_DEVICE).asMap();
 		return dev.value(cp::Rpc::KEY_DEVICE_ID).toString();
 	}
 	else if(method == cp::Rpc::METH_DEVICE_TYPE) {
@@ -450,7 +450,7 @@ bool AppRootNode::isDevice(const QString &shv_path)
 	if (fi.isDir()) {
 		QStringList entries = QDir(file_path).entryList(QDir::Filter::AllEntries | QDir::Filter::NoDotAndDotDot);
 		if ((entries.count() == 1 || (entries.count() == 2 && entries.contains(FILES_NODE))) && entries.contains(META_FILE)) {
-			return metaValue(shv_path + '/' + META_NODE).toMap().hasKey("type");
+			return metaValue(shv_path + '/' + META_NODE).asMap().hasKey("type");
 		}
 	}
 	return false;
@@ -610,7 +610,7 @@ shv::chainpack::RpcValue AppRootNode::mkFile(const QString &shv_path, const shv:
 
 	}
 	else if(params.isList()) {
-		const cp::RpcValue::List &lst = params.toList();
+		const cp::RpcValue::List &lst = params.asList();
 		if (lst.size() != 2)
 			throw shv::core::Exception("Invalid params, [\"name\", \"content\"] expected.");
 		file_name = rpcvalue_cast<QString>(lst[0]);
@@ -620,7 +620,7 @@ shv::chainpack::RpcValue AppRootNode::mkFile(const QString &shv_path, const shv:
 		throw shv::core::Exception("File name is empty.");
 	QString file_path = shv_path + '/' + file_name;
 	if(has_content)
-		return writeFile(file_path, params.toList()[1].toString());
+		return writeFile(file_path, params.asList()[1].toString());
 	else
 		return writeFile(file_path, "");
 }
@@ -646,7 +646,7 @@ shv::chainpack::RpcValue AppRootNode::readAndMergeConfig(QFile &file)
 
 	shv::chainpack::RpcValue config = cp::RpcValue::fromCpon(file.readAll().toStdString());
 	if (config.isMap()) {
-		QString templ_path = QString::fromStdString(config.toMap().value(BASED_ON_KEY).asString());
+		QString templ_path = QString::fromStdString(config.asMap().value(BASED_ON_KEY).asString());
 		if (!templ_path.isEmpty()) {
 			QStringList templ_path_parts = templ_path.split('/');
 			templ_path_parts.insert(templ_path_parts.count() - 1, FILES_NODE);
@@ -657,7 +657,7 @@ shv::chainpack::RpcValue AppRootNode::readAndMergeConfig(QFile &file)
 			else {
 				templ_path = QFileInfo(file.fileName()).absolutePath() + "/../" + templ_path;
 			}
-			cp::RpcValue::Map file_content_map = config.toMap();
+			cp::RpcValue::Map file_content_map = config.asMap();
 			file_content_map.erase(BASED_ON_KEY);
 			cp::RpcValue templ = readConfig(templ_path);
 			return shv::chainpack::Utils::mergeMaps(templ, file_content_map);

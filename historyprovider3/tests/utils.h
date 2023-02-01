@@ -188,7 +188,7 @@ const auto read_offset_0 = RpcValue::fromCpon(R"({"offset":0})");
 	DOCTEST_TEST_CASE(test_name)                                                             \
 	{                                                                                        \
 		NecroLog::registerTopic("MockRpcConnection", "");                                    \
-		NecroLog::setTopicsLogTresholds(":D");                                               \
+		NecroLog::setTopicsLogThresholds(":D");                                               \
 		QCoreApplication::setApplicationName("historyprovider tester");                      \
 		int argc = 0;                                                                        \
 		auto argv_1 = std::unique_ptr<char, decltype(&free)>(strdup(#test_name), std::free); \

@@ -135,8 +135,8 @@ shv::chainpack::RpcValue AppRootNode::callMethodRq(const shv::chainpack::RpcRequ
 	if(rq.shvPath().asString().empty()) {
 		if(rq.method() == cp::Rpc::METH_DEVICE_ID) {
 			ShvAgentApp *app = ShvAgentApp::instance();
-			const cp::RpcValue::Map& opts = app->rpcConnection()->connectionOptions().toMap();
-			const cp::RpcValue::Map& dev = opts.value(cp::Rpc::KEY_DEVICE).toMap();
+			const cp::RpcValue::Map& opts = app->rpcConnection()->connectionOptions().asMap();
+			const cp::RpcValue::Map& dev = opts.value(cp::Rpc::KEY_DEVICE).asMap();
 			//shvInfo() << dev[cp::Rpc::KEY_DEVICE_ID].toString();
 			return dev.value(cp::Rpc::KEY_DEVICE_ID).toString();
 		}
@@ -152,7 +152,7 @@ shv::chainpack::RpcValue AppRootNode::callMethodRq(const shv::chainpack::RpcRequ
 			QByteArray script;
 			cp::RpcValue::List args;
 			if(rq.params().isList()) {
-				for(auto p : rq.params().toList()) {
+				for(auto p : rq.params().asList()) {
 					if(p.isString())
 						script = QByteArray::fromStdString(p.asString());
 				}
@@ -162,8 +162,8 @@ shv::chainpack::RpcValue AppRootNode::callMethodRq(const shv::chainpack::RpcRequ
 			}
 
 			ShvAgentApp *app = ShvAgentApp::instance();
-			const cp::RpcValue::Map& opts = app->rpcConnection()->connectionOptions().toMap();
-			const cp::RpcValue::Map& dev = opts.value(cp::Rpc::KEY_DEVICE).toMap();
+			const cp::RpcValue::Map& opts = app->rpcConnection()->connectionOptions().asMap();
+			const cp::RpcValue::Map& dev = opts.value(cp::Rpc::KEY_DEVICE).asMap();
 			auto device_id = dev.value(cp::Rpc::KEY_DEVICE_ID).toString();
 			auto script_dir = QString::fromStdString("/tmp/shvagent/" + device_id + "/scripts/");
 			QByteArray sha1;
@@ -198,7 +198,7 @@ shv::chainpack::RpcValue AppRootNode::callMethodRq(const shv::chainpack::RpcRequ
 			new_params.push_back(cmd);
 			new_params.push_back(args);
 			if(rq.params().isList()) {
-				for(auto p : rq.params().toList()) {
+				for(auto p : rq.params().asList()) {
 					if(p.isMap()) {
 						new_params.push_back(p);
 					}
@@ -402,7 +402,7 @@ void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq, bool std_out_only
 		else {
 			if(rq2.params().isList() && !std_out_only) {
 				cp::RpcValue::List lst;
-				for(auto p : rq2.params().toList()) {
+				for(auto p : rq2.params().asList()) {
 					if(p.isString()) {
 						lst.push_back(exit_code);
 					}
@@ -445,16 +445,16 @@ void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq, bool std_out_only
 	QStringList args;
 	QProcessEnvironment env;
 	if(rq.params().isList()) {
-		for(auto p : rq.params().toList()) {
+		for(auto p : rq.params().asList()) {
 			if(p.isString()) {
 				cmd = p.toString();
 			}
 			else if(p.isList()) {
-				for(auto kv : p.toList())
+				for(auto kv : p.asList())
 					args << QString::fromStdString(kv.asString());
 			}
 			else if(p.isMap()) {
-				for(auto kv : p.toMap())
+				for(auto kv : p.asMap())
 					env.insert(QString::fromStdString(kv.first), QString::fromStdString(kv.second.toStdString()));
 			}
 			else {
@@ -542,16 +542,16 @@ void ShvAgentApp::tester_processShvCalls()
 	if(!m_rpcConnection->isBrokerConnected()) {
 		return;
 	}
-	const shv::chainpack::RpcValue::List &tests = m_testerScript.toList();
+	const shv::chainpack::RpcValue::List &tests = m_testerScript.asList();
 	if(m_currentTestIndex >= tests.size())
 		return;
 
 	cp::RpcValue rv = tests.at(m_currentTestIndex++);
-	const shv::chainpack::RpcValue::Map &task = rv.toMap();
+	const shv::chainpack::RpcValue::Map &task = rv.asMap();
 	std::string descr = task.value("descr").toString();
 	std::string cmd = task.value("cmd").toString();
 
-	unsigned on_success_skip = task.value("onSuccess").toMap().value("skip", 1).toUInt();
+	unsigned on_success_skip = task.value("onSuccess").asMap().value("skip", 1).toUInt();
 	unsigned on_success_ix = m_currentTestIndex + on_success_skip - 1;
 	auto on_success_fn = [this, on_success_skip, on_success_ix]() {
 		if(on_success_skip > 0) {

@@ -92,7 +92,7 @@ void DirSyncTask::onLsFinished(const QString &shv_path, const shv::chainpack::Rp
 {
 	if (resp.isSuccess()) {
 		m_dirsToSync[shv_path].status = RpcCallStatus::Ok;
-		for (const cp::RpcValue &ls_item : resp.result().toList()) {
+		for (const cp::RpcValue &ls_item : resp.result().asList()) {
 			QString file_path = shv_path + "/" + rpcvalue_cast<QString>(ls_item);
 			if (m_masterBrokerPath.isEmpty() || !file_path.endsWith(".cptempl")) {
 			m_lsResult << file_path;
@@ -145,7 +145,7 @@ void DirSyncTask::onDirFinished(const QString &shv_path, const shv::chainpack::R
 {
 	if (resp.isSuccess()) {
 		bool has_read = false;
-		for (const cp::RpcValue &dir_item : resp.result().toList()) {
+		for (const cp::RpcValue &dir_item : resp.result().asList()) {
 			if (dir_item.isMap()) {
 				if (dir_item.asMap().value("name") == "read") {
 					has_read = true;

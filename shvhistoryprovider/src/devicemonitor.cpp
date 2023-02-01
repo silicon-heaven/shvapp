@@ -211,7 +211,7 @@ void DeviceMonitor::isDeviceOnline(const QString &site_path, std::function<void(
 		if (!result.isList()) {
 			callback(false);
 		}
-		const cp::RpcValue::List &result_list = result.toList();
+		const cp::RpcValue::List &result_list = result.asList();
 		for (const cp::RpcValue &list_item : result_list) {
 			if (list_item.isString() && list_item.asString() == device_name) {
 				callback(true);
