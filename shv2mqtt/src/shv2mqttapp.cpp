@@ -139,7 +139,7 @@ Shv2MqttApp::Shv2MqttApp(int& argc, char** argv, AppCliOptions* cli_opts, shv::i
 	m_rpcConnection->setParent(this);
 
 	m_rpcConnection->setCliOptions(cli_opts);
-	shvInfo() << "Will subscribe to:" << cli_opts->subscribePath();
+	shvInfo() << "Will subscribe to:" << cli_opts->subscribePaths().toCpon();
 
 	connect(m_rpcConnection, &si::rpc::ClientConnection::brokerConnectedChanged, this, &Shv2MqttApp::onBrokerConnectedChanged);
 	connect(m_rpcConnection, &si::rpc::ClientConnection::rpcMessageReceived, this, &Shv2MqttApp::onRpcMessageReceived);
@@ -202,7 +202,10 @@ Shv2MqttApp* Shv2MqttApp::instance()
 void Shv2MqttApp::onBrokerConnectedChanged(bool is_connected)
 {
 	m_isBrokerConnected = is_connected;
-	m_rpcConnection->callMethodSubscribe(m_cliOptions->subscribePath(), "chng");
+	for (const auto& path : m_cliOptions->subscribePaths().asList()) {
+		shvInfo() << "Subscribing to" << path;
+		m_rpcConnection->callMethodSubscribe(path.toString(), "chng");
+	}
 }
 
 void Shv2MqttApp::onRpcMessageReceived(const cp::RpcMessage& msg)

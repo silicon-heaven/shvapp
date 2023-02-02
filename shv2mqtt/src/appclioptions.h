@@ -8,7 +8,7 @@ private:
 	using Super = shv::iotqt::rpc::DeviceAppCliOptions;
 public:
 	AppCliOptions();
-	CLIOPTION_GETTER_SETTER2(std::string, "app.subscribePath", s, setS, ubscribePath)
+	CLIOPTION_GETTER_SETTER2(shv::chainpack::RpcValue, "mqtt.subscribePaths", s, setS, ubscribePaths)
 	CLIOPTION_GETTER_SETTER2(std::string, "app.mqttHostname", m, setM, qttHostname)
 	CLIOPTION_GETTER_SETTER2(shv::chainpack::RpcValue::UInt, "app.mqttPort", m, setM, qttPort)
 	CLIOPTION_GETTER_SETTER2(std::string, "app.mqttUser", m, setM, qttUser)

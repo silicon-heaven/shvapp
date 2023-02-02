@@ -2,8 +2,8 @@
 
 AppCliOptions::AppCliOptions()
 {
-	addOption("app.subscribePath").setType(shv::chainpack::RpcValue::Type::String).setNames("--subscribe-path")
-		.setComment("Path to subscribe to").setDefaultValue("test");
+	addOption("mqtt.subscribePaths").setType(shv::chainpack::RpcValue::Type::String)
+		.setComment("Can be set only from a config file");
 	addOption("app.mqttHostname").setType(shv::chainpack::RpcValue::Type::String).setNames("--mqtt-hostname")
 		.setComment("Hostname of the MQTT broker to connect to").setDefaultValue("localhost");
 	addOption("app.mqttPort").setType(shv::chainpack::RpcValue::Type::UInt).setNames("--mqtt-port")
