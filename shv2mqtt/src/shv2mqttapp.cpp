@@ -138,14 +138,6 @@ Shv2MqttApp::Shv2MqttApp(int& argc, char** argv, AppCliOptions* cli_opts, shv::i
 {
 	m_rpcConnection->setParent(this);
 
-	if (!cli_opts->user_isset()) {
-		cli_opts->setUser("iot");
-	}
-
-	if (!cli_opts->password_isset()) {
-		cli_opts->setPassword("lub42DUB");
-	}
-
 	m_rpcConnection->setCliOptions(cli_opts);
 	shvInfo() << "Will subscribe to:" << cli_opts->subscribePath();
 
