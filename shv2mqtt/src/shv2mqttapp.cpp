@@ -172,14 +172,15 @@ Shv2MqttApp::Shv2MqttApp(int& argc, char** argv, AppCliOptions* cli_opts, shv::i
 		shvInfo() << "Connected to the MQTT broker";
 	});
 	connect(m_mqttClient, &QMqttClient::disconnected, [] {
-		shvInfo() << "Disconnected from the MQTT broker";
+		shvWarning() << "Disconnected from the MQTT broker";
 	});
 
 	connect(m_mqttClient, &QMqttClient::stateChanged, this,  [] (const QMqttClient::ClientState& s) {
-		mqttInfo() << client_state_to_string(s);
+		mqttInfo() << "MQTT state changed:" << client_state_to_string(s);
 	});
 	connect(m_mqttClient, &QMqttClient::errorChanged, this, [] (const QMqttClient::ClientError& s) {
-		mqttError() << client_error_to_string(s);
+		mqttError() << "MQTT error occured:" << client_error_to_string(s);
+		Shv2MqttApp::exit(1);
 	});
 
 	m_mqttClient->connectToHost();
