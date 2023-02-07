@@ -3,8 +3,6 @@
 #include <QCoreApplication>
 #include <shv/iotqt/rpc/clientconnection.h>
 
-#include <QCoroSignal>
-
 class AppCliOptions;
 
 class Application : public QCoreApplication
@@ -16,7 +14,7 @@ public:
 	Application(int &argc, char **argv, AppCliOptions* cli_opts);
 
 private:
-	QCoro::Task<void> onShvStateChanged();
+	void onShvStateChanged();
 
 	AppCliOptions *m_cliOptions;
 	shv::iotqt::rpc::ClientConnection *m_rpcConnection;
