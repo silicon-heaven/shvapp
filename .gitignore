@@ -47,3 +47,8 @@ _build
 
 user.telegram.config
 user.config
+
+#clang
+.cache
+compile_commands.json
+
