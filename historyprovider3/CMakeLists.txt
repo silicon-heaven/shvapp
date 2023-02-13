@@ -1,4 +1,4 @@
-add_library(libhistoryprovider
+add_library(libhistoryprovider STATIC
     src/appclioptions.cpp
     src/leafnode.cpp
     src/getlog.cpp
