@@ -40,7 +40,7 @@ This should compile the whole project.
 ### The shv broker
 First of all, you need to run the shv broker. To run it, you'll also need some configuration files. There's an example configuration in the `shvbroker/etc/shv/shvbroker/` directory. So, to run `shvbroker` from the build directory, you can use this command:
 ```sh
-$ ./bin/shvbroker --config-dir ../shvbroker/etc/shv/shvbroker/
+$ ./shvbroker/shvbroker --config-dir ../../shvbroker/etc/shv/shvbroker/
 ```
 This runs the broker on `localhost:3755`. The `--config-dir` argument specifies the configuration directory.
 
