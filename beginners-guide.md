@@ -10,6 +10,7 @@ To compile *shv*, you'll need this:
 1) Clone the repository. Don't forget to clone the submodules.
 ```sh
 $ git clone --recurse-submodules https://github.com/silicon-heaven/shvapp.git
+$ mv shvapp shv
 ```
 2) Enter the repository directory, make a build directory and enter it.
 ```sh
