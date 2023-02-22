@@ -20,10 +20,21 @@ $ cd build
 ```
 3) Generate the Makefile via *qmake* and build the app.
 ```sh
-$ qmake ..
+$ cmake ..
 $ make
 ```
-This should compile the whole project and produce binaries inside the `bin/` directory inside the build directory.
+For Qt5 build 
+```sh
+$ cmake -DUSE_QT6=OFF ..
+$ make
+```
+For Qt5 build with custom Qt
+```sh
+$ cmake -DCMAKE_PREFIX_PATH:STRING=/path/to/qt/gcc_64 -DUSE_QT6=OFF ..
+$ make
+```
+
+This should compile the whole project.
 
 ## Running
 ### The shv broker
