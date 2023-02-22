@@ -1,4 +1,3 @@
-
 # "Complete beginner" shv tutorial
 This is a tutorial on how to compile *shv*. If you've never had anything to do with *shv*, this is a good place to start. This article also includes simple examples of how to use the various utilities *shv* has.
 
@@ -10,7 +9,7 @@ To compile *shv*, you'll need this:
 ## Compiling
 1) Clone the repository. Don't forget to clone the submodules.
 ```sh
-$ git clone --recurse-submodules git@jessie.elektroline.cz:elektroline/shv.git
+$ git clone --recurse-submodules https://github.com/silicon-heaven/shvapp.git
 ```
 2) Enter the repository directory, make a build directory and enter it.
 ```sh
