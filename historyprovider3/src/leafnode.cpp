@@ -35,9 +35,9 @@ const std::vector<cp::MetaMethod> push_log_methods {
 };
 }
 
-LeafNode::LeafNode(const std::string& node_id, LogType log_type, ShvNode* parent)
+LeafNode::LeafNode(const std::string& node_id, const std::string& journal_cache_dir, LogType log_type, ShvNode* parent)
 	: Super(node_id, parent)
-	, m_journalCacheDir(shv::core::utils::joinPath(HistoryApp::instance()->cliOptions()->journalCacheRoot(), shvPath(), std::string{"_shvjournal"}))
+	, m_journalCacheDir(journal_cache_dir)
 	, m_logType(log_type)
 {
 	QDir(QString::fromStdString(m_journalCacheDir)).mkpath(".");

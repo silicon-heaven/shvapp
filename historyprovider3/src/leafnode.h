@@ -12,7 +12,7 @@ class LeafNode : public shv::iotqt::node::ShvNode
 	using Super = shv::iotqt::node::ShvNode;
 
 public:
-	LeafNode(const std::string& node_id, const LogType log_type, ShvNode* parent = nullptr);
+	LeafNode(const std::string& node_id, const std::string& journal_cache_dir, const LogType log_type, ShvNode* parent = nullptr);
 
 	size_t methodCount(const StringViewList& shv_path) override;
 	const shv::chainpack::MetaMethod* metaMethod(const StringViewList& shv_path, size_t ix) override;
