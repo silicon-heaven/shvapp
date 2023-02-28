@@ -16,46 +16,35 @@ QCoro::Generator<int> MockRpcConnection::driver()
 
 	// We want the test to download everything regardless of age. Ten years ought to be enough.
 	HistoryApp::instance()->cliOptions()->setCacheInitMaxAge(60 /*seconds*/ * 60 /*minutes*/ * 24 /*hours*/ * 365 /*days*/ * 10 /*years*/);
-	std::string cache_dir_path = "eyas/opc";
-	SEND_SITES_YIELD(mock_sites::fin_slave_broker);
-	std::string sub_path = "shv/eyas/opc";
-	EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
-	EXPECT_SUBSCRIPTION(sub_path, "chng");
-
-	create_dummy_cache_files(cache_dir_path, {
-		{ "2022-07-07T18-06-15-557.log2", dummy_logfile },
-		{ "2022-07-07T18-06-17-872.log2", dummy_logfile2 },
-		{ "dirtylog", dummy_logfile3 },
-	});
+	std::string cache_dir_path;
+	std::string getlog_node_shvpath;
+	std::string sub_path;
 
 	std::vector<std::string> expected_timestamps;
 	shv::core::utils::ShvGetLogParams get_log_params;
 
-	DOCTEST_SUBCASE("default params")
+	DOCTEST_SUBCASE("slave broker")
 	{
-		expected_timestamps = {
-			"2022-07-07T18:06:15.557Z",
-			"2022-07-07T18:06:17.784Z",
-			"2022-07-07T18:06:17.784Z",
-			"2022-07-07T18:06:17.869Z",
-			"2022-07-07T18:06:17.872Z",
-			"2022-07-07T18:06:17.874Z",
-			"2022-07-07T18:06:17.880Z",
-			"2022-07-07T18:06:20.900Z",
-		};
-	}
+		cache_dir_path = "eyas/opc";
+		getlog_node_shvpath = cache_dir_path;
+		SEND_SITES_YIELD(mock_sites::fin_slave_broker);
+		sub_path = "shv/eyas/opc";
+		EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
+		EXPECT_SUBSCRIPTION(sub_path, "chng");
 
-	DOCTEST_SUBCASE("since")
-	{
-		DOCTEST_SUBCASE("empty dir")
-		{
-			remove_cache_contents(cache_dir_path);
-			expected_timestamps = {};
-		}
+		create_dummy_cache_files(cache_dir_path, {
+			{ "2022-07-07T18-06-15-557.log2", dummy_logfile },
+			{ "2022-07-07T18-06-17-872.log2", dummy_logfile2 },
+			{ "dirtylog", dummy_logfile3 },
+		});
 
-		DOCTEST_SUBCASE("non-empty dir")
+		DOCTEST_SUBCASE("default params")
 		{
 			expected_timestamps = {
+				"2022-07-07T18:06:15.557Z",
+				"2022-07-07T18:06:17.784Z",
+				"2022-07-07T18:06:17.784Z",
+				"2022-07-07T18:06:17.869Z",
 				"2022-07-07T18:06:17.872Z",
 				"2022-07-07T18:06:17.874Z",
 				"2022-07-07T18:06:17.880Z",
@@ -63,70 +52,118 @@ QCoro::Generator<int> MockRpcConnection::driver()
 			};
 		}
 
-		get_log_params.since = RpcValue::DateTime::fromUtcString("2022-07-07T18:06:17.872Z");
+		DOCTEST_SUBCASE("since")
+		{
+			DOCTEST_SUBCASE("empty dir")
+			{
+				remove_cache_contents(cache_dir_path);
+				expected_timestamps = {};
+			}
+
+			DOCTEST_SUBCASE("non-empty dir")
+			{
+				expected_timestamps = {
+					"2022-07-07T18:06:17.872Z",
+					"2022-07-07T18:06:17.874Z",
+					"2022-07-07T18:06:17.880Z",
+					"2022-07-07T18:06:20.900Z",
+				};
+			}
+
+			get_log_params.since = RpcValue::DateTime::fromUtcString("2022-07-07T18:06:17.872Z");
+		}
+
+		DOCTEST_SUBCASE("until")
+		{
+			expected_timestamps = {
+				"2022-07-07T18:06:15.557Z",
+				"2022-07-07T18:06:17.784Z",
+				"2022-07-07T18:06:17.784Z",
+				"2022-07-07T18:06:17.869Z",
+			};
+			get_log_params.until = RpcValue::DateTime::fromUtcString("2022-07-07T18:06:17.872Z");
+		}
+
+		DOCTEST_SUBCASE("since last correctly selects files and doesn't crash")
+		{
+			get_log_params.since = "last";
+			get_log_params.withSnapshot = true;
+
+			DOCTEST_SUBCASE("empty dir")
+			{
+				remove_cache_contents(cache_dir_path);
+			}
+
+			DOCTEST_SUBCASE("just dirtylog")
+			{
+				create_dummy_cache_files(cache_dir_path, {
+					{ "dirtylog", dummy_logfile3 },
+				});
+				expected_timestamps = {
+					"2022-07-07T18:06:20.900Z",
+				};
+			}
+
+			DOCTEST_SUBCASE("just a log file")
+			{
+				create_dummy_cache_files(cache_dir_path, {
+					{ "2022-07-07T18-06-17-872.log2", dummy_logfile2 },
+				});
+
+				// Note: the timestamps are correct, sinceLast will set all result timestamps to the latest one.
+				expected_timestamps = {
+					"2022-07-07T18:06:17.880Z",
+					"2022-07-07T18:06:17.880Z",
+					"2022-07-07T18:06:17.880Z",
+				};
+			}
+
+			DOCTEST_SUBCASE("dirty log and log file")
+			{
+				create_dummy_cache_files(cache_dir_path, {
+					{ "2022-07-07T18-06-17-872.log2", dummy_logfile2 },
+					{ "dirtylog", dummy_logfile3 },
+				});
+				expected_timestamps = {
+					"2022-07-07T18:06:20.900Z",
+					"2022-07-07T18:06:20.900Z",
+					"2022-07-07T18:06:20.900Z",
+				};
+			}
+		}
 	}
 
-	DOCTEST_SUBCASE("until")
+	DOCTEST_SUBCASE("master broker")
 	{
-		expected_timestamps = {
-			"2022-07-07T18:06:15.557Z",
-			"2022-07-07T18:06:17.784Z",
-			"2022-07-07T18:06:17.784Z",
-			"2022-07-07T18:06:17.869Z",
-		};
-		get_log_params.until = RpcValue::DateTime::fromUtcString("2022-07-07T18:06:17.872Z");
-	}
+		cache_dir_path = "fin/hel/tram/hel002";
+		getlog_node_shvpath = "fin/hel/tram/hel002/eyas/opc";
+		SEND_SITES_YIELD(mock_sites::fin_master_broker);
+		sub_path = "shv/fin/hel/tram/hel002";
+		EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
+		EXPECT_SUBSCRIPTION(sub_path, "chng");
 
-	DOCTEST_SUBCASE("since last correctly selects files and doesn't crash")
-	{
-		get_log_params.since = "last";
-		get_log_params.withSnapshot = true;
+		create_dummy_cache_files(cache_dir_path, {
+			{ "eyas/opc/2022-07-07T18-06-15-557.log2", dummy_logfile },
+			{ "eyas/opc/2022-07-07T18-06-17-872.log2", dummy_logfile2 },
+			{ "eyas/opc/dirtylog", dummy_logfile3 },
+		});
 
-		DOCTEST_SUBCASE("empty dir")
+		DOCTEST_SUBCASE("default params")
 		{
-			remove_cache_contents(cache_dir_path);
-		}
-
-		DOCTEST_SUBCASE("just dirtylog")
-		{
-			create_dummy_cache_files(cache_dir_path, {
-				{ "dirtylog", dummy_logfile3 },
-			});
 			expected_timestamps = {
-				"2022-07-07T18:06:20.900Z",
-			};
-		}
-
-		DOCTEST_SUBCASE("just a log file")
-		{
-			create_dummy_cache_files(cache_dir_path, {
-				{ "2022-07-07T18-06-17-872.log2", dummy_logfile2 },
-			});
-
-			// Note: the timestamps are correct, sinceLast will set all result timestamps to the latest one.
-			expected_timestamps = {
+				"2022-07-07T18:06:15.557Z",
+				"2022-07-07T18:06:17.784Z",
+				"2022-07-07T18:06:17.784Z",
+				"2022-07-07T18:06:17.869Z",
+				"2022-07-07T18:06:17.872Z",
+				"2022-07-07T18:06:17.874Z",
 				"2022-07-07T18:06:17.880Z",
-				"2022-07-07T18:06:17.880Z",
-				"2022-07-07T18:06:17.880Z",
-			};
-		}
-
-		DOCTEST_SUBCASE("dirty log and log file")
-		{
-			create_dummy_cache_files(cache_dir_path, {
-				{ "2022-07-07T18-06-17-872.log2", dummy_logfile2 },
-				{ "dirtylog", dummy_logfile3 },
-			});
-			expected_timestamps = {
-				"2022-07-07T18:06:20.900Z",
-				"2022-07-07T18:06:20.900Z",
 				"2022-07-07T18:06:20.900Z",
 			};
 		}
 	}
 
-
-	REQUEST_YIELD(cache_dir_path, "getLog", get_log_params.toRpcValue());
+	REQUEST_YIELD(getlog_node_shvpath, "getLog", get_log_params.toRpcValue());
 
 	// For now,I'll only make a simple test: I'll assume that if the timestamps are correct, everything else is also
 	// correct. This is not the place to test the log uitilities anyway.

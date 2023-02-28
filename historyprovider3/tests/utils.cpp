@@ -43,6 +43,11 @@ void create_dummy_cache_files(const std::string& site_path, const std::vector<Du
 	auto cache_dir = get_site_cache_dir(site_path);
 
 	for (const auto& file : files) {
+		// I can't think of a better way to create all parent
+		// directories of file name without first creating the filename
+		// as a directory and then removing it.
+		QDir(cache_dir.filePath(file.fileName)).mkpath(".");
+		QDir(cache_dir.filePath(file.fileName)).removeRecursively();
 		QFile qfile(cache_dir.filePath(file.fileName));
 		qfile.open(QFile::WriteOnly);
 		qfile.write(file.content.c_str());
