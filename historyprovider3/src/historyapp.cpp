@@ -167,7 +167,6 @@ void createTree(shv::iotqt::node::ShvNode* parent_node, const cp::RpcValue::Map&
 
 		if (slave_found != SlaveFound::Yes) {
 			slave_found = SlaveFound::Yes;
-			journal_cache_dir = shv::core::utils::joinPath(journal_cache_dir, "_shvjournal");
 			slave_hps.push_back(SlaveHpInfo {
 				.is_leaf = meta_node.hasKey("HP") || !meta_node.value("HP3").asMap().value("slave").toBool(),
 				.log_type = log_type,
