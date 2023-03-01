@@ -21,6 +21,8 @@
 
 #include <QCoroSignal>
 
+#include <set>
+
 using namespace std;
 namespace cp = shv::chainpack;
 namespace si = shv::iotqt;
@@ -147,7 +149,7 @@ enum class SlaveFound {
 	No
 };
 
-void createTree(shv::iotqt::node::ShvNode* parent_node, const cp::RpcValue::Map& tree, const QString& node_name, std::string journal_cache_dir, std::vector<SlaveHpInfo>& slave_hps, SlaveFound slave_found)
+void createTree(shv::iotqt::node::ShvNode* parent_node, const cp::RpcValue::Map& tree, const QString& node_name, std::string journal_cache_dir, std::vector<SlaveHpInfo>& slave_hps, std::set<std::string>& leaf_nodes, SlaveFound slave_found)
 {
 	shv::iotqt::node::ShvNode* node;
 	// We don't want a "shv" directory in out directory tree.
@@ -165,16 +167,19 @@ void createTree(shv::iotqt::node::ShvNode* parent_node, const cp::RpcValue::Map&
 			meta_node.hasKey("HP") ? LogType::Legacy :
 			LogType::Normal;
 
+		node = new LeafNode(node_name.toStdString(), journal_cache_dir, log_type, parent_node);
+		auto leaf_shv_path = shv::core::utils::joinPath(std::string{"shv"}, node->shvPath());
 		if (slave_found != SlaveFound::Yes) {
 			slave_found = SlaveFound::Yes;
 			slave_hps.push_back(SlaveHpInfo {
 				.is_leaf = meta_node.hasKey("HP") || !meta_node.value("HP3").asMap().value("slave").toBool(),
 				.log_type = log_type,
-				.shv_path = shv::core::utils::joinPath(std::string{"shv"}, parent_node->shvPath(), node_name.toStdString()),
+				.shv_path = leaf_shv_path,
 				.cache_dir_path = QString::fromStdString(journal_cache_dir)
 			});
 		}
-		node = new LeafNode(node_name.toStdString(), journal_cache_dir, log_type, parent_node);
+
+		leaf_nodes.insert(leaf_shv_path);
 	} else {
 		node = new shv::iotqt::node::ShvNode(node_name.toStdString(), parent_node);
 	}
@@ -185,7 +190,7 @@ void createTree(shv::iotqt::node::ShvNode* parent_node, const cp::RpcValue::Map&
 		}
 
 		if (v.type() == cp::RpcValue::Type::Map) {
-			createTree(node, v.asMap(), QString::fromStdString(k), journal_cache_dir, slave_hps, slave_found);
+			createTree(node, v.asMap(), QString::fromStdString(k), journal_cache_dir, slave_hps, leaf_nodes, slave_found);
 		}
 	}
 }
@@ -312,9 +317,10 @@ try
 	}
 
 	std::vector<SlaveHpInfo> slave_hps;
-	createTree(m_root, result.asMap(), "shv", cliOptions()->journalCacheRoot(), slave_hps, SlaveFound::No);
+	std::set<std::string> leaf_nodes;
+	createTree(m_root, result.asMap(), "shv", cliOptions()->journalCacheRoot(), slave_hps, leaf_nodes, SlaveFound::No);
 
-	m_shvJournalNode = new ShvJournalNode(slave_hps, m_root);
+	m_shvJournalNode = new ShvJournalNode(slave_hps, leaf_nodes, m_root);
 
 	m_leafNodes = m_shvTree->findChildren<LeafNode*>();
 	if (!m_leafNodes.empty()) {

@@ -6,6 +6,8 @@
 #include <shv/iotqt/node/shvnode.h>
 #include <shv/iotqt/node/localfsnode.h>
 
+#include <set>
+
 struct SlaveHpInfo {
 	bool is_leaf;
 	LogType log_type;
@@ -20,7 +22,7 @@ class ShvJournalNode : public shv::iotqt::node::LocalFSNode
 	using Super = shv::iotqt::node::LocalFSNode;
 
 public:
-	ShvJournalNode(const std::vector<SlaveHpInfo>& slave_hps, ShvNode* parent = nullptr);
+	ShvJournalNode(const std::vector<SlaveHpInfo>& slave_hps, const std::set<std::string>& leaf_nodes, ShvNode* parent = nullptr);
 
 	size_t methodCount(const StringViewList& shv_path) override;
 	const shv::chainpack::MetaMethod* metaMethod(const StringViewList& shv_path, size_t ix) override;
@@ -36,6 +38,7 @@ private:
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
 
 	std::vector<SlaveHpInfo> m_slaveHps;
+	std::set<std::string> m_leafNodes;
 	QString m_remoteLogShvPath;
 	QString m_cacheDirPath;
 	QMap<QString, bool> m_syncInProgress;

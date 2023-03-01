@@ -30,15 +30,24 @@ const std::vector<cp::MetaMethod> methods {
 
 const auto DIRTY_FILENAME = "dirtylog";
 
-std::string dirty_log_path(const QString& cache_dir_path)
+template <typename StringType>
+std::string dirty_log_path(const StringType& cache_dir_path)
 {
-	return QDir(cache_dir_path).filePath(DIRTY_FILENAME).toStdString();
-}
+	return shv::coreqt::utils::joinPath<std::string>(cache_dir_path, DIRTY_FILENAME);
 }
 
-ShvJournalNode::ShvJournalNode(const std::vector<SlaveHpInfo>& slave_hps, ShvNode* parent)
+template <typename StringType>
+std::string get_cache_dir_path(const QString& cache_root, const StringType& slave_hp_path)
+{
+	return shv::coreqt::utils::joinPath<std::string>(cache_root, slave_hp_path);
+}
+
+}
+
+ShvJournalNode::ShvJournalNode(const std::vector<SlaveHpInfo>& slave_hps, const std::set<std::string>& leaf_nodes, ShvNode* parent)
 	: Super(QString::fromStdString(HistoryApp::instance()->cliOptions()->journalCacheRoot()), "_shvjournal", parent)
 	, m_slaveHps(slave_hps)
+	, m_leafNodes(leaf_nodes)
 	, m_cacheDirPath(QString::fromStdString(HistoryApp::instance()->cliOptions()->journalCacheRoot()))
 {
 	QDir(m_cacheDirPath).mkpath(".");
@@ -65,8 +74,9 @@ ShvJournalNode::ShvJournalNode(const std::vector<SlaveHpInfo>& slave_hps, ShvNod
 		if (dirtylog_age_cache.find(current_slave_hp_path) == dirtylog_age_cache.end()) {
 			dirtylog_age_cache.emplace(current_slave_hp_path, 0);
 
-			if (QFile(QString::fromStdString(dirty_log_path(current_slave_cache_dir_path))).exists()) {
-				if (auto reader = shv::core::utils::ShvJournalFileReader(dirty_log_path(current_slave_cache_dir_path)); reader.next()) {
+			auto journal_dir_path = get_cache_dir_path(m_cacheDirPath, current_slave_cache_dir_path);
+			if (QFile(QString::fromStdString(dirty_log_path(journal_dir_path))).exists()) {
+				if (auto reader = shv::core::utils::ShvJournalFileReader(dirty_log_path(journal_dir_path)); reader.next()) {
 					dirtylog_age_cache[current_slave_hp_path] = reader.entry().epochMsec;
 				}
 			}
@@ -106,8 +116,12 @@ void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 						return;
 					}
 
-					auto writer = shv::core::utils::ShvJournalFileWriter(dirty_log_path(it->cache_dir_path));
-					auto path_without_prefix = path.substr(it->shv_path.size() + 1 /* for the slash */);
+					auto longest_prefix = shv::core::utils::findLongestPrefix(m_leafNodes, path);
+					// get rid of the shv prefix
+					auto longest_prefix_without_shv = longest_prefix->substr(4);
+
+					auto writer = shv::core::utils::ShvJournalFileWriter(dirty_log_path(get_cache_dir_path(m_cacheDirPath, longest_prefix_without_shv)));
+					auto path_without_prefix = path.substr(longest_prefix->size() + 1 /* for the slash */);
 					auto data_change = shv::chainpack::DataChange::fromRpcValue(ntf.params());
 
 					auto entry = shv::core::utils::ShvJournalEntry(path_without_prefix, data_change.value()
@@ -189,7 +203,8 @@ void ShvJournalNode::trimDirtyLog(const QString& slave_hp_path, const QString& c
 {
 	journalInfo() << "Trimming dirty log for" << slave_hp_path;
 	using shv::coreqt::Utils;
-	QDir cache_dir(cache_dir_path);
+	auto journal_dir_path = cache_dir_path;
+	QDir cache_dir(journal_dir_path);
 	auto entries = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name | QDir::Reversed);
 
 	if (entries.empty() || entries.at(0) != DIRTY_FILENAME) {
@@ -202,7 +217,7 @@ void ShvJournalNode::trimDirtyLog(const QString& slave_hp_path, const QString& c
 		return;
 	}
 
-	if (!shv::core::utils::ShvJournalFileReader(dirty_log_path(cache_dir_path)).next()) {
+	if (!shv::core::utils::ShvJournalFileReader(dirty_log_path(journal_dir_path)).next()) {
 		// No entries in the dirty log file, nothing to change.
 		journalDebug() << "Dirty log empty, nothing to trim";
 		return;
@@ -236,7 +251,7 @@ void ShvJournalNode::trimDirtyLog(const QString& slave_hp_path, const QString& c
 	write_entries_to_file(cache_dir.filePath(entries.at(1)), newest_file_entries, Overwrite::Yes);
 
 	// Now filter dirty log's newer events.
-	shv::core::utils::ShvJournalFileReader reader(dirty_log_path(cache_dir_path));
+	shv::core::utils::ShvJournalFileReader reader(dirty_log_path(journal_dir_path));
 	std::vector<shv::core::utils::ShvJournalEntry> new_dirty_log_entries;
 	while (reader.next()) {
 		if (reader.entry().epochMsec >= newest_entry_msec) {
@@ -244,7 +259,7 @@ void ShvJournalNode::trimDirtyLog(const QString& slave_hp_path, const QString& c
 		}
 	}
 
-	write_entries_to_file(QString::fromStdString(dirty_log_path(cache_dir_path)), new_dirty_log_entries, Overwrite::Yes);
+	write_entries_to_file(QString::fromStdString(dirty_log_path(journal_dir_path)), new_dirty_log_entries, Overwrite::Yes);
 }
 
 namespace {
@@ -439,7 +454,7 @@ public:
 		if (!file_list.asList().empty() && file_list.asList().front().asList().at(LS_FILES_RESPONSE_FILETYPE) == "d") {
 			for (const auto& current_directory : file_list.asList()) {
 				auto dir_name = QString::fromStdString(current_directory.asList().at(LS_FILES_RESPONSE_FILENAME).asString());
-				co_await impl_doSync(slave_hp_path, cache_dir_path, shv::coreqt::utils::joinPath(shvjournal_shvpath, dir_name), dir_name);
+				co_await impl_doSync(slave_hp_path, cache_dir_path, shv::coreqt::utils::joinPath(shvjournal_shvpath, dir_name), shv::coreqt::utils::joinPath(path_prefix, dir_name));
 			}
 			co_return;
 		}
