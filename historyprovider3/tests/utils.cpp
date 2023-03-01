@@ -11,8 +11,13 @@ QDir get_site_cache_dir(const std::string& site_path)
 void remove_cache_contents(const std::string& site_path)
 {
 	auto cache_dir = get_site_cache_dir(site_path);
-	cache_dir.removeRecursively();
-	cache_dir.mkpath(".");
+	auto it = QDirIterator(cache_dir, QDirIterator::Subdirectories);
+	while (it.hasNext()) {
+		auto entry = it.next();
+		if (it.fileInfo().isFile()) {
+			QFile(entry).remove();
+		}
+	}
 }
 
 RpcValue::List get_cache_contents(const std::string& site_path)
