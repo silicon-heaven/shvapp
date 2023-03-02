@@ -15,8 +15,6 @@
 #include <QDirIterator>
 #include <QTimer>
 
-#include <QCoroSignal>
-
 #define journalDebug() shvCDebug("historyjournal")
 #define journalInfo() shvCInfo("historyjournal")
 

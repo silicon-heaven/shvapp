@@ -19,7 +19,6 @@
 #include <QDirIterator>
 #include <QTimer>
 
-#include <QCoroSignal>
 #include <QFuture>
 #include <QPromise>
 

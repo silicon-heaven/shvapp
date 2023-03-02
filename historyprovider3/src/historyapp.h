@@ -5,7 +5,6 @@
 #include <QCoreApplication>
 #include <QElapsedTimer>
 
-#include <QCoroTask>
 #include <QFuture>
 
 class AppCliOptions;

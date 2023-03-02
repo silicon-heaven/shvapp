@@ -9,7 +9,7 @@ add_library(libhistoryprovider STATIC
 
 target_enable_coroutines(libhistoryprovider)
 target_include_directories(libhistoryprovider PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(libhistoryprovider PUBLIC QCoro::Coro libshviotqt)
+target_link_libraries(libhistoryprovider PUBLIC libshviotqt)
 
 add_executable(historyprovider3
     src/main.cpp
