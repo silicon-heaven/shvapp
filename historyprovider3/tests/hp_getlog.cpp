@@ -10,14 +10,17 @@
 
 #include <shv/core/utils/shvlogrpcvaluereader.h>
 
-QCoro::Generator<int> MockRpcConnection::driver()
+QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 {
-	co_yield {};
+	QQueue<std::function<CallNext(MockRpcConnection*)>> res;
 
-	// We want the test to download everything regardless of age. Ten years ought to be enough.
-	HistoryApp::instance()->cliOptions()->setCacheInitMaxAge(60 /*seconds*/ * 60 /*minutes*/ * 24 /*hours*/ * 365 /*days*/ * 10 /*years*/);
+	enqueue(res, [=] (MockRpcConnection*) {
+		// We want the test to download everything regardless of age. Ten years ought to be enough.
+		HistoryApp::instance()->cliOptions()->setCacheInitMaxAge(60 /*seconds*/ * 60 /*minutes*/ * 24 /*hours*/ * 365 /*days*/ * 10 /*years*/);
+		return CallNext::Yes;
+	});
 	std::string cache_dir_path;
-	std::string getlog_node_shvpath;
+	auto getlog_node_shvpath = std::make_shared<std::string>();
 	std::string sub_path;
 
 	std::vector<std::string> expected_timestamps;
@@ -26,16 +29,23 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	DOCTEST_SUBCASE("slave broker")
 	{
 		cache_dir_path = "eyas/opc";
-		getlog_node_shvpath = cache_dir_path;
-		SEND_SITES_YIELD(mock_sites::fin_slave_broker);
+		*getlog_node_shvpath = cache_dir_path;
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			SEND_SITES_YIELD(mock_sites::fin_slave_broker);
+		});
 		sub_path = "shv/eyas/opc";
-		EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
-		EXPECT_SUBSCRIPTION(sub_path, "chng");
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION(sub_path, "chng");
 
-		create_dummy_cache_files(cache_dir_path, {
-			{ "2022-07-07T18-06-15-557.log2", dummy_logfile },
-			{ "2022-07-07T18-06-17-872.log2", dummy_logfile2 },
-			{ "dirtylog", dummy_logfile3 },
+			create_dummy_cache_files(cache_dir_path, {
+				{ "2022-07-07T18-06-15-557.log2", dummy_logfile },
+				{ "2022-07-07T18-06-17-872.log2", dummy_logfile2 },
+				{ "dirtylog", dummy_logfile3 },
+			});
+			return CallNext::Yes;
 		});
 
 		DOCTEST_SUBCASE("default params")
@@ -56,7 +66,10 @@ QCoro::Generator<int> MockRpcConnection::driver()
 		{
 			DOCTEST_SUBCASE("empty dir")
 			{
-				remove_cache_contents(cache_dir_path);
+				enqueue(res, [=] (MockRpcConnection*) {
+					remove_cache_contents(cache_dir_path);
+					return CallNext::Yes;
+				});
 				expected_timestamps = {};
 			}
 
@@ -91,13 +104,19 @@ QCoro::Generator<int> MockRpcConnection::driver()
 
 			DOCTEST_SUBCASE("empty dir")
 			{
-				remove_cache_contents(cache_dir_path);
+				enqueue(res, [=] (MockRpcConnection*) {
+					remove_cache_contents(cache_dir_path);
+					return CallNext::Yes;
+				});
 			}
 
 			DOCTEST_SUBCASE("just dirtylog")
 			{
-				create_dummy_cache_files(cache_dir_path, {
-					{ "dirtylog", dummy_logfile3 },
+				enqueue(res, [=] (MockRpcConnection*) {
+					create_dummy_cache_files(cache_dir_path, {
+						{ "dirtylog", dummy_logfile3 },
+					});
+					return CallNext::Yes;
 				});
 				expected_timestamps = {
 					"2022-07-07T18:06:20.900Z",
@@ -106,8 +125,11 @@ QCoro::Generator<int> MockRpcConnection::driver()
 
 			DOCTEST_SUBCASE("just a log file")
 			{
-				create_dummy_cache_files(cache_dir_path, {
-					{ "2022-07-07T18-06-17-872.log2", dummy_logfile2 },
+				enqueue(res, [=] (MockRpcConnection*) {
+					create_dummy_cache_files(cache_dir_path, {
+						{ "2022-07-07T18-06-17-872.log2", dummy_logfile2 },
+					});
+					return CallNext::Yes;
 				});
 
 				// Note: the timestamps are correct, sinceLast will set all result timestamps to the latest one.
@@ -120,9 +142,12 @@ QCoro::Generator<int> MockRpcConnection::driver()
 
 			DOCTEST_SUBCASE("dirty log and log file")
 			{
-				create_dummy_cache_files(cache_dir_path, {
-					{ "2022-07-07T18-06-17-872.log2", dummy_logfile2 },
-					{ "dirtylog", dummy_logfile3 },
+				enqueue(res, [=] (MockRpcConnection*) {
+					create_dummy_cache_files(cache_dir_path, {
+						{ "2022-07-07T18-06-17-872.log2", dummy_logfile2 },
+							{ "dirtylog", dummy_logfile3 },
+					});
+					return CallNext::Yes;
 				});
 				expected_timestamps = {
 					"2022-07-07T18:06:20.900Z",
@@ -136,16 +161,23 @@ QCoro::Generator<int> MockRpcConnection::driver()
 	DOCTEST_SUBCASE("master broker")
 	{
 		cache_dir_path = "fin/hel/tram/hel002";
-		getlog_node_shvpath = "fin/hel/tram/hel002/eyas/opc";
-		SEND_SITES_YIELD(mock_sites::fin_master_broker);
+		*getlog_node_shvpath = "fin/hel/tram/hel002/eyas/opc";
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			SEND_SITES_YIELD(mock_sites::fin_master_broker);
+		});
 		sub_path = "shv/fin/hel/tram/hel002";
-		EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
-		EXPECT_SUBSCRIPTION(sub_path, "chng");
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION(sub_path, "chng");
 
-		create_dummy_cache_files(cache_dir_path, {
-			{ "eyas/opc/2022-07-07T18-06-15-557.log2", dummy_logfile },
-			{ "eyas/opc/2022-07-07T18-06-17-872.log2", dummy_logfile2 },
-			{ "eyas/opc/dirtylog", dummy_logfile3 },
+			create_dummy_cache_files(cache_dir_path, {
+				{ "eyas/opc/2022-07-07T18-06-15-557.log2", dummy_logfile },
+				{ "eyas/opc/2022-07-07T18-06-17-872.log2", dummy_logfile2 },
+				{ "eyas/opc/dirtylog", dummy_logfile3 },
+			});
+			return CallNext::Yes;
 		});
 
 		DOCTEST_SUBCASE("default params")
@@ -163,19 +195,25 @@ QCoro::Generator<int> MockRpcConnection::driver()
 		}
 	}
 
-	REQUEST_YIELD(getlog_node_shvpath, "getLog", get_log_params.toRpcValue());
+	enqueue(res, [=] (MockRpcConnection* mock) {
+		REQUEST_YIELD(*getlog_node_shvpath, "getLog", get_log_params.toRpcValue());
+	});
 
-	// For now,I'll only make a simple test: I'll assume that if the timestamps are correct, everything else is also
-	// correct. This is not the place to test the log uitilities anyway.
-	REQUIRE(m_messageQueue.head().isResponse());
-	std::vector<std::string> actual_timestamps;
-	shv::core::utils::ShvLogRpcValueReader entries(shv::chainpack::RpcResponse(m_messageQueue.head()).result());
-	while (entries.next()) {
-		actual_timestamps.push_back(RpcValue::DateTime::fromMSecsSinceEpoch(entries.entry().epochMsec).toIsoString());
-	}
+	enqueue(res, [=] (MockRpcConnection* mock) {
+		// For now,I'll only make a simple test: I'll assume that if the timestamps are correct, everything else is also
+		// correct. This is not the place to test the log uitilities anyway.
+		REQUIRE(mock->m_messageQueue.head().isResponse());
+		std::vector<std::string> actual_timestamps;
+		shv::core::utils::ShvLogRpcValueReader entries(shv::chainpack::RpcResponse(mock->m_messageQueue.head()).result());
+		while (entries.next()) {
+			actual_timestamps.push_back(RpcValue::DateTime::fromMSecsSinceEpoch(entries.entry().epochMsec).toIsoString());
+		}
 
-	REQUIRE(actual_timestamps == expected_timestamps);
-	m_messageQueue.dequeue();
+		REQUIRE(actual_timestamps == expected_timestamps);
+		mock->m_messageQueue.dequeue();
+	});
+
+	return res;
 }
 
 TEST_HISTORYPROVIDER_MAIN("hp_getlog")

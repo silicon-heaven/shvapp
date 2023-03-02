@@ -17,39 +17,61 @@
 namespace cp = shv::chainpack;
 using cp::RpcValue;
 
-QCoro::Generator<int> MockRpcConnection::driver()
+QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 {
-	co_yield {};
+	QQueue<std::function<CallNext(MockRpcConnection*)>> res;
 	std::string cache_dir_path = "eyas/opc";
-	SEND_SITES_YIELD(mock_sites::fin_slave_broker);
-	EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
-	EXPECT_SUBSCRIPTION("shv/eyas/opc", "chng");
+	enqueue(res, [=] (MockRpcConnection* mock) {
+		SEND_SITES_YIELD(mock_sites::fin_slave_broker);
+	});
+	enqueue(res, [=] (MockRpcConnection* mock) {
+		EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
+	});
+	enqueue(res, [=] (MockRpcConnection* mock) {
+		EXPECT_SUBSCRIPTION("shv/eyas/opc", "chng");
+		REQUEST_YIELD(cache_dir_path, "ls", RpcValue());
+	});
 
-	REQUEST_YIELD(cache_dir_path, "ls", RpcValue());
-	EXPECT_RESPONSE(RpcValue::List{});
+	enqueue(res, [=] (MockRpcConnection* mock) {
+		EXPECT_RESPONSE(RpcValue::List{});
+		mock->setBrokerConnected(false);
+		QTimer::singleShot(0, [mock] {mock->setBrokerConnected(true);});
+	});
 
-	setBrokerConnected(false);
-	QTimer::singleShot(0, [this] {setBrokerConnected(true);});
-	co_yield {};
 
 	std::string new_cache_dir_path = "fin/hel/tram/hel002";
-	SEND_SITES_YIELD(mock_sites::fin_master_broker);
-	EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
-	EXPECT_SUBSCRIPTION("shv/fin/hel/tram/hel002", "chng");
+	enqueue(res, [=] (MockRpcConnection* mock) {
+		SEND_SITES_YIELD(mock_sites::fin_master_broker);
+	});
+	enqueue(res, [=] (MockRpcConnection* mock) {
+		EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
+	});
+	enqueue(res, [=] (MockRpcConnection* mock) {
+		EXPECT_SUBSCRIPTION("shv/fin/hel/tram/hel002", "chng");
+		return CallNext::Yes;
+	});
 
 	DOCTEST_SUBCASE("new site is available")
 	{
-		REQUEST_YIELD(new_cache_dir_path, "ls", RpcValue());
-		EXPECT_RESPONSE(RpcValue::List{"eyas"});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			REQUEST_YIELD(new_cache_dir_path, "ls", RpcValue());
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_RESPONSE(RpcValue::List{"eyas"});
+		});
 	}
 
 	DOCTEST_SUBCASE("old site is not available")
 	{
-		REQUEST_YIELD(cache_dir_path, "ls", RpcValue());
-		EXPECT_ERROR("RPC ERROR MethodCallException: Method: 'ls' on path '/eyas/opc' doesn't exist.");
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			REQUEST_YIELD(cache_dir_path, "ls", RpcValue());
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_ERROR("RPC ERROR MethodCallException: Method: 'ls' on path '/eyas/opc' doesn't exist.");
+		});
 	}
 
-	co_return;
+	return res;
 }
 
 TEST_HISTORYPROVIDER_MAIN("connection_failure")

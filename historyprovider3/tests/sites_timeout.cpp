@@ -13,47 +13,76 @@
 
 #include <QDir>
 
-
 namespace cp = shv::chainpack;
 using cp::RpcValue;
+#define MESSAGE_HANDLER enqueue(res, [] (MockRpcConnection* mock)
 
-QCoro::Generator<int> MockRpcConnection::driver()
+QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 {
-	co_yield {};
+	QQueue<std::function<CallNext(MockRpcConnection*)>> res;
 	DOCTEST_SUBCASE("sites request times out")
 	{
-		EXPECT_REQUEST("sites", "getSites", RpcValue());
-		m_messageQueue.dequeue();
-		DRIVER_WAIT(10000);
-		EXPECT_REQUEST("sites", "getSites", RpcValue());
-		RESPOND_YIELD(""); // Respond with empty sites to avoid leaks.
-		EXPECT_SUBSCRIPTION("shv", "mntchng");
+		enqueue(res, [] (MockRpcConnection* mock) {
+			EXPECT_REQUEST("sites", "getSites", RpcValue());
+			mock->m_messageQueue.dequeue();
+			DRIVER_WAIT(10000);
+		});
+		enqueue(res, [] (MockRpcConnection* mock) {
+			EXPECT_REQUEST("sites", "getSites", RpcValue());
+			RESPOND_YIELD(""); // Respond with empty sites to avoid leaks.
+		});
+		enqueue(res, [] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION("shv", "mntchng");
+		});
 	}
 
 	DOCTEST_SUBCASE("manual request to reload sites")
 	{
-		EXPECT_REQUEST("sites", "getSites", RpcValue());
-		RESPOND_YIELD("");
-		EXPECT_SUBSCRIPTION("shv", "mntchng");
+		enqueue(res, [] (MockRpcConnection* mock) {
+			EXPECT_REQUEST("sites", "getSites", RpcValue());
+			RESPOND_YIELD("");
+		});
+		enqueue(res, [] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION("shv", "mntchng");
+			REQUEST_YIELD("", "reloadSites");
+		});
 
-		REQUEST_YIELD("", "reloadSites");
-		EXPECT_REQUEST("sites", "getSites", RpcValue());
+		enqueue(res, [] (MockRpcConnection* mock) {
+			EXPECT_REQUEST("sites", "getSites", RpcValue());
+			return CallNext::Yes;
+		});
 
 		DOCTEST_SUBCASE("normal operation")
 		{
-			RESPOND_YIELD("");
+			enqueue(res, [] (MockRpcConnection* mock) {
+				RESPOND_YIELD("");
+			});
 		}
 
 		DOCTEST_SUBCASE("reloadSites while already reloading produces error")
 		{
-			REQUEST_YIELD("", "reloadSites");
-			RESPOND_YIELD("");
-			EXPECT_ERROR("RPC ERROR MethodCallException: Sites are already being reloaded.");
+			enqueue(res, [] (MockRpcConnection* mock) {
+				REQUEST_YIELD("", "reloadSites");
+			});
+			enqueue(res, [] (MockRpcConnection* mock) {
+				RESPOND_YIELD("");
+			});
+			enqueue(res, [] (MockRpcConnection* mock) {
+				EXPECT_ERROR("RPC ERROR MethodCallException: Sites are already being reloaded.");
+				return CallNext::Yes;
+			});
 		}
 
-		EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
-		EXPECT_RESPONSE("Sites reloaded.");
+
+		enqueue(res, [] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
+		});
+		enqueue(res, [] (MockRpcConnection* mock) {
+			EXPECT_RESPONSE("Sites reloaded.");
+		});
 	}
+
+	return res;
 }
 
 TEST_HISTORYPROVIDER_MAIN("sites_timeout")

@@ -70,7 +70,7 @@ void MockRpcConnection::doNotifyInEventLoop(const std::string& path, const std::
 
 void MockRpcConnection::advanceTest()
 {
-    if (m_testDriverState == m_testDriver.end()) {
+    if (m_testDriver.empty()) {
         CAPTURE("Client sent unexpected message after test end");
         CAPTURE(m_messageQueue.head());
         REQUIRE(false);
@@ -82,15 +82,14 @@ void MockRpcConnection::advanceTest()
         m_timeoutTimer = nullptr;
     }
 
-    m_coroRunning = true;
-    ++m_testDriverState;
-    m_coroRunning = false;
-    if (m_testDriverState != m_testDriver.end()) {
-        // I also need to dereference the value to trigger any unhandled exceptions.
-        *m_testDriverState;
+    m_driverRunning = true;
+    while(m_testDriver.head()(this) == CallNext::Yes) {
+        m_testDriver.dequeue();
     }
+    m_testDriver.dequeue();
+    m_driverRunning = false;
 
-    if (m_testDriverState == m_testDriver.end()) {
+    if (m_testDriver.empty()) {
         // We'll wait a bit before ending to make sure the client isn't sending more messages.
         QTimer::singleShot(100, [] {
             HistoryApp::instance()->exit();
@@ -98,10 +97,9 @@ void MockRpcConnection::advanceTest()
     }
 }
 
-MockRpcConnection::MockRpcConnection()
+MockRpcConnection::MockRpcConnection(const QQueue<std::function<CallNext(MockRpcConnection*)>>& test_driver)
     : shv::iotqt::rpc::DeviceConnection(nullptr)
-    , m_testDriver(driver())
-    , m_testDriverState(m_testDriver.begin())
+    , m_testDriver(test_driver)
 {
     connect(this, &MockRpcConnection::handleNextMessage, this, &MockRpcConnection::advanceTest, Qt::QueuedConnection);
 }
@@ -133,12 +131,12 @@ void MockRpcConnection::sendMessage(const shv::chainpack::RpcMessage& rpc_msg)
         "<unknown message type>:";
     mockInfo() << "Got client" << msg_type << rpc_msg.toPrettyString();
 
-    // We'll skip cmdlog signals even if they are sent while the coro is running.
+    // We'll skip cmdlog signals even if they are sent while the driver is running.
     if (rpc_msg.isSignal() && rpc_msg.method() == "cmdlog") {
         return;
     }
 
-    if (m_coroRunning) {
+    if (m_driverRunning) {
         throw std::logic_error("A client send a message while the test driver was running."
                 " This can lead to unexpected behavior, because the test driver resumes on messages from the client and you can't resume the driver while it's already running.");
     }

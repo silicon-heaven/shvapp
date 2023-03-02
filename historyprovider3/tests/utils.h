@@ -197,6 +197,6 @@ const auto read_offset_0 = RpcValue::fromCpon(R"({"offset":0})");
                                                                                              \
 		cli_opts.setJournalCacheRoot(join(TESTS_DIR, test_name));                            \
 		QDir(QString::fromStdString(cli_opts.journalCacheRoot())).removeRecursively();       \
-		HistoryApp app(argc, argv.data(), &cli_opts, new MockRpcConnection());               \
+		HistoryApp app(argc, argv.data(), &cli_opts, new MockRpcConnection(setup_test()));   \
 		app.exec();                                                                          \
 	}

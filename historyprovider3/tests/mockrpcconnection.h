@@ -3,14 +3,33 @@
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <doctest/doctest.h>
 
-#include <QCoroGenerator>
-
 #include <QTimer>
 #include <QQueue>
 
 #define mockDebug() shvCDebug("MockRpcConnection")
 #define mockInfo() shvCInfo("MockRpcConnection")
 #define mockError() shvCError("MockRpcConnection")
+
+enum CallNext {
+	Yes,
+	No
+};
+
+class MockRpcConnection;
+
+template <typename Callable>
+void enqueue(QQueue<std::function<CallNext(MockRpcConnection*)>>& q, Callable&& callable)
+{
+	if constexpr (std::is_same<std::invoke_result_t<Callable, MockRpcConnection*>, void>()) {
+		q.enqueue([callable] (MockRpcConnection* mock) {
+			callable(mock);
+			return CallNext::No;
+		});
+		return;
+	} else {
+		q.enqueue(callable);
+	}
+}
 
 class MockRpcConnection : public shv::iotqt::rpc::DeviceConnection {
 	Q_OBJECT
@@ -19,109 +38,109 @@ class MockRpcConnection : public shv::iotqt::rpc::DeviceConnection {
 
 private:
 	shv::chainpack::RpcResponse createResponse(const shv::chainpack::RpcValue& result);
+	shv::chainpack::RpcRequest createRequest(const std::string& path, const std::string& method, const shv::chainpack::RpcValue& params);
+	shv::chainpack::RpcSignal createNotification(const std::string& path, const std::string& method, const shv::chainpack::RpcValue& params);
+
+	bool m_driverRunning = false;
+	QQueue<std::function<CallNext(MockRpcConnection*)>> m_testDriver;
+
+public:
+	void advanceTest();
 	void doRespond(const shv::chainpack::RpcValue& result);
 	void doRespondInEventLoop(const shv::chainpack::RpcValue& result);
-	shv::chainpack::RpcRequest createRequest(const std::string& path, const std::string& method, const shv::chainpack::RpcValue& params);
 	void doRequest(const std::string& path, const std::string& method, const shv::chainpack::RpcValue& params);
 	void doRequestInEventLoop(const std::string& path, const std::string& method, const shv::chainpack::RpcValue& params);
-	shv::chainpack::RpcSignal createNotification(const std::string& path, const std::string& method, const shv::chainpack::RpcValue& params);
 	void doNotify(const std::string& path, const std::string& method, const shv::chainpack::RpcValue& params);
 	void doNotifyInEventLoop(const std::string& path, const std::string& method, const shv::chainpack::RpcValue& params);
-	void advanceTest();
-
 	void setBrokerConnected(bool state);
 
-	QCoro::Generator<int> m_testDriver;
-	QCoro::Generator<int>::iterator m_testDriverState;
-	QQueue<shv::chainpack::RpcMessage> m_messageQueue;
-	bool m_coroRunning = false;
-	QTimer* m_timeoutTimer = nullptr;
-public:
-	MockRpcConnection();
+	MockRpcConnection(const QQueue<std::function<CallNext(MockRpcConnection*)>>& test_driver);
     void open() override;
 	Q_SIGNAL void handleNextMessage();
-	// I can't return void from the generator, so I'm returning ints.
-	QCoro::Generator<int> driver();
     void sendMessage(const shv::chainpack::RpcMessage& rpc_msg) override;
+
+	QQueue<shv::chainpack::RpcMessage> m_messageQueue;
+	QTimer* m_timeoutTimer = nullptr;
 };
 
-const auto COROUTINE_TIMEOUT = 3000;
+const auto DRIVER_TIMEOUT = 3000;
 
 shv::chainpack::RpcValue make_sub_params(const std::string& path, const std::string& method);
 
 #define SETUP_TIMEOUT { \
-	m_timeoutTimer = new QTimer(); \
-	connect(m_timeoutTimer, &QTimer::timeout, [] {throw std::runtime_error("The test timed out while waiting for a message from client.");}); \
-	m_timeoutTimer->start(COROUTINE_TIMEOUT); \
+	mock->m_timeoutTimer = new QTimer(); \
+	QObject::connect(mock->m_timeoutTimer, &QTimer::timeout, [] {throw std::runtime_error("The test timed out while waiting for a message from client.");}); \
+	mock->m_timeoutTimer->start(DRIVER_TIMEOUT); \
 }
 
 #define REQUEST_YIELD(path, method, ...) { \
 	shv::chainpack::RpcValue params; \
 	__VA_OPT__(params = (__VA_ARGS__)); \
-	doRequestInEventLoop((path), (method), (params)); \
+	mock->doRequestInEventLoop((path), (method), (params)); \
 	SETUP_TIMEOUT; \
-	co_yield {}; \
+	return; \
 }
 
 #define REQUEST(path, method, ...) { \
 	shv::chainpack::RpcValue params; \
 	__VA_OPT__(params = (__VA_ARGS__)); \
-	doRequest((path), (method), (params)); \
+	mock->doRequest((path), (method), (params)); \
 }
 
 #define NOTIFY_YIELD(path, method, params) { \
-	doNotifyInEventLoop((path), (method), (params)); \
+	mock->doNotifyInEventLoop((path), (method), (params)); \
 	SETUP_TIMEOUT; \
-	co_yield {}; \
+	return; \
 }
 
 #define NOTIFY(path, method, params) { \
-	doNotify((path), (method), (params)); \
+	mock->doNotify((path), (method), (params)); \
 }
 
 #define RESPOND(result) { \
-	doRespond(result); \
+	mock->doRespond(result); \
 }
 
-#define RESPOND_YIELD(result) { \
-	doRespondInEventLoop(result); \
+#define RESPOND_YIELD(result, ...) { \
+	mock->doRespondInEventLoop(result); \
 	SETUP_TIMEOUT; \
-	co_yield {}; \
+	__VA_OPT__(return __VA_ARGS__); \
+	return CallNext::No; \
 }
 
 #define EXPECT_REQUEST(pathStr, methodStr, ...) { \
-	REQUIRE(!m_messageQueue.empty()); \
-	CAPTURE(m_messageQueue.head()); \
-	REQUIRE(m_messageQueue.head().isRequest()); \
-	REQUIRE(m_messageQueue.head().shvPath().asString() == (pathStr)); \
-	REQUIRE(m_messageQueue.head().method().asString() == (methodStr)); \
-	__VA_OPT__(REQUIRE(shv::chainpack::RpcRequest(m_messageQueue.head()).params() == (__VA_ARGS__));) \
+	REQUIRE(!mock->m_messageQueue.empty()); \
+	CAPTURE(mock->m_messageQueue.head()); \
+	REQUIRE(mock->m_messageQueue.head().isRequest()); \
+	REQUIRE(mock->m_messageQueue.head().shvPath().asString() == (pathStr)); \
+	REQUIRE(mock->m_messageQueue.head().method().asString() == (methodStr)); \
+	__VA_OPT__(REQUIRE(shv::chainpack::RpcRequest(mock->m_messageQueue.head()).params() == (__VA_ARGS__));) \
 }
 
 #define EXPECT_RESPONSE(expectedResult) { \
-	REQUIRE(!m_messageQueue.empty()); \
-	CAPTURE(m_messageQueue.head()); \
-	REQUIRE(m_messageQueue.head().isResponse()); \
-	REQUIRE(shv::chainpack::RpcResponse(m_messageQueue.head()).result() == (expectedResult)); \
-	m_messageQueue.dequeue(); \
+	REQUIRE(!mock->m_messageQueue.empty()); \
+	CAPTURE(mock->m_messageQueue.head()); \
+	REQUIRE(mock->m_messageQueue.head().isResponse()); \
+	REQUIRE(shv::chainpack::RpcResponse(mock->m_messageQueue.head()).result() == (expectedResult)); \
+	mock->m_messageQueue.dequeue(); \
 }
 
 #define EXPECT_SIGNAL(pathStr, methodStr, ...) { \
-	REQUIRE(!m_messageQueue.empty()); \
-	CAPTURE(m_messageQueue.head()); \
-	REQUIRE(m_messageQueue.head().isSignal()); \
-	REQUIRE(m_messageQueue.head().shvPath().asString() == (pathStr)); \
-	REQUIRE(m_messageQueue.head().method().asString() == (methodStr)); \
-	__VA_OPT__(REQUIRE(shv::chainpack::RpcRequest(m_messageQueue.head()).params() == (__VA_ARGS__));) \
-	m_messageQueue.dequeue(); \
+	REQUIRE(!mock->m_messageQueue.empty()); \
+	CAPTURE(mock->m_messageQueue.head()); \
+	REQUIRE(mock->m_messageQueue.head().isSignal()); \
+	REQUIRE(mock->m_messageQueue.head().shvPath().asString() == (pathStr)); \
+	REQUIRE(mock->m_messageQueue.head().method().asString() == (methodStr)); \
+	__VA_OPT__(REQUIRE(shv::chainpack::RpcRequest(mock->m_messageQueue.head()).params() == (__VA_ARGS__));) \
+	mock->m_messageQueue.dequeue(); \
 }
 
 #define EXPECT_ERROR(expectedMsg) { \
-	REQUIRE(!m_messageQueue.empty()); \
-	CAPTURE(m_messageQueue.head()); \
-	REQUIRE(m_messageQueue.head().isResponse()); \
-	REQUIRE(shv::chainpack::RpcResponse(m_messageQueue.head()).errorString() == (expectedMsg)); \
-	m_messageQueue.dequeue(); \
+	REQUIRE(!mock->m_messageQueue.empty()); \
+	CAPTURE(mock->m_messageQueue.head()); \
+	REQUIRE(mock->m_messageQueue.head().isResponse()); \
+	REQUIRE(shv::chainpack::RpcResponse(mock->m_messageQueue.head()).errorString() == (expectedMsg)); \
+	mock->m_messageQueue.dequeue(); \
 }
 
 #define EXPECT_SUBSCRIPTION(path, method) { \
@@ -151,6 +170,6 @@ shv::chainpack::RpcValue make_sub_params(const std::string& path, const std::str
 }
 
 #define DRIVER_WAIT(msec) { \
-	QTimer::singleShot(msec, [this] { advanceTest(); }); \
-	co_yield {}; \
+	QTimer::singleShot(msec, [mock] { mock->advanceTest(); }); \
+	return; \
 }
