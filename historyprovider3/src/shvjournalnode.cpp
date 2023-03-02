@@ -1,3 +1,4 @@
+#include <iostream>
 #include "shvjournalnode.h"
 #include "historyapp.h"
 #include "appclioptions.h"
@@ -433,8 +434,7 @@ public:
 		shv::coreqt::utils::qcoro_unhandled_exception(e);
 	}
 
-	QCoro::Task<void> impl_doSync(const QString& slave_hp_path, const QString& cache_dir_path, const QString& shvjournal_shvpath, const QString& path_prefix)
-	try
+	QFuture<void> impl_doSync(const QString& slave_hp_path, const QString& cache_dir_path, const QString& shvjournal_shvpath, const QString& path_prefix)
 	{
 		auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
 			->setShvPath(shvjournal_shvpath)
@@ -442,96 +442,113 @@ public:
 			->setParams(cp::RpcValue::Map{{"size", true}});
 		call->start();
 
-		auto [file_list, error] = co_await qCoro(call, &shv::iotqt::rpc::RpcCall::maybeResult);
-		if (!error.isEmpty()) {
-			shvError() << "Couldn't retrieve filelist from:" << shvjournal_shvpath << error;
-			m_errorCb(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, "Couldn't retrieve filelist from the device"));
-			co_return;
-		}
+		QPromise<void> promise;
+		auto future = promise.future();
+		promise.start();
 
-		journalDebug() << "Got filelist from" << slave_hp_path;
-
-		if (!file_list.asList().empty() && file_list.asList().front().asList().at(LS_FILES_RESPONSE_FILETYPE) == "d") {
-			for (const auto& current_directory : file_list.asList()) {
-				auto dir_name = QString::fromStdString(current_directory.asList().at(LS_FILES_RESPONSE_FILENAME).asString());
-				co_await impl_doSync(slave_hp_path, cache_dir_path, shv::coreqt::utils::joinPath(shvjournal_shvpath, dir_name), shv::coreqt::utils::joinPath(path_prefix, dir_name));
-			}
-			co_return;
-		}
-
-		QDir cache_dir(cache_dir_path);
-		QString newest_file_name;
-		int64_t newest_file_name_ms = QDateTime::currentDateTime().addSecs(- HistoryApp::instance()->cliOptions()->cacheInitMaxAge()).toMSecsSinceEpoch();
-		auto entry_list = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name | QDir::Reversed);
-		if (!entry_list.empty()) {
-			if (entry_list.at(0) != DIRTY_FILENAME) {
-				newest_file_name = entry_list.at(0);
-				newest_file_name_ms = shv::core::utils::ShvJournalFileReader::fileNameToFileMsec(newest_file_name.toStdString());
-			} else if (entry_list.size() > 1) {
-				newest_file_name = entry_list.at(1);
-				newest_file_name_ms = shv::core::utils::ShvJournalFileReader::fileNameToFileMsec(newest_file_name.toStdString());
-			}
-		}
-
-		journalDebug() << "Newest file for" << slave_hp_path << "is" << newest_file_name;
-
-		for (const auto& current_file : file_list.asList()) {
-			if (current_memory_usage > SYNCER_MEMORY_LIMIT) {
-				writeFiles();
-			};
-			auto file_name = QString::fromStdString(current_file.asList().at(LS_FILES_RESPONSE_FILENAME).asString());
-			if (file_name == DIRTY_FILENAME) {
-				continue;
+		connect(call, &shv::iotqt::rpc::RpcCall::maybeResult, this, [this, shvjournal_shvpath, cache_dir_path, slave_hp_path, path_prefix, promise = std::move(promise)] (const auto& file_list, const auto& error) mutable {
+			if (!error.isEmpty()) {
+				shvError() << "Couldn't retrieve filelist from:" << shvjournal_shvpath << error;
+				m_errorCb(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, "Couldn't retrieve filelist from the device"));
+				promise.finish();
+				return;
 			}
 
-			if (shv::core::utils::ShvJournalFileReader::fileNameToFileMsec(file_name.toStdString()) < newest_file_name_ms) {
-				journalDebug() << "Skipping" << file_name << "because it's older than our newest file" << newest_file_name;
-				continue;
+			journalDebug() << "Got filelist from" << slave_hp_path;
+
+			QVector<QFuture<void>> all_files_synced;
+			if (!file_list.asList().empty() && file_list.asList().front().asList().at(LS_FILES_RESPONSE_FILETYPE) == "d") {
+				for (const auto& current_directory : file_list.asList()) {
+					auto dir_name = QString::fromStdString(current_directory.asList().at(LS_FILES_RESPONSE_FILENAME).asString());
+					all_files_synced.push_back(impl_doSync(slave_hp_path, cache_dir_path, shv::coreqt::utils::joinPath(shvjournal_shvpath, dir_name), shv::coreqt::utils::joinPath(path_prefix, dir_name)));
+				}
+				QtFuture::whenAll(all_files_synced.begin(), all_files_synced.end()).then([promise = std::move(promise)] (const auto&) mutable {
+					promise.finish();
+				});
+				return;
 			}
 
-			auto full_file_name = QDir(cache_dir_path).filePath(shv::coreqt::utils::joinPath(path_prefix, file_name));
-			QFile file(full_file_name);
-			auto local_size = file.size();
-			auto remote_size = current_file.asList().at(LS_FILES_RESPONSE_FILESIZE).toInt();
-
-			journalInfo() << "Syncing file" << full_file_name << "remote size:" << remote_size << "local size:" << (file.exists() ? QString::number(local_size) : "<doesn't exist>");
-			if (file.exists()) {
-				if (local_size == remote_size) {
-					continue;
+			QDir cache_dir(cache_dir_path);
+			QString newest_file_name;
+			int64_t newest_file_name_ms = QDateTime::currentDateTime().addSecs(- HistoryApp::instance()->cliOptions()->cacheInitMaxAge()).toMSecsSinceEpoch();
+			auto entry_list = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name | QDir::Reversed);
+			if (!entry_list.empty()) {
+				if (entry_list.at(0) != DIRTY_FILENAME) {
+					newest_file_name = entry_list.at(0);
+					newest_file_name_ms = shv::core::utils::ShvJournalFileReader::fileNameToFileMsec(newest_file_name.toStdString());
+				} else if (entry_list.size() > 1) {
+					newest_file_name = entry_list.at(1);
+					newest_file_name_ms = shv::core::utils::ShvJournalFileReader::fileNameToFileMsec(newest_file_name.toStdString());
 				}
 			}
 
-			auto sites_log_file = shv::coreqt::utils::joinPath(shvjournal_shvpath, file_name);
-			journalDebug() << "Retrieving" << sites_log_file << "offset:" << local_size;
-			call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
-				->setShvPath(sites_log_file)
-				->setMethod("read")
-				->setParams(cp::RpcValue::Map{{"offset", cp::RpcValue::Int(local_size)}});
-			call->start();
-			auto [result, retrieve_error] = co_await qCoro(call, &shv::iotqt::rpc::RpcCall::maybeResult);
-			if (!retrieve_error.isEmpty()) {
-				shvError() << "Couldn't retrieve" << sites_log_file << ":" << retrieve_error;
-				co_return;
+			journalDebug() << "Newest file for" << slave_hp_path << "is" << newest_file_name;
+
+			for (const auto& current_file : file_list.asList()) {
+				if (current_memory_usage > SYNCER_MEMORY_LIMIT) {
+					writeFiles();
+				};
+				auto file_name = QString::fromStdString(current_file.asList().at(LS_FILES_RESPONSE_FILENAME).asString());
+				if (file_name == DIRTY_FILENAME) {
+					continue;
+				}
+
+				if (shv::core::utils::ShvJournalFileReader::fileNameToFileMsec(file_name.toStdString()) < newest_file_name_ms) {
+					journalDebug() << "Skipping" << file_name << "because it's older than our newest file" << newest_file_name;
+					continue;
+				}
+
+				auto full_file_name = QDir(cache_dir_path).filePath(shv::coreqt::utils::joinPath(path_prefix, file_name));
+				QFile file(full_file_name);
+				auto local_size = file.size();
+				auto remote_size = current_file.asList().at(LS_FILES_RESPONSE_FILESIZE).toInt();
+
+				journalInfo() << "Syncing file" << full_file_name << "remote size:" << remote_size << "local size:" << (file.exists() ? QString::number(local_size) : "<doesn't exist>");
+				if (file.exists()) {
+					if (local_size == remote_size) {
+						continue;
+					}
+				}
+
+				auto sites_log_file = shv::coreqt::utils::joinPath(shvjournal_shvpath, file_name);
+				journalDebug() << "Retrieving" << sites_log_file << "offset:" << local_size;
+				auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
+					->setShvPath(sites_log_file)
+					->setMethod("read")
+					->setParams(cp::RpcValue::Map{{"offset", cp::RpcValue::Int(local_size)}});
+				call->start();
+				QPromise<void> file_synced_promise;
+				auto future = file_synced_promise.future();
+				file_synced_promise.start();
+				connect(call, &shv::iotqt::rpc::RpcCall::maybeResult, this, [this, sites_log_file, full_file_name, file_synced_promise = std::move(file_synced_promise)] (const auto& result, const auto& retrieve_error) mutable {
+					if (!retrieve_error.isEmpty()) {
+						shvError() << "Couldn't retrieve" << sites_log_file << ":" << retrieve_error;
+						file_synced_promise.finish();
+						return;
+					}
+
+					journalDebug() << "Got" << sites_log_file;
+					m_downloadedFiles.insert(full_file_name, result);
+					file_synced_promise.finish();
+				});
+				all_files_synced.push_back(future);
 			}
 
-			journalDebug() << "Got" << sites_log_file;
-			m_downloadedFiles.insert(full_file_name, result);
-		}
+			QtFuture::whenAll(all_files_synced.begin(), all_files_synced.end()).then([this, slave_hp_path, cache_dir_path, file_list, promise = std::move(promise)] (const auto&) mutable {
+				writeFiles();
 
-		writeFiles();
-
-		// We'll only trim if we actually downloaded some files, otherwise the trim algorithm will screw us over,
-		// because of the "last millisecond algorithm".
-		if (!file_list.asList().empty()) {
-			m_node->trimDirtyLog(slave_hp_path, cache_dir_path);
-		}
-
-	} catch (std::exception& e) {
-		shv::coreqt::utils::qcoro_unhandled_exception(e);
+				// We'll only trim if we actually downloaded some files, otherwise the trim algorithm will screw us over,
+				// because of the "last millisecond algorithm".
+				if (!file_list.asList().empty()) {
+					m_node->trimDirtyLog(slave_hp_path, cache_dir_path);
+				}
+				promise.finish();
+			});
+		});
+		return future;
 	}
 
-	QCoro::Task<void> doSync(const QString& slave_hp_path, const QString& cache_dir_path, const SyncType sync_type)
-	try
+	QFuture<void> doSync(const QString& slave_hp_path, const QString& cache_dir_path, const SyncType sync_type)
 	{
 		journalInfo() << "Syncing" << slave_hp_path << "via file synchronization";
 		auto shvjournal_suffix =
@@ -540,15 +557,14 @@ public:
 			shv::coreqt::utils::joinPath(".local/history/shvjournal", m_shvPath.remove(0, slave_hp_path.size()));
 		auto shvjournal_shvpath = shv::coreqt::utils::joinPath(slave_hp_path, shvjournal_suffix);
 
-		co_await impl_doSync(slave_hp_path, cache_dir_path, shvjournal_shvpath, "");
-	} catch (std::exception& e) {
-		shv::coreqt::utils::qcoro_unhandled_exception(e);
+		return impl_doSync(slave_hp_path, cache_dir_path, shvjournal_shvpath, "");
 	}
 
 	QCoro::Task<void> syncFiles()
 	try
 	{
 		using shv::coreqt::Utils;
+		QVector<QFuture<void>> all_synced;
 		for (const auto& slave_hp : m_node->slaveHps()) {
 			auto slave_hp_path_qstr = QString::fromStdString(slave_hp.shv_path);
 
@@ -580,13 +596,20 @@ public:
 
 			if (sync_type == SyncType::Device && slave_hp.log_type == LogType::Legacy) {
 				co_await doLegacySync(slave_hp_path_qstr, slave_hp.cache_dir_path);
+				m_successCb();
+				deleteLater();
 			} else {
-				co_await doSync(slave_hp_path_qstr, slave_hp.cache_dir_path, sync_type);
+				all_synced.push_back(doSync(slave_hp_path_qstr, slave_hp.cache_dir_path, sync_type));
 			}
 		}
 
-		m_successCb();
-		deleteLater();
+		if (!all_synced.empty()) {
+			QtFuture::whenAll(all_synced.begin(), all_synced.end()).then([this] (const auto&) {
+				m_successCb();
+				deleteLater();
+			});
+		}
+
 	} catch (std::exception& e) {
 		shv::coreqt::utils::qcoro_unhandled_exception(e);
 	}

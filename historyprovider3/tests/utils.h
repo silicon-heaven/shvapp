@@ -184,11 +184,11 @@ const auto five_thousand_records_getlog_response = RpcValue::fromCpon((R"(
 const auto ls_size_true = RpcValue::fromCpon(R"({"size": true})");
 const auto read_offset_0 = RpcValue::fromCpon(R"({"offset":0})");
 
-#define TEST_HISTORYPROVIDER_MAIN(test_name)                                                 \
-	DOCTEST_TEST_CASE(test_name)                                                             \
-	{                                                                                        \
+#define TEST_HISTORYPROVIDER_MAIN(test_name)                                             \
+	DOCTEST_TEST_CASE(test_name)                                                           \
+	{                                                                                      \
 		NecroLog::registerTopic("MockRpcConnection", "");                                    \
-		NecroLog::setTopicsLogThresholds(":D");                                               \
+		NecroLog::setTopicsLogThresholds("MockRpcConnection:D,historyjournal:D");            \
 		QCoreApplication::setApplicationName("historyprovider tester");                      \
 		int argc = 0;                                                                        \
 		auto argv_1 = std::unique_ptr<char, decltype(&free)>(strdup(#test_name), std::free); \
