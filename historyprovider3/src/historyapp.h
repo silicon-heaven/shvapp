@@ -6,6 +6,7 @@
 #include <QElapsedTimer>
 
 #include <QCoroTask>
+#include <QFuture>
 
 class AppCliOptions;
 class QDir;
@@ -50,13 +51,13 @@ public:
 	AppCliOptions* cliOptions() {return m_cliOptions;}
 
 	QString uptime() const;
-	QCoro::Task<void> reloadSites(std::function<void()> success, std::function<void(std::string err)> error);
+	QFuture<void> reloadSites();
 
 private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage& msg);
 	void sanitizeNext();
-	QCoro::Task<void> initializeShvTree();
+	QFuture<void> initializeShvTree();
 	void deinitializeShvTree();
 
 private:

@@ -20,6 +20,8 @@
 #include <QTimer>
 
 #include <QCoroSignal>
+#include <QFuture>
+#include <QPromise>
 
 #include <set>
 
@@ -92,23 +94,21 @@ cp::RpcValue AppRootNode::callMethod(const StringViewList& shv_path, const std::
 	return Super::callMethod(shv_path, method, params, user_id);
 }
 
-QCoro::Task<void> HistoryApp::reloadSites(std::function<void()> success, std::function<void(std::string err)> error)
-try
+QFuture<void> HistoryApp::reloadSites()
 {
 	if (m_loadingSites) {
-		error("Sites are already being reloaded.");
-		co_return;
+		return QtFuture::makeExceptionalFuture(std::make_exception_ptr(std::runtime_error("Sites are already being reloaded.")));
 	}
-
 	m_loadingSites = true;
 	deinitializeShvTree();
 	if (m_isBrokerConnected) {
-		co_await initializeShvTree();
+		return initializeShvTree().then([this] {
+			m_loadingSites = false;
+		});
 	}
+
 	m_loadingSites = false;
-	success();
-} catch (std::exception& e) {
-	shv::coreqt::utils::qcoro_unhandled_exception(e);
+	return QtFuture::makeReadyFuture();
 }
 
 cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest& rq)
@@ -126,12 +126,12 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest& rq)
 		}
 
 		if (rq.method() == METH_RELOAD_SITES) {
-			HistoryApp::instance()->reloadSites([rq] {
+			HistoryApp::instance()->reloadSites().then([rq] {
 				auto response = rq.makeResponse();
 				response.setResult("Sites reloaded.");
 				HistoryApp::instance()->rpcConnection()->sendMessage(response);
-			}, [rq] (const auto& err) {
-				auto error = cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, err);
+			}).onFailed([rq] (std::exception& err) {
+				auto error = cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, err.what());
 				auto response = rq.makeResponse();
 				response.setError(error);
 				HistoryApp::instance()->rpcConnection()->sendMessage(shv::chainpack::RpcMessage(response));
@@ -297,8 +297,7 @@ HistoryApp* HistoryApp::instance()
 	return qobject_cast<HistoryApp*>(QCoreApplication::instance());
 }
 
-QCoro::Task<void> HistoryApp::initializeShvTree()
-try
+QFuture<void> HistoryApp::initializeShvTree()
 {
 	m_root = new AppRootNode();
 	m_shvTree = new si::node::ShvNodeTree(m_root, this);
@@ -308,31 +307,41 @@ try
 		->setShvPath("sites")
 		->setMethod("getSites");
 	call->start();
-	auto [result, error] = co_await qCoro(call, &shv::iotqt::rpc::RpcCall::maybeResult);
 
-	if (!error.isEmpty()) {
-		shvError() << "Couldn't retrieve sites:" << error << ", trying again";
-		QTimer::singleShot(3000, this, &HistoryApp::initializeShvTree);
-		co_return;
-	}
+	QPromise<void> promise;
+	promise.start();
+	auto future = promise.future();
+	connect(call, &shv::iotqt::rpc::RpcCall::maybeResult, this, [this, promise = std::move(promise)] (const auto& result, const auto& error) mutable {
+		if (!error.isEmpty()) {
+			shvError() << "Couldn't retrieve sites:" << error << ", trying again";
+			QTimer::singleShot(3000, this, [this, promise = std::move(promise)] () mutable {
+				initializeShvTree().then([promise =std::move(promise)] () mutable {
+					promise.finish();
+				});
+			});
+			return;
+		}
 
-	std::vector<SlaveHpInfo> slave_hps;
-	std::set<std::string> leaf_nodes;
-	createTree(m_root, result.asMap(), "shv", cliOptions()->journalCacheRoot(), slave_hps, leaf_nodes, SlaveFound::No);
+		std::vector<SlaveHpInfo> slave_hps;
+		std::set<std::string> leaf_nodes;
+		createTree(m_root, result.asMap(), "shv", cliOptions()->journalCacheRoot(), slave_hps, leaf_nodes, SlaveFound::No);
 
-	m_shvJournalNode = new ShvJournalNode(slave_hps, leaf_nodes, m_root);
+		m_shvJournalNode = new ShvJournalNode(slave_hps, leaf_nodes, m_root);
 
-	m_leafNodes = m_shvTree->findChildren<LeafNode*>();
-	if (!m_leafNodes.empty()) {
-		m_singleCacheSizeLimit = m_totalCacheSizeLimit / m_leafNodes.size();
+		m_leafNodes = m_shvTree->findChildren<LeafNode*>();
+		if (!m_leafNodes.empty()) {
+			m_singleCacheSizeLimit = m_totalCacheSizeLimit / m_leafNodes.size();
 
-		m_sanitizerIterator = QListIterator(m_leafNodes);
-		m_sanitizerTimer = new QTimer(this);
-		connect(m_sanitizerTimer, &QTimer::timeout, this, &HistoryApp::sanitizeNext);
-		m_sanitizerTimer->start(m_cliOptions->journalSanitizerInterval() * 1000);
-	}
-} catch (std::exception& ex) {
-	shv::coreqt::utils::qcoro_unhandled_exception(ex);
+			m_sanitizerIterator = QListIterator(m_leafNodes);
+			m_sanitizerTimer = new QTimer(this);
+			connect(m_sanitizerTimer, &QTimer::timeout, this, &HistoryApp::sanitizeNext);
+			m_sanitizerTimer->start(m_cliOptions->journalSanitizerInterval() * 1000);
+		}
+
+		promise.finish();
+	});
+
+	return future;
 }
 
 void HistoryApp::deinitializeShvTree()
@@ -347,7 +356,7 @@ void HistoryApp::deinitializeShvTree()
 void HistoryApp::onBrokerConnectedChanged(bool is_connected)
 {
 	m_isBrokerConnected = is_connected;
-	reloadSites([] {}, [] (const auto&) {});
+	reloadSites();
 }
 
 void HistoryApp::onRpcMessageReceived(const cp::RpcMessage& msg)
