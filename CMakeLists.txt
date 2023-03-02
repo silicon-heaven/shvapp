@@ -47,9 +47,6 @@ else()
 endif()
 
 find_package(Qt${SHV_QT_VERSION_MAJOR} COMPONENTS Core Concurrent OPTIONAL_COMPONENTS SerialPort Widgets Svg Xml Quick Mqtt)
-if(NOT WIN32)
-	find_package(QCoro${SHV_QT_VERSION_MAJOR} QUIET COMPONENTS Core)
-endif()
 
 set(Qt_FOUND ${Qt${SHV_QT_VERSION_MAJOR}_FOUND})
 set(QtWidgets_FOUND ${Qt${SHV_QT_VERSION_MAJOR}Widgets_FOUND})
@@ -57,7 +54,6 @@ set(QtSvg_FOUND ${Qt${SHV_QT_VERSION_MAJOR}Svg_FOUND})
 set(QtQuick_FOUND ${Qt${SHV_QT_VERSION_MAJOR}Quick_FOUND})
 set(QtMqtt_FOUND ${Qt${SHV_QT_VERSION_MAJOR}Mqtt_FOUND})
 set(QtXml_FOUND ${Qt${SHV_QT_VERSION_MAJOR}Xml_FOUND})
-set(QCoro_FOUND ${QCoro${SHV_QT_VERSION_MAJOR}_FOUND})
 
 function(target_enable_coroutines target_name)
     if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
