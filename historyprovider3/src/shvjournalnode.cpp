@@ -348,8 +348,8 @@ public:
 		QDir cache_dir(cache_dir_path);
 		int newest_file_entry_count = 0;
 		std::optional<QString> file_name_hint;
-		if (!cache_dir.isEmpty()) {
-			auto entry_list = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name | QDir::Reversed);
+		auto entry_list = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name | QDir::Reversed);
+		if (!entry_list.empty()) {
 			QString newest_file_name;
 
 			if (entry_list.at(0) != DIRTY_FILENAME) {

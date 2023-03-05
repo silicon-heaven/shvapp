@@ -82,6 +82,15 @@ QCoro::Generator<int> MockRpcConnection::driver()
 		}});
 	}
 
+	DOCTEST_SUBCASE("subdirectory in a log directory")
+	{
+		create_dummy_cache_files(cache_dir_path, {});
+		QDir(QString::fromStdString(join(get_site_cache_dir(cache_dir_path).path().toStdString(), "blablabla"))).mkpath(".");
+		REQUEST_YIELD("_shvjournal", "syncLog", RpcValue());
+		EXPECT_REQUEST(shv_path, "getLog");
+		RESPOND_YIELD(shv::chainpack::RpcValue::List());
+	}
+
 	DOCTEST_SUBCASE("since param")
 	{
 		HistoryApp::instance()->cliOptions()->setCacheInitMaxAge(60 /*seconds*/ * 60 /*minutes*/ * 24 /*hours*/ * 30 /*days*/);
