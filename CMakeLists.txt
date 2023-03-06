@@ -11,7 +11,6 @@ set(CMAKE_STATIC_LIBRARY_PREFIX "") # we don't want CMake to prepend "lib" to ou
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set(SHV_WARNING_FLAGS "-Wall -Wextra -pedantic -Wcast-align -Wunused -Wpedantic -Wmisleading-indentation -Wdouble-promotion -Wformat=2 -Wimplicit-fallthrough")
-    set(SHV_WARNING_FLAGS "${SHV_WARNING_FLAGS} -Wno-sign-conversion")
     set(SHV_WARNING_FLAGS_CXX "-Wnon-virtual-dtor -Wold-style-cast -Woverloaded-virtual")
 
 	# We switched to qsizetype in Qt6, so let's get rid of this warning in Qt5 for now.
@@ -19,6 +18,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU
 	if(USE_QT6)
 		set(SHV_WARNING_FLAGS "${SHV_WARNING_FLAGS} -Wconversion")
 	endif()
+
+    set(SHV_WARNING_FLAGS "${SHV_WARNING_FLAGS} -Wno-sign-conversion")
 
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         set(SHV_WARNING_FLAGS "-Wduplicated-cond -Wduplicated-branches -Wlogical-op -Wshadow=local ${SHV_WARNING_FLAGS}")
