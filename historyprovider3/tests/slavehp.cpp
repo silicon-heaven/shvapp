@@ -25,7 +25,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 	});
 	enqueue(res, [=] (MockRpcConnection* mock) {
 		EXPECT_SUBSCRIPTION("shv/fin/hel/tram/hel002", "chng");
-		REQUEST_YIELD(master_shv_journal_path, "syncLog", RpcValue());
+		REQUEST_YIELD(master_shv_journal_path, "syncLog", synclog_wait);
 	});
 	enqueue(res, [=] (MockRpcConnection* mock) {
 		EXPECT_REQUEST(slave_shv_journal_path, "lsfiles", ls_size_true);
@@ -87,7 +87,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 	}
 
 	enqueue(res, [=] (MockRpcConnection* mock) {
-		EXPECT_RESPONSE("All files have been synced");
+		EXPECT_RESPONSE(R"(["shv/fin/hel/tram/hel002"])"_cpon);
 		REQUIRE(get_cache_contents(cache_dir_path) == *expected_cache_contents);
 	});
 

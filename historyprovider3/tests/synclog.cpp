@@ -24,7 +24,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 	});
 	enqueue(res, [=] (MockRpcConnection* mock) {
 		EXPECT_SUBSCRIPTION(shv_path, "chng");
-		REQUEST_YIELD("_shvjournal", "syncLog", RpcValue());
+		REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait);
 	});
 	enqueue(res, [=] (MockRpcConnection* mock) {
 		EXPECT_REQUEST(join(shv_path, "/.app/shvjournal"), "lsfiles", ls_size_true);
@@ -137,7 +137,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		}
 
 		enqueue(res, [=] (MockRpcConnection* mock) {
-			EXPECT_RESPONSE("All files have been synced");
+			EXPECT_RESPONSE(R"(["shv/eyas/opc"])"_cpon);
 			REQUIRE(get_cache_contents(cache_dir_path) == *expected_cache_contents);
 		});
 	}
@@ -150,7 +150,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		});
 
 		enqueue(res, [=] (MockRpcConnection* mock) {
-			EXPECT_RESPONSE("All files have been synced");
+			EXPECT_RESPONSE(R"(["shv/eyas/opc"])"_cpon);
 			return CallNext::Yes;
 		});
 
@@ -251,6 +251,67 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 			enqueue(res, [=] (MockRpcConnection* mock) {
 				EXPECT_SIGNAL("shv/two", "logReset", RpcValue());
 			});
+		}
+
+		DOCTEST_SUBCASE("syncLog on specific site subtree")
+		{
+			auto expected_cache_contents = std::make_shared<RpcValue::List>();
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				mock->setBrokerConnected(false);
+				QTimer::singleShot(0, [mock] {mock->setBrokerConnected(true);});
+			});
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				SEND_SITES_YIELD(mock_sites::two_devices);
+			});
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
+			});
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				EXPECT_SUBSCRIPTION_YIELD("shv/one", "chng");
+			});
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				EXPECT_SUBSCRIPTION("shv/two", "chng");
+				return CallNext::Yes;
+			});
+
+			DOCTEST_SUBCASE("just one site")
+			{
+				enqueue(res, [=] (MockRpcConnection* mock) {
+					REQUEST_YIELD("_shvjournal", "syncLog", R"({"shvPath": "shv/two", "waitForFinished": true})"_cpon);
+				});
+				enqueue(res, [=] (MockRpcConnection* mock) {
+					EXPECT_REQUEST("shv/two/.app/shvjournal", "lsfiles", ls_size_true);
+					create_dummy_cache_files(cache_dir_path, {});
+					RESPOND_YIELD(RpcValue::List());
+				});
+
+				enqueue(res, [=] (MockRpcConnection* mock) {
+					EXPECT_RESPONSE(R"(["shv/two"])"_cpon);
+					REQUIRE(get_cache_contents(cache_dir_path) == *expected_cache_contents);
+				});
+			}
+
+			DOCTEST_SUBCASE("shv subtree")
+			{
+				enqueue(res, [=] (MockRpcConnection* mock) {
+					REQUEST_YIELD("_shvjournal", "syncLog", R"({"shvPath": "shv", "waitForFinished": true})"_cpon);
+				});
+				enqueue(res, [=] (MockRpcConnection* mock) {
+					EXPECT_REQUEST("shv/one/.app/shvjournal", "lsfiles", ls_size_true);
+					create_dummy_cache_files(cache_dir_path, {});
+					RESPOND_YIELD(RpcValue::List());
+				});
+				enqueue(res, [=] (MockRpcConnection* mock) {
+					EXPECT_REQUEST("shv/two/.app/shvjournal", "lsfiles", ls_size_true);
+					create_dummy_cache_files(cache_dir_path, {});
+					RESPOND_YIELD(RpcValue::List());
+				});
+
+				enqueue(res, [=] (MockRpcConnection* mock) {
+					EXPECT_RESPONSE(R"(["shv/one", "shv/two"])"_cpon);
+					REQUIRE(get_cache_contents(cache_dir_path) == *expected_cache_contents);
+				});
+			}
 		}
 	}
 	return res;

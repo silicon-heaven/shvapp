@@ -11,6 +11,8 @@ namespace cp = shv::chainpack;
 using cp::RpcValue;
 using namespace std::string_literals;
 
+RpcValue operator""_cpon(const char* data, size_t size);
+
 struct DummyFileInfo {
 	QString fileName;
 	std::string content;
@@ -183,6 +185,7 @@ const auto five_thousand_records_getlog_response = RpcValue::fromCpon((R"(
 
 const auto ls_size_true = RpcValue::fromCpon(R"({"size": true})");
 const auto read_offset_0 = RpcValue::fromCpon(R"({"offset":0})");
+const auto synclog_wait = R"({"waitForFinished": true})"_cpon;
 
 #define TEST_HISTORYPROVIDER_MAIN(test_name)                                             \
 	DOCTEST_TEST_CASE(test_name)                                                           \

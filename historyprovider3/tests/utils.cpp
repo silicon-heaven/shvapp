@@ -63,3 +63,8 @@ std::string join(const std::string& a, const std::string& b)
 {
 	return shv::core::utils::joinPath(a, b);
 }
+
+RpcValue operator""_cpon(const char* data, size_t size)
+{
+  return RpcValue::fromCpon(std::string{data, size});
+}
