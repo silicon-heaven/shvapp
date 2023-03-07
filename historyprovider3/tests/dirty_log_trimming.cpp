@@ -82,68 +82,68 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		});
 	}
 
-	// DOCTEST_SUBCASE("file to trim from is empty")
-	// {
-	// 	enqueue(res, [=] (MockRpcConnection* mock) {
-	// 		create_dummy_cache_files("one", {
-	// 			{"dirtylog", dummy_logfile2}
-	// 		});
+	DOCTEST_SUBCASE("file to trim from is empty")
+	{
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			create_dummy_cache_files("one", {
+				{"dirtylog", dummy_logfile2}
+			});
 
-	// 		REQUEST_YIELD("_shvjournal", "syncLog", RpcValue());
-	// 	});
-	// 	enqueue(res, [=] (MockRpcConnection* mock) {
-	// 		EXPECT_REQUEST("shv/one/.app/shvjournal", "lsfiles", ls_size_true);
-	// 		RESPOND_YIELD((RpcValue::List{{
-	// 			{ "2022-07-07T18-06-15-557.log2", "f", 0L }
-	// 		}}));
-	// 	});
-	// 	enqueue(res, [=] (MockRpcConnection* mock) {
-	// 		EXPECT_REQUEST("shv/one/.app/shvjournal/2022-07-07T18-06-15-557.log2", "read", read_offset_0);
-	// 		RESPOND_YIELD(RpcValue::stringToBlob(""));
-	// 	});
-	// 	enqueue(res, [=] (MockRpcConnection* mock) {
-	// 		EXPECT_REQUEST("shv/two/.app/shvjournal", "lsfiles", ls_size_true);
-	// 		RESPOND_YIELD(RpcValue::List());
-	// 	});
-	// 	enqueue(res, [=] (MockRpcConnection* mock) {
-	// 		EXPECT_RESPONSE("All files have been synced");
-	// 	});
-	// }
+			REQUEST_YIELD("_shvjournal", "syncLog", RpcValue());
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_REQUEST("shv/one/.app/shvjournal", "lsfiles", ls_size_true);
+			RESPOND_YIELD((RpcValue::List{{
+				{ "2022-07-07T18-06-15-557.log2", "f", 0L }
+			}}));
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_REQUEST("shv/two/.app/shvjournal", "lsfiles", ls_size_true);
+			RESPOND_YIELD(RpcValue::List());
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_REQUEST("shv/one/.app/shvjournal/2022-07-07T18-06-15-557.log2", "read", read_offset_0);
+			RESPOND_YIELD(RpcValue::stringToBlob(""));
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_RESPONSE("All files have been synced");
+		});
+	}
 
-	// DOCTEST_SUBCASE("file to trim from only has one entry")
-	// {
-	// 	enqueue(res, [=] (MockRpcConnection* mock) {
-	// 		// This means that the file will be trimmed due to the last-ms algorithm and therefore empty. We don't
-	// 		// really want empty files, so we don't even write it.
-	// 		create_dummy_cache_files("one", {
-	// 			{"dirtylog", dummy_logfile2}
-	// 		});
+	DOCTEST_SUBCASE("file to trim from only has one entry")
+	{
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			// This means that the file will be trimmed due to the last-ms algorithm and therefore empty. We don't
+			// really want empty files, so we don't even write it.
+			create_dummy_cache_files("one", {
+				{"dirtylog", dummy_logfile2}
+			});
 
-	// 		REQUEST_YIELD("_shvjournal", "syncLog", RpcValue());
-	// 	});
-	// 	enqueue(res, [=] (MockRpcConnection* mock) {
-	// 		EXPECT_REQUEST("shv/one/.app/shvjournal", "lsfiles", ls_size_true);
-	// 		RESPOND_YIELD((RpcValue::List{{
-	// 			{ "2022-07-07T18-06-15-557.log2", "f", logfile_one_entry.size() }
-	// 		}}));
-	// 	});
-	// 	enqueue(res, [=] (MockRpcConnection* mock) {
-	// 		EXPECT_REQUEST("shv/one/.app/shvjournal/2022-07-07T18-06-15-557.log2", "read", read_offset_0);
-	// 		RESPOND_YIELD(RpcValue::stringToBlob(logfile_one_entry));
-	// 	});
-	// 	enqueue(res, [=] (MockRpcConnection* mock) {
-	// 		EXPECT_REQUEST("shv/two/.app/shvjournal", "lsfiles", ls_size_true);
-	// 		RESPOND_YIELD(RpcValue::List());
-	// 	});
-	// 	enqueue(res, [=] (MockRpcConnection* mock) {
-	// 		EXPECT_RESPONSE("All files have been synced");
-	// 		*expected_cache_contents = RpcValue::List({{
-	// 			RpcValue::List{ "dirtylog", dummy_logfile2.size() }
-	// 		}});
+			REQUEST_YIELD("_shvjournal", "syncLog", RpcValue());
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_REQUEST("shv/one/.app/shvjournal", "lsfiles", ls_size_true);
+			RESPOND_YIELD((RpcValue::List{{
+				{ "2022-07-07T18-06-15-557.log2", "f", logfile_one_entry.size() }
+			}}));
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_REQUEST("shv/two/.app/shvjournal", "lsfiles", ls_size_true);
+			RESPOND_YIELD(RpcValue::List());
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_REQUEST("shv/one/.app/shvjournal/2022-07-07T18-06-15-557.log2", "read", read_offset_0);
+			RESPOND_YIELD(RpcValue::stringToBlob(logfile_one_entry));
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_RESPONSE("All files have been synced");
+			*expected_cache_contents = RpcValue::List({{
+				RpcValue::List{ "dirtylog", dummy_logfile2.size() }
+			}});
 
-	// 		REQUIRE(get_cache_contents("one") == *expected_cache_contents);
-	// 	});
-	// }
+			REQUIRE(get_cache_contents("one") == *expected_cache_contents);
+		});
+	}
 
 	return res;
 }
