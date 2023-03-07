@@ -9,7 +9,6 @@
 #include <set>
 
 struct SlaveHpInfo {
-	bool is_leaf;
 	LogType log_type;
 	std::string shv_path;
 	QString cache_dir_path;
@@ -32,6 +31,7 @@ public:
 
 	const QString& cacheDirPath() const;
 	const std::vector<SlaveHpInfo>& slaveHps() const;
+	const std::set<std::string>& leafNodes() const;
 	QMap<QString, bool>& syncInProgress();
 
 private:

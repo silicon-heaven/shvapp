@@ -600,12 +600,8 @@ public:
 				m_node->syncInProgress()[slave_hp_path_qstr] = false;
 			});
 
-			// Now that we know that shvPath to-be-synced starts with the slave hp path, we need to check whether we're
-			// connecting through a slave HP or connecting directly to a device.
-			//
-			// A special case is when m_shvPath is empty.
-			SyncType sync_type =
-				slave_hp.is_leaf && (slave_hp_path_qstr.size() == m_shvPath.size() || m_shvPath.isEmpty()) ? SyncType::Device : SyncType::Slave;
+			// We know all the leaf nodes, so let's check what's our sync type.
+			auto sync_type = m_node->leafNodes().contains(slave_hp.shv_path) ? SyncType::Device : SyncType::Slave;
 
 			// We shouldn't sync pushlogs, if they're our directly connected device.
 			if (sync_type == SyncType::Device && slave_hp.log_type == LogType::PushLog) {
@@ -680,6 +676,11 @@ QMap<QString, bool>& ShvJournalNode::syncInProgress()
 const std::vector<SlaveHpInfo>& ShvJournalNode::slaveHps() const
 {
 	return m_slaveHps;
+}
+
+const std::set<std::string>& ShvJournalNode::leafNodes() const
+{
+	return m_leafNodes;
 }
 
 #include "shvjournalnode.moc"
