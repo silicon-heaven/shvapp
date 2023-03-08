@@ -22,8 +22,18 @@
 
 namespace cp = shv::chainpack;
 namespace {
+constexpr auto SYNCLOG_DESC = R"(syncLog - triggers a manual sync
+With no param, all sites are synced. This can (and will) take some time.
+With a string param, only the subtree signified by the string is synced.
+syncLog also takes a map param in this format: {
+	waitForFinished: bool // the method waits until the whole operation is finished and only then returns a response
+	shvPath: string // the subtree to be synced
+}
+
+Returns: a list of all leaf sites that will be synced
+)";
 const std::vector<cp::MetaMethod> methods {
-	{"syncLog", cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
+	{"syncLog", cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE, SYNCLOG_DESC},
 };
 
 const auto DIRTY_FILENAME = "dirtylog";
