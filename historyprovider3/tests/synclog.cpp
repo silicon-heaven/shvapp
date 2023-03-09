@@ -5,8 +5,21 @@
 
 #include "src/appclioptions.h"
 #include "src/historyapp.h"
+#include "src/shvjournalnode.h"
 #include "tests/sites.h"
 #include "tests/utils.h"
+
+namespace {
+auto assert_sync_info_equal(const RpcValue::Map& a_map, const RpcValue& b)
+{
+	const auto& b_map = b.asMap();
+	REQUIRE(a_map.keys() == b_map.keys());
+	for (const auto& kv : a_map) {
+		CAPTURE(kv.first);
+		REQUIRE(b_map.value(kv.first).asMap().value("status") == kv.second.asMap().value("status"));
+	}
+}
+}
 
 // TODO: add proper testing for file contents (not just sizes)
 QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
@@ -24,9 +37,15 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 	});
 	enqueue(res, [=] (MockRpcConnection* mock) {
 		EXPECT_SUBSCRIPTION(shv_path, "chng");
+		assert_sync_info_equal(HistoryApp::instance()->shvJournalNode()->syncInfo(), R"({
+			"shv/eyas/opc": {"status": "Unknown"}
+		})"_cpon);
 		REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait);
 	});
 	enqueue(res, [=] (MockRpcConnection* mock) {
+		assert_sync_info_equal(HistoryApp::instance()->shvJournalNode()->syncInfo(), R"({
+			"shv/eyas/opc": {"status": "Syncing"}
+		})"_cpon);
 		EXPECT_REQUEST(join(shv_path, "/.app/shvjournal"), "lsfiles", ls_size_true);
 		return CallNext::Yes;
 	});
@@ -139,6 +158,9 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_RESPONSE(R"(["shv/eyas/opc"])"_cpon);
 			REQUIRE(get_cache_contents(cache_dir_path) == *expected_cache_contents);
+			assert_sync_info_equal(HistoryApp::instance()->shvJournalNode()->syncInfo(), R"({
+				"shv/eyas/opc": {"status": "Syncing successful"}
+			})"_cpon);
 		});
 	}
 
