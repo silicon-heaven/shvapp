@@ -48,7 +48,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 
 			REQUIRE(get_cache_contents("one") == *expected_cache_contents);
 			REQUIRE(get_cache_contents("two") == *expected_cache_contents);
-			REQUEST_YIELD("_shvjournal", "syncLog", RpcValue());
+			REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait);
 		});
 
 		enqueue(res, [=] (MockRpcConnection* mock) {
@@ -67,7 +67,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		});
 
 		enqueue(res, [=] (MockRpcConnection* mock) {
-			EXPECT_RESPONSE("All files have been synced");
+			EXPECT_RESPONSE(R"(["shv/one", "shv/two"])"_cpon);
 
 			// two is left intact
 			REQUIRE(get_cache_contents("two") == *expected_cache_contents);
@@ -89,7 +89,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 				{"dirtylog", dummy_logfile2}
 			});
 
-			REQUEST_YIELD("_shvjournal", "syncLog", RpcValue());
+			REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait);
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_REQUEST("shv/one/.app/shvjournal", "lsfiles", ls_size_true);
@@ -106,7 +106,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 			RESPOND_YIELD(RpcValue::stringToBlob(""));
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
-			EXPECT_RESPONSE("All files have been synced");
+			EXPECT_RESPONSE(R"(["shv/one", "shv/two"])"_cpon);
 		});
 	}
 
@@ -119,7 +119,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 				{"dirtylog", dummy_logfile2}
 			});
 
-			REQUEST_YIELD("_shvjournal", "syncLog", RpcValue());
+			REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait);
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_REQUEST("shv/one/.app/shvjournal", "lsfiles", ls_size_true);
@@ -136,7 +136,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 			RESPOND_YIELD(RpcValue::stringToBlob(logfile_one_entry));
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
-			EXPECT_RESPONSE("All files have been synced");
+			EXPECT_RESPONSE(R"(["shv/one", "shv/two"])"_cpon);
 			*expected_cache_contents = RpcValue::List({{
 				RpcValue::List{ "dirtylog", dummy_logfile2.size() }
 			}});

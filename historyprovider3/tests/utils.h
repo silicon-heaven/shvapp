@@ -11,6 +11,8 @@ namespace cp = shv::chainpack;
 using cp::RpcValue;
 using namespace std::string_literals;
 
+RpcValue operator""_cpon(const char* data, size_t size);
+
 struct DummyFileInfo {
 	QString fileName;
 	std::string content;
@@ -38,7 +40,7 @@ const auto dummy_logfile3 = R"(2022-07-07T18:06:20.900Z	809781	zone1/system/sig/
 
 const auto logfile_one_entry = R"(2022-07-07T18:06:17.872Z	809781	zone1/system/sig/plcDisconnected	false		chng	2	)"s;
 
-const auto dummy_pushlog = RpcValue::fromCpon(R"(
+const auto dummy_pushlog = R"(
 <
   "dateTime":d"2022-09-15T13:30:04.293Z",
   "device":{"id":"historyprovider"},
@@ -64,9 +66,9 @@ const auto dummy_pushlog = RpcValue::fromCpon(R"(
 >[
   [d"2022-07-07T18:06:15.557Z", 1, true, null, "SHV_SYS", 0u, null],
 ]
-)");
+)"_cpon;
 
-const auto dummy_pushlog3 = RpcValue::fromCpon(R"(
+const auto dummy_pushlog3 = R"(
 <
   "dateTime":d"2022-09-15T13:30:04.293Z",
   "device":{"id":"historyprovider"},
@@ -92,9 +94,9 @@ const auto dummy_pushlog3 = RpcValue::fromCpon(R"(
 >[
   [d"2022-07-07T18:06:15.557Z", 2, true, null, "SHV_SYS", 0u, null],
 ]
-)");
+)"_cpon;
 
-const auto dummy_pushlog2 = RpcValue::fromCpon(R"(
+const auto dummy_pushlog2 = R"(
 <
   "dateTime":d"2022-09-15T13:30:04.293Z",
   "device":{"id":"historyprovider"},
@@ -120,9 +122,9 @@ const auto dummy_pushlog2 = RpcValue::fromCpon(R"(
 >[
   [d"2022-07-07T18:06:15.554Z", 1, true, null, "SHV_SYS", 0u, null],
 ]
-)");
+)"_cpon;
 
-const auto dummy_getlog_response = RpcValue::fromCpon(R"(
+const auto dummy_getlog_response = R"(
 <
   "dateTime":d"2022-09-15T13:30:04.293Z",
   "device":{"id":"historyprovider"},
@@ -151,7 +153,7 @@ const auto dummy_getlog_response = RpcValue::fromCpon(R"(
   [d"2022-07-07T18:06:17.784Z", 3, false, null, null, 2u, null],
   [d"2022-07-07T18:06:17.869Z", 4, 0u, null, null, 2u, null]
 ]
-)");
+)"_cpon;
 
 const auto five_thousand_records_getlog_response = RpcValue::fromCpon((R"(
 <
@@ -181,8 +183,9 @@ const auto five_thousand_records_getlog_response = RpcValue::fromCpon((R"(
 )").repeated(5000) + R"(]
 )").toStdString());
 
-const auto ls_size_true = RpcValue::fromCpon(R"({"size": true})");
-const auto read_offset_0 = RpcValue::fromCpon(R"({"offset":0})");
+const auto ls_size_true = R"({"size": true})"_cpon;
+const auto read_offset_0 = R"({"offset":0})"_cpon;
+const auto synclog_wait = R"({"waitForFinished": true})"_cpon;
 
 #define TEST_HISTORYPROVIDER_MAIN(test_name)                                             \
 	DOCTEST_TEST_CASE(test_name)                                                           \

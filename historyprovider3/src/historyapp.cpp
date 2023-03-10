@@ -166,19 +166,28 @@ void createTree(shv::iotqt::node::ShvNode* parent_node, const cp::RpcValue::Map&
 			meta_node.hasKey("HP") ? LogType::Legacy :
 			LogType::Normal;
 
-		node = new LeafNode(node_name.toStdString(), journal_cache_dir, log_type, parent_node);
-		auto leaf_shv_path = shv::core::utils::joinPath(std::string{"shv"}, node->shvPath());
+		bool is_leaf = false;
+		if (meta_node.hasKey("HP") || !meta_node.value("HP3").asMap().value("slave").toBool()) {
+			node = new LeafNode(node_name.toStdString(), journal_cache_dir, log_type, parent_node);
+			is_leaf = true;
+		} else {
+			node = new shv::iotqt::node::ShvNode(node_name.toStdString(), parent_node);
+		}
+
+		auto log_source_shv_path = shv::core::utils::joinPath(std::string{"shv"}, node->shvPath());
+		if (is_leaf) {
+			leaf_nodes.insert(log_source_shv_path);
+		}
+
 		if (slave_found != SlaveFound::Yes) {
 			slave_found = SlaveFound::Yes;
 			slave_hps.push_back(SlaveHpInfo {
-				.is_leaf = meta_node.hasKey("HP") || !meta_node.value("HP3").asMap().value("slave").toBool(),
 				.log_type = log_type,
-				.shv_path = leaf_shv_path,
+				.shv_path = log_source_shv_path,
 				.cache_dir_path = QString::fromStdString(journal_cache_dir)
 			});
 		}
 
-		leaf_nodes.insert(leaf_shv_path);
 	} else {
 		node = new shv::iotqt::node::ShvNode(node_name.toStdString(), parent_node);
 	}

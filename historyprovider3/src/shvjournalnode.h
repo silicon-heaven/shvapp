@@ -9,7 +9,6 @@
 #include <set>
 
 struct SlaveHpInfo {
-	bool is_leaf;
 	LogType log_type;
 	std::string shv_path;
 	QString cache_dir_path;
@@ -28,10 +27,11 @@ public:
 	const shv::chainpack::MetaMethod* metaMethod(const StringViewList& shv_path, size_t ix) override;
 	shv::chainpack::RpcValue callMethodRq(const shv::chainpack::RpcRequest &rq) override;
 	void trimDirtyLog(const QString& slave_hp_path, const QString& cache_dir_path);
-	void syncLog(const std::string& path, const std::function<void()> successCb, const std::function<void(shv::chainpack::RpcResponse::Error)> errorCb);
+	void syncLog(const std::string& shv_path, const std::function<void(const shv::chainpack::RpcValue::List&)> site_list_cb, const std::function<void()> success_cb, const std::function<void(shv::chainpack::RpcResponse::Error)> errorCb);
 
 	const QString& cacheDirPath() const;
 	const std::vector<SlaveHpInfo>& slaveHps() const;
+	const std::set<std::string>& leafNodes() const;
 	QMap<QString, bool>& syncInProgress();
 
 private:

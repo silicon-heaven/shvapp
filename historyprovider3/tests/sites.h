@@ -1,8 +1,9 @@
+#include "utils.h"
 #include <shv/chainpack/rpcvalue.h>
 
 namespace mock_sites {
 // TODO: Name this properly
-const auto fin_slave_broker = shv::chainpack::RpcValue::fromCpon(R"(
+const auto fin_slave_broker = R"(
 {
   "_meta":{
     "HP3":{"slave": true}
@@ -20,9 +21,9 @@ const auto fin_slave_broker = shv::chainpack::RpcValue::fromCpon(R"(
     }
   }
 }
-)");
+)"_cpon;
 
-const auto fin_master_broker = shv::chainpack::RpcValue::fromCpon(R"(
+const auto fin_master_broker = R"(
 {
   "_meta":{
     "HP3":{"slave": true}
@@ -53,9 +54,9 @@ const auto fin_master_broker = shv::chainpack::RpcValue::fromCpon(R"(
     }
   }
 }
-)");
+)"_cpon;
 
-const auto pushlog_hp = shv::chainpack::RpcValue::fromCpon(R"(
+const auto pushlog_hp = R"(
 {
   "_meta":{
     "HP3":{"slave": true}
@@ -66,9 +67,9 @@ const auto pushlog_hp = shv::chainpack::RpcValue::fromCpon(R"(
     }
   }
 }
-)");
+)"_cpon;
 
-const auto master_hp_with_slave_pushlog = shv::chainpack::RpcValue::fromCpon(R"(
+const auto master_hp_with_slave_pushlog = R"(
 {
   "_meta":{
     "HP3":{"slave": true}
@@ -84,9 +85,9 @@ const auto master_hp_with_slave_pushlog = shv::chainpack::RpcValue::fromCpon(R"(
     }
   }
 }
-)");
+)"_cpon;
 
-const auto legacy_hp = shv::chainpack::RpcValue::fromCpon(R"(
+const auto legacy_hp = R"(
 {
   "_meta":{
     "HP3":{"slave": true}
@@ -97,9 +98,9 @@ const auto legacy_hp = shv::chainpack::RpcValue::fromCpon(R"(
     },
   }
 }
-)");
+)"_cpon;
 
-const auto two_devices = shv::chainpack::RpcValue::fromCpon(R"(
+const auto two_devices = R"(
 {
   "_meta":{
     "HP3":{"slave": true}
@@ -115,5 +116,5 @@ const auto two_devices = shv::chainpack::RpcValue::fromCpon(R"(
     },
   }
 }
-)");
+)"_cpon;
 }

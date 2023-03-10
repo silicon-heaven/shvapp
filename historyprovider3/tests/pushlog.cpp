@@ -122,7 +122,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_SUBSCRIPTION("shv", "mntchng");
-			REQUEST_YIELD(shv_path, "syncLog", RpcValue());
+			REQUEST_YIELD(shv_path, "syncLog", synclog_wait);
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_ERROR("RPC ERROR MethodCallException: Method: 'syncLog' on path 'pushlog/' doesn't exist.");
@@ -140,14 +140,14 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_SUBSCRIPTION(cache_dir_path, "chng");
-			REQUEST_YIELD("_shvjournal", "syncLog", RpcValue());
+			REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait);
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_REQUEST("shv/master/.local/history/shvjournal", "lsfiles", ls_size_true);
 			RESPOND_YIELD(RpcValue::List());
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
-			EXPECT_RESPONSE("All files have been synced");
+			EXPECT_RESPONSE(R"(["shv/master"])"_cpon);
 		});
 	}
 
