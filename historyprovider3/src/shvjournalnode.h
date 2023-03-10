@@ -27,12 +27,14 @@ public:
 	const shv::chainpack::MetaMethod* metaMethod(const StringViewList& shv_path, size_t ix) override;
 	shv::chainpack::RpcValue callMethodRq(const shv::chainpack::RpcRequest &rq) override;
 	void trimDirtyLog(const QString& slave_hp_path, const QString& cache_dir_path);
-	void syncLog(const std::string& shv_path, const std::function<void(const shv::chainpack::RpcValue::List&)> site_list_cb, const std::function<void()> success_cb, const std::function<void(shv::chainpack::RpcResponse::Error)> errorCb);
+	void syncLog(const std::string& shv_path, const std::function<void(const shv::chainpack::RpcValue::List&)> site_list_cb, const std::function<void()> success_cb);
 
 	const QString& cacheDirPath() const;
 	const std::vector<SlaveHpInfo>& slaveHps() const;
 	const std::set<std::string>& leafNodes() const;
 	QMap<QString, bool>& syncInProgress();
+	const shv::chainpack::RpcValue::Map& syncInfo();
+	void updateSyncStatus(const QString& shv_path, const std::string& status);
 
 private:
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
@@ -42,5 +44,15 @@ private:
 	QString m_remoteLogShvPath;
 	QString m_cacheDirPath;
 	QMap<QString, bool> m_syncInProgress;
+
+	/* Format of m_syncInfo:
+	 * {
+	 * 		[site]: DataValue
+	 * 			timetamp: DateTime
+	 * 			status: string
+	 * 		}
+	 * }
+	 */
+	shv::chainpack::RpcValue::Map m_syncInfo;
 };
 #endif /*SHVJOURNALNODE_H*/
