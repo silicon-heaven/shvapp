@@ -14,9 +14,6 @@ linux:
     - linux
   stage:
     build
-  artifacts:
-    paths:
-    - build/
   script:
     #- git submodule update --init --force --recursive
     - rm -rf build
@@ -32,6 +29,9 @@ linux-6:
     - linux
   stage:
     build
+  artifacts:
+    paths:
+    - build/
   script:
     - rm -rf build
     - mkdir -p build
