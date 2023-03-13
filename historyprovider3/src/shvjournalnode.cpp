@@ -39,7 +39,7 @@ Returns: a map where they is the path of the site and the value is a map with a 
 )";
 const std::vector<cp::MetaMethod> methods {
 	{"syncLog", cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE, SYNCLOG_DESC},
-	{"syncInfo", cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE, SYNCINFO_DESC},
+	{"syncInfo", cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ, SYNCINFO_DESC},
 };
 
 const auto DIRTY_FILENAME = "dirtylog";
