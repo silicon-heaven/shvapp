@@ -166,10 +166,9 @@ void createTree(shv::iotqt::node::ShvNode* parent_node, const cp::RpcValue::Map&
 			meta_node.hasKey("HP") ? LogType::Legacy :
 			LogType::Normal;
 
-		bool is_leaf = false;
-		if (meta_node.hasKey("HP") || !meta_node.value("HP3").asMap().value("slave").toBool()) {
+		bool is_leaf = meta_node.hasKey("HP") || meta_node.value("HP3").asMap().value("type", "device").asString() == "device";
+		if (is_leaf) {
 			node = new LeafNode(node_name.toStdString(), journal_cache_dir, log_type, parent_node);
-			is_leaf = true;
 		} else {
 			node = new shv::iotqt::node::ShvNode(node_name.toStdString(), parent_node);
 		}

@@ -477,7 +477,7 @@ public:
 
 	enum class SyncType {
 		Device,
-		Slave
+		HP3
 	};
 
 	QFuture<void> impl_doSync(const QString& slave_hp_path, const QString& cache_dir_path, const QString& shvjournal_shvpath, const QString& path_prefix)
@@ -636,7 +636,7 @@ public:
 			});
 
 			// We know all the leaf nodes, so let's check what's our sync type.
-			auto sync_type = m_node->leafNodes().contains(slave_hp.shv_path) ? SyncType::Device : SyncType::Slave;
+			auto sync_type = m_node->leafNodes().contains(slave_hp.shv_path) ? SyncType::Device : SyncType::HP3;
 
 			// We shouldn't sync pushlogs, if they're our directly connected device.
 			if (sync_type == SyncType::Device && slave_hp.log_type == LogType::PushLog) {

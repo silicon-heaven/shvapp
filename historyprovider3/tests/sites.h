@@ -6,7 +6,7 @@ namespace mock_sites {
 const auto fin_slave_broker = R"(
 {
   "_meta":{
-    "HP3":{"slave": true}
+    "HP3":{"type": "HP3"}
   },
   "eyas":{
     "_meta":{
@@ -26,7 +26,7 @@ const auto fin_slave_broker = R"(
 const auto fin_master_broker = R"(
 {
   "_meta":{
-    "HP3":{"slave": true}
+    "HP3":{"type": "HP3"}
   },
   "fin":{
     "_meta":{"name":"Finland", "name_cz":"Finsko"},
@@ -35,7 +35,7 @@ const auto fin_master_broker = R"(
       "tram":{
         "hel002":{
           "_meta":{
-            "HP3":{"slave":true}
+            "HP3":{"type":"HP3"}
           },
           "eyas":{
             "_meta":{
@@ -59,7 +59,7 @@ const auto fin_master_broker = R"(
 const auto pushlog_hp = R"(
 {
   "_meta":{
-    "HP3":{"slave": true}
+    "HP3":{"type": "HP3"}
   },
   "pushlog":{
     "_meta":{
@@ -72,11 +72,11 @@ const auto pushlog_hp = R"(
 const auto master_hp_with_slave_pushlog = R"(
 {
   "_meta":{
-    "HP3":{"slave": true}
+    "HP3":{"type": "HP3"}
   },
   "master": {
     "_meta":{
-      "HP3":{"slave": true}
+      "HP3":{"type": "HP3"}
     },
     "pushlog":{
       "_meta":{
@@ -90,7 +90,7 @@ const auto master_hp_with_slave_pushlog = R"(
 const auto legacy_hp = R"(
 {
   "_meta":{
-    "HP3":{"slave": true}
+    "HP3":{"type": "HP3"}
   },
   "legacy": {
     "_meta":{
@@ -103,7 +103,7 @@ const auto legacy_hp = R"(
 const auto two_devices = R"(
 {
   "_meta":{
-    "HP3":{"slave": true}
+    "HP3":{"type": "HP3"}
   },
   "one": {
     "_meta":{
