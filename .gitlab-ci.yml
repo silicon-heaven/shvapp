@@ -26,7 +26,6 @@ linux:
     - make -j8
     - make install
     #- rsync -av --exclude '*.debug' lib bin /opt/shv/
-    - ../make-linux-artifacts.sh
 
 linux-6:
   tags:
@@ -40,6 +39,7 @@ linux-6:
     - CFLAGS="-Werror" CXXFLAGS="-DGIT_COMMIT=${CI_BUILD_REF} -Werror" cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_PREFIX_PATH=/opt/qt/6.4.2/gcc_64 -DCMAKE_INSTALL_PREFIX=. -DUSE_QT6=ON ..
     - make -j8
     - ctest --output-on-failure -j8
+    - ../make-linux-artifacts-qt6.sh
 
 linux-bb:
   only:
