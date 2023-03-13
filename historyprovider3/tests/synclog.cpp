@@ -275,7 +275,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 			});
 		}
 
-		DOCTEST_SUBCASE("syncLog on specific site subtree")
+		DOCTEST_SUBCASE("syncLog/syncInfo on specific site subtree")
 		{
 			auto expected_cache_contents = std::make_shared<RpcValue::List>();
 			enqueue(res, [=] (MockRpcConnection* mock) {
@@ -332,6 +332,45 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 				enqueue(res, [=] (MockRpcConnection* mock) {
 					EXPECT_RESPONSE(R"(["shv/one", "shv/two"])"_cpon);
 					REQUIRE(get_cache_contents(cache_dir_path) == *expected_cache_contents);
+				});
+			}
+
+			DOCTEST_SUBCASE("syncInfo")
+			{
+				std::string filter;
+				std::vector<std::string> expected_keys;
+				DOCTEST_SUBCASE("shv")
+				{
+					filter = "shv";
+					expected_keys = {
+						"shv/one",
+						"shv/two",
+					};
+				}
+
+				DOCTEST_SUBCASE("shv/one")
+				{
+					filter = "shv/one";
+					expected_keys = {
+						"shv/one",
+					};
+				}
+
+				DOCTEST_SUBCASE("shv/one")
+				{
+					filter = "shv/one";
+					expected_keys = {
+						"shv/one",
+					};
+				}
+
+				enqueue(res, [=] (MockRpcConnection* mock) {
+					REQUEST_YIELD("_shvjournal", "syncInfo", filter);
+				});
+
+				enqueue(res, [=] (MockRpcConnection* mock) {
+					REQUIRE(shv::chainpack::RpcResponse(mock->m_messageQueue.head()).result().asMap().keys() == expected_keys);
+					mock->m_messageQueue.dequeue();
 				});
 			}
 		}

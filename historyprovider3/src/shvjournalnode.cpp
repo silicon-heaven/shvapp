@@ -708,7 +708,17 @@ cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 	}
 
 	if (method == "syncInfo") {
-		return m_syncInfo;
+		auto sync_info = syncInfo();
+		if (auto filter = rq.params().asString(); !filter.empty()) {
+			for (auto it = sync_info.begin(); it != sync_info.end(); /*nothing*/) {
+				if (!it->first.starts_with(filter)) {
+					it = sync_info.erase(it);
+					continue;
+				}
+				it++;
+			}
+		}
+		return sync_info;
 	}
 
 	return Super::callMethodRq(rq);
