@@ -143,7 +143,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 			REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait);
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
-			EXPECT_REQUEST("shv/master/.local/history/shvjournal", "lsfiles", ls_size_true);
+			EXPECT_REQUEST("shv/master/.local/history/_shvjournal", "lsfiles", ls_size_true);
 			RESPOND_YIELD(RpcValue::List());
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
@@ -193,7 +193,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 					EXPECT_SUBSCRIPTION_YIELD("shv/master", "chng");
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
-					EXPECT_REQUEST("shv/master/.local/history/shvjournal", "lsfiles", ls_size_true);
+					EXPECT_REQUEST("shv/master/.local/history/_shvjournal", "lsfiles", ls_size_true);
 					RESPOND(RpcValue::List());
 					DRIVER_WAIT(10);
 				});
@@ -209,7 +209,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 				});
 
 				enqueue(res, [=] (MockRpcConnection* mock) {
-					EXPECT_REQUEST("shv/master/.local/history/shvjournal", "lsfiles", ls_size_true);
+					EXPECT_REQUEST("shv/master/.local/history/_shvjournal", "lsfiles", ls_size_true);
 					RESPOND(RpcValue::List());
 					DRIVER_WAIT(10);
 				});
@@ -281,7 +281,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 			NOTIFY_YIELD("shv/master", "mntchng", true);
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
-			EXPECT_REQUEST("shv/master/.local/history/shvjournal", "lsfiles", ls_size_true);
+			EXPECT_REQUEST("shv/master/.local/history/_shvjournal", "lsfiles", ls_size_true);
 			RESPOND_YIELD(RpcValue::List()); // We only test if the syncLog triggers.
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {

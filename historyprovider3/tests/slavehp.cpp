@@ -15,7 +15,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 	// We want the test to download everything regardless of age. Ten years ought to be enough.
 	std::string cache_dir_path = "fin/hel/tram/hel002";
 	std::string master_shv_journal_path = "_shvjournal";
-	std::string slave_shv_journal_path = "shv/fin/hel/tram/hel002/.local/history/shvjournal";
+	std::string slave_shv_journal_path = "shv/fin/hel/tram/hel002/.local/history/_shvjournal";
 	enqueue(res, [=] (MockRpcConnection* mock) {
 		HistoryApp::instance()->cliOptions()->setCacheInitMaxAge(60 /*seconds*/ * 60 /*minutes*/ * 24 /*hours*/ * 365 /*days*/ * 10 /*years*/);
 		SEND_SITES_YIELD(mock_sites::fin_master_broker);
