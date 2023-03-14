@@ -117,4 +117,30 @@ const auto two_devices = R"(
   }
 }
 )"_cpon;
+
+const auto even_more_devices = R"(
+{
+  "_meta":{
+    "HP3":{"type": "HP3"}
+  },
+  "one": {
+    "_meta":{
+      "HP3":{}
+    },
+  },
+  "two": {
+    "_meta":{
+      "HP3":{}
+    },
+  },
+  "mil014atm": {
+    "_meta":{
+      "HP3":{"type": "HP3"}
+    },
+    "sig": {
+      "HP3": {}
+    }
+  }
+}
+)"_cpon;
 }

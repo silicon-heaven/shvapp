@@ -605,7 +605,7 @@ public:
 		auto shvjournal_suffix =
 			sync_type == SyncType::Device ?
 			".app/shvjournal" :
-			shv::coreqt::utils::joinPath(".local/history/_shvjournal", m_shvPath.remove(0, slave_hp_path.size()));
+			shv::coreqt::utils::joinPath(".local/history/_shvjournal", m_shvPath.mid(slave_hp_path.size()));
 		auto shvjournal_shvpath = shv::coreqt::utils::joinPath(slave_hp_path, shvjournal_suffix);
 
 		return impl_doSync(slave_hp_path, cache_dir_path, shvjournal_shvpath, "");

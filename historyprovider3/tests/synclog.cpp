@@ -275,104 +275,140 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 			});
 		}
 
-		DOCTEST_SUBCASE("syncLog/syncInfo on specific site subtree")
+	}
+	DOCTEST_SUBCASE("syncLog/syncInfo on specific site subtree")
+	{
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			// Respond to the initial syncLog request.
+			RESPOND_YIELD(RpcValue::List());
+		});
+
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_RESPONSE(R"(["shv/eyas/opc"])"_cpon);
+			return CallNext::Yes;
+		});
+
+		auto expected_cache_contents = std::make_shared<RpcValue::List>();
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			mock->setBrokerConnected(false);
+			QTimer::singleShot(0, [mock] {mock->setBrokerConnected(true);});
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			SEND_SITES_YIELD(mock_sites::even_more_devices);
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION_YIELD("shv/mil014atm", "chng");
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION_YIELD("shv/one", "chng");
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION("shv/two", "chng");
+			return CallNext::Yes;
+		});
+
+		DOCTEST_SUBCASE("just one site")
 		{
-			auto expected_cache_contents = std::make_shared<RpcValue::List>();
 			enqueue(res, [=] (MockRpcConnection* mock) {
-				mock->setBrokerConnected(false);
-				QTimer::singleShot(0, [mock] {mock->setBrokerConnected(true);});
+				REQUEST_YIELD("_shvjournal", "syncLog", R"({"shvPath": "shv/two", "waitForFinished": true})"_cpon);
 			});
 			enqueue(res, [=] (MockRpcConnection* mock) {
-				SEND_SITES_YIELD(mock_sites::two_devices);
-			});
-			enqueue(res, [=] (MockRpcConnection* mock) {
-				EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
-			});
-			enqueue(res, [=] (MockRpcConnection* mock) {
-				EXPECT_SUBSCRIPTION_YIELD("shv/one", "chng");
-			});
-			enqueue(res, [=] (MockRpcConnection* mock) {
-				EXPECT_SUBSCRIPTION("shv/two", "chng");
-				return CallNext::Yes;
+				EXPECT_REQUEST("shv/two/.app/shvjournal", "lsfiles", ls_size_true);
+				create_dummy_cache_files(cache_dir_path, {});
+				RESPOND_YIELD(RpcValue::List());
 			});
 
-			DOCTEST_SUBCASE("just one site")
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				EXPECT_RESPONSE(R"(["shv/two"])"_cpon);
+				REQUIRE(get_cache_contents(cache_dir_path) == *expected_cache_contents);
+			});
+		}
+
+		DOCTEST_SUBCASE("just one which is a slave HP")
+		{
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				REQUEST_YIELD("_shvjournal", "syncLog", R"({"shvPath": "shv/mil014atm", "waitForFinished": true})"_cpon);
+			});
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				EXPECT_REQUEST("shv/mil014atm/.local/history/_shvjournal", "lsfiles", ls_size_true);
+				create_dummy_cache_files(cache_dir_path, {});
+				RESPOND_YIELD(RpcValue::List());
+			});
+
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				EXPECT_RESPONSE(R"(["shv/mil014atm"])"_cpon);
+				REQUIRE(get_cache_contents(cache_dir_path) == *expected_cache_contents);
+			});
+		}
+
+		DOCTEST_SUBCASE("shv subtree")
+		{
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				REQUEST_YIELD("_shvjournal", "syncLog", R"({"shvPath": "shv", "waitForFinished": true})"_cpon);
+			});
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				EXPECT_REQUEST("shv/mil014atm/.local/history/_shvjournal", "lsfiles", ls_size_true);
+				create_dummy_cache_files(cache_dir_path, {});
+				RESPOND_YIELD(RpcValue::List());
+			});
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				EXPECT_REQUEST("shv/one/.app/shvjournal", "lsfiles", ls_size_true);
+				create_dummy_cache_files(cache_dir_path, {});
+				RESPOND_YIELD(RpcValue::List());
+			});
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				EXPECT_REQUEST("shv/two/.app/shvjournal", "lsfiles", ls_size_true);
+				create_dummy_cache_files(cache_dir_path, {});
+				RESPOND_YIELD(RpcValue::List());
+			});
+
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				EXPECT_RESPONSE(R"(["shv/mil014atm", "shv/one", "shv/two"])"_cpon);
+				REQUIRE(get_cache_contents(cache_dir_path) == *expected_cache_contents);
+			});
+		}
+
+		DOCTEST_SUBCASE("syncInfo")
+		{
+			std::string filter;
+			std::vector<std::string> expected_keys;
+			DOCTEST_SUBCASE("shv")
 			{
-				enqueue(res, [=] (MockRpcConnection* mock) {
-					REQUEST_YIELD("_shvjournal", "syncLog", R"({"shvPath": "shv/two", "waitForFinished": true})"_cpon);
-				});
-				enqueue(res, [=] (MockRpcConnection* mock) {
-					EXPECT_REQUEST("shv/two/.app/shvjournal", "lsfiles", ls_size_true);
-					create_dummy_cache_files(cache_dir_path, {});
-					RESPOND_YIELD(RpcValue::List());
-				});
-
-				enqueue(res, [=] (MockRpcConnection* mock) {
-					EXPECT_RESPONSE(R"(["shv/two"])"_cpon);
-					REQUIRE(get_cache_contents(cache_dir_path) == *expected_cache_contents);
-				});
+				filter = "shv";
+				expected_keys = {
+					"shv/mil014atm",
+					"shv/one",
+					"shv/two",
+				};
 			}
 
-			DOCTEST_SUBCASE("shv subtree")
+			DOCTEST_SUBCASE("shv/one")
 			{
-				enqueue(res, [=] (MockRpcConnection* mock) {
-					REQUEST_YIELD("_shvjournal", "syncLog", R"({"shvPath": "shv", "waitForFinished": true})"_cpon);
-				});
-				enqueue(res, [=] (MockRpcConnection* mock) {
-					EXPECT_REQUEST("shv/one/.app/shvjournal", "lsfiles", ls_size_true);
-					create_dummy_cache_files(cache_dir_path, {});
-					RESPOND_YIELD(RpcValue::List());
-				});
-				enqueue(res, [=] (MockRpcConnection* mock) {
-					EXPECT_REQUEST("shv/two/.app/shvjournal", "lsfiles", ls_size_true);
-					create_dummy_cache_files(cache_dir_path, {});
-					RESPOND_YIELD(RpcValue::List());
-				});
-
-				enqueue(res, [=] (MockRpcConnection* mock) {
-					EXPECT_RESPONSE(R"(["shv/one", "shv/two"])"_cpon);
-					REQUIRE(get_cache_contents(cache_dir_path) == *expected_cache_contents);
-				});
+				filter = "shv/one";
+				expected_keys = {
+					"shv/one",
+				};
 			}
 
-			DOCTEST_SUBCASE("syncInfo")
+			DOCTEST_SUBCASE("shv/one")
 			{
-				std::string filter;
-				std::vector<std::string> expected_keys;
-				DOCTEST_SUBCASE("shv")
-				{
-					filter = "shv";
-					expected_keys = {
-						"shv/one",
-						"shv/two",
-					};
-				}
-
-				DOCTEST_SUBCASE("shv/one")
-				{
-					filter = "shv/one";
-					expected_keys = {
-						"shv/one",
-					};
-				}
-
-				DOCTEST_SUBCASE("shv/one")
-				{
-					filter = "shv/one";
-					expected_keys = {
-						"shv/one",
-					};
-				}
-
-				enqueue(res, [=] (MockRpcConnection* mock) {
-					REQUEST_YIELD("_shvjournal", "syncInfo", filter);
-				});
-
-				enqueue(res, [=] (MockRpcConnection* mock) {
-					REQUIRE(shv::chainpack::RpcResponse(mock->m_messageQueue.head()).result().asMap().keys() == expected_keys);
-					mock->m_messageQueue.dequeue();
-				});
+				filter = "shv/one";
+				expected_keys = {
+					"shv/one",
+				};
 			}
+
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				REQUEST_YIELD("_shvjournal", "syncInfo", filter);
+			});
+
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				REQUIRE(shv::chainpack::RpcResponse(mock->m_messageQueue.head()).result().asMap().keys() == expected_keys);
+				mock->m_messageQueue.dequeue();
+			});
 		}
 	}
 	return res;
