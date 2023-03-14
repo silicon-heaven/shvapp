@@ -663,13 +663,13 @@ public:
 
 private:
 	ShvJournalNode* m_node;
-	QString m_shvPath;
+	const QString m_shvPath;
 	int current_memory_usage = 0;
 
 	QMap<QString, cp::RpcValue> m_downloadedFiles;
 
-	std::function<void(const shv::chainpack::RpcValue::List&)> m_siteListCb;
-	std::function<void()> m_successCb;
+	const std::function<void(const shv::chainpack::RpcValue::List&)> m_siteListCb;
+	const std::function<void()> m_successCb;
 };
 
 void ShvJournalNode::syncLog(const std::string& shv_path, const std::function<void(const shv::chainpack::RpcValue::List&)> site_list_cb, const std::function<void()> success_cb)
