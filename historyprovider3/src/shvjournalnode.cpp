@@ -367,6 +367,7 @@ public:
 	~LegacyFileSyncerImpl() override
 	{
 		writeEntriesToFile(node, downloaded_entries, slave_hp_path, cache_dir_path, file_name_hint);
+		node->appendSyncStatus(slave_hp_path, "Syncing done");
 		promise.finish();
 	}
 private:
@@ -592,7 +593,7 @@ public:
 					m_node->trimDirtyLog(slave_hp_path, cache_dir_path);
 				}
 
-				m_node->appendSyncStatus(slave_hp_path, "Syncing successful");
+				m_node->appendSyncStatus(slave_hp_path, "Syncing done");
 				promise.finish();
 			});
 		});

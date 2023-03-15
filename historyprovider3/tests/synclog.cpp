@@ -159,7 +159,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 			EXPECT_RESPONSE(R"(["shv/eyas/opc"])"_cpon);
 			REQUIRE(get_cache_contents(cache_dir_path) == *expected_cache_contents);
 			assert_sync_info_equal(HistoryApp::instance()->shvJournalNode()->syncInfo(), R"({
-				"shv/eyas/opc": {"status": ["Syncing", "Syncing successful"]}
+				"shv/eyas/opc": {"status": ["Syncing", "Syncing done"]}
 			})"_cpon);
 		});
 	}
