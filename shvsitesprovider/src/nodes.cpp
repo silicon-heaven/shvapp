@@ -159,7 +159,7 @@ const cp::MetaMethod *AppRootNode::metaMethod(const StringViewList &shv_path, si
 cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 {
 	std::string method = rq.method().toString();
-
+	auto qshv_path = rq.shvPath().to<QString>();
 	if (method == cp::Rpc::METH_APP_NAME) {
 		return QCoreApplication::instance()->applicationName().toStdString();
 	}
@@ -174,16 +174,16 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 		return QCoreApplication::instance()->applicationVersion().toStdString();
 	}
 	else if (method == METH_GET_SITES) {
-		return getSites(rpcvalue_cast<QString>(rq.shvPath()));
+		return getSites(rq.shvPath().to<QString>());
 	}
 	else if (method == METH_FILE_READ) {
-		return readFile(rpcvalue_cast<QString>(rq.shvPath()));
+		return readFile(rq.shvPath().to<QString>());
 	}
 	else if (method == METH_FILE_READ_COMPRESSED) {
 		return readFileCompressed(rq);
 	}
 	else if (method == METH_FILE_SIZE) {
-		return readFile(rpcvalue_cast<QString>(rq.shvPath())).asData().second;
+		return readFile(rq.shvPath().to<QString>()).asData().second;
 	}
 	else if (method == METH_FILE_SIZE_COMPRESSED) {
 		return readFileCompressed(rq).asData().second;
@@ -192,23 +192,22 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 		cp::RpcValue params = rq.params();
 		if(!params.isString())
 			throw shv::core::Exception("Content must be string.");
-		return writeFile(rpcvalue_cast<QString>(rq.shvPath()), params.asString());
+		return writeFile(qshv_path, params.asString());
 	}
 	else if (method == METH_FILE_MK) {
-		return mkFile(rpcvalue_cast<QString>(rq.shvPath()), rq.params());
+		return mkFile(qshv_path, rq.params());
 	}
 	else if (method == METH_PULL_FILES) {
 		DirSyncTask *sync_task = new DirSyncTask(QString(), this);
-		QString shv_path = rpcvalue_cast<QString>(rq.shvPath());
-		if (shv_path.endsWith('/' + FILES_NODE)) {
-			sync_task->addDir(shv_path);
+		if (qshv_path.endsWith('/' + FILES_NODE)) {
+			sync_task->addDir(qshv_path);
 		}
-		else if (isDevice(shv_path)) {
-			sync_task->addDir(shv_path + '/' + FILES_NODE);
+		else if (isDevice(qshv_path)) {
+			sync_task->addDir(qshv_path + '/' + FILES_NODE);
 		}
 		else {
 			QStringList devices;
-			findDevicesToSync(shv_path, devices);
+			findDevicesToSync(qshv_path, devices);
 			for (const QString &device_path : devices) {
 				sync_task->addDir(device_path);
 			}
@@ -227,7 +226,7 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 		return cp::RpcValue();
 	}
 	else if (method == METH_FILE_HASH) {
-		string bytes = readFile(rpcvalue_cast<QString>(rq.shvPath())).toString();
+		string bytes = readFile(qshv_path).toString();
 		QCryptographicHash h(QCryptographicHash::Sha1);
 #if QT_VERSION_MAJOR >= 6
 		using byte_array_view_t = QByteArrayView;
@@ -238,7 +237,7 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 		return h.result().toHex().toStdString();
 	}
 	else if (method == cp::Rpc::METH_GET) {
-		return metaValue(rpcvalue_cast<QString>(rq.shvPath()));
+		return metaValue(qshv_path);
 	}
 	else if (method == cp::Rpc::METH_DEVICE_ID) {
 		SitesProviderApp *app = SitesProviderApp::instance();
@@ -277,7 +276,7 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 	}
 	else if (method == cp::Rpc::METH_LS) {
 		cp::RpcValue::List res;
-		for (const QString &s : lsNode(rpcvalue_cast<QString>(rq.shvPath()))) {
+		for (const QString &s : lsNode(qshv_path)) {
 			res.push_back(s.toStdString());
 		}
 		return res;
@@ -591,7 +590,7 @@ shv::chainpack::RpcValue AppRootNode::readFileCompressed(const shv::chainpack::R
 	}
 
 	cp::RpcValue result;
-	const auto blob = readFile(rpcvalue_cast<QString>(request.shvPath())).asData();
+	const auto blob = readFile(request.shvPath().to<QString>()).asData();
 	if (compression_type == CompressionType::QCompress) {
 		const auto compressed_blob = qCompress(QByteArray::fromRawData(blob.first, static_cast<int>(blob.second)));
 		result = cp::RpcValue::Blob(compressed_blob.cbegin(), compressed_blob.cend());
@@ -606,14 +605,14 @@ shv::chainpack::RpcValue AppRootNode::mkFile(const QString &shv_path, const shv:
 	QString file_name;
 	bool has_content = false;
 	if (params.isString()) {
-		file_name = rpcvalue_cast<QString>(params);
+		file_name = params.to<QString>();
 
 	}
 	else if(params.isList()) {
 		const cp::RpcValue::List &lst = params.asList();
 		if (lst.size() != 2)
 			throw shv::core::Exception("Invalid params, [\"name\", \"content\"] expected.");
-		file_name = rpcvalue_cast<QString>(lst[0]);
+		file_name = lst[0].to<QString>();
 		has_content = true;
 	}
 	if (file_name.isEmpty())

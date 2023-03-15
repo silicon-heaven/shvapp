@@ -21,10 +21,10 @@ fi
 # tmux set option remain-on-exit on
 
 # tmux new-window $BINDIR/shvbroker --config-dir $CFGDIR/master/ -v $BROKER_TOPICS
-tmux new-window sh -c "$BINDIR/shvbroker --config-dir $CFGDIR/master/ -v $BROKER_TOPICS || read a"
+tmux new-window sh -c "$BINDIR/shvbroker/shvbroker --config-dir $CFGDIR/master/ -v $BROKER_TOPICS || read a"
 
 sleep $SLEEP_SETTLE
 
-tmux split-window sh -c "$BINDIR/shvagent --sec-type none -u iot --password iotpwd --lt plain -m test/agent1 --ts $TSTDIR/tests.cpon -v tester || read a"
+tmux split-window sh -c "$BINDIR/shvagent/shvagent --sec-type none -u iot --password iotpwd --lt plain -m test/agent1 --ts $TSTDIR/tests.cpon -v tester || read a"
 
 # tmux select-layout tiled

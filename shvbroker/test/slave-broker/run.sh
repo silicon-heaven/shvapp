@@ -20,27 +20,27 @@ fi
 
 # tmux set option remain-on-exit on
 
-tmux new-window sh -c "$BINDIR/shvbroker --config-dir $CFGDIR/master/ -v $BROKER_TOPICS || read a"
+tmux new-window sh -c "$BINDIR/shvbroker/shvbroker --config-dir $CFGDIR/master/ -v $BROKER_TOPICS || read a"
 # sleep 10
-tmux split-window sh -c "$BINDIR/shvbroker --config-dir $CFGDIR/slave1/ -v $BROKER_TOPICS -d shvnode || read a"
+tmux split-window sh -c "$BINDIR/shvbroker/shvbroker --config-dir $CFGDIR/slave1/ -v $BROKER_TOPICS -d shvnode || read a"
 
 # sleep 1
-tmux split-window sh -c "$BINDIR/shvbroker --config-dir $CFGDIR/slaveA/ -v $BROKER_TOPICS || read a"
+tmux split-window sh -c "$BINDIR/shvbroker/shvbroker --config-dir $CFGDIR/slaveA/ -v $BROKER_TOPICS || read a"
 
 sleep $SLEEP_SETTLE
 
 tmux select-pane -t0
-tmux split-window -hf sh -c " $BINDIR/shvagent -p 37577 --sec-type ssl --peer-verify false -u iot --password iotpwd --lt plain -m test/agentA1 --tester -v tester || read a"
+tmux split-window -hf sh -c " $BINDIR/shvagent/shvagent -s ssl://localhost:37577 ssl --peer-verify false -u iot --password iotpwd --lt plain -m test/agentA1 --tester -v tester || read a"
 
 # exit 0
 # sleep $SLEEP_SETTLE
 
 # tmux select-pane -t0
-tmux split-window sh -c " $BINDIR/shvagent -p 3756 -u iot --password iotpwd --lt plain -m test/agent11 --hbi 0 || read a"
+tmux split-window sh -c " $BINDIR/shvagent/shvagent -s tcp://localhost:3756 -u iot --password iotpwd --lt plain -m test/agent11 --hbi 0 || read a"
 
 sleep $SLEEP_SETTLE
 
 # tmux split-window $BINDIR/revitestdevice -p 3757 -u iot --password iotpwd --lt plain -m test/slave/lub2 --hbi 0 -n 4 -c '[["../../../broker1/slave/lub1/1/status", "get"], [".broker/app", "subscribe", {"method":"chng", "path":"test"}], ["../lub2/3/status", "sim_set", 41]]' -v rpcmsg
-tmux split-window sh -c "$BINDIR/shvagent -p 3755 --sec-type none -u iot --password iotpwd --lt plain -m test/agent --ts $TSTDIR/tests.cpon -v tester || read a"
+tmux split-window sh -c "$BINDIR/shvagent/shvagent -s tcp://localhost:3755 -u iot --password iotpwd --lt plain -m test/agent --ts $TSTDIR/tests.cpon -v tester || read a"
 
 # tmux select-layout tiled

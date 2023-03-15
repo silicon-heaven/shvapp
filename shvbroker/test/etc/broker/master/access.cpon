@@ -20,6 +20,6 @@
 		{"pathPattern":".broker/app", "role":"rd"},
 	],
 	"tester":[
-		{"method":"", "pathPattern":"test/**", "role":"wr"}
+		{"method":"", "pathPattern":"test/**", "role":"wr,dot_local"}
 	]
 }
