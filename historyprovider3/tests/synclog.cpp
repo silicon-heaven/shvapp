@@ -38,13 +38,13 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 	enqueue(res, [=] (MockRpcConnection* mock) {
 		EXPECT_SUBSCRIPTION(shv_path, "chng");
 		assert_sync_info_equal(HistoryApp::instance()->shvJournalNode()->syncInfo(), R"({
-			"shv/eyas/opc": {"status": "Unknown"}
+			"shv/eyas/opc": {"status": ["Unknown"]}
 		})"_cpon);
 		REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait);
 	});
 	enqueue(res, [=] (MockRpcConnection* mock) {
 		assert_sync_info_equal(HistoryApp::instance()->shvJournalNode()->syncInfo(), R"({
-			"shv/eyas/opc": {"status": "Syncing"}
+			"shv/eyas/opc": {"status": ["Syncing"]}
 		})"_cpon);
 		EXPECT_REQUEST(join(shv_path, "/.app/shvjournal"), "lsfiles", ls_size_true);
 		return CallNext::Yes;
@@ -159,7 +159,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 			EXPECT_RESPONSE(R"(["shv/eyas/opc"])"_cpon);
 			REQUIRE(get_cache_contents(cache_dir_path) == *expected_cache_contents);
 			assert_sync_info_equal(HistoryApp::instance()->shvJournalNode()->syncInfo(), R"({
-				"shv/eyas/opc": {"status": "Syncing successful"}
+				"shv/eyas/opc": {"status": ["Syncing", "Syncing successful"]}
 			})"_cpon);
 		});
 	}

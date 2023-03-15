@@ -71,7 +71,7 @@ ShvJournalNode::ShvJournalNode(const std::vector<SlaveHpInfo>& slave_hps, const 
 	for (const auto& slave_hp : m_slaveHps) {
 		m_syncInfo.setValue(slave_hp.shv_path, shv::chainpack::RpcValue::Map {
 			{"timestamp", now},
-			{"status", "Unknown"},
+			{"status", shv::chainpack::RpcValue::List{"Unknown"}},
 		});
 	}
 
@@ -382,7 +382,7 @@ private:
 			if (!error.isEmpty()) {
 				auto err = "Error retrieving logs via getLog for: " + slave_hp_path + " " + error;
 				shvError() << err;
-				node->updateSyncStatus(slave_hp_path, err.toStdString());
+				node->appendSyncStatus(slave_hp_path, err.toStdString());
 				deleteLater();
 				return;
 			}
@@ -466,7 +466,7 @@ public:
 			} else {
 				auto err = "Couldn't open " + iter.key() + " for writing";
 				shvError() << err;
-				m_node->updateSyncStatus(m_shvPath, err.toStdString());
+				m_node->appendSyncStatus(m_shvPath, err.toStdString());
 			}
 
 		}
@@ -496,7 +496,7 @@ public:
 			if (!error.isEmpty()) {
 				auto err = "Couldn't retrieve filelist from: " + shvjournal_shvpath + " " + error;
 				shvError() << err;
-				m_node->updateSyncStatus(slave_hp_path, err.toStdString());
+				m_node->appendSyncStatus(slave_hp_path, err.toStdString());
 				promise.finish();
 				return;
 			}
@@ -571,7 +571,7 @@ public:
 					if (!retrieve_error.isEmpty()) {
 						auto err = "Couldn't retrieve " + sites_log_file + ": " + retrieve_error;
 						shvError() << err;
-						m_node->updateSyncStatus(slave_hp_path, err.toStdString());
+						m_node->appendSyncStatus(slave_hp_path, err.toStdString());
 						file_synced_promise.finish();
 						return;
 					}
@@ -592,7 +592,7 @@ public:
 					m_node->trimDirtyLog(slave_hp_path, cache_dir_path);
 				}
 
-				m_node->updateSyncStatus(slave_hp_path, "Syncing successful");
+				m_node->appendSyncStatus(slave_hp_path, "Syncing successful");
 				promise.finish();
 			});
 		});
@@ -644,7 +644,8 @@ public:
 			}
 			sites_to_be_synced.push_back(slave_hp.shv_path);
 
-			m_node->updateSyncStatus(slave_hp_path_qstr, "Syncing");
+			m_node->resetSyncStatus(slave_hp_path_qstr);
+			m_node->appendSyncStatus(slave_hp_path_qstr, "Syncing");
 			if (sync_type == SyncType::Device && slave_hp.log_type == LogType::Legacy) {
 				all_synced.push_back((new LegacyFileSyncerImpl(m_node, slave_hp_path_qstr, slave_hp.cache_dir_path))->getFuture());
 			} else {
@@ -734,12 +735,20 @@ QMap<QString, bool>& ShvJournalNode::syncInProgress()
 	return m_syncInProgress;
 }
 
-void ShvJournalNode::updateSyncStatus(const QString& shv_path, const std::string& status)
+void ShvJournalNode::resetSyncStatus(const QString& shv_path)
 {
 	m_syncInfo.setValue(shv_path.toStdString(), shv::chainpack::RpcValue::Map {
-		{"status", status},
+		{"status", shv::chainpack::RpcValue::List{}},
 		{"timestamp", shv::chainpack::RpcValue::DateTime::now()}
 	});
+}
+
+void ShvJournalNode::appendSyncStatus(const QString& shv_path, const std::string& status)
+{
+	m_syncInfo.at(shv_path.toStdString()).set("timestamp", shv::chainpack::RpcValue::DateTime::now());
+	auto current_status = m_syncInfo.at(shv_path.toStdString()).asMap().value("status").asList();
+	current_status.push_back(status);
+	m_syncInfo.at(shv_path.toStdString()).set("status", current_status);
 }
 
 const shv::chainpack::RpcValue::Map& ShvJournalNode::syncInfo()

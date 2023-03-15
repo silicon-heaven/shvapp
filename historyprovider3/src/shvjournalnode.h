@@ -34,7 +34,8 @@ public:
 	const std::set<std::string>& leafNodes() const;
 	QMap<QString, bool>& syncInProgress();
 	const shv::chainpack::RpcValue::Map& syncInfo();
-	void updateSyncStatus(const QString& shv_path, const std::string& status);
+	void resetSyncStatus(const QString& shv_path);
+	void appendSyncStatus(const QString& shv_path, const std::string& status);
 
 private:
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);
@@ -49,7 +50,7 @@ private:
 	 * {
 	 * 		[site]: DataValue
 	 * 			timetamp: DateTime
-	 * 			status: string
+	 * 			status: string[]
 	 * 		}
 	 * }
 	 */
