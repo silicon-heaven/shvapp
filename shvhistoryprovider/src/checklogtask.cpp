@@ -142,8 +142,8 @@ CacheState CheckLogTask::checkLogCache(const QString &site_path, bool with_good_
 		CacheFileState file_state;
 		file_state.fileName = dir_entries[i];
 		ShvLogHeader header = ShvLogFileReader(dir_entries[i].toStdString()).logHeader();
-		QDateTime file_since = rpcvalue_cast<QDateTime>(header.since());
-		QDateTime file_until = rpcvalue_cast<QDateTime>(header.until());
+		QDateTime file_since = header.since().to<QDateTime>();
+		QDateTime file_until = header.until().to<QDateTime>();
 		if (!requested_since.isValid()) {
 			std::ifstream in_file;
 			in_file.open(dir_entries[i].toStdString(),  std::ios::in | std::ios::binary);
@@ -244,71 +244,6 @@ CacheState CheckLogTask::checkLogCache(const QString &site_path, bool with_good_
 	return state;
 }
 
-//QVector<DateTimeInterval> CheckLogTask::checkDirConsistency()
-//{
-//	QVector<DateTimeInterval> res;
-//	QElapsedTimer elapsed;
-//	elapsed.start();
-//	m_dirEntries = m_logDir.findFiles(QDateTime(), QDateTime());
-//	QDateTime requested_since;
-//	for (int i = 0; i < m_dirEntries.count(); ++i) {
-//		ShvLogHeader header;
-//		try {
-//			header = ShvLogFileReader(m_dirEntries[i].toStdString()).logHeader();
-//		}
-//		catch(const shv::chainpack::AbstractStreamReader::ParseException &ex) {
-//			//when occurs error on file parsing, delete file and start again
-//			shvError() << "error on parsing log file" << m_dirEntries[i] << "deleting it (" << ex.what() << ")";
-//			QFile(m_dirEntries[i]).remove();
-//			res.clear();
-//			m_logDir.refresh();
-//			m_dirEntries = m_logDir.findFiles(QDateTime(), QDateTime());
-//			i = -1;
-//			continue;
-//		}
-//		QDateTime file_since = rpcvalue_cast<QDateTime>(header.since());
-//		QDateTime file_until = rpcvalue_cast<QDateTime>(header.until());
-//		if (!requested_since.isValid()) {
-//			std::ifstream in_file;
-//			in_file.open(m_dirEntries[i].toStdString(),  std::ios::in | std::ios::binary);
-//			shv::chainpack::ChainPackReader first_file_reader(in_file);
-//			cp::RpcValue::MetaData meta_data;
-//			first_file_reader.read(meta_data);
-//			cp::RpcValue meta_hp = meta_data.value("HP");
-//			bool has_first_log_mark = false;
-//			if (meta_hp.isMap()) {
-//				cp::RpcValue meta_first = meta_hp.asMap().value("firstLog");
-//				has_first_log_mark = meta_first.isBool() && meta_first.toBool();
-//			}
-//			if (!has_first_log_mark) {
-//				res << DateTimeInterval{ QDateTime(), file_since };
-//			}
-//		}
-//		else if (requested_since < file_since) {
-//			res << DateTimeInterval{ requested_since, file_since };
-//		}
-//		requested_since = file_until;
-//	}
-//	bool exists_dirty = m_logDir.existsDirtyLog();
-//	if (m_checkType == CheckType::ReplaceDirtyLog || !exists_dirty) {
-//		res << DateTimeInterval { requested_since, QDateTime() };
-//	}
-//	else if (exists_dirty){
-//		QDateTime requested_until;
-//		ShvJournalFileReader dirty_log(m_logDir.dirtyLogPath().toStdString());
-//		if (dirty_log.next()) {
-//			requested_until = QDateTime::fromMSecsSinceEpoch(dirty_log.entry().epochMsec, Qt::TimeSpec::UTC);
-//			if (requested_until.isValid() && (!requested_since.isValid() || requested_since < requested_until)) {
-//				res << DateTimeInterval { requested_since, requested_until };
-//			}
-//		}
-//	}
-//	logSanitizerTimes() << "checkDirConsistency for" << m_shvPath << "elapsed" << elapsed.elapsed() << "ms"
-//						   " (dir has" << m_dirEntries.count() << "files)";
-
-//	return res;
-//}
-
 void CheckLogTask::onDirConsistencyChecked(const QVector<DateTimeInterval> &requested_intervals)
 {
 	for (const DateTimeInterval &interval : requested_intervals) {
@@ -342,7 +277,7 @@ void CheckLogTask::checkDirtyLogState()
 		QDateTime log_since;
 		if (m_dirEntries.count()) {
 			ShvLogFileReader last_log(m_dirEntries.last().toStdString());
-			log_since = rpcvalue_cast<QDateTime>(last_log.logHeader().until());
+			log_since = last_log.logHeader().until().to<QDateTime>();
 		}
 		ShvJournalFileReader reader(m_logDir.dirtyLogPath().toStdString());
 		if (reader.next()) {

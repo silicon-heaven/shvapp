@@ -47,8 +47,8 @@ void DirConsistencyCheckTask::run()
 				i = -1;
 				continue;
 			}
-			QDateTime file_since = rpcvalue_cast<QDateTime>(header.since());
-			QDateTime file_until = rpcvalue_cast<QDateTime>(header.until());
+			QDateTime file_since = header.since().to<QDateTime>();
+			QDateTime file_until = header.until().to<QDateTime>();
 			if (!requested_since.isValid()) {
 				std::ifstream in_file;
 				in_file.open(dir_entries[i].toStdString(),  std::ios::in | std::ios::binary);

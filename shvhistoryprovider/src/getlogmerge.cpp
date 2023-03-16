@@ -37,8 +37,8 @@ GetLogMerge::GetLogMerge(const QString &site_path, const shv::core::utils::ShvGe
 shv::chainpack::RpcValue GetLogMerge::getLog()
 {
 	bool since_last = m_logParams.isSinceLast();
-	QDateTime since = since_last ? QDateTime::currentDateTimeUtc() : rpcvalue_cast<QDateTime>(m_logParams.since);
-	QDateTime until = rpcvalue_cast<QDateTime>(m_logParams.until);
+	QDateTime since = since_last ? QDateTime::currentDateTimeUtc() : m_logParams.since.to<QDateTime>();
+	QDateTime until = m_logParams.until.to<QDateTime>();
 
 	int64_t first_record_since = 0LL;
 

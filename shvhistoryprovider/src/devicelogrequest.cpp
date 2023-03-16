@@ -154,7 +154,7 @@ void DeviceLogRequest::onChunkReceived(const shv::chainpack::RpcResponse &respon
 		if (!meta_since.isDateTime() || !meta_until.isDateTime()) {
 			SHV_QT_EXCEPTION("Received invalid log from " + m_sitePath + ", missing since or until");
 		}
-		QDateTime until = rpcvalue_cast<QDateTime>(meta_until);
+		QDateTime until = meta_until.to<QDateTime>();
 
 		while (log.size() > 0 && log.entries()[log.size() - 1].epochMsec == until.toMSecsSinceEpoch()) {
 			log.removeLastEntry();
@@ -292,7 +292,7 @@ void DeviceLogRequest::saveToNewFile(ShvMemoryJournal &log, const QDateTime &unt
 		since = m_since;
 	}
 	else {
-		since = rpcvalue_cast<QDateTime>(log_cp.metaValue("since"));
+		since = log_cp.metaValue("since").to<QDateTime>();
 		log_cp.setMetaValue("HP", cp::RpcValue::Map{{ "firstLog", true }});
 	}
 	log_cp.setMetaValue("until", cp::RpcValue::fromValue(until));

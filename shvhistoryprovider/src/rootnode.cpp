@@ -183,8 +183,8 @@ void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &
 	}
 	ShvLogRpcValueReader log_reader(log, true);
 	LogDir log_dir(shv_path);
-	QDateTime log_since = rpcvalue_cast<QDateTime>(log_reader.logHeader().since());
-	QDateTime log_until = rpcvalue_cast<QDateTime>(log_reader.logHeader().until());
+	QDateTime log_since = log_reader.logHeader().since().to<QDateTime>();
+	QDateTime log_until = log_reader.logHeader().until().to<QDateTime>();
 	shvInfo() << "pushLog request from shv_path:" << shv_path << "since:" << log_since.toString(Qt::ISODate).toStdString()
 			  << "until:" << log_until.toString(Qt::ISODate).toStdString() << "recordCount:" << log.asList().size();
 	bool with_snapshot = log_reader.logHeader().withSnapShot();
@@ -209,7 +209,7 @@ void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &
 	if (matching_files.count()) {
 		ShvLogFileReader first_file(matching_files[0].toStdString());
 		if (first_file.logHeader().since().toDateTime().msecsSinceEpoch() < log_since_ms) {
-			log_since = rpcvalue_cast<QDateTime>(first_file.logHeader().since());
+			log_since = first_file.logHeader().since().to<QDateTime>();
 			with_snapshot = first_file.logHeader().withSnapShot();
 			while (first_file.next()) {
 				const ShvJournalEntry &entry = first_file.entry();
@@ -223,7 +223,7 @@ void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &
 		}
 		ShvLogFileReader last_file(matching_files.last().toStdString());
 		if (last_file.logHeader().until().toDateTime().msecsSinceEpoch() >= log_until_ms) {
-			log_until = rpcvalue_cast<QDateTime>(last_file.logHeader().until());
+			log_until = last_file.logHeader().until().to<QDateTime>();
 			while (last_file.next()) {
 				const ShvJournalEntry &entry = first_file.entry();
 				if (entry.epochMsec >= log_until_ms) {
@@ -257,7 +257,7 @@ void RootNode::pushLog(const QString &shv_path, const shv::chainpack::RpcValue &
 			log_cp.setMetaValue("HP", cp::RpcValue::Map{{ "firstLog", true }});
 			first_log = false;
 		}
-		QDateTime since = rpcvalue_cast<QDateTime>(log_cp.metaValue("since"));
+		QDateTime since = log_cp.metaValue("since").to<QDateTime>();
 		QFile file(LogDir(shv_path).filePath(since) + ".new");
 		if (!file.open(QFile::WriteOnly)) {
 			SHV_QT_EXCEPTION("Cannot open file " + file.fileName());

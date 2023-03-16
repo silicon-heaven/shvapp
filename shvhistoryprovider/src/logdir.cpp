@@ -80,7 +80,7 @@ QStringList LogDir::findFiles(const QDateTime &since, const QDateTime &until)
 		shv::chainpack::ChainPackReader log_reader(in_file);
 		shv::chainpack::RpcValue::MetaData meta_data;
 		log_reader.read(meta_data);
-		QDateTime file_until = rpcvalue_cast<QDateTime>(meta_data.value("until"));
+		QDateTime file_until = meta_data.value("until").to<QDateTime>();
 		if (file_until < since) {
 			return QStringList();
 		}
