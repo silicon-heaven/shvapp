@@ -93,7 +93,7 @@ void DirSyncTask::onLsFinished(const QString &shv_path, const shv::chainpack::Rp
 	if (resp.isSuccess()) {
 		m_dirsToSync[shv_path].status = RpcCallStatus::Ok;
 		for (const cp::RpcValue &ls_item : resp.result().asList()) {
-			QString file_path = shv_path + "/" + rpcvalue_cast<QString>(ls_item);
+			QString file_path = shv_path + "/" + ls_item.to<QString>();
 			if (m_masterBrokerPath.isEmpty() || !file_path.endsWith(".cptempl")) {
 			m_lsResult << file_path;
 			callDir(file_path);
