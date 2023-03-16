@@ -322,7 +322,9 @@ public:
 		, cache_dir_path(cache_dir_path)
 		, node(node)
 	{
-		journalInfo() << "Syncing" << slave_hp_path << "via legacy getLog";
+		auto msg = "Syncing " + slave_hp_path + " via legacy getLog";
+		journalInfo() << msg;
+		node->appendSyncStatus(slave_hp_path, msg.toStdString());
 		using shv::coreqt::Utils;
 		get_log_params.withSnapshot = true;
 		get_log_params.recordCountLimit = RECORD_COUNT_LIMIT;
@@ -399,7 +401,9 @@ private:
 
 			const auto& remote_entries = result_log.entries();
 
-			journalInfo() << "Loaded" << remote_entries.size() << "log entries for" << slave_hp_path;
+			auto msg = "Loaded " + QString::number(remote_entries.size()) + " log entries for " + slave_hp_path;
+			journalInfo() << msg;
+			node->appendSyncStatus(slave_hp_path, msg.toStdString());
 			auto newest_entry = remote_entries.back().epochMsec;
 			for (const auto& entry : remote_entries) {
 				// We're skipping all entries from the last millisecond, and retrieve it again, otherwise we can't be
@@ -551,7 +555,9 @@ public:
 				auto local_size = file.size();
 				auto remote_size = current_file.asList().at(LS_FILES_RESPONSE_FILESIZE).toInt();
 
-				journalInfo() << "Syncing file" << full_file_name << "remote size:" << remote_size << "local size:" << (file.exists() ? QString::number(local_size) : "<doesn't exist>");
+				auto msg = "Syncing file " + full_file_name + " remote size: " + QString::number(remote_size) + " local size: " + (file.exists() ? QString::number(local_size) : "<doesn't exist>");
+				journalInfo() << msg;
+				m_node->appendSyncStatus(slave_hp_path, msg.toStdString());
 				if (file.exists()) {
 					if (local_size == remote_size) {
 						continue;
@@ -602,7 +608,9 @@ public:
 
 	QFuture<void> doSync(const QString& slave_hp_path, const QString& cache_dir_path, const SyncType sync_type)
 	{
-		journalInfo() << "Syncing" << slave_hp_path << "via file synchronization";
+		auto msg = "Syncing " + slave_hp_path + " via file synchronization";
+		journalInfo() << msg;
+		m_node->appendSyncStatus(slave_hp_path, msg.toStdString());
 		auto shvjournal_suffix =
 			sync_type == SyncType::Device ?
 			".app/shvjournal" :
@@ -646,7 +654,6 @@ public:
 			sites_to_be_synced.push_back(slave_hp.shv_path);
 
 			m_node->resetSyncStatus(slave_hp_path_qstr);
-			m_node->appendSyncStatus(slave_hp_path_qstr, "Syncing");
 			if (sync_type == SyncType::Device && slave_hp.log_type == LogType::Legacy) {
 				all_synced.push_back((new LegacyFileSyncerImpl(m_node, slave_hp_path_qstr, slave_hp.cache_dir_path))->getFuture());
 			} else {

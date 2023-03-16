@@ -44,7 +44,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 	});
 	enqueue(res, [=] (MockRpcConnection* mock) {
 		assert_sync_info_equal(HistoryApp::instance()->shvJournalNode()->syncInfo(), R"({
-			"shv/eyas/opc": {"status": ["Syncing"]}
+			"shv/eyas/opc": {"status": ["Syncing shv/eyas/opc via file synchronization"]}
 		})"_cpon);
 		EXPECT_REQUEST(join(shv_path, "/.app/shvjournal"), "lsfiles", ls_size_true);
 		return CallNext::Yes;
@@ -53,10 +53,14 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 	DOCTEST_SUBCASE("syncLog")
 	{
 		auto expected_cache_contents = std::make_shared<RpcValue::List>();
+		auto expected_sync_info = std::make_shared<RpcValue>();
 		DOCTEST_SUBCASE("Remote and local - empty")
 		{
 			enqueue(res, [=] (MockRpcConnection* mock) {
 				create_dummy_cache_files(cache_dir_path, {});
+				*expected_sync_info = R"({
+					"shv/eyas/opc": {"status": ["Syncing shv/eyas/opc via file synchronization", "Syncing done"]}
+				})"_cpon;
 				RESPOND_YIELD(RpcValue::List());
 			});
 		}
@@ -68,6 +72,9 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 				*expected_cache_contents = RpcValue::List({{
 					RpcValue::List{ "2022-07-07T18-06-15-557.log2", dummy_logfile.size() }
 				}});
+				*expected_sync_info = R"({
+					"shv/eyas/opc": {"status": ["Syncing shv/eyas/opc via file synchronization", "Syncing file )" TESTS_DIR R"(/synclog/eyas/opc/2022-07-07T18-06-15-557.log2 remote size: 308 local size: <doesn't exist>", "Syncing done"]}
+				})"_cpon;
 				RESPOND_YIELD((RpcValue::List({{
 					{ "2022-07-07T18-06-15-557.log2", "f", dummy_logfile.size() }
 				}})));
@@ -85,6 +92,9 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 				*expected_cache_contents = RpcValue::List({{
 					RpcValue::List{ "subdir/2022-07-07T18-06-15-557.log2", dummy_logfile.size() }
 				}});
+				*expected_sync_info = R"({
+					"shv/eyas/opc": {"status": ["Syncing shv/eyas/opc via file synchronization", "Syncing file )" TESTS_DIR R"(/synclog/eyas/opc/subdir/2022-07-07T18-06-15-557.log2 remote size: 308 local size: <doesn't exist>", "Syncing done"]}
+				})"_cpon;
 
 				RESPOND_YIELD((RpcValue::List({{
 					{ "subdir", "d", 0 }
@@ -122,6 +132,9 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 					*expected_cache_contents = RpcValue::List({{
 						RpcValue::List{ "dirtylog", 99UL }
 					}});
+					*expected_sync_info = R"({
+						"shv/eyas/opc": {"status": ["Syncing shv/eyas/opc via file synchronization", "Syncing done"]}
+					})"_cpon;
 					return CallNext::Yes;
 				});
 			}
@@ -134,6 +147,9 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 					RpcValue::List{ "2022-07-07T18-06-15-557.log2", 0UL },
 					RpcValue::List{ "2022-07-07T18-06-15-558.log2", 0UL }
 				}});
+				*expected_sync_info = R"({
+					"shv/eyas/opc": {"status": ["Syncing shv/eyas/opc via file synchronization", "Syncing done"]}
+				})"_cpon;
 				create_dummy_cache_files(cache_dir_path, {
 					{"2022-07-07T18-06-15-557.log2", ""},
 					{"2022-07-07T18-06-15-558.log2", ""}
@@ -148,6 +164,9 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		{
 			enqueue(res, [=] (MockRpcConnection* mock) {
 				HistoryApp::instance()->cliOptions()->setCacheInitMaxAge(60 /*seconds*/ * 60 /*minutes*/ * 24 /*hours*/ * 30 /*days*/);
+				*expected_sync_info = R"({
+					"shv/eyas/opc": {"status": ["Syncing shv/eyas/opc via file synchronization", "Syncing done"]}
+				})"_cpon;
 				create_dummy_cache_files(cache_dir_path, {});
 				RESPOND_YIELD((RpcValue::List({{
 					{ "2022-07-07T18-06-15-000.log2", "f", dummy_logfile.size() }
@@ -158,9 +177,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_RESPONSE(R"(["shv/eyas/opc"])"_cpon);
 			REQUIRE(get_cache_contents(cache_dir_path) == *expected_cache_contents);
-			assert_sync_info_equal(HistoryApp::instance()->shvJournalNode()->syncInfo(), R"({
-				"shv/eyas/opc": {"status": ["Syncing", "Syncing done"]}
-			})"_cpon);
+			assert_sync_info_equal(HistoryApp::instance()->shvJournalNode()->syncInfo(), *expected_sync_info);
 		});
 	}
 
