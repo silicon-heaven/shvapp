@@ -16,4 +16,6 @@ AppCliOptions::AppCliOptions()
 		.setComment("Client ID for the MQTT broker");
 	addOption("app.mqttVersion").setType(shv::chainpack::RpcValue::Type::String).setNames("--mqtt-version")
 		.setComment("MQTT version to use: 'mqtt5', 'mqtt311, 'mqtt31''").setDefaultValue("mqtt5");;
+	addOption("app.mqttRootTopic").setType(shv::chainpack::RpcValue::Type::String).setNames("--mqtt-root-topic")
+		.setComment("Set the root topic for published messages").setDefaultValue("");
 }

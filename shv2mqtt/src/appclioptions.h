@@ -15,4 +15,5 @@ public:
 	CLIOPTION_GETTER_SETTER2(std::string, "app.mqttPassword", m, setM, qttPassword)
 	CLIOPTION_GETTER_SETTER2(std::string, "app.mqttClientId", m, setM, qttClientId)
 	CLIOPTION_GETTER_SETTER2(std::string, "app.mqttVersion", m, setM, qttVersion)
+	CLIOPTION_GETTER_SETTER2(std::string, "app.mqttRootTopic", m, setM, qttRootTopic)
 };

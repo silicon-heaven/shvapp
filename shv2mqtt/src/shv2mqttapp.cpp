@@ -135,6 +135,7 @@ Shv2MqttApp::Shv2MqttApp(int& argc, char** argv, AppCliOptions* cli_opts, shv::i
 	: Super(argc, argv)
 	  , m_rpcConnection(rpc_connection)
 	  , m_cliOptions(cli_opts)
+	  , m_rootTopic(QString::fromStdString(m_cliOptions->mqttRootTopic()))
 {
 	m_rpcConnection->setParent(this);
 
@@ -223,9 +224,10 @@ void Shv2MqttApp::onRpcMessageReceived(const cp::RpcMessage& msg)
 	} else if (msg.isSignal()) {
 		cp::RpcSignal nt(msg);
 		if (m_mqttClient->state() == QMqttClient::Connected) {
+			auto topic = shv::coreqt::utils::joinPath(m_rootTopic, nt.shvPath().toStdString());
 			auto data = shv::coreqt::utils::jsonValueToByteArray(shv::coreqt::utils::rpcValueToJson(nt.params()));
-			mqttInfo() << "published: topic:" << nt.shvPath().toStdString() << "data:" << data.toStdString();
-			m_mqttClient->publish(QString::fromStdString(nt.shvPath().toStdString()), data);
+			mqttInfo() << "published: topic:" << topic << "data:" << data.toStdString();
+			m_mqttClient->publish(topic, data);
 		}
 		shvDebug() << "RPC notify received:" << nt.toPrettyString();
 	}

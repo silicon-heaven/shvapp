@@ -51,4 +51,6 @@ private:
 	shv::iotqt::node::ShvNodeTree* m_shvTree = nullptr;
 	AppRootNode* m_root = nullptr;
 	QMqttClient* m_mqttClient = nullptr;
+
+	QString m_rootTopic;
 };
