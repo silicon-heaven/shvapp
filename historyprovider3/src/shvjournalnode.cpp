@@ -444,17 +444,30 @@ private:
 class FileSyncer : public QObject {
 	Q_OBJECT
 public:
+	enum class SyncType {
+		Device,
+		HP3
+	};
+
 	FileSyncer(
 		ShvJournalNode* node,
 		const std::string& shv_path,
-		const std::function<void(const shv::chainpack::RpcValue::List&)>& site_list_cb,
-		const std::function<void()>& success_cb)
+		const QString& cache_dir_path,
+		const SyncType sync_type)
 		: m_node(node)
 		, m_shvPath(QString::fromStdString(shv_path))
-		, m_siteListCb(site_list_cb)
-		, m_successCb(success_cb)
 	{
-		syncFiles();
+		m_promise.start();
+		auto msg = "Syncing " + shv_path + " via file synchronization";
+		journalInfo() << msg;
+		m_node->appendSyncStatus(m_shvPath, msg);
+		auto shvjournal_suffix =
+			sync_type == SyncType::Device ?
+			".app/shvjournal" :
+			".local/history/_shvjournal";
+		auto shvjournal_shvpath = shv::coreqt::utils::joinPath(m_shvPath, shvjournal_suffix);
+
+		impl_doSync(m_shvPath, cache_dir_path, shvjournal_shvpath, "");
 	}
 
 	void writeFiles()
@@ -480,43 +493,48 @@ public:
 		current_memory_usage = 0;
 	}
 
-	enum class SyncType {
-		Device,
-		HP3
-	};
-
-	QFuture<void> impl_doSync(const QString& slave_hp_path, const QString& cache_dir_path, const QString& shvjournal_shvpath, const QString& path_prefix)
+	void impl_doSync(const QString& slave_hp_path, const QString& cache_dir_path, const QString& shvjournal_shvpath, const QString& path_prefix)
 	{
 		auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
 			->setShvPath(shvjournal_shvpath)
 			->setMethod("lsfiles")
 			->setParams(cp::RpcValue::Map{{"size", true}});
 		call->start();
+		m_counter++;
 
-		QPromise<void> promise;
-		auto future = promise.future();
-		promise.start();
+		connect(call, &shv::iotqt::rpc::RpcCall::maybeResult, this, [this, shvjournal_shvpath, cache_dir_path, slave_hp_path, path_prefix] (const auto& file_list, const auto& error) {
+			QVector<QFuture<void>> all_files_synced;
+			auto decrementer = qScopeGuard([this, &all_files_synced, slave_hp_path, cache_dir_path, file_list] {
+				QtFuture::whenAll(all_files_synced.begin(), all_files_synced.end()).then([this, slave_hp_path, cache_dir_path, file_list] (const auto&) {
+					m_counter--;
+					if (m_counter == 0) {
+						writeFiles();
 
-		connect(call, &shv::iotqt::rpc::RpcCall::maybeResult, this, [this, shvjournal_shvpath, cache_dir_path, slave_hp_path, path_prefix, promise = std::move(promise)] (const auto& file_list, const auto& error) mutable {
+						// We'll only trim if we actually downloaded some files, otherwise the trim algorithm will screw us over,
+						// because of the "last millisecond algorithm".
+						if (!file_list.asList().empty()) {
+							m_node->trimDirtyLog(slave_hp_path, cache_dir_path);
+						}
+						m_node->appendSyncStatus(m_shvPath, "Syncing done");
+						m_promise.finish();
+						deleteLater();
+					}
+				});
+			});
 			if (!error.isEmpty()) {
 				auto err = "Couldn't retrieve filelist from: " + shvjournal_shvpath + " " + error;
 				shvError() << err;
 				m_node->appendSyncStatus(slave_hp_path, err.toStdString());
-				promise.finish();
 				return;
 			}
 
 			journalDebug() << "Got filelist from" << slave_hp_path;
 
-			QVector<QFuture<void>> all_files_synced;
 			if (!file_list.asList().empty() && file_list.asList().front().asList().at(LS_FILES_RESPONSE_FILETYPE) == "d") {
 				for (const auto& current_directory : file_list.asList()) {
 					auto dir_name = QString::fromStdString(current_directory.asList().at(LS_FILES_RESPONSE_FILENAME).asString());
-					all_files_synced.push_back(impl_doSync(slave_hp_path, cache_dir_path, shv::coreqt::utils::joinPath(shvjournal_shvpath, dir_name), shv::coreqt::utils::joinPath(path_prefix, dir_name)));
+					impl_doSync(slave_hp_path, cache_dir_path, shv::coreqt::utils::joinPath(shvjournal_shvpath, dir_name), shv::coreqt::utils::joinPath(path_prefix, dir_name));
 				}
-				QtFuture::whenAll(all_files_synced.begin(), all_files_synced.end()).then([promise = std::move(promise)] (const auto&) mutable {
-					promise.finish();
-				});
 				return;
 			}
 
@@ -571,103 +589,26 @@ public:
 					->setMethod("read")
 					->setParams(cp::RpcValue::Map{{"offset", cp::RpcValue::Int(local_size)}});
 				call->start();
-				QPromise<void> file_synced_promise;
-				auto future = file_synced_promise.future();
-				file_synced_promise.start();
-				connect(call, &shv::iotqt::rpc::RpcCall::maybeResult, this, [this, slave_hp_path, sites_log_file, full_file_name, file_synced_promise = std::move(file_synced_promise)] (const auto& result, const auto& retrieve_error) mutable {
+				all_files_synced.push_back(QtFuture::connect(call, &shv::iotqt::rpc::RpcCall::maybeResult).then([this, slave_hp_path, sites_log_file, full_file_name] (const std::tuple<shv::chainpack::RpcValue, QString>& result_or_error) {
+					auto [result, retrieve_error] = result_or_error;
 					if (!retrieve_error.isEmpty()) {
 						auto err = "Couldn't retrieve " + sites_log_file + ": " + retrieve_error;
 						shvError() << err;
 						m_node->appendSyncStatus(slave_hp_path, err.toStdString());
-						file_synced_promise.finish();
 						return;
 					}
 
 					journalDebug() << "Got" << sites_log_file;
 					m_downloadedFiles.insert(full_file_name, result);
-					file_synced_promise.finish();
-				});
-				all_files_synced.push_back(future);
+				}));
 			}
 
-			QtFuture::whenAll(all_files_synced.begin(), all_files_synced.end()).then([this, slave_hp_path, cache_dir_path, file_list, promise = std::move(promise)] (const auto&) mutable {
-				writeFiles();
-
-				// We'll only trim if we actually downloaded some files, otherwise the trim algorithm will screw us over,
-				// because of the "last millisecond algorithm".
-				if (!file_list.asList().empty()) {
-					m_node->trimDirtyLog(slave_hp_path, cache_dir_path);
-				}
-
-				m_node->appendSyncStatus(slave_hp_path, "Syncing done");
-				promise.finish();
-			});
 		});
-		return future;
 	}
 
-	QFuture<void> doSync(const QString& slave_hp_path, const QString& cache_dir_path, const SyncType sync_type)
+	QFuture<void> getFuture()
 	{
-		auto msg = "Syncing " + slave_hp_path + " via file synchronization";
-		journalInfo() << msg;
-		m_node->appendSyncStatus(slave_hp_path, msg.toStdString());
-		auto shvjournal_suffix =
-			sync_type == SyncType::Device ?
-			".app/shvjournal" :
-			".local/history/_shvjournal";
-		auto shvjournal_shvpath = shv::coreqt::utils::joinPath(slave_hp_path, shvjournal_suffix);
-
-		return impl_doSync(slave_hp_path, cache_dir_path, shvjournal_shvpath, "");
-	}
-
-	void syncFiles()
-	{
-		using shv::coreqt::Utils;
-		QVector<QFuture<void>> all_synced;
-		shv::chainpack::RpcValue::List sites_to_be_synced;
-		for (const auto& slave_hp : m_node->slaveHps()) {
-			auto slave_hp_path_qstr = QString::fromStdString(slave_hp.shv_path);
-
-			if (!m_shvPath.isEmpty() && !slave_hp.shv_path.starts_with(m_shvPath.toStdString())) {
-				continue;
-			}
-
-			journalDebug() << "Found matching site to sync:" << slave_hp.shv_path;
-
-			if (m_node->syncInProgress().value(slave_hp_path_qstr, false)) {
-				journalInfo() << slave_hp_path_qstr << "is already being synced, skipping";
-				continue;
-			}
-
-			m_node->syncInProgress()[slave_hp_path_qstr] = true;
-			QScopeGuard lock_guard([this, &slave_hp_path_qstr] {
-				m_node->syncInProgress()[slave_hp_path_qstr] = false;
-			});
-
-			// We know all the leaf nodes, so let's check what's our sync type.
-			auto sync_type = m_node->leafNodes().contains(slave_hp.shv_path) ? SyncType::Device : SyncType::HP3;
-
-			// We shouldn't sync pushlogs, if they're our directly connected device.
-			if (sync_type == SyncType::Device && slave_hp.log_type == LogType::PushLog) {
-				continue;
-			}
-			sites_to_be_synced.push_back(slave_hp.shv_path);
-
-			m_node->resetSyncStatus(slave_hp_path_qstr);
-			if (sync_type == SyncType::Device && slave_hp.log_type == LogType::Legacy) {
-				all_synced.push_back((new LegacyFileSyncerImpl(m_node, slave_hp_path_qstr, slave_hp.cache_dir_path))->getFuture());
-			} else {
-				all_synced.push_back(doSync(slave_hp_path_qstr, slave_hp.cache_dir_path, sync_type));
-			}
-		}
-
-		if (!all_synced.empty()) {
-			m_siteListCb(sites_to_be_synced);
-			QtFuture::whenAll(all_synced.begin(), all_synced.end()).then([this] (const auto&) {
-				m_successCb();
-				deleteLater();
-			});
-		}
+		return m_promise.future();
 	}
 
 private:
@@ -676,14 +617,57 @@ private:
 	int current_memory_usage = 0;
 
 	QMap<QString, cp::RpcValue> m_downloadedFiles;
-
-	const std::function<void(const shv::chainpack::RpcValue::List&)> m_siteListCb;
-	const std::function<void()> m_successCb;
+	QPromise<void> m_promise;
+	int m_counter = 0;
 };
 
 void ShvJournalNode::syncLog(const std::string& shv_path, const std::function<void(const shv::chainpack::RpcValue::List&)> site_list_cb, const std::function<void()> success_cb)
 {
-	new FileSyncer(this, shv_path, site_list_cb, success_cb);
+	using shv::coreqt::Utils;
+	QVector<QFuture<void>> all_synced;
+	shv::chainpack::RpcValue::List sites_to_be_synced;
+	for (const auto& slave_hp : m_slaveHps) {
+		auto slave_hp_path_qstr = QString::fromStdString(slave_hp.shv_path);
+
+		if (!shv_path.empty() && !slave_hp.shv_path.starts_with(shv_path)) {
+			continue;
+		}
+
+		journalDebug() << "Found matching site to sync:" << slave_hp.shv_path;
+
+		if (m_syncInProgress.value(slave_hp_path_qstr, false)) {
+			journalInfo() << slave_hp_path_qstr << "is already being synced, skipping";
+			continue;
+		}
+
+		m_syncInProgress[slave_hp_path_qstr] = true;
+		QScopeGuard lock_guard([this, &slave_hp_path_qstr] {
+			m_syncInProgress[slave_hp_path_qstr] = false;
+		});
+
+		// We know all the leaf nodes, so let's check what's our sync type.
+		auto sync_type = m_leafNodes.contains(slave_hp.shv_path) ? FileSyncer::SyncType::Device : FileSyncer::SyncType::HP3;
+
+		// We shouldn't sync pushlogs, if they're our directly connected device.
+		if (sync_type == FileSyncer::SyncType::Device && slave_hp.log_type == LogType::PushLog) {
+			continue;
+		}
+		sites_to_be_synced.push_back(slave_hp.shv_path);
+
+		resetSyncStatus(slave_hp_path_qstr);
+		if (sync_type == FileSyncer::SyncType::Device && slave_hp.log_type == LogType::Legacy) {
+			all_synced.push_back((new LegacyFileSyncerImpl(this, slave_hp_path_qstr, slave_hp.cache_dir_path))->getFuture());
+		} else {
+			all_synced.push_back((new FileSyncer(this, slave_hp.shv_path, slave_hp.cache_dir_path, sync_type))->getFuture());
+		}
+	}
+
+	if (!all_synced.empty()) {
+		site_list_cb(sites_to_be_synced);
+		QtFuture::whenAll(all_synced.begin(), all_synced.end()).then([success_cb] (const auto&) {
+			success_cb();
+		});
+	}
 }
 
 cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
