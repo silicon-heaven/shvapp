@@ -573,21 +573,21 @@ public:
 				auto local_size = file.size();
 				auto remote_size = current_file.asList().at(LS_FILES_RESPONSE_FILESIZE).toInt();
 
+				auto sites_log_file = shv::coreqt::utils::joinPath(shvjournal_shvpath, file_name);
 				{
-					auto msg = full_file_name; //, remote_size, (file.exists() ? QString::number(local_size) : "<doesn't exist>"));
+					auto msg = sites_log_file;
 					auto log_writer = qScopeGuard([&] {
 						journalInfo() << msg;
 						m_node->appendSyncStatus(slave_hp_path, msg.toStdString());
 					});
 					if (file.exists() && local_size == remote_size) {
-						msg += " is up-to-date";
+						msg += ": up-to-date";
 						continue;
 					}
-					msg += QStringLiteral(" remote size: %1 local size: %2").arg(QString::number(remote_size), (file.exists() ? QString::number(local_size) : "<doesn't exist>"));
+					msg += QStringLiteral(": syncing (remote size: %1 local size: %2)").arg(QString::number(remote_size), (file.exists() ? QString::number(local_size) : "<doesn't exist>"));
 
 				}
 
-				auto sites_log_file = shv::coreqt::utils::joinPath(shvjournal_shvpath, file_name);
 				journalDebug() << "Retrieving" << sites_log_file << "offset:" << local_size;
 				auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
 					->setShvPath(sites_log_file)
@@ -596,14 +596,17 @@ public:
 				call->start();
 				all_files_synced.push_back(QtFuture::connect(call, &shv::iotqt::rpc::RpcCall::maybeResult).then([this, slave_hp_path, sites_log_file, full_file_name] (const std::tuple<shv::chainpack::RpcValue, QString>& result_or_error) {
 					auto [result, retrieve_error] = result_or_error;
+					auto msg = sites_log_file + ": ";
 					if (!retrieve_error.isEmpty()) {
-						auto err = "Couldn't retrieve " + sites_log_file + ": " + retrieve_error;
-						shvError() << err;
-						m_node->appendSyncStatus(slave_hp_path, err.toStdString());
+						msg += retrieve_error;
+						shvError() << msg;
+						m_node->appendSyncStatus(slave_hp_path, msg.toStdString());
 						return;
 					}
 
-					journalDebug() << "Got" << sites_log_file;
+					msg += "successfully synced";
+					journalInfo() << msg;
+					m_node->appendSyncStatus(slave_hp_path, msg.toStdString());
 					m_downloadedFiles.insert(full_file_name, result);
 				}));
 			}

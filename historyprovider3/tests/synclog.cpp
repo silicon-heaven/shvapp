@@ -72,9 +72,9 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 				*expected_cache_contents = RpcValue::List({{
 					RpcValue::List{ "2022-07-07T18-06-15-557.log2", dummy_logfile.size() }
 				}});
-				*expected_sync_info = R"({
-					"shv/eyas/opc": {"status": ["Syncing shv/eyas/opc via file synchronization", ")" TESTS_DIR R"(/synclog/eyas/opc/2022-07-07T18-06-15-557.log2 remote size: 308 local size: <doesn't exist>", "Syncing done"]}
-				})"_cpon;
+				*expected_sync_info = R"EOF({
+					"shv/eyas/opc": {"status": ["Syncing shv/eyas/opc via file synchronization", "shv/eyas/opc/.app/shvjournal/2022-07-07T18-06-15-557.log2: syncing (remote size: 308 local size: <doesn't exist>)", "shv/eyas/opc/.app/shvjournal/2022-07-07T18-06-15-557.log2: successfully synced","Syncing done"]}
+				})EOF"_cpon;
 				RESPOND_YIELD((RpcValue::List({{
 					{ "2022-07-07T18-06-15-557.log2", "f", dummy_logfile.size() }
 				}})));
@@ -92,9 +92,9 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 				*expected_cache_contents = RpcValue::List({{
 					RpcValue::List{ "subdir/2022-07-07T18-06-15-557.log2", dummy_logfile.size() }
 				}});
-				*expected_sync_info = R"({
-					"shv/eyas/opc": {"status": ["Syncing shv/eyas/opc via file synchronization", ")" TESTS_DIR R"(/synclog/eyas/opc/subdir/2022-07-07T18-06-15-557.log2 remote size: 308 local size: <doesn't exist>", "Syncing done"]}
-				})"_cpon;
+				*expected_sync_info = R"EOF({
+					"shv/eyas/opc": {"status": ["Syncing shv/eyas/opc via file synchronization", "shv/eyas/opc/.app/shvjournal/subdir/2022-07-07T18-06-15-557.log2: syncing (remote size: 308 local size: <doesn't exist>)","shv/eyas/opc/.app/shvjournal/subdir/2022-07-07T18-06-15-557.log2: successfully synced","Syncing done"]}
+				})EOF"_cpon;
 
 				RESPOND_YIELD((RpcValue::List({{
 					{ "subdir", "d", 0 }
@@ -168,7 +168,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 					RpcValue::List{ "2022-07-07T18-06-15-558.log2", 0UL }
 				}});
 				*expected_sync_info = R"({
-					"shv/eyas/opc": {"status": ["Syncing shv/eyas/opc via file synchronization", ")" TESTS_DIR R"(/synclog/eyas/opc/2022-07-07T18-06-15-558.log2 is up-to-date", "Syncing done"]}
+					"shv/eyas/opc": {"status": ["Syncing shv/eyas/opc via file synchronization", "shv/eyas/opc/.app/shvjournal/2022-07-07T18-06-15-558.log2: up-to-date", "Syncing done"]}
 				})"_cpon;
 				create_dummy_cache_files(cache_dir_path, {
 					{"2022-07-07T18-06-15-557.log2", ""},
