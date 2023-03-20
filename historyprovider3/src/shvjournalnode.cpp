@@ -573,13 +573,18 @@ public:
 				auto local_size = file.size();
 				auto remote_size = current_file.asList().at(LS_FILES_RESPONSE_FILESIZE).toInt();
 
-				auto msg = "Syncing file " + full_file_name + " remote size: " + QString::number(remote_size) + " local size: " + (file.exists() ? QString::number(local_size) : "<doesn't exist>");
-				journalInfo() << msg;
-				m_node->appendSyncStatus(slave_hp_path, msg.toStdString());
-				if (file.exists()) {
-					if (local_size == remote_size) {
+				{
+					auto msg = full_file_name; //, remote_size, (file.exists() ? QString::number(local_size) : "<doesn't exist>"));
+					auto log_writer = qScopeGuard([&] {
+						journalInfo() << msg;
+						m_node->appendSyncStatus(slave_hp_path, msg.toStdString());
+					});
+					if (file.exists() && local_size == remote_size) {
+						msg += " is up-to-date";
 						continue;
 					}
+					msg += QStringLiteral(" remote size: %1 local size: %2").arg(QString::number(remote_size), (file.exists() ? QString::number(local_size) : "<doesn't exist>"));
+
 				}
 
 				auto sites_log_file = shv::coreqt::utils::joinPath(shvjournal_shvpath, file_name);
