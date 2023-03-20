@@ -350,7 +350,7 @@ public:
 					// No fancy algorithm for appending the files: we'll only append if the existing file can contain
 					// the whole RECORD_COUNT_LIMIT records.
 					if (newest_file_entries.size() + RECORD_COUNT_LIMIT < MAX_ENTRIES_PER_FILE) {
-						newest_file_entry_count = static_cast<int>(newest_file_entries.size());
+						newest_file_entry_count = newest_file_entries.size();
 						file_name_hint = newest_file_name;
 						get_log_params.withSnapshot = false;
 					}
@@ -436,7 +436,7 @@ private:
 	QString cache_dir_path;
 	ShvJournalNode* node;
 	std::vector<shv::core::utils::ShvJournalEntry> downloaded_entries;
-	int newest_file_entry_count = 0;
+	size_t newest_file_entry_count = 0;
 	std::optional<QString> file_name_hint;
 	shv::core::utils::ShvGetLogParams get_log_params;
 };
@@ -480,7 +480,7 @@ public:
 			if (log_file.open(QFile::WriteOnly | QFile::Append)) {
 				auto blob = iter.value().asBlob();
 				journalDebug() << "Writing" << iter.key();
-				log_file.write(reinterpret_cast<const char*>(blob.data()), blob.size());
+				log_file.write(reinterpret_cast<const char*>(blob.data()), static_cast<qsizetype>(blob.size()));
 			} else {
 				auto err = "Couldn't open " + iter.key() + " for writing";
 				shvError() << err;
