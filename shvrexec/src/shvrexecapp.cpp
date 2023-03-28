@@ -185,8 +185,7 @@ void ShvRExecApp::onBrokerConnectedChanged(bool is_connected)
 			resp.setRegisterRevCallerIds();
 			rpcConnection()->sendMessage(resp);
 
-			si::rpc::RpcResponseCallBack *cb = new si::rpc::RpcResponseCallBack(m_readTunnelRequestId, this);
-			connect(rpcConnection(), &si::rpc::ClientConnection::rpcMessageReceived, cb, &si::rpc::RpcResponseCallBack::onRpcMessageReceived);
+			si::rpc::RpcResponseCallBack *cb = new si::rpc::RpcResponseCallBack(rpcConnection(), m_readTunnelRequestId, this);
 			cb->start([this](const shv::chainpack::RpcResponse &find_tunnel_resp) {
 				cp::TunnelCtl tctl = find_tunnel_resp.tunnelCtl();
 				if(tctl.state() == cp::TunnelCtl::State::CreateTunnelResponse) {

@@ -358,8 +358,7 @@ void ShvAgentApp::launchRexec(const shv::chainpack::RpcRequest &rq)
 	shvDebug() << "Sending Find tunnel request:" << resp.toPrettyString();
 	rpcConnection()->sendMessage(resp);
 
-	si::rpc::RpcResponseCallBack *cb = new si::rpc::RpcResponseCallBack(resp.requestId().toInt(), this);
-	connect(rpcConnection(), &si::rpc::ClientConnection::rpcMessageReceived, cb, &si::rpc::RpcResponseCallBack::onRpcMessageReceived);
+	si::rpc::RpcResponseCallBack *cb = new si::rpc::RpcResponseCallBack(rpcConnection(), resp.requestId().toInt(), this);
 	cp::RpcValue on_connected = rq.params();
 	cb->start([this, on_connected](const shv::chainpack::RpcResponse &find_tunnel_resp) {
 		shvDebug() << "Received Find tunnel response:" << find_tunnel_resp.toPrettyString();
