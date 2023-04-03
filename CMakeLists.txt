@@ -9,6 +9,13 @@ include(CTest)
 set(CMAKE_SHARED_LIBRARY_PREFIX "") # we don't want CMake to prepend "lib" to our libraries, we prefer adding that ourselves
 set(CMAKE_STATIC_LIBRARY_PREFIX "") # we don't want CMake to prepend "lib" to our libraries, we prefer adding that ourselves
 
+if (NOT TARGET libnecrolog)
+        add_subdirectory(3rdparty/necrolog)
+endif()
+if (NOT TARGET libshvchainpack-c)
+        add_subdirectory(3rdparty/libshv)
+endif()
+
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set(SHV_WARNING_FLAGS "-Wall -Wextra -pedantic -Wcast-align -Wunused -Wpedantic -Wmisleading-indentation -Wdouble-promotion -Wformat=2 -Wimplicit-fallthrough")
     set(SHV_WARNING_FLAGS_CXX "-Wnon-virtual-dtor -Wold-style-cast -Woverloaded-virtual")
@@ -30,13 +37,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU
 
     set(CMAKE_C_FLAGS "${SHV_WARNING_FLAGS} ${CMAKE_C_FLAGS}")
     set(CMAKE_CXX_FLAGS "${SHV_WARNING_FLAGS_CXX} ${CMAKE_CXX_FLAGS}")
-endif()
-
-if (NOT TARGET libnecrolog)
-        add_subdirectory(3rdparty/necrolog)
-endif()
-if (NOT TARGET libshvchainpack-c)
-        add_subdirectory(3rdparty/libshv)
 endif()
 
 if(USE_QT6)
