@@ -4,7 +4,6 @@ add_executable(shvcall
     src/main.cpp
     )
 
-#target_enable_coroutines(shvcall)
 target_link_libraries(shvcall libshviotqt)
 
 install(TARGETS shvcall)
