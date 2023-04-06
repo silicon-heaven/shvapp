@@ -6,8 +6,8 @@ variables:
 
 stages:
   - build
-  - deploy
   - test
+  - deploy
 
 linux:
   tags:
