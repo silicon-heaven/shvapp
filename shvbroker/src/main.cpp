@@ -1,7 +1,7 @@
 #include "shvbrokerapp.h"
 #include "version.h"
-#include "appclioptions.h"
 
+#include <shv/broker/appclioptions.h>
 #include <shv/coreqt/log.h>
 #include <shv/iotqt/utils/network.h>
 #include <shv/coreqt/utils.h>
@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
 
 	int ret = 0;
 
-	AppCliOptions cli_opts;
+	shv::broker::AppCliOptions cli_opts;
 	cli_opts.parse(shv_args);
 	if(cli_opts.isParseError()) {
 		for(const std::string &err : cli_opts.parseErrors())

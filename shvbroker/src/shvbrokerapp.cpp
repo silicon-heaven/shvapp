@@ -2,7 +2,7 @@
 
 #include <shv/coreqt/log.h>
 
-ShvBrokerApp::ShvBrokerApp(int &argc, char **argv, AppCliOptions *cli_opts)
+ShvBrokerApp::ShvBrokerApp(int &argc, char **argv, shv::broker::AppCliOptions *cli_opts)
 	: Super(argc, argv, cli_opts)
 {
 
@@ -17,9 +17,3 @@ QString ShvBrokerApp::versionString() const
 {
 	return QCoreApplication::applicationVersion();
 }
-
-AppCliOptions *ShvBrokerApp::cliOptions()
-{
-	return dynamic_cast<AppCliOptions*>(Super::cliOptions());
-}
-

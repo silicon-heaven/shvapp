@@ -1,5 +1,4 @@
 add_executable(shvbroker
-    src/appclioptions.cpp
     src/main.cpp
     src/shvbrokerapp.cpp
     )
