@@ -139,6 +139,10 @@ void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 					}
 
 					auto longest_prefix = shv::core::utils::findLongestPrefix(m_leafNodes, path);
+					if (longest_prefix == m_leafNodes.end()) {
+						// We'll discard events that come from a leaf node we don't know about.
+						return;
+					}
 					// get rid of the shv prefix
 					auto longest_prefix_without_shv = longest_prefix->substr(4);
 

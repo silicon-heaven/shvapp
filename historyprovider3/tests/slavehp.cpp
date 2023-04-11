@@ -84,6 +84,16 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 				return CallNext::Yes;
 			});
 		}
+
+		DOCTEST_SUBCASE("HP discards events from leaf nodes it doesn't know")
+		{
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				NOTIFY("shv/fin/hel/tram/hel002/some/unknown/leaf", "chng", true);
+
+				*expected_cache_contents = RpcValue::List();
+				return CallNext::Yes;
+			});
+		}
 	}
 
 	enqueue(res, [=] (MockRpcConnection* mock) {
