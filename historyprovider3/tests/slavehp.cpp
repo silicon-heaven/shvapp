@@ -64,6 +64,44 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		});
 	}
 
+	DOCTEST_SUBCASE("trimming dirtylog")
+	{
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			create_dummy_cache_files(cache_dir_path, {
+				{"eyas/opc/2022-07-06T18-06-15-000.log2", dummy_logfile},
+				{"eyas/opc/dirtylog", dummy_logfile2}
+			});
+
+			*expected_cache_contents = RpcValue::List({{
+				RpcValue::List{ "eyas/opc/2022-07-06T18-06-15-000.log2", 308UL },
+				RpcValue::List{ "eyas/opc/2022-07-07T18-06-15-557.log2", 148UL },
+				RpcValue::List{ "eyas/opc/dirtylog", 83UL }
+			}});
+
+			RESPOND_YIELD((RpcValue::List{{
+				{ "eyas", "d", 0 }
+			}}));
+		});
+
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_REQUEST(join(slave_shv_journal_path, "eyas"), "lsfiles", ls_size_true);
+			RESPOND_YIELD((RpcValue::List{{
+				{ "opc", "d", 0 }
+			}}));
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_REQUEST(join(slave_shv_journal_path, "eyas/opc"), "lsfiles", ls_size_true);
+			RESPOND_YIELD((RpcValue::List{{
+				{ "2022-07-07T18-06-15-557.log2", "f", dummy_logfile2.size() }
+			}}));
+		});
+
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_REQUEST(join(slave_shv_journal_path, "eyas/opc/2022-07-07T18-06-15-557.log2"), "read", read_offset_0);
+			RESPOND_YIELD(RpcValue::stringToBlob(dummy_logfile2));
+		});
+	}
+
 	DOCTEST_SUBCASE("dirty log")
 	{
 		enqueue(res, [=] (MockRpcConnection* mock) {

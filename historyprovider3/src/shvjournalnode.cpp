@@ -224,9 +224,9 @@ void do_write_entries_to_file(const QString& file_path, const std::vector<shv::c
 }
 }
 
-void ShvJournalNode::trimDirtyLog(const QString& slave_hp_path, const QString& cache_dir_path)
+void ShvJournalNode::trimDirtyLog(const QString& cache_dir_path)
 {
-	journalInfo() << "Trimming dirty log for" << slave_hp_path;
+	journalInfo() << "Trimming dirty log for" << cache_dir_path;
 	using shv::coreqt::Utils;
 	auto journal_dir_path = cache_dir_path;
 	QDir cache_dir(journal_dir_path);
@@ -296,7 +296,7 @@ const auto LS_FILES_RESPONSE_FILENAME = 0;
 const auto LS_FILES_RESPONSE_FILETYPE = 1;
 const auto LS_FILES_RESPONSE_FILESIZE = 2;
 
-void writeEntriesToFile(ShvJournalNode* node, const std::vector<shv::core::utils::ShvJournalEntry>& downloaded_entries, const QString& slave_hp_path, const QString& cache_dir_path, const std::optional<QString>& file_name_hint)
+void writeEntriesToFile(ShvJournalNode* node, const std::vector<shv::core::utils::ShvJournalEntry>& downloaded_entries, const QString& cache_dir_path, const std::optional<QString>& file_name_hint)
 {
 	journalInfo() << "Writing" << downloaded_entries.size() << "entries for" << cache_dir_path;
 	if (downloaded_entries.empty()) {
@@ -314,7 +314,7 @@ void writeEntriesToFile(ShvJournalNode* node, const std::vector<shv::core::utils
 	}());
 
 	do_write_entries_to_file(file_name, downloaded_entries, Overwrite::No);
-	node->trimDirtyLog(slave_hp_path, cache_dir_path);
+	node->trimDirtyLog(cache_dir_path);
 }
 }
 
@@ -372,7 +372,7 @@ public:
 
 	~LegacyFileSyncerImpl() override
 	{
-		writeEntriesToFile(node, downloaded_entries, slave_hp_path, cache_dir_path, file_name_hint);
+		writeEntriesToFile(node, downloaded_entries, cache_dir_path, file_name_hint);
 		node->appendSyncStatus(slave_hp_path, "Syncing done");
 		promise.finish();
 	}
@@ -424,7 +424,7 @@ private:
 			}
 
 			if (downloaded_entries.size() + newest_file_entry_count > MAX_ENTRIES_PER_FILE) {
-				writeEntriesToFile(node, downloaded_entries, slave_hp_path, cache_dir_path, file_name_hint);
+				writeEntriesToFile(node, downloaded_entries, cache_dir_path, file_name_hint);
 				downloaded_entries.clear();
 				newest_file_entry_count = 0;
 				file_name_hint.reset();
@@ -508,8 +508,8 @@ public:
 
 		connect(call, &shv::iotqt::rpc::RpcCall::maybeResult, this, [this, shvjournal_shvpath, cache_dir_path, slave_hp_path, path_prefix] (const auto& file_list, const auto& error) {
 			QVector<QFuture<void>> all_files_synced;
-			auto decrementer = qScopeGuard([this, &all_files_synced, slave_hp_path, cache_dir_path, file_list] {
-				QtFuture::whenAll(all_files_synced.begin(), all_files_synced.end()).then([this, slave_hp_path, cache_dir_path, file_list] (const auto&) {
+			auto decrementer = qScopeGuard([this, &all_files_synced, cache_dir_path, file_list, path_prefix] {
+				QtFuture::whenAll(all_files_synced.begin(), all_files_synced.end()).then([this, cache_dir_path, file_list, path_prefix] (const auto&) {
 					m_counter--;
 					if (m_counter == 0) {
 						writeFiles();
@@ -517,7 +517,7 @@ public:
 						// We'll only trim if we actually downloaded some files, otherwise the trim algorithm will screw us over,
 						// because of the "last millisecond algorithm".
 						if (!file_list.asList().empty()) {
-							m_node->trimDirtyLog(slave_hp_path, cache_dir_path);
+							m_node->trimDirtyLog(QDir(cache_dir_path).filePath(path_prefix));
 						}
 						m_node->appendSyncStatus(m_shvPath, "Syncing done");
 						m_promise.finish();
@@ -532,7 +532,7 @@ public:
 				return;
 			}
 
-			journalDebug() << "Got filelist from" << slave_hp_path;
+			journalDebug() << "Got filelist from" << shvjournal_shvpath;
 
 			if (!file_list.asList().empty() && file_list.asList().front().asList().at(LS_FILES_RESPONSE_FILETYPE) == "d") {
 				for (const auto& current_directory : file_list.asList()) {
@@ -542,7 +542,7 @@ public:
 				return;
 			}
 
-			QDir cache_dir(cache_dir_path);
+			QDir cache_dir(QDir(cache_dir_path).filePath(path_prefix));
 			QString newest_file_name;
 			int64_t newest_file_name_ms = QDateTime::currentDateTime().addSecs(- HistoryApp::instance()->cliOptions()->cacheInitMaxAge()).toMSecsSinceEpoch();
 			auto entry_list = cache_dir.entryList(QDir::NoDotAndDotDot | QDir::Files, QDir::Name | QDir::Reversed);
@@ -556,7 +556,7 @@ public:
 				}
 			}
 
-			journalDebug() << "Newest file for" << slave_hp_path << "is" << newest_file_name;
+			journalDebug() << "Newest file for" << shv::coreqt::utils::joinPath(slave_hp_path, path_prefix) << "is" << newest_file_name;
 
 			for (const auto& current_file : file_list.asList()) {
 				if (current_memory_usage > SYNCER_MEMORY_LIMIT) {
