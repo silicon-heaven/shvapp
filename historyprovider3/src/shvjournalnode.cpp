@@ -513,14 +513,19 @@ public:
 			auto decrementer = qScopeGuard([this, &all_files_synced, cache_dir_path, file_list, path_prefix] {
 				QtFuture::whenAll(all_files_synced.begin(), all_files_synced.end()).then([this, cache_dir_path, file_list, path_prefix] (const auto&) {
 					m_counter--;
+					// We'll only trim if we actually downloaded some files, otherwise the trim algorithm will screw us over,
+					// because of the "last millisecond algorithm".
+					if (!file_list.asList().empty()) {
+						m_toTrim.push_back(QDir(cache_dir_path).filePath(path_prefix));
+					}
+
 					if (m_counter == 0) {
 						writeFiles();
 
-						// We'll only trim if we actually downloaded some files, otherwise the trim algorithm will screw us over,
-						// because of the "last millisecond algorithm".
-						if (!file_list.asList().empty()) {
-							m_node->trimDirtyLog(QDir(cache_dir_path).filePath(path_prefix));
+						for (const auto& dir_path : m_toTrim) {
+							m_node->trimDirtyLog(dir_path);
 						}
+
 						m_node->appendSyncStatus(m_shvPath, "Syncing done");
 						m_promise.finish();
 						deleteLater();
@@ -631,6 +636,7 @@ private:
 	int current_memory_usage = 0;
 
 	QMap<QString, cp::RpcValue> m_downloadedFiles;
+	std::vector<QString> m_toTrim;
 	QPromise<void> m_promise;
 	int m_counter = 0;
 };

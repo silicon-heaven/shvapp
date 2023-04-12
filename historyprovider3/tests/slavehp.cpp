@@ -69,10 +69,15 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			create_dummy_cache_files(cache_dir_path, {
 				{"eyas/opc/2022-07-06T18-06-15-000.log2", dummy_logfile},
-				{"eyas/opc/dirtylog", dummy_logfile2}
+				{"eyas/opc/dirtylog", dummy_logfile2},
+				{"eyas/app/2022-07-06T18-06-15-000.log2", dummy_logfile},
+				{"eyas/app/dirtylog", dummy_logfile2}
 			});
 
 			*expected_cache_contents = RpcValue::List({{
+				RpcValue::List{ "eyas/app/2022-07-06T18-06-15-000.log2", 308UL },
+				RpcValue::List{ "eyas/app/2022-07-07T18-06-15-557.log2", 148UL },
+				RpcValue::List{ "eyas/app/dirtylog", 83UL },
 				RpcValue::List{ "eyas/opc/2022-07-06T18-06-15-000.log2", 308UL },
 				RpcValue::List{ "eyas/opc/2022-07-07T18-06-15-557.log2", 148UL },
 				RpcValue::List{ "eyas/opc/dirtylog", 83UL }
@@ -85,9 +90,10 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_REQUEST(join(slave_shv_journal_path, "eyas"), "lsfiles", ls_size_true);
-			RESPOND_YIELD((RpcValue::List{{
-				{ "opc", "d", 0 }
-			}}));
+			RESPOND_YIELD((RpcValue::List{
+				{{ "opc", "d", 0 }},
+				{{ "app", "d", 0 }}
+			}));
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_REQUEST(join(slave_shv_journal_path, "eyas/opc"), "lsfiles", ls_size_true);
@@ -95,9 +101,20 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 				{ "2022-07-07T18-06-15-557.log2", "f", dummy_logfile2.size() }
 			}}));
 		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_REQUEST(join(slave_shv_journal_path, "eyas/app"), "lsfiles", ls_size_true);
+			RESPOND_YIELD((RpcValue::List{{
+				{ "2022-07-07T18-06-15-557.log2", "f", dummy_logfile2.size() }
+			}}));
+		});
 
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_REQUEST(join(slave_shv_journal_path, "eyas/opc/2022-07-07T18-06-15-557.log2"), "read", read_offset_0);
+			RESPOND_YIELD(RpcValue::stringToBlob(dummy_logfile2));
+		});
+
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_REQUEST(join(slave_shv_journal_path, "eyas/app/2022-07-07T18-06-15-557.log2"), "read", read_offset_0);
 			RESPOND_YIELD(RpcValue::stringToBlob(dummy_logfile2));
 		});
 	}
