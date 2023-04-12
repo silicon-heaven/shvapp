@@ -276,11 +276,13 @@ void ShvJournalNode::trimDirtyLog(const QString& cache_dir_path)
 	do_write_entries_to_file(cache_dir.filePath(entries.at(1)), newest_file_entries, Overwrite::Yes);
 
 	// Now filter dirty log's newer events.
-	shv::core::utils::ShvJournalFileReader reader(dirty_log_path(journal_dir_path));
 	std::vector<shv::core::utils::ShvJournalEntry> new_dirty_log_entries;
-	while (reader.next()) {
-		if (reader.entry().epochMsec >= newest_entry_msec) {
-			new_dirty_log_entries.push_back(reader.entry());
+	{
+		shv::core::utils::ShvJournalFileReader reader(dirty_log_path(journal_dir_path));
+		while (reader.next()) {
+			if (reader.entry().epochMsec >= newest_entry_msec) {
+				new_dirty_log_entries.push_back(reader.entry());
+			}
 		}
 	}
 
