@@ -6,6 +6,7 @@
     flake-utils,
     nixpkgs,
   }:
+    with builtins;
     with flake-utils.lib;
     with nixpkgs.lib; let
       packages = {
@@ -16,14 +17,18 @@
         with qt6Packages; rec {
           shvapp = stdenv.mkDerivation {
             name = "shvapp";
-            src = ./.;
+            src = builtins.path {
+              name = "shvapp-src";
+              path = ./.;
+              filter = path: type: ! hasSuffix ".nix" path;
+            };
             outputs = ["out" "dev"];
             buildInputs = [
               wrapQtAppsHook
               qtbase
               qtmqtt
-              qtserialport
               qtquick3d
+              qtserialport
               qtsvg
               libxkbcommon
               doctest
@@ -48,6 +53,7 @@
         };
     in
       {
+        nixosModules = import ./nixos/modules self.overlays.default;
         overlays.default = final: prev:
           packages {
             inherit (prev) system;
@@ -61,7 +67,14 @@
         packages = packages {inherit system pkgs;};
         legacyPackages = pkgs.extend self.overlays.default;
 
-        checks.default = pkgsSelf.default;
+        # NixOS tests work only on Linux and we target Linux only anyway.
+        checks =
+          optionalAttrs (hasSuffix "-linux" system)
+          (import ./nixos/tests
+            nixpkgs.lib
+            self.legacyPackages.${system}
+            self.nixosModules)
+          // {inherit (pkgsSelf) default;};
 
         formatter = pkgs.alejandra;
       });
