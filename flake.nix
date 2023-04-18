@@ -30,6 +30,7 @@
               qtquick3d
               qtserialport
               qtsvg
+              qtwebsockets
               libxkbcommon
               doctest
             ];
