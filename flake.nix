@@ -39,18 +39,6 @@
             ];
           };
           default = shvapp;
-
-          qtmqtt = qtModule rec {
-            pname = "qtmqtt";
-            inherit (qtbase) version;
-            src = fetchurl {
-              url = "https://github.com/qt/qtmqtt/archive/refs/tags/v${version}.tar.gz";
-              sha256 = "P2CpIHVx0ya4eJf/UYFEitJEdCa/Qn7PD1CUCmY4TrE=";
-              name = "v${version}.tar.gz";
-            };
-            qtInputs = [qtbase];
-            nativeBuildInputs = [pkg-config];
-          };
         };
     in
       {
