@@ -9,10 +9,7 @@
     with builtins;
     with flake-utils.lib;
     with nixpkgs.lib; let
-      packages = {
-        system,
-        pkgs,
-      }:
+      packages = pkgs:
         with pkgs;
         with qt6Packages; rec {
           shvapp = stdenv.mkDerivation {
@@ -43,18 +40,19 @@
     in
       {
         nixosModules = import ./nixos/modules self.overlays.default;
-        overlays.default = final: prev:
-          packages {
-            inherit (prev) system;
-            pkgs = prev;
-          };
+        overlays = {
+          shvapp = final: prev: packages (id prev);
+          default = self.overlays.shvapp;
+        };
       }
       // eachDefaultSystem (system: let
-        pkgs = nixpkgs.legacyPackages.${system};
-        pkgsSelf = self.packages.${system};
+        pkgs = nixpkgs.legacyPackages.${system}.extend self.overlays.default;
       in {
-        packages = packages {inherit system pkgs;};
-        legacyPackages = pkgs.extend self.overlays.default;
+        packages = filterPackages system rec {
+          inherit (pkgs) shvapp;
+          default = shvapp;
+        };
+        legacyPackages = pkgs;
 
         # NixOS tests work only on Linux and we target Linux only anyway.
         checks =
@@ -63,7 +61,7 @@
             nixpkgs.lib
             self.legacyPackages.${system}
             self.nixosModules)
-          // {inherit (pkgsSelf) default;};
+          // {inherit (self.packages.${system}) default;};
 
         formatter = pkgs.alejandra;
       });
