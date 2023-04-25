@@ -144,6 +144,7 @@ void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 						return;
 					}
 					// get rid of the shv prefix
+					assert(longest_prefix->starts_with("shv/"));
 					auto longest_prefix_without_shv = longest_prefix->substr(4);
 
 					auto writer = shv::core::utils::ShvJournalFileWriter(dirty_log_path(get_cache_dir_path(m_cacheDirPath, longest_prefix_without_shv)));
