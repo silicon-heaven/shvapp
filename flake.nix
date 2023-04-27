@@ -9,10 +9,7 @@
     with builtins;
     with flake-utils.lib;
     with nixpkgs.lib; let
-      packages = {
-        system,
-        pkgs,
-      }:
+      packages = pkgs:
         with pkgs;
         with qt6Packages; rec {
           shvapp = stdenv.mkDerivation {
@@ -30,6 +27,7 @@
               qtquick3d
               qtserialport
               qtsvg
+              qtwebsockets
               libxkbcommon
               doctest
             ];
@@ -38,34 +36,23 @@
             ];
           };
           default = shvapp;
-
-          qtmqtt = qtModule rec {
-            pname = "qtmqtt";
-            inherit (qtbase) version;
-            src = fetchurl {
-              url = "https://github.com/qt/qtmqtt/archive/refs/tags/v${version}.tar.gz";
-              sha256 = "P2CpIHVx0ya4eJf/UYFEitJEdCa/Qn7PD1CUCmY4TrE=";
-              name = "v${version}.tar.gz";
-            };
-            qtInputs = [qtbase];
-            nativeBuildInputs = [pkg-config];
-          };
         };
     in
       {
         nixosModules = import ./nixos/modules self.overlays.default;
-        overlays.default = final: prev:
-          packages {
-            inherit (prev) system;
-            pkgs = prev;
-          };
+        overlays = {
+          shvapp = final: prev: packages (id prev);
+          default = self.overlays.shvapp;
+        };
       }
       // eachDefaultSystem (system: let
-        pkgs = nixpkgs.legacyPackages.${system};
-        pkgsSelf = self.packages.${system};
+        pkgs = nixpkgs.legacyPackages.${system}.extend self.overlays.default;
       in {
-        packages = packages {inherit system pkgs;};
-        legacyPackages = pkgs.extend self.overlays.default;
+        packages = filterPackages system rec {
+          inherit (pkgs) shvapp;
+          default = shvapp;
+        };
+        legacyPackages = pkgs;
 
         # NixOS tests work only on Linux and we target Linux only anyway.
         checks =
@@ -74,7 +61,7 @@
             nixpkgs.lib
             self.legacyPackages.${system}
             self.nixosModules)
-          // {inherit (pkgsSelf) default;};
+          // {inherit (self.packages.${system}) default;};
 
         formatter = pkgs.alejandra;
       });
