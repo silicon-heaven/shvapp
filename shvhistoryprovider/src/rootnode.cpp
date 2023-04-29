@@ -147,7 +147,7 @@ cp::RpcValue RootNode::ls(const shv::core::StringViewList &shv_path, size_t inde
 		}
 		return items;
 	}
-	QString key = QString::fromStdString(shv_path[index].toString());
+	QString key = QString::fromStdString(std::string{shv_path[index]});
 	SiteItem *child = site_item->findChild<SiteItem*>(key);
 	if (child) {
 		return ls(shv_path, index + 1, child);
