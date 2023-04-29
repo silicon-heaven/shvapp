@@ -204,7 +204,7 @@ void DirSyncTask::onHashReceived(const QString &shv_path, const shv::chainpack::
 		AppRootNode *root = qobject_cast<AppRootNode*>(parent());
 		std::string bytes = root->readFile(shv_path).toString();
 		QCryptographicHash h(QCryptographicHash::Sha1);
-#if QT_VERSION_MAJOR >= 6
+#if QT_VERSION_MAJOR >= 6 && QT_VERSION_MINOR >= 3
 		using byte_array_view_t = QByteArrayView;
 #else
 		using byte_array_view_t = QByteArray;

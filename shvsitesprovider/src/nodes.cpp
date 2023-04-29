@@ -228,7 +228,7 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 	else if (method == METH_FILE_HASH) {
 		string bytes = readFile(qshv_path).toString();
 		QCryptographicHash h(QCryptographicHash::Sha1);
-#if QT_VERSION_MAJOR >= 6
+#if QT_VERSION_MAJOR >= 6 && QT_VERSION_MINOR >= 3
 		using byte_array_view_t = QByteArrayView;
 #else
 		using byte_array_view_t = QByteArray;
