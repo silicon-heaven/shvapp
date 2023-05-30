@@ -65,7 +65,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 	};
 
 	auto create_get_log_options = [] (const RpcValue& since, WithSnapshot with_snapshot) -> RpcValue {
-		auto res = R"({"headerOptions":11u,"maxRecordCount":5000,"recordCountLimit":5000,"withPathsDict":true,"withTypeInfo":false} == null)"_cpon.asMap();
+		auto res = R"({"recordCountLimit":5000,"withPathsDict":true,"withTypeInfo":false} == null)"_cpon.asMap();
 		res.setValue("withSnapshot", with_snapshot == WithSnapshot::True ? true : false);
 		res.setValue("since", since);
 		return res;
