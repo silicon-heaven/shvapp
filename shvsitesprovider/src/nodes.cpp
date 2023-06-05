@@ -28,6 +28,8 @@ const QString CPTEMPL_SUFFIX = QStringLiteral("cptempl");
 
 static const char METH_GIT_COMMIT[] = "gitCommit";
 static const char METH_APP_VERSION[] = "version";
+static const char METH_SHV_VERSION[] = "shvVersion";
+static const char METH_SHV_GIT_COMMIT[] = "shvGitCommit";
 static const char METH_GET_SITES[] = "getSites";
 static const char METH_RELOAD_SITES[] = "reloadSites";
 static const char METH_SITES_SYNCED_BEFORE[] = "sitesSyncedBefore";
@@ -50,6 +52,8 @@ static std::vector<cp::MetaMethod> root_meta_methods {
 	{ cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, shv::chainpack::Rpc::ROLE_READ },
 	{ cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
 	{ METH_GIT_COMMIT, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
+	{ METH_SHV_VERSION, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
+	{ METH_SHV_GIT_COMMIT, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 	{ METH_GET_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
 //	{ METH_RELOAD_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_COMMAND},
 //	{ METH_SITES_SYNCED_BEFORE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
@@ -166,6 +170,20 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 	else if(method == METH_GIT_COMMIT) {
 #ifdef GIT_COMMIT
 		return SHV_EXPAND_AND_QUOTE(GIT_COMMIT);
+#else
+		return "N/A";
+#endif
+	}
+	else if (method == METH_SHV_GIT_COMMIT) {
+#ifdef SHV_GIT_COMMIT
+		return SHV_EXPAND_AND_QUOTE(SHV_GIT_COMMIT);
+#else
+		return "N/A";
+#endif
+	}
+	else if (method == METH_SHV_VERSION) {
+#ifdef SHV_VERSION
+		return SHV_EXPAND_AND_QUOTE(SHV_VERSION);
 #else
 		return "N/A";
 #endif
