@@ -31,6 +31,8 @@ namespace si = shv::iotqt;
 namespace {
 const auto METH_GET_VERSION = "version";
 const auto METH_GIT_COMMIT = "gitCommit";
+const auto METH_SHV_VERSION = "shvVersion";
+const auto METH_SHV_GIT_COMMIT = "shvGitCommit";
 const auto METH_UPTIME = "uptime";
 const auto METH_RELOAD_SITES = "reloadSites";
 const std::vector<cp::MetaMethod> meta_methods {
@@ -41,6 +43,8 @@ const std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
 	{METH_GET_VERSION, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 	{METH_GIT_COMMIT, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
+	{METH_SHV_VERSION, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
+	{METH_SHV_GIT_COMMIT, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 	{METH_UPTIME, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ },
 	{METH_RELOAD_SITES, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::ROLE_WRITE },
 };
@@ -85,6 +89,22 @@ cp::RpcValue AppRootNode::callMethod(const StringViewList& shv_path, const std::
 		if(method == METH_GIT_COMMIT) {
 #ifdef GIT_COMMIT
 			return SHV_EXPAND_AND_QUOTE(GIT_COMMIT);
+#else
+			return "N/A";
+#endif
+		}
+
+		if (method == METH_SHV_GIT_COMMIT) {
+#ifdef SHV_GIT_COMMIT
+			return SHV_EXPAND_AND_QUOTE(SHV_GIT_COMMIT);
+#else
+			return "N/A";
+#endif
+		}
+
+		if (method == METH_SHV_VERSION) {
+#ifdef SHV_VERSION
+			return SHV_EXPAND_AND_QUOTE(SHV_VERSION);
 #else
 			return "N/A";
 #endif

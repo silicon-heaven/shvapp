@@ -51,10 +51,19 @@ using namespace std;
 namespace cp = shv::chainpack;
 namespace si = shv::iotqt;
 
+static const auto M_APP_VERSION = "appVersion";
+static const auto M_GIT_COMMIT = "gitCommit";
+static const auto M_SHV_VERSION = "shvVersion";
+static const auto M_SHV_GIT_COMMIT = "shvGitCommit";
+
 static std::vector<cp::MetaMethod> meta_methods {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_BROWSE},
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_BROWSE},
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
+	{M_APP_VERSION, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
+	{M_GIT_COMMIT, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
+	{M_SHV_VERSION, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
+	{M_SHV_GIT_COMMIT, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 	//{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_BROWSE},
 	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
 	{cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
@@ -143,6 +152,32 @@ shv::chainpack::RpcValue AppRootNode::callMethodRq(const shv::chainpack::RpcRequ
 		if(rq.method() == cp::Rpc::METH_DEVICE_TYPE) {
 			return "ShvAgent";
 		}
+
+		if(rq.method() == M_APP_VERSION) {
+			return ShvAgentApp::applicationVersion().toStdString();
+		}
+		if(rq.method() == M_GIT_COMMIT) {
+#ifdef GIT_COMMIT
+			return SHV_EXPAND_AND_QUOTE(GIT_COMMIT);
+#else
+			return "N/A";
+#endif
+		}
+		if(rq.method() == M_SHV_VERSION) {
+#ifdef SHV_VERSION
+			return SHV_EXPAND_AND_QUOTE(SHV_VERSION);
+#else
+			return "N/A";
+#endif
+		}
+		if(rq.method() == M_SHV_GIT_COMMIT) {
+#ifdef SHV_GIT_COMMIT
+			return SHV_EXPAND_AND_QUOTE(SHV_GIT_COMMIT);
+#else
+			return "N/A";
+#endif
+		}
+
 		if(rq.method() == cp::Rpc::METH_RUN_CMD) {
 			ShvAgentApp *app = ShvAgentApp::instance();
 			app->runCmd(rq);
