@@ -50,7 +50,7 @@ production-deploy:
     - id
     - cd build
     # nirvana
-    - rsync -avz _dist/lib _dist/bin gitlab@${SHV_NIRVANA_IP}:/opt/shv-prod/
+    - rsync -avz _dist/lib _dist/bin shv@${SHV_NIRVANA_IP}:/opt/shv-prod/
     - ssh -t gitlab@${SHV_NIRVANA_IP} "sudo /opt/shv-prod/install.sh"
 
   environment:
