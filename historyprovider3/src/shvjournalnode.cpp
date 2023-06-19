@@ -16,6 +16,8 @@
 #include <QDirIterator>
 #include <QTimer>
 
+#include <queue>
+
 #define journalDebug() shvCDebug("historyjournal")
 #define journalInfo() shvCInfo("historyjournal")
 
@@ -510,28 +512,14 @@ public:
 		m_counter++;
 
 		connect(call, &shv::iotqt::rpc::RpcCall::maybeResult, this, [this, shvjournal_shvpath, cache_dir_path, slave_hp_path, path_prefix] (const auto& file_list, const auto& error) {
-			QVector<QFuture<void>> all_files_synced;
-			auto decrementer = qScopeGuard([this, &all_files_synced, cache_dir_path, file_list, path_prefix] {
-				QtFuture::whenAll(all_files_synced.begin(), all_files_synced.end()).then([this, cache_dir_path, file_list, path_prefix] (const auto&) {
-					m_counter--;
-					// We'll only trim if we actually downloaded some files, otherwise the trim algorithm will screw us over,
-					// because of the "last millisecond algorithm".
-					if (!file_list.asList().empty()) {
-						m_toTrim.push_back(QDir(cache_dir_path).filePath(path_prefix));
-					}
-
-					if (m_counter == 0) {
-						writeFiles();
-
-						for (const auto& dir_path : m_toTrim) {
-							m_node->trimDirtyLog(dir_path);
-						}
-
-						m_node->appendSyncStatus(m_shvPath, "Syncing done");
-						m_promise.finish();
-						deleteLater();
-					}
-				});
+			auto decrementer = qScopeGuard([this, cache_dir_path, file_list, path_prefix] {
+				m_counter--;
+				if (!file_list.asList().empty()) {
+					m_toTrim.push_back(QDir(cache_dir_path).filePath(path_prefix));
+				}
+				if (m_counter == 0) {
+					downloadNext();
+				}
 			});
 			if (!error.isEmpty()) {
 				auto err = "Couldn't retrieve filelist from: " + shvjournal_shvpath + " " + error;
@@ -600,13 +588,12 @@ public:
 
 				}
 
-				journalDebug() << "Retrieving" << sites_log_file << "offset:" << local_size;
+				journalDebug() << "Enqueuing" << sites_log_file << "offset:" << local_size;
 				auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
 					->setShvPath(sites_log_file)
 					->setMethod("read")
 					->setParams(cp::RpcValue::Map{{"offset", cp::RpcValue::Int(local_size)}});
-				call->start();
-				all_files_synced.push_back(QtFuture::connect(call, &shv::iotqt::rpc::RpcCall::maybeResult).then([this, slave_hp_path, sites_log_file, full_file_name] (const std::tuple<shv::chainpack::RpcValue, QString>& result_or_error) {
+				QtFuture::connect(call, &shv::iotqt::rpc::RpcCall::maybeResult).then([this, slave_hp_path, sites_log_file, full_file_name] (const std::tuple<shv::chainpack::RpcValue, QString>& result_or_error) {
 					auto [result, retrieve_error] = result_or_error;
 					auto msg = sites_log_file + ": ";
 					if (!retrieve_error.isEmpty()) {
@@ -620,7 +607,9 @@ public:
 					journalInfo() << msg;
 					m_node->appendSyncStatus(slave_hp_path, msg.toStdString());
 					m_downloadedFiles.insert(full_file_name, result);
-				}));
+					downloadNext();
+				});
+				m_downloadQueue.push(call);
 			}
 
 		});
@@ -632,9 +621,33 @@ public:
 	}
 
 private:
+
+	void downloadNext()
+	{
+		if (m_downloadQueue.empty()) {
+			writeFiles();
+
+			for (const auto& dir_path : m_toTrim) {
+				m_node->trimDirtyLog(dir_path);
+			}
+
+			journalDebug() << "No more files to download for" << m_shvPath.toStdString();
+			m_node->appendSyncStatus(m_shvPath, "Syncing done");
+			m_promise.finish();
+			deleteLater();
+			return;
+		}
+		journalDebug() << "Downloading next file for" << m_shvPath.toStdString();
+		auto next = m_downloadQueue.front();
+		next->start();
+		m_downloadQueue.pop();
+	}
+
 	ShvJournalNode* m_node;
 	const QString m_shvPath;
 	int current_memory_usage = 0;
+
+	std::queue<shv::iotqt::rpc::RpcCall*> m_downloadQueue;
 
 	QMap<QString, cp::RpcValue> m_downloadedFiles;
 	std::vector<QString> m_toTrim;
