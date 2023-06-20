@@ -51,15 +51,15 @@ namespace std {
 namespace shv::chainpack {
 
     doctest::String toString(const RpcValue& value) {
-        return value.toCpon().c_str();
+        return value.toCpon("  ").c_str();
     }
 
     doctest::String toString(const RpcValue::List& value) {
-        return RpcValue(value).toCpon().c_str();
+        return RpcValue(value).toCpon("  ").c_str();
     }
 
     doctest::String toString(const RpcValue::Map& value) {
-        return RpcValue(value).toCpon().c_str();
+        return RpcValue(value).toCpon("  ").c_str();
     }
 
     doctest::String toString(const RpcMessage& value) {
