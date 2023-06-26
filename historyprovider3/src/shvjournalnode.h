@@ -26,7 +26,12 @@ public:
 	size_t methodCount(const StringViewList& shv_path) override;
 	const shv::chainpack::MetaMethod* metaMethod(const StringViewList& shv_path, size_t ix) override;
 	shv::chainpack::RpcValue callMethodRq(const shv::chainpack::RpcRequest &rq) override;
-	void trimDirtyLog(const QString& cache_dir_path);
+	enum class TrimLastMS {
+		Yes,
+		No
+	};
+
+	void trimDirtyLog(const QString& cache_dir_path, const TrimLastMS trim_last_ms);
 	void syncLog(const std::string& shv_path, const std::function<void(const shv::chainpack::RpcValue::List&)> site_list_cb, const std::function<void()> success_cb);
 
 	const QString& cacheDirPath() const;

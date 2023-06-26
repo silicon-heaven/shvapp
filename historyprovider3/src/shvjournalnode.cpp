@@ -156,7 +156,7 @@ void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 					auto entry = shv::core::utils::ShvJournalEntry(path_without_prefix, data_change.value()
 																   , shv::core::utils::ShvJournalEntry::DOMAIN_VAL_CHANGE
 																   , shv::core::utils::ShvJournalEntry::NO_SHORT_TIME
-																   , shv::core::utils::ShvJournalEntry::NO_VALUE_FLAGS
+																   , 1 << shv::core::utils::ShvJournalEntry::ValueFlag::DirtyValue
 																   , data_change.epochMSec());
 					writer.append(entry);
 
@@ -227,7 +227,7 @@ void do_write_entries_to_file(const QString& file_path, const std::vector<shv::c
 }
 }
 
-void ShvJournalNode::trimDirtyLog(const QString& cache_dir_path)
+void ShvJournalNode::trimDirtyLog(const QString& cache_dir_path, const TrimLastMS trim_last_ms)
 {
 	journalInfo() << "Trimming dirty log for" << cache_dir_path;
 	using shv::coreqt::Utils;
@@ -258,25 +258,28 @@ void ShvJournalNode::trimDirtyLog(const QString& cache_dir_path)
 	if (!newest_file_entries.empty()) {
 		newest_entry_msec = newest_file_entries.back().epochMsec;
 	}
-	// It is possible that the newest logfile contains multiple entries with the same timestamp. Because it could
-	// have been written (by shvagent) in between two events that happenede in the same millisecond, we can't be
-	// sure whether we have all events from the last millisecond. Because of that we will discard the last
-	// millisecond from the synced log, and keep it in the dirty log.
-	newest_file_entries.erase(std::find_if(newest_file_entries.begin(), newest_file_entries.end(), [newest_entry_msec] (const auto& entry) {
-		return entry.epochMsec == newest_entry_msec;
-	}), newest_file_entries.end());
 
-	// If we discarded all the entries from the newest file (i.e. it only
-	// contained data from the same timestamp), we'll just delete it. No
-	// point in having empty files. After that we don't have to do anything
-	// to the dirty log, because there's no data to trim.
+	if (trim_last_ms == TrimLastMS::Yes) {
+		// It is possible that the newest logfile contains multiple entries with the same timestamp. Because it could
+		// have been written (by shvagent) in between two events that happened in the same millisecond, we can't be
+		// sure whether we have all events from the last millisecond. Because of that we will discard the last
+		// millisecond from the synced log, and keep it in the dirty log.
+		newest_file_entries.erase(std::find_if(newest_file_entries.begin(), newest_file_entries.end(), [newest_entry_msec] (const auto& entry) {
+			return entry.epochMsec == newest_entry_msec;
+		}), newest_file_entries.end());
 
-	if (newest_file_entries.empty()) {
-		QFile(cache_dir.filePath(entries.at(1))).remove();
-		return;
+		// If we discarded all the entries from the newest file (i.e. it only
+		// contained data from the same timestamp), we'll just delete it. No
+		// point in having empty files. After that we don't have to do anything
+		// to the dirty log, because there's no data to trim.
+
+		if (newest_file_entries.empty()) {
+			QFile(cache_dir.filePath(entries.at(1))).remove();
+			return;
+		}
+
+		do_write_entries_to_file(cache_dir.filePath(entries.at(1)), newest_file_entries, Overwrite::Yes);
 	}
-
-	do_write_entries_to_file(cache_dir.filePath(entries.at(1)), newest_file_entries, Overwrite::Yes);
 
 	// Now filter dirty log's newer events.
 	std::vector<shv::core::utils::ShvJournalEntry> new_dirty_log_entries;
@@ -319,7 +322,7 @@ void writeEntriesToFile(ShvJournalNode* node, const std::vector<shv::core::utils
 	}());
 
 	do_write_entries_to_file(file_name, downloaded_entries, Overwrite::No);
-	node->trimDirtyLog(cache_dir_path);
+	node->trimDirtyLog(cache_dir_path, ShvJournalNode::TrimLastMS::Yes);
 }
 }
 
@@ -628,7 +631,7 @@ private:
 			writeFiles();
 
 			for (const auto& dir_path : m_toTrim) {
-				m_node->trimDirtyLog(dir_path);
+				m_node->trimDirtyLog(dir_path, ShvJournalNode::TrimLastMS::No);
 			}
 
 			journalDebug() << "No more files to download for" << m_shvPath.toStdString();

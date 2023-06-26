@@ -76,10 +76,10 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 
 			*expected_cache_contents = RpcValue::List({{
 				RpcValue::List{ "eyas/app/2022-07-06T18-06-15-000.log2", 308UL },
-				RpcValue::List{ "eyas/app/2022-07-07T18-06-15-557.log2", 148UL },
+				RpcValue::List{ "eyas/app/2022-07-07T18-06-15-557.log2", 249UL },
 				RpcValue::List{ "eyas/app/dirtylog", 83UL },
 				RpcValue::List{ "eyas/opc/2022-07-06T18-06-15-000.log2", 308UL },
-				RpcValue::List{ "eyas/opc/2022-07-07T18-06-15-557.log2", 148UL },
+				RpcValue::List{ "eyas/opc/2022-07-07T18-06-15-557.log2", 249UL },
 				RpcValue::List{ "eyas/opc/dirtylog", 83UL }
 			}});
 

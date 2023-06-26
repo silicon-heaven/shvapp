@@ -74,7 +74,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 
 			*expected_cache_contents = RpcValue::List({{
 				RpcValue::List{ "2022-07-06T18-06-15-000.log2", 308UL },
-				RpcValue::List{ "2022-07-07T18-06-15-557.log2", 148UL },
+				RpcValue::List{ "2022-07-07T18-06-15-557.log2", 249UL },
 				RpcValue::List{ "dirtylog", 83UL }
 			}});
 
@@ -113,8 +113,6 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 	DOCTEST_SUBCASE("file to trim from only has one entry")
 	{
 		enqueue(res, [=] (MockRpcConnection* mock) {
-			// This means that the file will be trimmed due to the last-ms algorithm and therefore empty. We don't
-			// really want empty files, so we don't even write it.
 			create_dummy_cache_files("one", {
 				{"dirtylog", dummy_logfile2}
 			});
@@ -138,7 +136,8 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_RESPONSE(R"(["shv/one", "shv/two"])"_cpon);
 			*expected_cache_contents = RpcValue::List({{
-				RpcValue::List{ "dirtylog", dummy_logfile2.size() }
+				RpcValue::List{ "2022-07-07T18-06-15-557.log2", 79UL },
+				RpcValue::List{ "dirtylog", 231UL }
 			}});
 
 			REQUIRE(get_cache_contents("one") == *expected_cache_contents);
