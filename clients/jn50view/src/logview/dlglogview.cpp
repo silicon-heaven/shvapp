@@ -174,11 +174,10 @@ void DlgLogView::parseLog(shv::chainpack::RpcValue log)
 		ui->tblData->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents);
 	}
 	{
-		const shv::chainpack::RpcValue::IMap &dict = log.metaValue("pathsDict").asIMap();
-		const shv::chainpack::RpcValue::List lst = log.asList();
+		const shv::chainpack::RpcValue::IMap &dict = log.metaData().valref("pathsDict").asIMap();
 		m_graphModel->clear();
 		m_graphModel->beginAppendValues();
-		for(const cp::RpcValue &rec : lst) {
+		for(const cp::RpcValue &rec : log.asList()) {
 			const cp::RpcValue::List &row = rec.asList();
 
 			cp::RpcValue::DateTime dt = row.value(0).toDateTime();

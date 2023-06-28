@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
 	QCoreApplication::setOrganizationName("Elektroline");
 	QCoreApplication::setOrganizationDomain("elektroline.cz");
 	QCoreApplication::setApplicationName("shvrsh");
-	QCoreApplication::setApplicationVersion("0.0.1");
+	QCoreApplication::setApplicationVersion("0.0.2");
 
 	std::vector<std::string> shv_args = NecroLog::setCLIOptions(argc, argv);
 	QStringList args;
