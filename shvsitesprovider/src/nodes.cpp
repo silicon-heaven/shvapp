@@ -342,10 +342,10 @@ shv::chainpack::RpcValue AppRootNode::metaValue(const QString &shv_path)
 {
 	cp::RpcValue meta;
 	qsizetype meta_ix = shv_path.indexOf('/' + META_NODE);
-	if (meta_ix != -1) {
+	if (meta_ix != -1 || shv_path.startsWith(META_NODE)) {
 		QString path_rest = shv_path.mid(meta_ix + 1 + META_NODE.length());
 		if (path_rest.isEmpty() || path_rest[0] == '/') {
-			QFile meta_file(nodeMetaPath(shv_path.mid(0, meta_ix)));
+			QFile meta_file(nodeMetaPath(meta_ix == -1 ? QString() : shv_path.mid(0, meta_ix)));
 			if (meta_file.open(QFile::ReadOnly)) {
 				QByteArray meta_content = meta_file.readAll();
 				meta = cp::RpcValue::fromCpon(meta_content.toStdString());
