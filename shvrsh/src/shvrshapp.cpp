@@ -186,7 +186,7 @@ void ShvRshApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 			}
 			int channel = lst.value(0).toInt();
 			if(channel == STDOUT_FILENO || channel == STDERR_FILENO) {
-				const shv::chainpack::RpcValue::String &blob = lst.value(1).asString();
+				const shv::chainpack::RpcValue::String &blob = lst.valref(1).asString();
 				writeToOutChannel(channel, blob);
 			}
 			else {

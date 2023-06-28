@@ -30,7 +30,7 @@ cp::RpcValue BrclabParser::parse(const QString &fn)
 	ret["sha1"] = md.value("documentHash");
 	ret["dcsMode"] = deviceTypeToString(md.value("deviceType").toInt());
 
-	const cp::RpcValue::List &devices = body.asMap().value("devices").asList();
+	const cp::RpcValue::List &devices = body.asMap().valref("devices").asList();
 
 	if (devices.size() > 2){
 		SHV_EXCEPTION("Invalid chainpack format, document contains more than 2 devices.");
@@ -68,7 +68,7 @@ shv::chainpack::RpcValue BrclabParser::deviceData(const shv::chainpack::RpcValue
 		SHV_EXCEPTION("Invalid chainpack format, device must be map");
 	}
 
-	const cp::RpcValue::Map &tc = device.asMap().value("tc_parameters").asMap();
+	const cp::RpcValue::Map &tc = device.asMap().valref("tc_parameters").asMap();
 
 	ret["dipSwitchesOn"] = device.asMap().value("dipSwitchesOn").asString();
 	ret["tcName"] = tc.value("name");
@@ -80,9 +80,9 @@ shv::chainpack::RpcValue BrclabParser::deviceData(const shv::chainpack::RpcValue
 	ret["detectorShape "] = tc.value("type").toInt();
 	ret["trafficType"] = ((tc.value("only_rail_vehicles").toBool()) ? "tramsOnly" : "mixed");
 
-	const cp::RpcValue::Map &tuning = device.asMap().value("tunning").asMap();
-	const cp::RpcValue::Map &tuning_results = tuning.value("results").asMap();
-	const cp::RpcValue::List &tunning_series = tuning.value("series").asList();
+	const cp::RpcValue::Map &tuning = device.asMap().valref("tunning").asMap();
+	const cp::RpcValue::Map &tuning_results = tuning.valref("results").asMap();
+	const cp::RpcValue::List &tunning_series = tuning.valref("series").asList();
 
 	ret["resonantFrequency"] = tuning_results.value("RSNT_FRQ_DAC");
 	ret["Q"] = tuning_results.value("Q").toInt() / 100.0;
