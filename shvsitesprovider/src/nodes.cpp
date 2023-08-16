@@ -317,7 +317,7 @@ const std::vector<shv::chainpack::MetaMethod> &AppRootNode::metaMethods(const sh
 			return data_meta_methods;
 		}
 	}
-	else if (shv_path.contains('/' + FILES_NODE)) {
+	else if (shv_path.contains('/' + FILES_NODE) || shv_path.startsWith(FILES_NODE + '/')) {
 		if (isFile(shv_path)) {
 			return file_meta_methods;
 		}
