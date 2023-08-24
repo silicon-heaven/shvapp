@@ -30,7 +30,10 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 			EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
-			EXPECT_SUBSCRIPTION(shv_path, "chng");
+			EXPECT_SUBSCRIPTION_YIELD(shv_path, "chng");
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION(shv_path, "cmdlog");
 
 			create_dummy_cache_files(cache_dir_path, {
 				{ "2022-07-07T18-06-15-557.log2", dummy_logfile },
@@ -84,7 +87,13 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 			EXPECT_SUBSCRIPTION_YIELD("shv/one", "chng");
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
-			EXPECT_SUBSCRIPTION("shv/two", "chng");
+			EXPECT_SUBSCRIPTION_YIELD("shv/one", "cmdlog");
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION_YIELD("shv/two", "chng");
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION("shv/two", "cmdlog");
 			HistoryApp::instance()->setSingleCacheSizeLimit(500);
 
 			create_dummy_cache_files("one", {

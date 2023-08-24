@@ -24,7 +24,13 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		EXPECT_SUBSCRIPTION_YIELD("shv/one", "chng");
 	});
 	enqueue(res, [=] (MockRpcConnection* mock) {
-		EXPECT_SUBSCRIPTION("shv/two", "chng");
+		EXPECT_SUBSCRIPTION_YIELD("shv/one", "cmdlog");
+	});
+	enqueue(res, [=] (MockRpcConnection* mock) {
+		EXPECT_SUBSCRIPTION_YIELD("shv/two", "chng");
+	});
+	enqueue(res, [=] (MockRpcConnection* mock) {
+		EXPECT_SUBSCRIPTION("shv/two", "cmdlog");
 		return CallNext::Yes;
 	});
 

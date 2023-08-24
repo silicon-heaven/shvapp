@@ -38,7 +38,10 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 			EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
-			EXPECT_SUBSCRIPTION(sub_path, "chng");
+			EXPECT_SUBSCRIPTION_YIELD(sub_path, "chng");
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION(sub_path, "cmdlog");
 
 			create_dummy_cache_files(cache_dir_path, {
 				{ "2022-07-07T18-06-15-557.log2", dummy_logfile },
@@ -170,7 +173,10 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 			EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
-			EXPECT_SUBSCRIPTION(sub_path, "chng");
+			EXPECT_SUBSCRIPTION_YIELD(sub_path, "chng");
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION(sub_path, "cmdlog");
 
 			create_dummy_cache_files(cache_dir_path, {
 				{ "eyas/opc/2022-07-07T18-06-15-557.log2", dummy_logfile },

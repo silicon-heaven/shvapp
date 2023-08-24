@@ -131,11 +131,6 @@ void MockRpcConnection::sendMessage(const shv::chainpack::RpcMessage& rpc_msg)
         "<unknown message type>:";
     mockInfo() << "Got client" << msg_type << rpc_msg.toPrettyString();
 
-    // We'll skip cmdlog signals even if they are sent while the driver is running.
-    if (rpc_msg.isSignal() && rpc_msg.method() == "cmdlog") {
-        return;
-    }
-
     if (m_driverRunning) {
         throw std::logic_error("A client send a message while the test driver was running."
                 " This can lead to unexpected behavior, because the test driver resumes on messages from the client and you can't resume the driver while it's already running.");

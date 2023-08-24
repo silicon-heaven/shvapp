@@ -36,7 +36,10 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
 	});
 	enqueue(res, [=] (MockRpcConnection* mock) {
-		EXPECT_SUBSCRIPTION(shv_path, "chng");
+		EXPECT_SUBSCRIPTION_YIELD(shv_path, "chng");
+	});
+	enqueue(res, [=] (MockRpcConnection* mock) {
+		EXPECT_SUBSCRIPTION(shv_path, "cmdlog");
 		assert_sync_info_equal(HistoryApp::instance()->shvJournalNode()->syncInfo(), R"({
 			"shv/eyas/opc": {"status": ["Unknown"]}
 		})"_cpon);
@@ -128,9 +131,10 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 				enqueue(res, [=] (MockRpcConnection* mock) {
 					NOTIFY("shv/eyas/opc/power-on", "chng", true);
 					NOTIFY("shv/eyas/opc/power-on", "chng", false);
+					NOTIFY("shv/eyas/opc/run-command", "cmdlog", false);
 
 					*expected_cache_contents = RpcValue::List({{
-						RpcValue::List{ "dirtylog", 99UL }
+						RpcValue::List{ "dirtylog", 152UL }
 					}});
 					*expected_sync_info = R"({
 						"shv/eyas/opc": {"status": ["Syncing shv/eyas/opc via file synchronization", "Syncing done"]}
@@ -292,7 +296,13 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 				EXPECT_SUBSCRIPTION_YIELD("shv/one", "chng");
 			});
 			enqueue(res, [=] (MockRpcConnection* mock) {
-				EXPECT_SUBSCRIPTION("shv/two", "chng");
+				EXPECT_SUBSCRIPTION_YIELD("shv/one", "cmdlog");
+			});
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				EXPECT_SUBSCRIPTION_YIELD("shv/two", "chng");
+			});
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				EXPECT_SUBSCRIPTION("shv/two", "cmdlog");
 				NOTIFY_YIELD("shv", "mntchng", true);
 			});
 			enqueue(res, [=] (MockRpcConnection* mock) {
@@ -341,10 +351,19 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 			EXPECT_SUBSCRIPTION_YIELD("shv/mil014atm", "chng");
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION_YIELD("shv/mil014atm", "cmdlog");
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_SUBSCRIPTION_YIELD("shv/one", "chng");
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
-			EXPECT_SUBSCRIPTION("shv/two", "chng");
+			EXPECT_SUBSCRIPTION_YIELD("shv/one", "cmdlog");
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION_YIELD("shv/two", "chng");
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION("shv/two", "cmdlog");
 			return CallNext::Yes;
 		});
 

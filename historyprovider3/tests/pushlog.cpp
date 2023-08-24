@@ -139,7 +139,10 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 			EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
-			EXPECT_SUBSCRIPTION(cache_dir_path, "chng");
+			EXPECT_SUBSCRIPTION_YIELD(cache_dir_path, "chng");
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION(cache_dir_path, "cmdlog");
 			REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait);
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
@@ -171,7 +174,10 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 			DOCTEST_SUBCASE("logs aren't old enough")
 			{
 				enqueue(res, [=] (MockRpcConnection* mock) {
-					EXPECT_SUBSCRIPTION("shv/master", "chng");
+					EXPECT_SUBSCRIPTION_YIELD("shv/master", "chng");
+				});
+				enqueue(res, [=] (MockRpcConnection* mock) {
+					EXPECT_SUBSCRIPTION("shv/master", "cmdlog");
 					create_dummy_cache_files(cache_dir_path, {
 						// Make a 100 second old entry.
 						{"dirtylog", QDateTime::currentDateTimeUtc().addSecs(-100).toString(Qt::DateFormat::ISODate).toStdString() + "	809781	zone1/zone/Zone1/plcDisconnected	false		chng	2	\n"}
@@ -193,6 +199,9 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 					EXPECT_SUBSCRIPTION_YIELD("shv/master", "chng");
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
+					EXPECT_SUBSCRIPTION_YIELD("shv/master", "cmdlog");
+				});
+				enqueue(res, [=] (MockRpcConnection* mock) {
 					EXPECT_REQUEST("shv/master/.local/history/_shvjournal", "lsfiles", ls_size_true);
 					RESPOND(RpcValue::List());
 					DRIVER_WAIT(10);
@@ -206,6 +215,11 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 				enqueue(res, [=] (MockRpcConnection* mock) {
 					create_dummy_cache_files(cache_dir_path, {});
 					EXPECT_SUBSCRIPTION_YIELD("shv/master", "chng");
+				});
+
+				enqueue(res, [=] (MockRpcConnection* mock) {
+					create_dummy_cache_files(cache_dir_path, {});
+					EXPECT_SUBSCRIPTION_YIELD("shv/master", "cmdlog");
 				});
 
 				enqueue(res, [=] (MockRpcConnection* mock) {
@@ -230,7 +244,13 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 				EXPECT_SUBSCRIPTION_YIELD("shv/one", "chng");
 			});
 			enqueue(res, [=] (MockRpcConnection* mock) {
+				EXPECT_SUBSCRIPTION_YIELD("shv/one", "cmdlog");
+			});
+			enqueue(res, [=] (MockRpcConnection* mock) {
 				EXPECT_SUBSCRIPTION_YIELD("shv/two", "chng");
+			});
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				EXPECT_SUBSCRIPTION_YIELD("shv/two", "cmdlog");
 			});
 
 			enqueue(res, [=] (MockRpcConnection* mock) {
@@ -277,7 +297,10 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 			EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
-			EXPECT_SUBSCRIPTION("shv/master", "chng");
+			EXPECT_SUBSCRIPTION_YIELD("shv/master", "chng");
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION("shv/master", "cmdlog");
 			NOTIFY_YIELD("shv/master", "mntchng", true);
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
