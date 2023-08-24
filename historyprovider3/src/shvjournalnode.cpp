@@ -84,6 +84,7 @@ ShvJournalNode::ShvJournalNode(const std::vector<SlaveHpInfo>& slave_hps, const 
 
 		if (it.log_type != LogType::PushLog) {
 			conn->callMethodSubscribe(it.shv_path, shv::chainpack::Rpc::SIG_VAL_CHANGED);
+			conn->callMethodSubscribe(it.shv_path, shv::chainpack::Rpc::SIG_COMMAND_LOGGED);
 		}
 	}
 
@@ -128,7 +129,7 @@ void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 		auto params = ntf.params();
 		auto value = ntf.value();
 
-		if (method == shv::chainpack::Rpc::SIG_VAL_CHANGED) {
+		if (method == shv::chainpack::Rpc::SIG_VAL_CHANGED || method == shv::chainpack::Rpc::SIG_COMMAND_LOGGED) {
 			auto it = std::find_if(m_slaveHps.begin(), m_slaveHps.end(), [&path] (const auto& slave_hp) {
 				return path.starts_with(slave_hp.shv_path);
 			});
