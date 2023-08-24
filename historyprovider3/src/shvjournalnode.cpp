@@ -79,11 +79,11 @@ ShvJournalNode::ShvJournalNode(const std::vector<SlaveHpInfo>& slave_hps, const 
 
 	connect(conn, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvJournalNode::onRpcMessageReceived);
 
-	conn->callMethodSubscribe("shv", "mntchng");
+	conn->callMethodSubscribe("shv", shv::chainpack::Rpc::SIG_MOUNTED_CHANGED);
 	for (const auto& it : slave_hps) {
 
 		if (it.log_type != LogType::PushLog) {
-			conn->callMethodSubscribe(it.shv_path, "chng");
+			conn->callMethodSubscribe(it.shv_path, shv::chainpack::Rpc::SIG_VAL_CHANGED);
 		}
 	}
 
@@ -128,7 +128,7 @@ void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 		auto params = ntf.params();
 		auto value = ntf.value();
 
-		if (method == "chng") {
+		if (method == shv::chainpack::Rpc::SIG_VAL_CHANGED) {
 			auto it = std::find_if(m_slaveHps.begin(), m_slaveHps.end(), [&path] (const auto& slave_hp) {
 				return path.starts_with(slave_hp.shv_path);
 			});
@@ -164,7 +164,7 @@ void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 			}
 		}
 
-		if (method == "mntchng") {
+		if (method == shv::chainpack::Rpc::SIG_MOUNTED_CHANGED) {
 			for (const auto& slave_hp : m_slaveHps) {
 				if (slave_hp.shv_path.starts_with(path) &&
 					slave_hp.log_type != LogType::PushLog &&
