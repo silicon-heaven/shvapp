@@ -88,7 +88,7 @@ ShvJournalNode::ShvJournalNode(const std::vector<SlaveHpInfo>& slave_hps, const 
 	}
 
 	auto tmr = new QTimer(this);
-	connect(tmr, &QTimer::timeout, [this, sync_iterator = m_slaveHps.begin(), dirtylog_age_cache = std::map<std::string, int64_t>{}] () mutable {
+	connect(tmr, &QTimer::timeout, this, [this, sync_iterator = m_slaveHps.begin(), dirtylog_age_cache = std::map<std::string, int64_t>{}] () mutable {
 		if (sync_iterator == m_slaveHps.end()) {
 			sync_iterator = m_slaveHps.begin();
 		}
