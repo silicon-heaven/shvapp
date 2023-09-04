@@ -20,6 +20,7 @@
 
 #define journalDebug() shvCDebug("historyjournal")
 #define journalInfo() shvCInfo("historyjournal")
+#define journalWarning() shvCWarning("historyjournal")
 
 namespace cp = shv::chainpack;
 namespace {
@@ -226,6 +227,8 @@ void do_write_entries_to_file(const QString& file_path, const std::vector<shv::c
 		writer.append(entry);
 	}
 }
+
+const auto DIRTYLOG_SIZE_THRESHOLD = 1024 * 1024 * 20; // 20 MiB
 }
 
 void ShvJournalNode::trimDirtyLog(const QString& cache_dir_path, const TrimLastMS trim_last_ms)
@@ -294,6 +297,9 @@ void ShvJournalNode::trimDirtyLog(const QString& cache_dir_path, const TrimLastM
 	}
 
 	do_write_entries_to_file(QString::fromStdString(dirty_log_path(journal_dir_path)), new_dirty_log_entries, Overwrite::Yes);
+	if (auto dirtylog_size = QFile(QString::fromStdString(dirty_log_path(journal_dir_path))).size(); dirtylog_size > DIRTYLOG_SIZE_THRESHOLD) {
+		journalWarning() << "Size of" << dirty_log_path(journal_dir_path) << "is too big after trimming:" << dirtylog_size;
+	}
 }
 
 namespace {
