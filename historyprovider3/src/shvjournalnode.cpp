@@ -562,6 +562,21 @@ public:
 				}
 			}
 
+			auto oldest_dirtylog_entry_ms = [&cache_dir_path] () -> int64_t {
+				if (auto dirtylog_file = QFile(QString::fromStdString(dirty_log_path(cache_dir_path))); dirtylog_file.exists()) {
+					auto reader = shv::core::utils::ShvJournalFileReader(dirty_log_path(cache_dir_path));
+					if (reader.next()) {
+						return reader.entry().epochMsec;
+					}
+				}
+
+				return std::numeric_limits<int64_t>::max();
+			}();
+
+			// If there's an old enough dirtylog entry, use that as the threshold for the oldest files (rather than
+			// what's in cacheInitMaxAge. This will fix issues where syncing didn't work for a file, and the remote
+			// files got old enough.
+			newest_file_name_ms = std::min(oldest_dirtylog_entry_ms, newest_file_name_ms);
 			journalDebug() << "Newest file for" << shv::coreqt::utils::joinPath(slave_hp_path, path_prefix) << "is" << newest_file_name;
 
 			for (const auto& current_file : file_list.asList()) {
