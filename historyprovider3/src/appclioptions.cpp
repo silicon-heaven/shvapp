@@ -15,5 +15,6 @@ AppCliOptions::AppCliOptions()
 	addOption("app.logMaxAge").setType(shv::chainpack::RpcValue::Type::Int).setNames("--log-max-age")
 			.setComment("Set log age threshold for triggering a sync in seconds").setDefaultValue(60 /*seconds*/ * 60 /*minutes*/ * 1 /*hours*/); // What's a correct value? An hour?
 	addOption("app.cacheInitMaxAge").setType(shv::chainpack::RpcValue::Type::Int).setNames("--cache-init-max-age")
-			.setComment("Set max age in seconds for initial cache sync").setDefaultValue(60 /*seconds*/ * 60 /*minutes*/ * 24 /*hours*/ * 7 /*days*/); // What's a correct value? An hour?
+			// The correct value for this is definitely more than a week. A month plus three days is hopefully enough.
+			.setComment("Set max age in seconds for initial cache sync").setDefaultValue(60 /*seconds*/ * 60 /*minutes*/ * 24 /*hours*/ * 33 /*days*/);
 }
