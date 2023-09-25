@@ -401,10 +401,10 @@ private:
 			->setTimeout(10000);
 		call->start();
 		connect(call, &shv::iotqt::rpc::RpcCall::maybeResult, [this] (const auto& result, const auto& error) {
-			if (!error.isEmpty()) {
-				auto err = "Error retrieving logs via getLog for: " + slave_hp_path + " " + error;
+			if (error.isValid()) {
+				auto err = "Error retrieving logs via getLog for: " + slave_hp_path.toStdString() + " " + error.message();
 				shvError() << err;
-				node->appendSyncStatus(slave_hp_path, err.toStdString());
+				node->appendSyncStatus(slave_hp_path, err);
 				deleteLater();
 				return;
 			}
@@ -531,10 +531,10 @@ public:
 					downloadNext();
 				}
 			});
-			if (!error.isEmpty()) {
-				auto err = "Couldn't retrieve filelist from: " + shvjournal_shvpath + " " + error;
+			if (error.isValid()) {
+				auto err = "Couldn't retrieve filelist from: " + shvjournal_shvpath.toStdString() + " " + error.message();
 				shvError() << err;
-				m_node->appendSyncStatus(slave_hp_path, err.toStdString());
+				m_node->appendSyncStatus(slave_hp_path, err);
 				return;
 			}
 
@@ -618,19 +618,19 @@ public:
 					->setShvPath(sites_log_file)
 					->setMethod("read")
 					->setParams(cp::RpcValue::Map{{"offset", cp::RpcValue::Int(local_size)}});
-				QtFuture::connect(call, &shv::iotqt::rpc::RpcCall::maybeResult).then([this, slave_hp_path, sites_log_file, full_file_name] (const std::tuple<shv::chainpack::RpcValue, QString>& result_or_error) {
+				QtFuture::connect(call, &shv::iotqt::rpc::RpcCall::maybeResult).then([this, slave_hp_path, sites_log_file, full_file_name] (const std::tuple<shv::chainpack::RpcValue, shv::chainpack::RpcError>& result_or_error) {
 					auto [result, retrieve_error] = result_or_error;
-					auto msg = sites_log_file + ": ";
-					if (!retrieve_error.isEmpty()) {
-						msg += retrieve_error;
+					auto msg = sites_log_file.toStdString() + ": ";
+					if (retrieve_error.code() != shv::chainpack::RpcError::NoError) {
+						msg += retrieve_error.message();
 						shvError() << msg;
-						m_node->appendSyncStatus(slave_hp_path, msg.toStdString());
+						m_node->appendSyncStatus(slave_hp_path, msg);
 						return;
 					}
 
 					msg += "successfully synced";
 					journalInfo() << msg;
-					m_node->appendSyncStatus(slave_hp_path, msg.toStdString());
+					m_node->appendSyncStatus(slave_hp_path, msg);
 					m_downloadedFiles.insert(full_file_name, result);
 					downloadNext();
 				});

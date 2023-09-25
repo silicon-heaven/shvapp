@@ -125,7 +125,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 			REQUEST_YIELD(shv_path, "syncLog", synclog_wait);
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
-			EXPECT_ERROR("RPC ERROR MethodCallException: Method: 'syncLog' on path 'pushlog/' doesn't exist.");
+			EXPECT_ERROR("MethodNotFound: Method: 'syncLog' on path 'pushlog/' doesn't exist");
 		});
 	}
 

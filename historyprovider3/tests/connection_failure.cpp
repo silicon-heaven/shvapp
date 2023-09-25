@@ -73,7 +73,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 			REQUEST_YIELD(cache_dir_path, "ls", RpcValue());
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
-			EXPECT_ERROR("RPC ERROR MethodCallException: Method: 'ls' on path '/eyas/opc' doesn't exist.");
+			EXPECT_ERROR("MethodNotFound: Method: 'ls' on path '/eyas/opc' doesn't exist");
 		});
 	}
 

@@ -339,8 +339,8 @@ QFuture<void> HistoryApp::initializeShvTree()
 	promise.start();
 	auto future = promise.future();
 	connect(call, &shv::iotqt::rpc::RpcCall::maybeResult, this, [this, promise = std::move(promise)] (const auto& result, const auto& error) mutable {
-		if (!error.isEmpty()) {
-			shvError() << "Couldn't retrieve sites:" << error << ", trying again";
+		if (error.isValid()) {
+			shvError() << "Couldn't retrieve sites:" << error.message() << ", trying again";
 			QTimer::singleShot(3000, this, [this, promise = std::move(promise)] () mutable {
 				initializeShvTree().then([promise =std::move(promise)] () mutable {
 					promise.finish();

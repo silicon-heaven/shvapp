@@ -68,7 +68,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 				RESPOND_YIELD("");
 			});
 			enqueue(res, [] (MockRpcConnection* mock) {
-				EXPECT_ERROR("RPC ERROR MethodCallException: Sites are already being reloaded.");
+				EXPECT_ERROR("MethodCallException: Sites are already being reloaded.");
 				return CallNext::Yes;
 			});
 		}

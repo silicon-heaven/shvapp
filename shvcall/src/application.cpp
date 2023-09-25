@@ -40,8 +40,8 @@ void Application::onShvStateChanged()
 								 ->setShvPath(QString::fromStdString(m_cliOptions->path()))
 								 ->setMethod(QString::fromStdString(m_cliOptions->method()))
 								 ->setParams(params);
-		connect(call, &si::rpc::RpcCall::maybeResult, this, [this](const ::shv::chainpack::RpcValue &result, const QString &error) {
-			if (error.isEmpty()) {
+		connect(call, &si::rpc::RpcCall::maybeResult, this, [this](const ::shv::chainpack::RpcValue &result, const shv::chainpack::RpcError &error) {
+			if (!error.isValid()) {
 				if(m_cliOptions->isChainPackOutput()) {
 					std::cout << result.toChainPack();
 				}
@@ -51,7 +51,7 @@ void Application::onShvStateChanged()
 				m_rpcConnection->close();
 			}
 			else {
-				shvInfo() << error;
+				shvInfo() << error.message();
 				m_status = EXIT_FAILURE;
 				m_rpcConnection->close();
 			}
