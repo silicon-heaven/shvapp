@@ -102,7 +102,7 @@ test-deploy:
 
 win-build:
   tags:
-    - windows
+    - winda-runner
   stage:
     build
   script:
