@@ -76,7 +76,7 @@ production-deploy-heaven:
 
 test-deploy:
   only:
-    - master
+    - test
   tags:
     - linux
   stage:
