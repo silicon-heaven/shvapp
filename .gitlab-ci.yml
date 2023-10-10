@@ -11,7 +11,7 @@ stages:
 
 linux:
   tags:
-    - linux
+    - linux-jessie
   rules:
     - if: $CI_PIPELINE_SOURCE == "push"
     - if: $CI_COMMIT_BRANCH == "production"
@@ -27,7 +27,7 @@ linux:
 
 linux-6:
   tags:
-    - linux
+    - linux-jessie
   stage:
     build
   artifacts:
@@ -46,7 +46,7 @@ production-deploy:
   only:
     - production
   tags:
-    - linux
+    - linux-jessie
   stage:
     deploy
   script:
@@ -63,7 +63,7 @@ production-deploy-heaven:
   only:
     - production
   tags:
-    - linux
+    - linux-jessie
   stage:
     deploy
   script:
@@ -115,7 +115,7 @@ run-tests:
   variables:
     GIT_STRATEGY: none # We want to use the earlier git repo, so that we don't have to recompile everything again.
   tags:
-    - linux
+    - linux-jessie
   stage:
     test
   script:
