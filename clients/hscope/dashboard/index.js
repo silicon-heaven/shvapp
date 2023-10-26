@@ -1,5 +1,5 @@
 let websocket = null;
-const ws_uri = "wss://nirvana.elektroline.cz:3778";
+const ws_uri = "wss://nirvana.elektroline.cz:37778";
 
 const txt_log = document.getElementById("txt_log");
 const toggle_log = () => {
