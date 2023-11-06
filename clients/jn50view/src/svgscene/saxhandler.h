@@ -2,6 +2,7 @@
 
 #include <QPen>
 #include <QMap>
+#include <QMetaType>
 #include <QStack>
 
 class QXmlStreamReader;
