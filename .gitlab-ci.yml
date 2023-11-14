@@ -27,7 +27,7 @@ linux:
 
 linux-6:
   tags:
-    - linux-jessie
+    - linux
   stage:
     build
   artifacts:
@@ -37,7 +37,7 @@ linux-6:
     - rm -rf build
     - mkdir -p build
     - cd build
-    - CFLAGS="-Werror" CXXFLAGS="-DGIT_COMMIT=${CI_BUILD_REF} -Werror" cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_PREFIX_PATH=/opt/qt/6.4.2/gcc_64 -DCMAKE_INSTALL_PREFIX=. -DUSE_QT6=ON -DWITH_LDAP=ON ..
+    - CFLAGS="-Werror" CXXFLAGS="-DGIT_COMMIT=${CI_BUILD_REF} -Werror" cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_PREFIX_PATH=/opt/qt/6.5.3/gcc_64 -DCMAKE_INSTALL_PREFIX=. -DUSE_QT6=ON -DWITH_LDAP=ON ..
     - make -j8
     - make install
     - ../make-linux-artifacts-qt6.sh
@@ -46,7 +46,7 @@ production-deploy:
   only:
     - production
   tags:
-    - linux-jessie
+    - linux
   stage:
     deploy
   script:
@@ -63,7 +63,7 @@ production-deploy-heaven:
   only:
     - production
   tags:
-    - linux-jessie
+    - linux
   stage:
     deploy
   script:
@@ -115,7 +115,7 @@ run-tests:
   variables:
     GIT_STRATEGY: none # We want to use the earlier git repo, so that we don't have to recompile everything again.
   tags:
-    - linux-jessie
+    - linux
   stage:
     test
   script:
