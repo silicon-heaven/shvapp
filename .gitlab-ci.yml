@@ -27,7 +27,7 @@ linux:
 
 linux-6:
   tags:
-    - linux-jessie
+    - linux
   stage:
     build
   artifacts:
@@ -46,7 +46,7 @@ production-deploy:
   only:
     - production
   tags:
-    - linux-jessie
+    - linux
   stage:
     deploy
   script:
@@ -63,7 +63,7 @@ production-deploy-heaven:
   only:
     - production
   tags:
-    - linux-jessie
+    - linux
   stage:
     deploy
   script:
@@ -115,7 +115,7 @@ run-tests:
   variables:
     GIT_STRATEGY: none # We want to use the earlier git repo, so that we don't have to recompile everything again.
   tags:
-    - linux-jessie
+    - linux
   stage:
     test
   script:
