@@ -38,7 +38,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 	{
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			create_dummy_cache_files(cache_dir_path, {});
-			REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait);
+			REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait("shv/legacy"));
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_REQUEST(shv_path, "getLog");
@@ -50,7 +50,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 	{
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			create_dummy_cache_files(cache_dir_path, {});
-			REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait);
+			REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait("shv/legacy"));
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_REQUEST(shv_path, "getLog");
@@ -80,7 +80,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 			create_dummy_cache_files(cache_dir_path, {
 				{ "2022-07-07T18-06-15-551.log2", QString::fromStdString(dummy_logfile).repeated(50000).toStdString() },
 			});
-			REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait);
+			REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait("shv/legacy"));
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_REQUEST(shv_path, "getLog", create_get_log_options(R"(d"2022-07-07T18:06:17.870Z")"_cpon, WithSnapshot::True));
@@ -101,7 +101,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			create_dummy_cache_files(cache_dir_path, {});
 			QDir(QString::fromStdString(join(get_site_cache_dir(cache_dir_path).path().toStdString(), "blablabla"))).mkpath(".");
-			REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait);
+			REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait("shv/legacy"));
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_REQUEST(shv_path, "getLog");
@@ -115,7 +115,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 			create_dummy_cache_files(cache_dir_path, {
 				{ "2022-07-07T18-06-15-557.log2", dummy_logfile },
 			});
-			REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait);
+			REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait("shv/legacy"));
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_REQUEST(shv_path, "getLog", create_get_log_options(R"(d"2022-07-07T18:06:17.870Z")"_cpon, WithSnapshot::False));
@@ -155,7 +155,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 				});
 			}
 			enqueue(res, [=] (MockRpcConnection* mock) {
-				REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait);
+				REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait("shv/legacy"));
 			});
 			enqueue(res, [=] (MockRpcConnection* mock) {
 				EXPECT_REQUEST(shv_path, "getLog");
@@ -172,7 +172,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 				create_dummy_cache_files(cache_dir_path, {
 					{ "2022-07-07T18-06-15-557.log2", dummy_logfile },
 				});
-				REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait);
+				REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait("shv/legacy"));
 			});
 			enqueue(res, [=] (MockRpcConnection* mock) {
 				EXPECT_REQUEST(shv_path, "getLog");
@@ -191,7 +191,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 				create_dummy_cache_files(cache_dir_path, {
 					{ "dirtylog", dummy_logfile },
 				});
-				REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait);
+				REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait("shv/legacy"));
 			});
 			enqueue(res, [=] (MockRpcConnection* mock) {
 				EXPECT_REQUEST(shv_path, "getLog");

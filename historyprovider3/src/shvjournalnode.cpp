@@ -25,7 +25,6 @@
 namespace cp = shv::chainpack;
 namespace {
 constexpr auto SYNCLOG_DESC = R"(syncLog - triggers a manual sync
-With no param, all sites are synced. This can (and will) take some time.
 With a string param, only the subtree signified by the string is synced.
 syncLog also takes a map param in this format: {
 	waitForFinished: bool // the method waits until the whole operation is finished and only then returns a response
@@ -734,10 +733,19 @@ cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 	auto method = rq.method().asString();
 	if (method == "syncLog") {
 		auto params = rq.params();
+
+		auto shv_path = rq.params().asMap().value("shvPath", rq.params().asString());
+		if (shv_path.asString().empty()) {
+			auto response = rq.makeResponse();
+			response.setError(shv::chainpack::RpcError::createMethodCallExceptionError("No path given."));
+			HistoryApp::instance()->rpcConnection()->sendMessage(response);
+			return {};
+		}
+
 		journalInfo() << "Syncing shvjournal" << m_remoteLogShvPath;
 		auto sites_resp = std::make_shared<shv::chainpack::RpcValue>();
 
-		auto onSites = [sites_resp, params, rq, shv_path = rq.params().asString()] (const shv::chainpack::RpcValue::List& sites) {
+		auto onSites = [sites_resp, params, rq, shv_path] (const shv::chainpack::RpcValue::List& sites) {
 			if (!params.asMap().value("waitForFinished", false).toBool()) {
 				auto response = rq.makeResponse();
 				response.setResult(sites);
