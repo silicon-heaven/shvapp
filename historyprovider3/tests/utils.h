@@ -185,7 +185,11 @@ const auto five_thousand_records_getlog_response = RpcValue::fromCpon((R"(
 
 const auto ls_size_true = R"({"size": true})"_cpon;
 const auto read_offset_0 = R"({"offset":0})"_cpon;
-const auto synclog_wait = R"({"waitForFinished": true})"_cpon;
+const auto synclog_wait = [] (const auto& path) {
+  auto ret =  R"({"waitForFinished": true})"_cpon.asMap();
+  ret["shvPath"] = path;
+  return ret;
+};
 
 #define TEST_HISTORYPROVIDER_MAIN(test_name)                                             \
 	DOCTEST_TEST_CASE(test_name)                                                           \

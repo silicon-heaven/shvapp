@@ -43,7 +43,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		assert_sync_info_equal(HistoryApp::instance()->shvJournalNode()->syncInfo(), R"({
 			"shv/eyas/opc": {"status": ["Unknown"]}
 		})"_cpon);
-		REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait);
+		REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait("shv/eyas/opc"));
 	});
 	enqueue(res, [=] (MockRpcConnection* mock) {
 		assert_sync_info_equal(HistoryApp::instance()->shvJournalNode()->syncInfo(), R"({

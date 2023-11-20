@@ -28,7 +28,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 	});
 	enqueue(res, [=] (MockRpcConnection* mock) {
 		EXPECT_SUBSCRIPTION("shv/fin/hel/tram/hel002", "cmdlog");
-		REQUEST_YIELD(master_shv_journal_path, "syncLog", synclog_wait);
+		REQUEST_YIELD(master_shv_journal_path, "syncLog", synclog_wait("shv/fin/hel/tram/hel002"));
 	});
 	enqueue(res, [=] (MockRpcConnection* mock) {
 		EXPECT_REQUEST(slave_shv_journal_path, "lsfiles", ls_size_true);

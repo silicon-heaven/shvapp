@@ -54,7 +54,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 
 			REQUIRE(get_cache_contents("one") == *expected_cache_contents);
 			REQUIRE(get_cache_contents("two") == *expected_cache_contents);
-			REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait);
+			REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait("shv/"));
 		});
 
 		enqueue(res, [=] (MockRpcConnection* mock) {
@@ -95,7 +95,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 				{"dirtylog", dummy_logfile2}
 			});
 
-			REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait);
+			REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait("shv/"));
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_REQUEST("shv/one/.app/shvjournal", "lsfiles", ls_size_true);
@@ -123,7 +123,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 				{"dirtylog", dummy_logfile2}
 			});
 
-			REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait);
+			REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait("shv/"));
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_REQUEST("shv/one/.app/shvjournal", "lsfiles", ls_size_true);

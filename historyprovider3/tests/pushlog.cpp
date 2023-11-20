@@ -122,7 +122,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_SUBSCRIPTION("shv", "mntchng");
-			REQUEST_YIELD(shv_path, "syncLog", synclog_wait);
+			REQUEST_YIELD(shv_path, "syncLog", synclog_wait("shv/pushlog"));
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_ERROR("MethodNotFound: Method: 'syncLog' on path 'pushlog/' doesn't exist");
@@ -143,7 +143,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_SUBSCRIPTION(cache_dir_path, "cmdlog");
-			REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait);
+			REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait("shv/master"));
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_REQUEST("shv/master/.local/history/_shvjournal", "lsfiles", ls_size_true);
