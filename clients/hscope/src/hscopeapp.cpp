@@ -658,7 +658,7 @@ void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
 				lua_pushnil(m_state);
 			} else {
 				lua_pushnil(m_state);
-				push_rpc_value(m_state, rp.error());
+				push_rpc_value(m_state, rp.error().toRpcValue());
 			}
 
 			// 1) registry["rpc_call_handlers"]
