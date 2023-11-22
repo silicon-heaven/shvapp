@@ -1042,7 +1042,7 @@ bool HolyScopeApp::hscopeInitializing() const
 	return m_hscopeInitializing;
 }
 
-void HolyScopeApp::addTimer(int timer_index, std::chrono::milliseconds msec)
+void HolyScopeApp::addTimer(unsigned long long timer_index, std::chrono::milliseconds msec)
 {
 	auto timer = new QTimer(this);
 	connect(timer, &QTimer::timeout, [timer_index, this] {
