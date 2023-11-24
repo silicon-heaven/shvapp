@@ -93,9 +93,11 @@ shv::chainpack::RpcValue AppRootNode::callMethodRq(const shv::chainpack::RpcRequ
 	if (rq.shvPath().asString().empty()) {
 		if (rq.method() == cp::Rpc::METH_DEVICE_ID) {
 			HolyScopeApp* app = HolyScopeApp::instance();
-			const cp::RpcValue::Map& opts = app->rpcConnection()->connectionOptions().toMap();
-			const cp::RpcValue::Map& dev = opts.value(cp::Rpc::KEY_DEVICE).toMap();
-			return dev.value(cp::Rpc::KEY_DEVICE_ID).toString();
+			auto device_id = app->rpcConnection()->connectionOptions()
+				.asMap().value(cp::Rpc::KEY_DEVICE)
+				.asMap().value(cp::Rpc::KEY_DEVICE_ID)
+				.toString();
+			return device_id;
 		}
 
 		if (rq.method() == cp::Rpc::METH_DEVICE_TYPE) {
@@ -658,7 +660,7 @@ void HolyScopeApp::onRpcMessageReceived(const shv::chainpack::RpcMessage& msg)
 				lua_pushnil(m_state);
 			} else {
 				lua_pushnil(m_state);
-				push_rpc_value(m_state, rp.error());
+				push_rpc_value(m_state, rp.error().toRpcValue());
 			}
 
 			// 1) registry["rpc_call_handlers"]
@@ -1042,7 +1044,7 @@ bool HolyScopeApp::hscopeInitializing() const
 	return m_hscopeInitializing;
 }
 
-void HolyScopeApp::addTimer(int timer_index, std::chrono::milliseconds msec)
+void HolyScopeApp::addTimer(unsigned long long timer_index, std::chrono::milliseconds msec)
 {
 	auto timer = new QTimer(this);
 	connect(timer, &QTimer::timeout, [timer_index, this] {

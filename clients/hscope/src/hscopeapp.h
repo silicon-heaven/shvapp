@@ -46,7 +46,7 @@ public:
 	void subscribeLua(const std::string& path, const std::string& type);
 	int callShvMethod(const std::string& path, const std::string& method, const shv::chainpack::RpcValue& params = shv::chainpack::RpcValue());
 	bool hscopeInitializing() const;
-	void addTimer(int timer_index, std::chrono::milliseconds msec);
+	void addTimer(unsigned long long timer_index, std::chrono::milliseconds msec);
 
 private:
 	void onBrokerConnectedChanged(bool is_connected);
