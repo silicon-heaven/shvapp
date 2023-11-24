@@ -93,9 +93,11 @@ shv::chainpack::RpcValue AppRootNode::callMethodRq(const shv::chainpack::RpcRequ
 	if (rq.shvPath().asString().empty()) {
 		if (rq.method() == cp::Rpc::METH_DEVICE_ID) {
 			HolyScopeApp* app = HolyScopeApp::instance();
-			const cp::RpcValue::Map& opts = app->rpcConnection()->connectionOptions().asMap();
-			const cp::RpcValue::Map& dev = opts.value(cp::Rpc::KEY_DEVICE).asMap();
-			return dev.value(cp::Rpc::KEY_DEVICE_ID).toString();
+			auto device_id = app->rpcConnection()->connectionOptions()
+				.asMap().value(cp::Rpc::KEY_DEVICE)
+				.asMap().value(cp::Rpc::KEY_DEVICE_ID)
+				.toString();
+			return device_id;
 		}
 
 		if (rq.method() == cp::Rpc::METH_DEVICE_TYPE) {
