@@ -470,6 +470,7 @@ public:
 	FileSyncer(
 		ShvJournalNode* node,
 		const std::string& shv_path,
+		const std::string& leaf_sync_path,
 		const QString& cache_dir_path,
 		const SyncType sync_type)
 		: m_node(node)
@@ -480,9 +481,7 @@ public:
 		journalInfo() << msg;
 		m_node->appendSyncStatus(m_shvPath, msg);
 		auto shvjournal_suffix =
-			sync_type == SyncType::Device ?
-			".app/shvjournal" :
-			".local/history/_shvjournal";
+			sync_type == SyncType::Device ? leaf_sync_path : ".local/history/_shvjournal";
 		auto shvjournal_shvpath = shv::coreqt::utils::joinPath(m_shvPath, shvjournal_suffix);
 
 		impl_doSync(m_shvPath, cache_dir_path, shvjournal_shvpath, "");
@@ -716,7 +715,7 @@ void ShvJournalNode::syncLog(const std::string& shv_path, const std::function<vo
 		if (sync_type == FileSyncer::SyncType::Device && slave_hp.log_type == LogType::Legacy) {
 			all_synced.push_back((new LegacyFileSyncerImpl(this, slave_hp_path_qstr, slave_hp.cache_dir_path))->getFuture());
 		} else {
-			all_synced.push_back((new FileSyncer(this, slave_hp.shv_path, slave_hp.cache_dir_path, sync_type))->getFuture());
+			all_synced.push_back((new FileSyncer(this, slave_hp.shv_path, slave_hp.leaf_sync_path, slave_hp.cache_dir_path, sync_type))->getFuture());
 		}
 	}
 

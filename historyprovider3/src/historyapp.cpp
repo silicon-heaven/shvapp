@@ -187,7 +187,9 @@ void createTree(shv::iotqt::node::ShvNode* parent_node, const cp::RpcValue::Map&
 			LogType::Normal;
 
 		bool is_leaf = meta_node.hasKey("HP") || meta_node.value("HP3").asMap().value("type", "device").asString() == "device";
+		std::string leaf_sync_path;
 		if (is_leaf) {
+			leaf_sync_path = meta_node.value("HP3").asMap().value("syncPath", ".app/history").asString();
 			node = new LeafNode(node_name.toStdString(), journal_cache_dir, log_type, parent_node);
 		} else {
 			node = new shv::iotqt::node::ShvNode(node_name.toStdString(), parent_node);
@@ -203,6 +205,7 @@ void createTree(shv::iotqt::node::ShvNode* parent_node, const cp::RpcValue::Map&
 			slave_hps.push_back(SlaveHpInfo {
 				.log_type = log_type,
 				.shv_path = log_source_shv_path,
+				.leaf_sync_path = leaf_sync_path,
 				.cache_dir_path = QString::fromStdString(journal_cache_dir)
 			});
 		}

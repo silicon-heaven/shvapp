@@ -14,9 +14,14 @@ const auto fin_slave_broker = R"(
     },
     "opc":{
       "_meta":{
-        "HP3":{},
+        "HP3":{"syncPath":".app/shvjournal"},
         "name":"Raide Jokeri depot shvgate",
         "type":"DepotG2"
+      }
+    },
+    "with_app_history":{
+      "_meta":{
+        "HP3":{}
       }
     }
   }
@@ -43,7 +48,7 @@ const auto fin_master_broker = R"(
             },
             "opc":{
               "_meta":{
-                "HP3":{},
+                "HP3":{"syncPath":".app/shvjournal"},
                 "name":"Raide Jokeri depot shvgate",
                 "type":"DepotG2"
               }
@@ -107,12 +112,12 @@ const auto two_devices = R"(
   },
   "one": {
     "_meta":{
-      "HP3":{}
+      "HP3":{"syncPath":".app/shvjournal"}
     },
   },
   "two": {
     "_meta":{
-      "HP3":{}
+      "HP3":{"syncPath":".app/shvjournal"}
     },
   }
 }
@@ -125,12 +130,12 @@ const auto even_more_devices = R"(
   },
   "one": {
     "_meta":{
-      "HP3":{}
+      "HP3":{"syncPath":".app/shvjournal"}
     },
   },
   "two": {
     "_meta":{
-      "HP3":{}
+      "HP3":{"syncPath":".app/shvjournal"}
     },
   },
   "mil014atm": {
@@ -138,7 +143,7 @@ const auto even_more_devices = R"(
       "HP3":{"type": "HP3"}
     },
     "sig": {
-      "HP3": {}
+      "HP3":{"syncPath":".app/shvjournal"}
     }
   }
 }
