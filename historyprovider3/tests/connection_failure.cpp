@@ -32,6 +32,12 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 	});
 	enqueue(res, [=] (MockRpcConnection* mock) {
 		EXPECT_SUBSCRIPTION("shv/eyas/opc", "cmdlog");
+	});
+	enqueue(res, [=] (MockRpcConnection* mock) {
+		EXPECT_SUBSCRIPTION("shv/eyas/with_app_history", "chng");
+	});
+	enqueue(res, [=] (MockRpcConnection* mock) {
+		EXPECT_SUBSCRIPTION("shv/eyas/with_app_history", "cmdlog");
 		REQUEST_YIELD(cache_dir_path, "ls", RpcValue());
 	});
 
