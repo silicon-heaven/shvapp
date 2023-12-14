@@ -1,5 +1,6 @@
 #include "historyapp.h"
 #include "appclioptions.h"
+#include "valuecachenode.h"
 #include "utils.h"
 #include "src/shvjournalnode.h"
 #include "src/leafnode.h"
@@ -376,6 +377,8 @@ QFuture<void> HistoryApp::initializeShvTree()
 			connect(m_sanitizerTimer, &QTimer::timeout, this, &HistoryApp::sanitizeNext);
 			m_sanitizerTimer->start(m_cliOptions->journalSanitizerInterval() * 1000);
 		}
+
+		new ValueCacheNode(m_root);
 
 		promise.finish();
 	});
