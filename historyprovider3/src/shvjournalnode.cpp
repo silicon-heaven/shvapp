@@ -117,9 +117,6 @@ ShvJournalNode::ShvJournalNode(const std::vector<SlaveHpInfo>& slave_hps, const 
 	tmr->start(HistoryApp::instance()->cliOptions()->syncIteratorInterval() * 1000);
 }
 
-namespace {
-}
-
 void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 {
 	if (msg.isSignal()) {
@@ -275,7 +272,6 @@ void ShvJournalNode::trimDirtyLog(const QString& cache_dir_path, const TrimLastM
 		// contained data from the same timestamp), we'll just delete it. No
 		// point in having empty files. After that we don't have to do anything
 		// to the dirty log, because there's no data to trim.
-
 		if (newest_file_entries.empty()) {
 			QFile(cache_dir.filePath(entries.at(1))).remove();
 			return;
