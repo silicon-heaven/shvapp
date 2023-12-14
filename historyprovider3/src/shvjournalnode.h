@@ -1,19 +1,12 @@
 #ifndef SHVJOURNALNODE_H
 #define SHVJOURNALNODE_H
 
-#include "logtype.h"
+#include "slavehpinfo.h"
 
 #include <shv/iotqt/node/shvnode.h>
 #include <shv/iotqt/node/localfsnode.h>
 
 #include <set>
-
-struct SlaveHpInfo {
-	LogType log_type;
-	std::string shv_path;
-	std::string leaf_sync_path;
-	QString cache_dir_path;
-};
 
 class ShvJournalNode : public shv::iotqt::node::LocalFSNode
 {
