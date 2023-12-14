@@ -79,15 +79,6 @@ ShvJournalNode::ShvJournalNode(const std::vector<SlaveHpInfo>& slave_hps, const 
 
 	connect(conn, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvJournalNode::onRpcMessageReceived);
 
-	conn->callMethodSubscribe("shv", shv::chainpack::Rpc::SIG_MOUNTED_CHANGED);
-	for (const auto& it : slave_hps) {
-
-		if (it.log_type != LogType::PushLog) {
-			conn->callMethodSubscribe(it.shv_path, shv::chainpack::Rpc::SIG_VAL_CHANGED);
-			conn->callMethodSubscribe(it.shv_path, shv::chainpack::Rpc::SIG_COMMAND_LOGGED);
-		}
-	}
-
 	auto tmr = new QTimer(this);
 	connect(tmr, &QTimer::timeout, this, [this, sync_iterator = m_slaveHps.begin(), dirtylog_age_cache = std::map<std::string, int64_t>{}] () mutable {
 		if (sync_iterator == m_slaveHps.end()) {

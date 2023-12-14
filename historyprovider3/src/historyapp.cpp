@@ -356,6 +356,15 @@ QFuture<void> HistoryApp::initializeShvTree()
 		std::set<std::string> leaf_nodes;
 		createTree(m_root, result.asMap(), "shv", cliOptions()->journalCacheRoot(), slave_hps, leaf_nodes, SlaveFound::No);
 
+		auto conn = HistoryApp::instance()->rpcConnection();
+		conn->callMethodSubscribe("shv", shv::chainpack::Rpc::SIG_MOUNTED_CHANGED);
+		for (const auto& it : slave_hps) {
+			if (it.log_type != LogType::PushLog) {
+				conn->callMethodSubscribe(it.shv_path, shv::chainpack::Rpc::SIG_VAL_CHANGED);
+				conn->callMethodSubscribe(it.shv_path, shv::chainpack::Rpc::SIG_COMMAND_LOGGED);
+			}
+		}
+
 		m_shvJournalNode = new ShvJournalNode(slave_hps, leaf_nodes, m_root);
 
 		m_leafNodes = m_shvTree->findChildren<LeafNode*>();
