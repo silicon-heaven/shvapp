@@ -233,6 +233,13 @@ DOCTEST_TEST_CASE("getLog")
 				expected_record_count_limit_hit = true;
 			}
 
+			DOCTEST_SUBCASE("2")
+			{
+				get_log_params.recordCountLimit = 2;
+				expected_count = 3;
+				expected_record_count_limit_hit = true;
+			}
+
 			shv::core::utils::ShvLogRpcValueReader entries(get_log(readers, get_log_params));
 
 			REQUIRE(entries.logHeader().recordCountLimitHit() == expected_record_count_limit_hit);

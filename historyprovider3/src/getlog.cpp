@@ -122,7 +122,6 @@ auto snapshot_to_entries(const ShvSnapshot& snapshot, const bool since_last, con
 		auto reader = readerFn();
 		while(reader.next()) {
 			const auto& entry = reader.entry();
-			last_entry = entry;
 
 			if (!pattern_matcher.match(entry)) {
 				logDGetLog() << "\t SKIPPING:" << entry.path << "because it doesn't match" << ctx.params.pathPattern;
@@ -142,8 +141,10 @@ auto snapshot_to_entries(const ShvSnapshot& snapshot, const bool since_last, con
 			if (entry.epochMsec >= params_since_msec && !ctx.params.isSinceLast()) {
 				if ((static_cast<int>(snapshot.keyvals.size()) + record_count + 1) > ctx.params.recordCountLimit) {
 					log_header.setRecordCountLimitHit(true);
-					first_unmatching_entry = entry;
-					goto exit_nested_loop;
+					if (last_entry.has_value() && entry.dateTime() != last_entry->dateTime()) {
+						first_unmatching_entry = entry;
+						goto exit_nested_loop;
+					}
 				}
 
 				append_log_entry(result_log, entry, ctx);
@@ -151,6 +152,7 @@ auto snapshot_to_entries(const ShvSnapshot& snapshot, const bool since_last, con
 			} else {
 				have_data_before_since_param = true;
 			}
+			last_entry = entry;
 		}
 	}
 exit_nested_loop:
