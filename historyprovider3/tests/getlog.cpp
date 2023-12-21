@@ -357,6 +357,19 @@ DOCTEST_TEST_CASE("getLog")
 					};
 				}
 			}
+
+			DOCTEST_SUBCASE("with record cound limit smaller than the snapshot")
+			{
+				expected_with_snapshot = true;
+				get_log_params.since = RpcValue::DateTime::fromUtcString("2022-07-07T18:06:17.800");
+				get_log_params.recordCountLimit = 1;
+				// The whole snapshot should be sent regardless of the small recordCountLimit.
+				expected_entries = {
+					make_entry("2022-07-07T18:06:17.800Z", "value1", 0, true),
+					make_entry("2022-07-07T18:06:17.800Z", "value2", 1, true),
+					make_entry("2022-07-07T18:06:17.800Z", "value3", 3, true),
+				};
+			}
 		}
 
 		shv::core::utils::ShvLogRpcValueReader entries(get_log(readers, get_log_params));
