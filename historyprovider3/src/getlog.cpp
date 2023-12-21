@@ -113,14 +113,15 @@ auto snapshot_to_entries(const ShvSnapshot& snapshot, const bool since_last, con
 		ctx.params.until.isDateTime() ? ctx.params.until.toDateTime().msecsSinceEpoch() : std::numeric_limits<int64_t>::max();
 
 	std::optional<ShvJournalEntry> last_entry;
+	std::optional<ShvJournalEntry> first_unmatching_entry;
 
 	int record_count = 0;
+	bool have_data_before_since_param = false;
 
 	for (const auto& readerFn : readers) {
 		auto reader = readerFn();
 		while(reader.next()) {
 			const auto& entry = reader.entry();
-			last_entry = entry;
 
 			if (!pattern_matcher.match(entry)) {
 				logDGetLog() << "\t SKIPPING:" << entry.path << "because it doesn't match" << ctx.params.pathPattern;
@@ -133,18 +134,25 @@ auto snapshot_to_entries(const ShvSnapshot& snapshot, const bool since_last, con
 			}
 
 			if (entry.epochMsec >= params_until_msec) {
+				first_unmatching_entry = entry;
 				goto exit_nested_loop;
 			}
 
 			if (entry.epochMsec >= params_since_msec && !ctx.params.isSinceLast()) {
 				if ((static_cast<int>(snapshot.keyvals.size()) + record_count + 1) > ctx.params.recordCountLimit) {
 					log_header.setRecordCountLimitHit(true);
-					goto exit_nested_loop;
+					if (last_entry.has_value() && entry.dateTime() != last_entry->dateTime()) {
+						first_unmatching_entry = entry;
+						goto exit_nested_loop;
+					}
 				}
 
 				append_log_entry(result_log, entry, ctx);
 				record_count++;
+			} else {
+				have_data_before_since_param = true;
 			}
+			last_entry = entry;
 		}
 	}
 exit_nested_loop:
@@ -165,22 +173,6 @@ exit_nested_loop:
 	RpcValue::List result_entries = snapshot_entries;
 	std::copy(result_log.begin(), result_log.end(), std::back_inserter(result_entries));
 
-	if (result_entries.empty()) {
-		log_header.setSince(ctx.params.since.isValid() ? ctx.params.since : ctx.params.until);
-		log_header.setUntil(ctx.params.until.isValid() ? ctx.params.until : ctx.params.since);
-	} else {
-		log_header.setSince(ctx.params.since.isValid() && !ctx.params.isSinceLast() ? ctx.params.since : result_entries.front().asList().value(ShvLogHeader::Column::Timestamp));
-		log_header.setUntil(log_header.recordCountLimitHit() || !ctx.params.until.isValid() || ctx.params.isSinceLast() ?
-							result_entries.back().asList().value(ShvLogHeader::Column::Timestamp) :
-							ctx.params.until);
-	}
-
-	logDGetLog() << "result since:" << log_header.sinceCRef().toCpon() << "result until:" << log_header.untilCRef().toCpon();
-
-	log_header.setDateTime(RpcValue::DateTime::now());
-	log_header.setLogParams(orig_params);
-	log_header.setRecordCount(static_cast<int>(result_entries.size()));
-
 	if (ctx.params.withPathsDict) {
 		logMGetLog() << "Generating paths dict size:" << ctx.pathCache.size();
 		log_header.setPathDict([&] {
@@ -191,6 +183,42 @@ exit_nested_loop:
 			return path_dict;
 		}());
 	}
+
+	// If there isn't an unmatched entry, we can't be sure we have all the entries from the last ms in result_entries.
+	// We must remove all of them and they'll become the first_unmatching_entry.
+	if (!ctx.params.isSinceLast() && !result_entries.empty() && !first_unmatching_entry.has_value()) {
+		auto unmap_path = [&log_header, &ctx] (const RpcValue& path) {
+			if (ctx.params.withPathsDict) {
+				return log_header.pathDictCRef().at(path.toInt()).asString();
+			}
+
+			return path.asString();
+		};
+		first_unmatching_entry = ShvJournalEntry::fromRpcValueList(result_entries.back().asList(), unmap_path);
+		std::erase_if(result_entries, [compare_with = first_unmatching_entry.value().dateTime(), &unmap_path] (const RpcValue& entry) {
+			return ShvJournalEntry::fromRpcValueList(entry.asList(), unmap_path).dateTime() == compare_with;
+		});
+	}
+
+	if (result_entries.empty()) {
+		log_header.setSince(ctx.params.since.isValid() ? ctx.params.since : ctx.params.until);
+		log_header.setUntil(ctx.params.until.isValid() ? ctx.params.until : ctx.params.since);
+	} else if (ctx.params.isSinceLast()) {
+		auto first_entry = result_entries.front().asList().value(ShvLogHeader::Column::Timestamp);
+		log_header.setSince(first_entry);
+		log_header.setUntil(first_entry);
+	} else {
+		log_header.setSince(have_data_before_since_param ? ctx.params.since : result_entries.front().asList().value(ShvLogHeader::Column::Timestamp));
+		log_header.setUntil([&first_unmatching_entry] {
+			return first_unmatching_entry.value().dateTime();
+		}());
+	}
+
+	logDGetLog() << "result since:" << log_header.sinceCRef().toCpon() << "result until:" << log_header.untilCRef().toCpon();
+
+	log_header.setDateTime(RpcValue::DateTime::now());
+	log_header.setLogParams(orig_params);
+	log_header.setRecordCount(static_cast<int>(result_entries.size()));
 
 	auto rpc_value_result = RpcValue{result_entries};
 	rpc_value_result.setMetaData(log_header.toMetaData());
