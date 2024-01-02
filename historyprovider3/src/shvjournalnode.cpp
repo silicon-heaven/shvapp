@@ -79,15 +79,9 @@ ShvJournalNode::ShvJournalNode(const std::vector<SlaveHpInfo>& slave_hps, const 
 
 	connect(conn, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ShvJournalNode::onRpcMessageReceived);
 
-	conn->callMethodSubscribe("shv", shv::chainpack::Rpc::SIG_MOUNTED_CHANGED);
-	for (const auto& it : slave_hps) {
-
-		if (it.log_type != LogType::PushLog) {
-			conn->callMethodSubscribe(it.shv_path, shv::chainpack::Rpc::SIG_VAL_CHANGED);
-			conn->callMethodSubscribe(it.shv_path, shv::chainpack::Rpc::SIG_COMMAND_LOGGED);
-		}
+	if (m_slaveHps.empty()) {
+		return;
 	}
-
 	auto tmr = new QTimer(this);
 	connect(tmr, &QTimer::timeout, this, [this, sync_iterator = m_slaveHps.begin(), dirtylog_age_cache = std::map<std::string, int64_t>{}] () mutable {
 		if (sync_iterator == m_slaveHps.end()) {
@@ -115,9 +109,6 @@ ShvJournalNode::ShvJournalNode(const std::vector<SlaveHpInfo>& slave_hps, const 
 		++sync_iterator;
 	});
 	tmr->start(HistoryApp::instance()->cliOptions()->syncIteratorInterval() * 1000);
-}
-
-namespace {
 }
 
 void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
@@ -275,7 +266,6 @@ void ShvJournalNode::trimDirtyLog(const QString& cache_dir_path, const TrimLastM
 		// contained data from the same timestamp), we'll just delete it. No
 		// point in having empty files. After that we don't have to do anything
 		// to the dirty log, because there's no data to trim.
-
 		if (newest_file_entries.empty()) {
 			QFile(cache_dir.filePath(entries.at(1))).remove();
 			return;
