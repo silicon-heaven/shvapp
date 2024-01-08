@@ -10,6 +10,8 @@ cmake.exe \
     -DCMAKE_BUILD_TYPE=Release \
     -DBUILD_TESTING=OFF \
     -DUSE_QT6=ON \
+    -DCMAKE_C_COMPILER_LAUNCHER=ccache.exe \
+    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache.exe \
     . || exit 2
 
 cmake.exe --build . -j8 || exit 2
