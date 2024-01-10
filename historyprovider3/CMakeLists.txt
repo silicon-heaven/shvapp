@@ -1,7 +1,6 @@
 add_library(libhistoryprovider STATIC
     src/appclioptions.cpp
     src/leafnode.cpp
-    src/getlog.cpp
     src/historyapp.cpp
     src/shvjournalnode.cpp
     src/valuecachenode.cpp
@@ -45,7 +44,6 @@ if(BUILD_TESTING)
     history_test(dirty_log_trimming)
     history_test(sites_timeout)
     history_test(connection_failure)
-    history_test(getlog)
     history_test(value_cache)
 
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/tests/test_vars.h.in ${CMAKE_CURRENT_BINARY_DIR}/test_vars.h @ONLY)
