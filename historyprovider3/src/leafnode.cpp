@@ -1,9 +1,9 @@
 #include "leafnode.h"
 #include "historyapp.h"
 #include "appclioptions.h"
-#include "getlog.h"
 #include "utils.h"
 
+#include <shv/core/utils/getlog.h>
 #include <shv/core/utils/shvjournalfilereader.h>
 #include <shv/core/utils/shvjournalfilewriter.h>
 #include <shv/core/utils/shvlogrpcvaluereader.h>
@@ -233,7 +233,7 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 			});
 		}
 
-		return shv::core::utils::get_log(readers, get_log_params);
+		return shv::core::utils::getLog(readers, get_log_params);
 	}
 
 	if (method == "logSize") {
