@@ -51,7 +51,7 @@ const sort_rows = () => {
 const resolve_hscope_tree = (path, container) => {
 
 	websocket.callRpcMethod(path, "dir").then((methods) => {
-		if (methods.rpcValue.value[2].value.some(x => x.value === "run")) {
+		if (methods.rpcValue.value[2].value.some(x => x.value.name.value === "run")) {
 			const user_facing_path = path.replace("hscope/instances/", "");
 			const node_container = document.createElement("tr");
 
