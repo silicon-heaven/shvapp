@@ -32,6 +32,7 @@ static const char METH_APP_VERSION[] = "version";
 static const char METH_SHV_VERSION[] = "shvVersion";
 static const char METH_SHV_GIT_COMMIT[] = "shvGitCommit";
 static const char METH_GET_SITES[] = "getSites";
+static const char METH_GET_SITES_TAR[] = "getSitesTar";
 static const char METH_RELOAD_SITES[] = "reloadSites";
 static const char METH_SITES_SYNCED_BEFORE[] = "sitesSyncedBefore";
 static const char METH_SITES_RELOADED[] = "reloaded";
@@ -56,6 +57,7 @@ static std::vector<cp::MetaMethod> root_meta_methods {
 	{ METH_SHV_VERSION, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 	{ METH_SHV_GIT_COMMIT, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 	{ METH_GET_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
+	{ METH_GET_SITES_TAR, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
 //	{ METH_RELOAD_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_COMMAND},
 //	{ METH_SITES_SYNCED_BEFORE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
 //	{ METH_SITES_RELOADED, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::IsSignal, shv::chainpack::Rpc::ROLE_READ },
@@ -194,6 +196,9 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 	}
 	else if (method == METH_GET_SITES) {
 		return getSites(rq.shvPath().to<QString>());
+	}
+	else if (method == METH_GET_SITES_TAR) {
+		return getSitesTar(rq.shvPath().to<QString>());
 	}
 	else if (method == METH_FILE_READ) {
 		return readFile(rq.shvPath().to<QString>());
@@ -394,6 +399,38 @@ cp::RpcValue AppRootNode::getSites(const QString &shv_path)
 		}
 	}
 	return res;
+}
+
+cp::RpcValue AppRootNode::getSitesTar(const QString &shv_path)
+{
+	QProcess tar_process(this);
+	tar_process.setWorkingDirectory(nodeLocalPath(shv_path));
+	tar_process.start("tar", QStringList{ "cfz", "-", "./" });
+	tar_process.waitForStarted();
+	if (tar_process.state() != QProcess::ProcessState::Running) {
+		SHV_EXCEPTION("Cannot start tar");
+	}
+	QByteArray data;
+	QByteArray error;
+	QByteArray std_out;
+	QByteArray std_err;
+	do {
+		tar_process.waitForReadyRead();
+		std_out = tar_process.readAllStandardOutput();
+		std_err = tar_process.readAllStandardError();
+		data += std_out;
+		error += std_err;
+	}
+	while (std_out.length() > 0 || std_err.length() > 0);
+	tar_process.waitForFinished();
+	if (tar_process.exitStatus() != QProcess::ExitStatus::NormalExit) {
+		SHV_EXCEPTION("Tar crashed");
+	}
+	if (tar_process.exitCode() != 0) {
+		SHV_QT_EXCEPTION("Tar failed with status: " + QString::number(tar_process.exitCode()) + " " + error);
+	}
+
+	return cp::RpcValue::stringToBlob(data.toStdString());
 }
 
 void AppRootNode::findDevicesToSync(const QString &shv_path, QStringList &result)
