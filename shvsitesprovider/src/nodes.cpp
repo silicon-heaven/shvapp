@@ -32,7 +32,7 @@ static const char METH_APP_VERSION[] = "version";
 static const char METH_SHV_VERSION[] = "shvVersion";
 static const char METH_SHV_GIT_COMMIT[] = "shvGitCommit";
 static const char METH_GET_SITES[] = "getSites";
-static const char METH_GET_SITES_TAR[] = "getSitesTar";
+static const char METH_GET_SITES_TGZ[] = "getSitesTgz";
 static const char METH_RELOAD_SITES[] = "reloadSites";
 static const char METH_SITES_SYNCED_BEFORE[] = "sitesSyncedBefore";
 static const char METH_SITES_RELOADED[] = "reloaded";
@@ -57,7 +57,7 @@ static std::vector<cp::MetaMethod> root_meta_methods {
 	{ METH_SHV_VERSION, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 	{ METH_SHV_GIT_COMMIT, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 	{ METH_GET_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
-	{ METH_GET_SITES_TAR, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
+    { METH_GET_SITES_TGZ, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
 //	{ METH_RELOAD_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_COMMAND},
 //	{ METH_SITES_SYNCED_BEFORE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
 //	{ METH_SITES_RELOADED, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::IsSignal, shv::chainpack::Rpc::ROLE_READ },
@@ -197,8 +197,8 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 	else if (method == METH_GET_SITES) {
 		return getSites(rq.shvPath().to<QString>());
 	}
-	else if (method == METH_GET_SITES_TAR) {
-		return getSitesTar(rq.shvPath().to<QString>());
+    else if (method == METH_GET_SITES_TGZ) {
+        return getSitesTgz(rq.shvPath().to<QString>());
 	}
 	else if (method == METH_FILE_READ) {
 		return readFile(rq.shvPath().to<QString>());
@@ -401,7 +401,7 @@ cp::RpcValue AppRootNode::getSites(const QString &shv_path)
 	return res;
 }
 
-cp::RpcValue AppRootNode::getSitesTar(const QString &shv_path)
+cp::RpcValue AppRootNode::getSitesTgz(const QString &shv_path)
 {
 	QProcess tar_process(this);
 	tar_process.setWorkingDirectory(nodeLocalPath(shv_path));
