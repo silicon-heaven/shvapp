@@ -55,9 +55,9 @@ public:
 	void setBrokerConnected(bool state);
 
 	MockRpcConnection(const QQueue<std::function<CallNext(MockRpcConnection*)>>& test_driver);
-    void open() override;
+	void open() override;
 	Q_SIGNAL void handleNextMessage();
-    void sendMessage(const shv::chainpack::RpcMessage& rpc_msg) override;
+	void sendRpcMessage(const shv::chainpack::RpcMessage& rpc_msg) override;
 
 	QQueue<shv::chainpack::RpcMessage> m_messageQueue;
 	QTimer* m_timeoutTimer = nullptr;
