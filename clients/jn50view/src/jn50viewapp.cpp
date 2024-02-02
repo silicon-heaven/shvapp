@@ -192,7 +192,7 @@ void Jn50ViewApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, e.message()));
 		}
 		if(resp.requestId().toInt() > 0) // RPC calls with requestID == 0 does not expect response
-			m_rpcConnection->sendMessage(resp);
+			m_rpcConnection->sendRpcMessage(resp);
 	}
 	else if(msg.isResponse()) {
 		cp::RpcResponse rsp(msg);

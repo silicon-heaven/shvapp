@@ -727,7 +727,7 @@ cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 		if (shv_path.asString().empty()) {
 			auto response = rq.makeResponse();
 			response.setError(shv::chainpack::RpcError::createMethodCallExceptionError("No path given."));
-			HistoryApp::instance()->rpcConnection()->sendMessage(response);
+			HistoryApp::instance()->rpcConnection()->sendRpcMessage(response);
 			return {};
 		}
 
@@ -738,7 +738,7 @@ cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 			if (!params.asMap().value("waitForFinished", false).toBool()) {
 				auto response = rq.makeResponse();
 				response.setResult(sites);
-				HistoryApp::instance()->rpcConnection()->sendMessage(response);
+				HistoryApp::instance()->rpcConnection()->sendRpcMessage(response);
 			} else {
 				*sites_resp = sites;
 			}
@@ -747,7 +747,7 @@ cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 			if (params.asMap().value("waitForFinished", false).toBool()) {
 				auto response = rq.makeResponse();
 				response.setResult(*sites_resp);
-				HistoryApp::instance()->rpcConnection()->sendMessage(response);
+				HistoryApp::instance()->rpcConnection()->sendRpcMessage(response);
 			}
 		};
 

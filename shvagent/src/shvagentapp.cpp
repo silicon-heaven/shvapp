@@ -349,7 +349,7 @@ ShvAgentApp::ShvAgentApp(int &argc, char **argv, AppCliOptions* cli_opts)
 
 	AppRootNode *root = new AppRootNode();
 	m_shvTree = new si::node::ShvNodeTree(root, this);
-	connect(m_shvTree->root(), &si::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &si::rpc::ClientConnection::sendMessage);
+	connect(m_shvTree->root(), &si::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &si::rpc::ClientConnection::sendRpcMessage);
 	//m_shvTree->mkdir("sys/rproc");
 	QString sys_fs_root_dir = QString::fromStdString(cli_opts->sysFsRootDir());
 	if(!sys_fs_root_dir.isEmpty() && QDir(sys_fs_root_dir).exists()) {
@@ -393,7 +393,7 @@ void ShvAgentApp::launchRexec(const shv::chainpack::RpcRequest &rq)
 	resp.setRegisterRevCallerIds();
 	//resp.setResult(nullptr);
 	shvDebug() << "Sending Find tunnel request:" << resp.toPrettyString();
-	rpcConnection()->sendMessage(resp);
+	rpcConnection()->sendRpcMessage(resp);
 
 	si::rpc::RpcResponseCallBack *cb = new si::rpc::RpcResponseCallBack(rpcConnection(), resp.requestId().toInt(), this);
 	cp::RpcValue on_connected = rq.params();
@@ -467,14 +467,14 @@ void ShvAgentApp::runCmd(const shv::chainpack::RpcRequest &rq, bool std_out_only
 				logRunCmd() << "Proces exit OK, result:" << resp.result().toCpon();
 			}
 		}
-		m_rpcConnection->sendMessage(resp);
+		m_rpcConnection->sendRpcMessage(resp);
 	});
 	connect(proc, &QProcess::errorOccurred, [this, proc, rq2](QProcess::ProcessError error) {
 		shvInfo() << "RunCmd: Exec process error:" << error;
 		if(error == QProcess::FailedToStart) {
 			cp::RpcResponse resp = cp::RpcResponse::forRequest(rq2);
 			resp.setError(cp::RpcResponse::Error::createMethodCallExceptionError("Failed to start process (file not found, resource error)"));
-			m_rpcConnection->sendMessage(resp);
+			m_rpcConnection->sendRpcMessage(resp);
 			proc->deleteLater();
 		}
 	});

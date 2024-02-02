@@ -131,7 +131,7 @@ ShvRExecApp::ShvRExecApp(int &argc, char **argv, AppCliOptions* cli_opts)
 
 	AppRootNode *root = new AppRootNode();
 	m_shvTree = new shv::iotqt::node::ShvNodeTree(root, this);
-	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
+	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendRpcMessage);
 
 	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
 
@@ -183,7 +183,7 @@ void ShvRExecApp::onBrokerConnectedChanged(bool is_connected)
 			resp.setCallerIds(find_tunnel_response.callerIds());
 			resp.setTunnelCtl(m_tunnelCtl);
 			resp.setRegisterRevCallerIds();
-			rpcConnection()->sendMessage(resp);
+			rpcConnection()->sendRpcMessage(resp);
 
 			si::rpc::RpcResponseCallBack *cb = new si::rpc::RpcResponseCallBack(rpcConnection(), m_readTunnelRequestId, this);
 			cb->start([this](const shv::chainpack::RpcResponse &find_tunnel_resp) {
@@ -466,7 +466,7 @@ void ShvRExecApp::sendProcessOutput(int channel, const char *data, size_t data_l
 		result.push_back(cp::RpcValue::String(data, data_len));
 		resp.setResult(result);
 		shvDebug() << "sending child process output:" << resp.toPrettyString();
-		m_rpcConnection->sendMessage(resp);
+		m_rpcConnection->sendRpcMessage(resp);
 	}
 }
 
@@ -481,7 +481,7 @@ void ShvRExecApp::closeAndQuit()
 		resp.setResult(result);
 		resp.setTunnelCtl(cp::TunnelCtl(cp::TunnelCtl::State::CloseTunnel));
 		shvInfo() << "closing tunnel:" << resp.toPrettyString();
-		m_rpcConnection->sendMessage(resp);
+		m_rpcConnection->sendRpcMessage(resp);
 	}
 	QTimer::singleShot(10, this, &ShvRExecApp::quit);
 }

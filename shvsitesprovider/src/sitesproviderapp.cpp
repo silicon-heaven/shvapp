@@ -33,7 +33,7 @@ SitesProviderApp::SitesProviderApp(int &argc, char **argv, AppCliOptions* cli_op
 	m_rootNode = new AppRootNode();
 	m_shvTree = new shv::iotqt::node::ShvNodeTree(m_rootNode, this);
 
-	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
+	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendRpcMessage);
 
 	QTimer::singleShot(0, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::open);
 }

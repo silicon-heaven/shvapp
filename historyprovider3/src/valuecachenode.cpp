@@ -69,7 +69,7 @@ cp::RpcValue ValueCacheNode::callMethodRq(const cp::RpcRequest &rq)
 		if (!rq.params().isString()) {
 			auto resp = rq.makeResponse();
 			resp.setError(shv::chainpack::RpcError::createMethodCallExceptionError("Invalid param. Expected string."));
-			HistoryApp::instance()->rpcConnection()->sendMessage(resp);
+			HistoryApp::instance()->rpcConnection()->sendRpcMessage(resp);
 			return {};
 		}
 
@@ -85,13 +85,13 @@ cp::RpcValue ValueCacheNode::callMethodRq(const cp::RpcRequest &rq)
 			auto resp = rq.makeResponse();
 			if (error.isValid()) {
 				resp.setError(error);
-				HistoryApp::instance()->rpcConnection()->sendMessage(resp);
+				HistoryApp::instance()->rpcConnection()->sendRpcMessage(resp);
 				return;
 			}
 
 			m_cache.insert_or_assign(param_shv_path, result);
 			resp.setResult(result);
-			HistoryApp::instance()->rpcConnection()->sendMessage(resp);
+			HistoryApp::instance()->rpcConnection()->sendRpcMessage(resp);
 		});
 		call->start();
 		return {};

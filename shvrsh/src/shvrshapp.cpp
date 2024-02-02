@@ -13,10 +13,7 @@
 #include <QSocketNotifier>
 #include <QTimer>
 
-#include <iostream>
-
 #include <unistd.h>
-#include <errno.h>
 #include <string.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
@@ -97,7 +94,7 @@ ShvRshApp::ShvRshApp(int &argc, char **argv, AppCliOptions* cli_opts)
 
 	AppRootNode *root = new AppRootNode();
 	m_shvTree = new shv::iotqt::node::ShvNodeTree(root, this);
-	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendMessage);
+	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &shv::iotqt::rpc::ClientConnection::sendRpcMessage);
 
 	fcntl(STDIN_FILENO, F_SETFL, fcntl(STDIN_FILENO, F_GETFL) | O_NONBLOCK);
 	QSocketNotifier *stdin_notifier = new QSocketNotifier(STDIN_FILENO, QSocketNotifier::Read, this);
@@ -169,7 +166,7 @@ void ShvRshApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 					resp2.setRegisterRevCallerIds();
 					//resp.setResult(nullptr);
 					logTunnelD() << "Sending CreateTunnelResponse:" << resp2.toPrettyString();
-					rpcConnection()->sendMessage(resp2);
+					rpcConnection()->sendRpcMessage(resp2);
 				}
 				else {
 					shvError() << "Create tunnel request expected!";
@@ -219,7 +216,7 @@ void ShvRshApp::writeToTunnel(int channel, const cp::RpcValue &data)
 		resp.setCallerIds(m_writeTunnelCallerIds);
 		cp::RpcValue::List result{channel, data};
 		resp.setResult(result);
-		rpcConnection()->sendMessage(resp);
+		rpcConnection()->sendRpcMessage(resp);
 	}
 }
 

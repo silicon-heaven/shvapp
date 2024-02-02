@@ -210,7 +210,7 @@ BfsViewApp::BfsViewApp(int &argc, char **argv, AppCliOptions* cli_opts)
 	m_shvTree = new shv::iotqt::node::ShvNodeTree(root, this);
 	m_pwrStatusNode = new PwrStatusNode();
 	m_shvTree->mount(BFS1_PWR_STATUS, m_pwrStatusNode);
-	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &shv::iotqt::rpc::DeviceConnection::sendMessage);
+	connect(m_shvTree->root(), &shv::iotqt::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &shv::iotqt::rpc::DeviceConnection::sendRpcMessage);
 
 	if(cli_opts->pwrStatusPublishInterval() > 0) {
 		shvInfo() << "pwrStatus publish interval set to:" << cli_opts->pwrStatusPublishInterval() << "sec.";
@@ -497,7 +497,7 @@ void BfsViewApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, e.message()));
 		}
 		if(resp.requestId().toInt() > 0) // RPC calls with requestID == 0 does not expect response
-			m_rpcConnection->sendMessage(resp);
+			m_rpcConnection->sendRpcMessage(resp);
 	}
 	else if(msg.isResponse()) {
 		cp::RpcResponse rsp(msg);

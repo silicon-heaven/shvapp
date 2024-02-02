@@ -149,12 +149,12 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest& rq)
 			HistoryApp::instance()->reloadSites().then([rq] {
 				auto response = rq.makeResponse();
 				response.setResult("Sites reloaded.");
-				HistoryApp::instance()->rpcConnection()->sendMessage(response);
+				HistoryApp::instance()->rpcConnection()->sendRpcMessage(response);
 			}).onFailed([rq] (std::exception& err) {
 				auto error = cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, err.what());
 				auto response = rq.makeResponse();
 				response.setError(error);
-				HistoryApp::instance()->rpcConnection()->sendMessage(shv::chainpack::RpcMessage(response));
+				HistoryApp::instance()->rpcConnection()->sendRpcMessage(shv::chainpack::RpcMessage(response));
 			});
 			return {};
 		}
@@ -332,7 +332,7 @@ QFuture<void> HistoryApp::initializeShvTree()
 {
 	m_root = new AppRootNode();
 	m_shvTree = new si::node::ShvNodeTree(m_root, this);
-	connect(m_shvTree->root(), &si::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &si::rpc::ClientConnection::sendMessage);
+	connect(m_shvTree->root(), &si::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &si::rpc::ClientConnection::sendRpcMessage);
 
 	auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
 		->setShvPath("sites")
