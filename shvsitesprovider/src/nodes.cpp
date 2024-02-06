@@ -198,7 +198,17 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 		return getSites(rq.shvPath().to<QString>());
 	}
     else if (method == METH_GET_SITES_TGZ) {
-        return getSitesTgz(rq.shvPath().to<QString>());
+		getSitesTgz(rq.shvPath().to<QString>(), [this, rq](const QByteArray &data, const QString &error) {
+			cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
+			if (error.isEmpty()) {
+				resp.setResult(cp::RpcValue::stringToBlob(data.toStdString()));
+			}
+			else {
+				resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, error.toStdString()));
+			}
+			emitSendRpcMessage(resp);
+		});
+		return cp::RpcValue();
 	}
 	else if (method == METH_FILE_READ) {
 		return readFile(rq.shvPath().to<QString>());
@@ -401,36 +411,42 @@ cp::RpcValue AppRootNode::getSites(const QString &shv_path)
 	return res;
 }
 
-cp::RpcValue AppRootNode::getSitesTgz(const QString &shv_path)
+void AppRootNode::getSitesTgz(const QString &shv_path, std::function<void(const QByteArray &, const QString &)> callback)
 {
-	QProcess tar_process(this);
-	tar_process.setWorkingDirectory(nodeLocalPath(shv_path));
-	tar_process.start("tar", QStringList{ "cfz", "-", "./" });
-	tar_process.waitForStarted();
-	if (tar_process.state() != QProcess::ProcessState::Running) {
-		SHV_EXCEPTION("Cannot start tar");
-	}
-	QByteArray data;
-	QByteArray error;
-	QByteArray std_out;
-	QByteArray std_err;
-	do {
-		tar_process.waitForReadyRead();
-		std_out = tar_process.readAllStandardOutput();
-		std_err = tar_process.readAllStandardError();
-		data += std_out;
-		error += std_err;
-	}
-	while (std_out.length() > 0 || std_err.length() > 0);
-	tar_process.waitForFinished();
-	if (tar_process.exitStatus() != QProcess::ExitStatus::NormalExit) {
-		SHV_EXCEPTION("Tar crashed");
-	}
-	if (tar_process.exitCode() != 0) {
-		SHV_QT_EXCEPTION("Tar failed with status: " + QString::number(tar_process.exitCode()) + " " + error);
-	}
+	QProcess *tar_process = new QProcess(this);
+	tar_process->setWorkingDirectory(nodeLocalPath(shv_path));
+	QSharedPointer<QByteArray> data(new QByteArray);
+	QSharedPointer<QByteArray> error(new QByteArray);
 
-	return cp::RpcValue::stringToBlob(data.toStdString());
+	connect(tar_process, &QProcess::readyReadStandardError, [tar_process, error]() {
+		(*error) += tar_process->readAllStandardError();
+	});
+	connect(tar_process, &QProcess::readyReadStandardOutput, [tar_process, data]() {
+		(*data) += tar_process->readAllStandardOutput();
+	});
+	connect(tar_process, &QProcess::errorOccurred, [tar_process, callback](QProcess::ProcessError error) {
+		if (error == QProcess::ProcessError::FailedToStart) {
+			tar_process->deleteLater();
+			callback({}, "Cannot start tar " + tar_process->errorString());
+		}
+	});
+#if QT_VERSION_MAJOR >= 6
+	connect(tar_process, &QProcess::finished, [tar_process, data, error, callback](int exit_code, QProcess::ExitStatus exit_status) {
+#else
+	connect(tar_process, qOverload<int, QProcess::ExitStatus>(&QProcess::finished), [tar_process, data, error, callback](int exit_code, QProcess::ExitStatus exit_status) {
+#endif
+		if (exit_status != QProcess::ExitStatus::NormalExit) {
+			callback({}, "Tar crashed");
+			return;
+		}
+		if (exit_code != 0) {
+			callback({}, "Tar failed with status: " + QString::number(exit_code) + " " + (*error));
+			return;
+		}
+		tar_process->deleteLater();
+		callback((*data), {});
+	});
+	tar_process->start("tar", QStringList{ "cfz", "-", "./" });
 }
 
 void AppRootNode::findDevicesToSync(const QString &shv_path, QStringList &result)
