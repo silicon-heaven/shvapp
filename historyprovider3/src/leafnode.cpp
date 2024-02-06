@@ -1,6 +1,5 @@
 #include "leafnode.h"
 #include "historyapp.h"
-#include "appclioptions.h"
 #include "utils.h"
 
 #include <shv/core/utils/getlog.h>
