@@ -52,3 +52,4 @@ user.config
 .cache
 compile_commands.json
 
+/build
