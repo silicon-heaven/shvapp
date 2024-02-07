@@ -1,5 +1,6 @@
 #include "leafnode.h"
 #include "historyapp.h"
+#include "src/valuecachenode.h"
 #include "utils.h"
 
 #include <shv/core/utils/getlog.h>
@@ -9,12 +10,16 @@
 #include <shv/core/utils/shvfilejournal.h>
 #include <shv/coreqt/log.h>
 #include <shv/coreqt/rpc.h>
+#include <shv/iotqt/rpc/rpccall.h>
 
 #include <QDir>
 #include <QDirIterator>
 #include <QTimer>
 
+#include <ranges>
+
 #define journalDebug() shvCDebug("historyjournal")
+#define journalWarning() shvCWarning("historyjournal")
 #define journalInfo() shvCInfo("historyjournal")
 
 namespace cp = shv::chainpack;
@@ -30,6 +35,15 @@ const std::vector<cp::MetaMethod> push_log_methods {
 	{"pushLog", cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
 	{"pushLogDebugLog", cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_DEVEL},
 };
+
+const std::vector<cp::MetaMethod> alarm_methods {
+	{"alarmsTable", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_SERVICE},
+};
+}
+
+std::vector<shv::core::utils::ShvAlarm> LeafNode::alarms() const
+{
+	return m_alarms;
 }
 
 LeafNode::LeafNode(const std::string& node_id, const std::string& journal_cache_dir, LogType log_type, ShvNode* parent)
@@ -38,6 +52,91 @@ LeafNode::LeafNode(const std::string& node_id, const std::string& journal_cache_
 	, m_logType(log_type)
 {
 	QDir(QString::fromStdString(m_journalCacheDir)).mkpath(".");
+
+	if (m_logType != LogType::PushLog) {
+		const auto files_path = shv::core::utils::joinPath("sites", shvPath(), "_files");
+		auto* ls_call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
+			->setShvPath(files_path)
+			->setMethod("ls");
+		journalDebug() << "Discovering typeInfo at" << files_path;
+		connect(ls_call, &shv::iotqt::rpc::RpcCall::error, this, [this, ls_call, files_path] (const shv::chainpack::RpcError& ls_error) {
+			ls_call->deleteLater();
+			journalWarning() << "Couldn't discover typeInfo support for" << files_path << ls_error.toString();
+			this->m_typeInfo.emplace<std::string>("Couldn't discover site files: " + ls_error.toString());
+		});
+
+		connect(ls_call, &shv::iotqt::rpc::RpcCall::result, this, [this, ls_call, files_path] (const shv::chainpack::RpcValue& ls_result) {
+			const auto type_info_path = shv::core::utils::joinPath(files_path, "typeInfo.cpon");
+			ls_call->deleteLater();
+
+			if (const auto& list = ls_result.asList(); std::ranges::find(list, "typeInfo.cpon") == list.end()) {
+				journalDebug() << "No typeInfo at" << files_path;
+				this->m_typeInfo.emplace<std::string>("This site doesn't support typeInfo.cpon");
+				return;
+			}
+
+			journalDebug() << "Retrieving" << type_info_path;
+			auto* read_call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
+				->setShvPath(type_info_path)
+				->setMethod("read");
+			connect(read_call, &shv::iotqt::rpc::RpcCall::error, this, [this, read_call, type_info_path] (const shv::chainpack::RpcError& read_error) {
+				read_call->deleteLater();
+				journalDebug() << "Retrieving" << type_info_path << "failed:" << read_error.toString();
+				this->m_typeInfo.emplace<std::string>("Couldn't retrieve typeInfo.cpon for this site: " + read_error.toString());
+			});
+			connect(read_call, &shv::iotqt::rpc::RpcCall::result, this, [this, read_call, type_info_path] (const shv::chainpack::RpcValue& read_result) {
+				read_call->deleteLater();
+				journalDebug() << "Retrieved" << type_info_path << "successfully";
+				std::string error;
+				this->m_typeInfo.emplace<shv::core::utils::ShvTypeInfo>(shv::core::utils::ShvTypeInfo::fromRpcValue(shv::chainpack::RpcValue::fromCpon(read_result.asString(), &error)));
+				if (!error.empty()) {
+					this->m_typeInfo.emplace<std::string>("Couldn't retrieve typeInfo.cpon for this site: " + error);
+					journalDebug() << "Couldn't parse typeinfo for" << type_info_path << error;
+					return;
+				}
+				auto update_alarms = [this] (const auto& shv_path, const auto& value) {
+					auto changed_alarms = shv::core::utils::ShvAlarm::checkAlarms(std::get<shv::core::utils::ShvTypeInfo>(m_typeInfo), shv_path, value)
+						| std::views::filter([this] (const shv::core::utils::ShvAlarm& alarm) { return std::ranges::find(m_alarms, alarm) == m_alarms.end(); });
+
+					for (const auto& changed_alarm : changed_alarms) {
+						auto to_erase = std::ranges::remove_if(m_alarms, [&changed_alarm] (const shv::core::utils::ShvAlarm& alarm) {
+							return alarm.path() == changed_alarm.path();
+						});
+						m_alarms.erase(to_erase.begin(), to_erase.end());
+						if (changed_alarm.isActive()) {
+							m_alarms.emplace_back(changed_alarm);
+						}
+					}
+
+					std::ranges::sort(m_alarms, std::less<shv::core::utils::ShvAlarm::Severity>{}, &shv::core::utils::ShvAlarm::severity);
+				};
+
+				connect(HistoryApp::instance()->valueCacheNode(), &ValueCacheNode::valueChanged, this, [update_alarms, node_path = shvPath() + "/"] (const std::string& path, const shv::chainpack::RpcValue& value) {
+					// Event paths come in full, so we need to strip the "shv/" prefix and the site prefix. What's left
+					// is the device path (the one in typeInfo).
+					assert(path.starts_with("shv/"));
+					auto path_without_shv_prefix = path.substr(4);
+					if (!path_without_shv_prefix.starts_with(node_path)) {
+						return;
+					}
+					auto path_without_site_prefix = path_without_shv_prefix.substr(node_path.size());
+					update_alarms(path_without_site_prefix, value);
+				});
+
+				shv::core::utils::ShvGetLogParams params;
+				params.since = "last";
+				params.withSnapshot = true;
+				auto snapshot = shv::core::utils::ShvLogRpcValueReader(getLog(params));
+				while (snapshot.next()) {
+					auto entry = snapshot.entry();
+					update_alarms(entry.path, entry.value);
+				}
+			});
+			read_call->start();
+		});
+		ls_call->start();
+	}
+
 }
 
 size_t LeafNode::methodCount(const StringViewList& shv_path)
@@ -47,7 +146,7 @@ size_t LeafNode::methodCount(const StringViewList& shv_path)
 			return methods.size() + push_log_methods.size();
 		}
 
-		return methods.size();
+		return methods.size() + alarm_methods.size();
 
 	}
 
@@ -58,7 +157,10 @@ const cp::MetaMethod* LeafNode::metaMethod(const StringViewList& shv_path, size_
 {
 	if (shv_path.empty()) {
 		if (index >= methods.size()) {
-			return &push_log_methods.at(index - methods.size());
+			if (m_logType == LogType::PushLog) {
+				return &push_log_methods.at(index - methods.size());
+			}
+			return &alarm_methods.at(index - methods.size());
 		}
 
 		return &methods.at(index);
@@ -225,6 +327,16 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 
 	if (method == "getLog") {
 		return getLog(shv::core::utils::ShvGetLogParams(params));
+	}
+
+	if (method == "alarmsTable") {
+		if (std::holds_alternative<std::string>(m_typeInfo)) {
+			return std::get<std::string>(m_typeInfo);
+		}
+
+		shv::chainpack::RpcValue::List ret;
+		std::ranges::transform(m_alarms, std::back_inserter(ret), [] (const auto& alarm) { return alarm.toRpcValue(); });
+		return ret;
 	}
 
 	if (method == "logSize") {

@@ -33,6 +33,12 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		SEND_SITES_YIELD(mock_sites::fin_slave_broker);
 	});
 	enqueue(res, [=] (MockRpcConnection* mock) {
+		DISABLE_TYPEINFO(cache_dir_path);
+	});
+	enqueue(res, [=] (MockRpcConnection* mock) {
+		DISABLE_TYPEINFO("eyas/with_app_history");
+	});
+	enqueue(res, [=] (MockRpcConnection* mock) {
 		EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
 	});
 	enqueue(res, [=] (MockRpcConnection* mock) {
@@ -366,6 +372,12 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 				SEND_SITES_YIELD(mock_sites::two_devices);
 			});
 			enqueue(res, [=] (MockRpcConnection* mock) {
+				DISABLE_TYPEINFO("one");
+			});
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				DISABLE_TYPEINFO("two");
+			});
+			enqueue(res, [=] (MockRpcConnection* mock) {
 				EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
 			});
 			enqueue(res, [=] (MockRpcConnection* mock) {
@@ -419,6 +431,12 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			SEND_SITES_YIELD(mock_sites::even_more_devices);
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			DISABLE_TYPEINFO("one");
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			DISABLE_TYPEINFO("two");
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");

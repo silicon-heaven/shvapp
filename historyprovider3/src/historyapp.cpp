@@ -113,6 +113,16 @@ cp::RpcValue AppRootNode::callMethod(const StringViewList& shv_path, const std::
 	return Super::callMethod(shv_path, method, params, user_id);
 }
 
+LeafNode* HistoryApp::leafNode(const std::string& path)
+{
+	auto it = std::ranges::find(m_leafNodes, path, &shv::iotqt::node::ShvNode::shvPath);
+	if (it == m_leafNodes.end()) {
+		throw std::logic_error("LeafNode " + path + " not found");
+	}
+
+	return *it;
+}
+
 QFuture<void> HistoryApp::reloadSites()
 {
 	if (m_loadingSites) {

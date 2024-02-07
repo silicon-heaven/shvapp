@@ -164,6 +164,26 @@ shv::chainpack::RpcValue make_sub_params(const std::string& path, const std::str
 	RESPOND_YIELD(sitesStr); \
 }
 
+#define DISABLE_TYPEINFO(site) { \
+	EXPECT_REQUEST(shv::core::utils::joinPath("sites", (site), "_files"), "ls", RpcValue()); \
+	RESPOND_YIELD(RpcValue::List{}); \
+}
+
+#define ENABLE_TYPEINFO(site) { \
+	EXPECT_REQUEST(shv::core::utils::joinPath("sites", (site), "_files"), "ls", RpcValue()); \
+	RESPOND_YIELD(RpcValue::List{std::string{"typeInfo.cpon"}}); \
+}
+
+#define SEND_TYPEINFO_YIELD(site, typeinfoStr) { \
+	EXPECT_REQUEST(shv::core::utils::joinPath("sites", (site), "_files/typeInfo.cpon"), "read", RpcValue()); \
+	RESPOND_YIELD(typeinfoStr); \
+}
+
+#define SEND_TYPEINFO(site, typeinfoStr) { \
+	EXPECT_REQUEST(shv::core::utils::joinPath("sites", (site), "_files/typeInfo.cpon"), "read", RpcValue()); \
+	RESPOND(typeinfoStr); \
+}
+
 #define SEND_SITES(sitesStr) { \
 	EXPECT_REQUEST("sites", "getSites", RpcValue()); \
 	RESPOND(sitesStr); \

@@ -49,6 +49,7 @@ public:
 	void setTotalCacheSizeLimit(int64_t size_limit) {m_totalCacheSizeLimit = size_limit;}
 	ShvJournalNode* shvJournalNode() {return m_shvJournalNode;}
 	ValueCacheNode* valueCacheNode() {return m_valueCacheNode;}
+	LeafNode* leafNode(const std::string& path);
 
 	AppCliOptions* cliOptions() {return m_cliOptions;}
 

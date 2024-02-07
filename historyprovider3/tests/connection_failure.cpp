@@ -25,6 +25,12 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		SEND_SITES_YIELD(mock_sites::fin_slave_broker);
 	});
 	enqueue(res, [=] (MockRpcConnection* mock) {
+		DISABLE_TYPEINFO(cache_dir_path);
+	});
+	enqueue(res, [=] (MockRpcConnection* mock) {
+		DISABLE_TYPEINFO("eyas/with_app_history");
+	});
+	enqueue(res, [=] (MockRpcConnection* mock) {
 		EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
 	});
 	enqueue(res, [=] (MockRpcConnection* mock) {
@@ -56,6 +62,9 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		std::string new_cache_dir_path = "fin/hel/tram/hel002";
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			SEND_SITES_YIELD(mock_sites::fin_master_broker);
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			DISABLE_TYPEINFO("fin/hel/tram/hel002/eyas/opc");
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");

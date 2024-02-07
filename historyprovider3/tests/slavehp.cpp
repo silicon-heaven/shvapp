@@ -21,6 +21,9 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		SEND_SITES_YIELD(mock_sites::fin_master_broker);
 	});
 	enqueue(res, [=] (MockRpcConnection* mock) {
+		DISABLE_TYPEINFO("fin/hel/tram/hel002/eyas/opc");
+	});
+	enqueue(res, [=] (MockRpcConnection* mock) {
 		EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
 	});
 	enqueue(res, [=] (MockRpcConnection* mock) {
