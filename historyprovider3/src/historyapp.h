@@ -1,5 +1,6 @@
 #pragma once
 
+#include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/node/shvnode.h>
 
 #include <QCoreApplication>
