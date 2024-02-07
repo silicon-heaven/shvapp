@@ -6,6 +6,7 @@
 
 #include "src/appclioptions.h"
 #include "src/historyapp.h"
+#include "src/valuecachenode.h"
 #include "tests/sites.h"
 #include "tests/utils.h"
 
@@ -14,6 +15,8 @@ using cp::RpcValue;
 
 QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 {
+	auto expected_path_change = std::make_shared<std::tuple<std::string, RpcValue>>();
+
 	QQueue<std::function<CallNext(MockRpcConnection*)>> res;
 	std::string cache_dir_path = "eyas/opc";
 	enqueue(res, [=] (MockRpcConnection* mock) {
@@ -33,6 +36,19 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 	});
 	enqueue(res, [=] (MockRpcConnection* mock) {
 		EXPECT_SUBSCRIPTION("shv/eyas/with_app_history", "cmdlog");
+
+		auto node = HistoryApp::instance()->valueCacheNode();
+		QObject::connect(node, &ValueCacheNode::valueChanged, node, [expected_path_change] (const std::string& path, const RpcValue& value){
+			REQUIRE(expected_path_change != nullptr);
+			const auto &[expected_path, expected_value] = *expected_path_change;
+			CAPTURE(path);
+			CAPTURE(value);
+			REQUIRE(path == expected_path);
+			REQUIRE(value == expected_value);
+			*expected_path_change = {};
+		});
+
+		*expected_path_change = {"shv/eyas/opc/cached_status", RpcValue{"changed_value"}};
 		NOTIFY("shv/eyas/opc/cached_status", "chng", std::string{"changed_value"});
 		return CallNext::Yes;
 	});
@@ -75,6 +91,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_REQUEST("shv/eyas/opc/cached_status", "get");
+			*expected_path_change = {"shv/eyas/opc/cached_status", RpcValue{"new_value"}};
 			RESPOND_YIELD("new_value");
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
@@ -111,6 +128,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_REQUEST("shv/eyas/opc/not_cached", "get");
+			*expected_path_change = {"shv/eyas/opc/not_cached", RpcValue{"value_for_not_cached"}};
 			RESPOND_YIELD("value_for_not_cached");
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {

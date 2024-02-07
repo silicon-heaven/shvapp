@@ -25,6 +25,12 @@ ValueCacheNode::ValueCacheNode(ShvNode* parent)
 	connect(conn, &shv::iotqt::rpc::ClientConnection::rpcMessageReceived, this, &ValueCacheNode::onRpcMessageReceived);
 }
 
+void ValueCacheNode::saveToCache(const std::string& path, const shv::chainpack::RpcValue& value)
+{
+	m_cache.insert_or_assign(path, value);
+	emit valueChanged(path, value);
+}
+
 void ValueCacheNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 {
 	if (msg.isSignal()) {
@@ -34,7 +40,7 @@ void ValueCacheNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 		auto params = ntf.params();
 
 		if (method == shv::chainpack::Rpc::SIG_VAL_CHANGED) {
-			m_cache.insert_or_assign(path, params);
+			saveToCache(path, params);
 		}
 
 		if (method == shv::chainpack::Rpc::SIG_MOUNTED_CHANGED) {
@@ -89,7 +95,7 @@ cp::RpcValue ValueCacheNode::callMethodRq(const cp::RpcRequest &rq)
 				return;
 			}
 
-			m_cache.insert_or_assign(param_shv_path, result);
+			saveToCache(param_shv_path, result);
 			resp.setResult(result);
 			HistoryApp::instance()->rpcConnection()->sendRpcMessage(resp);
 		});

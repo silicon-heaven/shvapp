@@ -362,7 +362,7 @@ QFuture<void> HistoryApp::initializeShvTree()
 			m_sanitizerTimer->start(m_cliOptions->journalSanitizerInterval() * 1000);
 		}
 
-		new ValueCacheNode(m_root);
+		m_valueCacheNode = new ValueCacheNode(m_root);
 
 		promise.finish();
 	});
