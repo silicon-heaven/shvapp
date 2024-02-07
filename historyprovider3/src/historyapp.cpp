@@ -319,6 +319,7 @@ QFuture<void> HistoryApp::initializeShvTree()
 {
 	m_root = new AppRootNode();
 	m_shvTree = new si::node::ShvNodeTree(m_root, this);
+	m_valueCacheNode = new ValueCacheNode(m_root);
 	connect(m_shvTree->root(), &si::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &si::rpc::ClientConnection::sendRpcMessage);
 
 	auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
@@ -361,8 +362,6 @@ QFuture<void> HistoryApp::initializeShvTree()
 			connect(m_sanitizerTimer, &QTimer::timeout, m_shvJournalNode, &ShvJournalNode::sanitizeSize);
 			m_sanitizerTimer->start(m_cliOptions->journalSanitizerInterval() * 1000);
 		}
-
-		m_valueCacheNode = new ValueCacheNode(m_root);
 
 		promise.finish();
 	});
