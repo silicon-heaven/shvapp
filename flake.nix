@@ -30,6 +30,7 @@
               qtwebsockets
               libxkbcommon
               doctest
+              lua5_3
             ];
             nativeBuildInputs = [
               cmake
