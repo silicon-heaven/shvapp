@@ -4,7 +4,7 @@
 #include "process.h"
 
 #include <shv/iotqt/rpc/clientconnection.h>
-#include <shv/iotqt/rpc/rpcresponsecallback.h>
+#include <shv/iotqt/rpc/rpccall.h>
 #include <shv/iotqt/node/shvnodetree.h>
 
 #include <shv/coreqt/log.h>

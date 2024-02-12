@@ -2,7 +2,7 @@
 #include "historyapp.h"
 
 #include <shv/iotqt/rpc/deviceconnection.h>
-#include <shv/iotqt/rpc/rpcresponsecallback.h>
+#include <shv/iotqt/rpc/rpccall.h>
 
 #define cacheDebug() shvCDebug("valuecache")
 #define cacheInfo() shvCInfo("valuecache")

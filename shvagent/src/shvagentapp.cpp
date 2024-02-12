@@ -3,7 +3,7 @@
 #include "sessionprocess.h"
 #include "testernode.h"
 
-#include <shv/iotqt/rpc/rpcresponsecallback.h>
+#include <shv/iotqt/rpc/rpccall.h>
 #include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/node/shvnodetree.h>
 #include <shv/iotqt/node/localfsnode.h>

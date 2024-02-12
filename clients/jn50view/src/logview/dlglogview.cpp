@@ -8,7 +8,7 @@
 #include <shv/chainpack/rpcvalue.h>
 #include <shv/core/utils/shvgetlogparams.h>
 #include <shv/iotqt/rpc/clientconnection.h>
-#include <shv/iotqt/rpc/rpcresponsecallback.h>
+#include <shv/iotqt/rpc/rpccall.h>
 #include <shv/iotqt/utils.h>
 #include <shv/visu/timeline/graphmodel.h>
 #include <shv/visu/timeline/graphwidget.h>
