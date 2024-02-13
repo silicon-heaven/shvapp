@@ -146,7 +146,7 @@ Shv2MqttApp::Shv2MqttApp(int& argc, char** argv, AppCliOptions* cli_opts, shv::i
 	connect(m_rpcConnection, &si::rpc::ClientConnection::rpcMessageReceived, this, &Shv2MqttApp::onRpcMessageReceived);
 	m_root = new AppRootNode();
 	m_shvTree = new si::node::ShvNodeTree(m_root, this);
-	connect(m_shvTree->root(), &si::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &si::rpc::ClientConnection::sendMessage);
+	connect(m_shvTree->root(), &si::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &si::rpc::ClientConnection::sendRpcMessage);
 
 	m_mqttClient = new QMqttClient(this);
     m_mqttClient->setHostname(QString::fromStdString(m_cliOptions->mqttHostname()));
