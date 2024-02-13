@@ -81,6 +81,67 @@ qint64 LeafNode::calculateCacheDirSize() const
 	return total_size;
 }
 
+shv::chainpack::RpcValue LeafNode::getLog(const shv::core::utils::ShvGetLogParams& get_log_params)
+{
+	std::vector<std::function<shv::core::utils::ShvJournalFileReader()>> readers;
+	auto journal_dir = QDir(QString::fromStdString(m_journalCacheDir));
+	auto dir_files = journal_dir.entryList(QDir::Files, QDir::Name);
+	auto newest_matching_file_it = [&get_log_params, &dir_files] {
+		// If there's no since param, return everything.
+		if ((!get_log_params.since.isDateTime() && !get_log_params.isSinceLast()) || dir_files.begin() == dir_files.end()) {
+			return dir_files.begin();
+		}
+
+		// If the first file is the dirtylog, just return it. There are no other files.
+		if (*dir_files.begin() == "dirtylog") {
+			return dir_files.begin();
+		}
+
+		// For since == last, we need to take the dirtylog and the last file.
+		// the previous condition would catch that.
+		if (get_log_params.isSinceLast()) {
+			// There is at least one file, let's look at it. If it's the dirty log, then there must be at least one
+			// more file, because the previous condition checks whether there is only the dirty log.
+			auto it = dir_files.end() - 1;
+			if (*it != "dirtylog") {
+				// There's no dirtylog, so we'll just return the last file.
+				return it;
+			}
+
+			// Otherwise, there's a dirtylog and we'll return the last file AND the dirtylog.
+			return dir_files.end() - 2;
+		}
+
+		// If the first file is newer than since, than just return it.
+		auto since_param_ms = get_log_params.since.toDateTime().msecsSinceEpoch();
+		if (shv::core::utils::ShvJournalFileReader::fileNameToFileMsec(dir_files.begin()->toStdString()) >= since_param_ms) {
+			return dir_files.begin();
+		}
+
+		// Otherwise the first file is older than since.
+		// Try to find files that are newer, but still older than since.
+		auto last_matching_it = dir_files.begin();
+		for (auto it = dir_files.begin(); it != dir_files.end(); ++it) {
+			if (*it == "dirtylog" || shv::core::utils::ShvJournalFileReader::fileNameToFileMsec(it->toStdString()) >= since_param_ms) {
+				break;
+			}
+
+			last_matching_it = it;
+		}
+
+		return last_matching_it;
+	}();
+
+	for (auto it = newest_matching_file_it; it != dir_files.end(); ++it) {
+		journalDebug() << "Using" << *it << "for getLog at" << shvPath();
+		readers.emplace_back([full_file_name = journal_dir.filePath(*it).toStdString()] {
+			return shv::core::utils::ShvJournalFileReader(full_file_name);
+		});
+	}
+
+	return shv::core::utils::getLog(readers, get_log_params);
+}
+
 shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, const std::string& method, const shv::chainpack::RpcValue& params, const shv::chainpack::RpcValue& user_id)
 {
 	if (method == "pushLog" && m_logType == LogType::PushLog) {
@@ -163,64 +224,7 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 	}
 
 	if (method == "getLog") {
-		std::vector<std::function<shv::core::utils::ShvJournalFileReader()>> readers;
-		auto journal_dir = QDir(QString::fromStdString(m_journalCacheDir));
-		auto dir_files = journal_dir.entryList(QDir::Files, QDir::Name);
-		shv::core::utils::ShvGetLogParams get_log_params(params);
-		auto newest_matching_file_it = [&get_log_params, &dir_files] {
-			// If there's no since param, return everything.
-			if ((!get_log_params.since.isDateTime() && !get_log_params.isSinceLast()) || dir_files.begin() == dir_files.end()) {
-				return dir_files.begin();
-			}
-
-			// If the first file is the dirtylog, just return it. There are no other files.
-			if (*dir_files.begin() == "dirtylog") {
-				return dir_files.begin();
-			}
-
-			// For since == last, we need to take the dirtylog and the last file.
-			// the previous condition would catch that.
-			if (get_log_params.isSinceLast()) {
-				// There is at least one file, let's look at it. If it's the dirty log, then there must be at least one
-				// more file, because the previous condition checks whether there is only the dirty log.
-				auto it = dir_files.end() - 1;
-				if (*it != "dirtylog") {
-					// There's no dirtylog, so we'll just return the last file.
-					return it;
-				}
-
-				// Otherwise, there's a dirtylog and we'll return the last file AND the dirtylog.
-				return dir_files.end() - 2;
-			}
-
-			// If the first file is newer than since, than just return it.
-			auto since_param_ms = get_log_params.since.toDateTime().msecsSinceEpoch();
-			if (shv::core::utils::ShvJournalFileReader::fileNameToFileMsec(dir_files.begin()->toStdString()) >= since_param_ms) {
-				return dir_files.begin();
-			}
-
-			// Otherwise the first file is older than since.
-			// Try to find files that are newer, but still older than since.
-			auto last_matching_it = dir_files.begin();
-			for (auto it = dir_files.begin(); it != dir_files.end(); ++it) {
-				if (*it == "dirtylog" || shv::core::utils::ShvJournalFileReader::fileNameToFileMsec(it->toStdString()) >= since_param_ms) {
-					break;
-				}
-
-				last_matching_it = it;
-			}
-
-			return last_matching_it;
-		}();
-
-		for (auto it = newest_matching_file_it; it != dir_files.end(); ++it) {
-			journalDebug() << "Using" << *it << "for getLog at" << shvPath();
-			readers.emplace_back([full_file_name = journal_dir.filePath(*it).toStdString()] {
-				return shv::core::utils::ShvJournalFileReader(full_file_name);
-			});
-		}
-
-		return shv::core::utils::getLog(readers, get_log_params);
+		return getLog(shv::core::utils::ShvGetLogParams(params));
 	}
 
 	if (method == "logSize") {

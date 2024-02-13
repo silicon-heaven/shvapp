@@ -2,6 +2,7 @@
 
 #include "logtype.h"
 
+#include <shv/core/utils/shvgetlogparams.h>
 #include <shv/iotqt/node/shvnode.h>
 #include <shv/iotqt/node/localfsnode.h>
 
@@ -20,6 +21,8 @@ public:
 	qint64 calculateCacheDirSize() const;
 
 private:
+	shv::chainpack::RpcValue getLog(const shv::core::utils::ShvGetLogParams& get_log_params);
+
 	std::string m_journalCacheDir;
 	LogType m_logType;
 	shv::chainpack::RpcValue::List m_pushLogDebugLog;
