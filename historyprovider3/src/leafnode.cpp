@@ -29,6 +29,7 @@ const std::vector<cp::MetaMethod> methods {
 
 const std::vector<cp::MetaMethod> push_log_methods {
 	{"pushLog", cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
+	{"pushLogDebugLog", cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_DEVEL},
 };
 }
 
@@ -105,7 +106,12 @@ void LeafNode::sanitizeSize()
 shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, const std::string& method, const shv::chainpack::RpcValue& params, const shv::chainpack::RpcValue& user_id)
 {
 	if (method == "pushLog" && m_logType == LogType::PushLog) {
-		journalInfo() << "Got pushLog at" << shvPath();
+		m_pushLogDebugLog.clear();
+		#define log_pushlog(logger, msg) \
+			logger << (msg); \
+			m_pushLogDebugLog.emplace_back(shv::chainpack::RpcValue::List{shv::chainpack::RpcValue::DateTime::now(), (msg)});
+
+		log_pushlog(journalInfo(), "Got pushLog at " + shvPath());
 
 		shv::core::utils::ShvLogRpcValueReader reader(params);
 		QDir cache_dir(QString::fromStdString(m_journalCacheDir));
@@ -133,17 +139,17 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 		shv::core::utils::ShvJournalFileWriter writer(file_path.toStdString());
 		int remote_entries_count = 0;
 		int written_entries_count = 0;
-		journalDebug() << "Writing" << file_path;
+		log_pushlog(journalDebug(), "Writing " + file_path.toStdString());
 		while (reader.next()) {
 			auto entry = reader.entry();
 			remote_entries_count++;
 			if (entry.epochMsec < local_newest_entry_ms) {
-				shvWarning() << "Rejecting push log entry for:" << shvPath() << "with timestamp:" << entry.dateTime().toIsoString() << "because a newer one already exists:" << local_newest_entry_str;
+				log_pushlog(shvWarning(), "Rejecting push log entry for: " + shvPath() + " with timestamp: " + entry.dateTime().toIsoString() + " because a newer one already exists: " + local_newest_entry_str);
 				continue;
 			}
 
 			if (entry.epochMsec == local_newest_entry_ms && std::find(local_newest_entry_paths.begin(), local_newest_entry_paths.end(), entry.path) != local_newest_entry_paths.end()) {
-				shvWarning() << "Rejecting push log entry for:" << shvPath() << "with timestamp:" << entry.dateTime().toIsoString() << "and path:" << entry.path << "because we already have an entry with this timestamp and path";
+				log_pushlog(shvWarning(), "Rejecting push log entry for: " + shvPath() + " with timestamp: " + entry.dateTime().toIsoString() + " and path: " + entry.path + " because we already have an entry with this timestamp and path");
 				continue;
 			}
 
@@ -151,7 +157,7 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 			written_entries_count++;
 		}
 
-		journalInfo() << "Got" << remote_entries_count << "entries (" + std::to_string(remote_entries_count - written_entries_count) + " were rejected)" << "from pushLog at" << shvPath();
+		log_pushlog(journalInfo(), "Got " + std::to_string(remote_entries_count) + " entries (" + std::to_string(remote_entries_count - written_entries_count) + " were rejected) from pushLog at " + shvPath());
 
 		// The output file is always created by the writer. If we didn't manage to write any entries, we'll remove the
 		// file.
@@ -172,6 +178,10 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 			{"until", reader.logHeader().until()},
 			{"msg", "success"}
 		};
+	}
+
+	if (method == "pushLogDebugLog" && m_logType == LogType::PushLog) {
+		return m_pushLogDebugLog;
 	}
 
 	if (method == "getLog") {

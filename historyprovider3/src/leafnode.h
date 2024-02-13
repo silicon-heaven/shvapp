@@ -23,4 +23,5 @@ public:
 private:
 	std::string m_journalCacheDir;
 	LogType m_logType;
+	shv::chainpack::RpcValue::List m_pushLogDebugLog;
 };
