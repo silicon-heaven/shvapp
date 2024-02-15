@@ -392,7 +392,6 @@ private:
 		connect(call, &shv::iotqt::rpc::RpcCall::maybeResult, [this] (const auto& result, const auto& error) {
 			if (error.isValid()) {
 				auto err = "Error retrieving logs via getLog for: " + slave_hp_path.toStdString() + " " + error.message();
-				shvError() << err;
 				node->appendSyncStatus(slave_hp_path, err);
 				deleteLater();
 				return;
