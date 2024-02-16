@@ -36,10 +36,14 @@ const std::vector<cp::MetaMethod> push_log_methods {
 	{"pushLogDebugLog", cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_DEVEL},
 };
 
+const auto M_OVERALL_ALARM = "overallAlarm";
+const auto M_ALARM_TABLE = "alarmTable";
+const auto M_ALARM_CHNG = "alarmchng";
+
 const std::vector<cp::MetaMethod> alarm_methods {
-	{"alarmsTable", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_SERVICE},
-	{"overallAlarm", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_SERVICE},
-	{"overallAlarm", cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::IsSignal, cp::Rpc::ROLE_SERVICE},
+	{M_ALARM_TABLE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
+	{M_ALARM_CHNG, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsSignal, cp::Rpc::ROLE_READ},
+	{M_OVERALL_ALARM, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter | cp::MetaMethod::Flag::IsSignal, cp::Rpc::ROLE_READ},
 };
 }
 
@@ -120,11 +124,12 @@ LeafNode::LeafNode(const std::string& node_id, const std::string& journal_cache_
 					}
 
 					std::ranges::sort(m_alarms, std::less<shv::core::utils::ShvAlarm::Severity>{}, &shv::core::utils::ShvAlarm::severity);
+					HistoryApp::instance()->rpcConnection()->sendShvSignal(shvPath(), M_ALARM_CHNG);
 
 					auto new_overall_alarm = m_alarms.empty() ? shv::core::utils::ShvAlarm::Severity::Invalid : m_alarms.front().severity();
 					if (new_overall_alarm != m_overallAlarm) {
 						m_overallAlarm = new_overall_alarm;
-						HistoryApp::instance()->rpcConnection()->sendShvSignal(shv::core::utils::joinPath(shvPath(), "overallAlarm"), "chng", static_cast<int>(m_overallAlarm));
+						HistoryApp::instance()->rpcConnection()->sendShvSignal(shv::core::utils::joinPath<':'>(shvPath(), M_OVERALL_ALARM), cp::Rpc::SIG_VAL_CHANGED, static_cast<int>(m_overallAlarm));
 					}
 				};
 
@@ -346,7 +351,7 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 		return getLog(shv::core::utils::ShvGetLogParams(params));
 	}
 
-	if (method == "alarmsTable") {
+	if (method == M_ALARM_TABLE) {
 		if (std::holds_alternative<std::string>(m_typeInfo)) {
 			return std::get<std::string>(m_typeInfo);
 		}
@@ -356,7 +361,7 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 		return ret;
 	}
 
-	if (method == "overallAlarm") {
+	if (method == M_OVERALL_ALARM) {
 		return static_cast<int>(m_overallAlarm);
 	}
 
