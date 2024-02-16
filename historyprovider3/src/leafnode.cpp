@@ -38,6 +38,8 @@ const std::vector<cp::MetaMethod> push_log_methods {
 
 const std::vector<cp::MetaMethod> alarm_methods {
 	{"alarmsTable", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_SERVICE},
+	{"overallAlarm", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_SERVICE},
+	{"overallAlarm", cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::IsSignal, cp::Rpc::ROLE_SERVICE},
 };
 }
 
@@ -98,6 +100,10 @@ LeafNode::LeafNode(const std::string& node_id, const std::string& journal_cache_
 					auto changed_alarms = shv::core::utils::ShvAlarm::checkAlarms(std::get<shv::core::utils::ShvTypeInfo>(m_typeInfo), shv_path, value)
 						| std::views::filter([this] (const shv::core::utils::ShvAlarm& alarm) { return std::ranges::find(m_alarms, alarm) == m_alarms.end(); });
 
+					if (changed_alarms.empty()) {
+						return;
+					}
+
 					for (const auto& changed_alarm : changed_alarms) {
 						auto to_erase = std::ranges::remove_if(m_alarms, [&changed_alarm] (const shv::core::utils::ShvAlarm& alarm) {
 							return alarm.path() == changed_alarm.path();
@@ -109,6 +115,12 @@ LeafNode::LeafNode(const std::string& node_id, const std::string& journal_cache_
 					}
 
 					std::ranges::sort(m_alarms, std::less<shv::core::utils::ShvAlarm::Severity>{}, &shv::core::utils::ShvAlarm::severity);
+
+					auto new_overall_alarm = m_alarms.empty() ? shv::core::utils::ShvAlarm::Severity::Invalid : m_alarms.front().severity();
+					if (new_overall_alarm != m_overallAlarm) {
+						m_overallAlarm = new_overall_alarm;
+						HistoryApp::instance()->rpcConnection()->sendShvSignal(shv::core::utils::joinPath(shvPath(), "overallAlarm"), "chng", static_cast<int>(m_overallAlarm));
+					}
 				};
 
 				connect(HistoryApp::instance()->valueCacheNode(), &ValueCacheNode::valueChanged, this, [update_alarms, node_path = shvPath() + "/"] (const std::string& path, const shv::chainpack::RpcValue& value) {
@@ -337,6 +349,10 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 		shv::chainpack::RpcValue::List ret;
 		std::ranges::transform(m_alarms, std::back_inserter(ret), [] (const auto& alarm) { return alarm.toRpcValue(); });
 		return ret;
+	}
+
+	if (method == "overallAlarm") {
+		return static_cast<int>(m_overallAlarm);
 	}
 
 	if (method == "logSize") {

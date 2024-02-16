@@ -32,4 +32,5 @@ private:
 	shv::chainpack::RpcValue::List m_pushLogDebugLog;
 	std::variant<shv::core::utils::ShvTypeInfo, std::string> m_typeInfo = std::string{"typeInfo not yet initialized"};
 	std::vector<shv::core::utils::ShvAlarm> m_alarms;
+	shv::core::utils::ShvAlarm::Severity m_overallAlarm = shv::core::utils::ShvAlarm::Severity::Invalid;
 };
