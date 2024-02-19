@@ -373,7 +373,8 @@ class LegacyFileSyncerImpl : public QObject {
 	Q_OBJECT
 public:
 	LegacyFileSyncerImpl(ShvJournalNode* node, const QString& slave_hp_path, const QString& cache_dir_path)
-		: slave_hp_path(slave_hp_path)
+		: QObject(node)
+		, slave_hp_path(slave_hp_path)
 		, cache_dir_path(cache_dir_path)
 		, node(node)
 	{
@@ -509,7 +510,8 @@ public:
 		const std::string& leaf_sync_path,
 		const QString& cache_dir_path,
 		const SyncType sync_type)
-		: m_node(node)
+		: QObject(node)
+		, m_node(node)
 		, m_shvPath(QString::fromStdString(shv_path))
 	{
 		m_promise.start();
