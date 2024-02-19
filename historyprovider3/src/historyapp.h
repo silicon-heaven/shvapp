@@ -43,8 +43,8 @@ public:
 
 	static HistoryApp* instance();
 	shv::iotqt::rpc::DeviceConnection* rpcConnection() const {return m_rpcConnection;}
-	int64_t singleCacheSizeLimit() const {return m_singleCacheSizeLimit;}
-	void setSingleCacheSizeLimit(int64_t size_limit) {m_singleCacheSizeLimit = size_limit;}
+	int64_t totalCacheSizeLimit() const {return m_totalCacheSizeLimit;}
+	void setTotalCacheSizeLimit(int64_t size_limit) {m_totalCacheSizeLimit = size_limit;}
 	ShvJournalNode* shvJournalNode() {return m_shvJournalNode;}
 
 	AppCliOptions* cliOptions() {return m_cliOptions;}
@@ -55,7 +55,6 @@ public:
 private:
 	void onBrokerConnectedChanged(bool is_connected);
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage& msg);
-	void sanitizeNext();
 	QFuture<void> initializeShvTree();
 	void deinitializeShvTree();
 
@@ -67,9 +66,7 @@ private:
 	AppRootNode* m_root = nullptr;
 	bool m_isBrokerConnected = false;
 	int64_t m_totalCacheSizeLimit;
-	int64_t m_singleCacheSizeLimit;
 	QList<LeafNode*> m_leafNodes;
-	QListIterator<LeafNode*> m_sanitizerIterator;
 	ShvJournalNode* m_shvJournalNode = nullptr;
 	QTimer* m_sanitizerTimer = nullptr;
 	bool m_loadingSites = false;

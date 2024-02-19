@@ -35,6 +35,7 @@ public:
 	const shv::chainpack::RpcValue::Map& syncInfo();
 	void resetSyncStatus(const QString& shv_path);
 	void appendSyncStatus(const QString& shv_path, const std::string& status);
+	void sanitizeSize() const;
 
 private:
 	void onRpcMessageReceived(const shv::chainpack::RpcMessage &msg);

@@ -51,7 +51,6 @@ const std::vector<cp::MetaMethod> meta_methods {
 };
 }
 
-
 size_t AppRootNode::methodCount(const StringViewList& shv_path)
 {
 	if (shv_path.empty()) {
@@ -268,22 +267,10 @@ auto parse_size_option(const std::string& size_option, bool* success)
 }
 }
 
-void HistoryApp::sanitizeNext()
-{
-	if (!m_sanitizerIterator.hasNext()) {
-		m_sanitizerIterator = QListIterator(m_leafNodes);
-	}
-
-	// m_journalNodes is never empty, because we don't run the sanitizer when there are no journal nodes
-	auto node = m_sanitizerIterator.next();
-	node->sanitizeSize();
-}
-
 HistoryApp::HistoryApp(int& argc, char** argv, AppCliOptions* cli_opts, shv::iotqt::rpc::DeviceConnection* rpc_connection)
 	: Super(argc, argv)
 	  , m_rpcConnection(rpc_connection)
 	  , m_cliOptions(cli_opts)
-	  , m_sanitizerIterator(m_leafNodes) // I have to initialize this one, because it doesn't have a default ctor
 {
 	m_rpcConnection->setParent(this);
 
@@ -370,11 +357,8 @@ QFuture<void> HistoryApp::initializeShvTree()
 
 		m_leafNodes = m_shvTree->findChildren<LeafNode*>();
 		if (!m_leafNodes.empty()) {
-			m_singleCacheSizeLimit = m_totalCacheSizeLimit / m_leafNodes.size();
-
-			m_sanitizerIterator = QListIterator(m_leafNodes);
 			m_sanitizerTimer = new QTimer(this);
-			connect(m_sanitizerTimer, &QTimer::timeout, this, &HistoryApp::sanitizeNext);
+			connect(m_sanitizerTimer, &QTimer::timeout, m_shvJournalNode, &ShvJournalNode::sanitizeSize);
 			m_sanitizerTimer->start(m_cliOptions->journalSanitizerInterval() * 1000);
 		}
 

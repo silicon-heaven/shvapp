@@ -42,6 +42,7 @@ Returns: a map where they is the path of the site and the value is a map with a 
 const std::vector<cp::MetaMethod> methods {
 	{"syncLog", cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE, SYNCLOG_DESC},
 	{"syncInfo", cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ, SYNCINFO_DESC},
+	{"sanitizeLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_DEVEL},
 };
 
 const auto DIRTY_FILENAME = "dirtylog";
@@ -109,6 +110,52 @@ ShvJournalNode::ShvJournalNode(const std::vector<SlaveHpInfo>& slave_hps, const 
 		++sync_iterator;
 	});
 	tmr->start(HistoryApp::instance()->cliOptions()->syncIteratorInterval() * 1000);
+
+	auto sanitizer_timer = new QTimer(this);
+	connect(tmr, &QTimer::timeout, this, [this] {
+		sanitizeSize();
+	});
+	sanitizer_timer->start(HistoryApp::instance()->cliOptions()->journalSanitizerInterval() * 1000);
+}
+
+#define sanitizerInfo() shvCInfo("sanitizer")
+#define sanitizerDebug() shvCDebug("sanitizer")
+
+void ShvJournalNode::sanitizeSize() const
+{
+	auto max_size = HistoryApp::instance()->totalCacheSizeLimit();
+	auto it = QDirIterator{m_cacheDirPath, QDir::Files | QDir::NoDotAndDotDot, QDirIterator::Subdirectories};
+	QStringList files;
+	qint64 total_size = 0;
+	while (it.hasNext()) {
+		auto file_info = it.nextFileInfo();
+		total_size += file_info.size();
+		if (file_info.fileName() == "dirtylog") {
+			continue;
+		}
+		files.emplace_back(file_info.absoluteFilePath());
+	}
+
+	sanitizerInfo() << "Current total size:" << total_size << "journalCacheSizeLimit:" << max_size;
+	if (total_size <= max_size) {
+		sanitizerDebug() << "Total size is within limits";
+		return;
+	}
+	std::ranges::sort(files, [] (const QString& file_a, const QString& file_b) {
+		return QFileInfo{file_a}.fileName() < QFileInfo{file_b}.fileName();
+	});
+
+	for (const auto& file : files) {
+		auto info = QFileInfo{file};
+		auto size = info.size();
+		total_size -= size;
+		sanitizerDebug() << "Removing" << info.absoluteFilePath() << "size" << size;
+		QFile(file).remove();
+		if (total_size <= max_size) {
+			break;
+		}
+	}
+
 }
 
 void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
@@ -708,8 +755,8 @@ void ShvJournalNode::syncLog(const std::string& shv_path, const std::function<vo
 		}
 	}
 
+	site_list_cb(sites_to_be_synced);
 	if (!all_synced.empty()) {
-		site_list_cb(sites_to_be_synced);
 		QtFuture::whenAll(all_synced.begin(), all_synced.end()).then([success_cb] (const auto&) {
 			success_cb();
 		});
@@ -767,6 +814,11 @@ cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 			}
 		}
 		return sync_info;
+	}
+
+	if (method == "sanitizeLog") {
+		sanitizeSize();
+		return "Cache sanitization done";
 	}
 
 	return Super::callMethodRq(rq);
