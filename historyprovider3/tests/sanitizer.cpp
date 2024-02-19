@@ -41,9 +41,9 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_SUBSCRIPTION("shv/eyas/with_app_history", "cmdlog");
 
-			create_dummy_cache_files(cache_dir_path, {
-				{ "2022-07-07T18-06-15-557.log2", dummy_logfile },
-				{ "2022-07-07T18-06-15-560.log2", dummy_logfile },
+			create_dummy_cache_files("", {
+				{ "opc/2022-07-07T18-06-15-557.log2", dummy_logfile },
+				{ "opc/2022-07-07T18-06-15-560.log2", dummy_logfile },
 			});
 			return CallNext::Yes;
 		});
@@ -51,10 +51,10 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		DOCTEST_SUBCASE("when size is within quota")
 		{
 			enqueue(res, [=] (MockRpcConnection*) {
-				HistoryApp::instance()->setSingleCacheSizeLimit(5000);
+				HistoryApp::instance()->setTotalCacheSizeLimit(5000);
 				*expected_cache_contents = RpcValue::List({{
-					RpcValue::List{ "2022-07-07T18-06-15-557.log2", 308UL },
-					RpcValue::List{ "2022-07-07T18-06-15-560.log2", 308UL }
+					RpcValue::List{ "opc/2022-07-07T18-06-15-557.log2", 308UL },
+					RpcValue::List{ "opc/2022-07-07T18-06-15-560.log2", 308UL }
 				}});
 				return CallNext::Yes;
 			});
@@ -63,20 +63,23 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		DOCTEST_SUBCASE("when size is over quota")
 		{
 			enqueue(res, [=] (MockRpcConnection*) {
-				HistoryApp::instance()->setSingleCacheSizeLimit(500);
+				HistoryApp::instance()->setTotalCacheSizeLimit(500);
 				*expected_cache_contents = RpcValue::List({{
-					RpcValue::List{ "2022-07-07T18-06-15-560.log2", 308UL }
+					RpcValue::List{ "opc/2022-07-07T18-06-15-560.log2", 308UL }
 				}});
 				return CallNext::Yes;
 			});
 		}
 
 		enqueue(res, [=] (MockRpcConnection* mock) {
-			REQUEST_YIELD(cache_dir_path, "sanitizeLog", RpcValue());
+			REQUEST_YIELD("_shvjournal", "sanitizeLog", RpcValue());
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_SIGNAL("_shvjournal", "cmdlog");
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_RESPONSE("Cache sanitization done");
-			REQUIRE(get_cache_contents(cache_dir_path) == *expected_cache_contents);
+			REQUIRE(get_cache_contents("") == *expected_cache_contents);
 		});
 	}
 
@@ -100,26 +103,24 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_SUBSCRIPTION("shv/two", "cmdlog");
-			HistoryApp::instance()->setSingleCacheSizeLimit(500);
+			HistoryApp::instance()->setTotalCacheSizeLimit(800);
 
-			create_dummy_cache_files("one", {
-				{ "2022-07-07T18-06-15-557.log2", dummy_logfile },
-				{ "2022-07-07T18-06-15-560.log2", dummy_logfile },
-			});
-			create_dummy_cache_files("two", {
-				{ "2022-07-07T18-06-15-557.log2", dummy_logfile },
-				{ "2022-07-07T18-06-15-560.log2", dummy_logfile },
+			create_dummy_cache_files("", {
+				{ "one/2022-07-07T18-06-15-557.log2", dummy_logfile },
+				{ "one/2022-07-07T18-06-15-560.log2", dummy_logfile },
+				{ "two/2022-07-07T18-06-15-557.log2", dummy_logfile },
+				{ "two/2022-07-07T18-06-15-560.log2", dummy_logfile },
 			});
 			*expected_cache_contents = RpcValue::List({{
-				RpcValue::List{ "2022-07-07T18-06-15-560.log2", 308UL }
+				RpcValue::List{ "one/2022-07-07T18-06-15-560.log2", 308UL },
+				RpcValue::List{ "two/2022-07-07T18-06-15-560.log2", 308UL }
 			}});
 			DRIVER_WAIT(3000);
 		});
 
 
 		enqueue(res, [=] (MockRpcConnection*) {
-			REQUIRE(get_cache_contents("one") == *expected_cache_contents);
-			REQUIRE(get_cache_contents("two") == *expected_cache_contents);
+			REQUIRE(get_cache_contents("") == *expected_cache_contents);
 		});
 	}
 	return res;

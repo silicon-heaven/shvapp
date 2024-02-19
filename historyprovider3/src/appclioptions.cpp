@@ -1,4 +1,5 @@
 #include "appclioptions.h"
+#include <chrono>
 
 namespace cp = shv::chainpack;
 
@@ -8,8 +9,11 @@ AppCliOptions::AppCliOptions()
 		.setComment("Local file system directory, which contains journal cache.").setDefaultValue("/tmp/historyprovider");
 	addOption("app.journalCacheSizeLimit").setType(shv::chainpack::RpcValue::Type::String).setNames("--journal-cache-size-limit")
 			.setComment("Set journal cache size limit (suffixes: k, M, G)").setDefaultValue("1G");
-	addOption("app.journalSanitizerInterval").setType(shv::chainpack::RpcValue::Type::Int).setNames("--journal-sanitizer-interval")
-			.setComment("Set journal sanitizer interval in seconds").setDefaultValue(60);
+	{
+		using namespace std::chrono;
+		addOption("app.journalSanitizerInterval").setType(shv::chainpack::RpcValue::Type::Int).setNames("--journal-sanitizer-interval")
+				.setComment("Set journal sanitizer interval in seconds").setDefaultValue(duration_cast<seconds>(hours(1)).count());
+	}
 	addOption("app.syncIteratorInterval").setType(shv::chainpack::RpcValue::Type::Int).setNames("--sync-iterator-interval")
 			.setComment("Set sync iterator interval between each site in seconds").setDefaultValue(60);
 	addOption("app.logMaxAge").setType(shv::chainpack::RpcValue::Type::Int).setNames("--log-max-age")
