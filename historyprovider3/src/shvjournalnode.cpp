@@ -708,8 +708,8 @@ void ShvJournalNode::syncLog(const std::string& shv_path, const std::function<vo
 		}
 	}
 
+	site_list_cb(sites_to_be_synced);
 	if (!all_synced.empty()) {
-		site_list_cb(sites_to_be_synced);
 		QtFuture::whenAll(all_synced.begin(), all_synced.end()).then([success_cb] (const auto&) {
 			success_cb();
 		});
