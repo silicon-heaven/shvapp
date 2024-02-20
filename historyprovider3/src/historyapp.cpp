@@ -113,6 +113,16 @@ cp::RpcValue AppRootNode::callMethod(const StringViewList& shv_path, const std::
 	return Super::callMethod(shv_path, method, params, user_id);
 }
 
+LeafNode* HistoryApp::leafNode(const std::string& path)
+{
+	auto it = std::ranges::find(m_leafNodes, path, &shv::iotqt::node::ShvNode::shvPath);
+	if (it == m_leafNodes.end()) {
+		throw std::logic_error("LeafNode " + path + " not found");
+	}
+
+	return *it;
+}
+
 QFuture<void> HistoryApp::reloadSites()
 {
 	if (m_loadingSites) {
@@ -319,6 +329,7 @@ QFuture<void> HistoryApp::initializeShvTree()
 {
 	m_root = new AppRootNode();
 	m_shvTree = new si::node::ShvNodeTree(m_root, this);
+	m_valueCacheNode = new ValueCacheNode(m_root);
 	connect(m_shvTree->root(), &si::node::ShvRootNode::sendRpcMessage, m_rpcConnection, &si::rpc::ClientConnection::sendRpcMessage);
 
 	auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
@@ -361,8 +372,6 @@ QFuture<void> HistoryApp::initializeShvTree()
 			connect(m_sanitizerTimer, &QTimer::timeout, m_shvJournalNode, &ShvJournalNode::sanitizeSize);
 			m_sanitizerTimer->start(m_cliOptions->journalSanitizerInterval() * 1000);
 		}
-
-		new ValueCacheNode(m_root);
 
 		promise.finish();
 	});

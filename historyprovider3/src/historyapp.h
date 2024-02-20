@@ -1,5 +1,6 @@
 #pragma once
 
+#include <shv/iotqt/rpc/deviceconnection.h>
 #include <shv/iotqt/node/shvnode.h>
 
 #include <QCoreApplication>
@@ -18,6 +19,7 @@ namespace shv { namespace iotqt { namespace node { class ShvNodeTree; }}}
 
 class LeafNode;
 class ShvJournalNode;
+class ValueCacheNode;
 
 class AppRootNode : public shv::iotqt::node::ShvRootNode
 {
@@ -46,6 +48,8 @@ public:
 	int64_t totalCacheSizeLimit() const {return m_totalCacheSizeLimit;}
 	void setTotalCacheSizeLimit(int64_t size_limit) {m_totalCacheSizeLimit = size_limit;}
 	ShvJournalNode* shvJournalNode() {return m_shvJournalNode;}
+	ValueCacheNode* valueCacheNode() {return m_valueCacheNode;}
+	LeafNode* leafNode(const std::string& path);
 
 	AppCliOptions* cliOptions() {return m_cliOptions;}
 
@@ -68,6 +72,7 @@ private:
 	int64_t m_totalCacheSizeLimit;
 	QList<LeafNode*> m_leafNodes;
 	ShvJournalNode* m_shvJournalNode = nullptr;
+	ValueCacheNode* m_valueCacheNode = nullptr;
 	QTimer* m_sanitizerTimer = nullptr;
 	bool m_loadingSites = false;
 };

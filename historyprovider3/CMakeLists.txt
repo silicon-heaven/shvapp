@@ -45,6 +45,7 @@ if(BUILD_TESTING)
     history_test(sites_timeout)
     history_test(connection_failure)
     history_test(value_cache)
+    history_test(alarms)
 
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/tests/test_vars.h.in ${CMAKE_CURRENT_BINARY_DIR}/test_vars.h @ONLY)
     target_include_directories(libhistoryprovider PUBLIC ${CMAKE_CURRENT_BINARY_DIR})

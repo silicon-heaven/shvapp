@@ -2,6 +2,9 @@
 
 #include "logtype.h"
 
+#include <shv/core/utils/shvalarm.h>
+#include <shv/core/utils/shvgetlogparams.h>
+#include <shv/core/utils/shvtypeinfo.h>
 #include <shv/iotqt/node/shvnode.h>
 #include <shv/iotqt/node/localfsnode.h>
 
@@ -19,8 +22,15 @@ public:
 	shv::chainpack::RpcValue callMethod(const StringViewList& shv_path, const std::string& method, const shv::chainpack::RpcValue& params, const shv::chainpack::RpcValue& user_id) override;
 	qint64 calculateCacheDirSize() const;
 
+	std::vector<shv::core::utils::ShvAlarm> alarms() const;
+
 private:
+	shv::chainpack::RpcValue getLog(const shv::core::utils::ShvGetLogParams& get_log_params);
+
 	std::string m_journalCacheDir;
 	LogType m_logType;
 	shv::chainpack::RpcValue::List m_pushLogDebugLog;
+	std::variant<shv::core::utils::ShvTypeInfo, std::string> m_typeInfo = std::string{"typeInfo not yet initialized"};
+	std::vector<shv::core::utils::ShvAlarm> m_alarms;
+	shv::core::utils::ShvAlarm::Severity m_overallAlarm = shv::core::utils::ShvAlarm::Severity::Invalid;
 };

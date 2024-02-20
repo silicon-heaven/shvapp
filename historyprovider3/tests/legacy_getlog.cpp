@@ -19,7 +19,9 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 	});
 
 	std::string shv_path = "shv/legacy";
-
+	enqueue(res, [=] (MockRpcConnection* mock) {
+		DISABLE_TYPEINFO("legacy");
+	});
 	enqueue(res, [=] (MockRpcConnection* mock) {
 		EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
 	});

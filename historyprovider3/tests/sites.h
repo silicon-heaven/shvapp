@@ -105,6 +105,19 @@ const auto legacy_hp = R"(
 }
 )"_cpon;
 
+const auto one_device = R"(
+{
+  "_meta":{
+    "HP3":{"type": "HP3"}
+  },
+  "one": {
+    "_meta":{
+      "HP3":{"syncPath":".app/shvjournal"}
+    },
+  },
+}
+)"_cpon;
+
 const auto two_devices = R"(
 {
   "_meta":{
@@ -148,4 +161,136 @@ const auto even_more_devices = R"(
   }
 }
 )"_cpon;
+
+const auto some_site = R"(
+{
+  "_meta":{
+    "HP3":{"type": "HP3"}
+  },
+  "some_site": {
+    "_meta":{
+      "HP3":{"syncPath":".app/shvjournal"}
+    },
+  },
+}
+)"_cpon;
+}
+
+
+namespace mock_typeinfo {
+const auto one_device = R"EOF(
+<"version":4>{
+	"deviceDescriptions":{
+		"one_alarm_device":{
+			"properties":[
+				{
+					"name":"status",
+					"typeName":"one_alarm_type"
+				}
+			]
+		},
+	},
+	"devicePaths":{
+		"one":"one_alarm_device",
+	},
+	"types":{
+		"one_alarm_type":{
+			"fields":[
+				{"alarm":"error", "description":"Alarm 1", "label":"Alarm 1 label", "name":"some_alarm_name", "value":0},
+			],
+			"typeName":"BitField"
+		},
+	}
+}
+)EOF";
+const auto two_device = R"EOF(
+<"version":4>{
+	"deviceDescriptions":{
+		"one_alarm_device":{
+			"properties":[
+				{
+					"name":"status",
+					"typeName":"one_alarm_type"
+				}
+			]
+		},
+	},
+	"devicePaths":{
+		"one":"one_alarm_device",
+		"two":"one_alarm_device",
+	},
+	"types":{
+		"one_alarm_type":{
+			"fields":[
+				{"alarm":"error", "description":"Alarm 1", "label":"Alarm 1 label", "name":"some_alarm_name", "value":0},
+			],
+			"typeName":"BitField"
+		},
+	}
+}
+)EOF";
+const auto two_alarms = R"EOF(
+<"version":4>{
+	"deviceDescriptions":{
+		"two_alarm_device":{
+			"properties":[
+				{
+					"name":"status1",
+					"typeName":"one_alarm_type"
+				},
+				{
+					"name":"status2",
+					"typeName":"one_alarm_type"
+				}
+			]
+		},
+	},
+	"devicePaths":{
+		"one":"two_alarm_device",
+	},
+	"types":{
+		"one_alarm_type":{
+			"fields":[
+				{"alarm":"error", "description":"Alarm 1", "label":"Alarm 1 label", "name":"some_alarm_name", "value":0},
+			],
+			"typeName":"BitField"
+		},
+	}
+}
+)EOF";
+const auto different_severity = R"EOF(
+<"version":4>{
+	"deviceDescriptions":{
+		"two_alarm_device":{
+			"properties":[
+				{
+					"name":"status1",
+					"typeName":"alarm_warning"
+				},
+				{
+					"name":"status2",
+					"typeName":"alarm_error"
+				}
+			]
+		},
+	},
+	"devicePaths":{
+		"one":"two_alarm_device",
+	},
+	"types":{
+		"alarm_warning":{
+			"fields":[
+				{"alarm":"warning", "description":"Alarm 1", "label":"Alarm 1 label", "name":"alarm_warning", "value":0},
+			],
+			"typeName":"BitField"
+		},
+		"alarm_error":{
+			"fields":[
+				{"alarm":"error", "description":"Alarm 1", "label":"Alarm 1 label", "name":"alarm_error", "value":0},
+			],
+			"typeName":"BitField"
+		},
+	}
+}
+)EOF";
 }
