@@ -857,7 +857,7 @@ cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 	}
 
 	if (method == M_LOG_USAGE) {
-		return std::to_string(get_log_info(m_cacheDirPath).total_size / HistoryApp::instance()->totalCacheSizeLimit() * 100) + " %";
+		return static_cast<double>(get_log_info(m_cacheDirPath).total_size) / static_cast<double>(HistoryApp::instance()->totalCacheSizeLimit()) * 100;
 	}
 
 	return Super::callMethodRq(rq);
