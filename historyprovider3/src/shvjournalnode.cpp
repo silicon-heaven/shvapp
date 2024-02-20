@@ -133,7 +133,7 @@ auto get_log_info(auto cache_dir_path)
 {
 	auto it = QDirIterator{cache_dir_path, QDir::Files | QDir::NoDotAndDotDot, QDirIterator::Subdirectories};
 	struct {
-		QStringList files;
+		QList<QFileInfo> files;
 		qint64 total_size = 0;
 	} ret;
 	while (it.hasNext()) {
@@ -142,7 +142,7 @@ auto get_log_info(auto cache_dir_path)
 		if (file_info.fileName() == "dirtylog") {
 			continue;
 		}
-		ret.files.emplace_back(file_info.absoluteFilePath());
+		ret.files.emplace_back(file_info);
 	}
 
 	return ret;
@@ -159,16 +159,20 @@ void ShvJournalNode::sanitizeSize() const
 		sanitizerDebug() << "Total size is within limits";
 		return;
 	}
-	std::ranges::sort(log_info.files, [] (const QString& file_a, const QString& file_b) {
-		return QFileInfo{file_a}.fileName() < QFileInfo{file_b}.fileName();
+	std::ranges::sort(log_info.files, [] (const auto& file_a, const auto& file_b) {
+		return file_a.fileName() < file_b.fileName();
 	});
 
 	for (const auto& file : log_info.files) {
 		auto info = QFileInfo{file};
+		if (std::ranges::count(log_info.files, info.path(), &QFileInfo::path) < 2) {
+			// Let's leave at least one file in each directory, so that we have a snapshot.
+			continue;
+		}
 		auto size = info.size();
 		log_info.total_size -= size;
 		sanitizerDebug() << "Removing" << info.absoluteFilePath() << "size" << size;
-		QFile(file).remove();
+		QFile(file.absoluteFilePath()).remove();
 		if (log_info.total_size <= max_size) {
 			break;
 		}

@@ -135,6 +135,52 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 			REQUIRE(get_cache_contents("") == *expected_cache_contents);
 		});
 	}
+
+	DOCTEST_SUBCASE("sanitizer won't delete last file of site")
+	{
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			SEND_SITES_YIELD(mock_sites::two_devices);
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			DISABLE_TYPEINFO("one");
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			DISABLE_TYPEINFO("two");
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION_YIELD("shv/one", "chng");
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION_YIELD("shv/one", "cmdlog");
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION_YIELD("shv/two", "chng");
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION("shv/two", "cmdlog");
+			HistoryApp::instance()->setTotalCacheSizeLimit(800);
+			create_dummy_cache_files("", {
+				{ "one/2022-07-07T18-06-15-557.log2", dummy_logfile },
+				{ "two/2022-07-07T18-06-15-560.log2", dummy_logfile },
+				{ "two/2022-07-07T18-06-15-600.log2", dummy_logfile },
+			});
+			*expected_cache_contents = RpcValue::List({{
+				RpcValue::List{ "one/2022-07-07T18-06-15-557.log2", 308UL },
+				RpcValue::List{ "two/2022-07-07T18-06-15-600.log2", 308UL }
+			}});
+			REQUEST_YIELD("_shvjournal", "sanitizeLog", RpcValue());
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_SIGNAL("_shvjournal", "cmdlog");
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_RESPONSE("Cache sanitization done");
+			REQUIRE(get_cache_contents("") == *expected_cache_contents);
+		});
+	}
 	return res;
 }
 
