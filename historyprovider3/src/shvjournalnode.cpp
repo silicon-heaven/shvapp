@@ -39,7 +39,11 @@ Optionally takes a string that filters the sites by prefix.
 
 Returns: a map where they is the path of the site and the value is a map with a status string and a last updated timestamp.
 )";
+
+const auto M_TOTAL_LOG_SIZE = "totalLogSize";
+
 const std::vector<cp::MetaMethod> methods {
+	{M_TOTAL_LOG_SIZE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_DEVEL, "Returns: total size occupied by logs."},
 	{"syncLog", cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE, SYNCLOG_DESC},
 	{"syncInfo", cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ, SYNCINFO_DESC},
 	{"sanitizeLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_DEVEL},
@@ -831,6 +835,10 @@ cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 	if (method == "sanitizeLog") {
 		sanitizeSize();
 		return "Cache sanitization done";
+	}
+
+	if (method == M_TOTAL_LOG_SIZE) {
+		return get_log_info(m_cacheDirPath).total_size;
 	}
 
 	return Super::callMethodRq(rq);
