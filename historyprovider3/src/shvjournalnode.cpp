@@ -121,41 +121,51 @@ ShvJournalNode::ShvJournalNode(const std::vector<SlaveHpInfo>& slave_hps, const 
 #define sanitizerInfo() shvCInfo("sanitizer")
 #define sanitizerDebug() shvCDebug("sanitizer")
 
-void ShvJournalNode::sanitizeSize() const
+namespace {
+auto get_log_info(auto cache_dir_path)
 {
-	auto max_size = HistoryApp::instance()->totalCacheSizeLimit();
-	auto it = QDirIterator{m_cacheDirPath, QDir::Files | QDir::NoDotAndDotDot, QDirIterator::Subdirectories};
-	QStringList files;
-	qint64 total_size = 0;
+	auto it = QDirIterator{cache_dir_path, QDir::Files | QDir::NoDotAndDotDot, QDirIterator::Subdirectories};
+	struct {
+		QStringList files;
+		qint64 total_size = 0;
+	} ret;
 	while (it.hasNext()) {
 		auto file_info = it.nextFileInfo();
-		total_size += file_info.size();
+		ret.total_size += file_info.size();
 		if (file_info.fileName() == "dirtylog") {
 			continue;
 		}
-		files.emplace_back(file_info.absoluteFilePath());
+		ret.files.emplace_back(file_info.absoluteFilePath());
 	}
 
-	sanitizerInfo() << "Current total size:" << total_size << "journalCacheSizeLimit:" << max_size;
-	if (total_size <= max_size) {
+	return ret;
+}
+}
+
+void ShvJournalNode::sanitizeSize() const
+{
+	auto max_size = HistoryApp::instance()->totalCacheSizeLimit();
+	auto log_info = get_log_info(m_cacheDirPath);
+
+	sanitizerInfo() << "Current total size:" << log_info.total_size << "journalCacheSizeLimit:" << max_size;
+	if (log_info.total_size <= max_size) {
 		sanitizerDebug() << "Total size is within limits";
 		return;
 	}
-	std::ranges::sort(files, [] (const QString& file_a, const QString& file_b) {
+	std::ranges::sort(log_info.files, [] (const QString& file_a, const QString& file_b) {
 		return QFileInfo{file_a}.fileName() < QFileInfo{file_b}.fileName();
 	});
 
-	for (const auto& file : files) {
+	for (const auto& file : log_info.files) {
 		auto info = QFileInfo{file};
 		auto size = info.size();
-		total_size -= size;
+		log_info.total_size -= size;
 		sanitizerDebug() << "Removing" << info.absoluteFilePath() << "size" << size;
 		QFile(file).remove();
-		if (total_size <= max_size) {
+		if (log_info.total_size <= max_size) {
 			break;
 		}
 	}
-
 }
 
 void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
