@@ -411,6 +411,40 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 				});
 			});
 		}
+
+		DOCTEST_SUBCASE("alarms are loaded from snapshot") {
+			const auto snapshot = R"(2022-07-07T18:06:17.784Z	809781	one/status	1		chng	2	)";
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				create_dummy_cache_files("some_site", {
+					{"2022-07-06T18-06-15-000.log2", snapshot}
+				});
+				SEND_SITES_YIELD(mock_sites::some_site);
+			});
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				ENABLE_TYPEINFO("some_site");
+			});
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
+			});
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				EXPECT_SUBSCRIPTION_YIELD("shv/some_site", "chng");
+			});
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				EXPECT_SUBSCRIPTION("shv/some_site", "cmdlog");
+			});
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				SEND_TYPEINFO_YIELD("some_site", mock_typeinfo::one_device);
+			});
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				EXPECT_SIGNAL("some_site", "alarmchng");
+			});
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				EXPECT_SIGNAL("some_site:overallAlarm", "chng", static_cast<int>(Severity::Error));
+				REQUIRE(HistoryApp::instance()->leafNode("some_site")->alarms() == std::vector<shv::core::utils::ShvAlarm>{
+					make_alarm("one/status/some_alarm_name")
+				});
+			});
+		}
 	}
 	return res;
 }
