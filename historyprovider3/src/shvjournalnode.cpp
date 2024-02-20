@@ -40,13 +40,17 @@ Optionally takes a string that filters the sites by prefix.
 Returns: a map where they is the path of the site and the value is a map with a status string and a last updated timestamp.
 )";
 
+const auto M_LOG_SIZE_LIMIT = "logSizeLimit";
 const auto M_TOTAL_LOG_SIZE = "totalLogSize";
+const auto M_LOG_USAGE = "logUsage";
 const auto M_SYNC_INFO = "syncInfo";
 const auto M_SYNC_LOG = "syncLog";
 const auto M_SANITIZE_LOG = "sanitizeLog";
 
 const std::vector<cp::MetaMethod> methods {
+	{M_LOG_SIZE_LIMIT, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_DEVEL, "Returns: log size limit."},
 	{M_TOTAL_LOG_SIZE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_DEVEL, "Returns: total size occupied by logs."},
+	{M_LOG_USAGE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_DEVEL, "Returns: percentage of space occupied by logs."},
 	{M_SYNC_LOG, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE, SYNCLOG_DESC},
 	{M_SYNC_INFO, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ, SYNCINFO_DESC},
 	{M_SANITIZE_LOG, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_DEVEL},
@@ -846,6 +850,14 @@ cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 
 	if (method == M_TOTAL_LOG_SIZE) {
 		return get_log_info(m_cacheDirPath).total_size;
+	}
+
+	if (method == M_LOG_SIZE_LIMIT) {
+		return HistoryApp::instance()->totalCacheSizeLimit();
+	}
+
+	if (method == M_LOG_USAGE) {
+		return std::to_string(get_log_info(m_cacheDirPath).total_size / HistoryApp::instance()->totalCacheSizeLimit() * 100) + " %";
 	}
 
 	return Super::callMethodRq(rq);
