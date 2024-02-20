@@ -41,12 +41,15 @@ Returns: a map where they is the path of the site and the value is a map with a 
 )";
 
 const auto M_TOTAL_LOG_SIZE = "totalLogSize";
+const auto M_SYNC_INFO = "syncInfo";
+const auto M_SYNC_LOG = "syncLog";
+const auto M_SANITIZE_LOG = "sanitizeLog";
 
 const std::vector<cp::MetaMethod> methods {
 	{M_TOTAL_LOG_SIZE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_DEVEL, "Returns: total size occupied by logs."},
-	{"syncLog", cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE, SYNCLOG_DESC},
-	{"syncInfo", cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ, SYNCINFO_DESC},
-	{"sanitizeLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_DEVEL},
+	{M_SYNC_LOG, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE, SYNCLOG_DESC},
+	{M_SYNC_INFO, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ, SYNCINFO_DESC},
+	{M_SANITIZE_LOG, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_DEVEL},
 };
 
 const auto DIRTY_FILENAME = "dirtylog";
@@ -782,7 +785,7 @@ void ShvJournalNode::syncLog(const std::string& shv_path, const std::function<vo
 cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 {
 	auto method = rq.method().asString();
-	if (method == "syncLog") {
+	if (method == M_SYNC_LOG) {
 		auto params = rq.params();
 
 		auto shv_path = rq.params().asMap().value("shvPath", rq.params().asString());
@@ -818,7 +821,7 @@ cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 		return {};
 	}
 
-	if (method == "syncInfo") {
+	if (method == M_SYNC_INFO) {
 		auto sync_info = syncInfo();
 		if (auto filter = rq.params().asString(); !filter.empty()) {
 			for (auto it = sync_info.begin(); it != sync_info.end(); /*nothing*/) {
@@ -832,7 +835,7 @@ cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 		return sync_info;
 	}
 
-	if (method == "sanitizeLog") {
+	if (method == M_SANITIZE_LOG) {
 		sanitizeSize();
 		return "Cache sanitization done";
 	}
