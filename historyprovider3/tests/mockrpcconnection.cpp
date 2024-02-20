@@ -92,7 +92,7 @@ void MockRpcConnection::advanceTest()
 	if (m_testDriver.empty()) {
 		// We'll wait a bit before ending to make sure the client isn't sending more messages.
 		QTimer::singleShot(100, [] {
-			HistoryApp::instance()->exit();
+			HistoryApp::exit();
 		});
 	}
 }

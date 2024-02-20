@@ -1,8 +1,6 @@
 #include "appclioptions.h"
 #include <chrono>
 
-namespace cp = shv::chainpack;
-
 AppCliOptions::AppCliOptions()
 {
 	addOption("app.journalCacheRoot").setType(shv::chainpack::RpcValue::Type::String).setNames("--journal-cache-root")

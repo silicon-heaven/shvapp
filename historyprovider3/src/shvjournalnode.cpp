@@ -730,7 +730,7 @@ private:
 	}
 
 	ShvJournalNode* m_node;
-	const QString m_shvPath;
+	const QString m_shvPath; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 	int current_memory_usage = 0;
 
 	std::queue<shv::iotqt::rpc::RpcCall*> m_downloadQueue;
