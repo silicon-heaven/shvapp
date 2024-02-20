@@ -24,16 +24,20 @@
 
 namespace cp = shv::chainpack;
 namespace {
+const auto M_GET_LOG = "getLog";
+const auto M_LOG_SIZE = "logSize";
 const std::vector<cp::MetaMethod> methods {
 	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE},
 	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE},
-	{"getLog", cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
-	{"logSize", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
+	{M_GET_LOG, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
+	{M_LOG_SIZE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
 };
 
+const auto M_PUSH_LOG = "pushLog";
+const auto M_PUSH_LOG_DEBUG_LOG = "pushLogDebugLog";
 const std::vector<cp::MetaMethod> push_log_methods {
-	{"pushLog", cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
-	{"pushLogDebugLog", cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_DEVEL},
+	{M_PUSH_LOG, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
+	{M_PUSH_LOG_DEBUG_LOG, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_DEVEL},
 };
 
 const auto M_OVERALL_ALARM = "overallAlarm";
@@ -268,7 +272,7 @@ shv::chainpack::RpcValue LeafNode::getLog(const shv::core::utils::ShvGetLogParam
 
 shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, const std::string& method, const shv::chainpack::RpcValue& params, const shv::chainpack::RpcValue& user_id)
 {
-	if (method == "pushLog" && m_logType == LogType::PushLog) {
+	if (method == M_PUSH_LOG && m_logType == LogType::PushLog) {
 		m_pushLogDebugLog.clear();
 		#define log_pushlog(logger, msg) \
 			logger << (msg); \
@@ -343,11 +347,11 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 		};
 	}
 
-	if (method == "pushLogDebugLog" && m_logType == LogType::PushLog) {
+	if (method == M_PUSH_LOG_DEBUG_LOG && m_logType == LogType::PushLog) {
 		return m_pushLogDebugLog;
 	}
 
-	if (method == "getLog") {
+	if (method == M_GET_LOG) {
 		return getLog(shv::core::utils::ShvGetLogParams(params));
 	}
 
@@ -365,7 +369,7 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 		return static_cast<int>(m_overallAlarm);
 	}
 
-	if (method == "logSize") {
+	if (method == M_LOG_SIZE) {
 		return shv::chainpack::RpcValue::Int(calculateCacheDirSize());
 	}
 

@@ -39,10 +39,21 @@ Optionally takes a string that filters the sites by prefix.
 
 Returns: a map where they is the path of the site and the value is a map with a status string and a last updated timestamp.
 )";
+
+const auto M_LOG_SIZE_LIMIT = "logSizeLimit";
+const auto M_TOTAL_LOG_SIZE = "totalLogSize";
+const auto M_LOG_USAGE = "logUsage";
+const auto M_SYNC_INFO = "syncInfo";
+const auto M_SYNC_LOG = "syncLog";
+const auto M_SANITIZE_LOG = "sanitizeLog";
+
 const std::vector<cp::MetaMethod> methods {
-	{"syncLog", cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE, SYNCLOG_DESC},
-	{"syncInfo", cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ, SYNCINFO_DESC},
-	{"sanitizeLog", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_DEVEL},
+	{M_LOG_SIZE_LIMIT, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_DEVEL, "Returns: log size limit."},
+	{M_TOTAL_LOG_SIZE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_DEVEL, "Returns: total size occupied by logs."},
+	{M_LOG_USAGE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_DEVEL, "Returns: percentage of space occupied by logs."},
+	{M_SYNC_LOG, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE, SYNCLOG_DESC},
+	{M_SYNC_INFO, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ, SYNCINFO_DESC},
+	{M_SANITIZE_LOG, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_DEVEL},
 };
 
 const auto DIRTY_FILENAME = "dirtylog";
@@ -121,41 +132,55 @@ ShvJournalNode::ShvJournalNode(const std::vector<SlaveHpInfo>& slave_hps, const 
 #define sanitizerInfo() shvCInfo("sanitizer")
 #define sanitizerDebug() shvCDebug("sanitizer")
 
-void ShvJournalNode::sanitizeSize() const
+namespace {
+auto get_log_info(auto cache_dir_path)
 {
-	auto max_size = HistoryApp::instance()->totalCacheSizeLimit();
-	auto it = QDirIterator{m_cacheDirPath, QDir::Files | QDir::NoDotAndDotDot, QDirIterator::Subdirectories};
-	QStringList files;
-	qint64 total_size = 0;
+	auto it = QDirIterator{cache_dir_path, QDir::Files | QDir::NoDotAndDotDot, QDirIterator::Subdirectories};
+	struct {
+		QList<QFileInfo> files;
+		qint64 total_size = 0;
+	} ret;
 	while (it.hasNext()) {
 		auto file_info = it.nextFileInfo();
-		total_size += file_info.size();
+		ret.total_size += file_info.size();
 		if (file_info.fileName() == "dirtylog") {
 			continue;
 		}
-		files.emplace_back(file_info.absoluteFilePath());
+		ret.files.emplace_back(file_info);
 	}
 
-	sanitizerInfo() << "Current total size:" << total_size << "journalCacheSizeLimit:" << max_size;
-	if (total_size <= max_size) {
+	return ret;
+}
+}
+
+void ShvJournalNode::sanitizeSize() const
+{
+	auto max_size = HistoryApp::instance()->totalCacheSizeLimit();
+	auto log_info = get_log_info(m_cacheDirPath);
+
+	sanitizerInfo() << "Current total size:" << log_info.total_size << "journalCacheSizeLimit:" << max_size;
+	if (log_info.total_size <= max_size) {
 		sanitizerDebug() << "Total size is within limits";
 		return;
 	}
-	std::ranges::sort(files, [] (const QString& file_a, const QString& file_b) {
-		return QFileInfo{file_a}.fileName() < QFileInfo{file_b}.fileName();
+	std::ranges::sort(log_info.files, [] (const auto& file_a, const auto& file_b) {
+		return file_a.fileName() < file_b.fileName();
 	});
 
-	for (const auto& file : files) {
+	for (const auto& file : log_info.files) {
 		auto info = QFileInfo{file};
+		if (std::ranges::count(log_info.files, info.path(), &QFileInfo::path) < 2) {
+			// Let's leave at least one file in each directory, so that we have a snapshot.
+			continue;
+		}
 		auto size = info.size();
-		total_size -= size;
+		log_info.total_size -= size;
 		sanitizerDebug() << "Removing" << info.absoluteFilePath() << "size" << size;
-		QFile(file).remove();
-		if (total_size <= max_size) {
+		QFile(file.absoluteFilePath()).remove();
+		if (log_info.total_size <= max_size) {
 			break;
 		}
 	}
-
 }
 
 void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
@@ -768,7 +793,7 @@ void ShvJournalNode::syncLog(const std::string& shv_path, const std::function<vo
 cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 {
 	auto method = rq.method().asString();
-	if (method == "syncLog") {
+	if (method == M_SYNC_LOG) {
 		auto params = rq.params();
 
 		auto shv_path = rq.params().asMap().value("shvPath", rq.params().asString());
@@ -804,7 +829,7 @@ cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 		return {};
 	}
 
-	if (method == "syncInfo") {
+	if (method == M_SYNC_INFO) {
 		auto sync_info = syncInfo();
 		if (auto filter = rq.params().asString(); !filter.empty()) {
 			for (auto it = sync_info.begin(); it != sync_info.end(); /*nothing*/) {
@@ -818,9 +843,21 @@ cp::RpcValue ShvJournalNode::callMethodRq(const cp::RpcRequest &rq)
 		return sync_info;
 	}
 
-	if (method == "sanitizeLog") {
+	if (method == M_SANITIZE_LOG) {
 		sanitizeSize();
 		return "Cache sanitization done";
+	}
+
+	if (method == M_TOTAL_LOG_SIZE) {
+		return get_log_info(m_cacheDirPath).total_size;
+	}
+
+	if (method == M_LOG_SIZE_LIMIT) {
+		return HistoryApp::instance()->totalCacheSizeLimit();
+	}
+
+	if (method == M_LOG_USAGE) {
+		return std::to_string(get_log_info(m_cacheDirPath).total_size / HistoryApp::instance()->totalCacheSizeLimit() * 100) + " %";
 	}
 
 	return Super::callMethodRq(rq);
