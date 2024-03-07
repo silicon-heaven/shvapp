@@ -133,7 +133,7 @@ LeafNode::LeafNode(const std::string& node_id, const std::string& journal_cache_
 					auto new_overall_alarm = m_alarms.empty() ? shv::core::utils::ShvAlarm::Severity::Invalid : m_alarms.front().severity();
 					if (new_overall_alarm != m_overallAlarm) {
 						m_overallAlarm = new_overall_alarm;
-						HistoryApp::instance()->rpcConnection()->sendShvSignal(shv::core::utils::joinPath<':'>(shvPath(), M_OVERALL_ALARM), cp::Rpc::SIG_VAL_CHANGED, static_cast<int>(m_overallAlarm));
+						HistoryApp::instance()->rpcConnection()->sendShvSignal(shvPath() + ":" +  M_OVERALL_ALARM, cp::Rpc::SIG_VAL_CHANGED, static_cast<int>(m_overallAlarm));
 					}
 				};
 
