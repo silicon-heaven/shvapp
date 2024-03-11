@@ -446,14 +446,15 @@ public:
 	{
 		return promise.future();
 	}
+private:
 
-	~LegacyFileSyncerImpl() override
+	void finish()
 	{
 		writeEntriesToFile(node, downloaded_entries, cache_dir_path, file_name_hint);
 		node->appendSyncStatus(slave_hp_path, "Syncing done");
 		promise.finish();
+		deleteLater();
 	}
-private:
 	void syncNext()
 	{
 		auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
@@ -466,7 +467,7 @@ private:
 			if (error.isValid()) {
 				auto err = "Error retrieving logs via getLog for: " + slave_hp_path.toStdString() + " " + error.message();
 				node->appendSyncStatus(slave_hp_path, err);
-				deleteLater();
+				finish();
 				return;
 			}
 
@@ -475,7 +476,7 @@ private:
 			shv::core::utils::ShvMemoryJournal result_log;
 			result_log.loadLog(result);
 			if (result_log.isEmpty()) {
-				deleteLater();
+				finish();
 				return;
 			}
 
@@ -495,7 +496,7 @@ private:
 			}
 
 			if (remote_entries.size() < RECORD_COUNT_LIMIT) {
-				deleteLater();
+				finish();
 				return;
 			}
 
