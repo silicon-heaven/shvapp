@@ -82,6 +82,55 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		});
 	}
 
+	DOCTEST_SUBCASE("reload sites while legacy getlog is in progress")
+	{
+		enqueue(res, [] (MockRpcConnection* mock) {
+			EXPECT_REQUEST("sites", "getSites", RpcValue());
+			RESPOND_YIELD(mock_sites::legacy_hp);
+		});
+		enqueue(res, [] (MockRpcConnection* mock) {
+			DISABLE_TYPEINFO("legacy");
+		});
+		enqueue(res, [] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION("shv", "mntchng");
+		});
+		enqueue(res, [] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION("shv/legacy", "chng");
+		  });
+		enqueue(res, [] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION("shv/legacy", "cmdlog");
+			REQUEST_YIELD("_shvjournal", "syncLog", synclog_wait("shv/legacy"));
+		});
+		enqueue(res, [] (MockRpcConnection* mock) {
+			EXPECT_REQUEST("shv/legacy", "getLog");
+			// Let's not give any response, so that the legacy synclog is still in progress when use reloadSites
+			mock->m_messageQueue.dequeue();
+			REQUEST_YIELD("", "reloadSites");
+		});
+		enqueue(res, [] (MockRpcConnection* mock) {
+			EXPECT_RESPONSE(R"(["shv/legacy"])"_cpon);
+		});
+		enqueue(res, [] (MockRpcConnection* mock) {
+			EXPECT_REQUEST("sites", "getSites", RpcValue());
+			RESPOND_YIELD(mock_sites::legacy_hp);
+		});
+		enqueue(res, [] (MockRpcConnection* mock) {
+			DISABLE_TYPEINFO("legacy");
+		});
+		enqueue(res, [] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION("shv", "mntchng");
+		});
+		enqueue(res, [] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION("shv/legacy", "chng");
+		  });
+		enqueue(res, [] (MockRpcConnection* mock) {
+			EXPECT_SUBSCRIPTION("shv/legacy", "cmdlog");
+		});
+		enqueue(res, [] (MockRpcConnection* mock) {
+			EXPECT_RESPONSE("Sites reloaded.");
+		});
+	}
+
 	return res;
 }
 
