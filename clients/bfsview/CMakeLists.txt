@@ -11,6 +11,6 @@ add_executable(bfsview
     )
 
 target_include_directories(bfsview PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(bfsview Qt::Widgets Qt::Xml Qt::Svg libshviotqt)
+target_link_libraries(bfsview Qt::Widgets Qt::Xml Qt::Svg libshv::libshviotqt)
 
 install(TARGETS bfsview)
