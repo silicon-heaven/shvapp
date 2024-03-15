@@ -16,11 +16,12 @@
 #include <QDirIterator>
 #include <QTimer>
 
-#include <queue>
+#include <deque>
 
 #define journalDebug() shvCDebug("historyjournal")
 #define journalInfo() shvCInfo("historyjournal")
 #define journalWarning() shvCWarning("historyjournal")
+#define journalError() shvCError("historyjournal")
 
 namespace cp = shv::chainpack;
 namespace {
@@ -200,7 +201,7 @@ void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 			if (it != m_slaveHps.end()) {
 				{
 					if (path.at(it->shv_path.size()) != '/') {
-						shvWarning() << "Discarding notification with a top-level node path. Offending path was:" << it->shv_path;
+						journalWarning() << "Discarding notification with a top-level node path. Offending path was:" << it->shv_path;
 						return;
 					}
 
@@ -564,7 +565,7 @@ public:
 				log_file.write(reinterpret_cast<const char*>(blob.data()), static_cast<qsizetype>(blob.size()));
 			} else {
 				auto err = "Couldn't open " + iter.key() + " for writing";
-				shvError() << err;
+				journalError() << err;
 				m_node->appendSyncStatus(m_shvPath, err.toStdString());
 			}
 
@@ -595,7 +596,7 @@ public:
 			});
 			if (error.isValid()) {
 				auto err = "Couldn't retrieve filelist from: " + shvjournal_shvpath.toStdString() + " " + error.message();
-				shvError() << err;
+				journalError() << err;
 				m_node->appendSyncStatus(slave_hp_path, err);
 				return;
 			}
@@ -685,18 +686,29 @@ public:
 					auto msg = sites_log_file.toStdString() + ": ";
 					if (retrieve_error.code() != shv::chainpack::RpcError::NoError) {
 						msg += retrieve_error.message();
-						shvError() << msg;
+						journalError() << msg;
 						m_node->appendSyncStatus(slave_hp_path, msg);
-						return;
+						auto site_path = std::filesystem::path{sites_log_file.toStdString()}.remove_filename();
+						journalWarning() << "Skipping all files from" << site_path;
+						m_node->appendSyncStatus(slave_hp_path, msg);
+						for (auto it = m_downloadQueue.begin(); it != m_downloadQueue.end(); /* nothing */) {
+							if (auto shv_path = (*it)->shvPath(); shv_path.starts_with(site_path.c_str())) {
+								journalDebug() << "Skipping" << shv_path;
+								(*it)->deleteLater();
+								it = m_downloadQueue.erase(it);
+							} else {
+								++it;
+							}
+						}
+					} else {
+						msg += "successfully synced";
+						m_downloadedFiles.insert(full_file_name, result);
+						m_node->appendSyncStatus(slave_hp_path, msg);
+						journalInfo() << msg;
 					}
-
-					msg += "successfully synced";
-					journalInfo() << msg;
-					m_node->appendSyncStatus(slave_hp_path, msg);
-					m_downloadedFiles.insert(full_file_name, result);
 					downloadNext();
 				});
-				m_downloadQueue.push(call);
+				m_downloadQueue.push_back(call);
 			}
 
 		});
@@ -727,14 +739,14 @@ private:
 		journalDebug() << "Downloading next file for" << m_shvPath.toStdString();
 		auto next = m_downloadQueue.front();
 		next->start();
-		m_downloadQueue.pop();
+		m_downloadQueue.pop_front();
 	}
 
 	ShvJournalNode* m_node;
 	const QString m_shvPath; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 	int current_memory_usage = 0;
 
-	std::queue<shv::iotqt::rpc::RpcCall*> m_downloadQueue;
+	std::deque<shv::iotqt::rpc::RpcCall*> m_downloadQueue;
 
 	QMap<QString, cp::RpcValue> m_downloadedFiles;
 	std::vector<QString> m_toTrim;

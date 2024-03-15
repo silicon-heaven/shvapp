@@ -16,13 +16,14 @@ linux:
     - if: $CI_PIPELINE_SOURCE == "push"
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
+  interruptible: true
   stage:
     build
   script:
     - rm -rf build
     - mkdir -p build
     - cd build
-    - CFLAGS="-Werror" CXXFLAGS="-DGIT_COMMIT=${CI_BUILD_REF} -Werror" cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_PREFIX_PATH=/opt/qt/5.15.2/gcc_64 -DCMAKE_INSTALL_PREFIX=. -DUSE_QT6=OFF -DWITH_LDAP=ON -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ..
+    - CFLAGS="-Werror" CXXFLAGS="-DGIT_COMMIT=${CI_BUILD_REF} -Werror" cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_PREFIX_PATH=/opt/qt/5.15.2/gcc_64 -DCMAKE_INSTALL_PREFIX=. -DUSE_QT6=OFF -DLIBSHV_USE_QT6=OFF -DWITH_LDAP=ON -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ..
     - make -j$(nproc)
 
 linux-6:
@@ -30,6 +31,7 @@ linux-6:
     - linux
   stage:
     build
+  interruptible: true
   artifacts:
     paths:
     - build/_dist
@@ -106,6 +108,7 @@ win-build:
     - windows
   stage:
     build
+  interruptible: true
   script:
     - bash build-win.sh
   artifacts:

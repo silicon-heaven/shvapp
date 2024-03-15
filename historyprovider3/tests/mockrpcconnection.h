@@ -38,6 +38,7 @@ class MockRpcConnection : public shv::iotqt::rpc::DeviceConnection {
 
 private:
 	shv::chainpack::RpcResponse createResponse(const shv::chainpack::RpcValue& result);
+	shv::chainpack::RpcResponse createErrorResponse(const std::string& error_msg);
 	shv::chainpack::RpcRequest createRequest(const std::string& path, const std::string& method, const shv::chainpack::RpcValue& params);
 	shv::chainpack::RpcSignal createNotification(const std::string& path, const std::string& method, const shv::chainpack::RpcValue& params);
 
@@ -48,6 +49,7 @@ public:
 	void advanceTest();
 	void doRespond(const shv::chainpack::RpcValue& result);
 	void doRespondInEventLoop(const shv::chainpack::RpcValue& result);
+	void doRespondErrorInEventLoop(const std::string& error_msg);
 	void doRequest(const std::string& path, const std::string& method, const shv::chainpack::RpcValue& params);
 	void doRequestInEventLoop(const std::string& path, const std::string& method, const shv::chainpack::RpcValue& params);
 	void doNotify(const std::string& path, const std::string& method, const shv::chainpack::RpcValue& params);
@@ -103,6 +105,13 @@ shv::chainpack::RpcValue make_sub_params(const std::string& path, const std::str
 
 #define RESPOND_YIELD(result, ...) { \
 	mock->doRespondInEventLoop(result); \
+	SETUP_TIMEOUT; \
+	__VA_OPT__(return __VA_ARGS__); \
+	return CallNext::No; \
+}
+
+#define RESPOND_ERROR_YIELD(error_msg, ...) { \
+	mock->doRespondErrorInEventLoop(error_msg); \
 	SETUP_TIMEOUT; \
 	__VA_OPT__(return __VA_ARGS__); \
 	return CallNext::No; \
