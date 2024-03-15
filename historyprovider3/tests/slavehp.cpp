@@ -70,6 +70,51 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		});
 	}
 
+	DOCTEST_SUBCASE("more sites and one file download fails")
+	{
+		// Should skip all the files from the failed site.
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			create_dummy_cache_files(cache_dir_path, {});
+			*expected_cache_contents = RpcValue::List({{
+				RpcValue::List{ "eyas/app/2022-07-07T18-06-15-557.log2", dummy_logfile.size() },
+			}});
+			RESPOND_YIELD((RpcValue::List{{
+				{ "eyas", "d", 0 }
+			}}));
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_REQUEST(join(slave_shv_journal_path, "eyas"), "lsfiles", ls_size_true);
+			RESPOND_YIELD((RpcValue::List{
+				{{ "opc", "d", 0 }},
+				{{ "app", "d", 0 }}
+			}));
+		});
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_REQUEST(join(slave_shv_journal_path, "eyas/opc"), "lsfiles", ls_size_true);
+			RESPOND_YIELD((RpcValue::List{{
+				{{ "2022-07-07T18-06-15-557.log2", "f", dummy_logfile.size() }},
+				{{ "2022-07-08T18-06-15-557.log2", "f", dummy_logfile.size() }}
+			}}));
+		});
+
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_REQUEST(join(slave_shv_journal_path, "eyas/app"), "lsfiles", ls_size_true);
+			RESPOND_YIELD((RpcValue::List{{
+				{ "2022-07-07T18-06-15-557.log2", "f", dummy_logfile.size() }
+			}}));
+		});
+
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_REQUEST(join(slave_shv_journal_path, "eyas/opc/2022-07-07T18-06-15-557.log2"), "read", read_offset_0);
+			RESPOND_ERROR_YIELD("Couldn't send this file.");
+		});
+
+		enqueue(res, [=] (MockRpcConnection* mock) {
+			EXPECT_REQUEST(join(slave_shv_journal_path, "eyas/app/2022-07-07T18-06-15-557.log2"), "read", read_offset_0);
+			RESPOND_YIELD(RpcValue::stringToBlob(dummy_logfile));
+		});
+	}
+
 	DOCTEST_SUBCASE("trimming dirtylog")
 	{
 		enqueue(res, [=] (MockRpcConnection* mock) {

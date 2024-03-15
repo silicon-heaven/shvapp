@@ -16,6 +16,16 @@ shv::chainpack::RpcResponse MockRpcConnection::createResponse(const shv::chainpa
 	return res;
 }
 
+shv::chainpack::RpcResponse MockRpcConnection::createErrorResponse(const std::string& error_msg)
+{
+	shv::chainpack::RpcResponse res;
+	res.setRequestId(m_messageQueue.head().requestId());
+	res.setError(shv::chainpack::RpcError::createMethodCallExceptionError(error_msg));
+	mockInfo() << "Sending error response:" << res.toPrettyString();
+	m_messageQueue.dequeue();
+	return res;
+}
+
 void MockRpcConnection::doRespond(const shv::chainpack::RpcValue& result)
 {
 	emit rpcMessageReceived(createResponse(result));
@@ -24,6 +34,11 @@ void MockRpcConnection::doRespond(const shv::chainpack::RpcValue& result)
 void MockRpcConnection::doRespondInEventLoop(const shv::chainpack::RpcValue& result)
 {
 	QTimer::singleShot(0, [this, response = createResponse(result)] {emit rpcMessageReceived(response);});
+}
+
+void MockRpcConnection::doRespondErrorInEventLoop(const std::string& result)
+{
+	QTimer::singleShot(0, [this, response = createErrorResponse(result)] {emit rpcMessageReceived(response);});
 }
 
 shv::chainpack::RpcRequest MockRpcConnection::createRequest(const std::string& path, const std::string& method, const shv::chainpack::RpcValue& params)

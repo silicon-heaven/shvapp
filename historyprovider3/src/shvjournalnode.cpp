@@ -688,13 +688,24 @@ public:
 						msg += retrieve_error.message();
 						journalError() << msg;
 						m_node->appendSyncStatus(slave_hp_path, msg);
-						return;
+						auto site_path = std::filesystem::path{sites_log_file.toStdString()}.remove_filename();
+						journalWarning() << "Skipping all files from" << site_path;
+						m_node->appendSyncStatus(slave_hp_path, msg);
+						for (auto it = m_downloadQueue.begin(); it != m_downloadQueue.end(); /* nothing */) {
+							if (auto shv_path = (*it)->shvPath(); shv_path.starts_with(site_path.c_str())) {
+								journalDebug() << "Skipping" << shv_path;
+								(*it)->deleteLater();
+								it = m_downloadQueue.erase(it);
+							} else {
+								++it;
+							}
+						}
+					} else {
+						msg += "successfully synced";
+						m_downloadedFiles.insert(full_file_name, result);
+						m_node->appendSyncStatus(slave_hp_path, msg);
+						journalInfo() << msg;
 					}
-
-					msg += "successfully synced";
-					journalInfo() << msg;
-					m_node->appendSyncStatus(slave_hp_path, msg);
-					m_downloadedFiles.insert(full_file_name, result);
 					downloadNext();
 				});
 				m_downloadQueue.push_back(call);
