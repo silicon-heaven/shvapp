@@ -16,6 +16,7 @@ linux:
     - if: $CI_PIPELINE_SOURCE == "push"
     - if: $CI_COMMIT_BRANCH == "production"
       when: never
+  interruptible: true
   stage:
     build
   script:
@@ -30,6 +31,7 @@ linux-6:
     - linux
   stage:
     build
+  interruptible: true
   artifacts:
     paths:
     - build/_dist
@@ -106,6 +108,7 @@ win-build:
     - windows
   stage:
     build
+  interruptible: true
   script:
     - bash build-win.sh
   artifacts:
