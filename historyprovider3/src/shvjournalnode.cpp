@@ -16,7 +16,7 @@
 #include <QDirIterator>
 #include <QTimer>
 
-#include <queue>
+#include <deque>
 
 #define journalDebug() shvCDebug("historyjournal")
 #define journalInfo() shvCInfo("historyjournal")
@@ -696,7 +696,7 @@ public:
 					m_downloadedFiles.insert(full_file_name, result);
 					downloadNext();
 				});
-				m_downloadQueue.push(call);
+				m_downloadQueue.push_back(call);
 			}
 
 		});
@@ -727,14 +727,14 @@ private:
 		journalDebug() << "Downloading next file for" << m_shvPath.toStdString();
 		auto next = m_downloadQueue.front();
 		next->start();
-		m_downloadQueue.pop();
+		m_downloadQueue.pop_front();
 	}
 
 	ShvJournalNode* m_node;
 	const QString m_shvPath; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 	int current_memory_usage = 0;
 
-	std::queue<shv::iotqt::rpc::RpcCall*> m_downloadQueue;
+	std::deque<shv::iotqt::rpc::RpcCall*> m_downloadQueue;
 
 	QMap<QString, cp::RpcValue> m_downloadedFiles;
 	std::vector<QString> m_toTrim;
