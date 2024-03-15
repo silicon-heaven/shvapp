@@ -21,6 +21,7 @@
 #define journalDebug() shvCDebug("historyjournal")
 #define journalInfo() shvCInfo("historyjournal")
 #define journalWarning() shvCWarning("historyjournal")
+#define journalError() shvCError("historyjournal")
 
 namespace cp = shv::chainpack;
 namespace {
@@ -200,7 +201,7 @@ void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 			if (it != m_slaveHps.end()) {
 				{
 					if (path.at(it->shv_path.size()) != '/') {
-						shvWarning() << "Discarding notification with a top-level node path. Offending path was:" << it->shv_path;
+						journalWarning() << "Discarding notification with a top-level node path. Offending path was:" << it->shv_path;
 						return;
 					}
 
@@ -564,7 +565,7 @@ public:
 				log_file.write(reinterpret_cast<const char*>(blob.data()), static_cast<qsizetype>(blob.size()));
 			} else {
 				auto err = "Couldn't open " + iter.key() + " for writing";
-				shvError() << err;
+				journalError() << err;
 				m_node->appendSyncStatus(m_shvPath, err.toStdString());
 			}
 
@@ -595,7 +596,7 @@ public:
 			});
 			if (error.isValid()) {
 				auto err = "Couldn't retrieve filelist from: " + shvjournal_shvpath.toStdString() + " " + error.message();
-				shvError() << err;
+				journalError() << err;
 				m_node->appendSyncStatus(slave_hp_path, err);
 				return;
 			}
@@ -685,7 +686,7 @@ public:
 					auto msg = sites_log_file.toStdString() + ": ";
 					if (retrieve_error.code() != shv::chainpack::RpcError::NoError) {
 						msg += retrieve_error.message();
-						shvError() << msg;
+						journalError() << msg;
 						m_node->appendSyncStatus(slave_hp_path, msg);
 						return;
 					}
