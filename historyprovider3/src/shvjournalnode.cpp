@@ -49,12 +49,12 @@ const auto M_SYNC_LOG = "syncLog";
 const auto M_SANITIZE_LOG = "sanitizeLog";
 
 const std::vector<cp::MetaMethod> methods {
-	{M_LOG_SIZE_LIMIT, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_DEVEL, "Returns: log size limit."},
-	{M_TOTAL_LOG_SIZE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_DEVEL, "Returns: total size occupied by logs."},
-	{M_LOG_USAGE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_DEVEL, "Returns: percentage of space occupied by logs."},
-	{M_SYNC_LOG, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE, SYNCLOG_DESC},
-	{M_SYNC_INFO, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ, SYNCINFO_DESC},
-	{M_SANITIZE_LOG, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_DEVEL},
+	{M_LOG_SIZE_LIMIT, cp::MetaMethod::Flag::None, "Null", "Int", cp::MetaMethod::AccessLevel::Devel, {}, "Returns: log size limit."},
+	{M_TOTAL_LOG_SIZE, cp::MetaMethod::Flag::None, "Null", "Int", cp::MetaMethod::AccessLevel::Devel, {}, "Returns: total size occupied by logs."},
+	{M_LOG_USAGE, cp::MetaMethod::Flag::None, "Null", "Decimal", cp::MetaMethod::AccessLevel::Devel, {}, "Returns: percentage of space occupied by logs."},
+	{M_SYNC_LOG, cp::MetaMethod::Flag::None, "String|Map", "List", cp::MetaMethod::AccessLevel::Write, {}, SYNCLOG_DESC},
+	{M_SYNC_INFO, cp::MetaMethod::Flag::None, "String", "Map", cp::MetaMethod::AccessLevel::Read, {}, SYNCINFO_DESC},
+	{M_SANITIZE_LOG, cp::MetaMethod::Flag::None, "Null", "String", cp::MetaMethod::AccessLevel::Devel},
 };
 
 const auto DIRTY_FILENAME = "dirtylog";

@@ -24,9 +24,9 @@ namespace cp = shv::chainpack;
 namespace ir = shv::iotqt::rpc;
 
 static std::vector<cp::MetaMethod> meta_methods {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false},
-	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false},
+	cp::methods::DIR,
+	cp::methods::LS,
+	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Flag::None, "Null", "String"},
 	//{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, false},
 };
 

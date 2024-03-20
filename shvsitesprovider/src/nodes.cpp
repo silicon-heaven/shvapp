@@ -47,71 +47,71 @@ static const char METH_FILE_MK[] = "mkfile";
 static const char METH_GIT_PUSH[] = "addFilesToVersionControl";
 
 static std::vector<cp::MetaMethod> root_meta_methods {
-	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
-	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
-	{ cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, shv::chainpack::Rpc::ROLE_READ },
-	{ METH_APP_VERSION, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, shv::chainpack::Rpc::ROLE_READ },
-	{ cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, shv::chainpack::Rpc::ROLE_READ },
-	{ cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
-	{ METH_GIT_COMMIT, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
-	{ METH_SHV_VERSION, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
-	{ METH_SHV_GIT_COMMIT, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
-	{ METH_GET_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
-    { METH_GET_SITES_TGZ, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
-//	{ METH_RELOAD_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_COMMAND},
-//	{ METH_SITES_SYNCED_BEFORE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
-//	{ METH_SITES_RELOADED, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::IsSignal, shv::chainpack::Rpc::ROLE_READ },
-	{ METH_PULL_FILES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
-//	{ METH_GIT_PUSH, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_ADMIN },
+	cp::methods::DIR,
+	cp::methods::LS,
+	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Flag::None, "Null", "String"},
+	{ METH_APP_VERSION, cp::MetaMethod::Flag::IsGetter, "Null", "String", shv::chainpack::MetaMethod::AccessLevel::Read },
+	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Flag::IsGetter, "Null", "RpcValue"},
+	{ cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Flag::IsGetter, "Null", "String", cp::MetaMethod::AccessLevel::Browse},
+	{ METH_GIT_COMMIT, cp::MetaMethod::Flag::IsGetter, "Null", "String", cp::MetaMethod::AccessLevel::Read},
+	{ METH_SHV_VERSION, cp::MetaMethod::Flag::IsGetter, "Null", "String", cp::MetaMethod::AccessLevel::Read},
+	{ METH_SHV_GIT_COMMIT, cp::MetaMethod::Flag::IsGetter, "Null", "String", cp::MetaMethod::AccessLevel::Read},
+	{ METH_GET_SITES, cp::MetaMethod::Flag::None, "Null", "Map", shv::chainpack::MetaMethod::AccessLevel::Read},
+    { METH_GET_SITES_TGZ, cp::MetaMethod::Flag::None, "Null", "RpcValue", shv::chainpack::MetaMethod::AccessLevel::Read},
+//	{ METH_RELOAD_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::MetaMethod::AccessLevel::Command},
+//	{ METH_SITES_SYNCED_BEFORE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::MetaMethod::AccessLevel::Read },
+//	{ METH_SITES_RELOADED, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::IsSignal, shv::chainpack::MetaMethod::AccessLevel::Read },
+	{ METH_PULL_FILES, cp::MetaMethod::Flag::None, "Null", "RpcValue", shv::chainpack::MetaMethod::AccessLevel::Write},
+//	{ METH_GIT_PUSH, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::MetaMethod::AccessLevel::ADMIN },
 };
 
 static std::vector<cp::MetaMethod> dir_meta_methods {
-	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
-	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
-	{ METH_PULL_FILES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
-	{ METH_GET_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
+	cp::methods::DIR,
+	cp::methods::LS,
+	{ METH_PULL_FILES, cp::MetaMethod::Flag::None, "Null", "RpcValue", shv::chainpack::MetaMethod::AccessLevel::Write},
+	{ METH_GET_SITES, cp::MetaMethod::Flag::None, "Null", "Map", shv::chainpack::MetaMethod::AccessLevel::Read},
 };
 
 static std::vector<cp::MetaMethod> device_meta_methods {
-	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
-	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
-	{ METH_PULL_FILES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
-	{ METH_GET_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
+	cp::methods::DIR,
+	cp::methods::LS,
+	{ METH_PULL_FILES, cp::MetaMethod::Flag::None, "Null", "RpcValue", shv::chainpack::MetaMethod::AccessLevel::Write},
+	{ METH_GET_SITES, cp::MetaMethod::Flag::None, "Null", "Map", shv::chainpack::MetaMethod::AccessLevel::Read},
 };
 
 static std::vector<cp::MetaMethod> meta_meta_methods {
-	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
-	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
+	cp::methods::DIR,
+	cp::methods::LS,
 };
 
 static std::vector<cp::MetaMethod> file_dir_meta_methods {
-	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
-	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
-	{ METH_FILE_MK, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
+	cp::methods::DIR,
+	cp::methods::LS,
+	{ METH_FILE_MK, cp::MetaMethod::Flag::None, "Null", "RpcValue", shv::chainpack::MetaMethod::AccessLevel::Write },
 };
 
 static std::vector<cp::MetaMethod> device_file_dir_meta_methods {
-	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
-	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
-	{ METH_FILE_MK, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
-	{ METH_PULL_FILES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
+	cp::methods::DIR,
+	cp::methods::LS,
+	{ METH_FILE_MK, cp::MetaMethod::Flag::None, "Null", "RpcValue", shv::chainpack::MetaMethod::AccessLevel::Write },
+	{ METH_PULL_FILES, cp::MetaMethod::Flag::None, "Null", "RpcValue", shv::chainpack::MetaMethod::AccessLevel::Write},
 };
 
 static std::vector<cp::MetaMethod> file_meta_methods {
-	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
-	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
-	{ METH_FILE_SIZE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
-	{ METH_FILE_SIZE_COMPRESSED, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
-	{ METH_FILE_READ, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
-	{ METH_FILE_READ_COMPRESSED, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
-	{ METH_FILE_WRITE, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_WRITE },
-	{ METH_FILE_HASH, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ },
+	cp::methods::DIR,
+	cp::methods::LS,
+	{METH_FILE_SIZE, cp::MetaMethod::Flag::LargeResultHint, "", "UInt", cp::MetaMethod::AccessLevel::Browse},
+	{METH_FILE_SIZE_COMPRESSED, cp::MetaMethod::Flag::None, "Map", "UInt", cp::MetaMethod::AccessLevel::Browse},
+	{METH_FILE_READ, cp::MetaMethod::Flag::LargeResultHint, "Map", "Blob", cp::MetaMethod::AccessLevel::Read},
+	{METH_FILE_READ_COMPRESSED, cp::MetaMethod::Flag::None, "Map", "Blob", cp::MetaMethod::AccessLevel::Read},
+	{METH_FILE_WRITE, cp::MetaMethod::Flag::None, "String|List", "Bool", cp::MetaMethod::AccessLevel::Write},
+	{METH_FILE_HASH, cp::MetaMethod::Flag::None, "Map", "String", cp::MetaMethod::AccessLevel::Read},
 };
 
 static std::vector<cp::MetaMethod> data_meta_methods {
-	{ cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
-	{ cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_BROWSE },
-	{ cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, shv::chainpack::Rpc::ROLE_READ },
+	cp::methods::DIR,
+	cp::methods::LS,
+	{cp::Rpc::METH_GET, cp::MetaMethod::Flag::IsGetter, "Null", "RpcValue", cp::MetaMethod::AccessLevel::Read, {{"chng", "RpcValue"}}},
 };
 
 enum class CompressionType {
@@ -135,12 +135,11 @@ AppRootNode::AppRootNode(QObject *parent)
 {
 	if (QDir(QString::fromStdString(SitesProviderApp::instance()->cliOptions()->localSitesDir()) + "/.git").exists()) {
 		shvInfo() << "sites directory" << SitesProviderApp::instance()->cliOptions()->localSitesDir() << "identified as git repository";
-		root_meta_methods.push_back({ METH_GIT_PUSH, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_ADMIN });
+		root_meta_methods.push_back({ METH_GIT_PUSH, cp::MetaMethod::Flag::None, "Null", "RpcValue", shv::chainpack::MetaMethod::AccessLevel::Admin });
 	}
 	if (SitesProviderApp::instance()->cliOptions()->syncSites()) {
-		root_meta_methods.push_back({ METH_RELOAD_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_COMMAND});
-		root_meta_methods.push_back({ METH_SITES_SYNCED_BEFORE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::Rpc::ROLE_READ });
-		root_meta_methods.push_back({ METH_SITES_RELOADED, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::IsSignal, shv::chainpack::Rpc::ROLE_READ });
+		root_meta_methods.push_back({ METH_RELOAD_SITES, cp::MetaMethod::Flag::None, "Null", "RpcValue", shv::chainpack::MetaMethod::AccessLevel::Command});
+		root_meta_methods.push_back({ METH_SITES_SYNCED_BEFORE, cp::MetaMethod::Flag::None, "Null", "RpcValue", shv::chainpack::MetaMethod::AccessLevel::Read, {{METH_SITES_RELOADED, "Null"}} });
 
 		m_downloadSitesTimer.setInterval(30 * 60 * 1000);
 		connect(&m_downloadSitesTimer, &QTimer::timeout, this, &AppRootNode::downloadSites);

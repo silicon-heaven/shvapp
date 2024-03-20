@@ -52,11 +52,11 @@ namespace cp = shv::chainpack;
 namespace si = shv::iotqt;
 
 static std::vector<cp::MetaMethod> meta_methods {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_BROWSE},
-		{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_BROWSE},
-		{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
-		{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
-		{cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
+	cp::methods::DIR,
+	cp::methods::LS,
+	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Flag::IsGetter, "Null", "String", cp::MetaMethod::AccessLevel::Browse},
+	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Flag::IsGetter, "Null", "String", cp::MetaMethod::AccessLevel::Browse},
+	{cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Flag::IsGetter, "Null", "String", cp::MetaMethod::AccessLevel::Browse},
 };
 
 size_t AppRootNode::methodCount(const StringViewList& shv_path)

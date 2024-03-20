@@ -29,12 +29,12 @@ const auto METH_GET_VERSION = "version";
 const auto METH_GIT_COMMIT = "gitCommit";
 const auto METH_UPTIME = "uptime";
 const std::vector<cp::MetaMethod> meta_methods {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_BROWSE},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_BROWSE},
-	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
-	{METH_GET_VERSION, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
-	{METH_GIT_COMMIT, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
-	{METH_UPTIME, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ },
+	cp::methods::DIR,
+	cp::methods::LS,
+	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Flag::IsGetter, "Null", "String", cp::MetaMethod::AccessLevel::Browse},
+	{METH_GET_VERSION, cp::MetaMethod::Flag::IsGetter, "Null", "String", cp::MetaMethod::AccessLevel::Read},
+	{METH_GIT_COMMIT, cp::MetaMethod::Flag::IsGetter, "Null", "String", cp::MetaMethod::AccessLevel::Read},
+	{METH_UPTIME, cp::MetaMethod::Flag::IsGetter, "Null", "String", cp::MetaMethod::AccessLevel::Read },
 };
 }
 
