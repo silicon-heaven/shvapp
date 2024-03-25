@@ -111,7 +111,7 @@ static std::vector<cp::MetaMethod> file_meta_methods {
 static std::vector<cp::MetaMethod> data_meta_methods {
 	cp::methods::DIR,
 	cp::methods::LS,
-	{cp::Rpc::METH_GET, cp::MetaMethod::Flag::IsGetter, {}, "RpcValue", cp::MetaMethod::AccessLevel::Read, {{cp::Rpc::SIG_VAL_CHANGED, "RpcValue"}}},
+	{cp::Rpc::METH_GET, cp::MetaMethod::Flag::IsGetter, {}, "RpcValue", cp::MetaMethod::AccessLevel::Read, {{cp::Rpc::SIG_VAL_CHANGED}}},
 };
 
 enum class CompressionType {
