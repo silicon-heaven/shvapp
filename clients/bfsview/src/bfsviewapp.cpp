@@ -26,13 +26,13 @@ static const char METH_SIM_SET[] = "sim_set";
 static const char METH_APP_LOG[] = "appLog";
 
 static std::vector<cp::MetaMethod> meta_methods_root {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE},
-	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
+	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0},
+	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0},
+	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, 0},
 	{cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
-	{cp::Rpc::METH_MOUNT_POINT, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
-	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
-	{METH_APP_LOG, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
+	{cp::Rpc::METH_MOUNT_POINT, cp::MetaMethod::Signature::RetVoid, 0},
+	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, 0},
+	{METH_APP_LOG, cp::MetaMethod::Signature::RetVoid, 0},
 };
 
 size_t AppRootNode::methodCount(const StringViewList &shv_path)
@@ -90,10 +90,10 @@ shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::Rp
 }
 */
 static std::vector<cp::MetaMethod> meta_methods_pwrstatus {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE},
-	{cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE},
-	{cp::Rpc::SIG_VAL_CHANGED, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::IsSignal, cp::Rpc::ROLE_READ},
-	{METH_SIM_SET, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
+	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false},
+	{cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, false},
+	{cp::Rpc::SIG_VAL_CHANGED, cp::MetaMethod::Signature::VoidParam, true},
+	{METH_SIM_SET, cp::MetaMethod::Signature::VoidParam, false},
 };
 
 PwrStatusNode::PwrStatusNode(shv::iotqt::node::ShvNode *parent)

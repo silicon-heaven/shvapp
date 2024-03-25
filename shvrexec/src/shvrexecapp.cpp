@@ -19,6 +19,7 @@
 
 #ifdef Q_OS_UNIX
 #include <unistd.h>
+#include <errno.h>
 #include <string.h>
 #endif
 
@@ -31,9 +32,9 @@ const char METH_RUNPTYCMD[] = "runPtyCmd";
 //const char METH_WRITE[] = "write";
 
 static std::vector<cp::MetaMethod> meta_methods {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE},
-	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
+	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, false},
+	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, false},
+	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, false},
 	//{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, false},
 	//{cp::Rpc::KEY_TUNNEL_HANDLE, cp::MetaMethod::Signature::RetVoid, false},
 	//{METH_SETWINSZ, cp::MetaMethod::Signature::RetParam, false},
