@@ -27,17 +27,17 @@ namespace {
 const auto M_GET_LOG = "getLog";
 const auto M_LOG_SIZE = "logSize";
 const std::vector<cp::MetaMethod> methods {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE},
-	{M_GET_LOG, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
-	{M_LOG_SIZE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
+	cp::methods::DIR,
+	cp::methods::LS,
+	{M_GET_LOG, cp::MetaMethod::Flag::None, "RpcValue", "RpcValue", cp::MetaMethod::AccessLevel::Read},
+	{M_LOG_SIZE, cp::MetaMethod::Flag::IsGetter, "Null", "UInt", cp::MetaMethod::AccessLevel::Read},
 };
 
 const auto M_PUSH_LOG = "pushLog";
 const auto M_PUSH_LOG_DEBUG_LOG = "pushLogDebugLog";
 const std::vector<cp::MetaMethod> push_log_methods {
-	{M_PUSH_LOG, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_WRITE},
-	{M_PUSH_LOG_DEBUG_LOG, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_DEVEL},
+	{M_PUSH_LOG, cp::MetaMethod::Flag::None, "RpcValue", "RpcValue", cp::MetaMethod::AccessLevel::Write},
+	{M_PUSH_LOG_DEBUG_LOG, cp::MetaMethod::Flag::None, "Null", "RpcValue", cp::MetaMethod::AccessLevel::Devel},
 };
 
 const auto M_OVERALL_ALARM = "overallAlarm";
@@ -45,9 +45,8 @@ const auto M_ALARM_TABLE = "alarmTable";
 const auto M_ALARM_CHNG = "alarmchng";
 
 const std::vector<cp::MetaMethod> alarm_methods {
-	{M_ALARM_TABLE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
-	{M_ALARM_CHNG, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsSignal, cp::Rpc::ROLE_READ},
-	{M_OVERALL_ALARM, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter | cp::MetaMethod::Flag::IsSignal, cp::Rpc::ROLE_READ},
+	{M_ALARM_TABLE,  cp::MetaMethod::Flag::None, "Null", "RpcValue", cp::MetaMethod::AccessLevel::Read, {{M_ALARM_CHNG, "Null"}}},
+	{M_OVERALL_ALARM, cp::MetaMethod::Flag::IsGetter, "Null", "Int", cp::MetaMethod::AccessLevel::Read, {{"chng", "Null"}}},
 };
 }
 

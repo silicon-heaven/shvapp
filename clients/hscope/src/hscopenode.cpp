@@ -6,21 +6,20 @@
 namespace cp = shv::chainpack;
 namespace {
 std::vector<cp::MetaMethod> methods {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE},
+	cp::methods::DIR,
+	cp::methods::LS,
 };
 
 std::vector<cp::MetaMethod> methodsWithTester {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE},
-	{"run", cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_READ},
+	cp::methods::DIR,
+	cp::methods::LS,
+	{"run", cp::MetaMethod::Flag::None, "Null", "Bool|String", cp::MetaMethod::AccessLevel::Read},
 };
 
 std::vector<cp::MetaMethod> rpc_value_node_methods {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_BROWSE},
-	{cp::Rpc::METH_GET, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
-	{cp::Rpc::SIG_VAL_CHANGED, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::IsSignal, cp::Rpc::ROLE_READ},
+	cp::methods::DIR,
+	cp::methods::LS,
+	{cp::Rpc::METH_GET, cp::MetaMethod::Flag::IsGetter, "Null", "RpcValue", cp::MetaMethod::AccessLevel::Read, {{cp::Rpc::SIG_VAL_CHANGED}}},
 };
 }
 

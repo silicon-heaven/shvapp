@@ -37,17 +37,17 @@ const auto METH_SHV_GIT_COMMIT = "shvGitCommit";
 const auto METH_UPTIME = "uptime";
 const auto METH_RELOAD_SITES = "reloadSites";
 const std::vector<cp::MetaMethod> meta_methods {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_BROWSE},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_BROWSE},
-	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
-	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
-	{cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
-	{METH_GET_VERSION, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
-	{METH_GIT_COMMIT, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
-	{METH_SHV_VERSION, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
-	{METH_SHV_GIT_COMMIT, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
-	{METH_UPTIME, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ },
-	{METH_RELOAD_SITES, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::ROLE_WRITE },
+	cp::methods::DIR,
+	cp::methods::LS,
+	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Flag::IsGetter, "Null", "RpcValue", cp::MetaMethod::AccessLevel::Browse},
+	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Flag::IsGetter, "Null", "RpcValue", cp::MetaMethod::AccessLevel::Browse},
+	{cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Flag::IsGetter, "Null", "RpcValue", cp::MetaMethod::AccessLevel::Browse},
+	{METH_GET_VERSION, cp::MetaMethod::Flag::IsGetter, "Null", "String", cp::MetaMethod::AccessLevel::Read},
+	{METH_GIT_COMMIT, cp::MetaMethod::Flag::IsGetter, "Null", "String", cp::MetaMethod::AccessLevel::Read},
+	{METH_SHV_VERSION, cp::MetaMethod::Flag::IsGetter, "Null", "String", cp::MetaMethod::AccessLevel::Read},
+	{METH_SHV_GIT_COMMIT, cp::MetaMethod::Flag::IsGetter, "Null", "String", cp::MetaMethod::AccessLevel::Read},
+	{METH_UPTIME, cp::MetaMethod::Flag::IsGetter, "Null", "String", cp::MetaMethod::AccessLevel::Read },
+	{METH_RELOAD_SITES, cp::MetaMethod::Flag::None, "Null", "Bool", cp::MetaMethod::AccessLevel::Write },
 };
 }
 

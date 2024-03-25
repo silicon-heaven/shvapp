@@ -3,7 +3,7 @@
 
 shv::chainpack::RpcValue make_sub_params(const std::string& path, const std::string& method)
 {
-	return shv::chainpack::RpcValue::fromCpon(R"({"method":")" + method + R"(","path":")" + path + R"("}")");
+	return shv::chainpack::RpcValue::fromCpon(R"({"method":")" + method + R"(","path":")" + path + R"(","source": ""})");
 }
 
 shv::chainpack::RpcResponse MockRpcConnection::createResponse(const shv::chainpack::RpcValue& result)

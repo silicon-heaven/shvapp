@@ -57,18 +57,18 @@ static const auto M_SHV_VERSION = "shvVersion";
 static const auto M_SHV_GIT_COMMIT = "shvGitCommit";
 
 static std::vector<cp::MetaMethod> meta_methods {
-	{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_BROWSE},
-	{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_BROWSE},
-	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
-	{M_APP_VERSION, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
-	{M_GIT_COMMIT, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
-	{M_SHV_VERSION, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
-	{M_SHV_GIT_COMMIT, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_READ},
+	cp::methods::DIR,
+	cp::methods::LS,
+	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Flag::IsGetter, "Null", "RpcValue", cp::MetaMethod::AccessLevel::Browse},
+	{M_APP_VERSION, cp::MetaMethod::Flag::IsGetter, "Null", "RpcValue", cp::MetaMethod::AccessLevel::Browse},
+	{M_GIT_COMMIT, cp::MetaMethod::Flag::IsGetter, "Null", "RpcValue", cp::MetaMethod::AccessLevel::Read},
+	{M_SHV_VERSION, cp::MetaMethod::Flag::IsGetter, "Null", "RpcValue", cp::MetaMethod::AccessLevel::Read},
+	{M_SHV_GIT_COMMIT, cp::MetaMethod::Flag::IsGetter, "Null", "RpcValue", cp::MetaMethod::AccessLevel::Read},
 	//{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, 0, cp::Rpc::GRANT_BROWSE},
-	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
-	{cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::IsGetter, cp::Rpc::ROLE_BROWSE},
-	//{cp::Rpc::METH_HELP, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_BROWSE},
-	{cp::Rpc::METH_RUN_CMD, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::Rpc::ROLE_COMMAND,
+	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Flag::IsGetter, "Null", "RpcValue", cp::MetaMethod::AccessLevel::Browse},
+	{cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Flag::IsGetter, "Null", "RpcValue", cp::MetaMethod::AccessLevel::Browse},
+	//{cp::Rpc::METH_HELP, cp::MetaMethod::Signature::RetParam, 0, cp::MetaMethod::AccessLevel::BROWSE},
+	{cp::Rpc::METH_RUN_CMD, cp::MetaMethod::Flag::None, "String|List", "Map|Int|String|List", cp::MetaMethod::AccessLevel::Command, {},
 		"Parameter can be string or list\n"
 		"When list is provided: [\"command\", [\"arg1\", ... ], 1, 2, {\"ENV_VAR1\": \"value\", ...}]\n"
 		"\t list of values is returned\n"
@@ -78,7 +78,7 @@ static std::vector<cp::MetaMethod> meta_methods {
 		"\t - int is interpretted as 1 == stdout, 2 == stderr, process stdin/stderr content  is appended to the retval list\n"
 		"\t - map is interpretted as launched process environment\n"
 	},
-	{cp::Rpc::METH_RUN_SCRIPT, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_COMMAND,
+	{cp::Rpc::METH_RUN_SCRIPT, cp::MetaMethod::Flag::None, "String|List", "Map|Int|String|List", cp::MetaMethod::AccessLevel::Command, {},
 		"Parameter can be string or list\n"
 		"When list is provided: [\"script-content\", [\"arg1\", ... ], 1, 2, {\"ENV_VAR1\": \"value\", ...}]\n"
 		"\t list of same size is returned\n"
@@ -89,7 +89,7 @@ static std::vector<cp::MetaMethod> meta_methods {
 		"\t - int is interpretted as 1 == stdout, 2 == stderr, process stdin/stderr content  is appended to the retval list\n"
 		"\t - map is interpretted as launched process environment\n"
 	},
-	{cp::Rpc::METH_LAUNCH_REXEC, cp::MetaMethod::Signature::RetParam, 0, cp::Rpc::ROLE_COMMAND},
+	{cp::Rpc::METH_LAUNCH_REXEC, cp::MetaMethod::Flag::None, "RpcValue", "RpcValue", cp::MetaMethod::AccessLevel::Command},
 };
 
 size_t AppRootNode::methodCount(const StringViewList &shv_path)
