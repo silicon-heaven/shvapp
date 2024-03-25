@@ -26,7 +26,7 @@ namespace ir = shv::iotqt::rpc;
 static std::vector<cp::MetaMethod> meta_methods {
 	cp::methods::DIR,
 	cp::methods::LS,
-	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Flag::None, "Null", "String"},
+	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Flag::None, {}, "String"},
 	//{cp::Rpc::METH_CONNECTION_TYPE, cp::MetaMethod::Signature::RetVoid, false},
 };
 

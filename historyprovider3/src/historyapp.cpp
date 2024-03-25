@@ -39,15 +39,15 @@ const auto METH_RELOAD_SITES = "reloadSites";
 const std::vector<cp::MetaMethod> meta_methods {
 	cp::methods::DIR,
 	cp::methods::LS,
-	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Flag::IsGetter, "Null", "RpcValue", cp::MetaMethod::AccessLevel::Browse},
-	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Flag::IsGetter, "Null", "RpcValue", cp::MetaMethod::AccessLevel::Browse},
-	{cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Flag::IsGetter, "Null", "RpcValue", cp::MetaMethod::AccessLevel::Browse},
-	{METH_GET_VERSION, cp::MetaMethod::Flag::IsGetter, "Null", "String", cp::MetaMethod::AccessLevel::Read},
-	{METH_GIT_COMMIT, cp::MetaMethod::Flag::IsGetter, "Null", "String", cp::MetaMethod::AccessLevel::Read},
-	{METH_SHV_VERSION, cp::MetaMethod::Flag::IsGetter, "Null", "String", cp::MetaMethod::AccessLevel::Read},
-	{METH_SHV_GIT_COMMIT, cp::MetaMethod::Flag::IsGetter, "Null", "String", cp::MetaMethod::AccessLevel::Read},
-	{METH_UPTIME, cp::MetaMethod::Flag::IsGetter, "Null", "String", cp::MetaMethod::AccessLevel::Read },
-	{METH_RELOAD_SITES, cp::MetaMethod::Flag::None, "Null", "Bool", cp::MetaMethod::AccessLevel::Write },
+	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Flag::IsGetter, {}, "RpcValue", cp::MetaMethod::AccessLevel::Browse},
+	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Flag::IsGetter, {}, "RpcValue", cp::MetaMethod::AccessLevel::Browse},
+	{cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Flag::IsGetter, {}, "RpcValue", cp::MetaMethod::AccessLevel::Browse},
+	{METH_GET_VERSION, cp::MetaMethod::Flag::IsGetter, {}, "String", cp::MetaMethod::AccessLevel::Read},
+	{METH_GIT_COMMIT, cp::MetaMethod::Flag::IsGetter, {}, "String", cp::MetaMethod::AccessLevel::Read},
+	{METH_SHV_VERSION, cp::MetaMethod::Flag::IsGetter, {}, "String", cp::MetaMethod::AccessLevel::Read},
+	{METH_SHV_GIT_COMMIT, cp::MetaMethod::Flag::IsGetter, {}, "String", cp::MetaMethod::AccessLevel::Read},
+	{METH_UPTIME, cp::MetaMethod::Flag::IsGetter, {}, "String", cp::MetaMethod::AccessLevel::Read },
+	{METH_RELOAD_SITES, cp::MetaMethod::Flag::None, {}, "Bool", cp::MetaMethod::AccessLevel::Write },
 };
 }
 

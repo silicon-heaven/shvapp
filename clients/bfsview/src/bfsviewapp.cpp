@@ -28,11 +28,11 @@ static const char METH_APP_LOG[] = "appLog";
 static std::vector<cp::MetaMethod> meta_methods_root {
 	cp::methods::DIR,
 	cp::methods::LS,
-	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Flag::IsGetter, "Null", "RpcValue"},
-	{cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Flag::None, "Null", "RpcValue"},
-	{cp::Rpc::METH_MOUNT_POINT, cp::MetaMethod::Flag::None, "Null", "RpcValue"},
-	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Flag::None, "Null", "RpcValue"},
-	{METH_APP_LOG, cp::MetaMethod::Flag::None, "Null", "RpcValue"},
+	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Flag::IsGetter, {}, "RpcValue"},
+	{cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Flag::None, {}, "RpcValue"},
+	{cp::Rpc::METH_MOUNT_POINT, cp::MetaMethod::Flag::None, {}, "RpcValue"},
+	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Flag::None, {}, "RpcValue"},
+	{METH_APP_LOG, cp::MetaMethod::Flag::None, {}, "RpcValue"},
 };
 
 size_t AppRootNode::methodCount(const StringViewList &shv_path)
@@ -92,9 +92,9 @@ shv::chainpack::RpcValue AppRootNode::processRpcRequest(const shv::chainpack::Rp
 static std::vector<cp::MetaMethod> meta_methods_pwrstatus {
 	cp::methods::DIR,
 	cp::methods::LS,
-	{cp::Rpc::METH_GET, cp::MetaMethod::Flag::IsGetter, "", "RpcValue", cp::MetaMethod::AccessLevel::Browse, {{"chng", ""}}},
-	{cp::Rpc::METH_GET, cp::MetaMethod::Flag::None, "", "RpcValue", cp::MetaMethod::AccessLevel::Browse},
-	{METH_SIM_SET, cp::MetaMethod::Flag::None, "RpcValue", "Null"},
+	{cp::Rpc::METH_GET, cp::MetaMethod::Flag::IsGetter, {}, "UInt", cp::MetaMethod::AccessLevel::Browse, {{cp::Rpc::SIG_VAL_CHANGED}}},
+	{cp::Rpc::METH_SET, cp::MetaMethod::Flag::None, "UInt", "Bool", cp::MetaMethod::AccessLevel::Write},
+	{METH_SIM_SET, cp::MetaMethod::Flag::None, "RpcValue", {}},
 };
 
 PwrStatusNode::PwrStatusNode(shv::iotqt::node::ShvNode *parent)
