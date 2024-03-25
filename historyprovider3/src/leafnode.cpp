@@ -46,7 +46,7 @@ const auto M_ALARM_CHNG = "alarmchng";
 
 const std::vector<cp::MetaMethod> alarm_methods {
 	{M_ALARM_TABLE,  cp::MetaMethod::Flag::None, {}, "RpcValue", cp::MetaMethod::AccessLevel::Read, {{M_ALARM_CHNG, "Null"}}},
-	{M_OVERALL_ALARM, cp::MetaMethod::Flag::IsGetter, {}, "Int", cp::MetaMethod::AccessLevel::Read, {{"chng", "Null"}}},
+	{M_OVERALL_ALARM, cp::MetaMethod::Flag::IsGetter, {}, "Int", cp::MetaMethod::AccessLevel::Read, {{cp::Rpc::SIG_VAL_CHANGED, "Null"}}},
 };
 }
 
