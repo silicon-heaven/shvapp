@@ -54,9 +54,9 @@ namespace si = shv::iotqt;
 static std::vector<cp::MetaMethod> meta_methods {
 	cp::methods::DIR,
 	cp::methods::LS,
-	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Flag::IsGetter, "Null", "String", cp::MetaMethod::AccessLevel::Browse},
-	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Flag::IsGetter, "Null", "String", cp::MetaMethod::AccessLevel::Browse},
-	{cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Flag::IsGetter, "Null", "String", cp::MetaMethod::AccessLevel::Browse},
+	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Flag::IsGetter, {}, "String", cp::MetaMethod::AccessLevel::Browse},
+	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Flag::IsGetter, {}, "String", cp::MetaMethod::AccessLevel::Browse},
+	{cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Flag::IsGetter, {}, "String", cp::MetaMethod::AccessLevel::Browse},
 };
 
 size_t AppRootNode::methodCount(const StringViewList& shv_path)
