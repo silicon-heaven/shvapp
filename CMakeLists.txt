@@ -59,12 +59,11 @@ else()
 	set(SHV_QT_VERSION_MAJOR 5)
 endif()
 
-find_package(Qt${SHV_QT_VERSION_MAJOR} COMPONENTS Core Concurrent OPTIONAL_COMPONENTS SerialPort Widgets Svg Xml Quick Mqtt)
+find_package(Qt${SHV_QT_VERSION_MAJOR} COMPONENTS Core Concurrent OPTIONAL_COMPONENTS SerialPort Widgets Svg Xml Mqtt)
 
 set(Qt_FOUND ${Qt${SHV_QT_VERSION_MAJOR}_FOUND})
 set(QtWidgets_FOUND ${Qt${SHV_QT_VERSION_MAJOR}Widgets_FOUND})
 set(QtSvg_FOUND ${Qt${SHV_QT_VERSION_MAJOR}Svg_FOUND})
-set(QtQuick_FOUND ${Qt${SHV_QT_VERSION_MAJOR}Quick_FOUND})
 set(QtMqtt_FOUND ${Qt${SHV_QT_VERSION_MAJOR}Mqtt_FOUND})
 set(QtXml_FOUND ${Qt${SHV_QT_VERSION_MAJOR}Xml_FOUND})
 
@@ -82,14 +81,6 @@ if(Qt_FOUND)
 
     if (QtWidgets_FOUND AND QtXml_FOUND)
         add_subdirectory(clients/jn50view)
-    endif()
-
-    if(WITH_SHVSITES)
-        if (QtQuick_FOUND)
-            add_subdirectory(clients/shvsites)
-        else()
-            message(FATAL_ERROR "shvsites build requested, but Qt Quick wasn't found")
-        endif()
     endif()
 
     if (NOT WIN32)
