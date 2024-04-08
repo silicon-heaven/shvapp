@@ -50,68 +50,64 @@ static std::vector<cp::MetaMethod> root_meta_methods {
 	cp::methods::DIR,
 	cp::methods::LS,
 	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Flag::None, {}, "String"},
-	{ METH_APP_VERSION, cp::MetaMethod::Flag::IsGetter, {}, "String", shv::chainpack::MetaMethod::AccessLevel::Read },
+	{ METH_APP_VERSION, cp::MetaMethod::Flag::IsGetter, {}, "String", shv::chainpack::AccessLevel::Read },
 	{cp::Rpc::METH_DEVICE_ID, cp::MetaMethod::Flag::IsGetter, {}, "RpcValue"},
-	{ cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Flag::IsGetter, {}, "String", cp::MetaMethod::AccessLevel::Browse},
-	{ METH_GIT_COMMIT, cp::MetaMethod::Flag::IsGetter, {}, "String", cp::MetaMethod::AccessLevel::Read},
-	{ METH_SHV_VERSION, cp::MetaMethod::Flag::IsGetter, {}, "String", cp::MetaMethod::AccessLevel::Read},
-	{ METH_SHV_GIT_COMMIT, cp::MetaMethod::Flag::IsGetter, {}, "String", cp::MetaMethod::AccessLevel::Read},
-	{ METH_GET_SITES, cp::MetaMethod::Flag::None, {}, "Map", shv::chainpack::MetaMethod::AccessLevel::Read},
-    { METH_GET_SITES_TGZ, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::MetaMethod::AccessLevel::Read},
-//	{ METH_RELOAD_SITES, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::MetaMethod::AccessLevel::Command},
-//	{ METH_SITES_SYNCED_BEFORE, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::MetaMethod::AccessLevel::Read },
-//	{ METH_SITES_RELOADED, cp::MetaMethod::Signature::VoidParam, cp::MetaMethod::Flag::IsSignal, shv::chainpack::MetaMethod::AccessLevel::Read },
-	{ METH_PULL_FILES, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::MetaMethod::AccessLevel::Write},
-//	{ METH_GIT_PUSH, cp::MetaMethod::Signature::RetVoid, cp::MetaMethod::Flag::None, shv::chainpack::MetaMethod::AccessLevel::ADMIN },
+	{ cp::Rpc::METH_DEVICE_TYPE, cp::MetaMethod::Flag::IsGetter, {}, "String", cp::AccessLevel::Browse},
+	{ METH_GIT_COMMIT, cp::MetaMethod::Flag::IsGetter, {}, "String", cp::AccessLevel::Read},
+	{ METH_SHV_VERSION, cp::MetaMethod::Flag::IsGetter, {}, "String", cp::AccessLevel::Read},
+	{ METH_SHV_GIT_COMMIT, cp::MetaMethod::Flag::IsGetter, {}, "String", cp::AccessLevel::Read},
+	{ METH_GET_SITES, cp::MetaMethod::Flag::None, {}, "Map", shv::chainpack::AccessLevel::Read},
+	{ METH_GET_SITES_TGZ, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Read},
+	{ METH_PULL_FILES, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Write},
 };
 
-static std::vector<cp::MetaMethod> dir_meta_methods {
+const static std::vector<cp::MetaMethod> dir_meta_methods {
 	cp::methods::DIR,
 	cp::methods::LS,
-	{ METH_PULL_FILES, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::MetaMethod::AccessLevel::Write},
-	{ METH_GET_SITES, cp::MetaMethod::Flag::None, {}, "Map", shv::chainpack::MetaMethod::AccessLevel::Read},
+	{ METH_PULL_FILES, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Write},
+	{ METH_GET_SITES, cp::MetaMethod::Flag::None, {}, "Map", shv::chainpack::AccessLevel::Read},
 };
 
-static std::vector<cp::MetaMethod> device_meta_methods {
+const static std::vector<cp::MetaMethod> device_meta_methods {
 	cp::methods::DIR,
 	cp::methods::LS,
-	{ METH_PULL_FILES, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::MetaMethod::AccessLevel::Write},
-	{ METH_GET_SITES, cp::MetaMethod::Flag::None, {}, "Map", shv::chainpack::MetaMethod::AccessLevel::Read},
+	{ METH_PULL_FILES, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Write},
+	{ METH_GET_SITES, cp::MetaMethod::Flag::None, {}, "Map", shv::chainpack::AccessLevel::Read},
 };
 
-static std::vector<cp::MetaMethod> meta_meta_methods {
+const static std::vector<cp::MetaMethod> meta_meta_methods {
 	cp::methods::DIR,
 	cp::methods::LS,
 };
 
-static std::vector<cp::MetaMethod> file_dir_meta_methods {
+const static std::vector<cp::MetaMethod> file_dir_meta_methods {
 	cp::methods::DIR,
 	cp::methods::LS,
-	{ METH_FILE_MK, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::MetaMethod::AccessLevel::Write },
+	{ METH_FILE_MK, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Write },
 };
 
-static std::vector<cp::MetaMethod> device_file_dir_meta_methods {
+const static std::vector<cp::MetaMethod> device_file_dir_meta_methods {
 	cp::methods::DIR,
 	cp::methods::LS,
-	{ METH_FILE_MK, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::MetaMethod::AccessLevel::Write },
-	{ METH_PULL_FILES, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::MetaMethod::AccessLevel::Write},
+	{ METH_FILE_MK, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Write },
+	{ METH_PULL_FILES, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Write},
 };
 
-static std::vector<cp::MetaMethod> file_meta_methods {
+const static std::vector<cp::MetaMethod> file_meta_methods {
 	cp::methods::DIR,
 	cp::methods::LS,
-	{METH_FILE_SIZE, cp::MetaMethod::Flag::LargeResultHint, "", "UInt", cp::MetaMethod::AccessLevel::Browse},
-	{METH_FILE_SIZE_COMPRESSED, cp::MetaMethod::Flag::None, "Map", "UInt", cp::MetaMethod::AccessLevel::Browse},
-	{METH_FILE_READ, cp::MetaMethod::Flag::LargeResultHint, "Map", "Blob", cp::MetaMethod::AccessLevel::Read},
-	{METH_FILE_READ_COMPRESSED, cp::MetaMethod::Flag::None, "Map", "Blob", cp::MetaMethod::AccessLevel::Read},
-	{METH_FILE_WRITE, cp::MetaMethod::Flag::None, "String|List", "Bool", cp::MetaMethod::AccessLevel::Write},
-	{METH_FILE_HASH, cp::MetaMethod::Flag::None, "Map", "String", cp::MetaMethod::AccessLevel::Read},
+	{METH_FILE_SIZE, cp::MetaMethod::Flag::LargeResultHint, "", "UInt", cp::AccessLevel::Browse},
+	{METH_FILE_SIZE_COMPRESSED, cp::MetaMethod::Flag::None, "Map", "UInt", cp::AccessLevel::Browse},
+	{METH_FILE_READ, cp::MetaMethod::Flag::LargeResultHint, "Map", "Blob", cp::AccessLevel::Read},
+	{METH_FILE_READ_COMPRESSED, cp::MetaMethod::Flag::None, "Map", "Blob", cp::AccessLevel::Read},
+	{METH_FILE_WRITE, cp::MetaMethod::Flag::None, "String|List", "Bool", cp::AccessLevel::Write},
+	{METH_FILE_HASH, cp::MetaMethod::Flag::None, "Map", "String", cp::AccessLevel::Read},
 };
 
-static std::vector<cp::MetaMethod> data_meta_methods {
+const static std::vector<cp::MetaMethod> data_meta_methods {
 	cp::methods::DIR,
 	cp::methods::LS,
-	{cp::Rpc::METH_GET, cp::MetaMethod::Flag::IsGetter, {}, "RpcValue", cp::MetaMethod::AccessLevel::Read, {{cp::Rpc::SIG_VAL_CHANGED}}},
+	{cp::Rpc::METH_GET, cp::MetaMethod::Flag::IsGetter, {}, "RpcValue", cp::AccessLevel::Read, {{cp::Rpc::SIG_VAL_CHANGED}}},
 };
 
 enum class CompressionType {
@@ -135,11 +131,11 @@ AppRootNode::AppRootNode(QObject *parent)
 {
 	if (QDir(QString::fromStdString(SitesProviderApp::instance()->cliOptions()->localSitesDir()) + "/.git").exists()) {
 		shvInfo() << "sites directory" << SitesProviderApp::instance()->cliOptions()->localSitesDir() << "identified as git repository";
-		root_meta_methods.push_back({ METH_GIT_PUSH, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::MetaMethod::AccessLevel::Admin });
+		root_meta_methods.push_back({ METH_GIT_PUSH, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Admin });
 	}
 	if (SitesProviderApp::instance()->cliOptions()->syncSites()) {
-		root_meta_methods.push_back({ METH_RELOAD_SITES, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::MetaMethod::AccessLevel::Command});
-		root_meta_methods.push_back({ METH_SITES_SYNCED_BEFORE, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::MetaMethod::AccessLevel::Read, {{METH_SITES_RELOADED, "Null"}} });
+		root_meta_methods.push_back({ METH_RELOAD_SITES, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Command});
+		root_meta_methods.push_back({ METH_SITES_SYNCED_BEFORE, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Read, {{METH_SITES_RELOADED, "Null"}} });
 
 		m_downloadSitesTimer.setInterval(30 * 60 * 1000);
 		connect(&m_downloadSitesTimer, &QTimer::timeout, this, &AppRootNode::downloadSites);

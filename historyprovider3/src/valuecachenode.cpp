@@ -14,8 +14,8 @@ const auto METH_GET_CACHE = "getCache";
 }
 namespace cp = shv::chainpack;
 const std::vector<cp::MetaMethod> methods {
-	{cp::Rpc::METH_GET, cp::MetaMethod::Flag::None, "String", "RpcValue", cp::MetaMethod::AccessLevel::Devel},
-	{METH_GET_CACHE, cp::MetaMethod::Flag::None, {}, "Map", cp::MetaMethod::AccessLevel::Devel},
+	{cp::Rpc::METH_GET, cp::MetaMethod::Flag::None, "String", "RpcValue", cp::AccessLevel::Devel},
+	{METH_GET_CACHE, cp::MetaMethod::Flag::None, {}, "Map", cp::AccessLevel::Devel},
 };
 
 ValueCacheNode::ValueCacheNode(ShvNode* parent)

@@ -31,10 +31,10 @@ const auto METH_UPTIME = "uptime";
 const std::vector<cp::MetaMethod> meta_methods {
 	cp::methods::DIR,
 	cp::methods::LS,
-	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Flag::IsGetter, {}, "String", cp::MetaMethod::AccessLevel::Browse},
-	{METH_GET_VERSION, cp::MetaMethod::Flag::IsGetter, {}, "String", cp::MetaMethod::AccessLevel::Read},
-	{METH_GIT_COMMIT, cp::MetaMethod::Flag::IsGetter, {}, "String", cp::MetaMethod::AccessLevel::Read},
-	{METH_UPTIME, cp::MetaMethod::Flag::IsGetter, {}, "String", cp::MetaMethod::AccessLevel::Read },
+	{cp::Rpc::METH_APP_NAME, cp::MetaMethod::Flag::IsGetter, {}, "String", cp::AccessLevel::Browse},
+	{METH_GET_VERSION, cp::MetaMethod::Flag::IsGetter, {}, "String", cp::AccessLevel::Read},
+	{METH_GIT_COMMIT, cp::MetaMethod::Flag::IsGetter, {}, "String", cp::AccessLevel::Read},
+	{METH_UPTIME, cp::MetaMethod::Flag::IsGetter, {}, "String", cp::AccessLevel::Read },
 };
 }
 

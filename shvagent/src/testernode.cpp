@@ -29,8 +29,8 @@ TesterNode::TesterNode(ShvNode *parent)
 static std::vector<cp::MetaMethod> meta_methods_property {
 	cp::methods::DIR,
 	cp::methods::LS,
-	{cp::Rpc::METH_GET, cp::MetaMethod::Flag::IsGetter, {}, "RpcValue", cp::MetaMethod::AccessLevel::Read, {{"chng", "RpcValue"}}},
-	{cp::Rpc::METH_SET, cp::MetaMethod::Flag::IsSetter, {}, "RpcValue", cp::MetaMethod::AccessLevel::Write},
+	{cp::Rpc::METH_GET, cp::MetaMethod::Flag::IsGetter, {}, "RpcValue", cp::AccessLevel::Read, {{"chng", "RpcValue"}}},
+	{cp::Rpc::METH_SET, cp::MetaMethod::Flag::IsSetter, {}, "RpcValue", cp::AccessLevel::Write},
 };
 
 TesterPropertyNode::TesterPropertyNode(const std::string &name, shv::iotqt::node::ShvNode *parent)

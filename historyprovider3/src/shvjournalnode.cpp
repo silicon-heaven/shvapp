@@ -49,12 +49,12 @@ const auto M_SYNC_LOG = "syncLog";
 const auto M_SANITIZE_LOG = "sanitizeLog";
 
 const std::vector<cp::MetaMethod> methods {
-	{M_LOG_SIZE_LIMIT, cp::MetaMethod::Flag::None, {}, "Int", cp::MetaMethod::AccessLevel::Devel, {}, "Returns: log size limit."},
-	{M_TOTAL_LOG_SIZE, cp::MetaMethod::Flag::None, {}, "Int", cp::MetaMethod::AccessLevel::Devel, {}, "Returns: total size occupied by logs."},
-	{M_LOG_USAGE, cp::MetaMethod::Flag::None, {}, "Decimal", cp::MetaMethod::AccessLevel::Devel, {}, "Returns: percentage of space occupied by logs."},
-	{M_SYNC_LOG, cp::MetaMethod::Flag::None, "String|Map", "List", cp::MetaMethod::AccessLevel::Write, {}, SYNCLOG_DESC},
-	{M_SYNC_INFO, cp::MetaMethod::Flag::None, "String", "Map", cp::MetaMethod::AccessLevel::Read, {}, SYNCINFO_DESC},
-	{M_SANITIZE_LOG, cp::MetaMethod::Flag::None, {}, "String", cp::MetaMethod::AccessLevel::Devel},
+	{M_LOG_SIZE_LIMIT, cp::MetaMethod::Flag::None, {}, "Int", cp::AccessLevel::Devel, {}, "Returns: log size limit."},
+	{M_TOTAL_LOG_SIZE, cp::MetaMethod::Flag::None, {}, "Int", cp::AccessLevel::Devel, {}, "Returns: total size occupied by logs."},
+	{M_LOG_USAGE, cp::MetaMethod::Flag::None, {}, "Decimal", cp::AccessLevel::Devel, {}, "Returns: percentage of space occupied by logs."},
+	{M_SYNC_LOG, cp::MetaMethod::Flag::None, "String|Map", "List", cp::AccessLevel::Write, {}, SYNCLOG_DESC},
+	{M_SYNC_INFO, cp::MetaMethod::Flag::None, "String", "Map", cp::AccessLevel::Read, {}, SYNCINFO_DESC},
+	{M_SANITIZE_LOG, cp::MetaMethod::Flag::None, {}, "String", cp::AccessLevel::Devel},
 };
 
 const auto DIRTY_FILENAME = "dirtylog";

@@ -45,7 +45,7 @@ shv::chainpack::RpcRequest MockRpcConnection::createRequest(const std::string& p
 {
 	shv::chainpack::RpcRequest req;
 	req.setRequestId(nextRequestId());
-	req.setAccessGrant(shv::chainpack::Rpc::ROLE_ADMIN);
+	req.setAccessLevel(shv::chainpack::AccessLevel::Admin);
 	req.setShvPath(path);
 	req.setParams(params);
 	req.setMethod(method);

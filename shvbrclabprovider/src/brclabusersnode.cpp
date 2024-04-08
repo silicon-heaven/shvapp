@@ -18,10 +18,10 @@ static const char M_CHANGE_USER_PASSWORD[] = "changeUserPassword";
 static const char M_GET_USER_GRANTS[] = "getUserGrants";
 
 static std::vector<cp::MetaMethod> meta_methods {
-	{M_ADD_USER, cp::MetaMethod::Flag::None, "RpcValue", "RpcValue", cp::MetaMethod::AccessLevel::Config},
-	{M_DEL_USER, cp::MetaMethod::Flag::None, "RpcValue", "RpcValue", cp::MetaMethod::AccessLevel::Config},
-	{M_CHANGE_USER_PASSWORD, cp::MetaMethod::Flag::None, "RpcValue", "RpcValue", cp::MetaMethod::AccessLevel::Write},
-	{M_GET_USER_GRANTS, cp::MetaMethod::Flag::None, "RpcValue", "RpcValue", cp::MetaMethod::AccessLevel::Write}
+	{M_ADD_USER, cp::MetaMethod::Flag::None, "RpcValue", "RpcValue", cp::AccessLevel::Config},
+	{M_DEL_USER, cp::MetaMethod::Flag::None, "RpcValue", "RpcValue", cp::AccessLevel::Config},
+	{M_CHANGE_USER_PASSWORD, cp::MetaMethod::Flag::None, "RpcValue", "RpcValue", cp::AccessLevel::Write},
+	{M_GET_USER_GRANTS, cp::MetaMethod::Flag::None, "RpcValue", "RpcValue", cp::AccessLevel::Write}
 };
 
 BrclabUsersNode::BrclabUsersNode(const std::string &node_id, const std::string &fn, ShvNode *parent)

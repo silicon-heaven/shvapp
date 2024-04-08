@@ -13,13 +13,13 @@ std::vector<cp::MetaMethod> methods {
 std::vector<cp::MetaMethod> methodsWithTester {
 	cp::methods::DIR,
 	cp::methods::LS,
-	{"run", cp::MetaMethod::Flag::None, {}, "Bool|String", cp::MetaMethod::AccessLevel::Read},
+	{"run", cp::MetaMethod::Flag::None, {}, "Bool|String", cp::AccessLevel::Read},
 };
 
 std::vector<cp::MetaMethod> rpc_value_node_methods {
 	cp::methods::DIR,
 	cp::methods::LS,
-	{cp::Rpc::METH_GET, cp::MetaMethod::Flag::IsGetter, {}, "RpcValue", cp::MetaMethod::AccessLevel::Read, {{cp::Rpc::SIG_VAL_CHANGED}}},
+	{cp::Rpc::METH_GET, cp::MetaMethod::Flag::IsGetter, {}, "RpcValue", cp::AccessLevel::Read, {{cp::Rpc::SIG_VAL_CHANGED}}},
 };
 }
 

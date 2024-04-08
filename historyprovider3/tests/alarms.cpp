@@ -69,7 +69,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 					NOTIFY_YIELD("shv/some_site/one/status", "chng", 1);
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
-					EXPECT_SIGNAL("some_site", "alarmchng");
+					EXPECT_SIGNAL("some_site", "alarmmod");
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
 					EXPECT_SIGNAL("some_site:overallAlarm", "chng", static_cast<int>(Severity::Error));
@@ -91,7 +91,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 					NOTIFY_YIELD("shv/some_site/one/status", "chng", 1);
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
-					EXPECT_SIGNAL("some_site", "alarmchng");
+					EXPECT_SIGNAL("some_site", "alarmmod");
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
 					EXPECT_SIGNAL("some_site:overallAlarm", "chng", static_cast<int>(Severity::Error));
@@ -102,7 +102,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 					NOTIFY_YIELD("shv/some_site/one/status", "chng", 0);
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
-					EXPECT_SIGNAL("some_site", "alarmchng");
+					EXPECT_SIGNAL("some_site", "alarmmod");
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
 					EXPECT_SIGNAL("some_site:overallAlarm", "chng", static_cast<int>(Severity::Invalid));
@@ -137,7 +137,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 					NOTIFY_YIELD("shv/some_site/one/status1", "chng", 1);
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
-					EXPECT_SIGNAL("some_site", "alarmchng");
+					EXPECT_SIGNAL("some_site", "alarmmod");
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
 					EXPECT_SIGNAL("some_site:overallAlarm", "chng", static_cast<int>(Severity::Error));
@@ -159,7 +159,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 					NOTIFY_YIELD("shv/some_site/one/status1", "chng", 1);
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
-					EXPECT_SIGNAL("some_site", "alarmchng");
+					EXPECT_SIGNAL("some_site", "alarmmod");
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
 					EXPECT_SIGNAL("some_site:overallAlarm", "chng", static_cast<int>(Severity::Error));
@@ -170,7 +170,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 					NOTIFY_YIELD("shv/some_site/one/status1", "chng", 0);
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
-					EXPECT_SIGNAL("some_site", "alarmchng");
+					EXPECT_SIGNAL("some_site", "alarmmod");
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
 					EXPECT_SIGNAL("some_site:overallAlarm", "chng", static_cast<int>(Severity::Invalid));
@@ -183,7 +183,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 					NOTIFY_YIELD("shv/some_site/one/status2", "chng", 1);
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
-					EXPECT_SIGNAL("some_site", "alarmchng");
+					EXPECT_SIGNAL("some_site", "alarmmod");
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
 					EXPECT_SIGNAL("some_site:overallAlarm", "chng", static_cast<int>(Severity::Error));
@@ -205,7 +205,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 					NOTIFY_YIELD("shv/some_site/one/status2", "chng", 1);
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
-					EXPECT_SIGNAL("some_site", "alarmchng");
+					EXPECT_SIGNAL("some_site", "alarmmod");
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
 					EXPECT_SIGNAL("some_site:overallAlarm", "chng", static_cast<int>(Severity::Error));
@@ -216,7 +216,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 					NOTIFY_YIELD("shv/some_site/one/status2", "chng", 0);
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
-					EXPECT_SIGNAL("some_site", "alarmchng");
+					EXPECT_SIGNAL("some_site", "alarmmod");
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
 					EXPECT_SIGNAL("some_site:overallAlarm", "chng", static_cast<int>(Severity::Invalid));
@@ -228,7 +228,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 					NOTIFY_YIELD("shv/some_site/one/status1", "chng", 1);
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
-					EXPECT_SIGNAL("some_site", "alarmchng");
+					EXPECT_SIGNAL("some_site", "alarmmod");
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
 					EXPECT_SIGNAL("some_site:overallAlarm", "chng", static_cast<int>(Severity::Error));
@@ -238,7 +238,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 					NOTIFY_YIELD("shv/some_site/one/status2", "chng", 1);
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
-					EXPECT_SIGNAL("some_site", "alarmchng");
+					EXPECT_SIGNAL("some_site", "alarmmod");
 					REQUIRE(HistoryApp::instance()->leafNode("some_site")->alarms() == std::vector<shv::core::utils::ShvAlarm>{
 						make_alarm("one/status1/some_alarm_name"),
 						make_alarm("one/status2/some_alarm_name"),
@@ -246,7 +246,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 					NOTIFY_YIELD("shv/some_site/one/status1", "chng", 0);
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
-					EXPECT_SIGNAL("some_site", "alarmchng");
+					EXPECT_SIGNAL("some_site", "alarmmod");
 					REQUIRE(HistoryApp::instance()->leafNode("some_site")->alarms() == std::vector<shv::core::utils::ShvAlarm>{
 						make_alarm("one/status2/some_alarm_name"),
 					});
@@ -281,7 +281,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 					NOTIFY_YIELD("shv/some_site/one/status", "chng", 1);
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
-					EXPECT_SIGNAL("some_site", "alarmchng");
+					EXPECT_SIGNAL("some_site", "alarmmod");
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
 					EXPECT_SIGNAL("some_site:overallAlarm", "chng", static_cast<int>(Severity::Error));
@@ -303,7 +303,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 					NOTIFY_YIELD("shv/some_site/one/status", "chng", 1);
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
-					EXPECT_SIGNAL("some_site", "alarmchng");
+					EXPECT_SIGNAL("some_site", "alarmmod");
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
 					EXPECT_SIGNAL("some_site:overallAlarm", "chng", static_cast<int>(Severity::Error));
@@ -314,7 +314,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 					NOTIFY_YIELD("shv/some_site/one/status", "chng", 0);
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
-					EXPECT_SIGNAL("some_site", "alarmchng");
+					EXPECT_SIGNAL("some_site", "alarmmod");
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
 					EXPECT_SIGNAL("some_site:overallAlarm", "chng", static_cast<int>(Severity::Invalid));
@@ -327,7 +327,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 					NOTIFY_YIELD("shv/some_site/two/status", "chng", 1);
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
-					EXPECT_SIGNAL("some_site", "alarmchng");
+					EXPECT_SIGNAL("some_site", "alarmmod");
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
 					EXPECT_SIGNAL("some_site:overallAlarm", "chng", static_cast<int>(Severity::Error));
@@ -349,7 +349,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 					NOTIFY_YIELD("shv/some_site/two/status", "chng", 1);
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
-					EXPECT_SIGNAL("some_site", "alarmchng");
+					EXPECT_SIGNAL("some_site", "alarmmod");
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
 					EXPECT_SIGNAL("some_site:overallAlarm", "chng", static_cast<int>(Severity::Error));
@@ -360,7 +360,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 					NOTIFY_YIELD("shv/some_site/two/status", "chng", 0);
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
-					EXPECT_SIGNAL("some_site", "alarmchng");
+					EXPECT_SIGNAL("some_site", "alarmmod");
 				});
 				enqueue(res, [=] (MockRpcConnection* mock) {
 					EXPECT_SIGNAL("some_site:overallAlarm", "chng", static_cast<int>(Severity::Invalid));
@@ -391,7 +391,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 				NOTIFY_YIELD("shv/some_site/one/status1", "chng", 1);
 			});
 			enqueue(res, [=] (MockRpcConnection* mock) {
-				EXPECT_SIGNAL("some_site", "alarmchng");
+				EXPECT_SIGNAL("some_site", "alarmmod");
 			});
 			enqueue(res, [=] (MockRpcConnection* mock) {
 				EXPECT_SIGNAL("some_site:overallAlarm", "chng", static_cast<int>(Severity::Warning));
@@ -401,7 +401,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 				NOTIFY_YIELD("shv/some_site/one/status2", "chng", 1);
 			});
 			enqueue(res, [=] (MockRpcConnection* mock) {
-				EXPECT_SIGNAL("some_site", "alarmchng");
+				EXPECT_SIGNAL("some_site", "alarmmod");
 			});
 			enqueue(res, [=] (MockRpcConnection* mock) {
 				EXPECT_SIGNAL("some_site:overallAlarm", "chng", static_cast<int>(Severity::Error));
@@ -436,7 +436,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 				SEND_TYPEINFO_YIELD("some_site", mock_typeinfo::one_device);
 			});
 			enqueue(res, [=] (MockRpcConnection* mock) {
-				EXPECT_SIGNAL("some_site", "alarmchng");
+				EXPECT_SIGNAL("some_site", "alarmmod");
 			});
 			enqueue(res, [=] (MockRpcConnection* mock) {
 				EXPECT_SIGNAL("some_site:overallAlarm", "chng", static_cast<int>(Severity::Error));
