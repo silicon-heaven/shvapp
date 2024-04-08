@@ -42,10 +42,10 @@ const std::vector<cp::MetaMethod> push_log_methods {
 
 const auto M_OVERALL_ALARM = "overallAlarm";
 const auto M_ALARM_TABLE = "alarmTable";
-const auto M_ALARM_CHNG = "alarmchng";
+const auto M_ALARM_MOD = "alarmmod";
 
 const std::vector<cp::MetaMethod> alarm_methods {
-	{M_ALARM_TABLE,  cp::MetaMethod::Flag::None, {}, "List|String", cp::MetaMethod::AccessLevel::Read, {{M_ALARM_CHNG}}},
+	{M_ALARM_TABLE,  cp::MetaMethod::Flag::None, {}, "List|String", cp::MetaMethod::AccessLevel::Read, {{M_ALARM_MOD}}},
 	{M_OVERALL_ALARM, cp::MetaMethod::Flag::IsGetter, {}, "Int", cp::MetaMethod::AccessLevel::Read, {{cp::Rpc::SIG_VAL_CHANGED}}},
 };
 }
@@ -127,7 +127,7 @@ LeafNode::LeafNode(const std::string& node_id, const std::string& journal_cache_
 					}
 
 					std::ranges::sort(m_alarms, std::less<shv::core::utils::ShvAlarm::Severity>{}, &shv::core::utils::ShvAlarm::severity);
-					HistoryApp::instance()->rpcConnection()->sendShvSignal(shvPath(), M_ALARM_CHNG);
+					HistoryApp::instance()->rpcConnection()->sendShvSignal(shvPath(), M_ALARM_MOD);
 
 					auto new_overall_alarm = m_alarms.empty() ? shv::core::utils::ShvAlarm::Severity::Invalid : m_alarms.front().severity();
 					if (new_overall_alarm != m_overallAlarm) {
