@@ -16,10 +16,10 @@ public:
 	EyasSrvNode(shv::iotqt::node::ShvNode *parent = nullptr)
 		: Super(std::string(), &m_metaMethods, parent)
 		, m_metaMethods{
-			{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::MetaMethod::AccessLevel::Browse},
-			{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::MetaMethod::AccessLevel::Browse},
-			{METH_STATUS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::MetaMethod::AccessLevel::Read},
-			{METH_RESTART, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::MetaMethod::AccessLevel::Command},
+			{cp::Rpc::METH_DIR, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::AccessLevel::Browse},
+			{cp::Rpc::METH_LS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::AccessLevel::Browse},
+			{METH_STATUS, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::AccessLevel::Read},
+			{METH_RESTART, cp::MetaMethod::Signature::RetParam, cp::MetaMethod::Flag::None, cp::AccessLevel::Command},
 		}
 	{ }
 
@@ -102,7 +102,7 @@ cp::AclRolePaths EyasSrvCtlApp::aclPathsRolePaths(const std::string &role_name)
 			cp::AccessGrant &grant = ret["**"];
 			grant.type = cp::AccessGrant::Type::AccessLevel;
 			//grant.role = cp::Rpc::ROLE_BROWSE;
-			grant.accessLevel = cp::MetaMethod::AccessLevel::Browse;
+			grant.accessLevel = cp::AccessLevel::Browse;
 		}
 		{
 			cp::AccessGrant &grant = ret["eyassrv/**"];
@@ -115,7 +115,7 @@ cp::AclRolePaths EyasSrvCtlApp::aclPathsRolePaths(const std::string &role_name)
 			cp::AccessGrant &grant = ret["**"];
 			grant.type = cp::AccessGrant::Type::AccessLevel;
 			//grant.role = cp::Rpc::ROLE_ADMIN;
-			grant.accessLevel = cp::MetaMethod::AccessLevel::Admin;
+			grant.accessLevel = cp::AccessLevel::Admin;
 		}
 	}
 	return ret;
