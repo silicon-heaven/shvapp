@@ -88,8 +88,8 @@ test-deploy:
     # nirvana
     - pwd
     - cd build
-    - rsync -avz _dist/lib _dist/bin /opt/shv/
-    - rsync -avz _dist/lib _dist/bin gitlab@${SHV_NIRVANA_IP}:/opt/shv/
+    # - rsync -avz _dist/lib _dist/bin /opt/shv/
+    - rsync -avz _dist/lib _dist/bin gitlab@${SHV_NIRVANA_IP}:/opt/shv-test/
     - rsync -avz ../clients/hscope/etc/shv/lua-lib/* gitlab@${SHV_NIRVANA_IP}:/etc/shv/hscope/lua-lib
     - ssh -t gitlab@${SHV_NIRVANA_IP} "sudo /opt/shv/install.sh"
     # heaven
