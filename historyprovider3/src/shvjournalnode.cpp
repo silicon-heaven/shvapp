@@ -463,6 +463,7 @@ private:
 			->setMethod("getLog")
 			->setParams(get_log_params.toRpcValue())
 			->setTimeout(10000);
+		call->setParent(node);
 		call->start();
 		connect(call, &shv::iotqt::rpc::RpcCall::maybeResult, [this] (const auto& result, const auto& error) {
 			if (error.isValid()) {
@@ -581,6 +582,7 @@ public:
 			->setShvPath(shvjournal_shvpath)
 			->setMethod("lsfiles")
 			->setParams(cp::RpcValue::Map{{"size", true}});
+		call->setParent(m_node);
 		call->start();
 		m_counter++;
 
