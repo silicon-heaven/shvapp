@@ -7,15 +7,14 @@ SHELL ["bash", "-e", "-u", "-x", "-o", "pipefail", "-O", "inherit_errexit", "-c"
 
 ADD --chown=build-user . /home/build-user/shv
 RUN <<EOF
-    CXXFLAGS="-DGIT_COMMIT=${COMMIT_SHA}" cmake \
-        -DBUILD_TESTING=OFF \
-        -DCMAKE_BUILD_TYPE=Release \
+    CFLAGS="-Werror" CXXFLAGS="-DGIT_COMMIT=${COMMIT_SHA} -Werror" cmake \
+        -DBUILD_TESTING=ON \
+        -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         -DCMAKE_INSTALL_PREFIX="$HOME/shv-install/usr" \
         -DCMAKE_PREFIX_PATH="$HOME/${qt_version}/gcc_64" \
         -DCMAKE_C_COMPILER_LAUNCHER=ccache \
         -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-	-DUSE_QT6=ON \
-	-DWITH_LDAP=ON \
+	-DLIBSHV_WITH_LDAP=ON \
         -G Ninja \
         -B "$HOME/shv-build" \
         -S "$HOME/shv"
