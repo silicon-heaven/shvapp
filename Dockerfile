@@ -5,14 +5,8 @@ ARG COMMIT_SHA=000000
 
 SHELL ["bash", "-e", "-u", "-x", "-o", "pipefail", "-O", "inherit_errexit", "-c"]
 
-
-USER root
-RUN apt -y install liblua5.4-dev
-USER build-user
-
-
 ADD --chown=build-user . /home/build-user/shv
-RUN --mount=id=eline-shv,type=cache,target=$HOME/.ccache,uid=1000,gid=1000 <<EOF
+RUN <<EOF
     CXXFLAGS="-DGIT_COMMIT=${COMMIT_SHA}" cmake \
         -DBUILD_TESTING=OFF \
         -DCMAKE_BUILD_TYPE=Release \
@@ -28,7 +22,7 @@ RUN --mount=id=eline-shv,type=cache,target=$HOME/.ccache,uid=1000,gid=1000 <<EOF
 EOF
 
 RUN --mount=id=eline-shv,type=cache,target=$HOME/.ccache,uid=1000,gid=1000 cmake --build "$HOME/shv-build"
-RUN --mount=id=eline-shv,type=cache,target=$HOME/.ccache,uid=1000,gid=1000 cmake --install "$HOME/shv-build"
+RUN cmake --install "$HOME/shv-build"
 RUN PATH="$HOME/${qt_version}/gcc_64/bin:$PATH" \
     LDAI_OUTPUT="$HOME/shv-x86_64.AppImage" \
     LD_LIBRARY_PATH="$HOME/shv-install/usr/lib:$HOME/${qt_version}/gcc_64/lib" \
