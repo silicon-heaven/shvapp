@@ -26,24 +26,49 @@ linux:
     - CFLAGS="-Werror" CXXFLAGS="-DGIT_COMMIT=${CI_BUILD_REF} -Werror" cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_PREFIX_PATH=/opt/qt/5.15.2/gcc_64 -DCMAKE_INSTALL_PREFIX=. -DUSE_QT6=OFF -DLIBSHV_USE_QT6=OFF -DWITH_LDAP=ON -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ..
     - make -j$(nproc)
 
-linux-6:
+#linux-6:
+#  tags:
+#    - linux
+#  stage:
+#    build
+#  interruptible: true
+#  artifacts:
+#    paths:
+#    - build/_dist
+#  script:
+#    - rm -rf build
+#    - mkdir -p build
+#    - cd build
+#    - CFLAGS="-Werror" CXXFLAGS="-DGIT_COMMIT=${CI_BUILD_REF} -Werror" cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_PREFIX_PATH=/opt/qt/6.5.3/gcc_64 -DCMAKE_INSTALL_PREFIX=. -DUSE_QT6=ON -DWITH_LDAP=ON -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ..
+#    - make -j$(nproc)
+#    - ctest --output-on-failure -j$(nproc)
+#    - make install
+#    - ../make-linux-artifacts-qt6.sh
+
+linux-qt6-docker:
   tags:
     - linux
   stage:
     build
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+      when: on_success
+    - when: never
   interruptible: true
   artifacts:
     paths:
-    - build/_dist
+    - app_image/
   script:
-    - rm -rf build
-    - mkdir -p build
-    - cd build
-    - CFLAGS="-Werror" CXXFLAGS="-DGIT_COMMIT=${CI_BUILD_REF} -Werror" cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_PREFIX_PATH=/opt/qt/6.5.3/gcc_64 -DCMAKE_INSTALL_PREFIX=. -DUSE_QT6=ON -DWITH_LDAP=ON -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ..
-    - make -j$(nproc)
-    - ctest --output-on-failure -j$(nproc)
-    - make install
-    - ../make-linux-artifacts-qt6.sh
+    - docker build --progress=plain --tag eline/shv:$CI_COMMIT_SHA --build-arg COMMIT_SHA="$CI_COMMIT_SHA" .
+    - mkdir app_image
+    - NAME="$(docker create eline/shv:$CI_COMMIT_SHA)"
+    - docker cp "$NAME":/home/build-user/shv-x86_64.AppImage app_image/shv-$(git describe --tags)-x86_64.AppImage
+    - docker container rm "$NAME"
+  after_script:
+    - docker rmi eline/shv:$CI_COMMIT_SHA
+
+
+
 
 production-deploy:
   only:
