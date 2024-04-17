@@ -92,19 +92,17 @@ test-deploy:
   stage:
     deploy
   script:
-    # nirvana
-    - pwd
-    - cd build
-    - rsync -avz _dist/lib _dist/bin /opt/shv/
-    - rsync -avz _dist/lib _dist/bin gitlab@${SHV_NIRVANA_IP}:/opt/shv/
-    - rsync -avz ../clients/hscope/etc/shv/lua-lib/* gitlab@${SHV_NIRVANA_IP}:/etc/shv/hscope/lua-lib
+    - |
+      for DEST in /opt/shv-test/ "gitlab@${SHV_NIRVANA_IP}:/opt/shv-test/" "shv@${SHV_HEAVEN_IP}:/opt/shv/test/"; do
+        rsync -avz app_image/*AppImage "$DEST"
+      done
     - ssh -t gitlab@${SHV_NIRVANA_IP} "sudo /opt/shv/install.sh"
-    # heaven
-    - rsync -avz _dist/lib _dist/bin shv@${SHV_HEAVEN_IP}:/opt/shv/test/
     - ssh -t shv@${SHV_HEAVEN_IP} "sudo /opt/shv/test/install.sh"
+
     # hscope
-    - rsync -avz ../clients/hscope/dashboard/* shv@${SHV_HEAVEN_IP}:/var/www/html/hscope/
-    - rsync -avz ../3rdparty/libshv-js/*.js shv@${SHV_HEAVEN_IP}:/var/www/html/hscope/libshvchainpack/
+    - rsync -avz clients/hscope/etc/shv/lua-lib/* gitlab@${SHV_NIRVANA_IP}:/etc/shv/hscope/lua-lib
+    - rsync -avz clients/hscope/dashboard/* shv@${SHV_HEAVEN_IP}:/var/www/html/hscope/
+    - rsync -avz 3rdparty/libshv-js/*.js shv@${SHV_HEAVEN_IP}:/var/www/html/hscope/libshvchainpack/
     - ssh -t shv@${SHV_HEAVEN_IP} "/opt/shv/test/deploy-hscope.sh"
 
   environment:
