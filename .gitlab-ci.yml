@@ -39,7 +39,7 @@ linux-6:
     - rm -rf build
     - mkdir -p build
     - cd build
-    - CFLAGS="-Werror" CXXFLAGS="-DGIT_COMMIT=${CI_BUILD_REF} -Werror" cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_PREFIX_PATH=/opt/qt/6.5.3/gcc_64 -DCMAKE_INSTALL_PREFIX=. -DUSE_QT6=ON -DWITH_LDAP=ON -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ..
+    - CFLAGS="-Werror" CXXFLAGS="-DGIT_COMMIT=${CI_BUILD_REF} -Werror" cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_PREFIX_PATH=/opt/qt/6.5.3/gcc_64 -DCMAKE_INSTALL_PREFIX=. -DUSE_QT6=ON -DLIBSHV_WITH_LDAP=ON -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ..
     - make -j$(nproc)
     - ctest --output-on-failure -j$(nproc)
     - make install
