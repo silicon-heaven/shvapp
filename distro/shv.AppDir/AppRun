@@ -7,7 +7,7 @@ if [[ $# -ge 1 ]]; then
 	ARGS=( "$@" )
 else
 	echo "Usage: app [APP_ARGS]" 
-	echo "APPS:" `ls "${SCRIPT_DIR}/usr/bin/"`
+	echo "APPS: $(ls ${SCRIPT_DIR}/usr/bin/)"
 	exit 1
 fi
 echo "command: ${RUN}"
