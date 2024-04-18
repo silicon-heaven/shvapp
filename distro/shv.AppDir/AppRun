@@ -1,9 +1,15 @@
 #!/bin/bash
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-RUN="${1:-shvbroker}"
-ARGS=( "$@" )
-shift
+if [[ $# -ge 1 ]]; then
+	RUN="${1}"
+	shift
+	ARGS=( "$@" )
+else
+	echo "Usage: app [APP_ARGS]" 
+	echo "APPS:" `ls "${SCRIPT_DIR}/usr/bin/"`
+	exit 1
+fi
 echo "command: ${RUN}"
 echo "args:" "${ARGS[@]}"
 "${SCRIPT_DIR}/usr/bin/${RUN}" "${ARGS[@]}"
