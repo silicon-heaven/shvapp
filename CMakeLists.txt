@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.18.4)
 
-set(USE_QT6 ON CACHE BOOL "Qt6 build")
+set(SHV_USE_QT6 ON CACHE BOOL "Qt6 build")
 
 project(shv LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
@@ -10,10 +10,11 @@ set(CMAKE_SHARED_LIBRARY_PREFIX "") # we don't want CMake to prepend "lib" to ou
 set(CMAKE_STATIC_LIBRARY_PREFIX "") # we don't want CMake to prepend "lib" to our libraries, we prefer adding that ourselves
 
 if (NOT TARGET libnecrolog)
-        add_subdirectory(3rdparty/necrolog)
+    add_subdirectory(3rdparty/necrolog)
 endif()
 if (NOT TARGET libshvchainpack-c)
-        add_subdirectory(3rdparty/libshv)
+    set(LIBSHV_USE_QT6 ${SHV_USE_QT6} CACHE BOOL "Qt6 build")
+    add_subdirectory(3rdparty/libshv)
 endif()
 
 if(BUILD_TESTING)
@@ -36,7 +37,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU
 
 	# We switched to qsizetype in Qt6, so let's get rid of this warning in Qt5 for now.
 	# TODO: Remove this after dropping support for Qt5
-	if(USE_QT6)
+    if(SHV_USE_QT6)
 		set(SHV_WARNING_FLAGS "${SHV_WARNING_FLAGS} -Wconversion")
 	endif()
 
@@ -53,7 +54,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU
     set(CMAKE_CXX_FLAGS "${SHV_WARNING_FLAGS_CXX} ${CMAKE_CXX_FLAGS}")
 endif()
 
-if(USE_QT6)
+if(SHV_USE_QT6)
 	set(SHV_QT_VERSION_MAJOR 6)
 else()
 	set(SHV_QT_VERSION_MAJOR 5)
