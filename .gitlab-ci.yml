@@ -45,7 +45,7 @@ linux-qt6-docker:
     - NAME="$(docker create eline/shv:$CI_COMMIT_SHA)"
     - docker cp "$NAME":/home/build-user/shv-x86_64.AppImage "app_image/shv-$CI_COMMIT_SHA-x86_64.AppImage"
     - docker container rm "$NAME"
-    - docker run --rm eline/shv:$CI_COMMIT_SHA ctest --test-dir /home/build-user/shv-build
+    - docker run --rm eline/shv:$CI_COMMIT_SHA ctest -j "$(nproc)" --test-dir /home/build-user/shv-build
   after_script:
     - docker rmi eline/shv:$CI_COMMIT_SHA
 
