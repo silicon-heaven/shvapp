@@ -49,8 +49,33 @@ linux-qt6-docker:
   after_script:
     - docker rmi eline/shv:$CI_COMMIT_SHA
 
+build-hscope-dashboard:
+  tags:
+    - job_unix
+  stage: build
+  interruptible: true
+  artifacts:
+    paths:
+      - "build/"
+  script:
+    - cd clients/hscope/dashboard
+    - npm install
+    - npx tsc -noEmit
+    - npx esbuild src/index.ts --minify --bundle --outfile=${CI_PROJECT_DIR}/build/index.js
+    - cp style.css ${CI_PROJECT_DIR}/build/
+    - cp hscope-dashboard.html ${CI_PROJECT_DIR}/build/index.html
 
-
+deploy-hscope-dashboard:
+  only:
+    - test
+  tags:
+    - job_unix
+  stage: build
+  interruptible: true
+  needs:
+    - build-hscope-dashboard
+  script:
+    - rsync -avz build/* shv@${SHV_HEAVEN_IP}:/var/www/html/hscope/
 
 production-deploy:
   only:
@@ -101,8 +126,6 @@ test-deploy:
 
     # hscope
     - rsync -avz clients/hscope/etc/shv/lua-lib/* gitlab@${SHV_NIRVANA_IP}:/etc/shv/hscope/lua-lib
-    - rsync -avz clients/hscope/dashboard/* shv@${SHV_HEAVEN_IP}:/var/www/html/hscope/
-    - rsync -avz 3rdparty/libshv-js/*.js shv@${SHV_HEAVEN_IP}:/var/www/html/hscope/libshvchainpack/
     - ssh -t shv@${SHV_HEAVEN_IP} "/opt/shv/test/deploy-hscope.sh"
 
   environment:
