@@ -53,3 +53,7 @@ user.config
 compile_commands.json
 
 /build
+
+node_modules
+package-lock.json
+deno.lock
