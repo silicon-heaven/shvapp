@@ -14,13 +14,13 @@ RUN <<EOF
         -DCMAKE_PREFIX_PATH="$HOME/${qt_version}/gcc_64" \
         -DCMAKE_C_COMPILER_LAUNCHER=ccache \
         -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-	-DLIBSHV_WITH_LDAP=ON \
+        -DLIBSHV_WITH_LDAP=ON \
         -G Ninja \
         -B "$HOME/shv-build" \
         -S "$HOME/shv"
 EOF
 
-RUN --mount=id=eline-shv,type=cache,target=$HOME/.ccache,uid=1000,gid=1000 cmake --build "$HOME/shv-build"
+RUN --mount=id=eline-shv,type=cache,target=/home/build-user/.cache/ccache,uid=1000,gid=1000 cmake --build "$HOME/shv-build"
 RUN cmake --install "$HOME/shv-build"
 RUN PATH="$HOME/${qt_version}/gcc_64/bin:$PATH" \
     LDAI_OUTPUT="$HOME/shv-x86_64.AppImage" \
