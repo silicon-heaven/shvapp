@@ -12,6 +12,7 @@
 
 #include <QCryptographicHash>
 #include <QDir>
+#include <QDirIterator>
 #include <QFile>
 #include <QProcess>
 
@@ -32,6 +33,7 @@ static const char METH_APP_VERSION[] = "version";
 static const char METH_SHV_VERSION[] = "shvVersion";
 static const char METH_SHV_GIT_COMMIT[] = "shvGitCommit";
 static const char METH_GET_SITES[] = "getSites";
+static const char METH_GET_SITES_HASH[] = "getSitesHash";
 static const char METH_GET_SITES_TGZ[] = "getSitesTgz";
 static const char METH_RELOAD_SITES[] = "reloadSites";
 static const char METH_SITES_SYNCED_BEFORE[] = "sitesSyncedBefore";
@@ -57,6 +59,7 @@ static std::vector<cp::MetaMethod> root_meta_methods {
 	{ METH_SHV_VERSION, cp::MetaMethod::Flag::IsGetter, {}, "String", cp::AccessLevel::Read},
 	{ METH_SHV_GIT_COMMIT, cp::MetaMethod::Flag::IsGetter, {}, "String", cp::AccessLevel::Read},
 	{ METH_GET_SITES, cp::MetaMethod::Flag::None, {}, "Map", shv::chainpack::AccessLevel::Read},
+	{ METH_GET_SITES_HASH, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Read},
 	{ METH_GET_SITES_TGZ, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Read},
 	{ METH_PULL_FILES, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Write},
 };
@@ -192,7 +195,10 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 	else if (method == METH_GET_SITES) {
 		return getSites(rq.shvPath().to<QString>());
 	}
-    else if (method == METH_GET_SITES_TGZ) {
+	else if (method == METH_GET_SITES_HASH) {
+		return getSitesHash(rq.shvPath().to<QString>());
+	}
+	else if (method == METH_GET_SITES_TGZ) {
 		getSitesTgz(rq.shvPath().to<QString>(), [this, rq](const QByteArray &data, const QString &error) {
 			cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
 			if (error.isEmpty()) {
@@ -404,6 +410,24 @@ cp::RpcValue AppRootNode::getSites(const QString &shv_path)
 		}
 	}
 	return res;
+}
+
+shv::chainpack::RpcValue AppRootNode::getSitesHash(const QString &shv_path) const
+{
+	QCryptographicHash hash(QCryptographicHash::Algorithm::Sha1);
+
+	QDirIterator it(nodeLocalPath(shv_path), QDir::Files, QDirIterator::Subdirectories);
+	while (it.hasNext()) {
+		QString dir = it.next();
+		QFile file(dir);
+		if (!file.open(QFile::ReadOnly)) {
+			SHV_QT_EXCEPTION("Cannot open file " + file.fileName());
+		}
+		hash.addData(file.readAll());
+		file.close();
+	}
+
+	return hash.result().toHex().toStdString();
 }
 
 void AppRootNode::getSitesTgz(const QString &shv_path, std::function<void(const QByteArray &, const QString &)> callback)
