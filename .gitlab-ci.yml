@@ -23,7 +23,7 @@ linux:
     - rm -rf build
     - mkdir -p build
     - cd build
-    - CFLAGS="-Werror" CXXFLAGS="-DGIT_COMMIT=${CI_BUILD_REF} -Werror" cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_PREFIX_PATH=/opt/qt/5.15.2/gcc_64 -DCMAKE_INSTALL_PREFIX=. -DUSE_QT6=OFF -DLIBSHV_USE_QT6=OFF -DWITH_LDAP=ON -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ..
+    - CFLAGS="-Werror" CXXFLAGS="-DGIT_COMMIT=${CI_BUILD_REF} -Werror" cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_PREFIX_PATH=/opt/qt/5.15.2/gcc_64 -DCMAKE_INSTALL_PREFIX=. -DSHV_USE_QT6=OFF -DLIBSHV_USE_QT6=OFF -DWITH_LDAP=ON -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ..
     - make -j$(nproc)
 
 linux-qt6-docker:
@@ -45,12 +45,37 @@ linux-qt6-docker:
     - NAME="$(docker create eline/shv:$CI_COMMIT_SHA)"
     - docker cp "$NAME":/home/build-user/shv-x86_64.AppImage "app_image/shv-$CI_COMMIT_SHA-x86_64.AppImage"
     - docker container rm "$NAME"
-    - docker run --rm eline/shv:$CI_COMMIT_SHA ctest --test-dir /home/build-user/shv-build
+    - docker run --rm eline/shv:$CI_COMMIT_SHA ctest -j "$(nproc)" --test-dir /home/build-user/shv-build
   after_script:
     - docker rmi eline/shv:$CI_COMMIT_SHA
 
+build-hscope-dashboard:
+  tags:
+    - job_unix
+  stage: build
+  interruptible: true
+  artifacts:
+    paths:
+      - "build/"
+  script:
+    - cd clients/hscope/dashboard
+    - npm install
+    - npx tsc -noEmit
+    - npx esbuild src/index.ts --minify --bundle --outfile=${CI_PROJECT_DIR}/build/index.js
+    - cp style.css ${CI_PROJECT_DIR}/build/
+    - cp hscope-dashboard.html ${CI_PROJECT_DIR}/build/index.html
 
-
+deploy-hscope-dashboard:
+  only:
+    - test
+  tags:
+    - job_unix
+  stage: build
+  interruptible: true
+  needs:
+    - build-hscope-dashboard
+  script:
+    - rsync -avz build/* shv@${SHV_HEAVEN_IP}:/var/www/html/hscope/
 
 production-deploy:
   only:
@@ -101,8 +126,6 @@ test-deploy:
 
     # hscope
     - rsync -avz clients/hscope/etc/shv/lua-lib/* gitlab@${SHV_NIRVANA_IP}:/etc/shv/hscope/lua-lib
-    - rsync -avz clients/hscope/dashboard/* shv@${SHV_HEAVEN_IP}:/var/www/html/hscope/
-    - rsync -avz 3rdparty/libshv-js/*.js shv@${SHV_HEAVEN_IP}:/var/www/html/hscope/libshvchainpack/
     - ssh -t shv@${SHV_HEAVEN_IP} "/opt/shv/test/deploy-hscope.sh"
 
   environment:

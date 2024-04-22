@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "lib": ["dom", "dom.iterable", "deno.window"]
+  },
+  "imports": {
+    "libshv-js/": "https://raw.githubusercontent.com/silicon-heaven/libshv-js/5b2cd3ad5c46fc74f3c98be780f9b1a4d7d767b8/src/"
+  }
+}
