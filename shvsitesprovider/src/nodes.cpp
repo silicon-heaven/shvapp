@@ -33,7 +33,7 @@ static const char METH_APP_VERSION[] = "version";
 static const char METH_SHV_VERSION[] = "shvVersion";
 static const char METH_SHV_GIT_COMMIT[] = "shvGitCommit";
 static const char METH_GET_SITES[] = "getSites";
-static const char METH_GET_SITES_HASH[] = "getSitesHash";
+static const char METH_GET_SITES_TGZ_INFO[] = "getSitesTgzInfo";
 static const char METH_GET_SITES_TGZ[] = "getSitesTgz";
 static const char METH_RELOAD_SITES[] = "reloadSites";
 static const char METH_SITES_SYNCED_BEFORE[] = "sitesSyncedBefore";
@@ -59,7 +59,7 @@ static std::vector<cp::MetaMethod> root_meta_methods {
 	{ METH_SHV_VERSION, cp::MetaMethod::Flag::IsGetter, {}, "String", cp::AccessLevel::Read},
 	{ METH_SHV_GIT_COMMIT, cp::MetaMethod::Flag::IsGetter, {}, "String", cp::AccessLevel::Read},
 	{ METH_GET_SITES, cp::MetaMethod::Flag::None, {}, "Map", shv::chainpack::AccessLevel::Read},
-	{ METH_GET_SITES_HASH, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Read},
+	{ METH_GET_SITES_TGZ_INFO, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Read},
 	{ METH_GET_SITES_TGZ, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Read},
 	{ METH_PULL_FILES, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Write},
 };
@@ -145,6 +145,9 @@ AppRootNode::AppRootNode(QObject *parent)
 		m_downloadSitesTimer.start();
 		QTimer::singleShot(500, this, &AppRootNode::downloadSites);
 	}
+	else {
+		QTimer::singleShot(500, this, &AppRootNode::updateSitesTgz);
+	}
 }
 
 size_t AppRootNode::methodCount(const StringViewList &shv_path)
@@ -195,21 +198,11 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 	else if (method == METH_GET_SITES) {
 		return getSites(rq.shvPath().to<QString>());
 	}
-	else if (method == METH_GET_SITES_HASH) {
-		return getSitesHash(rq.shvPath().to<QString>());
+	else if (method == METH_GET_SITES_TGZ_INFO) {
+		return getSitesInfo();
 	}
 	else if (method == METH_GET_SITES_TGZ) {
-		getSitesTgz(rq.shvPath().to<QString>(), [this, rq](const QByteArray &data, const QString &error) {
-			cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
-			if (error.isEmpty()) {
-				resp.setResult(cp::RpcValue::stringToBlob(data.toStdString()));
-			}
-			else {
-				resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, error.toStdString()));
-			}
-			emitSendRpcMessage(resp);
-		});
-		return cp::RpcValue();
+		return getSitesTgz();
 	}
 	else if (method == METH_FILE_READ) {
 		return readFile(rq.shvPath().to<QString>());
@@ -412,28 +405,44 @@ cp::RpcValue AppRootNode::getSites(const QString &shv_path)
 	return res;
 }
 
-shv::chainpack::RpcValue AppRootNode::getSitesHash(const QString &shv_path) const
+shv::chainpack::RpcValue AppRootNode::getSitesInfo() const
 {
-	QCryptographicHash hash(QCryptographicHash::Algorithm::Sha1);
-
-	QDirIterator it(nodeLocalPath(shv_path), QDir::Files, QDirIterator::Subdirectories);
-	while (it.hasNext()) {
-		QString dir = it.next();
-		QFile file(dir);
-		if (!file.open(QFile::ReadOnly)) {
-			SHV_QT_EXCEPTION("Cannot open file " + file.fileName());
-		}
-		hash.addData(file.readAll());
-		file.close();
+	QFile f(nodeLocalPath() + "/sites.info");
+	if (!f.open(QFile::ReadOnly)) {
+		SHV_QT_EXCEPTION("Cannot open file " + f.fileName());
 	}
-
-	return hash.result().toHex().toStdString();
+	std::string err;
+	cp::RpcValue info = cp::RpcValue::fromCpon(f.readAll().toStdString(), &err);
+	if (!err.empty()) {
+		SHV_EXCEPTION("Error parsing info file " + err);
+	}
+	return info;
 }
 
-void AppRootNode::getSitesTgz(const QString &shv_path, std::function<void(const QByteArray &, const QString &)> callback)
+shv::chainpack::RpcValue AppRootNode::getSitesTgz() const
 {
-	QProcess *tar_process = new QProcess(this);
-	tar_process->setWorkingDirectory(nodeLocalPath(shv_path));
+	QFile f(nodeLocalPath() + "/sites.tgz");
+	if (!f.open(QFile::ReadOnly)) {
+		SHV_QT_EXCEPTION("Cannot open file " + f.fileName());
+	}
+	return cp::RpcValue::stringToBlob(f.readAll().toStdString());
+}
+
+void AppRootNode::updateSitesTgz()
+{
+	createSitesTgz([this](const QByteArray &data, const QString &error) {
+		if (!error.isEmpty()) {
+			shvError() << error;
+			return;
+		}
+		saveSitesTgz(data);
+	});
+}
+
+void AppRootNode::createSitesTgz(std::function<void(const QByteArray &, const QString &)> callback)
+{
+	auto *tar_process = new QProcess(this);
+	tar_process->setWorkingDirectory(nodeLocalPath());
 	QSharedPointer<QByteArray> data(new QByteArray);
 	QSharedPointer<QByteArray> error(new QByteArray);
 
@@ -546,6 +555,52 @@ bool AppRootNode::isDevice(const QString &shv_path)
 	return false;
 }
 
+void AppRootNode::saveSitesTgz(const QByteArray &data) const
+{
+	QString sites_dir = nodeLocalPath();
+	QFile tgz_file(sites_dir + "/sites.tgz");
+	if (tgz_file.exists()) {
+		tgz_file.remove();
+	}
+	QFile info_file(sites_dir + "/sites.info");
+	if (info_file.exists()) {
+		info_file.remove();
+	}
+
+	QCryptographicHash hash(QCryptographicHash::Algorithm::Sha1);
+
+	QDirIterator it(sites_dir, QDir::Files, QDirIterator::Subdirectories);
+	while (it.hasNext()) {
+		QString dir = it.next();
+		QFile file(dir);
+		if (!file.open(QFile::ReadOnly)) {
+			SHV_QT_EXCEPTION("Cannot open file " + file.fileName());
+		}
+		hash.addData(file.readAll());
+		file.close();
+	}
+
+	if (!tgz_file.open(QFile::WriteOnly | QFile::Truncate)) {
+		shvError() << "Cannot open file" << tgz_file.fileName();
+		return;
+	}
+	tgz_file.write(data);
+	tgz_file.close();
+
+	if (!info_file.open(QFile::WriteOnly | QFile::Truncate))	 {
+		shvError() << "Cannot open file" << info_file.fileName();
+		return;
+	}
+
+	info_file.write(QByteArray::fromStdString(
+						cp::RpcValue(cp::RpcValue::Map {
+							{ "size", data.length() },
+							{ "sha1", hash.result().toHex().toStdString() }
+						}).toCpon("  ")
+						));
+	info_file.close();
+}
+
 void AppRootNode::onSitesDownloaded()
 {
 	m_sitesSyncedBefore.start();
@@ -554,6 +609,7 @@ void AppRootNode::onSitesDownloaded()
 		ntf.setMethod(METH_SITES_RELOADED);
 		rootNode()->emitSendRpcMessage(ntf);
 	}
+	updateSitesTgz();
 	Q_EMIT sitesDownloaded();
 }
 
