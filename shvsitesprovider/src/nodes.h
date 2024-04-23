@@ -29,7 +29,11 @@ private:
 	const std::vector<shv::chainpack::MetaMethod> &metaMethods(const StringViewList &shv_path);
 
 	shv::chainpack::RpcValue getSites(const QString &shv_path);
-	void getSitesTgz(const QString &shv_path, std::function<void(const QByteArray &, const QString &)> callback);
+	shv::chainpack::RpcValue getSitesInfo() const;
+	shv::chainpack::RpcValue getSitesTgz() const;
+	void updateSitesTgz();
+	void createSitesTgz(std::function<void(const QByteArray &, const QString &)> callback);
+	void saveSitesTgz(const QByteArray &data) const;
 	void findDevicesToSync(const QString &shv_path, QStringList &result);
 	QStringList lsNode(const QString &shv_path);
 	bool isDevice(const QString &shv_path);
