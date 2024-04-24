@@ -61,6 +61,7 @@ build-hscope-dashboard:
     - cd clients/hscope/dashboard
     - npm install
     - npx tsc -noEmit
+    - npx xo --reporter unix src/*
     - npx esbuild src/index.ts --minify --bundle --outfile=${CI_PROJECT_DIR}/build/index.js
     - cp style.css ${CI_PROJECT_DIR}/build/
     - cp hscope-dashboard.html ${CI_PROJECT_DIR}/build/index.html
