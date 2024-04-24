@@ -2,7 +2,7 @@
   "name": "hscope-dashboard",
   "version": "1.0.0",
   "dependencies": {
-    "libshv-js": "github:silicon-heaven/libshv-js#5b2cd3ad5c46fc74f3c98be780f9b1a4d7d767b8"
+    "libshv-js": "github:silicon-heaven/libshv-js#7a225ab479947871d4293279138663bdf59e0c81"
   },
   "devDependencies": {
     "esbuild": "^0.20.2",
