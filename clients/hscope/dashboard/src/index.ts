@@ -1,11 +1,11 @@
-import {WsClient, DIR_NAME} from './ws-client.ts';
-import {ShvMap} from './rpcvalue.ts';
-import {type RpcResponse, RpcError} from './rpcmessage.ts';
+import {WsClient, DIR_NAME} from 'libshv-js/ws-client.ts';
+import {ShvMap} from 'libshv-js/rpcvalue.ts';
+import {type RpcResponse, RpcError} from 'libshv-js/rpcmessage.ts';
 
 let websocket: WsClient;
 const ws_uri = 'wss://nirvana.elektroline.cz:37778';
 
-const txt_log = document.querySelector('#txt_log')!;
+const txt_log = document.querySelector('#txt_log') as HTMLTextAreaElement;
 const toggle_log = () => {
     if (txt_log.className === 'd-none') {
         txt_log.className = '';
@@ -15,11 +15,11 @@ const toggle_log = () => {
     }
 };
 
-(document.querySelector('#toggle_log')!).addEventListener('click', toggle_log);
+(document.querySelector('#toggle_log') as HTMLButtonElement).addEventListener('click', toggle_log);
 
 const debug = (...args: any) => {
     if (txt_log) {
-        txt_log.value += args.join(' ') + '\n';
+        (txt_log as HTMLTextAreaElement).value += args.join(' ') + '\n';
         txt_log.scrollTop = txt_log.scrollHeight;
     }
 };
@@ -39,13 +39,13 @@ const format_severity = (value: string) => {
 
 const sort_rows = () => {
     const col_num
-        = (document.querySelector('#sort_path')!).checked ? 1
-            : (document.querySelector('#sort_severity')!).checked ? 2
-                : (document.querySelector('#sort_message')!).checked ? 3
+        = (document.querySelector('#sort_path') as HTMLInputElement).checked ? 1
+            : (document.querySelector('#sort_severity') as HTMLInputElement).checked ? 2
+                : (document.querySelector('#sort_message') as HTMLInputElement).checked ? 3
                     : 1; // We'll sort by path by default.
 
     const order
-        = (document.querySelector('#sort_dsc')!).checked ? 'dsc' : 'asc';
+        = (document.querySelector('#sort_dsc') as HTMLInputElement).checked ? 'dsc' : 'asc';
 
     ([...document.querySelector('#hscope_container')!.querySelectorAll('tr')])
         .sort(row_comparator(col_num, order))
@@ -197,13 +197,13 @@ const connect_websocket = () => {
 
         document.querySelector('#hscope_container')!.innerHTML = '';
 
-        const user = (document.querySelector('#txt_user')!).value;
+        const user = (document.querySelector('#txt_user') as HTMLInputElement).value;
         localStorage.setItem('lastUser', user);
         if (user === '') {
             throw new Error('SHV username mustn\'t be empty');
         }
 
-        const password = (document.querySelector('#txt_password')!).value;
+        const password = (document.querySelector('#txt_password') as HTMLInputElement).value;
         if (password === '') {
             throw new Error('SHV password mustn\'t be empty');
         }
@@ -259,17 +259,17 @@ const filter_rows = (filter: string) => {
     }
 };
 
-const txt_filter = (document.querySelector('#txt_filter')!);
+const txt_filter = (document.querySelector('#txt_filter') as HTMLInputElement);
 txt_filter.addEventListener('input', () => {
     filter_rows(txt_filter.value);
 });
 
 txt_filter.select();
 
-(document.querySelector('#btn_connect')!).addEventListener('click', connect_websocket);
+(document.querySelector('#btn_connect') as HTMLButtonElement).addEventListener('click', connect_websocket);
 const last_user = localStorage.getItem('lastUser');
-(document.querySelector('#txt_user')!).value = last_user !== null ? last_user : '';
+(document.querySelector('#txt_user') as HTMLInputElement).value = last_user !== null ? last_user : '';
 const last_password = localStorage.getItem('lastPassword');
-(document.querySelector('#txt_password')!).value = last_password !== null ? last_password : '';
+(document.querySelector('#txt_password') as HTMLInputElement).value = last_password !== null ? last_password : '';
 
 connect_websocket();
