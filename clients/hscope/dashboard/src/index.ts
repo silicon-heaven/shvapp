@@ -17,9 +17,9 @@ const toggle_log = () => {
 
 (document.querySelector('#toggle_log') as HTMLButtonElement).addEventListener('click', toggle_log);
 
-const debug = (...args: any) => {
+const debug = (...args: string[]) => {
     if (txt_log) {
-        (txt_log as HTMLTextAreaElement).value += args.join(' ') + '\n';
+        (txt_log).value += args.join(' ') + '\n';
         txt_log.scrollTop = txt_log.scrollHeight;
     }
 };
@@ -49,7 +49,9 @@ const sort_rows = () => {
 
     ([...document.querySelector('#hscope_container')!.querySelectorAll('tr')])
         .sort(row_comparator(col_num, order))
-        .forEach((myElem: HTMLElement) => document.querySelector('#hscope_container')!.appendChild(myElem));
+        .forEach((myElem: HTMLElement) => {
+            document.querySelector('#hscope_container')!.append(myElem);
+        });
 };
 
 type HscopeValue = {
@@ -87,16 +89,18 @@ const resolve_hscope_tree = (path: string, container: HTMLElement) => {
             const run_cell_element = document.createElement('td');
             run_cell_element.className = 'align-middle';
             const run_element = document.createElement('button');
-            run_element.innerText = 'Run';
+            run_element.textContent = 'Run';
             run_element.className = 'btn btn-outline-dark';
             run_element.addEventListener('click', () => {
-                websocket.callRpcMethod(path, 'run');
+                websocket.callRpcMethod(path, 'run').catch(error => {
+                    console.log(`Failed to run '${path}': ${error}`);
+                });
             });
             run_cell_element.append(run_element);
             node_container.append(run_cell_element);
 
             const path_element = document.createElement('td');
-            path_element.innerText = user_facing_path;
+            path_element.textContent = user_facing_path;
             path_element.className = 'align-middle';
             node_container.append(path_element);
             const severity_element = document.createElement('td');
@@ -115,6 +119,7 @@ const resolve_hscope_tree = (path: string, container: HTMLElement) => {
                     // This dance refreshes the animation.
                     // https://stackoverflow.com/a/45036752
                     elem.style.animation = 'none';
+                    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
                     elem.offsetHeight;
                     elem.style.animation = '';
                     elem.addEventListener('animationend', () => {
@@ -124,20 +129,19 @@ const resolve_hscope_tree = (path: string, container: HTMLElement) => {
             };
 
             const update_elements = (value: HscopeValue) => {
-                severity_element.innerText = value.severity !== undefined ? format_severity(value.severity) : '❓';
+                severity_element.textContent = value.severity !== undefined ? format_severity(value.severity) : '❓';
                 animate_element(severity_element);
 
-                message_element.innerText = value.message !== undefined ? value.message : '';
+                message_element.textContent = value.message ?? '';
                 animate_element(message_element);
 
-                time_changed_element.innerText = value.time_changed !== undefined ? value.time_changed.toLocaleString([]) : '';
+                time_changed_element.textContent = value.time_changed !== undefined ? value.time_changed.toLocaleString([]) : '';
                 animate_element(time_changed_element);
                 sort_rows();
             };
 
             const got_first_status = websocket.callRpcMethod(path + '/status', 'get').then(value => {
                 if (is_hscope_value(value)) {
-                    value.value.message
                     update_elements(value.value);
                 }
             });
@@ -149,10 +153,10 @@ const resolve_hscope_tree = (path: string, container: HTMLElement) => {
             });
 
             const got_first_last_run = websocket.callRpcMethod(path + '/lastRunTimestamp', 'get').then(value => {
-                last_run_element.innerText = value instanceof Date ? value.toLocaleString([]) : 'Couldn\'t retrieve timestamp';
+                last_run_element.textContent = value instanceof Date ? value.toLocaleString([]) : 'Couldn\'t retrieve timestamp';
             });
 
-            Promise.all([got_first_status, got_first_last_run]).then(() => {
+            void Promise.all([got_first_status, got_first_last_run]).then(() => {
                 should_animate = true;
             });
 
@@ -162,7 +166,7 @@ const resolve_hscope_tree = (path: string, container: HTMLElement) => {
                         console.log(`Got unexpected params for lastRunTimestamp on ${changedPath}`, value);
                         return;
                     }
-                    last_run_element.innerText = value.toLocaleString([]);
+                    last_run_element.textContent = value.toLocaleString([]);
                     animate_element(last_run_element);
                 });
             }, 5000);
@@ -172,6 +176,8 @@ const resolve_hscope_tree = (path: string, container: HTMLElement) => {
             node_container.append(time_changed_element);
             node_container.append(last_run_element);
         }
+    }).catch(error => {
+        console.log(`Failed to fetch methods for '${path}': ${error}`);
     });
 
     websocket.callRpcMethod(path, 'ls').then(paths => {
@@ -182,11 +188,16 @@ const resolve_hscope_tree = (path: string, container: HTMLElement) => {
         for (const childPath of paths) {
             resolve_hscope_tree(path + '/' + childPath, container);
         }
+    }).catch(error => {
+        console.log(`Failed to child nodes for '${path}': ${error}`);
     });
 };
 
 const send_ping = () => {
-    websocket.callRpcMethod('.broker/app', 'ping');
+    websocket.callRpcMethod('.broker/app', 'ping')
+        .catch(error => {
+            console.log(`Failed to send ping: ${error}`);
+        });
 };
 
 const connect_websocket = () => {
@@ -218,10 +229,10 @@ const connect_websocket = () => {
                 setInterval(send_ping, 1000 * 30);
                 resolve_hscope_tree('hscope', document.querySelector('#hscope_container')!);
             },
-            onRequest() {},
+            onRequest() {/* empty */},
         });
     } catch (error) {
-        debug('EXCEPTION: ' + error);
+        debug('EXCEPTION: ' + String(error));
         if (txt_log.className === 'd-none') {
             toggle_log();
         }
@@ -230,23 +241,23 @@ const connect_websocket = () => {
 
 const row_comparator = (col_num: number, order: string) => (a: HTMLElement, b: HTMLElement): number => {
     // Always put elements with empty text at the back.
-    if ((a.children[col_num] as HTMLTableCellElement).innerText === '') {
+    if ((a.children[col_num] as HTMLTableCellElement).textContent === '') {
         return 1;
     }
 
-    if ((b.children[col_num] as HTMLTableCellElement).innerText === '') {
+    if ((b.children[col_num] as HTMLTableCellElement).textContent === '') {
         return -1;
     }
 
     const left = order === 'asc' ? a : b;
     const right = order === 'asc' ? b : a;
 
-    if ((left.children[col_num] as HTMLTableCellElement).innerText === (right.children[col_num] as HTMLTableCellElement).innerText) {
+    if ((left.children[col_num] as HTMLTableCellElement).textContent === (right.children[col_num] as HTMLTableCellElement).textContent) {
         // Columns have the same value, so we'll sort column 1 (which is path)
         return row_comparator(1, order)(a, b);
     }
 
-    return (left.children[col_num] as HTMLTableCellElement).innerText < (right.children[col_num] as HTMLTableCellElement).innerText ? -1 : 1;
+    return ((left.children[col_num] as HTMLTableCellElement).textContent ?? '') < ((right.children[col_num] as HTMLTableCellElement).textContent ?? '') ? -1 : 1;
 };
 
 for (const elem of document.querySelectorAll('input.form-check-input')) {
@@ -255,21 +266,25 @@ for (const elem of document.querySelectorAll('input.form-check-input')) {
 
 const filter_rows = (filter: string) => {
     for (const row of document.querySelector('#hscope_container')!.querySelectorAll('tr')) {
-        [...row.children].some(cell => new RegExp(filter, 'i').exec((cell as HTMLTableCellElement).innerText)) ? row.classList.remove('d-none') : row.classList.add('d-none');
+        if ([...row.children].some(cell => new RegExp(filter, 'i').exec((cell as HTMLTableCellElement).textContent ?? ''))) {
+            row.classList.remove('d-none');
+        } else {
+            row.classList.add('d-none');
+        }
     }
 };
 
-const txt_filter = (document.querySelector('#txt_filter') as HTMLInputElement);
+const txt_filter = (document.querySelector('#txt_filter') as HTMLTextAreaElement);
 txt_filter.addEventListener('input', () => {
     filter_rows(txt_filter.value);
 });
 
 txt_filter.select();
 
-(document.querySelector('#btn_connect') as HTMLButtonElement).addEventListener('click', connect_websocket);
+(document.querySelector('#btn_connect')!).addEventListener('click', connect_websocket);
 const last_user = localStorage.getItem('lastUser');
-(document.querySelector('#txt_user') as HTMLInputElement).value = last_user !== null ? last_user : '';
+(document.querySelector('#txt_user') as HTMLInputElement).value = last_user ?? '';
 const last_password = localStorage.getItem('lastPassword');
-(document.querySelector('#txt_password') as HTMLInputElement).value = last_password !== null ? last_password : '';
+(document.querySelector('#txt_password') as HTMLInputElement).value = last_password ?? '';
 
 connect_websocket();
