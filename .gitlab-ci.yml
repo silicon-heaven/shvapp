@@ -71,7 +71,7 @@ deploy-hscope-dashboard:
     - test
   tags:
     - job_unix
-  stage: build
+  stage: deploy
   interruptible: true
   needs:
     - build-hscope-dashboard
