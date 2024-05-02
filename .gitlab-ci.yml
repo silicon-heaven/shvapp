@@ -89,7 +89,7 @@ production-deploy:
     - set -x
     - |
       ln -s "$(basename app_image/*AppImage)" app_image/shv-current-AppImage
-      for DEST in /opt/shv-test/ "gitlab@${SHV_NIRVANA_IP}:/opt/shv-prod/" "shv@${SHV_HEAVEN_IP}:/opt/shv/production/"; do
+      for DEST in /opt/shv-prod/ "gitlab@${SHV_NIRVANA_IP}:/opt/shv-prod/" "shv@${SHV_HEAVEN_IP}:/opt/shv/production/"; do
         rsync -avz app_image/*AppImage "$DEST"
       done
     - ssh -t shv@${SHV_HEAVEN_IP} "sudo /opt/shv/production/install.sh"
