@@ -94,6 +94,8 @@ production-deploy:
       done
     - ssh -t shv@${SHV_HEAVEN_IP} "sudo /opt/shv/production/install.sh"
     - ssh -t gitlab@${SHV_NIRVANA_IP} "sudo /opt/shv-prod/install.sh"
+  needs:
+    - linux-qt6-docker
   environment:
     name: nirvana
 
@@ -118,6 +120,8 @@ test-deploy:
     - rsync -avz clients/hscope/etc/shv/lua-lib/* gitlab@${SHV_NIRVANA_IP}:/etc/shv/hscope/lua-lib
     - ssh -t shv@${SHV_HEAVEN_IP} "/opt/shv/test/deploy-hscope.sh"
 
+  needs:
+    - linux-qt6-docker
   environment:
     name: jessie
 
