@@ -119,6 +119,7 @@ test-deploy:
     deploy
   script:
     - |
+      set -x
       for DEST in /opt/shv-test/ "gitlab@${SHV_NIRVANA_IP}:/opt/shv-test/" "shv@${SHV_HEAVEN_IP}:/opt/shv/test/"; do
         ln -s "$(basename app_image/*AppImage)" app_image/shv-current-AppImage
         rsync -avz app_image/*AppImage "$DEST"
