@@ -86,29 +86,16 @@ production-deploy:
   stage:
     deploy
   script:
-    - id
-    - cd build
-    # nirvana
-    - rsync -avz _dist/lib _dist/bin shv@${SHV_NIRVANA_IP}:/opt/shv-prod/
-    - ssh -t gitlab@${SHV_NIRVANA_IP} "sudo /opt/shv-prod/install.sh"
-
-  environment:
-    name: jessie
-
-production-deploy-heaven:
-  only:
-    - production
-  tags:
-    - linux
-  stage:
-    deploy
-  script:
-    - id
-    - cd build
-    - rsync -avz _dist/lib _dist/bin shv@${SHV_HEAVEN_IP}:/opt/shv/production/
+    - set -x
+    - |
+      ln -s "$(basename app_image/*AppImage)" app_image/shv-current-AppImage
+      for DEST in /opt/shv-test/ "gitlab@${SHV_NIRVANA_IP}:/opt/shv-prod/" "shv@${SHV_HEAVEN_IP}:/opt/shv/production/"; do
+        rsync -avz app_image/*AppImage "$DEST"
+      done
     - ssh -t shv@${SHV_HEAVEN_IP} "sudo /opt/shv/production/install.sh"
+    - ssh -t gitlab@${SHV_NIRVANA_IP} "sudo /opt/shv-prod/install.sh"
   environment:
-    name: heaven
+    name: nirvana
 
 test-deploy:
   only:
@@ -118,6 +105,7 @@ test-deploy:
   stage:
     deploy
   script:
+    - set -x
     - |
       ln -s "$(basename app_image/*AppImage)" app_image/shv-current-AppImage
       for DEST in /opt/shv-test/ "gitlab@${SHV_NIRVANA_IP}:/opt/shv-test/" "shv@${SHV_HEAVEN_IP}:/opt/shv/test/"; do
