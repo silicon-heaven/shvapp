@@ -119,12 +119,11 @@ test-deploy:
     deploy
   script:
     - |
-      set -x
+      ln -s "$(basename app_image/*AppImage)" app_image/shv-current-AppImage
       for DEST in /opt/shv-test/ "gitlab@${SHV_NIRVANA_IP}:/opt/shv-test/" "shv@${SHV_HEAVEN_IP}:/opt/shv/test/"; do
-        ln -s "$(basename app_image/*AppImage)" app_image/shv-current-AppImage
         rsync -avz app_image/*AppImage "$DEST"
       done
-    - ssh -t gitlab@${SHV_NIRVANA_IP} "sudo /opt/shv/install.sh"
+    - ssh -t gitlab@${SHV_NIRVANA_IP} "sudo /opt/shv-test/install.sh"
     - ssh -t shv@${SHV_HEAVEN_IP} "sudo /opt/shv/test/install.sh"
 
     # hscope
