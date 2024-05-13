@@ -199,6 +199,6 @@ shv::chainpack::RpcValue make_sub_params(const std::string& path, const std::str
 }
 
 #define DRIVER_WAIT(msec) { \
-	QTimer::singleShot(msec, [mock] { mock->advanceTest(); }); \
+	QTimer::singleShot(msec, mock, [mock] { mock->advanceTest(); }); \
 	return; \
 }

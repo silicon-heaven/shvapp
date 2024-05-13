@@ -89,9 +89,11 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest& rq)
 	if (rq.shvPath().asString().empty()) {
 		if (rq.method() == cp::Rpc::METH_DEVICE_ID) {
 			Shv2MqttApp* app = Shv2MqttApp::instance();
-			const cp::RpcValue::Map& opts = app->rpcConnection()->connectionOptions().asMap();
-			const cp::RpcValue::Map& dev = opts.value(cp::Rpc::KEY_DEVICE).asMap();
-			return dev.value(cp::Rpc::KEY_DEVICE_ID).toString();
+			return app
+				->rpcConnection()
+				->connectionOptions()
+				.asMap().value(cp::Rpc::KEY_DEVICE)
+				.asMap().value(cp::Rpc::KEY_DEVICE_ID).toString();
 		}
 
 		if (rq.method() == cp::Rpc::METH_DEVICE_TYPE) {
@@ -203,7 +205,8 @@ Shv2MqttApp* Shv2MqttApp::instance()
 void Shv2MqttApp::onBrokerConnectedChanged(bool is_connected)
 {
 	m_isBrokerConnected = is_connected;
-	for (const auto& path : m_cliOptions->subscribePaths().asList()) {
+	auto paths = m_cliOptions->subscribePaths();
+	for (const auto& path : paths.asList()) {
 		shvInfo() << "Subscribing to" << path;
 		m_rpcConnection->callMethodSubscribe(path.toString(), "chng");
 	}

@@ -114,10 +114,6 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 			RESPOND_YIELD(RpcValue::List());
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
-			EXPECT_REQUEST("shv/one/.app/shvjournal/2022-07-07T18-06-15-557.log2", "read", read_offset_0);
-			RESPOND_YIELD(RpcValue::stringToBlob(""));
-		});
-		enqueue(res, [=] (MockRpcConnection* mock) {
 			EXPECT_RESPONSE(R"(["shv/one", "shv/two"])"_cpon);
 		});
 	}
