@@ -366,7 +366,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		{
 			enqueue(res, [=] (MockRpcConnection* mock) {
 				mock->setBrokerConnected(false);
-				QTimer::singleShot(0, [mock] {mock->setBrokerConnected(true);});
+				QTimer::singleShot(0, mock, [mock] {mock->setBrokerConnected(true);});
 			});
 			enqueue(res, [=] (MockRpcConnection* mock) {
 				SEND_SITES_YIELD(mock_sites::two_devices);
@@ -427,7 +427,7 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 		auto expected_cache_contents = std::make_shared<RpcValue::List>();
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			mock->setBrokerConnected(false);
-			QTimer::singleShot(0, [mock] {mock->setBrokerConnected(true);});
+			QTimer::singleShot(0, mock, [mock] {mock->setBrokerConnected(true);});
 		});
 		enqueue(res, [=] (MockRpcConnection* mock) {
 			SEND_SITES_YIELD(mock_sites::even_more_devices);
