@@ -135,6 +135,35 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 			});
 		}
 
+		DOCTEST_SUBCASE("Remote - has one empty file and one non-empty file, local - empty")
+		{
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				create_dummy_cache_files(cache_dir_path, {});
+				*expected_cache_contents = RpcValue::List({{
+					RpcValue::List{ "2022-07-05T18-06-15-557.log2", 0 },
+					RpcValue::List{ "2022-07-07T18-06-15-557.log2", dummy_logfile.size() }
+				}});
+				*expected_sync_info = R"EOF({
+					"shv/eyas/opc": {"status": ["Syncing shv/eyas/opc via file synchronization",
+						"shv/eyas/opc/.app/shvjournal/2022-07-05T18-06-15-557.log2: syncing (remote size: 0 local size: <doesn't exist>)",
+						"shv/eyas/opc/.app/shvjournal/2022-07-07T18-06-15-557.log2: syncing (remote size: 308 local size: <doesn't exist>)",
+						"shv/eyas/opc/.app/shvjournal/2022-07-05T18-06-15-557.log2: is an empty file, skipping read(), and creating it locally",
+						"shv/eyas/opc/.app/shvjournal/2022-07-07T18-06-15-557.log2: successfully synced",
+						"Syncing done"]}
+					"shv/eyas/with_app_history": {"status": ["Unknown"]}
+				})EOF"_cpon;
+				RESPOND_YIELD((RpcValue::List({{
+					RpcValue::List{ "2022-07-05T18-06-15-557.log2", "f", 0ULL },
+					RpcValue::List{ "2022-07-07T18-06-15-557.log2", "f", dummy_logfile.size() }
+				}})));
+			});
+
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				EXPECT_REQUEST("shv/eyas/opc/.app/shvjournal/2022-07-07T18-06-15-557.log2", "read", read_offset_0);
+				RESPOND_YIELD(RpcValue::stringToBlob(dummy_logfile));
+			});
+		}
+
 		DOCTEST_SUBCASE("dirty log")
 		{
 			enqueue(res, [=] (MockRpcConnection* mock) {

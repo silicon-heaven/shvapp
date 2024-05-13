@@ -694,9 +694,9 @@ public:
 						journalWarning() << "Skipping all files from" << site_path;
 						m_node->appendSyncStatus(slave_hp_path, msg);
 						for (auto it = m_downloadQueue.begin(); it != m_downloadQueue.end(); /* nothing */) {
-							if (auto shv_path = (*it)->shvPath(); shv_path.starts_with(site_path.c_str())) {
+							if (auto shv_path = (*it).call->shvPath(); shv_path.starts_with(site_path.c_str())) {
 								journalDebug() << "Skipping" << shv_path;
-								(*it)->deleteLater();
+								(*it).call->deleteLater();
 								it = m_downloadQueue.erase(it);
 							} else {
 								++it;
@@ -710,7 +710,11 @@ public:
 					}
 					downloadNext();
 				});
-				m_downloadQueue.push_back(call);
+				m_downloadQueue.push_back(DownloadJob{
+					.call = call,
+					.remote_size = remote_size,
+					.full_file_name = full_file_name
+				});
 			}
 
 		});
@@ -722,6 +726,12 @@ public:
 	}
 
 private:
+
+	struct DownloadJob {
+		shv::iotqt::rpc::RpcCall* call = nullptr;
+		int remote_size = 0;
+		QString full_file_name;
+	};
 
 	void downloadNext()
 	{
@@ -740,7 +750,18 @@ private:
 		}
 		journalDebug() << "Downloading next file for" << m_shvPath.toStdString();
 		auto next = m_downloadQueue.front();
-		next->start();
+		if (next.remote_size == 0) {
+			auto msg = next.call->shvPath() + ": is an empty file, skipping read(), and creating it locally";
+			journalWarning() << msg;
+			m_node->appendSyncStatus(m_shvPath, msg);
+			m_downloadedFiles.insert(next.full_file_name, shv::chainpack::RpcValue::Blob{});
+			next.call->deleteLater();
+			m_downloadQueue.pop_front();
+			downloadNext();
+			return;
+		}
+
+		next.call->start();
 		m_downloadQueue.pop_front();
 	}
 
@@ -748,7 +769,7 @@ private:
 	const QString m_shvPath; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 	int current_memory_usage = 0;
 
-	std::deque<shv::iotqt::rpc::RpcCall*> m_downloadQueue;
+	std::deque<DownloadJob> m_downloadQueue;
 
 	QMap<QString, cp::RpcValue> m_downloadedFiles;
 	std::vector<QString> m_toTrim;
