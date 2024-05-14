@@ -7,9 +7,6 @@ SHELL ["bash", "-e", "-u", "-x", "-o", "pipefail", "-O", "inherit_errexit", "-c"
 
 ADD --chown=build-user . /home/build-user/shv
 RUN <<EOF
-    (cd "$HOME"; curl --remote-name --location "https://github.com/darealshinji/linuxdeploy-plugin-checkrt/releases/download/continuous/linuxdeploy-plugin-checkrt.sh")
-    chmod +x "$HOME"/linuxdeploy-plugin-*
-
     CFLAGS="-Werror" CXXFLAGS="-DGIT_COMMIT=${COMMIT_SHA} -Werror" cmake \
         -DBUILD_TESTING=ON \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
