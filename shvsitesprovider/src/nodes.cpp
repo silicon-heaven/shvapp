@@ -474,7 +474,7 @@ void AppRootNode::createSitesTgz(std::function<void(const QByteArray &, const QS
 		tar_process->deleteLater();
 		callback((*data), {});
 	});
-	tar_process->start("tar", QStringList{ "cfzh", "-", "./" });
+	tar_process->start("tar", QStringList{ "cfzh", "-", nodeLocalPath() });
 }
 
 void AppRootNode::findDevicesToSync(const QString &shv_path, QStringList &result)
