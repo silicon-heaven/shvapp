@@ -442,7 +442,6 @@ void AppRootNode::updateSitesTgz()
 void AppRootNode::createSitesTgz(std::function<void(const QByteArray &, const QString &)> callback)
 {
 	auto *tar_process = new QProcess(this);
-	tar_process->setWorkingDirectory(nodeLocalPath());
 	QSharedPointer<QByteArray> data(new QByteArray);
 	QSharedPointer<QByteArray> error(new QByteArray);
 
@@ -474,7 +473,7 @@ void AppRootNode::createSitesTgz(std::function<void(const QByteArray &, const QS
 		tar_process->deleteLater();
 		callback((*data), {});
 	});
-	tar_process->start("tar", QStringList{ "--exclude=sites.tgz", "--exclude=sites.info", "-czhf", "-", "./" });
+	tar_process->start("tar", QStringList{ "--exclude=sites.tgz", "--exclude=sites.info", "-C", nodeLocalPath(), "-czhf", "-", "./" });
 }
 
 void AppRootNode::findDevicesToSync(const QString &shv_path, QStringList &result)
