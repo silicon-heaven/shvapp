@@ -472,6 +472,9 @@ void call_each_of_registry_table(lua_State* state, const char* table_name)
 void HolyScopeApp::onBrokerConnectedChanged(bool is_connected)
 {
 	m_isBrokerConnected = is_connected;
+	if (!m_isBrokerConnected) {
+		return;
+	}
 
 	auto sg = StackGuard(m_state);
 	m_hscopeInitializing = true;
