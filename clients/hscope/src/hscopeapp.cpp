@@ -474,6 +474,7 @@ void HolyScopeApp::onBrokerConnectedChanged(bool is_connected)
 	m_isBrokerConnected = is_connected;
 
 	auto sg = StackGuard(m_state);
+	m_hscopeInitializing = true;
 
 	call_each_of_registry_table(m_state, "on_broker_connected_handlers");
 	// <empty stack>
