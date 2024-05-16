@@ -442,7 +442,6 @@ void AppRootNode::updateSitesTgz()
 void AppRootNode::createSitesTgz(std::function<void(const QByteArray &, const QString &)> callback)
 {
 	auto *tar_process = new QProcess(this);
-	tar_process->setWorkingDirectory(nodeLocalPath());
 	QSharedPointer<QByteArray> data(new QByteArray);
 	QSharedPointer<QByteArray> error(new QByteArray);
 
@@ -474,7 +473,7 @@ void AppRootNode::createSitesTgz(std::function<void(const QByteArray &, const QS
 		tar_process->deleteLater();
 		callback((*data), {});
 	});
-	tar_process->start("tar", QStringList{ "cfzh", "-", nodeLocalPath() });
+	tar_process->start("tar", QStringList{ "--exclude=sites.tgz", "--exclude=sites.info", "-C", nodeLocalPath(), "-czhf", "-", "./" });
 }
 
 void AppRootNode::findDevicesToSync(const QString &shv_path, QStringList &result)
@@ -622,7 +621,7 @@ void AppRootNode::downloadSites()
 
 	QDir("/tmp/sites").removeRecursively();
 
-	QProcess *git = new QProcess(this);
+	auto *git = new QProcess(this);
 	git->setWorkingDirectory("/tmp");
 	QStringList arguments;
 	arguments << "clone" << SitesProviderApp::instance()->remoteSitesUrl();
@@ -660,7 +659,7 @@ void AppRootNode::mergeSitesDirs(const QString &files_path, const QString &git_p
 	QFileInfoList git_entries = git_dir.entryInfoList(QDir::Filter::AllEntries | QDir::Filter::NoDotAndDotDot);
 
 	for (const QFileInfo &git_entry : git_entries) {
-		if (git_entry.fileName() != TEMPLATE_DIR && git_entry.fileName() != TARGET_DIR) {
+		if (git_entry.fileName() != ".git" && git_entry.fileName() != TEMPLATE_DIR && git_entry.fileName() != TARGET_DIR) {
 			bool is_in_files = false;
 			for (int i = 0; i < files_entries.count(); ++i) {
 				const QFileInfo &files_entry = files_entries[i];
