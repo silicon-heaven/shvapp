@@ -31,6 +31,5 @@ RUN PATH="$HOME/${qt_version}/gcc_64/bin:$PATH" \
         --desktop-file "$HOME/shv/distro/shv.AppDir/shv.desktop" \
         --icon-file "$HOME/shv/distro/shv.AppDir/shv.svg" \
         --plugin qt \
-        --plugin checkrt \
         --custom-apprun "$HOME/shv/distro/shv.AppDir/AppRun" \
         --output appimage
