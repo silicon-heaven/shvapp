@@ -670,9 +670,16 @@ public:
 						journalInfo() << msg;
 						m_node->appendSyncStatus(slave_hp_path, msg.toStdString());
 					});
-					if (file.exists() && local_size == remote_size) {
-						msg += ": up-to-date";
-						continue;
+					if (file.exists()) {
+						if (local_size == remote_size) {
+							msg += ": up-to-date";
+							continue;
+						}
+
+						if (local_size > remote_size) {
+							msg += ": WARNING - local size is larger than the remote size";
+							continue;
+						}
 					}
 					msg += QStringLiteral(": syncing (remote size: %1 local size: %2)").arg(QString::number(remote_size), (file.exists() ? QString::number(local_size) : "<doesn't exist>"));
 
@@ -691,7 +698,8 @@ public:
 						journalError() << msg;
 						m_node->appendSyncStatus(slave_hp_path, msg);
 						auto site_path = std::filesystem::path{sites_log_file.toStdString()}.remove_filename();
-						journalWarning() << "Skipping all files from" << site_path;
+						msg = "Skipping all files from " + site_path.string() + " because " + sites_log_file.toStdString() + " download failed to finish";
+						journalWarning() << msg;
 						m_node->appendSyncStatus(slave_hp_path, msg);
 						for (auto it = m_downloadQueue.begin(); it != m_downloadQueue.end(); /* nothing */) {
 							if (auto shv_path = (*it).call->shvPath(); shv_path.starts_with(site_path.c_str())) {
