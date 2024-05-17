@@ -691,7 +691,8 @@ public:
 						journalError() << msg;
 						m_node->appendSyncStatus(slave_hp_path, msg);
 						auto site_path = std::filesystem::path{sites_log_file.toStdString()}.remove_filename();
-						journalWarning() << "Skipping all files from" << site_path;
+						msg = "Skipping all files from " + site_path.string() + " because " + sites_log_file.toStdString() + " download failed to finish";
+						journalWarning() << msg;
 						m_node->appendSyncStatus(slave_hp_path, msg);
 						for (auto it = m_downloadQueue.begin(); it != m_downloadQueue.end(); /* nothing */) {
 							if (auto shv_path = (*it).call->shvPath(); shv_path.starts_with(site_path.c_str())) {
