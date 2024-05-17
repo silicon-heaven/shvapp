@@ -670,9 +670,16 @@ public:
 						journalInfo() << msg;
 						m_node->appendSyncStatus(slave_hp_path, msg.toStdString());
 					});
-					if (file.exists() && local_size == remote_size) {
-						msg += ": up-to-date";
-						continue;
+					if (file.exists()) {
+						if (local_size == remote_size) {
+							msg += ": up-to-date";
+							continue;
+						}
+
+						if (local_size > remote_size) {
+							msg += ": WARNING - local size is larger than the remote size";
+							continue;
+						}
 					}
 					msg += QStringLiteral(": syncing (remote size: %1 local size: %2)").arg(QString::number(remote_size), (file.exists() ? QString::number(local_size) : "<doesn't exist>"));
 
