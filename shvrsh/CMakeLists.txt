@@ -4,6 +4,6 @@ add_executable(shvrsh
     src/shvrshapp.cpp
     )
 
-target_link_libraries(shvrsh libshviotqt)
+target_link_libraries(shvrsh libshv::libshviotqt)
 
 install(TARGETS shvrsh)

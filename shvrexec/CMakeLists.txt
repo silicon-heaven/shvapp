@@ -6,6 +6,6 @@ add_executable(shvrexec
     src/shvrexecapp.cpp
     )
 
-target_link_libraries(shvrexec libshviotqt)
+target_link_libraries(shvrexec libshv::libshviotqt)
 
 install(TARGETS shvrexec)

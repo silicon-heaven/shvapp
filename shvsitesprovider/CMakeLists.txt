@@ -7,6 +7,6 @@ add_executable(shvsitesprovider
     src/sitesproviderapp.cpp
     )
 
-target_link_libraries(shvsitesprovider libshviotqt)
+target_link_libraries(shvsitesprovider libshv::libshviotqt)
 
 install(TARGETS shvsitesprovider)

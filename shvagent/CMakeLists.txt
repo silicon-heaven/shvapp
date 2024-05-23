@@ -6,6 +6,6 @@ add_executable(shvagent
     src/testernode.cpp
     )
 
-target_link_libraries(shvagent libshviotqt)
+target_link_libraries(shvagent libshv::libshviotqt)
 
 install(TARGETS shvagent)

@@ -3,6 +3,6 @@ add_executable(shvbroker
     src/shvbrokerapp.cpp
     )
 
-target_link_libraries(shvbroker libshvbroker)
+target_link_libraries(shvbroker libshv::libshvbroker)
 
 install(TARGETS shvbroker)

@@ -17,6 +17,6 @@ add_executable(shvhistoryprovider
     src/siteitem.cpp
     )
 
-target_link_libraries(shvhistoryprovider Qt::Concurrent libshviotqt)
+target_link_libraries(shvhistoryprovider Qt::Concurrent libshv::libshviotqt)
 
 install(TARGETS shvhistoryprovider)
