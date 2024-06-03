@@ -7,6 +7,6 @@ add_executable(hscope
 )
 
 target_include_directories(hscope PRIVATE "${LUA_INCLUDE_DIR}")
-target_link_libraries(hscope PRIVATE libshviotqt "${LUA_LIBRARY}")
+target_link_libraries(hscope PRIVATE libshv::libshviotqt "${LUA_LIBRARY}")
 
 install(TARGETS hscope)

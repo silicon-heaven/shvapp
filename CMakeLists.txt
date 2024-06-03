@@ -9,12 +9,21 @@ include(CTest)
 set(CMAKE_SHARED_LIBRARY_PREFIX "") # we don't want CMake to prepend "lib" to our libraries, we prefer adding that ourselves
 set(CMAKE_STATIC_LIBRARY_PREFIX "") # we don't want CMake to prepend "lib" to our libraries, we prefer adding that ourselves
 
-if (NOT TARGET libnecrolog)
-    add_subdirectory(3rdparty/necrolog)
+if(SHV_USE_LOCAL_NECROLOG)
+    find_package(necrolog REQUIRED)
+else()
+    if (NOT TARGET libnecrolog)
+        add_subdirectory(3rdparty/necrolog)
+    endif()
 endif()
-if (NOT TARGET libshvchainpack-c)
-    set(LIBSHV_USE_QT6 ${SHV_USE_QT6} CACHE BOOL "Qt6 build")
-    add_subdirectory(3rdparty/libshv)
+
+if(SHV_USE_LOCAL_LIBSHV)
+    find_package(libshv REQUIRED)
+else()
+    if (NOT TARGET libshvchainpack-c)
+        set(LIBSHV_USE_QT6 ${SHV_USE_QT6} CACHE BOOL "Qt6 build")
+        add_subdirectory(3rdparty/libshv)
+    endif()
 endif()
 
 if(BUILD_TESTING)
@@ -60,7 +69,7 @@ else()
 	set(SHV_QT_VERSION_MAJOR 5)
 endif()
 
-find_package(Qt${SHV_QT_VERSION_MAJOR} COMPONENTS Core Concurrent OPTIONAL_COMPONENTS SerialPort Widgets Svg Xml Mqtt)
+find_package(Qt${SHV_QT_VERSION_MAJOR} COMPONENTS Core Concurrent OPTIONAL_COMPONENTS SerialPort Widgets Sql Svg Xml Mqtt WebSockets)
 
 set(Qt_FOUND ${Qt${SHV_QT_VERSION_MAJOR}_FOUND})
 set(QtWidgets_FOUND ${Qt${SHV_QT_VERSION_MAJOR}Widgets_FOUND})

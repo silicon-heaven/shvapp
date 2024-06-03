@@ -4,6 +4,6 @@ add_executable(brcgate
     src/application.cpp
     )
 
-target_link_libraries(brcgate libshviotqt)
+target_link_libraries(brcgate libshv::libshviotqt)
 
 install(TARGETS brcgate)

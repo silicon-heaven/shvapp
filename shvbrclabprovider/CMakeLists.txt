@@ -8,6 +8,6 @@ add_executable(shvbrclabprovider
     src/shvbrclabproviderapp.cpp
     )
 
-target_link_libraries(shvbrclabprovider libshviotqt)
+target_link_libraries(shvbrclabprovider libshv::libshviotqt)
 
 install(TARGETS shvbrclabprovider)
