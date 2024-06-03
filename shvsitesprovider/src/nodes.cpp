@@ -557,15 +557,6 @@ bool AppRootNode::isDevice(const QString &shv_path)
 void AppRootNode::saveSitesTgz(const QByteArray &data) const
 {
 	QString sites_dir = nodeLocalPath();
-	QFile tgz_file(sites_dir + "/sites.tgz");
-	if (tgz_file.exists()) {
-		tgz_file.remove();
-	}
-	QFile info_file(sites_dir + "/sites.info");
-	if (info_file.exists()) {
-		info_file.remove();
-	}
-
 	QCryptographicHash hash(QCryptographicHash::Algorithm::Sha1);
 
 	QDirIterator it(sites_dir, QDir::Files, QDirIterator::Subdirectories);
@@ -573,12 +564,14 @@ void AppRootNode::saveSitesTgz(const QByteArray &data) const
 		QString dir = it.next();
 		QFile file(dir);
 		if (!file.open(QFile::ReadOnly)) {
-			SHV_QT_EXCEPTION("Cannot open file " + file.fileName());
+			shvError() << "Cannot open file" << file.fileName();
+			return;
 		}
 		hash.addData(file.readAll());
 		file.close();
 	}
 
+	QFile tgz_file(sites_dir + "/sites.tgz");
 	if (!tgz_file.open(QFile::WriteOnly | QFile::Truncate)) {
 		shvError() << "Cannot open file" << tgz_file.fileName();
 		return;
@@ -586,11 +579,11 @@ void AppRootNode::saveSitesTgz(const QByteArray &data) const
 	tgz_file.write(data);
 	tgz_file.close();
 
+	QFile info_file(sites_dir + "/sites.info");
 	if (!info_file.open(QFile::WriteOnly | QFile::Truncate))	 {
 		shvError() << "Cannot open file" << info_file.fileName();
 		return;
 	}
-
 	info_file.write(QByteArray::fromStdString(
 						cp::RpcValue(cp::RpcValue::Map {
 							{ "size", data.length() },
