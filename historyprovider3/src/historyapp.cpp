@@ -125,13 +125,19 @@ LeafNode* HistoryApp::leafNode(const std::string& path)
 
 QFuture<void> HistoryApp::reloadSites()
 {
+	QElapsedTimer reload_duration;
+	reload_duration.start();
 	if (m_loadingSites) {
 		return QtFuture::makeExceptionalFuture(std::make_exception_ptr(std::runtime_error("Sites are already being reloaded.")));
 	}
 	m_loadingSites = true;
 	deinitializeShvTree();
 	if (m_isBrokerConnected) {
-		return initializeShvTree().then([this] {
+		return initializeShvTree().then([this, reload_duration] {
+			auto elapsed_ms = reload_duration.elapsed();
+			if (elapsed_ms > 5000) {
+				shvWarning().nospace() << "Loading sites took more than 5 seconds! (" << elapsed_ms << "ms)";
+			}
 			m_loadingSites = false;
 		});
 	}
