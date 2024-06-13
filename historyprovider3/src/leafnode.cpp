@@ -63,6 +63,8 @@ LeafNode::LeafNode(const std::string& node_id, const std::string& journal_cache_
 	QDir(QString::fromStdString(m_journalCacheDir)).mkpath(".");
 
 	if (m_logType != LogType::PushLog) {
+		QElapsedTimer alarm_load_timer;
+		alarm_load_timer.start();
 		const auto files_path = shv::core::utils::joinPath("sites", shvPath(), "_files");
 		auto* ls_call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
 			->setShvPath(files_path)
@@ -74,7 +76,7 @@ LeafNode::LeafNode(const std::string& node_id, const std::string& journal_cache_
 			this->m_typeInfo.emplace<std::string>("Couldn't discover site files: " + ls_error.toString());
 		});
 
-		connect(ls_call, &shv::iotqt::rpc::RpcCall::result, this, [this, ls_call, files_path] (const shv::chainpack::RpcValue& ls_result) {
+		connect(ls_call, &shv::iotqt::rpc::RpcCall::result, this, [this, ls_call, files_path, alarm_load_timer] (const shv::chainpack::RpcValue& ls_result) {
 			const auto type_info_path = shv::core::utils::joinPath(files_path, "typeInfo.cpon");
 			ls_call->deleteLater();
 
@@ -93,7 +95,7 @@ LeafNode::LeafNode(const std::string& node_id, const std::string& journal_cache_
 				journalDebug() << "Retrieving" << type_info_path << "failed:" << read_error.toString();
 				this->m_typeInfo.emplace<std::string>("Couldn't retrieve typeInfo.cpon for this site: " + read_error.toString());
 			});
-			connect(read_call, &shv::iotqt::rpc::RpcCall::result, this, [this, read_call, type_info_path] (const shv::chainpack::RpcValue& read_result) {
+			connect(read_call, &shv::iotqt::rpc::RpcCall::result, this, [this, read_call, type_info_path, alarm_load_timer] (const shv::chainpack::RpcValue& read_result) {
 				read_call->deleteLater();
 				journalDebug() << "Retrieved" << type_info_path << "successfully";
 				std::string error;
@@ -155,6 +157,10 @@ LeafNode::LeafNode(const std::string& node_id, const std::string& journal_cache_
 				while (snapshot.next()) {
 					auto entry = snapshot.entry();
 					update_alarms(entry.path, entry.value);
+				}
+				auto elapsed_ms = alarm_load_timer.elapsed();
+				if (elapsed_ms > 5000) {
+					shvWarning().nospace() << "Initializing alarms for " << shvPath() << " took more than 5 seconds! (" << elapsed_ms << "ms)";
 				}
 			});
 			read_call->start();
