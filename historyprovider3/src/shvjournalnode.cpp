@@ -221,7 +221,7 @@ void ShvJournalNode::onRpcMessageReceived(const cp::RpcMessage &msg)
 					auto entry = shv::core::utils::ShvJournalEntry(path_without_prefix, data_change.value()
 																   , shv::core::utils::ShvJournalEntry::DOMAIN_VAL_CHANGE
 																   , shv::core::utils::ShvJournalEntry::NO_SHORT_TIME
-																   , 1 << shv::core::utils::ShvJournalEntry::ValueFlag::DirtyValue
+																   , 1 << shv::core::utils::ShvJournalEntry::ValueFlag::Provisional
 																   , data_change.epochMSec());
 					writer.append(entry);
 
