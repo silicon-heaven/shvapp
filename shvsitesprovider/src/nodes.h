@@ -51,7 +51,7 @@ private:
 	bool isFile(const QString &shv_path);
 	bool isDir(const QString &shv_path);
 
-	QStringList lsDir(const QString &shv_path);
+	QStringList lsDir(const QString &shv_path) const;
 	shv::chainpack::RpcValue readConfig(const QString &filename);
 	shv::chainpack::RpcValue readAndMergeConfig(QFile &file);
 

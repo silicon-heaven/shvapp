@@ -323,23 +323,17 @@ const std::vector<shv::chainpack::MetaMethod> &AppRootNode::metaMethods(const sh
 		if (meta.isMap()) {
 			return meta_meta_methods;
 		}
-		else {
 			return data_meta_methods;
 		}
-	}
 	else if (shv_path.contains('/' + FILES_NODE) || shv_path.startsWith(FILES_NODE + '/')) {
 		if (isFile(shv_path)) {
 			return file_meta_methods;
 		}
-		else {
 			if (shv_path.endsWith('/' + FILES_NODE) && isDevice(shv_path.chopped(FILES_NODE.length() + 1))) {
 				return device_file_dir_meta_methods;
 			}
-			else {
 				return file_dir_meta_methods;
 			}
-		}
-	}
 	if (isDevice(shv_path)) {
 		return device_meta_methods;
 	}
@@ -473,7 +467,7 @@ void AppRootNode::createSitesTgz(std::function<void(const QByteArray &, const QS
 		tar_process->deleteLater();
 		callback((*data), {});
 	});
-	tar_process->start("tar", QStringList{ "--exclude=sites.tgz", "--exclude=sites.info", "-C", nodeLocalPath(), "-czhf", "-", "./" });
+	tar_process->start("tar", QStringList{ "--transform='s@^@sites/@'", "--exclude=sites.tgz", "--exclude=sites.info", "-C", nodeLocalPath(), "-czhf", "-", "./" });
 }
 
 void AppRootNode::findDevicesToSync(const QString &shv_path, QStringList &result)
@@ -514,13 +508,13 @@ QStringList AppRootNode::lsNode(const QString &shv_path)
 	return ret;
 }
 
-QStringList AppRootNode::lsDir(const QString &shv_path)
+QStringList AppRootNode::lsDir(const QString &shv_path) const
 {
 	QStringList items;
 	QString path = nodeLocalPath(shv_path);
 	QFileInfo fi(path);
 	if(fi.isDir()) {
-		QDir dir(nodeLocalPath(shv_path));
+		QDir dir(path);
 		QFileInfoList file_infos = dir.entryInfoList(QDir::Filter::Dirs | QDir::Filter::Files | QDir::Filter::NoDotAndDotDot, QDir::SortFlag::Name);
 		for (const QFileInfo &file_info : file_infos) {
 			QString new_item;
@@ -534,6 +528,9 @@ QStringList AppRootNode::lsDir(const QString &shv_path)
 			auto it = std::find(items.begin(), items.end(), new_item);
 			if (it != items.end() && file_info.suffix() == CPON_SUFFIX) {
 				items.erase(it);
+			}
+			if (!shv_path.endsWith(FILES_NODE) && file_info.isFile() && !new_item.startsWith("_")) {
+				continue;
 			}
 			items.push_back(new_item);
 		}
