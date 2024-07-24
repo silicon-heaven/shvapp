@@ -15,6 +15,7 @@
 #include <QDirIterator>
 #include <QFile>
 #include <QProcess>
+#include <QStandardPaths>
 
 namespace cp = shv::chainpack;
 
@@ -25,8 +26,6 @@ const QString TARGET_DIR = QStringLiteral("_target");
 const QString FILES_NODE = QStringLiteral("_files");
 const QString META_NODE = QStringLiteral("_meta");
 const QString META_FILE = QStringLiteral("_meta.json");
-const QString CPON_SUFFIX = QStringLiteral("cpon");
-const QString CPTEMPL_SUFFIX = QStringLiteral("cptempl");
 
 static const char METH_GIT_COMMIT[] = "gitCommit";
 static const char METH_APP_VERSION[] = "version";
@@ -120,12 +119,13 @@ enum class CompressionType {
 
 static CompressionType compression_type_from_string(const std::string &type_str, CompressionType default_type)
 {
-	if (type_str.empty())
+	if (type_str.empty()) {
 		return default_type;
-	else if (type_str == "qcompress")
+	}
+	if (type_str == "qcompress") {
 		return CompressionType::QCompress;
-	else
-		return CompressionType::Invalid;
+	}
+	return CompressionType::Invalid;
 }
 
 AppRootNode::AppRootNode(QObject *parent)
@@ -401,7 +401,7 @@ cp::RpcValue AppRootNode::getSites(const QString &shv_path)
 
 shv::chainpack::RpcValue AppRootNode::getSitesInfo() const
 {
-	QFile f(nodeLocalPath() + "/sites.info");
+	QFile f(QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/sites.info");
 	if (!f.open(QFile::ReadOnly)) {
 		SHV_QT_EXCEPTION("Cannot open file " + f.fileName());
 	}
@@ -415,7 +415,7 @@ shv::chainpack::RpcValue AppRootNode::getSitesInfo() const
 
 shv::chainpack::RpcValue AppRootNode::getSitesTgz() const
 {
-	QFile f(nodeLocalPath() + "/sites.tgz");
+	QFile f(QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/sites.tgz");
 	if (!f.open(QFile::ReadOnly)) {
 		SHV_QT_EXCEPTION("Cannot open file " + f.fileName());
 	}
@@ -467,7 +467,7 @@ void AppRootNode::createSitesTgz(std::function<void(const QByteArray &, const QS
 		tar_process->deleteLater();
 		callback((*data), {});
 	});
-	tar_process->start("tar", QStringList{ "--transform='s@^@sites/@'", "--exclude=sites.tgz", "--exclude=sites.info", "-C", nodeLocalPath(), "-czhf", "-", "./" });
+	tar_process->start("tar", QStringList{ "--transform=s@^@sites/@", "-C", nodeLocalPath(), "-czhf", "-", "./" });
 }
 
 void AppRootNode::findDevicesToSync(const QString &shv_path, QStringList &result)
@@ -513,27 +513,8 @@ QStringList AppRootNode::lsDir(const QString &shv_path) const
 	QStringList items;
 	QString path = nodeLocalPath(shv_path);
 	QFileInfo fi(path);
-	if(fi.isDir()) {
-		QDir dir(path);
-		QFileInfoList file_infos = dir.entryInfoList(QDir::Filter::Dirs | QDir::Filter::Files | QDir::Filter::NoDotAndDotDot, QDir::SortFlag::Name);
-		for (const QFileInfo &file_info : file_infos) {
-			QString new_item;
-			if (file_info.suffix() == CPTEMPL_SUFFIX) {
-				items.push_back(file_info.fileName());
-				new_item = file_info.completeBaseName();
-			}
-			else {
-				new_item = file_info.fileName();
-			}
-			auto it = std::find(items.begin(), items.end(), new_item);
-			if (it != items.end() && file_info.suffix() == CPON_SUFFIX) {
-				items.erase(it);
-			}
-			if (!shv_path.endsWith(FILES_NODE) && file_info.isFile() && !new_item.startsWith("_")) {
-				continue;
-			}
-			items.push_back(new_item);
-		}
+	if (fi.isDir()) {
+		items = QDir(path).entryList(QDir::Filter::Dirs | QDir::Filter::Files | QDir::Filter::NoDotAndDotDot, QDir::SortFlag::Name);
 	}
 	return items;
 }
@@ -553,10 +534,9 @@ bool AppRootNode::isDevice(const QString &shv_path)
 
 void AppRootNode::saveSitesTgz(const QByteArray &data) const
 {
-	QString sites_dir = nodeLocalPath();
 	QCryptographicHash hash(QCryptographicHash::Algorithm::Sha1);
 
-	QDirIterator it(sites_dir, QDir::Files, QDirIterator::Subdirectories);
+	QDirIterator it(nodeLocalPath(), QDir::Files, QDirIterator::Subdirectories);
 	while (it.hasNext()) {
 		QString dir = it.next();
 		QFile file(dir);
@@ -568,7 +548,11 @@ void AppRootNode::saveSitesTgz(const QByteArray &data) const
 		file.close();
 	}
 
-	QFile tgz_file(sites_dir + "/sites.tgz");
+	QString cache_path = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+	if (!QFileInfo::exists(cache_path)) {
+		QDir("/").mkpath(cache_path);
+	}
+	QFile tgz_file(cache_path + "/sites.tgz");
 	if (!tgz_file.open(QFile::WriteOnly | QFile::Truncate)) {
 		shvError() << "Cannot open file" << tgz_file.fileName();
 		return;
@@ -576,7 +560,7 @@ void AppRootNode::saveSitesTgz(const QByteArray &data) const
 	tgz_file.write(data);
 	tgz_file.close();
 
-	QFile info_file(sites_dir + "/sites.info");
+	QFile info_file(cache_path + "/sites.info");
 	if (!info_file.open(QFile::WriteOnly | QFile::Truncate))	 {
 		shvError() << "Cannot open file" << info_file.fileName();
 		return;
@@ -691,11 +675,11 @@ shv::chainpack::RpcValue AppRootNode::readFile(const QString &shv_path)
 {
 	QString filename = nodeLocalPath(shv_path);
 	QFile f(filename);
-	if (f.open(QFile::ReadOnly)) {
+	if (!f.open(QFile::ReadOnly)) {
+		SHV_QT_EXCEPTION("Cannot open file " + filename);
+	}
 		QByteArray file_content = f.readAll();
 		return file_content.toStdString();
-	}
-	return readConfig(filename).toCpon("  ");
 }
 
 shv::chainpack::RpcValue AppRootNode::writeFile(const QString &shv_path, const string &content)
@@ -707,14 +691,11 @@ shv::chainpack::RpcValue AppRootNode::writeFile(const QString &shv_path, const s
 		QDir(nodeLocalPath(QString())).mkpath(dirname);
 	}
 	QFile f(filename);
-	if (f.open(QFile::WriteOnly)) {
-		qint64 n = f.write(content.data(), content.size());
-		return n >= 0;
-	}
-	else {
+	if (!f.open(QFile::WriteOnly)) {
 		throw shv::coreqt::Exception("Cannot open file '" + shv_path + "' for writing.");
 	}
-	return readConfig(filename).toCpon("  ");
+	qint64 n = f.write(content.data(), content.size());
+	return n >= 0;
 }
 
 shv::chainpack::RpcValue AppRootNode::readFileCompressed(const shv::chainpack::RpcRequest &request)
@@ -760,47 +741,6 @@ shv::chainpack::RpcValue AppRootNode::mkFile(const QString &shv_path, const shv:
 		return writeFile(file_path, "");
 }
 
-shv::chainpack::RpcValue AppRootNode::readConfig(const QString &path)
-{
-	QFile f(path);
-	if (!f.open(QFile::ReadOnly)) {
-		if (path.endsWith(CPON_SUFFIX)) {
-			QString filename = path + "." + CPTEMPL_SUFFIX;
-			f.setFileName(filename);
-			if (!f.open(QFile::ReadOnly)) {
-				SHV_QT_EXCEPTION("Cannot open template: " + f.fileName() + " for reading.");
-			}
-		}
-	}
-	return readAndMergeConfig(f);
-}
-
-shv::chainpack::RpcValue AppRootNode::readAndMergeConfig(QFile &file)
-{
-	static const char BASED_ON_KEY[] = "basedOn";
-
-	shv::chainpack::RpcValue config = cp::RpcValue::fromCpon(file.readAll().toStdString());
-	if (config.isMap()) {
-		QString templ_path = QString::fromStdString(config.asMap().value(BASED_ON_KEY).asString());
-		if (!templ_path.isEmpty()) {
-			QStringList templ_path_parts = templ_path.split('/');
-			templ_path_parts.insert(templ_path_parts.count() - 1, FILES_NODE);
-			templ_path = templ_path_parts.join('/');
-			if (templ_path.startsWith('/')) {
-				templ_path = nodeLocalPath(templ_path);
-			}
-			else {
-				templ_path = QFileInfo(file.fileName()).absolutePath() + "/../" + templ_path;
-			}
-			cp::RpcValue::Map file_content_map = config.asMap();
-			file_content_map.erase(BASED_ON_KEY);
-			cp::RpcValue templ = readConfig(templ_path);
-			return shv::chainpack::Utils::mergeMaps(templ, file_content_map);
-		}
-	}
-	return config;
-}
-
 QString AppRootNode::nodeFilesPath(const QString &shv_path) const
 {
 	return nodeLocalPath(shv_path) + '/' + FILES_NODE;
@@ -815,23 +755,13 @@ QString AppRootNode::nodeLocalPath(const QString &shv_path) const
 	return path + shv_path;
 }
 
-bool AppRootNode::isFile(const QString &shv_path)
+bool AppRootNode::isFile(const QString &shv_path) const
 {
-	QString filename = nodeLocalPath(shv_path);
-	QFileInfo fi(filename);
-	if (fi.isFile())
-		return true;
-
-	if (filename.endsWith(CPON_SUFFIX)) {
-		filename.append("." + CPTEMPL_SUFFIX);
-		QFileInfo fi_with_suffix(filename);
-		if (fi_with_suffix.isFile())
-			return true;
-	}
-	return false;
+	QFileInfo fi(nodeLocalPath(shv_path));
+	return fi.isFile();
 }
 
-bool AppRootNode::isDir(const QString &shv_path)
+bool AppRootNode::isDir(const QString &shv_path) const
 {
 	QFileInfo fi(nodeLocalPath(shv_path));
 	return fi.isDir();
