@@ -48,12 +48,10 @@ private:
 	shv::chainpack::RpcValue mkFile(const QString &shv_path, const shv::chainpack::RpcValue &params);
 	QString nodeFilesPath(const QString &shv_path) const;
 	QString nodeMetaPath(const QString &shv_path) const;
-	bool isFile(const QString &shv_path);
-	bool isDir(const QString &shv_path);
+	bool isFile(const QString &shv_path) const;
+	bool isDir(const QString &shv_path) const;
 
-	QStringList lsDir(const QString &shv_path);
-	shv::chainpack::RpcValue readConfig(const QString &filename);
-	shv::chainpack::RpcValue readAndMergeConfig(QFile &file);
+	QStringList lsDir(const QString &shv_path) const;
 
 	QElapsedTimer m_sitesSyncedBefore;
 	QTimer m_downloadSitesTimer;
