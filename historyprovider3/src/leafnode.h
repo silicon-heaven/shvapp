@@ -22,6 +22,14 @@ public:
 	shv::chainpack::RpcValue callMethod(const StringViewList& shv_path, const std::string& method, const shv::chainpack::RpcValue& params, const shv::chainpack::RpcValue& user_id) override;
 	qint64 calculateCacheDirSize() const;
 
+	struct AlarmWithTimestamp {
+		shv::core::utils::ShvAlarm alarm;
+		shv::chainpack::RpcValue::DateTime firstSeen;
+		shv::chainpack::RpcValue toRpcValue() const;
+
+		bool operator==(const shv::core::utils::ShvAlarm& alarm) const;
+	};
+
 	std::vector<shv::core::utils::ShvAlarm> alarms() const;
 
 private:
@@ -31,6 +39,7 @@ private:
 	LogType m_logType;
 	shv::chainpack::RpcValue::List m_pushLogDebugLog;
 	std::variant<shv::core::utils::ShvTypeInfo, std::string> m_typeInfo = std::string{"typeInfo not yet initialized"};
-	std::vector<shv::core::utils::ShvAlarm> m_alarms;
+	std::vector<AlarmWithTimestamp> m_alarms;
+
 	shv::core::utils::ShvAlarm::Severity m_overallAlarm = shv::core::utils::ShvAlarm::Severity::Invalid;
 };
