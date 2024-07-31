@@ -52,7 +52,16 @@ const std::vector<cp::MetaMethod> alarm_methods {
 
 std::vector<shv::core::utils::ShvAlarm> LeafNode::alarms() const
 {
-	return m_alarms;
+	std::vector<shv::core::utils::ShvAlarm> res;
+	std::ranges::transform(m_alarms, std::back_inserter(res), std::identity{}, &AlarmWithTimestamp::alarm);
+	return res;
+}
+
+shv::chainpack::RpcValue LeafNode::AlarmWithTimestamp::toRpcValue() const
+{
+	auto res = this->alarm.toRpcValue().asMap();
+	res.emplace("firstSeen", firstSeen);
+	return res;
 }
 
 LeafNode::LeafNode(const std::string& node_id, const std::string& journal_cache_dir, LogType log_type, ShvNode* parent)
@@ -105,13 +114,13 @@ LeafNode::LeafNode(const std::string& node_id, const std::string& journal_cache_
 					journalDebug() << "Couldn't parse typeinfo for" << type_info_path << error;
 					return;
 				}
-				auto update_alarms = [this] (const auto& shv_path, const auto& value) {
+				auto update_alarms = [this] (const auto& shv_path, const auto& value, const auto& timestamp) {
 					auto changed_alarms = shv::core::utils::ShvAlarm::checkAlarms(std::get<shv::core::utils::ShvTypeInfo>(m_typeInfo), shv_path, value)
 						| std::views::filter([this] (const shv::core::utils::ShvAlarm& alarm) {
 							if (!alarm.isActive()) {
-								return std::ranges::find(m_alarms, alarm.path(), &shv::core::utils::ShvAlarm::path) != m_alarms.end();
+								return std::ranges::find(m_alarms, alarm.path(), [] (const auto& alarm_with_ts) {return alarm_with_ts.alarm.path();}) != m_alarms.end();
 							}
-							return std::ranges::find(m_alarms, alarm) == m_alarms.end();
+							return std::ranges::find(m_alarms, alarm, &AlarmWithTimestamp::alarm) == m_alarms.end();
 					});
 
 					if (changed_alarms.empty()) {
@@ -119,19 +128,27 @@ LeafNode::LeafNode(const std::string& node_id, const std::string& journal_cache_
 					}
 
 					for (const auto& changed_alarm : changed_alarms) {
-						auto to_erase = std::ranges::remove_if(m_alarms, [&changed_alarm] (const shv::core::utils::ShvAlarm& alarm) {
-							return alarm.path() == changed_alarm.path();
+						auto to_erase = std::ranges::remove_if(m_alarms, [&changed_alarm] (const auto& alarm_with_ts) {
+							return alarm_with_ts.alarm.path() == changed_alarm.path();
 						});
-						m_alarms.erase(to_erase.begin(), to_erase.end());
-						if (changed_alarm.isActive()) {
-							m_alarms.emplace_back(changed_alarm);
+
+						if (!changed_alarm.isActive()) {
+							m_alarms.erase(to_erase.begin(), to_erase.end());
+							continue;
+						}
+
+						if (to_erase.empty()) {
+							m_alarms.emplace_back(AlarmWithTimestamp{
+								.alarm = changed_alarm,
+								.firstSeen = timestamp
+							});
 						}
 					}
 
-					std::ranges::sort(m_alarms, std::less<shv::core::utils::ShvAlarm::Severity>{}, &shv::core::utils::ShvAlarm::severity);
+					std::ranges::sort(m_alarms, std::less<shv::core::utils::ShvAlarm::Severity>{}, [] (const auto& alarm_with_ts) {return alarm_with_ts.alarm.severity();});
 					HistoryApp::instance()->rpcConnection()->sendShvSignal(shvPath(), M_ALARM_MOD);
 
-					auto new_overall_alarm = m_alarms.empty() ? shv::core::utils::ShvAlarm::Severity::Invalid : m_alarms.front().severity();
+					auto new_overall_alarm = m_alarms.empty() ? shv::core::utils::ShvAlarm::Severity::Invalid : m_alarms.front().alarm.severity();
 					if (new_overall_alarm != m_overallAlarm) {
 						m_overallAlarm = new_overall_alarm;
 						HistoryApp::instance()->rpcConnection()->sendShvSignal(shvPath() + ":" +  M_OVERALL_ALARM, cp::Rpc::SIG_VAL_CHANGED, static_cast<int>(m_overallAlarm));
@@ -147,16 +164,17 @@ LeafNode::LeafNode(const std::string& node_id, const std::string& journal_cache_
 						return;
 					}
 					auto path_without_site_prefix = path_without_shv_prefix.substr(node_path.size());
-					update_alarms(path_without_site_prefix, value);
+					update_alarms(path_without_site_prefix, value, cp::RpcValue::DateTime::now());
 				});
 
 				shv::core::utils::ShvGetLogParams params;
 				params.since = "last";
 				params.withSnapshot = true;
 				auto snapshot = shv::core::utils::ShvLogRpcValueReader(getLog(params));
+				auto now = cp::RpcValue::DateTime::now();
 				while (snapshot.next()) {
 					auto entry = snapshot.entry();
-					update_alarms(entry.path, entry.value);
+					update_alarms(entry.path, entry.value, now);
 				}
 				auto elapsed_ms = alarm_load_timer.elapsed();
 				if (elapsed_ms > 5000) {
