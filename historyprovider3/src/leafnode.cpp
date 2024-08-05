@@ -118,8 +118,10 @@ LeafNode::LeafNode(const std::string& node_id, const std::string& journal_cache_
 					auto changed_alarms = shv::core::utils::ShvAlarm::checkAlarms(std::get<shv::core::utils::ShvTypeInfo>(m_typeInfo), shv_path, value)
 						| std::views::filter([this] (const shv::core::utils::ShvAlarm& alarm) {
 							if (!alarm.isActive()) {
+								// If the alarm is not active, we'll try to find a current active one with the same path.
 								return std::ranges::find(m_alarms, alarm.path(), [] (const auto& alarm_with_ts) {return alarm_with_ts.alarm.path();}) != m_alarms.end();
 							}
+							// If it is active, we'll look into whether there already is an identical one.
 							return std::ranges::find(m_alarms, alarm, &AlarmWithTimestamp::alarm) == m_alarms.end();
 					});
 
