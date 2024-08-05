@@ -26,8 +26,6 @@ public:
 		shv::core::utils::ShvAlarm alarm;
 		shv::chainpack::RpcValue::DateTime firstSeen;
 		shv::chainpack::RpcValue toRpcValue() const;
-
-		bool operator==(const shv::core::utils::ShvAlarm& alarm) const;
 	};
 
 	std::vector<shv::core::utils::ShvAlarm> alarms() const;

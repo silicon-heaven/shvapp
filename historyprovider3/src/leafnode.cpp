@@ -132,17 +132,15 @@ LeafNode::LeafNode(const std::string& node_id, const std::string& journal_cache_
 							return alarm_with_ts.alarm.path() == changed_alarm.path();
 						});
 
-						if (!changed_alarm.isActive()) {
-							m_alarms.erase(to_erase.begin(), to_erase.end());
-							continue;
-						}
+						m_alarms.erase(to_erase.begin(), to_erase.end());
 
-						if (to_erase.empty()) {
+						if (changed_alarm.isActive()) {
 							m_alarms.emplace_back(AlarmWithTimestamp{
 								.alarm = changed_alarm,
 								.firstSeen = timestamp
 							});
 						}
+
 					}
 
 					std::ranges::sort(m_alarms, std::less<shv::core::utils::ShvAlarm::Severity>{}, [] (const auto& alarm_with_ts) {return alarm_with_ts.alarm.severity();});
