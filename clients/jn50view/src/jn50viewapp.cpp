@@ -17,8 +17,6 @@
 #include <QSettings>
 #include <QTimer>
 
-#include <fstream>
-
 namespace cp = shv::chainpack;
 
 Jn50ViewApp::Jn50ViewApp(int &argc, char **argv, AppCliOptions* cli_opts)
@@ -217,7 +215,7 @@ void Jn50ViewApp::onRpcMessageReceived(const shv::chainpack::RpcMessage &msg)
 		if(ntf.method() == cp::Rpc::SIG_VAL_CHANGED) {
 			const shv::chainpack::RpcValue::String shv_path = ntf.shvPath().toString();
 			std::string base_path = cliOptions()->converterShvPath() + '/';
-			if(shv::core::String::startsWith(shv_path, base_path)) {
+			if(shv::core::utils::shvpath::startsWithPath(shv_path, base_path)) {
 				std::string path = shv_path.substr(base_path.size());
 				cp::RpcValue new_val = ntf.params();
 				setShvDeviceValue(path, new_val);
