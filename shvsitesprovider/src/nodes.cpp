@@ -38,11 +38,9 @@ static const char METH_SITES_SYNCED_BEFORE[] = "sitesSyncedBefore";
 static const char METH_SITES_RELOADED[] = "reloaded";
 static const char METH_FILE_READ[] = "read";
 static const char METH_FILE_READ_COMPRESSED[] = "readCompressed";
-static const char METH_FILE_WRITE[] = "write";
 static const char METH_FILE_HASH[] = "hash";
 static const char METH_FILE_SIZE[] = "size";
 static const char METH_FILE_SIZE_COMPRESSED[] = "sizeCompressed";
-static const char METH_FILE_MK[] = "mkfile";
 // static const char METH_GIT_PUSH[] = "addFilesToVersionControl";
 
 static std::vector<cp::MetaMethod> root_meta_methods {
@@ -80,13 +78,11 @@ const static std::vector<cp::MetaMethod> meta_meta_methods {
 const static std::vector<cp::MetaMethod> file_dir_meta_methods {
 	cp::methods::DIR,
 	cp::methods::LS,
-	{ METH_FILE_MK, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Write },
 };
 
 const static std::vector<cp::MetaMethod> device_file_dir_meta_methods {
 	cp::methods::DIR,
 	cp::methods::LS,
-	{ METH_FILE_MK, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Write },
 };
 
 const static std::vector<cp::MetaMethod> file_meta_methods {
@@ -96,7 +92,6 @@ const static std::vector<cp::MetaMethod> file_meta_methods {
 	{METH_FILE_SIZE_COMPRESSED, cp::MetaMethod::Flag::None, "Map", "UInt", cp::AccessLevel::Browse},
 	{METH_FILE_READ, cp::MetaMethod::Flag::LargeResultHint, "Map", "Blob", cp::AccessLevel::Read},
 	{METH_FILE_READ_COMPRESSED, cp::MetaMethod::Flag::None, "Map", "Blob", cp::AccessLevel::Read},
-	{METH_FILE_WRITE, cp::MetaMethod::Flag::None, "String|List", "Bool", cp::AccessLevel::Write},
 	{METH_FILE_HASH, cp::MetaMethod::Flag::None, "Map", "String", cp::AccessLevel::Read},
 };
 
@@ -209,15 +204,6 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 	}
 	else if (method == METH_FILE_SIZE_COMPRESSED) {
 		return readFileCompressed(rq).asData().second;
-	}
-	else if (method == METH_FILE_WRITE) {
-		cp::RpcValue params = rq.params();
-		if(!params.isString())
-			throw shv::core::Exception("Content must be string.");
-		return writeFile(qshv_path, params.asString());
-	}
-	else if (method == METH_FILE_MK) {
-		return mkFile(qshv_path, rq.params());
 	}
 	else if (method == METH_FILE_HASH) {
 		string bytes = readFile(qshv_path).toString();
@@ -632,22 +618,6 @@ shv::chainpack::RpcValue AppRootNode::readFile(const QString &shv_path)
 		return file_content.toStdString();
 }
 
-shv::chainpack::RpcValue AppRootNode::writeFile(const QString &shv_path, const string &content)
-{
-	QString filename = nodeLocalPath(shv_path);
-	QStringList shv_path_parts = shv_path.split('/');
-	QString dirname = shv_path_parts.mid(0, shv_path_parts.count() - 1).join('/');
-	if (!QDir(dirname).exists()) {
-		QDir(nodeLocalPath(QString())).mkpath(dirname);
-	}
-	QFile f(filename);
-	if (!f.open(QFile::WriteOnly)) {
-		throw shv::coreqt::Exception("Cannot open file '" + shv_path + "' for writing.");
-	}
-	qint64 n = f.write(content.data(), content.size());
-	return n >= 0;
-}
-
 shv::chainpack::RpcValue AppRootNode::readFileCompressed(const shv::chainpack::RpcRequest &request)
 {
 	const std::string compression_type_str = request.params().asMap().value("compressionType").toString();
@@ -664,31 +634,6 @@ shv::chainpack::RpcValue AppRootNode::readFileCompressed(const shv::chainpack::R
 	}
 
 	return result;
-}
-
-shv::chainpack::RpcValue AppRootNode::mkFile(const QString &shv_path, const shv::chainpack::RpcValue &params)
-{
-	std::string error;
-	QString file_name;
-	bool has_content = false;
-	if (params.isString()) {
-		file_name = params.to<QString>();
-
-	}
-	else if(params.isList()) {
-		const cp::RpcValue::List &lst = params.asList();
-		if (lst.size() != 2)
-			throw shv::core::Exception("Invalid params, [\"name\", \"content\"] expected.");
-		file_name = lst[0].to<QString>();
-		has_content = true;
-	}
-	if (file_name.isEmpty())
-		throw shv::core::Exception("File name is empty.");
-	QString file_path = shv_path + '/' + file_name;
-	if(has_content)
-		return writeFile(file_path, params.asList()[1].toString());
-	else
-		return writeFile(file_path, "");
 }
 
 QString AppRootNode::nodeFilesPath(const QString &shv_path) const

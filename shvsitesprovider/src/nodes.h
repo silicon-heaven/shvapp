@@ -21,7 +21,6 @@ public:
 
 	QString nodeLocalPath(const QString &shv_path = QString()) const;
 	shv::chainpack::RpcValue readFile(const QString &shv_path);
-	shv::chainpack::RpcValue writeFile(const QString &shv_path, const std::string &content);
 
 	shv::chainpack::RpcValue readFileCompressed(const shv::chainpack::RpcRequest &request);
 
@@ -44,7 +43,6 @@ private:
 
 	Q_SIGNAL void sitesDownloaded();
 
-	shv::chainpack::RpcValue mkFile(const QString &shv_path, const shv::chainpack::RpcValue &params);
 	QString nodeFilesPath(const QString &shv_path) const;
 	QString nodeMetaPath(const QString &shv_path) const;
 	bool isFile(const QString &shv_path) const;
