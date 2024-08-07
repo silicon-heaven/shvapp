@@ -43,7 +43,7 @@ static const char METH_FILE_HASH[] = "hash";
 static const char METH_FILE_SIZE[] = "size";
 static const char METH_FILE_SIZE_COMPRESSED[] = "sizeCompressed";
 static const char METH_FILE_MK[] = "mkfile";
-static const char METH_GIT_PUSH[] = "addFilesToVersionControl";
+// static const char METH_GIT_PUSH[] = "addFilesToVersionControl";
 
 static std::vector<cp::MetaMethod> root_meta_methods {
 	cp::methods::DIR,
@@ -126,10 +126,10 @@ AppRootNode::AppRootNode(QObject *parent)
 	: Super(parent)
 	, m_downloadSitesTimer(this)
 {
-	if (QDir(QString::fromStdString(SitesProviderApp::instance()->cliOptions()->localSitesDir()) + "/.git").exists()) {
-		shvInfo() << "sites directory" << SitesProviderApp::instance()->cliOptions()->localSitesDir() << "identified as git repository";
-		root_meta_methods.push_back({ METH_GIT_PUSH, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Admin });
-	}
+	// if (QDir(QString::fromStdString(SitesProviderApp::instance()->cliOptions()->localSitesDir()) + "/.git").exists()) {
+	// 	shvInfo() << "sites directory" << SitesProviderApp::instance()->cliOptions()->localSitesDir() << "identified as git repository";
+	// 	root_meta_methods.push_back({ METH_GIT_PUSH, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Admin });
+	// }
 	if (SitesProviderApp::instance()->cliOptions()->syncSites()) {
 		root_meta_methods.push_back({ METH_RELOAD_SITES, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Command});
 		root_meta_methods.push_back({ METH_SITES_SYNCED_BEFORE, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Read, {{METH_SITES_RELOADED, "Null"}} });
@@ -253,21 +253,21 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 			return nullptr;
 		return static_cast<int>(m_sitesSyncedBefore.elapsed() / 1000);
 	}
-	else if (method == METH_GIT_PUSH) {
-		GitPushTask *git_task = new GitPushTask(QString::fromStdString(rq.userId().asString()), this);
-		connect(git_task, &GitPushTask::finished, [this, rq, git_task](bool success) {
-			cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
-			if (success) {
-				resp.setResult(true);
-			}
-			else {
-				resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, git_task->error().toStdString()));
-			}
-			emitSendRpcMessage(resp);
-		});
-		git_task->start();
-		return cp::RpcValue();
-	}
+	// else if (method == METH_GIT_PUSH) {
+	// 	GitPushTask *git_task = new GitPushTask(QString::fromStdString(rq.userId().asString()), this);
+	// 	connect(git_task, &GitPushTask::finished, [this, rq, git_task](bool success) {
+	// 		cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
+	// 		if (success) {
+	// 			resp.setResult(true);
+	// 		}
+	// 		else {
+	// 			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, git_task->error().toStdString()));
+	// 		}
+	// 		emitSendRpcMessage(resp);
+	// 	});
+	// 	git_task->start();
+	// 	return cp::RpcValue();
+	// }
 	else if (method == cp::Rpc::METH_LS) {
 		cp::RpcValue::List res;
 		for (const QString &s : lsNode(qshv_path)) {
