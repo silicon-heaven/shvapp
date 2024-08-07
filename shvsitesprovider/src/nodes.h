@@ -34,7 +34,6 @@ private:
 	void updateSitesTgz();
 	void createSitesTgz(std::function<void(const QByteArray &, const QString &)> callback);
 	void saveSitesTgz(const QByteArray &data) const;
-	void findDevicesToSync(const QString &shv_path, QStringList &result);
 	QStringList lsNode(const QString &shv_path);
 	bool isDevice(const QString &shv_path);
 	shv::chainpack::RpcValue metaValue(const QString &shv_path);

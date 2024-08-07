@@ -1,7 +1,6 @@
 #include "nodes.h"
 #include "gitpushtask.h"
 #include "sitesproviderapp.h"
-#include "dirsynctask.h"
 #include "appclioptions.h"
 
 #include <shv/coreqt/log.h>
@@ -41,7 +40,6 @@ static const char METH_FILE_READ[] = "read";
 static const char METH_FILE_READ_COMPRESSED[] = "readCompressed";
 static const char METH_FILE_WRITE[] = "write";
 static const char METH_FILE_HASH[] = "hash";
-static const char METH_PULL_FILES[] = "pullFilesFromDevice";
 static const char METH_FILE_SIZE[] = "size";
 static const char METH_FILE_SIZE_COMPRESSED[] = "sizeCompressed";
 static const char METH_FILE_MK[] = "mkfile";
@@ -60,20 +58,17 @@ static std::vector<cp::MetaMethod> root_meta_methods {
 	{ METH_GET_SITES, cp::MetaMethod::Flag::None, {}, "Map", shv::chainpack::AccessLevel::Read},
 	{ METH_GET_SITES_TGZ_INFO, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Read},
 	{ METH_GET_SITES_TGZ, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Read},
-	{ METH_PULL_FILES, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Write},
 };
 
 const static std::vector<cp::MetaMethod> dir_meta_methods {
 	cp::methods::DIR,
 	cp::methods::LS,
-	{ METH_PULL_FILES, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Write},
 	{ METH_GET_SITES, cp::MetaMethod::Flag::None, {}, "Map", shv::chainpack::AccessLevel::Read},
 };
 
 const static std::vector<cp::MetaMethod> device_meta_methods {
 	cp::methods::DIR,
 	cp::methods::LS,
-	{ METH_PULL_FILES, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Write},
 	{ METH_GET_SITES, cp::MetaMethod::Flag::None, {}, "Map", shv::chainpack::AccessLevel::Read},
 };
 
@@ -92,7 +87,6 @@ const static std::vector<cp::MetaMethod> device_file_dir_meta_methods {
 	cp::methods::DIR,
 	cp::methods::LS,
 	{ METH_FILE_MK, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Write },
-	{ METH_PULL_FILES, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Write},
 };
 
 const static std::vector<cp::MetaMethod> file_meta_methods {
@@ -224,34 +218,6 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 	}
 	else if (method == METH_FILE_MK) {
 		return mkFile(qshv_path, rq.params());
-	}
-	else if (method == METH_PULL_FILES) {
-		DirSyncTask *sync_task = new DirSyncTask(QString(), this);
-		if (qshv_path.endsWith('/' + FILES_NODE)) {
-			sync_task->addDir(qshv_path);
-		}
-		else if (isDevice(qshv_path)) {
-			sync_task->addDir(qshv_path + '/' + FILES_NODE);
-		}
-		else {
-			QStringList devices;
-			findDevicesToSync(qshv_path, devices);
-			for (const QString &device_path : devices) {
-				sync_task->addDir(device_path);
-			}
-		}
-		connect(sync_task, &DirSyncTask::finished, [this, rq, sync_task](bool success) {
-			cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
-			if (success) {
-				resp.setResult(sync_task->result());
-			}
-			else {
-				resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, sync_task->error()));
-			}
-			emitSendRpcMessage(resp);
-		});
-		sync_task->start();
-		return cp::RpcValue();
 	}
 	else if (method == METH_FILE_HASH) {
 		string bytes = readFile(qshv_path).toString();
@@ -468,22 +434,6 @@ void AppRootNode::createSitesTgz(std::function<void(const QByteArray &, const QS
 		callback((*data), {});
 	});
 	tar_process->start("tar", QStringList{ "--transform=s@^@sites/@", "-C", nodeLocalPath(), "-czhf", "-", "./" });
-}
-
-void AppRootNode::findDevicesToSync(const QString &shv_path, QStringList &result)
-{
-	QStringList ls_result = lsNode(shv_path);
-	for (const QString &ls_result_item : ls_result) {
-		QString new_shv_path = shv_path + '/' + ls_result_item;
-		if (ls_result_item[0] == '_') {
-			if (ls_result_item == FILES_NODE && isDevice(shv_path)) {
-				result << new_shv_path;
-			}
-		}
-		else {
-			findDevicesToSync(new_shv_path, result);
-		}
-	}
 }
 
 QStringList AppRootNode::lsNode(const QString &shv_path)
