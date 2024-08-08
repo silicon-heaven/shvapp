@@ -1,7 +1,6 @@
 #include "nodes.h"
 #include "gitpushtask.h"
 #include "sitesproviderapp.h"
-#include "dirsynctask.h"
 #include "appclioptions.h"
 
 #include <shv/coreqt/log.h>
@@ -39,13 +38,10 @@ static const char METH_SITES_SYNCED_BEFORE[] = "sitesSyncedBefore";
 static const char METH_SITES_RELOADED[] = "reloaded";
 static const char METH_FILE_READ[] = "read";
 static const char METH_FILE_READ_COMPRESSED[] = "readCompressed";
-static const char METH_FILE_WRITE[] = "write";
 static const char METH_FILE_HASH[] = "hash";
-static const char METH_PULL_FILES[] = "pullFilesFromDevice";
 static const char METH_FILE_SIZE[] = "size";
 static const char METH_FILE_SIZE_COMPRESSED[] = "sizeCompressed";
-static const char METH_FILE_MK[] = "mkfile";
-static const char METH_GIT_PUSH[] = "addFilesToVersionControl";
+// static const char METH_GIT_PUSH[] = "addFilesToVersionControl";
 
 static std::vector<cp::MetaMethod> root_meta_methods {
 	cp::methods::DIR,
@@ -60,20 +56,17 @@ static std::vector<cp::MetaMethod> root_meta_methods {
 	{ METH_GET_SITES, cp::MetaMethod::Flag::None, {}, "Map", shv::chainpack::AccessLevel::Read},
 	{ METH_GET_SITES_TGZ_INFO, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Read},
 	{ METH_GET_SITES_TGZ, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Read},
-	{ METH_PULL_FILES, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Write},
 };
 
 const static std::vector<cp::MetaMethod> dir_meta_methods {
 	cp::methods::DIR,
 	cp::methods::LS,
-	{ METH_PULL_FILES, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Write},
 	{ METH_GET_SITES, cp::MetaMethod::Flag::None, {}, "Map", shv::chainpack::AccessLevel::Read},
 };
 
 const static std::vector<cp::MetaMethod> device_meta_methods {
 	cp::methods::DIR,
 	cp::methods::LS,
-	{ METH_PULL_FILES, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Write},
 	{ METH_GET_SITES, cp::MetaMethod::Flag::None, {}, "Map", shv::chainpack::AccessLevel::Read},
 };
 
@@ -85,14 +78,11 @@ const static std::vector<cp::MetaMethod> meta_meta_methods {
 const static std::vector<cp::MetaMethod> file_dir_meta_methods {
 	cp::methods::DIR,
 	cp::methods::LS,
-	{ METH_FILE_MK, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Write },
 };
 
 const static std::vector<cp::MetaMethod> device_file_dir_meta_methods {
 	cp::methods::DIR,
 	cp::methods::LS,
-	{ METH_FILE_MK, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Write },
-	{ METH_PULL_FILES, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Write},
 };
 
 const static std::vector<cp::MetaMethod> file_meta_methods {
@@ -102,7 +92,6 @@ const static std::vector<cp::MetaMethod> file_meta_methods {
 	{METH_FILE_SIZE_COMPRESSED, cp::MetaMethod::Flag::None, "Map", "UInt", cp::AccessLevel::Browse},
 	{METH_FILE_READ, cp::MetaMethod::Flag::LargeResultHint, "Map", "Blob", cp::AccessLevel::Read},
 	{METH_FILE_READ_COMPRESSED, cp::MetaMethod::Flag::None, "Map", "Blob", cp::AccessLevel::Read},
-	{METH_FILE_WRITE, cp::MetaMethod::Flag::None, "String|List", "Bool", cp::AccessLevel::Write},
 	{METH_FILE_HASH, cp::MetaMethod::Flag::None, "Map", "String", cp::AccessLevel::Read},
 };
 
@@ -132,10 +121,10 @@ AppRootNode::AppRootNode(QObject *parent)
 	: Super(parent)
 	, m_downloadSitesTimer(this)
 {
-	if (QDir(QString::fromStdString(SitesProviderApp::instance()->cliOptions()->localSitesDir()) + "/.git").exists()) {
-		shvInfo() << "sites directory" << SitesProviderApp::instance()->cliOptions()->localSitesDir() << "identified as git repository";
-		root_meta_methods.push_back({ METH_GIT_PUSH, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Admin });
-	}
+	// if (QDir(QString::fromStdString(SitesProviderApp::instance()->cliOptions()->localSitesDir()) + "/.git").exists()) {
+	// 	shvInfo() << "sites directory" << SitesProviderApp::instance()->cliOptions()->localSitesDir() << "identified as git repository";
+	// 	root_meta_methods.push_back({ METH_GIT_PUSH, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Admin });
+	// }
 	if (SitesProviderApp::instance()->cliOptions()->syncSites()) {
 		root_meta_methods.push_back({ METH_RELOAD_SITES, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Command});
 		root_meta_methods.push_back({ METH_SITES_SYNCED_BEFORE, cp::MetaMethod::Flag::None, {}, "RpcValue", shv::chainpack::AccessLevel::Read, {{METH_SITES_RELOADED, "Null"}} });
@@ -216,43 +205,6 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 	else if (method == METH_FILE_SIZE_COMPRESSED) {
 		return readFileCompressed(rq).asData().second;
 	}
-	else if (method == METH_FILE_WRITE) {
-		cp::RpcValue params = rq.params();
-		if(!params.isString())
-			throw shv::core::Exception("Content must be string.");
-		return writeFile(qshv_path, params.asString());
-	}
-	else if (method == METH_FILE_MK) {
-		return mkFile(qshv_path, rq.params());
-	}
-	else if (method == METH_PULL_FILES) {
-		DirSyncTask *sync_task = new DirSyncTask(QString(), this);
-		if (qshv_path.endsWith('/' + FILES_NODE)) {
-			sync_task->addDir(qshv_path);
-		}
-		else if (isDevice(qshv_path)) {
-			sync_task->addDir(qshv_path + '/' + FILES_NODE);
-		}
-		else {
-			QStringList devices;
-			findDevicesToSync(qshv_path, devices);
-			for (const QString &device_path : devices) {
-				sync_task->addDir(device_path);
-			}
-		}
-		connect(sync_task, &DirSyncTask::finished, [this, rq, sync_task](bool success) {
-			cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
-			if (success) {
-				resp.setResult(sync_task->result());
-			}
-			else {
-				resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, sync_task->error()));
-			}
-			emitSendRpcMessage(resp);
-		});
-		sync_task->start();
-		return cp::RpcValue();
-	}
 	else if (method == METH_FILE_HASH) {
 		string bytes = readFile(qshv_path).toString();
 		QCryptographicHash h(QCryptographicHash::Sha1);
@@ -287,21 +239,21 @@ cp::RpcValue AppRootNode::callMethodRq(const cp::RpcRequest &rq)
 			return nullptr;
 		return static_cast<int>(m_sitesSyncedBefore.elapsed() / 1000);
 	}
-	else if (method == METH_GIT_PUSH) {
-		GitPushTask *git_task = new GitPushTask(QString::fromStdString(rq.userId().asString()), this);
-		connect(git_task, &GitPushTask::finished, [this, rq, git_task](bool success) {
-			cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
-			if (success) {
-				resp.setResult(true);
-			}
-			else {
-				resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, git_task->error().toStdString()));
-			}
-			emitSendRpcMessage(resp);
-		});
-		git_task->start();
-		return cp::RpcValue();
-	}
+	// else if (method == METH_GIT_PUSH) {
+	// 	GitPushTask *git_task = new GitPushTask(QString::fromStdString(rq.userId().asString()), this);
+	// 	connect(git_task, &GitPushTask::finished, [this, rq, git_task](bool success) {
+	// 		cp::RpcResponse resp = cp::RpcResponse::forRequest(rq);
+	// 		if (success) {
+	// 			resp.setResult(true);
+	// 		}
+	// 		else {
+	// 			resp.setError(cp::RpcResponse::Error::create(cp::RpcResponse::Error::MethodCallException, git_task->error().toStdString()));
+	// 		}
+	// 		emitSendRpcMessage(resp);
+	// 	});
+	// 	git_task->start();
+	// 	return cp::RpcValue();
+	// }
 	else if (method == cp::Rpc::METH_LS) {
 		cp::RpcValue::List res;
 		for (const QString &s : lsNode(qshv_path)) {
@@ -468,22 +420,6 @@ void AppRootNode::createSitesTgz(std::function<void(const QByteArray &, const QS
 		callback((*data), {});
 	});
 	tar_process->start("tar", QStringList{ "--transform=s@^@sites/@", "-C", nodeLocalPath(), "-czhf", "-", "./" });
-}
-
-void AppRootNode::findDevicesToSync(const QString &shv_path, QStringList &result)
-{
-	QStringList ls_result = lsNode(shv_path);
-	for (const QString &ls_result_item : ls_result) {
-		QString new_shv_path = shv_path + '/' + ls_result_item;
-		if (ls_result_item[0] == '_') {
-			if (ls_result_item == FILES_NODE && isDevice(shv_path)) {
-				result << new_shv_path;
-			}
-		}
-		else {
-			findDevicesToSync(new_shv_path, result);
-		}
-	}
 }
 
 QStringList AppRootNode::lsNode(const QString &shv_path)
@@ -682,22 +618,6 @@ shv::chainpack::RpcValue AppRootNode::readFile(const QString &shv_path)
 		return file_content.toStdString();
 }
 
-shv::chainpack::RpcValue AppRootNode::writeFile(const QString &shv_path, const string &content)
-{
-	QString filename = nodeLocalPath(shv_path);
-	QStringList shv_path_parts = shv_path.split('/');
-	QString dirname = shv_path_parts.mid(0, shv_path_parts.count() - 1).join('/');
-	if (!QDir(dirname).exists()) {
-		QDir(nodeLocalPath(QString())).mkpath(dirname);
-	}
-	QFile f(filename);
-	if (!f.open(QFile::WriteOnly)) {
-		throw shv::coreqt::Exception("Cannot open file '" + shv_path + "' for writing.");
-	}
-	qint64 n = f.write(content.data(), content.size());
-	return n >= 0;
-}
-
 shv::chainpack::RpcValue AppRootNode::readFileCompressed(const shv::chainpack::RpcRequest &request)
 {
 	const std::string compression_type_str = request.params().asMap().value("compressionType").toString();
@@ -714,31 +634,6 @@ shv::chainpack::RpcValue AppRootNode::readFileCompressed(const shv::chainpack::R
 	}
 
 	return result;
-}
-
-shv::chainpack::RpcValue AppRootNode::mkFile(const QString &shv_path, const shv::chainpack::RpcValue &params)
-{
-	std::string error;
-	QString file_name;
-	bool has_content = false;
-	if (params.isString()) {
-		file_name = params.to<QString>();
-
-	}
-	else if(params.isList()) {
-		const cp::RpcValue::List &lst = params.asList();
-		if (lst.size() != 2)
-			throw shv::core::Exception("Invalid params, [\"name\", \"content\"] expected.");
-		file_name = lst[0].to<QString>();
-		has_content = true;
-	}
-	if (file_name.isEmpty())
-		throw shv::core::Exception("File name is empty.");
-	QString file_path = shv_path + '/' + file_name;
-	if(has_content)
-		return writeFile(file_path, params.asList()[1].toString());
-	else
-		return writeFile(file_path, "");
 }
 
 QString AppRootNode::nodeFilesPath(const QString &shv_path) const
