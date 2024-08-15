@@ -98,7 +98,8 @@ LeafNode::LeafNode(const std::string& node_id, const std::string& journal_cache_
 			journalDebug() << "Retrieving" << type_info_path;
 			auto* read_call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
 				->setShvPath(type_info_path)
-				->setMethod("read");
+				->setMethod("read")
+				->setTimeout(10000);
 			connect(read_call, &shv::iotqt::rpc::RpcCall::error, this, [this, read_call, type_info_path] (const shv::chainpack::RpcError& read_error) {
 				read_call->deleteLater();
 				journalDebug() << "Retrieving" << type_info_path << "failed:" << read_error.toString();
