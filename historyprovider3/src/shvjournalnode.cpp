@@ -462,7 +462,7 @@ private:
 			->setShvPath(slave_hp_path)
 			->setMethod("getLog")
 			->setParams(get_log_params.toRpcValue())
-			->setTimeout(10000);
+			->setTimeout(60000);
 		call->setParent(node);
 		call->start();
 		connect(call, &shv::iotqt::rpc::RpcCall::maybeResult, [this] (const auto& result, const auto& error) {
