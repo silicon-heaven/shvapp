@@ -689,7 +689,8 @@ public:
 				auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
 					->setShvPath(sites_log_file)
 					->setMethod("read")
-					->setParams(cp::RpcValue::Map{{"offset", cp::RpcValue::Int(local_size)}});
+					->setParams(cp::RpcValue::Map{{"offset", cp::RpcValue::Int(local_size)}})
+					->setTimeout(60000);
 				QtFuture::connect(call, &shv::iotqt::rpc::RpcCall::maybeResult).then([this, slave_hp_path, sites_log_file, full_file_name] (const std::tuple<shv::chainpack::RpcValue, shv::chainpack::RpcError>& result_or_error) {
 					auto [result, retrieve_error] = result_or_error;
 					auto msg = sites_log_file.toStdString() + ": ";
