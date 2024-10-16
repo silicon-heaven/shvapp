@@ -79,8 +79,30 @@ auto get_changed_alarms(const auto& alarms, const auto& type_info, const auto& s
 	}
 
 	return changed_alarms;
-};
+}
 
+auto update_alarms(auto& alarms, const auto& type_info, const auto& shv_path, const auto& value, const auto& timestamp)
+{
+	auto changed_alarms = get_changed_alarms(alarms, type_info, shv_path, value);
+	if (changed_alarms.empty()) {
+		return;
+	}
+
+	for (const auto& changed_alarm : changed_alarms) {
+		auto to_erase = std::ranges::remove_if(alarms, [&changed_alarm] (const auto& alarm_with_ts) {
+			return alarm_with_ts.alarm.path() == changed_alarm.path();
+		});
+
+		alarms.erase(to_erase.begin(), to_erase.end());
+
+		if (changed_alarm.isActive()) {
+			alarms.emplace_back(LeafNode::AlarmWithTimestamp{
+				.alarm = changed_alarm,
+				.timestamp = timestamp
+			});
+		}
+	}
+}
 
 LeafNode::LeafNode(const std::string& node_id, const std::string& journal_cache_dir, LogType log_type, ShvNode* parent)
 	: Super(node_id, parent)
@@ -134,27 +156,8 @@ LeafNode::LeafNode(const std::string& node_id, const std::string& journal_cache_
 					return;
 				}
 
-				auto update_alarms = [this] (const auto& shv_path, const auto& value, const auto& timestamp) {
-					auto changed_alarms = get_changed_alarms(m_alarms, m_typeInfo, shv_path, value);
-					if (changed_alarms.empty()) {
-						return;
-					}
-
-					for (const auto& changed_alarm : changed_alarms) {
-						auto to_erase = std::ranges::remove_if(m_alarms, [&changed_alarm] (const auto& alarm_with_ts) {
-							return alarm_with_ts.alarm.path() == changed_alarm.path();
-						});
-
-						m_alarms.erase(to_erase.begin(), to_erase.end());
-
-						if (changed_alarm.isActive()) {
-							m_alarms.emplace_back(AlarmWithTimestamp{
-								.alarm = changed_alarm,
-								.timestamp = timestamp
-							});
-						}
-
-					}
+				auto update_alarms_and_overall_alarm = [this] (const auto& shv_path, const auto& value, const auto& timestamp) {
+					update_alarms(m_alarms, m_typeInfo, shv_path, value, timestamp);
 
 					std::ranges::sort(m_alarms, std::less<shv::core::utils::ShvAlarm::Severity>{}, [] (const auto& alarm_with_ts) {return alarm_with_ts.alarm.severity();});
 					HistoryApp::instance()->rpcConnection()->sendShvSignal(shvPath(), M_ALARM_MOD);
@@ -166,7 +169,7 @@ LeafNode::LeafNode(const std::string& node_id, const std::string& journal_cache_
 					}
 				};
 
-				connect(HistoryApp::instance()->valueCacheNode(), &ValueCacheNode::valueChanged, this, [update_alarms, node_path = shvPath() + "/"] (const std::string& path, const shv::chainpack::RpcValue& value) {
+				connect(HistoryApp::instance()->valueCacheNode(), &ValueCacheNode::valueChanged, this, [update_alarms_and_overall_alarm, node_path = shvPath() + "/"] (const std::string& path, const shv::chainpack::RpcValue& value) {
 					// Event paths come in full, so we need to strip the "shv/" prefix and the site prefix. What's left
 					// is the device path (the one in typeInfo).
 					assert(path.starts_with("shv/"));
@@ -175,7 +178,7 @@ LeafNode::LeafNode(const std::string& node_id, const std::string& journal_cache_
 						return;
 					}
 					auto path_without_site_prefix = path_without_shv_prefix.substr(node_path.size());
-					update_alarms(path_without_site_prefix, value, cp::RpcValue::DateTime::now());
+					update_alarms_and_overall_alarm(path_without_site_prefix, value, cp::RpcValue::DateTime::now());
 				});
 
 				shv::core::utils::ShvGetLogParams params;
@@ -185,7 +188,7 @@ LeafNode::LeafNode(const std::string& node_id, const std::string& journal_cache_
 				auto now = cp::RpcValue::DateTime::now();
 				while (snapshot.next()) {
 					auto entry = snapshot.entry();
-					update_alarms(entry.path, entry.value, now);
+					update_alarms_and_overall_alarm(entry.path, entry.value, now);
 				}
 				auto elapsed_ms = alarm_load_timer.elapsed();
 				if (elapsed_ms > 5000) {
