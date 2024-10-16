@@ -62,6 +62,26 @@ shv::chainpack::RpcValue LeafNode::AlarmWithTimestamp::toRpcValue() const
 	return res;
 }
 
+auto get_changed_alarms(const auto& alarms, const auto& type_info, const auto& shv_path, const auto& value)
+{
+	std::vector<shv::core::utils::ShvAlarm> changed_alarms;
+	for (const auto &alarm : shv::core::utils::ShvAlarm::checkAlarms(std::get<shv::core::utils::ShvTypeInfo>(type_info), shv_path, value)) {
+		if ([&alarms, alarm] {
+				if (!alarm.isActive()) {
+					// If the alarm is not active, we'll try to find a current active one with the same path.
+					return std::ranges::find(alarms, alarm.path(), [] (const auto& alarm_with_ts) {return alarm_with_ts.alarm.path();}) != alarms.end();
+				}
+				// If it is active, we'll look into whether there already is an identical one.
+				return std::ranges::find(alarms, alarm, &LeafNode::AlarmWithTimestamp::alarm) == alarms.end();
+			} ()) {
+			changed_alarms.push_back(alarm);
+		}
+	}
+
+	return changed_alarms;
+};
+
+
 LeafNode::LeafNode(const std::string& node_id, const std::string& journal_cache_dir, LogType log_type, ShvNode* parent)
 	: Super(node_id, parent)
 	, m_journalCacheDir(journal_cache_dir)
@@ -113,21 +133,9 @@ LeafNode::LeafNode(const std::string& node_id, const std::string& journal_cache_
 					journalDebug() << "Couldn't parse typeinfo for" << type_info_path << error;
 					return;
 				}
-				auto update_alarms = [this] (const auto& shv_path, const auto& value, const auto& timestamp) {
-					std::vector<shv::core::utils::ShvAlarm> changed_alarms;
-					for (const auto &alarm : shv::core::utils::ShvAlarm::checkAlarms(std::get<shv::core::utils::ShvTypeInfo>(m_typeInfo), shv_path, value)) {
-						if ([this, alarm] {
-								if (!alarm.isActive()) {
-									// If the alarm is not active, we'll try to find a current active one with the same path.
-									return std::ranges::find(m_alarms, alarm.path(), [] (const auto& alarm_with_ts) {return alarm_with_ts.alarm.path();}) != m_alarms.end();
-								}
-								// If it is active, we'll look into whether there already is an identical one.
-								return std::ranges::find(m_alarms, alarm, &AlarmWithTimestamp::alarm) == m_alarms.end();
-							} ()) {
-							changed_alarms.push_back(alarm);
-						}
-					}
 
+				auto update_alarms = [this] (const auto& shv_path, const auto& value, const auto& timestamp) {
+					auto changed_alarms = get_changed_alarms(m_alarms, m_typeInfo, shv_path, value);
 					if (changed_alarms.empty()) {
 						return;
 					}
