@@ -81,9 +81,8 @@ auto get_changed_alarms(const auto& alarms, const auto& type_info, const auto& s
 	return changed_alarms;
 }
 
-auto update_alarms(auto& alarms, const auto& type_info, const auto& shv_path, const auto& value, const auto& timestamp)
+auto update_alarms(auto& alarms, const auto& changed_alarms, const auto& timestamp)
 {
-	auto changed_alarms = get_changed_alarms(alarms, type_info, shv_path, value);
 	if (changed_alarms.empty()) {
 		return;
 	}
@@ -157,7 +156,7 @@ LeafNode::LeafNode(const std::string& node_id, const std::string& journal_cache_
 				}
 
 				auto update_alarms_and_overall_alarm = [this] (const auto& shv_path, const auto& value, const auto& timestamp) {
-					update_alarms(m_alarms, m_typeInfo, shv_path, value, timestamp);
+					update_alarms(m_alarms, get_changed_alarms(m_alarms, m_typeInfo, shv_path, value), timestamp);
 
 					std::ranges::sort(m_alarms, std::less<shv::core::utils::ShvAlarm::Severity>{}, [] (const auto& alarm_with_ts) {return alarm_with_ts.alarm.severity();});
 					HistoryApp::instance()->rpcConnection()->sendShvSignal(shvPath(), M_ALARM_MOD);
