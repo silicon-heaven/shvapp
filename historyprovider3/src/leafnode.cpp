@@ -58,7 +58,7 @@ std::vector<shv::core::utils::ShvAlarm> LeafNode::alarms() const
 shv::chainpack::RpcValue LeafNode::AlarmWithTimestamp::toRpcValue() const
 {
 	auto res = this->alarm.toRpcValue().asMap();
-	res.emplace("firstSeen", firstSeen);
+	res.emplace("timestamp", timestamp);
 	return res;
 }
 
@@ -142,7 +142,7 @@ LeafNode::LeafNode(const std::string& node_id, const std::string& journal_cache_
 						if (changed_alarm.isActive()) {
 							m_alarms.emplace_back(AlarmWithTimestamp{
 								.alarm = changed_alarm,
-								.firstSeen = timestamp
+								.timestamp = timestamp
 							});
 						}
 
