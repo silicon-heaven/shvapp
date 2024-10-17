@@ -1,6 +1,18 @@
 #include "mockrpcconnection.h"
 #include "src/historyapp.h"
 
+#include <shv/iotqt/rpc/socket.h>
+
+
+class MockSocket : public shv::iotqt::rpc::TcpSocket {
+public:
+	using shv::iotqt::rpc::TcpSocket::TcpSocket;
+	QAbstractSocket::SocketState state() const override
+	{
+		return QAbstractSocket::ConnectedState;
+	}
+};
+
 shv::chainpack::RpcValue make_sub_params(const std::string& path, const std::string& method)
 {
 	return shv::chainpack::RpcValue::fromCpon(R"({"method":")" + method + R"(","path":")" + path + R"(","source": ""})");
@@ -116,6 +128,7 @@ MockRpcConnection::MockRpcConnection(const QQueue<std::function<CallNext(MockRpc
 	: shv::iotqt::rpc::DeviceConnection(nullptr)
 	, m_testDriver(test_driver)
 {
+	setSocket(new MockSocket(new QTcpSocket(), this));
 	connect(this, &MockRpcConnection::handleNextMessage, this, &MockRpcConnection::advanceTest, Qt::QueuedConnection);
 }
 
