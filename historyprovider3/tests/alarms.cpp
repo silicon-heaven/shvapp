@@ -12,9 +12,9 @@
 #include <shv/core/utils/shvlogrpcvaluereader.h>
 using Severity = shv::core::utils::ShvAlarm::Severity;
 
-shv::core::utils::ShvAlarm make_alarm(const std::string& path, shv::core::utils::ShvAlarm::Severity severity = shv::core::utils::ShvAlarm::Severity::Error)
+shv::core::utils::ShvAlarm make_alarm(const std::string& path, shv::core::utils::ShvAlarm::Severity severity = shv::core::utils::ShvAlarm::Severity::Error, bool is_active = true)
 {
-	return shv::core::utils::ShvAlarm(path, true, severity, 0, "Alarm 1", "Alarm 1 label");
+	return shv::core::utils::ShvAlarm(path, is_active, severity, 0, "Alarm 1", "Alarm 1 label");
 }
 
 QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
@@ -443,6 +443,60 @@ QQueue<std::function<CallNext(MockRpcConnection*)>> setup_test()
 				REQUIRE(HistoryApp::instance()->leafNode("some_site")->alarms() == std::vector<shv::core::utils::ShvAlarm>{
 					make_alarm("one/status/some_alarm_name")
 				});
+			});
+		}
+
+		DOCTEST_SUBCASE("alarmLog") {
+			const auto snapshot =
+				R"(2022-07-07T18:06:17.784Z	809781	one/status	1		chng	2	)""\n"
+				R"(2022-07-07T18:06:20.784Z	809781	one/status	0		chng	2	)""\n"
+				R"(2022-07-07T18:06:23.784Z	809781	one/status	1		chng	2	)""\n"
+				;
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				create_dummy_cache_files("some_site", {
+					{"2022-07-06T18-06-15-000.log2", snapshot}
+				});
+				SEND_SITES_YIELD(mock_sites::some_site);
+			});
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				ENABLE_TYPEINFO("some_site");
+			});
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				EXPECT_SUBSCRIPTION_YIELD("shv", "mntchng");
+			});
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				EXPECT_SUBSCRIPTION_YIELD("shv/some_site", "chng");
+			});
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				EXPECT_SUBSCRIPTION("shv/some_site", "cmdlog");
+			});
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				SEND_TYPEINFO_YIELD("some_site", mock_typeinfo::one_device);
+			});
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				EXPECT_SIGNAL("some_site", "alarmmod");
+			});
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				EXPECT_SIGNAL("some_site:overallAlarm", "chng", static_cast<int>(Severity::Error));
+				REQUIRE(HistoryApp::instance()->leafNode("some_site")->alarms() == std::vector<shv::core::utils::ShvAlarm>{
+					make_alarm("one/status/some_alarm_name")
+				});
+
+				REQUEST_YIELD("some_site", "alarmLog", RpcValue::Map{
+					{"since", RpcValue::DateTime::fromUtcString("2022-07-07T18:06:17.784Z")},
+					{"until", RpcValue::DateTime::fromUtcString("2022-07-07T18:06:30.784Z")}
+				});
+			});
+			enqueue(res, [=] (MockRpcConnection* mock) {
+				auto expected = RpcValue::Map{
+					{"snapshot", RpcValue::List{
+						LeafNode::AlarmWithTimestamp{make_alarm("one/status/some_alarm_name"), RpcValue::DateTime::fromUtcString("2022-07-07T18:06:17.784Z")}.toRpcValue() }},
+					{"events", RpcValue::List{
+						LeafNode::AlarmWithTimestamp{make_alarm("one/status/some_alarm_name", Severity::Error, false), RpcValue::DateTime::fromUtcString("2022-07-07T18:06:20.784Z")}.toRpcValue(),
+						LeafNode::AlarmWithTimestamp{make_alarm("one/status/some_alarm_name", Severity::Error, true), RpcValue::DateTime::fromUtcString("2022-07-07T18:06:23.784Z")}.toRpcValue()
+					}}
+				};
+				EXPECT_RESPONSE(expected);
 			});
 		}
 	}

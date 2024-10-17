@@ -24,7 +24,7 @@ public:
 
 	struct AlarmWithTimestamp {
 		shv::core::utils::ShvAlarm alarm;
-		shv::chainpack::RpcValue::DateTime firstSeen;
+		shv::chainpack::RpcValue::DateTime timestamp;
 		shv::chainpack::RpcValue toRpcValue() const;
 	};
 
