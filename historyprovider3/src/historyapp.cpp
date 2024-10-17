@@ -341,7 +341,6 @@ QFuture<void> HistoryApp::initializeShvTree()
 	auto call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
 		->setShvPath("sites")
 		->setMethod("getSites");
-	call->start();
 
 	QPromise<void> promise;
 	promise.start();
@@ -381,6 +380,7 @@ QFuture<void> HistoryApp::initializeShvTree()
 
 		promise.finish();
 	});
+	call->start();
 
 	return future;
 }
