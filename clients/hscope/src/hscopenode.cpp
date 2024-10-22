@@ -50,7 +50,7 @@ void RpcValueNode::setValue(const shv::chainpack::RpcValue& value)
 	cp::RpcSignal ntf;
 	ntf.setMethod(cp::Rpc::SIG_VAL_CHANGED);
 	ntf.setParams((m_value));
-	ntf.setShvPath(shvPath());
+	ntf.setShvPath(shvPath().asString());
 	emitSendRpcMessage(ntf);
 }
 

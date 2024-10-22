@@ -115,7 +115,7 @@ LeafNode::LeafNode(const std::string& node_id, const std::string& journal_cache_
 	if (m_logType != LogType::PushLog) {
 		QElapsedTimer alarm_load_timer;
 		alarm_load_timer.start();
-		const auto files_path = shv::core::utils::joinPath("sites", shvPath(), "_files");
+		const auto files_path = shv::core::utils::joinPath("sites", shvPath().asString(), "_files");
 		auto* ls_call = shv::iotqt::rpc::RpcCall::create(HistoryApp::instance()->rpcConnection())
 			->setShvPath(files_path)
 			->setMethod("ls");
@@ -166,16 +166,16 @@ LeafNode::LeafNode(const std::string& node_id, const std::string& journal_cache_
 					update_alarms(m_alarms, changed_alarms, timestamp);
 
 					std::ranges::sort(m_alarms, std::less<shv::core::utils::ShvAlarm::Severity>{}, [] (const auto& alarm_with_ts) {return alarm_with_ts.alarm.severity();});
-					HistoryApp::instance()->rpcConnection()->sendShvSignal(shvPath(), M_ALARM_MOD);
+					HistoryApp::instance()->rpcConnection()->sendShvSignal(shvPath().asString(), M_ALARM_MOD);
 
 					auto new_overall_alarm = m_alarms.empty() ? shv::core::utils::ShvAlarm::Severity::Invalid : m_alarms.front().alarm.severity();
 					if (new_overall_alarm != m_overallAlarm) {
 						m_overallAlarm = new_overall_alarm;
-						HistoryApp::instance()->rpcConnection()->sendShvSignal(shvPath() + ":" +  M_OVERALL_ALARM, cp::Rpc::SIG_VAL_CHANGED, static_cast<int>(m_overallAlarm));
+						HistoryApp::instance()->rpcConnection()->sendShvSignal(shvPath().asString() + ":" +  M_OVERALL_ALARM, cp::Rpc::SIG_VAL_CHANGED, static_cast<int>(m_overallAlarm));
 					}
 				};
 
-				connect(HistoryApp::instance()->valueCacheNode(), &ValueCacheNode::valueChanged, this, [update_alarms_and_overall_alarm, node_path = shvPath() + "/"] (const std::string& path, const shv::chainpack::RpcValue& value) {
+				connect(HistoryApp::instance()->valueCacheNode(), &ValueCacheNode::valueChanged, this, [update_alarms_and_overall_alarm, node_path = shvPath().asString() + "/"] (const std::string& path, const shv::chainpack::RpcValue& value) {
 					// Event paths come in full, so we need to strip the "shv/" prefix and the site prefix. What's left
 					// is the device path (the one in typeInfo).
 					assert(path.starts_with("shv/"));
@@ -342,7 +342,7 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 			logger << (msg); \
 			m_pushLogDebugLog.emplace_back(shv::chainpack::RpcValue::List{shv::chainpack::RpcValue::DateTime::now(), (msg)});
 
-		log_pushlog(journalInfo(), "Got pushLog at " + shvPath());
+		log_pushlog(journalInfo(), "Got pushLog at " + shvPath().asString());
 
 		shv::core::utils::ShvLogRpcValueReader reader(params);
 		QDir cache_dir(QString::fromStdString(m_journalCacheDir));
@@ -375,12 +375,12 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 			auto entry = reader.entry();
 			remote_entries_count++;
 			if (entry.epochMsec < local_newest_entry_ms) {
-				log_pushlog(shvWarning(), "Rejecting push log entry for: " + shvPath() + " with timestamp: " + entry.dateTime().toIsoString() + " because a newer one already exists: " + local_newest_entry_str);
+				log_pushlog(shvWarning(), "Rejecting push log entry for: " + shvPath().asString() + " with timestamp: " + entry.dateTime().toIsoString() + " because a newer one already exists: " + local_newest_entry_str);
 				continue;
 			}
 
 			if (entry.epochMsec == local_newest_entry_ms && std::find(local_newest_entry_paths.begin(), local_newest_entry_paths.end(), entry.path) != local_newest_entry_paths.end()) {
-				log_pushlog(shvWarning(), "Rejecting push log entry for: " + shvPath() + " with timestamp: " + entry.dateTime().toIsoString() + " and path: " + entry.path + " because we already have an entry with this timestamp and path");
+				log_pushlog(shvWarning(), "Rejecting push log entry for: " + shvPath().asString() + " with timestamp: " + entry.dateTime().toIsoString() + " and path: " + entry.path + " because we already have an entry with this timestamp and path");
 				continue;
 			}
 
@@ -388,7 +388,7 @@ shv::chainpack::RpcValue LeafNode::callMethod(const StringViewList& shv_path, co
 			written_entries_count++;
 		}
 
-		log_pushlog(journalInfo(), "Got " + std::to_string(remote_entries_count) + " entries (" + std::to_string(remote_entries_count - written_entries_count) + " were rejected) from pushLog at " + shvPath());
+		log_pushlog(journalInfo(), "Got " + std::to_string(remote_entries_count) + " entries (" + std::to_string(remote_entries_count - written_entries_count) + " were rejected) from pushLog at " + shvPath().asString());
 
 		// The output file is always created by the writer. If we didn't manage to write any entries, we'll remove the
 		// file.

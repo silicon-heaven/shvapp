@@ -56,7 +56,7 @@ shv::chainpack::RpcValue TesterPropertyNode::callMethod(const shv::iotqt::node::
 				cp::RpcSignal ntf;
 				ntf.setMethod(cp::Rpc::SIG_VAL_CHANGED);
 				ntf.setParams(m_dataChange.toRpcValue());
-				ntf.setShvPath(shvPath());
+				ntf.setShvPath(shvPath().asString());
 				//shvInfo() << "LublicatorPropertyValueChanged:" << ntf.toCpon();
 				rootNode()->emitSendRpcMessage(ntf);
 			}

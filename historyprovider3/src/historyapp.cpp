@@ -115,7 +115,7 @@ cp::RpcValue AppRootNode::callMethod(const StringViewList& shv_path, const std::
 
 LeafNode* HistoryApp::leafNode(const std::string& path)
 {
-	auto it = std::ranges::find(m_leafNodes, path, &shv::iotqt::node::ShvNode::shvPath);
+	auto it = std::ranges::find(m_leafNodes, path, [] (const auto& node) { return node->shvPath().asString(); });
 	if (it == m_leafNodes.end()) {
 		throw std::logic_error("LeafNode " + path + " not found");
 	}
@@ -211,7 +211,7 @@ void createTree(shv::iotqt::node::ShvNode* parent_node, const cp::RpcValue::Map&
 			node = new shv::iotqt::node::ShvNode(node_name.toStdString(), parent_node);
 		}
 
-		auto log_source_shv_path = shv::core::utils::joinPath(std::string{"shv"}, node->shvPath());
+		auto log_source_shv_path = shv::core::utils::joinPath(std::string{"shv"}, node->shvPath().asString());
 		if (is_leaf) {
 			leaf_nodes.insert(log_source_shv_path);
 		}

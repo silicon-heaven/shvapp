@@ -986,7 +986,7 @@ void HolyScopeApp::resolveConfTree(const QDir& dir, shv::iotqt::node::ShvNode* p
 	auto new_node = new HscopeNode(dir.dirName().toStdString(), parent);
 	auto node_path = new_node->shvPath();
 
-	lua_pushlstring(m_state, node_path.c_str(), node_path.size());
+	lua_pushlstring(m_state, node_path.asString().c_str(), node_path.asString().size());
 	// -3) parent environment
 	// -2) new environment
 	// -1) path
