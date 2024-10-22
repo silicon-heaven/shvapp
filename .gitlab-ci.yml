@@ -28,7 +28,7 @@ linux:
 
 linux-qt6-docker:
   tags:
-    - linux
+    - eline-docker
   stage:
     build
   rules:
@@ -82,7 +82,7 @@ production-deploy:
   only:
     - production
   tags:
-    - linux
+    - linux-fast-jobs-only
   stage:
     deploy
   script:
@@ -103,7 +103,7 @@ test-deploy:
   only:
     - test
   tags:
-    - linux
+    - linux-fast-jobs-only
   stage:
     deploy
   script:
